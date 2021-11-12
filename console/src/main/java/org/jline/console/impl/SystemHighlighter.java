@@ -38,6 +38,7 @@ public class SystemHighlighter extends DefaultHighlighter {
     protected final SyntaxHighlighter langHighlighter;
     protected final SystemRegistry systemRegistry;
     protected final Map<String, FileHighlightCommand> fileHighlight = new HashMap<>();
+    private int  commandIndex;
 
     public SystemHighlighter(SyntaxHighlighter commandHighlighter, SyntaxHighlighter argsHighlighter
             , SyntaxHighlighter langHighlighter) {
@@ -71,7 +72,9 @@ public class SystemHighlighter extends DefaultHighlighter {
     protected AttributedString systemHighlight(LineReader reader, String buffer) {
         AttributedString out;
         Parser parser = reader.getParser();
-        String command = parser.getCommand(buffer);
+        ParsedLine pl = parser.parse(buffer, 0, Parser.ParseContext.COMPLETE);
+        String command = pl.words().size() > 0 ? parser.getCommand(pl.words().get(0)) : "";
+        commandIndex = buffer.indexOf(command);
         if (buffer.trim().isEmpty()) {
             out = new AttributedStringBuilder().append(buffer).toAttributedString();
         } else if (fileHighlight.containsKey(command)) {
@@ -81,10 +84,10 @@ public class SystemHighlighter extends DefaultHighlighter {
             } else {
                 out = doFileOptsHighlight(reader, buffer, fhc);
             }
-        } else if (systemRegistry.isCommandOrScript(command) || systemRegistry.isCommandAlias(command)) {
+        } else if (systemRegistry.isCommandOrScript(command) || systemRegistry.isCommandAlias(command) || command.isEmpty()) {
             out = doCommandHighlight(buffer);
         } else if (langHighlighter != null) {
-            out = langHighlighter.highlight(buffer);
+            out = langHighlighter.reset().highlight(buffer);
         } else {
             out = new AttributedStringBuilder().append(buffer).toAttributedString();
         }
@@ -92,18 +95,17 @@ public class SystemHighlighter extends DefaultHighlighter {
     }
 
     protected AttributedString doFileOptsHighlight(LineReader reader, String buffer, FileHighlightCommand fhc) {
-        int idx0 = commandIndex(buffer);
         AttributedStringBuilder asb = new AttributedStringBuilder();
-        if (idx0 < 0) {
+        if (commandIndex < 0) {
             highlightCommand(buffer, asb);
         } else {
-            highlightCommand(buffer.substring(0, idx0), asb);
+            highlightCommand(buffer.substring(0, commandIndex), asb);
             ParsedLine parsedLine = reader.getParser().parse(buffer, buffer.length() + 1, Parser.ParseContext.COMPLETE);
             List<String> words = parsedLine.words();
             if (!fhc.isSubcommand() || (words.size() > 2 && fhc.getSubcommand().equals(words.get(1)))) {
                 int firstArg = fhc.isSubcommand() ? 1 : 0;
                 int idx = buffer.indexOf(words.get(firstArg)) + words.get(firstArg).length() + 1;
-                highlightArgs(buffer.substring(idx0, idx), asb);
+                highlightArgs(buffer.substring(commandIndex, idx), asb);
                 boolean fileOption = false;
                 for (int i = firstArg + 1; i < words.size(); i++) {
                     int nextIdx = buffer.substring(idx).indexOf(words.get(i)) + idx;
@@ -126,25 +128,24 @@ public class SystemHighlighter extends DefaultHighlighter {
                     idx = nextIdx + word.length();
                 }
             } else {
-                highlightArgs(buffer.substring(idx0), asb);
+                highlightArgs(buffer.substring(commandIndex), asb);
             }
         }
         return asb.toAttributedString();
     }
 
     protected AttributedString doFileArgsHighlight(LineReader reader, String buffer, FileHighlightCommand fhc) {
-        int idx0 = commandIndex(buffer);
         AttributedStringBuilder asb = new AttributedStringBuilder();
-        if (idx0 < 0) {
+        if (commandIndex < 0) {
             highlightCommand(buffer, asb);
         } else {
-            highlightCommand(buffer.substring(0, idx0), asb);
+            highlightCommand(buffer.substring(0, commandIndex), asb);
             ParsedLine parsedLine = reader.getParser().parse(buffer, buffer.length() + 1, Parser.ParseContext.COMPLETE);
             List<String> words = parsedLine.words();
             if (!fhc.isSubcommand() || (words.size() > 2 && fhc.getSubcommand().equals(words.get(1)))) {
                 int firstArg = fhc.isSubcommand() ? 1 : 0;
                 int idx = buffer.indexOf(words.get(firstArg)) + words.get(firstArg).length();
-                highlightArgs(buffer.substring(idx0, idx), asb);
+                highlightArgs(buffer.substring(commandIndex, idx), asb);
                 for (int i = firstArg + 1; i < words.size(); i++) {
                     int nextIdx = buffer.substring(idx).indexOf(words.get(i)) + idx;
                     for (int j = idx; j < nextIdx; j++) {
@@ -154,7 +155,7 @@ public class SystemHighlighter extends DefaultHighlighter {
                     idx = nextIdx + words.get(i).length();
                 }
             } else {
-                highlightArgs(buffer.substring(idx0), asb);
+                highlightArgs(buffer.substring(commandIndex), asb);
             }
         }
         return asb.toAttributedString();
@@ -163,34 +164,18 @@ public class SystemHighlighter extends DefaultHighlighter {
     protected AttributedString doCommandHighlight(String buffer) {
         AttributedString out;
         if (commandHighlighter != null || argsHighlighter != null) {
-            int idx = commandIndex(buffer);
             AttributedStringBuilder asb = new AttributedStringBuilder();
-            if (idx < 0) {
+            if (commandIndex < 0) {
                 highlightCommand(buffer, asb);
             } else {
-                highlightCommand(buffer.substring(0, idx), asb);
-                highlightArgs(buffer.substring(idx), asb);
+                highlightCommand(buffer.substring(0, commandIndex), asb);
+                highlightArgs(buffer.substring(commandIndex), asb);
             }
             out = asb.toAttributedString();
         } else {
             out = new AttributedStringBuilder().append(buffer).toAttributedString();
         }
         return out;
-    }
-
-    private int commandIndex(String buffer) {
-        int idx = -1;
-        boolean cmdFound = false;
-        for (int i = 0; i < buffer.length(); i++) {
-            char c = buffer.charAt(i);
-            if (c != ' ') {
-                cmdFound = true;
-            } else if (cmdFound) {
-                idx = i;
-                break;
-            }
-        }
-        return idx;
     }
 
     private void highlightFileArg(LineReader reader, String arg, AttributedStringBuilder asb) {
@@ -256,7 +241,7 @@ public class SystemHighlighter extends DefaultHighlighter {
 
     private void highlightArgs(String args, AttributedStringBuilder asb) {
         if (argsHighlighter != null) {
-            asb.append(argsHighlighter.highlight(args));
+            asb.append(argsHighlighter.reset().highlight(args));
         } else {
             asb.append(args);
         }
@@ -264,7 +249,7 @@ public class SystemHighlighter extends DefaultHighlighter {
 
     private void highlightCommand(String command, AttributedStringBuilder asb) {
         if (commandHighlighter != null) {
-            asb.append(commandHighlighter.highlight(command));
+            asb.append(commandHighlighter.reset().highlight(command));
         } else {
             asb.append(command);
         }
