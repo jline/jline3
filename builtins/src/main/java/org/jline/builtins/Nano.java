@@ -1521,25 +1521,43 @@ public class Nano implements Editor {
             this.rules.addAll(rules);
         }
 
-        public void reset() {
+        public SyntaxHighlighter reset() {
             ruleStartId = 0;
             startEndHighlight = false;
+            return this;
         }
 
         public AttributedString highlight(String string) {
-            return highlight(new AttributedString(string));
+            return splitAndHighlight(new AttributedString(string));
         }
 
         public AttributedString highlight(AttributedStringBuilder asb) {
-            return highlight(asb.toAttributedString());
+            return splitAndHighlight(asb.toAttributedString());
         }
 
-        public AttributedString highlight(AttributedString line) {
-            if (rules.isEmpty()) {
-                return line;
+        public AttributedString highlight(AttributedString attributedString) {
+            return splitAndHighlight(attributedString);
+        }
+
+        private AttributedString splitAndHighlight(AttributedString attributedString) {
+            AttributedStringBuilder asb = new AttributedStringBuilder();
+            boolean first = true;
+            for (AttributedString s : attributedString.columnSplitLength(Integer.MAX_VALUE)) {
+                if (!first) {
+                    asb.append("\n");
+                }
+                asb.append(_highlight(s));
+                first = false;
             }
+            return asb.toAttributedString();
+        }
+
+        private AttributedStringBuilder _highlight(AttributedString line) {
             AttributedStringBuilder asb = new AttributedStringBuilder();
             asb.append(line);
+            if (rules.isEmpty()) {
+                return asb;
+            }
             int startId = ruleStartId;
             boolean endHighlight = startEndHighlight;
             for (int i = startId; i < (endHighlight ? startId + 1 : rules.size()); i++) {
@@ -1574,7 +1592,7 @@ public class Nano implements Editor {
                                 } else {
                                     ruleStartId = i;
                                     startEndHighlight = true;
-                                    a.append(asb.columnSubSequence(start.start(),asb.length()), rule.getStyle());
+                                    a.append(asb.columnSubSequence(start.start(), asb.length()), rule.getStyle());
                                     done = true;
                                 }
                                 asb = a;
@@ -1586,7 +1604,7 @@ public class Nano implements Editor {
                     break;
                 }
             }
-            return asb.toAttributedString();
+            return asb;
         }
 
     }
