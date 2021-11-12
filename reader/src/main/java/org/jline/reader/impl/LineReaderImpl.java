@@ -739,8 +739,8 @@ public class LineReaderImpl implements LineReader, Flushable
                 }
             } finally {
                 lock.unlock();
+                startedReading.set(false);
             }
-            startedReading.set(false);
         }
     }
 
