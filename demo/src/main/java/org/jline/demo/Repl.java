@@ -247,6 +247,8 @@ public class Repl {
             parser.setEofOnUnclosedQuote(true);
             parser.setEscapeChars(null);
             parser.setRegexCommand("[:]{0,1}[a-zA-Z!]{1,}\\S*");    // change default regex to support shell commands
+            parser.blockCommentDelims(new DefaultParser.BlockCommentDelims("/*", "*/"))
+                    .lineCommentDelims(new String[]{"//", "#"});
             Terminal terminal = TerminalBuilder.builder().build();
             if (terminal.getWidth() == 0 || terminal.getHeight() == 0) {
                 terminal.setSize(new Size(120, 40));   // hard coded terminal size when redirecting

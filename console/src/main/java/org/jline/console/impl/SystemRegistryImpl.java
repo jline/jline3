@@ -837,8 +837,8 @@ public class SystemRegistryImpl implements SystemRegistry {
         private boolean quoted;
         private boolean doubleQuoted;
         private String line;
-        private String command;
-        private String variable;
+        private String command = "";
+        private String variable = "";
         private List<String> args;
         private final Parser parser;
 
@@ -926,11 +926,15 @@ public class SystemRegistryImpl implements SystemRegistry {
             this.line = line;
             ParsedLine pl = parser.parse(line, 0, ParseContext.SPLIT_LINE);
             enclosedArgs(pl.words());
-            this.command = parser.getCommand(args.get(0));
-            if (!parser.validCommandName(command)) {
-                this.command = "";
+            if (!args.isEmpty()) {
+                this.command = parser.getCommand(args.get(0));
+                if (!parser.validCommandName(command)) {
+                    this.command = "";
+                }
+                this.variable = parser.getVariable(args.get(0));
+            } else {
+                this.line = "";
             }
-            this.variable = parser.getVariable(args.get(0));
         }
 
         public String line() {
