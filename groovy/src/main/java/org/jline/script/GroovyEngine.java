@@ -670,13 +670,14 @@ public class GroovyEngine implements ScriptEngine {
         public static Set<Method> getClassMethods(Class<?> clazz, boolean all, boolean synthetic) {
             Set<Method> out = new HashSet<>();
             do {
+                Set<Method> methods = new HashSet<>(Arrays.asList(clazz.getMethods()));
+                if (all) {
+                    methods.addAll(Arrays.asList(clazz.getDeclaredMethods()));
+                }
                 if (synthetic) {
-                    out.addAll(Arrays.asList(clazz.getMethods()));
-                    if (all) {
-                        out.addAll(Arrays.asList(clazz.getDeclaredMethods()));
-                    }
+                    out.addAll(methods);
                 } else {
-                    for (Method m : all ? clazz.getDeclaredMethods() : clazz.getMethods()) {
+                    for (Method m : methods) {
                         if (!m.isSynthetic()) {
                             out.add(m);
                         }
