@@ -13,6 +13,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
@@ -1163,7 +1164,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             }
         }
         AggregateCompleter argCompleter = new AggregateCompleter(new FilesCompleter(workDir)
-                                                               , new StringsCompleter(this::variableReferences));
+                                                               , new VariableReferenceCompleter(engine));
         completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
                                , new OptionCompleter(Arrays.asList(argCompleter
                                                                  , NullCompleter.INSTANCE)
@@ -1179,23 +1180,81 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         return completers;
     }
 
-    private List<String> variableReferences() {
-        List<String> out = new ArrayList<>();
-        for (String v : engine.find().keySet()) {
-            out.add("$" + v);
-        }
-        return out;
-    }
-
     private List<Completer> prntCompleter(String command) {
         List<Completer> completers = new ArrayList<>();
         completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                       , new OptionCompleter(Arrays.asList(new StringsCompleter(this::variableReferences)
+                       , new OptionCompleter(Arrays.asList(new VariableReferenceCompleter(engine)
                                                          , NullCompleter.INSTANCE)
                                            , this::commandOptions
                                            , 1)
                                     ));
         return completers;
+    }
+
+    private static class VariableReferenceCompleter implements Completer {
+        private final ScriptEngine engine;
+
+        public VariableReferenceCompleter(ScriptEngine engine) {
+            this.engine = engine;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void complete(LineReader reader, ParsedLine commandLine, List<Candidate> candidates) {
+            assert commandLine != null;
+            assert candidates != null;
+            String word = commandLine.word();
+            try {
+                if (!word.contains(".") && !word.contains("}")) {
+                    for (String v : engine.find().keySet()) {
+                        String c = "${" + v + "}";
+                        candidates.add(new Candidate(AttributedString.stripAnsi(c)
+                                , c, null, null, null, null, false));
+                    }
+                } else if (word.startsWith("${") && word.contains("}") && word.contains(".")) {
+                    String var = word.substring(2, word.indexOf('}'));
+                    if (engine.hasVariable(var)) {
+                        String curBuf = word.substring(0, word.lastIndexOf("."));
+                        String objStatement = curBuf.replace("${", "").replace("}", "");
+                        Object obj = curBuf.contains(".") ? engine.execute(objStatement) : engine.get(var);
+                        Map<?, ?> map = obj instanceof Map ? (Map<?, ?>) obj : null;
+                        Set<String> identifiers = new HashSet<>();
+                        if (map != null && !map.isEmpty() && map.keySet().iterator().next() instanceof String) {
+                            identifiers = (Set<String>)map.keySet();
+                        } else if (map == null && obj != null) {
+                            identifiers = getClassMethodIdentifiers(obj.getClass());
+                        }
+                        for (String key : identifiers) {
+                            candidates.add(new Candidate(AttributedString.stripAnsi(curBuf + "." + key)
+                                    , key, null, null, null, null, false));
+                        }
+                    }
+                }
+            } catch (Exception ignore) {
+            }
+        }
+
+        private Set<String> getClassMethodIdentifiers(Class<?> clazz) {
+            Set<String> out = new HashSet<>();
+            do {
+                for (Method m : clazz.getMethods()) {
+                    if (!m.isSynthetic() && m.getParameterCount() == 0) {
+                        String name = m.getName();
+                        if (name.matches("get[A-Z].*")) {
+                            out.add(convertGetMethod2identifier(name));
+                        }
+                    }
+                }
+                clazz = clazz.getSuperclass();
+            } while (clazz != null);
+            return out;
+        }
+
+        private String convertGetMethod2identifier(String name) {
+            char[] c = name.substring(3).toCharArray();
+            c[0] = Character.toLowerCase(c[0]);
+            return new String(c);
+        }
     }
 
     private static class AliasValueCompleter implements Completer {
@@ -1211,7 +1270,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             assert candidates != null;
             List<String> words = commandLine.words();
             if (words.size() > 1) {
-                String h = words.get(words.size()-2);
+                String h = words.get(words.size() - 2);
                 if (h != null && h.length() > 0) {
                      if(aliases.containsKey(h)){
                           String v = aliases.get(h);
