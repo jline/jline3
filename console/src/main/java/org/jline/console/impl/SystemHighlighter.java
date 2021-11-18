@@ -38,7 +38,7 @@ public class SystemHighlighter extends DefaultHighlighter {
     protected final SyntaxHighlighter langHighlighter;
     protected final SystemRegistry systemRegistry;
     protected final Map<String, FileHighlightCommand> fileHighlight = new HashMap<>();
-    private int  commandIndex;
+    protected int  commandIndex;
 
     public SystemHighlighter(SyntaxHighlighter commandHighlighter, SyntaxHighlighter argsHighlighter
             , SyntaxHighlighter langHighlighter) {
@@ -74,7 +74,7 @@ public class SystemHighlighter extends DefaultHighlighter {
         Parser parser = reader.getParser();
         ParsedLine pl = parser.parse(buffer, 0, Parser.ParseContext.COMPLETE);
         String command = pl.words().size() > 0 ? parser.getCommand(pl.words().get(0)) : "";
-        commandIndex = buffer.indexOf(command);
+        commandIndex = buffer.indexOf(command) + command.length();
         if (buffer.trim().isEmpty()) {
             out = new AttributedStringBuilder().append(buffer).toAttributedString();
         } else if (fileHighlight.containsKey(command)) {
