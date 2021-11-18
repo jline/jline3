@@ -1415,24 +1415,29 @@ public class GroovyEngine implements ScriptEngine {
         }
 
         public Object execute(String statement) {
+            try {
+                return _execute(statement);
+            } catch (Exception e) {
+                if (Log.isDebugEnabled()) {
+                    e.printStackTrace();
+                }
+            }
+            return null;
+        }
+
+        private Object _execute(String statement) throws Exception {
             PrintStream origOut = System.out;
             PrintStream origErr = System.err;
             if (nullstream != null) {
                 System.setOut(nullstream);
                 System.setErr(nullstream);
             }
-            Object out = null;
             try {
-                out = executeStatement(shell, imports, statement);
-            } catch (Exception e) {
-                if (Log.isDebugEnabled()) {
-                    e.printStackTrace();
-                }
+                return executeStatement(shell, imports, statement);
             } finally {
                 System.setOut(origOut);
                 System.setErr(origErr);
             }
-            return out;
         }
 
         private String stripVarType(String statement) {
@@ -1790,7 +1795,7 @@ public class GroovyEngine implements ScriptEngine {
                 // do nothing
             } else {
                 try {
-                    execute(objEquation);
+                    _execute(objEquation);
                 } catch (MissingPropertyException e) {
                     mainDesc.addAll(doExceptionMessage(e));
                     out.setErrorPattern(Pattern.compile("\\b" + e.getProperty() + "\\b"));
@@ -1823,7 +1828,7 @@ public class GroovyEngine implements ScriptEngine {
                         mainDesc.addAll(doExceptionMessage(e));
                     }
                 } catch (NullPointerException e) {
-                    // do nothing
+                   throw e;
                 } catch (Exception e) {
                     mainDesc.addAll(doExceptionMessage(e));
                 }
