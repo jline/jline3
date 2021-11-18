@@ -9,5 +9,5 @@ color brightyellow "\"(\\"|[^"])*\"\s*:"  "'(\'|[^'])*'\s*:" "(\[|,)\s*[a-zA-Z0-
 color white "(:|\[|,|\])"
 color magenta   "\\u[0-9a-fA-F]{4}|\\[bfnrt'"/\\]"
 color blue start="/\*" end="\*/"
-color blue "(//.*|#.*)"
+color blue "(//.*)"
 color ,red "	+ +| +	+"

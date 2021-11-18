@@ -33,6 +33,7 @@ import java.util.*;
  */
 public class SystemHighlighter extends DefaultHighlighter {
     private final static StyleResolver resolver = Styles.lsStyle();
+    private final static String REGEX_COMMENT_LINE =  "\\s*#.*";
     protected final SyntaxHighlighter commandHighlighter;
     protected final SyntaxHighlighter argsHighlighter;
     protected final SyntaxHighlighter langHighlighter;
@@ -84,7 +85,8 @@ public class SystemHighlighter extends DefaultHighlighter {
             } else {
                 out = doFileOptsHighlight(reader, buffer, fhc);
             }
-        } else if (systemRegistry.isCommandOrScript(command) || systemRegistry.isCommandAlias(command) || command.isEmpty()) {
+        } else if (systemRegistry.isCommandOrScript(command) || systemRegistry.isCommandAlias(command) || command.isEmpty()
+                || buffer.matches(REGEX_COMMENT_LINE)) {
             out = doCommandHighlight(buffer);
         } else if (langHighlighter != null) {
             out = langHighlighter.reset().highlight(buffer);
@@ -165,7 +167,7 @@ public class SystemHighlighter extends DefaultHighlighter {
         AttributedString out;
         if (commandHighlighter != null || argsHighlighter != null) {
             AttributedStringBuilder asb = new AttributedStringBuilder();
-            if (commandIndex < 0) {
+            if (commandIndex < 0 || buffer.matches(REGEX_COMMENT_LINE)) {
                 highlightCommand(buffer, asb);
             } else {
                 highlightCommand(buffer.substring(0, commandIndex), asb);
