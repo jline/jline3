@@ -530,7 +530,6 @@ public class GroovyEngine implements ScriptEngine {
 
     private Completer compileCompleter() {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(new StringsCompleter("print", "println"), NullCompleter.INSTANCE));
         completers.add(new ArgumentCompleter(new StringsCompleter("def"), new StringsCompleter(methods::keySet)
                                            , NullCompleter.INSTANCE));
         completers.add(new ArgumentCompleter(new StringsCompleter("class"), new StringsCompleter(classes::keySet)
