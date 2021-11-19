@@ -284,15 +284,21 @@ public class Repl {
             systemRegistry.addCompleter(scriptEngine.getScriptCompleter());
             systemRegistry.setScriptDescription(scriptEngine::scriptDescription);
             //
-            // LineReader
+            // Command line highlighter
             //
             Path jnanorc = configPath.getConfig("jnanorc");
             SyntaxHighlighter commandHighlighter = SyntaxHighlighter.build(jnanorc,"COMMAND");
             SyntaxHighlighter argsHighlighter = SyntaxHighlighter.build(jnanorc,"ARGS");
             SyntaxHighlighter groovyHighlighter = SyntaxHighlighter.build(jnanorc,"Groovy");
             SystemHighlighter highlighter = new SystemHighlighter(commandHighlighter, argsHighlighter, groovyHighlighter);
+            if (!OSUtils.IS_WINDOWS) {
+                highlighter.setSpecificHighlighter("!", Nano.SyntaxHighlighter.build(jnanorc, "SH-REPL"));
+            }
             highlighter.addFileHighlight("nano", "less", "slurp");
             highlighter.addFileHighlight("groovy", "classloader", Arrays.asList("-a", "--add"));
+            //
+            // LineReader
+            //
             LineReader reader = LineReaderBuilder.builder()
                     .terminal(terminal)
                     .completer(systemRegistry.completer())
