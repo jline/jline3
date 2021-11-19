@@ -39,6 +39,7 @@ public class SystemHighlighter extends DefaultHighlighter {
     protected final SyntaxHighlighter langHighlighter;
     protected final SystemRegistry systemRegistry;
     protected final Map<String, FileHighlightCommand> fileHighlight = new HashMap<>();
+    protected final Map<String,SyntaxHighlighter> specificHighlighter = new HashMap<>();
     protected int  commandIndex;
 
     public SystemHighlighter(SyntaxHighlighter commandHighlighter, SyntaxHighlighter argsHighlighter
@@ -47,6 +48,10 @@ public class SystemHighlighter extends DefaultHighlighter {
         this.argsHighlighter = argsHighlighter;
         this.langHighlighter = langHighlighter;
         this.systemRegistry = SystemRegistry.get();
+    }
+
+    public void setSpecificHighlighter(String command, SyntaxHighlighter highlighter) {
+        this.specificHighlighter.put(command, highlighter);
     }
 
     @Override
@@ -75,9 +80,19 @@ public class SystemHighlighter extends DefaultHighlighter {
         Parser parser = reader.getParser();
         ParsedLine pl = parser.parse(buffer, 0, Parser.ParseContext.COMPLETE);
         String command = pl.words().size() > 0 ? parser.getCommand(pl.words().get(0)) : "";
+        command = command.startsWith("!") ? "!" : command;
         commandIndex = buffer.indexOf(command) + command.length();
         if (buffer.trim().isEmpty()) {
             out = new AttributedStringBuilder().append(buffer).toAttributedString();
+        } else if (specificHighlighter.containsKey(command)) {
+            AttributedStringBuilder asb = new AttributedStringBuilder();
+            if (commandHighlighter == null) {
+                asb.append(specificHighlighter.get(command).reset().highlight(buffer));
+            } else {
+                highlightCommand(buffer.substring(0, commandIndex), asb);
+                asb.append(specificHighlighter.get(command).reset().highlight(buffer.substring(commandIndex)));
+            }
+            out = asb.toAttributedString();
         } else if (fileHighlight.containsKey(command)) {
             FileHighlightCommand fhc = fileHighlight.get(command);
             if (!fhc.hasFileOptions()) {
