@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 import org.jline.builtins.ConfigurationPath;
 import org.jline.builtins.Options;
 import org.jline.builtins.Styles;
-import org.jline.builtins.Nano.SyntaxHighlighter;
+import org.jline.builtins.SyntaxHighlighter;
 import org.jline.console.CmdDesc;
 import org.jline.console.CommandInput;
 import org.jline.console.Printer;
@@ -374,7 +374,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                 asb.append("\n");
                 first = false;
             }
-            sb.append(asb.toString());
+            sb.append(asb);
         }
         return Options.HelpException.highlight(sb.toString(), Styles.helpStyle());
     }

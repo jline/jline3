@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -26,9 +26,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import org.jline.builtins.Nano.Parser;
 import org.jline.builtins.Nano.PatternHistory;
-import org.jline.builtins.Nano.SyntaxHighlighter;
 import org.jline.builtins.Source.ResourceSource;
 import org.jline.builtins.Source.URLSource;
 import org.jline.keymap.BindingReader;
@@ -224,7 +222,7 @@ public class Less {
             while (line != null) {
                 line = line.trim();
                 if (line.length() > 0 && !line.startsWith("#")) {
-                    List<String> parts = Parser.split(line);
+                    List<String> parts = SyntaxHighlighter.RuleSplitter.split(line);
                     if (parts.get(0).equals("include")) {
                         if (parts.get(1).contains("*") || parts.get(1).contains("?")) {
                             PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parts.get(1));

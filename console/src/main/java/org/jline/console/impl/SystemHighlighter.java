@@ -8,7 +8,7 @@
  */
 package org.jline.console.impl;
 
-import org.jline.builtins.Nano.SyntaxHighlighter;
+import org.jline.builtins.SyntaxHighlighter;
 import org.jline.builtins.Styles;
 import org.jline.console.SystemRegistry;
 import org.jline.reader.LineReader;

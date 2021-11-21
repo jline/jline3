@@ -21,7 +21,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.jline.builtins.*;
-import org.jline.builtins.Nano.SyntaxHighlighter;
+import org.jline.builtins.SyntaxHighlighter;
 import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.console.impl.*;
 import org.jline.console.CommandInput;
@@ -293,7 +293,7 @@ public class Repl {
             SyntaxHighlighter groovyHighlighter = SyntaxHighlighter.build(jnanorc,"Groovy");
             SystemHighlighter highlighter = new SystemHighlighter(commandHighlighter, argsHighlighter, groovyHighlighter);
             if (!OSUtils.IS_WINDOWS) {
-                highlighter.setSpecificHighlighter("!", Nano.SyntaxHighlighter.build(jnanorc, "SH-REPL"));
+                highlighter.setSpecificHighlighter("!", SyntaxHighlighter.build(jnanorc, "SH-REPL"));
             }
             highlighter.addFileHighlight("nano", "less", "slurp");
             highlighter.addFileHighlight("groovy", "classloader", Arrays.asList("-a", "--add"));

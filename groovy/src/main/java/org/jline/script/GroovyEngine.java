@@ -24,7 +24,7 @@ import org.apache.groovy.ast.tools.ImmutablePropertyUtils;
 import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
 import org.codehaus.groovy.runtime.metaclass.MissingMethodExceptionNoStack;
 import org.codehaus.groovy.syntax.SyntaxException;
-import org.jline.builtins.Nano.SyntaxHighlighter;
+import org.jline.builtins.SyntaxHighlighter;
 import org.jline.builtins.Styles;
 import org.jline.console.CmdDesc;
 import org.jline.console.CmdLine;
