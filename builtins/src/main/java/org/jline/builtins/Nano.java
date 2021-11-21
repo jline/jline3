@@ -1426,17 +1426,31 @@ public class Nano implements Editor {
                 , boolean ignoreErrors) {
             SyntaxHighlighter out = new SyntaxHighlighter();
             List<HighlightRule> defaultRules = new ArrayList<>();
+            Map<String, String> colorTheme = new HashMap<>();
             try {
                 if (syntaxName == null || (syntaxName != null && !syntaxName.equals("none"))) {
                     for (Path p : syntaxFiles) {
                         try {
-                            NanorcParser parser = new NanorcParser(p, syntaxName, file);
-                            parser.parse();
-                            if (parser.matches()) {
-                                out.addRules(parser.getHighlightRules());
-                                return out;
-                            } else if (parser.isDefault()) {
-                                defaultRules.addAll(parser.getHighlightRules());
+                            if (colorTheme.isEmpty() && p.getFileName().toString().endsWith(".nanorctheme")) {
+                                try (BufferedReader reader = new BufferedReader(new FileReader(p.toFile()))) {
+                                    String line;
+                                    while ((line = reader.readLine()) != null) {
+                                        line = line.trim();
+                                        if (line.length() > 0 && !line.startsWith("#")) {
+                                            List<String> parts = Arrays.asList(line.split("\\s+", 2));
+                                            colorTheme.put(parts.get(0), parts.get(1));
+                                        }
+                                    }
+                                }
+                            } else {
+                                NanorcParser parser = new NanorcParser(p, syntaxName, file, colorTheme);
+                                parser.parse();
+                                if (parser.matches()) {
+                                    out.addRules(parser.getHighlightRules());
+                                    return out;
+                                } else if (parser.isDefault()) {
+                                    defaultRules.addAll(parser.getHighlightRules());
+                                }
                             }
                         } catch (IOException e) {
                             // ignore
@@ -1464,8 +1478,8 @@ public class Nano implements Editor {
             List<Path> syntaxFiles = new ArrayList<>();
             try {
                 try (BufferedReader reader = new BufferedReader(new FileReader(nanorc.toFile()))) {
-                    String line = reader.readLine();
-                    while (line != null) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
                         line = line.trim();
                         if (line.length() > 0 && !line.startsWith("#")) {
                             List<String> parts = Parser.split(line);
@@ -1481,9 +1495,19 @@ public class Nano implements Editor {
                                 } else {
                                     syntaxFiles.add(Paths.get(parts.get(1)));
                                 }
+                            } else if(parts.get(0).equals("theme")) {
+                                if (parts.get(1).contains("*") || parts.get(1).contains("?")) {
+                                    PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parts.get(1));
+                                    Optional<Path> theme = Files.find(Paths.get(new File(parts.get(1)).getParent()), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
+                                            .findFirst();
+                                    if (theme.isPresent()) {
+                                        syntaxFiles.add(0, theme.get());
+                                    }
+                                } else {
+                                    syntaxFiles.add(0, Paths.get(parts.get(1)));
+                                }
                             }
                         }
-                        line = reader.readLine();
                     }
                 }
                 out = build(syntaxFiles, null, syntaxName);
@@ -1678,11 +1702,13 @@ public class Nano implements Editor {
         private final String target;
         private final List<HighlightRule> highlightRules = new ArrayList<>();
         private final BufferedReader reader;
+        private Map<String, String> colorTheme = new HashMap<>();
         private boolean matches = false;
         private String syntaxName = "unknown";
 
-        public NanorcParser(Path file, String name, String target) throws IOException {
+        public NanorcParser(Path file, String name, String target, Map<String, String> colorTheme) throws IOException {
             this(new Source.PathSource(file, null).read(), name, target);
+            this.colorTheme = colorTheme;
         }
 
         public NanorcParser(InputStream in, String name, String target) {
@@ -1698,21 +1724,7 @@ public class Nano implements Editor {
                 idx++;
                 line = line.trim();
                 if (line.length() > 0 && !line.startsWith("#")) {
-                    line = line.replaceAll("\\\\<", "\\\\b")
-                            .replaceAll("\\\\>", "\\\\b")
-                            .replaceAll("\\[:alnum:]", "\\\\p{Alnum}")
-                            .replaceAll("\\[:alpha:]", "\\\\p{Alpha}")
-                            .replaceAll("\\[:blank:]", "\\\\p{Blank}")
-                            .replaceAll("\\[:cntrl:]", "\\\\p{Cntrl}")
-                            .replaceAll("\\[:digit:]", "\\\\p{Digit}")
-                            .replaceAll("\\[:graph:]", "\\\\p{Graph}")
-                            .replaceAll("\\[:lower:]", "\\\\p{Lower}")
-                            .replaceAll("\\[:print:]", "\\\\p{Print}")
-                            .replaceAll("\\[:punct:]", "\\\\p{Punct}")
-                            .replaceAll("\\[:space:]", "\\\\s")
-                            .replaceAll("\\[:upper:]", "\\\\p{Upper}")
-                            .replaceAll("\\[:xdigit:]", "\\\\p{XDigit}");
-                    List<String> parts = Parser.split(line);
+                    List<String> parts = Parser.split(fixRegexes(line));
                     if (parts.get(0).equals("syntax")) {
                         syntaxName = parts.get(1);
                         List<Pattern> filePatterns = new ArrayList<>();
@@ -1726,7 +1738,7 @@ public class Nano implements Editor {
                             for (int i = 2; i < parts.size(); i++) {
                                 filePatterns.add(Pattern.compile(parts.get(i)));
                             }
-                            for (Pattern p: filePatterns) {
+                            for (Pattern p : filePatterns) {
                                 if (p.matcher(target).find()) {
                                     matches = true;
                                     break;
@@ -1738,14 +1750,79 @@ public class Nano implements Editor {
                         } else {
                             matches = true;
                         }
-                    } else if (parts.get(0).equals("color")) {
-                        addHighlightRule(syntaxName + idx, parts, false);
-                    } else if (parts.get(0).equals("icolor")) {
-                        addHighlightRule(syntaxName + idx, parts, true);
+                    } else if (!addHighlightRule(parts, idx) && parts.get(0).matches("\\+[A-Z_]+")) {
+                        String key = themeKey(parts.get(0));
+                        if (colorTheme.containsKey(key)) {
+                            for (String l : colorTheme.get(key).split("\\\\n")) {
+                                idx++;
+                                addHighlightRule(Parser.split(fixRegexes(l)), idx);
+                            }
+                        } else {
+                            Log.warn("Unknown token type: ", key);
+                        }
                     }
                 }
             }
             reader.close();
+        }
+
+        private String fixRegexes(String line) {
+            return line.replaceAll("\\\\<", "\\\\b")
+                    .replaceAll("\\\\>", "\\\\b")
+                    .replaceAll("\\[:alnum:]", "\\\\p{Alnum}")
+                    .replaceAll("\\[:alpha:]", "\\\\p{Alpha}")
+                    .replaceAll("\\[:blank:]", "\\\\p{Blank}")
+                    .replaceAll("\\[:cntrl:]", "\\\\p{Cntrl}")
+                    .replaceAll("\\[:digit:]", "\\\\p{Digit}")
+                    .replaceAll("\\[:graph:]", "\\\\p{Graph}")
+                    .replaceAll("\\[:lower:]", "\\\\p{Lower}")
+                    .replaceAll("\\[:print:]", "\\\\p{Print}")
+                    .replaceAll("\\[:punct:]", "\\\\p{Punct}")
+                    .replaceAll("\\[:space:]", "\\\\s")
+                    .replaceAll("\\[:upper:]", "\\\\p{Upper}")
+                    .replaceAll("\\[:xdigit:]", "\\\\p{XDigit}");
+        }
+
+        private boolean addHighlightRule(List<String> parts, int idx) {
+            boolean out = true;
+            if (parts.get(0).equals("color")) {
+                addHighlightRule(syntaxName + idx, parts, false);
+            } else if (parts.get(0).equals("icolor")) {
+                addHighlightRule(syntaxName + idx, parts, true);
+            } else if (parts.get(0).matches("[A-Z_]+[:]?")) {
+                String key = themeKey(parts.get(0));
+                if (colorTheme.containsKey(key)) {
+                    parts.set(0, "color");
+                    parts.add(1, colorTheme.get(key));
+                    addHighlightRule(syntaxName + idx, parts, false);
+                } else {
+                    Log.warn("Unknown token type: ", key);
+                }
+            } else if (parts.get(0).matches("~[A-Z_]+[:]?")) {
+                String key = themeKey(parts.get(0));
+                if (colorTheme.containsKey(key)) {
+                    parts.set(0, "icolor");
+                    parts.add(1, colorTheme.get(key));
+                    addHighlightRule(syntaxName + idx, parts, true);
+                } else {
+                    Log.warn("Unknown token type: ", key);
+                }
+            } else {
+                out = false;
+            }
+            return out;
+        }
+
+        private String themeKey(String key) {
+            if (key.startsWith("+")) {
+                return key;
+            } else {
+                int keyEnd = key.endsWith(":") ? key.length() - 1 : key.length();
+                if (key.startsWith("~")) {
+                    return  key.substring(1, keyEnd);
+                }
+                return key.substring(0, keyEnd);
+            }
         }
 
         public boolean matches() {
@@ -2062,8 +2139,8 @@ public class Nano implements Editor {
 
     private void parseConfig(Path file) throws IOException {
         try (BufferedReader reader = new BufferedReader(new FileReader(file.toFile()))) {
-            String line = reader.readLine();
-            while (line != null) {
+            String line;
+            while ((line = reader.readLine()) != null) {
                 line = line.trim();
                 if (line.length() > 0 && !line.startsWith("#")) {
                     List<String> parts = Parser.split(line);
@@ -2074,6 +2151,17 @@ public class Nano implements Editor {
                                     .forEach(syntaxFiles::add);
                         } else {
                             syntaxFiles.add(Paths.get(parts.get(1)));
+                        }
+                    } else if(parts.get(0).equals("theme")) {
+                        if (parts.get(1).contains("*") || parts.get(1).contains("?")) {
+                            PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parts.get(1));
+                            Optional<Path> theme = Files.find(Paths.get(new File(parts.get(1)).getParent()), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
+                                    .findFirst();
+                            if (theme.isPresent()) {
+                                syntaxFiles.add(0, theme.get());
+                            }
+                        } else {
+                            syntaxFiles.add(0, Paths.get(parts.get(1)));
                         }
                     } else if (parts.size() == 2
                             && (parts.get(0).equals("set") || parts.get(0).equals("unset"))) {
@@ -2136,7 +2224,6 @@ public class Nano implements Editor {
                         errorMessage = "Nano config: Bad configuration '" + line + "'";
                     }
                 }
-                line = reader.readLine();
             }
         }
     }
