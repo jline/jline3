@@ -263,6 +263,7 @@ public class Repl {
             File jnanorcFile = Paths.get(root, "jnanorc").toFile();
             if (!jnanorcFile.exists()) {
                 try (FileWriter fw = new FileWriter(jnanorcFile)) {
+                    fw.write("theme " + root + "nanorc/*.nanorctheme\n");
                     fw.write("include " + root + "nanorc/*.nanorc\n");
                 }
             }

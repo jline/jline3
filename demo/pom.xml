@@ -193,7 +193,7 @@
                                 <resource>
                                     <directory>src/main/scripts</directory>
                                     <includes>
-                                        <include>*.nanorc</include>
+                                        <include>*.nanorc*</include>
                                     </includes>
                                 </resource>
                             </resources>
