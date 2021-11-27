@@ -1658,11 +1658,8 @@ public class Nano implements Editor {
                     } else if(parts.get(0).equals("theme")) {
                         if (parts.get(1).contains("*") || parts.get(1).contains("?")) {
                             PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parts.get(1));
-                            Optional<Path> theme = Files.find(Paths.get(new File(parts.get(1)).getParent()), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
-                                    .findFirst();
-                            if (theme.isPresent()) {
-                                syntaxFiles.add(0, theme.get());
-                            }
+                            Files.find(Paths.get(new File(parts.get(1)).getParent()), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
+                                    .findFirst().ifPresent(path -> syntaxFiles.add(0, path));
                         } else {
                             syntaxFiles.add(0, Paths.get(parts.get(1)));
                         }

@@ -231,6 +231,14 @@ public class Less {
                         } else {
                             syntaxFiles.add(Paths.get(parts.get(1)));
                         }
+                    } else if(parts.get(0).equals("theme")) {
+                        if (parts.get(1).contains("*") || parts.get(1).contains("?")) {
+                            PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parts.get(1));
+                            Files.find(Paths.get(new File(parts.get(1)).getParent()), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
+                                    .findFirst().ifPresent(path -> syntaxFiles.add(0, path));
+                        } else {
+                            syntaxFiles.add(0, Paths.get(parts.get(1)));
+                        }
                     } else if (parts.size() == 2
                             && (parts.get(0).equals("set") || parts.get(0).equals("unset"))) {
                         String option = parts.get(1);
