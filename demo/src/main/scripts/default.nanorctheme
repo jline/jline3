@@ -61,3 +61,9 @@ WHITESPACE  ,green
 +TODO               color brightwhite,cyan "FIXME|TODO|XXX"
 +LINT               color ,green "[[:space:]]+$" \n color ,red "\t*"
 +LONG_LINE_WARNING  color ,red "^.{81,}$"
+#
+# parser
+#
+$LINE_COMMENT           COMMENT \n color brightwhite,cyan "FIXME|TODO|XXX"
+$BLOCK_COMMENT          COMMENT \n DOC_COMMENT: startWith=/** \n color brightwhite,cyan "FIXME|TODO|XXX"
+$BALANCED_DELIMITERS    STRING  \n VARIABLE: continueAs=\s*:

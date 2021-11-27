@@ -13,6 +13,6 @@ FUNCTION: "\<(alias|bg|bind|break|builtin|caller|cd|command|compgen|complete|com
 FUNCTION: "\<(cat|chmod|chown|cp|env|grep|install|ln|make|mkdir|mv|rm|sed|tar|touch|ls)\>"
 ~FUNCTION: "^\s+[0-9A-Z_]+\s+\(\)"
 ~VARIABLE: "\$\{?[0-9A-Z_!@#$*?-]+\}?"
-STRING:   ""(\\.|[^"])*"" "'(\\.|[^'])*'"
 COMMENT:  "^([[:space:]])*#.*$"
-COMMENT:  start="/\*" end="\*/"
+$BLOCK_COMMENT:       "/*, */"
+$BALANCED_DELIMITERS: "", '"
