@@ -1307,7 +1307,12 @@ public class Less {
         Pattern dpCompiled = getPattern(true);
         boolean fitOnOneScreen = false;
         boolean eof = false;
-        syntaxHighlighter.reset();
+        if (highlight) {
+            syntaxHighlighter.reset();
+            for (int i = Math.max(0, inputLine - height); i < inputLine; i++) {
+                syntaxHighlighter.highlight(getLine(i));
+            }
+        }
         for (int terminalLine = 0; terminalLine < height - 1; terminalLine++) {
             if (curLine == null) {
                 Pair<Integer, AttributedString> nextLine = nextLine2display(inputLine, dpCompiled);

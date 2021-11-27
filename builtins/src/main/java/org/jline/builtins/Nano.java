@@ -861,7 +861,12 @@ public class Nano implements Editor {
             int curLine = firstLineToDisplay;
             int curOffset = offsetInLineToDisplay;
             int prevLine = -1;
-            syntaxHighlighter.reset();
+            if (highlight) {
+                syntaxHighlighter.reset();
+                for (int i = Math.max(0, curLine - nbLines); i < curLine; i++) {
+                    syntaxHighlighter.highlight(getLine(i));
+                }
+            }
             for (int terminalLine = 0; terminalLine < nbLines; terminalLine++) {
                 AttributedStringBuilder line = new AttributedStringBuilder().tabs(tabs);
                 if (printLineNumbers && curLine < lines.size()) {
