@@ -25,14 +25,32 @@ import java.util.regex.PatternSyntaxException;
  *  @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public class SyntaxHighlighter {
-    private final Map<String,List<HighlightRule>> rules = new HashMap<>();
     private static final String TOKEN_NANORC = "NANORC";
+    private final Path nanorc;
+    private final String syntaxName;
+    private final String nanorcUrl;
+    private final Map<String,List<HighlightRule>> rules = new HashMap<>();
     private boolean startEndHighlight;
     private int ruleStartId = 0;
 
     private Parser parser;
 
     private SyntaxHighlighter() {
+        this(null, null, null);
+    }
+
+    private SyntaxHighlighter(String nanorcUrl) {
+        this(null, null, nanorcUrl);
+    }
+
+    private SyntaxHighlighter(Path nanorc, String syntaxName) {
+        this(nanorc, syntaxName, null);
+    }
+
+    private SyntaxHighlighter(Path nanorc, String syntaxName, String nanorcUrl) {
+        this.nanorc = nanorc;
+        this.syntaxName = syntaxName;
+        this.nanorcUrl = nanorcUrl;
         Map<String,List<HighlightRule>> defaultRules = new HashMap<>();
         defaultRules.put(TOKEN_NANORC, new ArrayList<>());
         rules.putAll(defaultRules);
@@ -93,7 +111,7 @@ public class SyntaxHighlighter {
      * @return              SyntaxHighlighter
      */
     public static SyntaxHighlighter build(Path nanorc, String syntaxName) {
-        SyntaxHighlighter out = new SyntaxHighlighter();
+        SyntaxHighlighter out = new SyntaxHighlighter(nanorc, syntaxName);
         List<Path> syntaxFiles = new ArrayList<>();
         try {
             try (BufferedReader reader = new BufferedReader(new FileReader(nanorc.toFile()))) {
@@ -114,7 +132,7 @@ public class SyntaxHighlighter {
                             } else {
                                 syntaxFiles.add(Paths.get(parts.get(1)));
                             }
-                        } else if(parts.get(0).equals("theme")) {
+                        } else if (parts.get(0).equals("theme")) {
                             if (parts.get(1).contains("*") || parts.get(1).contains("?")) {
                                 PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parts.get(1));
                                 Files.find(Paths.get(new File(parts.get(1)).getParent()), Integer.MAX_VALUE
@@ -127,7 +145,9 @@ public class SyntaxHighlighter {
                     }
                 }
             }
-            out = build(syntaxFiles, null, syntaxName);
+            SyntaxHighlighter sh = build(syntaxFiles, null, syntaxName);
+            out.addRules(sh.rules);
+            out.setParser(sh.parser);
         } catch (Exception e) {
             // ignore
         }
@@ -141,7 +161,7 @@ public class SyntaxHighlighter {
      * @return              SyntaxHighlighter
      */
     public static SyntaxHighlighter build(String nanorcUrl) {
-        SyntaxHighlighter out = new SyntaxHighlighter();
+        SyntaxHighlighter out = new SyntaxHighlighter(nanorcUrl);
         InputStream inputStream;
         try {
             if (nanorcUrl.startsWith("classpath:")) {
@@ -173,6 +193,20 @@ public class SyntaxHighlighter {
             parser.reset();
         }
         return this;
+    }
+
+    public void refresh() {
+        SyntaxHighlighter sh;
+        if (nanorc != null && syntaxName != null) {
+            sh = SyntaxHighlighter.build(nanorc, syntaxName);
+        } else if (nanorcUrl != null) {
+            sh = SyntaxHighlighter.build(nanorcUrl);
+        } else {
+            throw new IllegalStateException("Not possible to refresh highlighter!");
+        }
+        rules.clear();
+        addRules(sh.rules);
+        parser = sh.parser;
     }
 
     public AttributedString highlight(String string) {
