@@ -54,6 +54,7 @@ public class SystemHighlighter extends DefaultHighlighter {
         this.specificHighlighter.put(command, highlighter);
     }
 
+    @Override
     public void refresh() {
         if (commandHighlighter != null) {
             commandHighlighter.refresh();
