@@ -1648,21 +1648,9 @@ public class Nano implements Editor {
                 if (line.length() > 0 && !line.startsWith("#")) {
                     List<String> parts = SyntaxHighlighter.RuleSplitter.split(line);
                     if (parts.get(0).equals("include")) {
-                        if (parts.get(1).contains("*") || parts.get(1).contains("?")) {
-                            PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parts.get(1));
-                            Files.find(Paths.get(new File(parts.get(1)).getParent()), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
-                                    .forEach(syntaxFiles::add);
-                        } else {
-                            syntaxFiles.add(Paths.get(parts.get(1)));
-                        }
+                        SyntaxHighlighter.nanorcInclude(parts.get(1), syntaxFiles);
                     } else if(parts.get(0).equals("theme")) {
-                        if (parts.get(1).contains("*") || parts.get(1).contains("?")) {
-                            PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parts.get(1));
-                            Files.find(Paths.get(new File(parts.get(1)).getParent()), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
-                                    .findFirst().ifPresent(path -> syntaxFiles.add(0, path));
-                        } else {
-                            syntaxFiles.add(0, Paths.get(parts.get(1)));
-                        }
+                        SyntaxHighlighter.nanorcTheme(parts.get(1), syntaxFiles);
                     } else if (parts.size() == 2
                             && (parts.get(0).equals("set") || parts.get(0).equals("unset"))) {
                         String option = parts.get(1);
