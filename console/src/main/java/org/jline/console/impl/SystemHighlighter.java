@@ -54,6 +54,21 @@ public class SystemHighlighter extends DefaultHighlighter {
         this.specificHighlighter.put(command, highlighter);
     }
 
+    public void refresh() {
+        if (commandHighlighter != null) {
+            commandHighlighter.refresh();
+        }
+        if (argsHighlighter != null) {
+            argsHighlighter.refresh();
+        }
+        if (langHighlighter != null) {
+            langHighlighter.refresh();
+        }
+        for (SyntaxHighlighter sh : specificHighlighter.values()) {
+            sh.refresh();
+        }
+    }
+
     @Override
     public AttributedString highlight(LineReader reader, String buffer) {
         return doDefaultHighlight(reader) ? super.highlight(reader, buffer) : systemHighlight(reader, buffer);
