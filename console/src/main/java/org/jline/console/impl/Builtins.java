@@ -47,6 +47,7 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
                        , UNSETOPT
                        , TTOP
                        , COLORS
+                       , HIGHLIGHTER
                        }
 
     private final ConfigurationPath configPath;
@@ -92,6 +93,7 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
         commandExecute.put(Command.UNSETOPT, new CommandMethods(this::unsetopt, this::unsetoptCompleter));
         commandExecute.put(Command.TTOP, new CommandMethods(this::ttop, this::defaultCompleter));
         commandExecute.put(Command.COLORS, new CommandMethods(this::colors, this::defaultCompleter));
+        commandExecute.put(Command.HIGHLIGHTER, new CommandMethods(this::highlighter, this::defaultCompleter));
         registerCommands(commandName, commandExecute);
     }
 
@@ -174,6 +176,14 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
     private void colors(CommandInput input) {
         try {
             Commands.colors(input.terminal(), input.out(), input.args());
+        } catch (Exception e) {
+            saveException(e);
+        }
+    }
+
+    private void highlighter(CommandInput input) {
+        try {
+            Commands.highlighter(reader, input.terminal(), input.out(), input.err(), input.args(), configPath);
         } catch (Exception e) {
             saveException(e);
         }

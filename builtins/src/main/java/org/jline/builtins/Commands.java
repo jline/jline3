@@ -8,12 +8,7 @@
  */
 package org.jline.builtins;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
@@ -24,18 +19,10 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -1579,6 +1566,108 @@ public class Commands {
                 asb2.toAttributedString().println(terminal);
             }
         }
+    }
+
+    public static void highlighter(LineReader lineReader, Terminal terminal, PrintStream out, PrintStream err, String[] argv,
+                                   ConfigurationPath configPath) throws HelpException {
+        final String[] usage = {
+                "highlighter -  refresh highlighter config and view themes",
+                "Usage: highlighter [OPTIONS]",
+                "  -? --help                       Displays command help",
+                "  -c --columns=COLUMNS            Number of columns in theme view",
+                "  -l --list                       List available nanorc themes",
+                "  -r --refresh                    Refresh highlighter config",
+                "  -v --view [THEME]               View nanorc theme",
+        };
+        Options opt = Options.compile(usage).parse(argv);
+        if (opt.isSet("help")) {
+            throw new HelpException(opt.usage());
+        }
+        try {
+            if (opt.isSet("refresh")) {
+                lineReader.getHighlighter().refresh();
+            }
+            if (opt.isSet("view")) {
+                SyntaxHighlighter sh = SyntaxHighlighter.build(configPath.getConfig("jnanorc"), null);
+                Path currentTheme = sh.getCurrentTheme();
+                File themeFile;
+                if (opt.args().isEmpty()) {
+                    themeFile = currentTheme.toFile();
+                } else {
+                    themeFile = new File(replaceFileName(currentTheme, opt.args().get(0)));
+                }
+                out.println(themeFile.getAbsolutePath());
+                try (BufferedReader reader = new BufferedReader(new FileReader(themeFile))) {
+                    String line;
+                    List<List<String>> tokens = new ArrayList<>();
+                    int maxKeyLen = 0;
+                    int maxValueLen = 0;
+                    while ((line = reader.readLine()) != null) {
+                        line = line.trim();
+                        if (line.length() > 0 && !line.startsWith("#")) {
+                            List<String> parts = Arrays.asList(line.split("\\s+", 2));
+                            if (parts.get(0).matches("[A-Z_]+")) {
+                                if (parts.get(0).length() > maxKeyLen) {
+                                    maxKeyLen = parts.get(0).length();
+                                }
+                                if (parts.get(1).length() > maxValueLen) {
+                                    maxValueLen = parts.get(1).length();
+                                }
+                                tokens.add(parts);
+                            }
+                        }
+                    }
+                    AttributedStringBuilder asb = new AttributedStringBuilder();
+                    maxKeyLen = maxKeyLen + 2;
+                    maxValueLen = maxValueLen + 1;
+                    int cols = opt.isSet("columns") ? opt.getNumber("columns") : 2;
+                    List<Integer> tabstops = new ArrayList<>();
+                    for (int c = 0; c < cols; c++) {
+                        tabstops.add((c + 1)*maxKeyLen + c*maxValueLen);
+                        tabstops.add((c + 1)*maxKeyLen + (c + 1)*maxValueLen);
+                    }
+                    asb.tabs(tabstops);
+                    int ind = 0;
+                    for (List<String> token : tokens) {
+                        asb.style(AttributedStyle.DEFAULT).append(" ");
+                        asb.style(compileStyle("token" + ind++, token.get(1)));
+                        asb.append(token.get(0)).append("\t");
+                        asb.append(token.get(1));
+                        asb.style(AttributedStyle.DEFAULT).append("\t");
+                        if ((ind % cols) == 0) {
+                            asb.style(AttributedStyle.DEFAULT).append("\n");
+                        }
+                    }
+                    asb.toAttributedString().println(terminal);
+                }
+            }
+            if (opt.isSet("list")) {
+                SyntaxHighlighter sh = SyntaxHighlighter.build(configPath.getConfig("jnanorc"), null);
+                Path ct = sh.getCurrentTheme();
+                String parameter = replaceFileName(ct, "*.nanorctheme");
+                out.println(ct.getParent() + ":");
+                PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parameter);
+                Files.find(Paths.get(new File(parameter).getParent()), Integer.MAX_VALUE
+                                , (path, f) -> pathMatcher.matches(path))
+                        .forEach(p -> out.println(p.getFileName()));
+
+            }
+        } catch (Exception e) {
+            err.println(e.getMessage());
+        }
+    }
+
+    private static String replaceFileName(Path path, String name) {
+        int nameLength = path.getFileName().toString().length();
+        int pathLength = path.toString().length();
+        return (path.toString().substring(0, pathLength - nameLength) + name).replace("\\", "\\\\");
+    }
+
+    private static AttributedStyle compileStyle(String reference, String colorDef) {
+        Map<String,String> spec = new HashMap<>();
+        spec.put(reference, colorDef);
+        Styles.StyleCompiler sh = new Styles.StyleCompiler(spec, true);
+        return new StyleResolver(sh::getStyle).resolve("." + reference);
     }
 
 }
