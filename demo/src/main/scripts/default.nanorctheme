@@ -41,11 +41,8 @@ OPERATOR    yellow
 OPTION      yellow
 KEYWORD     brightwhite
 MACRO       brightmagenta
-REGEXP      blue,cyan
-ESCAPE      black,cyan
 DELIMITER   brightred
 JUMP        brightcyan
-WARNING     brightyellow,red
 SECTION     brightgreen
 TAG         brightwhite
 ATTRIBUTE   green
@@ -53,17 +50,20 @@ CHARREF     brightred
 PATH        brightblue
 URL         brightblue
 EMAIL       brightblue
+ESCAPE      black,cyan
+REGEXP      blue,cyan
+TODO        brightwhite,cyan
+WARNING     ,red
 WHITESPACE  ,green
 #
 # mixin
 #
 +FUNCTION           FUNCTION: "[A-Za-z_][A-Za-z0-9_]*[[:space:]]*[(]" \n PLAIN:    "[(]"
-+TODO               color brightwhite,cyan "FIXME|TODO|XXX"
-+LINT               color ,green "[[:space:]]+$" \n color ,red "\t*"
-+LONG_LINE_WARNING  color ,red "^.{81,}$"
++LINT               WHITESPACE: "[[:space:]]+$" \n WARNING: "\t*"
++LONG_LINE_WARNING  WARNING: "^.{81,}$"
 #
 # parser
 #
-$LINE_COMMENT           COMMENT \n color brightwhite,cyan "FIXME|TODO|XXX"
-$BLOCK_COMMENT          COMMENT \n DOC_COMMENT: startWith=/** \n color brightwhite,cyan "FIXME|TODO|XXX"
+$LINE_COMMENT           COMMENT \n TODO: "FIXME|TODO|XXX"
+$BLOCK_COMMENT          COMMENT \n DOC_COMMENT: startWith=/** \n TODO: "FIXME|TODO|XXX"
 $BALANCED_DELIMITERS    STRING  \n VARIABLE: continueAs=\s*:

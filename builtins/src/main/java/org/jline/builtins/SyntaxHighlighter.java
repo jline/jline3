@@ -30,6 +30,7 @@ public class SyntaxHighlighter {
     private final String syntaxName;
     private final String nanorcUrl;
     private final Map<String,List<HighlightRule>> rules = new HashMap<>();
+    private Path currentTheme;
     private boolean startEndHighlight;
     private int ruleStartId = 0;
 
@@ -69,6 +70,7 @@ public class SyntaxHighlighter {
                 for (Path p : syntaxFiles) {
                     try {
                         if (colorTheme.isEmpty() && p.getFileName().toString().endsWith(".nanorctheme")) {
+                            out.setCurrentTheme(p);
                             try (BufferedReader reader = new BufferedReader(new FileReader(p.toFile()))) {
                                 String line;
                                 while ((line = reader.readLine()) != null) {
@@ -131,6 +133,7 @@ public class SyntaxHighlighter {
             SyntaxHighlighter sh = build(syntaxFiles, null, syntaxName);
             out.addRules(sh.rules);
             out.setParser(sh.parser);
+            out.setCurrentTheme(sh.currentTheme);
         } catch (Exception e) {
             // ignore
         }
@@ -187,6 +190,14 @@ public class SyntaxHighlighter {
         this.rules.putAll(rules);
     }
 
+    public void setCurrentTheme(Path currentTheme) {
+        this.currentTheme = currentTheme;
+    }
+
+    public Path getCurrentTheme() {
+        return currentTheme;
+    }
+
     public void setParser(Parser parser) {
         this.parser = parser;
     }
@@ -212,6 +223,7 @@ public class SyntaxHighlighter {
         rules.clear();
         addRules(sh.rules);
         parser = sh.parser;
+        currentTheme = sh.currentTheme;
     }
 
     public AttributedString highlight(String string) {
