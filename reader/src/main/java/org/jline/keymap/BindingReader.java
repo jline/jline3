@@ -133,7 +133,7 @@ public class BindingReader {
                 }
                 int l = reader.readBuffered(buf);
                 if (l < 0) {
-                    throw new ClosedException();
+                    return sb.toString();
                 }
                 sb.append(buf, 0, l);
             }
