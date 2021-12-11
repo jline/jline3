@@ -18,8 +18,11 @@ CONSOLE_OPTIONS['docs'].put('java.*',['https://docs.oracle.com/javase/8/docs/api
                                       'http://docs.groovy-lang.org/latest/html/groovy-jdk/'])
 CONSOLE_OPTIONS['docs'].put('.*/java.*','https://docs.oracle.com/javase/8/docs/api/')
 CONSOLE_OPTIONS['docs'].put('org/jline/.*','https://www.javadoc.io/doc/org.jline/jline/latest/')
+CONSOLE_OPTIONS.PRNT_COLORS = 'th=HEADER:rn=ROW_NUMBER:rs=ROW_STYLE:mk=ATTRIBUTE:em=WARNING:vs=DEBUG'
 
-CONSOLE_OPTIONS.PRNT_COLORS = 'th=bold,!blue,~grey7,underline:rn=bold,!blue,~grey7:rs=,~grey15:mk=1;34:em=31:vs=32'
+# refresh nanorc theme and add NANORC_THEME map to CONSOLE_OPTIONS
+highlighter -r
+
 #
 # customize prnt command
 #

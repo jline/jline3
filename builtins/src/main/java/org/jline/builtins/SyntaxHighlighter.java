@@ -25,6 +25,7 @@ import java.util.regex.PatternSyntaxException;
  *  @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public class SyntaxHighlighter {
+    public static final String REGEX_TOKEN_NAME = "[A-Z_]+";
     private static final String TOKEN_NANORC = "NANORC";
     private final Path nanorc;
     private final String syntaxName;
@@ -534,7 +535,7 @@ public class SyntaxHighlighter {
                         } else {
                             Log.warn("Unknown token type: ", key);
                         }
-                    } else if (!addHighlightRule(parts, idx, TOKEN_NANORC) && parts.get(0).matches("\\+[A-Z_]+")) {
+                    } else if (!addHighlightRule(parts, idx, TOKEN_NANORC) && parts.get(0).matches("\\+" + REGEX_TOKEN_NAME)) {
                         String key = themeKey(parts.get(0));
                         if (colorTheme.containsKey(key)) {
                             for (String l : colorTheme.get(key).split("\\\\n")) {
@@ -573,7 +574,7 @@ public class SyntaxHighlighter {
                 addHighlightRule(syntaxName + idx, parts, false, tokenName);
             } else if (parts.get(0).equals("icolor")) {
                 addHighlightRule(syntaxName + idx, parts, true, tokenName);
-            } else if (parts.get(0).matches("[A-Z_]+[:]?")) {
+            } else if (parts.get(0).matches(REGEX_TOKEN_NAME + "[:]?")) {
                 String key = themeKey(parts.get(0));
                 if (colorTheme.containsKey(key)) {
                     parts.set(0, "color");
@@ -582,7 +583,7 @@ public class SyntaxHighlighter {
                 } else {
                     Log.warn("Unknown token type: ", key);
                 }
-            } else if (parts.get(0).matches("~[A-Z_]+[:]?")) {
+            } else if (parts.get(0).matches("~" + REGEX_TOKEN_NAME + "[:]?")) {
                 String key = themeKey(parts.get(0));
                 if (colorTheme.containsKey(key)) {
                     parts.set(0, "icolor");

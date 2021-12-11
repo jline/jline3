@@ -1,7 +1,7 @@
 #
 # This file describes a default scheme for nanorc syntax highlighting.
 #
-# Everything after a # character is a comment up to the end of the line.
+# Lines that start with a # character are comments.
 # Comments are ignored. Empty lines are ignored too.  Leading/trailing white
 # space characters are removed before theme file is processed.
 #
@@ -55,6 +55,10 @@ REGEXP      blue,cyan
 TODO        brightwhite,cyan
 WARNING     ,red
 WHITESPACE  ,green
+HEADER      bold,!blue,~grey7,underline
+ROW_NUMBER  bold,!blue,~grey7
+ROW_STYLE   ,~grey15
+DEBUG       brightmagenta
 #
 # mixin
 #

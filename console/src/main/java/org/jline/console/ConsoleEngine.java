@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -135,6 +135,13 @@ public interface ConsoleEngine extends CommandRegistry {
      * @return option value
      */
     <T>T consoleOption(String option, T defval);
+
+    /**
+     * Set console option value
+     * @param name the option name
+     * @param value value to assign console option
+     */
+    void setConsoleOption(String name, Object value);
 
     /**
      * Executes command line that does not contain known command by the system registry.

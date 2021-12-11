@@ -15,16 +15,19 @@ import org.jline.reader.LineReader;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.Parser;
 import org.jline.reader.impl.DefaultHighlighter;
-import org.jline.utils.AttributedString;
-import org.jline.utils.AttributedStringBuilder;
-import org.jline.utils.OSUtils;
-import org.jline.utils.StyleResolver;
+import org.jline.utils.*;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+
+import static org.jline.builtins.Styles.NANORC_THEME;
+import static org.jline.builtins.SyntaxHighlighter.REGEX_TOKEN_NAME;
 
 /**
  * Highlight command and language syntax using nanorc highlighter.
@@ -56,18 +59,56 @@ public class SystemHighlighter extends DefaultHighlighter {
 
     @Override
     public void refresh() {
+        Path currentTheme = null;
         if (commandHighlighter != null) {
             commandHighlighter.refresh();
+            currentTheme = compareThemes(commandHighlighter, currentTheme);
         }
         if (argsHighlighter != null) {
             argsHighlighter.refresh();
+            currentTheme = compareThemes(argsHighlighter, currentTheme);
         }
         if (langHighlighter != null) {
             langHighlighter.refresh();
+            currentTheme = compareThemes(langHighlighter, currentTheme);
         }
         for (SyntaxHighlighter sh : specificHighlighter.values()) {
             sh.refresh();
+            currentTheme = compareThemes(sh, currentTheme);
         }
+        if (currentTheme != null) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(currentTheme.toFile()))) {
+                String line;
+                Map<String,String> tokens = new HashMap<>();
+                while ((line = reader.readLine()) != null) {
+                    String[] parts = line.trim().split("\\s+", 2);
+                    if (parts[0].matches(REGEX_TOKEN_NAME) && parts.length == 2) {
+                        tokens.put(parts[0], parts[1]);
+                    }
+                }
+                SystemRegistry.get().setConsoleOption(NANORC_THEME, tokens);
+            } catch (IOException e) {
+                Log.warn(e.getMessage());
+            }
+        }
+    }
+
+    private Path compareThemes(SyntaxHighlighter highlighter, Path currentTheme) {
+        Path out;
+        if (currentTheme != null) {
+            Path theme = highlighter.getCurrentTheme();
+            try {
+                if (theme != null && !Files.isSameFile(theme, currentTheme)) {
+                    Log.warn("Multiple nanorc themes are in use!");
+                }
+            } catch (Exception e) {
+                Log.warn(e.getMessage());
+            }
+            out = currentTheme;
+        } else {
+            out = highlighter.getCurrentTheme();
+        }
+        return out;
     }
 
     @Override

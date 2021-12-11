@@ -16,7 +16,10 @@ import java.util.stream.Collectors;
 
 import org.jline.utils.StyleResolver;
 
+import static org.jline.builtins.SyntaxHighlighter.REGEX_TOKEN_NAME;
+
 public class Styles {
+    public static final String NANORC_THEME = "NANORC_THEME";
     protected static final List<String> ANSI_STYLES = Arrays.asList("blink", "bold", "conceal", "crossed-out"
             , "crossedout", "faint", "hidden", "inverse", "inverse-neg", "inverseneg", "italic", "underline");
     private static final String DEFAULT_LS_COLORS = "di=1;91:ex=1;92:ln=1;96:fi=";
@@ -27,7 +30,7 @@ public class Styles {
     private static final String PRNT_COLORS = "PRNT_COLORS";
 
     private static final String KEY = "([a-z]{2}|\\*\\.[a-zA-Z0-9]+)";
-    private static final String VALUE = "([!~#]?[a-zA-Z0-9]+[a-z0-9-;]*)?";
+    private static final String VALUE = "(([!~#]?[a-zA-Z0-9]+[a-z0-9-;]*)?|" + REGEX_TOKEN_NAME + ")";
     private static final String VALUES = VALUE + "(," + VALUE + ")*";
     private static final String STYLE_PATTERN = KEY + "=" + VALUES + "(:" + KEY + "=" + VALUES + ")*(:|)";
 
@@ -55,19 +58,32 @@ public class Styles {
         return style(style);
     }
 
+    private static ConsoleOptionGetter optionGetter() {
+        try {
+            return (ConsoleOptionGetter) Class.forName("org.jline.console.SystemRegistry")
+                    .getDeclaredMethod("get").invoke(null);
+        } catch (Exception ignore) {
+        }
+        return null;
+    }
+
+    private static <T> T consoleOption(String name, T defVal) {
+        T out = defVal;
+        ConsoleOptionGetter cog = optionGetter();
+        if (cog != null) {
+            out = cog.consoleOption(name, defVal);
+        }
+        return out;
+    }
+
     private static String consoleOption(String name) {
         String out = null;
-        try {
-            ConsoleOptionGetter cog = (ConsoleOptionGetter)Class.forName("org.jline.console.SystemRegistry")
-                                                                .getDeclaredMethod("get").invoke(null);
-            if (cog != null) {
-                out = (String)cog.consoleOption(name);
-                if (out != null && !out.matches(STYLE_PATTERN)) {
-                    out = null;
-                }
+        ConsoleOptionGetter cog = optionGetter();
+        if (cog != null) {
+            out = (String) cog.consoleOption(name);
+            if (out != null && !out.matches(STYLE_PATTERN)) {
+                out = null;
             }
-        } catch (Exception e) {
-            // ignore
         }
         if (out == null) {
             out = System.getenv(name);
@@ -103,6 +119,7 @@ public class Styles {
             COLORS_NANO.put("latte", 137);
         }
         private final Map<String,String> colors;
+        private final Map<String,String> tokenColors;
         private final boolean nanoStyle;
 
         public StyleCompiler(Map<String,String> colors) {
@@ -111,6 +128,7 @@ public class Styles {
         public StyleCompiler(Map<String,String> colors, boolean nanoStyle) {
             this.colors = colors;
             this.nanoStyle = nanoStyle;
+            this.tokenColors = consoleOption(NANORC_THEME, new HashMap<>());
         }
 
         public String getStyle(String reference) {
@@ -118,7 +136,9 @@ public class Styles {
                 return null;
             }
             String rawStyle = colors.get(reference);
-            if (!nanoStyle && rawStyle.matches(ANSI_VALUE)) {
+            if (rawStyle.matches(REGEX_TOKEN_NAME)) {
+                rawStyle = tokenColors.getOrDefault(rawStyle, "normal");
+            } else if (!nanoStyle && rawStyle.matches(ANSI_VALUE)) {
                 return rawStyle;
             }
             StringBuilder out = new StringBuilder();

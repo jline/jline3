@@ -741,6 +741,11 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         return out;
     }
 
+    @Override
+    public void setConsoleOption(String name, Object value) {
+        consoleOptions().put(name, value);
+    }
+
     private boolean consoleOption(String option) {
         boolean out = false;
         try {

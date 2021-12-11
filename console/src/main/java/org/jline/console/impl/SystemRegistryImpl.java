@@ -159,11 +159,23 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     @Override
     public Object consoleOption(String name) {
-        Object out = null;
+        return consoleOption(name, null);
+    }
+
+    @Override
+    public <T> T consoleOption(String name, T defVal) {
+        T out = defVal;
         if (consoleId != null) {
-            out = consoleEngine().consoleOption(name, null);
+            out = consoleEngine().consoleOption(name, defVal);
         }
         return out;
+    }
+
+    @Override
+    public void setConsoleOption(String name, Object value) {
+        if (consoleId != null) {
+            consoleEngine().setConsoleOption(name, value);
+        }
     }
 
     /**

@@ -45,6 +45,8 @@ import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.StyleResolver;
 
+import static org.jline.builtins.SyntaxHighlighter.REGEX_TOKEN_NAME;
+
 public class Commands {
 
     public static void tmux(Terminal terminal, PrintStream out, PrintStream err,
@@ -1168,7 +1170,7 @@ public class Commands {
             for (int i = 0; i < s - left; i++) {
                 rp.append(" ");
             }
-             return lp.toString() + field + rp.toString();
+            return lp + field + rp;
         }
 
         private String addLeftPadding(int width, String field) {
@@ -1606,7 +1608,7 @@ public class Commands {
                         line = line.trim();
                         if (line.length() > 0 && !line.startsWith("#")) {
                             List<String> parts = Arrays.asList(line.split("\\s+", 2));
-                            if (parts.get(0).matches("[A-Z_]+")) {
+                            if (parts.get(0).matches(REGEX_TOKEN_NAME)) {
                                 if (parts.get(0).length() > maxKeyLen) {
                                     maxKeyLen = parts.get(0).length();
                                 }
