@@ -45,6 +45,8 @@ import org.jline.utils.Log;
 import org.jline.utils.OSUtils;
 import org.jline.utils.StyleResolver;
 
+import static org.jline.console.ConsoleEngine.VAR_NANORC;
+
 /**
  * Implements Groovy ScriptEngine.
  * You must be very careful when using GroovyEngine in a multithreaded environment. The Binding instance is not
@@ -1337,6 +1339,7 @@ public class GroovyEngine implements ScriptEngine {
         private final String nanorcSyntax;
         private final String groovyColors;
         private Object involvedObject = null;
+        private final Path nanorc;
 
         public Inspector(GroovyEngine groovyEngine) {
             this.imports = groovyEngine.imports;
@@ -1371,6 +1374,8 @@ public class GroovyEngine implements ScriptEngine {
                     sharedData.setVariable(entry.getKey(), execute("{" + m.group(1) + "->" + m.group(2) + "}"));
                 }
             }
+            String nanorcString = (String)groovyEngine.get(VAR_NANORC);
+            nanorc = nanorcString != null ? Paths.get(nanorcString) : null;
         }
 
         public Object getInvolvedObject() {
@@ -1598,6 +1603,18 @@ public class GroovyEngine implements ScriptEngine {
             return out;
         }
 
+        private SyntaxHighlighter buildHighlighter(String syntax) {
+            SyntaxHighlighter out;
+            if (syntax == null) {
+                out = SyntaxHighlighter.build("");
+            } else if (syntax.contains(":") || nanorc == null) {
+                out = SyntaxHighlighter.build(syntax);
+            } else {
+                out = SyntaxHighlighter.build(nanorc, syntax);
+            }
+            return out;
+        }
+
         private CmdDesc methodDescription(CmdLine line) {
             CmdDesc out = new CmdDesc();
             List<String> args = line.getArgs();
@@ -1630,7 +1647,7 @@ public class GroovyEngine implements ScriptEngine {
             }
             List<AttributedString> mainDesc = new ArrayList<>();
             if (clazz != null) {
-                SyntaxHighlighter java = SyntaxHighlighter.build(nanorcSyntax);
+                SyntaxHighlighter java = buildHighlighter(nanorcSyntax);
                 mainDesc.add(java.highlight(clazz.toString()));
                 if (constructor) {
                     for (Constructor<?> m : access.allConstructors ? clazz.getDeclaredConstructors()
@@ -1838,7 +1855,7 @@ public class GroovyEngine implements ScriptEngine {
 
         private List<AttributedString> doExceptionMessage(Exception exception) {
             List<AttributedString> out = new ArrayList<>();
-            SyntaxHighlighter java = SyntaxHighlighter.build(nanorcSyntax);
+            SyntaxHighlighter java = buildHighlighter(nanorcSyntax);
             StyleResolver resolver = Styles.style(groovyColors);
             Pattern header = Pattern.compile("^[a-zA-Z() ]{3,}:(\\s+|$)");
             out.add(java.highlight(exception.getClass().getCanonicalName()));

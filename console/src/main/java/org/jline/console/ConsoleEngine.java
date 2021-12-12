@@ -26,6 +26,11 @@ import org.jline.reader.Widget;
 public interface ConsoleEngine extends CommandRegistry {
 
     /**
+     * Console string variable of nanorc file full path
+     */
+    String VAR_NANORC = "NANORC";
+
+    /**
      * Removes the command name first character if it is colon
      * @param command the name of the command to complete
      * @return command name without starting colon

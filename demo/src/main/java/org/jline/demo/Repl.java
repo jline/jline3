@@ -51,6 +51,7 @@ import org.jline.widget.TailTipWidgets;
 import org.jline.widget.TailTipWidgets.TipType;
 import org.jline.widget.Widgets;
 
+import static org.jline.console.ConsoleEngine.VAR_NANORC;
 /**
  * Demo how to create REPL app with JLine.
  *
@@ -288,6 +289,7 @@ public class Repl {
             // Command line highlighter
             //
             Path jnanorc = configPath.getConfig("jnanorc");
+            scriptEngine.put(VAR_NANORC, jnanorc.toString());
             SyntaxHighlighter commandHighlighter = SyntaxHighlighter.build(jnanorc,"COMMAND");
             SyntaxHighlighter argsHighlighter = SyntaxHighlighter.build(jnanorc,"ARGS");
             SyntaxHighlighter groovyHighlighter = SyntaxHighlighter.build(jnanorc,"Groovy");

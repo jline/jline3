@@ -32,6 +32,8 @@ import org.jline.utils.AttributedStyle;
 import org.jline.utils.Log;
 import org.jline.utils.StyleResolver;
 
+import static org.jline.console.ConsoleEngine.VAR_NANORC;
+
 /**
  * Print highlighted objects to console.
  *
@@ -39,7 +41,6 @@ import org.jline.utils.StyleResolver;
  */
 public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     protected static final String VAR_PRNT_OPTIONS = "PRNT_OPTIONS";
-    protected static final String VAR_NANORC = "NANORC";
     protected static final int PRNT_MAX_ROWS = 100000;
     protected static final int PRNT_MAX_DEPTH = 1;
     protected static final int PRNT_INDENTION = 4;
