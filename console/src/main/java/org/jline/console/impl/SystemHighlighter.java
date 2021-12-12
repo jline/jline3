@@ -37,6 +37,7 @@ import static org.jline.builtins.SyntaxHighlighter.REGEX_TOKEN_NAME;
 public class SystemHighlighter extends DefaultHighlighter {
     private final static StyleResolver resolver = Styles.lsStyle();
     private final static String REGEX_COMMENT_LINE =  "\\s*#.*";
+    private final static String READER_COLORS = "READER_COLORS";
     protected final SyntaxHighlighter commandHighlighter;
     protected final SyntaxHighlighter argsHighlighter;
     protected final SyntaxHighlighter langHighlighter;
@@ -58,7 +59,7 @@ public class SystemHighlighter extends DefaultHighlighter {
     }
 
     @Override
-    public void refresh() {
+    public void refresh(LineReader lineReader) {
         Path currentTheme = null;
         if (commandHighlighter != null) {
             commandHighlighter.refresh();
@@ -86,7 +87,13 @@ public class SystemHighlighter extends DefaultHighlighter {
                         tokens.put(parts[0], parts[1]);
                     }
                 }
-                SystemRegistry.get().setConsoleOption(NANORC_THEME, tokens);
+                SystemRegistry registry = SystemRegistry.get();
+                registry.setConsoleOption(NANORC_THEME, tokens);
+                Map<String,String> readerColors = registry.consoleOption(READER_COLORS, new HashMap<>());
+                Styles.StyleCompiler styleCompiler = new Styles.StyleCompiler(readerColors);
+                for (String key : readerColors.keySet()) {
+                    lineReader.setVariable(key, styleCompiler.getStyle(key));
+                }
             } catch (IOException e) {
                 Log.warn(e.getMessage());
             }

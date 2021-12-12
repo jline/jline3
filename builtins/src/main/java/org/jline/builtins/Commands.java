@@ -1587,7 +1587,7 @@ public class Commands {
         }
         try {
             if (opt.isSet("refresh")) {
-                lineReader.getHighlighter().refresh();
+                lineReader.getHighlighter().refresh(lineReader);
             }
             if (opt.isSet("view")) {
                 SyntaxHighlighter sh = SyntaxHighlighter.build(configPath.getConfig("jnanorc"), null);

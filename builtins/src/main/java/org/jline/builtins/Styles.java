@@ -101,7 +101,7 @@ public class Styles {
         return new StyleResolver(new StyleCompiler(colors)::getStyle);
     }
 
-    protected static class StyleCompiler {
+    public static class StyleCompiler {
         private static final String ANSI_VALUE = "[0-9]*(;[0-9]+){0,2}";
         private static final String COLORS_24BIT = "[#x][0-9a-fA-F]{6}";
         private static final List<String> COLORS_8 = Arrays.asList("white", "black", "red", "blue", "green", "yellow", "magenta", "cyan");
@@ -136,7 +136,9 @@ public class Styles {
                 return null;
             }
             String rawStyle = colors.get(reference);
-            if (rawStyle.matches(REGEX_TOKEN_NAME)) {
+            if (rawStyle == null) {
+                return null;
+            } else if (rawStyle.matches(REGEX_TOKEN_NAME)) {
                 rawStyle = tokenColors.getOrDefault(rawStyle, "normal");
             } else if (!nanoStyle && rawStyle.matches(ANSI_VALUE)) {
                 return rawStyle;

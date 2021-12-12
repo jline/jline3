@@ -25,7 +25,7 @@ public interface Highlighter {
     /**
      * Refresh highlight configuration
      */
-    default void refresh () {}
+    default void refresh(LineReader reader) {}
 
     /**
      * Set error pattern to be highlighted

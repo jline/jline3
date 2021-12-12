@@ -59,6 +59,8 @@ HEADER      bold,!blue,~grey7,underline
 ROW_NUMBER  bold,!blue,~grey7
 ROW_STYLE   ,~grey15
 DEBUG       brightmagenta
+LIST_BACKGROUND ,~grey42
+LIST_GROUP      ~greenyellow
 #
 # mixin
 #
