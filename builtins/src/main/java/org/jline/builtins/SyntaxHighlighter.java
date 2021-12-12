@@ -26,10 +26,11 @@ import java.util.regex.PatternSyntaxException;
  */
 public class SyntaxHighlighter {
     public static final String REGEX_TOKEN_NAME = "[A-Z_]+";
+    public static final String TYPE_NANORCTHEME = ".nanorctheme";
     public static final String DEFAULT_NANORC_FILE = "jnanorc";
+    protected static final String DEFAULT_LESSRC_FILE = "jlessrc";
     protected static final String COMMAND_INCLUDE = "include";
     protected static final String COMMAND_THEME = "theme";
-    protected static final String TYPE_NANORCTHEME = ".nanorctheme";
     private static final String TOKEN_NANORC = "NANORC";
     private final Path nanorc;
     private final String syntaxName;

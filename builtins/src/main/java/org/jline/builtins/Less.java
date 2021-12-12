@@ -44,8 +44,7 @@ import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.NonBlockingReader;
 import org.jline.utils.Status;
 
-import static org.jline.builtins.SyntaxHighlighter.COMMAND_INCLUDE;
-import static org.jline.builtins.SyntaxHighlighter.COMMAND_THEME;
+import static org.jline.builtins.SyntaxHighlighter.*;
 import static org.jline.keymap.KeyMap.alt;
 import static org.jline.keymap.KeyMap.ctrl;
 import static org.jline.keymap.KeyMap.del;
@@ -146,7 +145,7 @@ public class Less {
         this.display = new Display(terminal, true);
         this.bindingReader = new BindingReader(terminal.reader());
         this.currentDir = currentDir;
-        Path lessrc = configPath != null ? configPath.getConfig("jlessrc") : null;
+        Path lessrc = configPath != null ? configPath.getConfig(DEFAULT_LESSRC_FILE) : null;
         boolean ignorercfiles = opts!=null && opts.isSet("ignorercfiles");
         if (lessrc != null && !ignorercfiles) {
             try {
