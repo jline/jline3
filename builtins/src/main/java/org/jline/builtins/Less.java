@@ -44,6 +44,8 @@ import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.NonBlockingReader;
 import org.jline.utils.Status;
 
+import static org.jline.builtins.SyntaxHighlighter.COMMAND_INCLUDE;
+import static org.jline.builtins.SyntaxHighlighter.COMMAND_THEME;
 import static org.jline.keymap.KeyMap.alt;
 import static org.jline.keymap.KeyMap.ctrl;
 import static org.jline.keymap.KeyMap.del;
@@ -223,9 +225,9 @@ public class Less {
                 line = line.trim();
                 if (line.length() > 0 && !line.startsWith("#")) {
                     List<String> parts = SyntaxHighlighter.RuleSplitter.split(line);
-                    if (parts.get(0).equals("include")) {
+                    if (parts.get(0).equals(COMMAND_INCLUDE)) {
                         SyntaxHighlighter.nanorcInclude(parts.get(1), syntaxFiles);
-                    } else if(parts.get(0).equals("theme")) {
+                    } else if(parts.get(0).equals(COMMAND_THEME)) {
                         SyntaxHighlighter.nanorcTheme(parts.get(1), syntaxFiles);
                     } else if (parts.size() == 2
                             && (parts.get(0).equals("set") || parts.get(0).equals("unset"))) {

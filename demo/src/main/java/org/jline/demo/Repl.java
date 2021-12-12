@@ -51,6 +51,7 @@ import org.jline.widget.TailTipWidgets;
 import org.jline.widget.TailTipWidgets.TipType;
 import org.jline.widget.Widgets;
 
+import static org.jline.builtins.SyntaxHighlighter.DEFAULT_NANORC_FILE;
 import static org.jline.console.ConsoleEngine.VAR_NANORC;
 /**
  * Demo how to create REPL app with JLine.
@@ -261,7 +262,7 @@ public class Repl {
             //
             File file = new File(Repl.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
             String root = file.getCanonicalPath().replace("classes", "").replaceAll("\\\\", "/"); // forward slashes works better also in windows!
-            File jnanorcFile = Paths.get(root, "jnanorc").toFile();
+            File jnanorcFile = Paths.get(root, DEFAULT_NANORC_FILE).toFile();
             if (!jnanorcFile.exists()) {
                 try (FileWriter fw = new FileWriter(jnanorcFile)) {
                     fw.write("theme " + root + "nanorc/*.nanorctheme\n");
@@ -288,7 +289,7 @@ public class Repl {
             //
             // Command line highlighter
             //
-            Path jnanorc = configPath.getConfig("jnanorc");
+            Path jnanorc = configPath.getConfig(DEFAULT_NANORC_FILE);
             scriptEngine.put(VAR_NANORC, jnanorc.toString());
             SyntaxHighlighter commandHighlighter = SyntaxHighlighter.build(jnanorc,"COMMAND");
             SyntaxHighlighter argsHighlighter = SyntaxHighlighter.build(jnanorc,"ARGS");

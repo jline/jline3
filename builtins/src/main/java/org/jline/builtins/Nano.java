@@ -49,6 +49,7 @@ import org.jline.utils.*;
 import org.jline.utils.InfoCmp.Capability;
 import org.mozilla.universalchardet.UniversalDetector;
 
+import static org.jline.builtins.SyntaxHighlighter.*;
 import static org.jline.keymap.KeyMap.KEYMAP_LENGTH;
 import static org.jline.keymap.KeyMap.alt;
 import static org.jline.keymap.KeyMap.ctrl;
@@ -1550,7 +1551,7 @@ public class Nano implements Editor {
             attrs.setControlChar(ControlChar.VSUSP, 0);
             terminal.setAttributes(attrs);
         }
-        Path nanorc = configPath != null ? configPath.getConfig("jnanorc") : null;
+        Path nanorc = configPath != null ? configPath.getConfig(DEFAULT_NANORC_FILE) : null;
         boolean ignorercfiles = opts != null && opts.isSet("ignorercfiles");
         if (nanorc != null && !ignorercfiles) {
             try {
@@ -1647,9 +1648,9 @@ public class Nano implements Editor {
                 line = line.trim();
                 if (line.length() > 0 && !line.startsWith("#")) {
                     List<String> parts = SyntaxHighlighter.RuleSplitter.split(line);
-                    if (parts.get(0).equals("include")) {
+                    if (parts.get(0).equals(COMMAND_INCLUDE)) {
                         SyntaxHighlighter.nanorcInclude(parts.get(1), syntaxFiles);
-                    } else if(parts.get(0).equals("theme")) {
+                    } else if(parts.get(0).equals(COMMAND_THEME)) {
                         SyntaxHighlighter.nanorcTheme(parts.get(1), syntaxFiles);
                     } else if (parts.size() == 2
                             && (parts.get(0).equals("set") || parts.get(0).equals("unset"))) {

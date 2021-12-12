@@ -32,6 +32,7 @@ import org.jline.utils.AttributedStyle;
 import org.jline.utils.Log;
 import org.jline.utils.StyleResolver;
 
+import static org.jline.builtins.SyntaxHighlighter.DEFAULT_NANORC_FILE;
 import static org.jline.console.ConsoleEngine.VAR_NANORC;
 
 /**
@@ -387,7 +388,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         } else if (style.matches("[a-z]+:.*")) {
             out = SyntaxHighlighter.build(style);
         } else {
-            Path nanorc = configPath != null ? configPath.getConfig("jnanorc") : null;
+            Path nanorc = configPath != null ? configPath.getConfig(DEFAULT_NANORC_FILE) : null;
             if (engine != null && engine.hasVariable(VAR_NANORC)) {
                 nanorc = Paths.get((String)engine.get(VAR_NANORC));
             }

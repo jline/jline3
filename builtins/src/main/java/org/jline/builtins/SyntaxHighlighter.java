@@ -26,6 +26,10 @@ import java.util.regex.PatternSyntaxException;
  */
 public class SyntaxHighlighter {
     public static final String REGEX_TOKEN_NAME = "[A-Z_]+";
+    public static final String DEFAULT_NANORC_FILE = "jnanorc";
+    protected static final String COMMAND_INCLUDE = "include";
+    protected static final String COMMAND_THEME = "theme";
+    protected static final String TYPE_NANORCTHEME = ".nanorctheme";
     private static final String TOKEN_NANORC = "NANORC";
     private final Path nanorc;
     private final String syntaxName;
@@ -70,7 +74,7 @@ public class SyntaxHighlighter {
             if (syntaxName == null || !syntaxName.equals("none")) {
                 for (Path p : syntaxFiles) {
                     try {
-                        if (colorTheme.isEmpty() && p.getFileName().toString().endsWith(".nanorctheme")) {
+                        if (colorTheme.isEmpty() && p.getFileName().toString().endsWith(TYPE_NANORCTHEME)) {
                             out.setCurrentTheme(p);
                             try (BufferedReader reader = new BufferedReader(new FileReader(p.toFile()))) {
                                 String line;
@@ -123,9 +127,9 @@ public class SyntaxHighlighter {
                     line = line.trim();
                     if (line.length() > 0 && !line.startsWith("#")) {
                         List<String> parts = RuleSplitter.split(line);
-                        if (parts.get(0).equals("include")) {
+                        if (parts.get(0).equals(COMMAND_INCLUDE)) {
                             nanorcInclude(parts.get(1), syntaxFiles);
-                        } else if (parts.get(0).equals("theme")) {
+                        } else if (parts.get(0).equals(COMMAND_THEME)) {
                             nanorcTheme(parts.get(1), syntaxFiles);
                         }
                     }

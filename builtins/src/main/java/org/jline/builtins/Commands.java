@@ -45,7 +45,7 @@ import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.StyleResolver;
 
-import static org.jline.builtins.SyntaxHighlighter.REGEX_TOKEN_NAME;
+import static org.jline.builtins.SyntaxHighlighter.*;
 
 public class Commands {
 
@@ -1590,7 +1590,7 @@ public class Commands {
                 lineReader.getHighlighter().refresh(lineReader);
             }
             if (opt.isSet("view")) {
-                SyntaxHighlighter sh = SyntaxHighlighter.build(configPath.getConfig("jnanorc"), null);
+                SyntaxHighlighter sh = SyntaxHighlighter.build(configPath.getConfig(DEFAULT_NANORC_FILE), null);
                 Path currentTheme = sh.getCurrentTheme();
                 File themeFile;
                 if (opt.args().isEmpty()) {
@@ -1644,9 +1644,9 @@ public class Commands {
                 }
             }
             if (opt.isSet("list")) {
-                SyntaxHighlighter sh = SyntaxHighlighter.build(configPath.getConfig("jnanorc"), null);
+                SyntaxHighlighter sh = SyntaxHighlighter.build(configPath.getConfig(DEFAULT_NANORC_FILE), null);
                 Path ct = sh.getCurrentTheme();
-                String parameter = replaceFileName(ct, "*.nanorctheme");
+                String parameter = replaceFileName(ct, "*" + TYPE_NANORCTHEME);
                 out.println(ct.getParent() + ":");
                 PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parameter);
                 Files.find(Paths.get(new File(parameter).getParent()), Integer.MAX_VALUE
