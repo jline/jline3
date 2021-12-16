@@ -43,6 +43,8 @@ import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.Log;
+import org.jline.utils.OSUtils;
 
 /**
  * Manage console variables, commands and script execution.
@@ -112,6 +114,10 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         aliasFile = configPath.getUserConfig("aliases.json");
         if (aliasFile == null) {
             aliasFile = configPath.getUserConfig("aliases.json", true);
+            if (aliasFile == null) {
+                Log.warn("Failed to write in user config path!");
+                aliasFile = OSUtils.IS_WINDOWS ? Paths.get("NUL") : Paths.get("/dev/null");
+            }
             persist(aliasFile, aliases);
         } else {
             aliases.putAll((Map<String,String>)slurp(aliasFile));
