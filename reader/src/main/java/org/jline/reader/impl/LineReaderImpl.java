@@ -4626,6 +4626,11 @@ public class LineReaderImpl implements LineReader, Flushable
         return size.getRows() - (status != null ? status.size() : 0);
     }
 
+    private int visibleDisplayRows() {
+        Status status = Status.getStatus(terminal, false);
+        return terminal.getSize().getRows() - (status != null ? status.size() : 0);
+    }
+
     private int promptLines() {
         AttributedString text = insertSecondaryPrompts(AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
         return text.columnSplitLength(size.getColumns(), false, display.delayLineWrap()).size();
@@ -5208,7 +5213,7 @@ public class LineReaderImpl implements LineReader, Flushable
         AttributedStringBuilder sb = new AttributedStringBuilder();
         if (listSize > 0) {
             if (isSet(Option.AUTO_MENU_LIST)
-                    && listSize < Math.min(getInt(MENU_LIST_MAX, DEFAULT_MENU_LIST_MAX), displayRows() - promptLines())) {
+                    && listSize < Math.min(getInt(MENU_LIST_MAX, DEFAULT_MENU_LIST_MAX), visibleDisplayRows() - promptLines())) {
                 maxWidth = Math.max(maxWidth, MENU_LIST_WIDTH);
                 sb.tabs(Math.max(Math.min(candidateStartPosition, width - maxWidth - 1), 1));
                 width = maxWidth + 2;
