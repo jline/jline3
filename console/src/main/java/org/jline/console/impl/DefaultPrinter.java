@@ -56,6 +56,8 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     private final ScriptEngine engine;
     private final ConfigurationPath configPath;
     private StyleResolver prntStyle;
+
+    @SuppressWarnings("serial")
     private final LinkedHashMap<String, SyntaxHighlighter> highlighters = new LinkedHashMap<String,
             SyntaxHighlighter>(HIGHLIGHTER_CACHE_SIZE + 1, .75F, false) {
         protected boolean removeEldestEntry(Map.Entry<String, SyntaxHighlighter> eldest) {
