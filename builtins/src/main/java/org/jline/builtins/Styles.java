@@ -50,7 +50,7 @@ public class Styles {
         return style.matches(STYLE_PATTERN);
     }
 
-    private static StyleResolver style(String name, String defStyle) {
+    public static StyleResolver style(String name, String defStyle) {
         String style = consoleOption(name);
         if (style == null) {
             style = defStyle;
