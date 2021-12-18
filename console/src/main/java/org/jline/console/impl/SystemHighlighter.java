@@ -25,6 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.function.Supplier;
 
 import static org.jline.builtins.Styles.NANORC_THEME;
 import static org.jline.builtins.SyntaxHighlighter.REGEX_TOKEN_NAME;
@@ -45,6 +46,7 @@ public class SystemHighlighter extends DefaultHighlighter {
     protected final Map<String, FileHighlightCommand> fileHighlight = new HashMap<>();
     protected final Map<String,SyntaxHighlighter> specificHighlighter = new HashMap<>();
     protected int  commandIndex;
+    private final List<Supplier<Boolean>> externalHighlightersRefresh = new ArrayList<>();
 
     public SystemHighlighter(SyntaxHighlighter commandHighlighter, SyntaxHighlighter argsHighlighter
             , SyntaxHighlighter langHighlighter) {
@@ -94,10 +96,17 @@ public class SystemHighlighter extends DefaultHighlighter {
                 for (String key : readerColors.keySet()) {
                     lineReader.setVariable(key, styleCompiler.getStyle(key));
                 }
+                for (Supplier<Boolean> refresh : externalHighlightersRefresh) {
+                    refresh.get();
+                }
             } catch (IOException e) {
                 Log.warn(e.getMessage());
             }
         }
+    }
+
+    public void addExternalHighlighterRefresh(Supplier<Boolean> refresh) {
+        externalHighlightersRefresh.add(refresh);
     }
 
     private Path compareThemes(SyntaxHighlighter highlighter, Path currentTheme) {

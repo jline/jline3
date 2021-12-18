@@ -300,6 +300,8 @@ public class Repl {
             }
             highlighter.addFileHighlight("nano", "less", "slurp");
             highlighter.addFileHighlight("groovy", "classloader", Arrays.asList("-a", "--add"));
+            highlighter.addExternalHighlighterRefresh(printer::refresh);
+            highlighter.addExternalHighlighterRefresh(scriptEngine::refresh);
             //
             // LineReader
             //
