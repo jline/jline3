@@ -46,6 +46,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     protected static final int PRNT_MAX_DEPTH = 1;
     protected static final int PRNT_INDENTION = 4;
     private static final int NANORC_MAX_STRING_LENGTH = 400;
+    private static final int HIGHLIGHTER_CACHE_SIZE = 5;
 
     private Map<Class<?>, Function<Object, Map<String,Object>>> objectToMap = new HashMap<>();
     private Map<Class<?>, Function<Object, String>> objectToString = new HashMap<>();
@@ -55,6 +56,12 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     private final ScriptEngine engine;
     private final ConfigurationPath configPath;
     private StyleResolver prntStyle;
+    private final LinkedHashMap<String, SyntaxHighlighter> highlighters = new LinkedHashMap<String,
+            SyntaxHighlighter>(HIGHLIGHTER_CACHE_SIZE + 1, .75F, false) {
+        protected boolean removeEldestEntry(Map.Entry<String, SyntaxHighlighter> eldest) {
+            return size() > HIGHLIGHTER_CACHE_SIZE;
+        }
+    };
 
     public DefaultPrinter(ConfigurationPath configPath) {
         this(null, configPath);
@@ -79,6 +86,12 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         }
         manageBooleanOptions(options);
         internalPrintln(options, object);
+    }
+
+    @Override
+    public boolean refresh() {
+        highlighters.clear();
+        return true;
     }
 
     public String[] appendUsage(String[] customUsage) {
@@ -385,8 +398,11 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         SyntaxHighlighter out;
         if (style == null || style.isEmpty()) {
             out = null;
+        } else if (highlighters.containsKey(style)) {
+            out = highlighters.get(style);
         } else if (style.matches("[a-z]+:.*")) {
             out = SyntaxHighlighter.build(style);
+            highlighters.put(style, out);
         } else {
             Path nanorc = configPath != null ? configPath.getConfig(DEFAULT_NANORC_FILE) : null;
             if (engine != null && engine.hasVariable(VAR_NANORC)) {
@@ -396,6 +412,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                 nanorc = Paths.get("/etc/nanorc");
             }
             out = SyntaxHighlighter.build(nanorc, style);
+            highlighters.put(style, out);
         }
         return out;
     }

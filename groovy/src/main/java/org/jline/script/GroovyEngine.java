@@ -72,6 +72,7 @@ public class GroovyEngine implements ScriptEngine {
     public static final String SYNTHETIC_METHODS_COMPLETION = "syntheticMethodsCompletion";
 
     private static final String VAR_GROOVY_OPTIONS = "GROOVY_OPTIONS";
+    private static final String DEFAULT_NANORC_SYNTAX = "classpath:/org/jline/groovy/java.nanorc";
     private static final String REGEX_SYSTEM_VAR = "[A-Z]+[A-Z_]*";
     private static final String REGEX_VAR = "[a-zA-Z_]+[a-zA-Z0-9_]*";
     private static final Pattern PATTERN_FUNCTION_DEF = Pattern.compile(
@@ -100,6 +101,8 @@ public class GroovyEngine implements ScriptEngine {
     private final Map<String,Class<?>> nameClass;
     private Cloner objectCloner = new ObjectCloner();
     protected final EngineClassLoader classLoader;
+    private SyntaxHighlighter syntaxHighlighter;
+    private String syntaxHighlighterStyle;
 
     public interface Cloner {
         Object clone(Object obj);
@@ -528,6 +531,28 @@ public class GroovyEngine implements ScriptEngine {
             // ignore
         }
         return out;
+    }
+
+    public boolean refresh() {
+        syntaxHighlighter = null;
+        return true;
+    }
+
+    protected SyntaxHighlighter getSyntaxHighlighter() {
+        String syntax = groovyOption(NANORC_SYNTAX, DEFAULT_NANORC_SYNTAX);
+        if (syntaxHighlighter == null || syntax == null || !syntax.equals(syntaxHighlighterStyle)) {
+            String nanorcString = (String) get(VAR_NANORC);
+            Path nanorc = nanorcString != null ? Paths.get(nanorcString) : null;
+            if (syntax == null) {
+                syntaxHighlighter = SyntaxHighlighter.build("");
+            } else if (syntax.contains(":") || nanorc == null) {
+                syntaxHighlighter = SyntaxHighlighter.build(syntax);
+            } else {
+                syntaxHighlighter = SyntaxHighlighter.build(nanorc, syntax);
+            }
+            syntaxHighlighterStyle = syntax;
+        }
+        return syntaxHighlighter;
     }
 
     private Completer compileCompleter() {
@@ -1320,7 +1345,6 @@ public class GroovyEngine implements ScriptEngine {
         static final Pattern PATTERN_FUNCTION = Pattern.compile("\\s*def\\s+\\w+\\s*\\((.*?)\\).*");
         static final Pattern PATTERN_CLOSURE = Pattern.compile(".*\\{(.*?)->.*");
         static final Pattern PATTERN_TYPE_VAR = Pattern.compile("(\\w+)\\s+(\\w+)");
-        static final String DEFAULT_NANORC_SYNTAX = "classpath:/org/jline/groovy/java.nanorc";
         static final String DEFAULT_GROOVY_COLORS = "ti=1;34:me=31";
 
         private final GroovyShell shell;
@@ -1336,21 +1360,20 @@ public class GroovyEngine implements ScriptEngine {
         private final AccessRules access;
         private String[] equationLines;
         private int cuttedSize;
-        private final String nanorcSyntax;
         private final String groovyColors;
         private Object involvedObject = null;
-        private final Path nanorc;
+        private final SyntaxHighlighter syntaxHighlighter;
 
         public Inspector(GroovyEngine groovyEngine) {
             this.imports = groovyEngine.imports;
             this.nameClass = groovyEngine.nameClass;
             this.canonicalNames = groovyEngine.groovyOption(CANONICAL_NAMES, false);
-            this.nanorcSyntax = groovyEngine.groovyOption(NANORC_SYNTAX, DEFAULT_NANORC_SYNTAX);
             this.noSyntaxCheck = groovyEngine.groovyOption(NO_SYNTAX_CHECK, false);
             this.restrictedCompletion = groovyEngine.groovyOption(RESTRICTED_COMPLETION, false);
             this.metaMethodsCompletion = groovyEngine.groovyOption(META_METHODS_COMPLETION, false);
             this.syntheticCompletion = groovyEngine.groovyOption(SYNTHETIC_METHODS_COMPLETION, false);
             this.access = new AccessRules(groovyEngine.groovyOptions());
+            this.syntaxHighlighter = groovyEngine.getSyntaxHighlighter();
             String gc = groovyEngine.groovyOption(GROOVY_COLORS, null);
             groovyColors = gc != null && Styles.isStylePattern(gc) ? gc : DEFAULT_GROOVY_COLORS;
             groovyEngine.getObjectCloner().markCache();
@@ -1374,8 +1397,6 @@ public class GroovyEngine implements ScriptEngine {
                     sharedData.setVariable(entry.getKey(), execute("{" + m.group(1) + "->" + m.group(2) + "}"));
                 }
             }
-            String nanorcString = (String)groovyEngine.get(VAR_NANORC);
-            nanorc = nanorcString != null ? Paths.get(nanorcString) : null;
         }
 
         public Object getInvolvedObject() {
@@ -1603,18 +1624,6 @@ public class GroovyEngine implements ScriptEngine {
             return out;
         }
 
-        private SyntaxHighlighter buildHighlighter(String syntax) {
-            SyntaxHighlighter out;
-            if (syntax == null) {
-                out = SyntaxHighlighter.build("");
-            } else if (syntax.contains(":") || nanorc == null) {
-                out = SyntaxHighlighter.build(syntax);
-            } else {
-                out = SyntaxHighlighter.build(nanorc, syntax);
-            }
-            return out;
-        }
-
         private CmdDesc methodDescription(CmdLine line) {
             CmdDesc out = new CmdDesc();
             List<String> args = line.getArgs();
@@ -1647,8 +1656,7 @@ public class GroovyEngine implements ScriptEngine {
             }
             List<AttributedString> mainDesc = new ArrayList<>();
             if (clazz != null) {
-                SyntaxHighlighter java = buildHighlighter(nanorcSyntax);
-                mainDesc.add(java.highlight(clazz.toString()));
+                mainDesc.add(syntaxHighlighter.highlight(clazz.toString()));
                 if (constructor) {
                     for (Constructor<?> m : access.allConstructors ? clazz.getDeclaredConstructors()
                                                                    : clazz.getConstructors()) {
@@ -1680,7 +1688,7 @@ public class GroovyEngine implements ScriptEngine {
                             sb.append(canonicalNames ? e.getCanonicalName() : e.getSimpleName());
                             first = false;
                         }
-                        mainDesc.add(java.highlight(trimMethodDescription(sb)));
+                        mainDesc.add(syntaxHighlighter.highlight(trimMethodDescription(sb)));
                     }
                 } else {
                     List<String> addedMethods = new ArrayList<>();
@@ -1707,7 +1715,7 @@ public class GroovyEngine implements ScriptEngine {
                             sb.append(")");
                             if (!addedMethods.contains(sb.toString())) {
                                 addedMethods.add(sb.toString());
-                                mainDesc.add(java.highlight(trimMethodDescription(sb)));
+                                mainDesc.add(syntaxHighlighter.highlight(trimMethodDescription(sb)));
                             }
                         }
                     }
@@ -1748,7 +1756,7 @@ public class GroovyEngine implements ScriptEngine {
                         }
                         if (!addedMethods.contains(sb.toString())) {
                             addedMethods.add(sb.toString());
-                            mainDesc.add(java.highlight(trimMethodDescription(sb)));
+                            mainDesc.add(syntaxHighlighter.highlight(trimMethodDescription(sb)));
                         }
                     }
                 }
@@ -1855,10 +1863,9 @@ public class GroovyEngine implements ScriptEngine {
 
         private List<AttributedString> doExceptionMessage(Exception exception) {
             List<AttributedString> out = new ArrayList<>();
-            SyntaxHighlighter java = buildHighlighter(nanorcSyntax);
             StyleResolver resolver = Styles.style(groovyColors);
             Pattern header = Pattern.compile("^[a-zA-Z() ]{3,}:(\\s+|$)");
-            out.add(java.highlight(exception.getClass().getCanonicalName()));
+            out.add(syntaxHighlighter.highlight(exception.getClass().getCanonicalName()));
             if (exception.getMessage() != null) {
                 for (String s: exception.getMessage().split("\\r?\\n")) {
                     if (s.trim().length() == 0) {

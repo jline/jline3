@@ -202,4 +202,9 @@ public interface Printer {
         return null;
     }
 
+    /**
+     * Clear printer syntax highlighter cache
+     */
+    boolean refresh();
+
 }
