@@ -191,9 +191,9 @@
                             <outputDirectory>${basedir}/target/nanorc</outputDirectory>
                             <resources>
                                 <resource>
-                                    <directory>src/main/scripts</directory>
+                                    <directory>src/main/scripts/nanorc</directory>
                                     <includes>
-                                        <include>*.nanorc*</include>
+                                        <include>*</include>
                                     </includes>
                                 </resource>
                             </resources>
