@@ -1,5 +1,5 @@
 #
-# This file describes a default scheme for nanorc syntax highlighting.
+# This file describes a default scheme for nanorc syntax highlighting for terminals with dark background
 #
 # Lines that start with a # character are comments.
 # Comments are ignored. Empty lines are ignored too.  Leading/trailing white
@@ -34,33 +34,31 @@ BOOLEAN     brightwhite
 NULL        cyan
 NUMBER      blue
 VARIABLE    brightyellow
-PACKAGE     green,,faint
+PACKAGE     green,faint
 CLASS       green
 CONSTANT    yellow
 OPERATOR    yellow
+COMMAND     brightgreen
 OPTION      yellow
 KEYWORD     brightwhite
-MACRO       brightmagenta
-DELIMITER   brightred
 JUMP        brightcyan
 SECTION     brightgreen
-TAG         brightwhite
 ATTRIBUTE   green
-CHARREF     brightred
 PATH        brightblue
-URL         brightblue
-EMAIL       brightblue
+EXECUTABLE  green
+LINK        cyan
+TITLE       brightblue
 ESCAPE      black,cyan
-REGEXP      blue,cyan
+DEBUG       brightmagenta
+ERROR       red
 TODO        brightwhite,cyan
 WARNING     ,red
 WHITESPACE  ,green
 HEADER      bold,!blue,~grey7,underline
 ROW_NUMBER  bold,!blue,~grey7
 ROW_STYLE   ,~grey15
-DEBUG       brightmagenta
 LIST_BACKGROUND ,~grey42
-LIST_GROUP      ~greenyellow
+LIST_GROUP      yellow
 #
 # mixin
 #
