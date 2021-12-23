@@ -6,8 +6,9 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.reader;
+package org.jline.reader.impl;
 
+import org.jline.reader.Candidate;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -16,7 +17,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
-public class CandidateTest {
+public class CandidateCustomSortTest extends ReaderTestSupport {
 
     @Test
     public void testCandidatesSortedByValue() {
@@ -73,4 +74,17 @@ public class CandidateTest {
         assertEquals("cand1", candidates.get(1).value());
         assertEquals("cand2", candidates.get(2).value());
     }
+
+    @Test
+    public void testCompletionSort() throws Exception {
+        reader.setCompleter(
+                (reader, line, candidates) -> {
+                    candidates.add(new Candidate("foo", "foo", null, null, null, null, true, 0));
+                    candidates.add(new Candidate("bar", "bar", null, null, null, null, true, 1));
+                    candidates.add(new Candidate("zoo", "zoo", null, null, null, null, true, 2));
+                });
+        assertBuffer("foo", new TestBuffer("").tab().tab());
+
+    }
+
 }

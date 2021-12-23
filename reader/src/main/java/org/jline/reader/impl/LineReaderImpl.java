@@ -5076,18 +5076,19 @@ public class LineReaderImpl implements LineReader, Flushable
 
     protected PostResult computePost(List<Candidate> possible, Candidate selection, List<Candidate> ordered, String completed, Function<String, Integer> wcwidth, int width, boolean autoGroup, boolean groupName, boolean rowsFirst) {
         List<Object> strings = new ArrayList<>();
+        boolean customOrder = possible.stream().anyMatch(c -> c.sort() != 0);
         if (groupName) {
             Comparator<String> groupComparator = getGroupComparator();
-            Map<String, Map<String, Candidate>> sorted;
+            Map<String, Map<Object, Candidate>> sorted;
             sorted = groupComparator != null
                         ? new TreeMap<>(groupComparator)
                         : new LinkedHashMap<>();
             for (Candidate cand : possible) {
                 String group = cand.group();
                 sorted.computeIfAbsent(group != null ? group : "", s -> new LinkedHashMap<>())
-                        .put(cand.value(), cand);
+                        .put((customOrder ? cand.sort() : cand.value()), cand);
             }
-            for (Map.Entry<String, Map<String, Candidate>> entry : sorted.entrySet()) {
+            for (Map.Entry<String, Map<Object, Candidate>> entry : sorted.entrySet()) {
                 String group = entry.getKey();
                 if (group.isEmpty() && sorted.size() > 1) {
                     group = getOthersGroupName();
@@ -5102,13 +5103,13 @@ public class LineReaderImpl implements LineReader, Flushable
             }
         } else {
             Set<String> groups = new LinkedHashSet<>();
-            TreeMap<String, Candidate> sorted = new TreeMap<>();
+            TreeMap<Object, Candidate> sorted = new TreeMap<>();
             for (Candidate cand : possible) {
                 String group = cand.group();
                 if (group != null) {
                     groups.add(group);
                 }
-                sorted.put(cand.value(), cand);
+                sorted.put((customOrder ? cand.sort() : cand.value()), cand);
             }
             if (autoGroup) {
                 strings.addAll(groups);
