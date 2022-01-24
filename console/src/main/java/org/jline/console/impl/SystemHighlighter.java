@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2022, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -36,7 +36,7 @@ import static org.jline.builtins.SyntaxHighlighter.REGEX_TOKEN_NAME;
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public class SystemHighlighter extends DefaultHighlighter {
-    private final static StyleResolver resolver = Styles.lsStyle();
+    private StyleResolver resolver = Styles.lsStyle();
     private final static String REGEX_COMMENT_LINE =  "\\s*#.*";
     private final static String READER_COLORS = "READER_COLORS";
     protected final SyntaxHighlighter commandHighlighter;
@@ -99,6 +99,7 @@ public class SystemHighlighter extends DefaultHighlighter {
                 for (Supplier<Boolean> refresh : externalHighlightersRefresh) {
                     refresh.get();
                 }
+                resolver = Styles.lsStyle();
             } catch (IOException e) {
                 Log.warn(e.getMessage());
             }
