@@ -18,6 +18,7 @@ import org.jline.terminal.MouseEvent;
 import org.jline.terminal.Terminal;
 import org.jline.utils.*;
 
+import java.io.IOException;
 import java.util.*;
 
 public class Menu extends AbstractComponent {
@@ -35,6 +36,12 @@ public class Menu extends AbstractComponent {
         protected int read(long timeout, boolean isPeek) {
             return -1;
         }
+
+        @Override
+        public int readBuffered(char[] b) throws IOException {
+            return -1;
+        }
+
         @Override
         public void close() {
         }
