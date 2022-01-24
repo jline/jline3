@@ -21,13 +21,13 @@ public class VirtualScreen implements Screen {
     private final int width;
     private final int height;
     private final char[] chars;
-    private final int[] styles;
+    private final long[] styles;
 
     public VirtualScreen(int width, int height) {
         this.width = width;
         this.height = height;
         this.chars = new char[width * height];
-        this.styles = new int[width * height];
+        this.styles = new long[width * height];
     }
 
     @Override
@@ -41,7 +41,7 @@ public class VirtualScreen implements Screen {
 
     @Override
     public void fill(int x, int y, int w, int h, AttributedStyle style) {
-        int s = style.getStyle();
+        long s = style.getStyle();
         for (int j = 0; j < h; j++) {
             int p = (y + j) * width + x;
             for (int i = 0; i < w; i++, p++) {
