@@ -194,17 +194,19 @@ public class SystemHighlighter extends DefaultHighlighter {
             ParsedLine parsedLine = reader.getParser().parse(buffer, buffer.length() + 1, Parser.ParseContext.COMPLETE);
             List<String> words = parsedLine.words();
             if (!fhc.isSubcommand() || (words.size() > 2 && fhc.getSubcommand().equals(words.get(1)))) {
-                int firstArg = fhc.isSubcommand() ? 1 : 0;
-                int idx = buffer.indexOf(words.get(firstArg)) + words.get(firstArg).length() + 1;
-                highlightArgs(buffer.substring(commandIndex, idx), asb);
+                boolean subCommand = fhc.isSubcommand();
+                int idx = buffer.indexOf(words.get(0)) + words.get(0).length();
                 boolean fileOption = false;
-                for (int i = firstArg + 1; i < words.size(); i++) {
+                for (int i = 1; i < words.size(); i++) {
                     int nextIdx = buffer.substring(idx).indexOf(words.get(i)) + idx;
                     for (int j = idx; j < nextIdx; j++) {
                         asb.append(buffer.charAt(j));
                     }
                     String word = words.get(i);
-                    if (word.contains("=") && fhc.getFileOptions().contains(word.substring(0, word.indexOf("=")))) {
+                    if (subCommand) {
+                        subCommand = false;
+                        highlightArgs(word, asb);
+                    } else if (word.contains("=") && fhc.getFileOptions().contains(word.substring(0, word.indexOf("=")))) {
                         highlightArgs(word.substring(0, word.indexOf("=") + 1), asb);
                         highlightFileArg(reader, word.substring(word.indexOf("=") + 1), asb);
                     } else if (fhc.getFileOptions().contains(word)) {
@@ -234,16 +236,20 @@ public class SystemHighlighter extends DefaultHighlighter {
             ParsedLine parsedLine = reader.getParser().parse(buffer, buffer.length() + 1, Parser.ParseContext.COMPLETE);
             List<String> words = parsedLine.words();
             if (!fhc.isSubcommand() || (words.size() > 2 && fhc.getSubcommand().equals(words.get(1)))) {
-                int firstArg = fhc.isSubcommand() ? 1 : 0;
-                int idx = buffer.indexOf(words.get(firstArg)) + words.get(firstArg).length();
-                highlightArgs(buffer.substring(commandIndex, idx), asb);
-                for (int i = firstArg + 1; i < words.size(); i++) {
+                boolean subCommand = fhc.isSubcommand();
+                int idx = buffer.indexOf(words.get(0)) + words.get(0).length();
+                for (int i = 1; i < words.size(); i++) {
                     int nextIdx = buffer.substring(idx).indexOf(words.get(i)) + idx;
                     for (int j = idx; j < nextIdx; j++) {
                         asb.append(buffer.charAt(j));
                     }
-                    highlightFileArg(reader, words.get(i), asb);
-                    idx = nextIdx + words.get(i).length();
+                    if (subCommand) {
+                        subCommand = false;
+                        highlightArgs(words.get(i), asb);
+                    } else {
+                        highlightFileArg(reader, words.get(i), asb);
+                        idx = nextIdx + words.get(i).length();
+                    }
                 }
             } else {
                 highlightArgs(buffer.substring(commandIndex), asb);
