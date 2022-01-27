@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2022, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -480,80 +480,83 @@ public class SyntaxHighlighter {
         public void parse() throws IOException {
             String line;
             int idx = 0;
-            while ((line = reader.readLine()) != null) {
-                idx++;
-                line = line.trim();
-                if (line.length() > 0 && !line.startsWith("#")) {
-                    List<String> parts = RuleSplitter.split(fixRegexes(line));
-                    if (parts.get(0).equals("syntax")) {
-                        syntaxName = parts.get(1);
-                        List<Pattern> filePatterns = new ArrayList<>();
-                        if (name != null) {
-                            if (name.equals(syntaxName)) {
-                                matches = true;
-                            } else {
-                                break;
-                            }
-                        } else if (target != null) {
-                            for (int i = 2; i < parts.size(); i++) {
-                                filePatterns.add(Pattern.compile(parts.get(i)));
-                            }
-                            for (Pattern p : filePatterns) {
-                                if (p.matcher(target).find()) {
+            try {
+                while ((line = reader.readLine()) != null) {
+                    idx++;
+                    line = line.trim();
+                    if (line.length() > 0 && !line.startsWith("#")) {
+                        List<String> parts = RuleSplitter.split(fixRegexes(line));
+                        if (parts.get(0).equals("syntax")) {
+                            syntaxName = parts.get(1);
+                            List<Pattern> filePatterns = new ArrayList<>();
+                            if (name != null) {
+                                if (name.equals(syntaxName)) {
                                     matches = true;
+                                } else {
                                     break;
                                 }
+                            } else if (target != null) {
+                                for (int i = 2; i < parts.size(); i++) {
+                                    filePatterns.add(Pattern.compile(parts.get(i)));
+                                }
+                                for (Pattern p : filePatterns) {
+                                    if (p.matcher(target).find()) {
+                                        matches = true;
+                                        break;
+                                    }
+                                }
+                                if (!matches && !syntaxName.equals(DEFAULT_SYNTAX)) {
+                                    break;
+                                }
+                            } else {
+                                matches = true;
                             }
-                            if (!matches && !syntaxName.equals(DEFAULT_SYNTAX)) {
-                                break;
-                            }
-                        } else {
-                            matches = true;
-                        }
-                    } else if (parts.get(0).startsWith("$")) {
-                        String key = themeKey(parts.get(0));
-                        if (colorTheme.containsKey(key)) {
-                            if (parser == null) {
-                                parser = new Parser();
-                            }
-                            String[] args = parts.get(1).split(",\\s*");
-                            boolean validKey = true;
-                            if (key.startsWith("$BLOCK_COMMENT")) {
-                                parser.setBlockCommentDelimiters(key, args);
-                            } else if (key.startsWith("$LINE_COMMENT")) {
-                                parser.setLineCommentDelimiters(key, args);
-                            } else if (key.startsWith("$BALANCED_DELIMITERS")) {
-                                parser.setBalancedDelimiters(key, args);
+                        } else if (parts.get(0).startsWith("$")) {
+                            String key = themeKey(parts.get(0));
+                            if (colorTheme.containsKey(key)) {
+                                if (parser == null) {
+                                    parser = new Parser();
+                                }
+                                String[] args = parts.get(1).split(",\\s*");
+                                boolean validKey = true;
+                                if (key.startsWith("$BLOCK_COMMENT")) {
+                                    parser.setBlockCommentDelimiters(key, args);
+                                } else if (key.startsWith("$LINE_COMMENT")) {
+                                    parser.setLineCommentDelimiters(key, args);
+                                } else if (key.startsWith("$BALANCED_DELIMITERS")) {
+                                    parser.setBalancedDelimiters(key, args);
+                                } else {
+                                    Log.warn("Unknown token type: ", key);
+                                    validKey = false;
+                                }
+                                if (validKey) {
+                                    if (!highlightRules.containsKey(key)) {
+                                        highlightRules.put(key, new ArrayList<>());
+                                    }
+                                    for (String l : colorTheme.get(key).split("\\\\n")) {
+                                        idx++;
+                                        addHighlightRule(RuleSplitter.split(fixRegexes(l)), idx, key);
+                                    }
+                                }
                             } else {
                                 Log.warn("Unknown token type: ", key);
-                                validKey = false;
                             }
-                            if (validKey) {
-                                if (!highlightRules.containsKey(key)) {
-                                    highlightRules.put(key, new ArrayList<>());
-                                }
+                        } else if (!addHighlightRule(parts, idx, TOKEN_NANORC) && parts.get(0).matches("\\+" + REGEX_TOKEN_NAME)) {
+                            String key = themeKey(parts.get(0));
+                            if (colorTheme.containsKey(key)) {
                                 for (String l : colorTheme.get(key).split("\\\\n")) {
                                     idx++;
-                                    addHighlightRule(RuleSplitter.split(fixRegexes(l)), idx, key);
+                                    addHighlightRule(RuleSplitter.split(fixRegexes(l)), idx, TOKEN_NANORC);
                                 }
+                            } else {
+                                Log.warn("Unknown token type: ", key);
                             }
-                        } else {
-                            Log.warn("Unknown token type: ", key);
-                        }
-                    } else if (!addHighlightRule(parts, idx, TOKEN_NANORC) && parts.get(0).matches("\\+" + REGEX_TOKEN_NAME)) {
-                        String key = themeKey(parts.get(0));
-                        if (colorTheme.containsKey(key)) {
-                            for (String l : colorTheme.get(key).split("\\\\n")) {
-                                idx++;
-                                addHighlightRule(RuleSplitter.split(fixRegexes(l)), idx, TOKEN_NANORC);
-                            }
-                        } else {
-                            Log.warn("Unknown token type: ", key);
                         }
                     }
                 }
+            } finally {
+                reader.close();
             }
-            reader.close();
         }
 
         private String fixRegexes(String line) {
