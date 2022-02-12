@@ -467,6 +467,9 @@ public interface LineReader {
 
         /** Show command options tab completion candidates for zero length word */
         EMPTY_WORD_OPTIONS(true),
+        
+        /** Disable the undo feature */
+        DISABLE_UNDO
         ;
 
         private final boolean def;

@@ -633,7 +633,8 @@ public class LineReaderImpl implements LineReader, Flushable
 
                 callWidget(CALLBACK_INIT);
 
-                undo.newState(buf.copy());
+                if (!isSet(Option.DISABLE_UNDO))
+                    undo.newState(buf.copy());
 
                 // Draw initial prompt
                 redrawLine();
@@ -679,7 +680,7 @@ public class LineReaderImpl implements LineReader, Flushable
                     if (!w.apply()) {
                         beep();
                     }
-                    if (!isUndo && copy != null && buf.length() <= getInt(FEATURES_MAX_BUFFER_SIZE, DEFAULT_FEATURES_MAX_BUFFER_SIZE)
+                    if (!isSet(Option.DISABLE_UNDO) && !isUndo && copy != null && buf.length() <= getInt(FEATURES_MAX_BUFFER_SIZE, DEFAULT_FEATURES_MAX_BUFFER_SIZE)
                             && !copy.toString().equals(buf.toString())) {
                         undo.newState(buf.copy());
                     }
