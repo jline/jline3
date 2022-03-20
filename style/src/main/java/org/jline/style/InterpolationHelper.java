@@ -96,7 +96,7 @@ public final class InterpolationHelper {
         // Append the leading characters, the substituted value of
         // the variable, and the trailing characters to get the new
         // value.
-        val = val.substring(0, startDelim) + substValue + val.substring(stopDelim + DELIM_STOP.length(), val.length());
+        val = val.substring(0, startDelim) + substValue + val.substring(stopDelim + DELIM_STOP.length());
 
         // Now perform substitution again, since there could still
         // be substitutions to make.
