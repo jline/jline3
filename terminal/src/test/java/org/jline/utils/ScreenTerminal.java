@@ -1572,7 +1572,7 @@ public class ScreenTerminal {
                             vt100_parse_func <<= 8;
                             vt100_parse_func += (char) c;
                         } else if (msb == 0x30 && vt100_parse_state == State.Csi) {
-                            vt100_parse_param += new String(new char[]{(char) c});
+                            vt100_parse_param += String.valueOf((char)c);
                         } else {
                             vt100_parse_func <<= 8;
                             vt100_parse_func += (char) c;
