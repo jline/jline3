@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2022, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -768,6 +768,9 @@ public class GroovyEngine implements ScriptEngine {
                     }
                 }
             }
+            if (clazz.getCanonicalName().endsWith("[]")) {
+                out.put("length", "int");
+            }
             return out;
         }
 
@@ -1205,6 +1208,12 @@ public class GroovyEngine implements ScriptEngine {
                         && mm.get(ObjectInspector.FIELD_PARAMETERS).isEmpty()) {
                     identifiers.add(convertGetMethod2identifier(name));
                 }
+            }
+            if (object.getClass().getCanonicalName().endsWith("[]")) {
+                if (object.getClass().getComponentType() == String.class) {
+                    metaMethods.addAll(Arrays.asList("sort", "reverse"));
+                }
+                metaMethods.addAll(Arrays.asList("toList", "min", "max", "count", "size", "first", "last"));
             }
             Helpers.doCandidates(candidates, identifiers, curBuf, CandidateType.IDENTIFIER);
             Helpers.doCandidates(candidates, metaMethods, curBuf, CandidateType.META_METHOD);
@@ -1716,6 +1725,23 @@ public class GroovyEngine implements ScriptEngine {
                             if (!addedMethods.contains(sb.toString())) {
                                 addedMethods.add(sb.toString());
                                 mainDesc.add(syntaxHighlighter.highlight(trimMethodDescription(sb)));
+                            }
+                        }
+                        if (clazz.getCanonicalName().endsWith("[]")) {
+                            if (methodName.equals("sort") || methodName.equals("reverse")) {
+                                mainDesc.add(syntaxHighlighter.highlight(clazz.getComponentType().getSimpleName() +
+                                        "[] " + methodName + "()"));
+                            } else if (methodName.equals("first") || methodName.equals("last")
+                                    || methodName.equals("min") || methodName.equals("max")) {
+                                mainDesc.add(syntaxHighlighter.highlight(clazz.getComponentType().getSimpleName()
+                                        + " " + methodName + "()"));
+                            } else if (methodName.equals("size")) {
+                                mainDesc.add(syntaxHighlighter.highlight("int size()"));
+                            } else if (methodName.equals("toList")) {
+                                mainDesc.add(syntaxHighlighter.highlight("List toList()"));
+                            } else if (methodName.equals("count")) {
+                                mainDesc.add(syntaxHighlighter.highlight("int count(Object)"));
+                                mainDesc.add(syntaxHighlighter.highlight("int count(Closure)"));
                             }
                         }
                     }
