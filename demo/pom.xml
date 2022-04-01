@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (c) 2002-2020, the original author or authors.
+    Copyright (c) 2002-2022, the original author or authors.
 
     This software is distributable under the BSD license. See the terms of the
     BSD license in the documentation provided with this software.
@@ -111,17 +111,17 @@
         </dependency>
 
         <dependency>
-             <groupId>org.codehaus.groovy</groupId>
+             <groupId>org.apache.groovy</groupId>
              <artifactId>groovy</artifactId>
         </dependency>
 
         <dependency>
-             <groupId>org.codehaus.groovy</groupId>
+             <groupId>org.apache.groovy</groupId>
              <artifactId>groovy-json</artifactId>
         </dependency>
 
         <dependency>
-             <groupId>org.codehaus.groovy</groupId>
+             <groupId>org.apache.groovy</groupId>
              <artifactId>groovy-console</artifactId>
         </dependency>
 
