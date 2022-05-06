@@ -17,6 +17,7 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import org.jline.builtins.*;
@@ -415,6 +416,7 @@ public class Example
             if (!callbacks.isEmpty()) {
                 Thread.sleep(2000);
             }
+            AtomicBoolean printAbove = new AtomicBoolean();
             while (true) {
                 String line = null;
                 try {
@@ -441,7 +443,36 @@ public class Example
                     }
                     ParsedLine pl = reader.getParser().parse(line, 0);
                     String[] argv = pl.words().subList(1, pl.words().size()).toArray(new String[0]);
-                    if ("set".equals(pl.word())) {
+                    if ("printAbove".equals(pl.word()))
+                    {
+                        if (pl.words().size() == 2)
+                        {
+                            if ("start".equals(pl.words().get(1))) {
+                                printAbove.set( true );
+                                Thread t = new Thread( () -> {
+                                    try
+                                    {
+                                        int i = 0;
+                                        while (printAbove.get()) {
+                                            reader.printAbove( "Printing line " + ++i + " above" );
+                                            Thread.sleep( 1000 );
+                                        }
+                                    } catch ( InterruptedException t2 )  {
+                                    }
+                                });
+                                t.setDaemon( true );
+                                t.start();
+                            }
+                            else if ("stop".equals(pl.words().get(1))) {
+                                printAbove.set( false );
+                            } else {
+                                terminal.writer().println("Usage: printAbove [start|stop]");
+                            }
+                        } else {
+                            terminal.writer().println("Usage: printAbove [start|stop]");
+                        }
+                    }
+                    else if ("set".equals(pl.word())) {
                         if (pl.words().size() == 3) {
                             reader.setVariable(pl.words().get(1), pl.words().get(2));
                         } else {
