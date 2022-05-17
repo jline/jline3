@@ -274,7 +274,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     protected void manageBooleanOptions(Map<String, Object> options) {
         for (String key : Printer.BOOLEAN_KEYS) {
             Object option = options.get(key);
-            boolean value = option instanceof Boolean && (boolean)option;
+            boolean value = option instanceof Boolean && (boolean) option;
             if (!value) {
                 options.remove(key);
             }
@@ -512,14 +512,11 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     private List<String> optionList(String key, Map<String,Object> options) {
         List<String> out = new ArrayList<>();
         Object option = options.get(key);
-        if (option == null) {
-            return out;
-        }
         if (option instanceof String) {
             out.addAll(Arrays.asList(((String)option).split(",")));
         } else if (option instanceof Collection) {
             out.addAll((Collection<String>)option);
-        } else {
+        } else if (option != null) {
             throw new IllegalArgumentException("Unsupported option list: {key: " + key
                                              + ", type: " + option.getClass() + "}");
         }
@@ -635,14 +632,14 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
             } else {
                 out = new AttributedString(columnValue(objectToString(options, raw)));
             }
-       }
-       if ((simpleObject(raw) || raw == null) && (hv.containsKey("*") || highlightValue.containsKey("*"))
+        }
+        if ((simpleObject(raw) || raw == null) && (hv.containsKey("*") || highlightValue.containsKey("*"))
                 && !isHighlighted(out)) {
             if (hv.containsKey("*")) {
-                out = (AttributedString) engine.execute(hv.get("*"), out);
+                out = (AttributedString)engine.execute(hv.get("*"), out);
             }
-           Function<Object, AttributedString> func = highlightValue.get("*");
-           if (func != null) {
+            Function<Object, AttributedString> func = highlightValue.get("*");
+            if (func != null) {
                 out = func.apply(out);
             }
         }

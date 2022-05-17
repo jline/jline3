@@ -1284,7 +1284,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 String h = words.get(words.size() - 2);
                 if (h != null && h.length() > 0) {
                      String v = aliases.get(h);
-                     if (v != null){
+                     if (v != null) {
                           candidates.add(new Candidate(AttributedString.stripAnsi(v)
                                            , v, null, null, null, null, true));
                      }
