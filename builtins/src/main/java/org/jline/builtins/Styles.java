@@ -132,9 +132,6 @@ public class Styles {
         }
 
         public String getStyle(String reference) {
-            if (!colors.containsKey(reference)) {
-                return null;
-            }
             String rawStyle = colors.get(reference);
             if (rawStyle == null) {
                 return null;

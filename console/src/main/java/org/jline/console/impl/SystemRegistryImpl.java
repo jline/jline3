@@ -191,8 +191,9 @@ public class SystemRegistryImpl implements SystemRegistry {
 
     private List<String> localCommandInfo(String command) {
         try {
-            if (subcommands.containsKey(command)) {
-                registryHelp(subcommands.get(command));
+            CommandRegistry subCommand = subcommands.get(command);
+            if (subCommand != null) {
+                registryHelp(subCommand);
             } else {
                 localExecute(command, new String[] { "--help" });
             }
@@ -275,8 +276,9 @@ public class SystemRegistryImpl implements SystemRegistry {
         SystemCompleter out = CommandRegistry.aggregateCompleters(commandRegistries);
         SystemCompleter local = new SystemCompleter();
         for (String command : commandExecute.keySet()) {
-            if (subcommands.containsKey(command)) {
-                for(Map.Entry<String,List<Completer>> entry : subcommands.get(command).compileCompleters().getCompleters().entrySet()) {
+            CommandRegistry subCommand = subcommands.get(command);
+            if (subCommand != null) {
+                for (Map.Entry<String,List<Completer>> entry : subCommand.compileCompleters().getCompleters().entrySet()) {
                     for (Completer cc : entry.getValue()) {
                         if (!(cc instanceof ArgumentCompleter)) {
                             throw new IllegalArgumentException();
@@ -369,18 +371,19 @@ public class SystemRegistryImpl implements SystemRegistry {
         case COMMAND:
             if (isCommandOrScript(cmd) && !names.hasPipes(line.getArgs())) {
                 List<String> args = line.getArgs();
-                if (subcommands.containsKey(cmd)) {
+                CommandRegistry subCommand = subcommands.get(cmd);
+                if (subCommand != null) {
                     String c = args.size() > 1 ? args.get(1) : null;
-                    if (c == null || subcommands.get(cmd).hasCommand(c)) {
+                    if (c == null || subCommand.hasCommand(c)) {
                         if (c != null && c.equals("help")) {
                             out = null;
                         } else if (c != null) {
-                            out = subcommands.get(cmd).commandDescription(Collections.singletonList(c));
+                            out = subCommand.commandDescription(Collections.singletonList(c));
                         } else {
-                            out = commandDescription(subcommands.get(cmd));
+                            out = commandDescription(subCommand);
                         }
                     } else {
-                        out = commandDescription(subcommands.get(cmd));
+                        out = commandDescription(subCommand);
                     }
                     if (out != null) {
                         out.setSubcommand(true);

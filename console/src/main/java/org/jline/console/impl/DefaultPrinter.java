@@ -273,11 +273,10 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
      */
     protected void manageBooleanOptions(Map<String, Object> options) {
         for (String key : Printer.BOOLEAN_KEYS) {
-            if (options.containsKey(key)) {
-                boolean value = options.get(key) instanceof Boolean && (boolean) options.get(key);
-                if (!value) {
-                    options.remove(key);
-                }
+            Object option = options.get(key);
+            boolean value = option instanceof Boolean && (boolean)option;
+            if (!value) {
+                options.remove(key);
             }
         }
     }
@@ -512,15 +511,17 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     @SuppressWarnings("unchecked")
     private List<String> optionList(String key, Map<String,Object> options) {
         List<String> out = new ArrayList<>();
-        if (options.containsKey(key)) {
-            if (options.get(key) instanceof String) {
-                out.addAll(Arrays.asList(((String)options.get(key)).split(",")));
-            } else if (options.get(key) instanceof Collection) {
-                out.addAll((Collection<String>)options.get(key));
-            } else {
-                throw new IllegalArgumentException("Unsupported option list: {key: " + key
-                                                 + ", type: " + options.get(key).getClass() + "}");
-            }
+        Object option = options.get(key);
+        if (option == null) {
+            return out;
+        }
+        if (option instanceof String) {
+            out.addAll(Arrays.asList(((String)option).split(",")));
+        } else if (option instanceof Collection) {
+            out.addAll((Collection<String>)option);
+        } else {
+            throw new IllegalArgumentException("Unsupported option list: {key: " + key
+                                             + ", type: " + option.getClass() + "}");
         }
         return out;
     }
@@ -559,9 +560,8 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     @SuppressWarnings("unchecked")
     private Map<String,Object> objectToMap(Map<String, Object> options, Object obj) {
         if (obj != null) {
-            Map<Class<?>, Object> toMap = options.containsKey(Printer.OBJECT_TO_MAP)
-                                                 ? (Map<Class<?>, Object>)options.get(Printer.OBJECT_TO_MAP)
-                                                 : new HashMap<>();
+            Map<Class<?>, Object> toMap = (Map<Class<?>, Object>)
+                    options.getOrDefault(Printer.OBJECT_TO_MAP, Collections.emptyMap());
             if (toMap.containsKey(obj.getClass())) {
                 return (Map<String,Object>)engine.execute(toMap.get(obj.getClass()), obj);
             } else if (objectToMap.containsKey(obj.getClass())) {
@@ -641,8 +641,9 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
             if (hv.containsKey("*")) {
                 out = (AttributedString) engine.execute(hv.get("*"), out);
             }
-            if (highlightValue.containsKey("*")) {
-                out = highlightValue.get("*").apply(out);
+           Function<Object, AttributedString> func = highlightValue.get("*");
+           if (func != null) {
+                out = func.apply(out);
             }
         }
         if (options.containsKey(Printer.VALUE_STYLE) && !isHighlighted(out)) {

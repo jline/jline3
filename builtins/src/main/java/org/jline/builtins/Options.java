@@ -127,10 +127,11 @@ public class Options {
     }
 
     public boolean isSet(String name) {
-        if (!optSet.containsKey(name))
+        Boolean isSet = optSet.get(name);
+        if (isSet == null) {
             throw new IllegalArgumentException("option not defined in spec: " + name);
-
-        return optSet.get(name);
+        }
+        return isSet;
     }
 
     public Object getObject(String name) {
@@ -311,9 +312,8 @@ public class Options {
                 final String name = (opt != null) ? opt : m.group(GROUP_SHORT_OPT_1);
 
                 if (name != null) {
-                    if (myOptSet.containsKey(name))
+                    if (myOptSet.putIfAbsent(name, false) != null)
                         throw new IllegalArgumentException("duplicate option in spec: --" + name);
-                    myOptSet.put(name, false);
                 }
 
                 String dflt = (m.group(GROUP_DEFAULT) != null) ? m.group(GROUP_DEFAULT) : "";
@@ -331,9 +331,8 @@ public class Options {
                 for (int i = 0; i < 2; ++i) {
                     String sopt = m.group(i == 0 ? GROUP_SHORT_OPT_1 : GROUP_SHORT_OPT_2);
                     if (sopt != null) {
-                        if (optName.containsKey(sopt))
+                        if (optName.putIfAbsent(sopt, name) != null)
                             throw new IllegalArgumentException("duplicate option in spec: -" + sopt);
-                        optName.put(sopt, name);
                     }
                 }
             }

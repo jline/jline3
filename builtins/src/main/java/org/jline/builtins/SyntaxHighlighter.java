@@ -543,8 +543,9 @@ public class SyntaxHighlighter {
                             }
                         } else if (!addHighlightRule(parts, idx, TOKEN_NANORC) && parts.get(0).matches("\\+" + REGEX_TOKEN_NAME)) {
                             String key = themeKey(parts.get(0));
-                            if (colorTheme.containsKey(key)) {
-                                for (String l : colorTheme.get(key).split("\\\\n")) {
+                            String theme = colorTheme.get(key);
+                            if (theme != null) {
+                                for (String l : theme.split("\\\\n")) {
                                     idx++;
                                     addHighlightRule(RuleSplitter.split(fixRegexes(l)), idx, TOKEN_NANORC);
                                 }
@@ -584,18 +585,20 @@ public class SyntaxHighlighter {
                 addHighlightRule(syntaxName + idx, parts, true, tokenName);
             } else if (parts.get(0).matches(REGEX_TOKEN_NAME + "[:]?")) {
                 String key = themeKey(parts.get(0));
-                if (colorTheme.containsKey(key)) {
+                String theme = colorTheme.get(key);
+                if (theme != null) {
                     parts.set(0, "color");
-                    parts.add(1, colorTheme.get(key));
+                    parts.add(1, theme);
                     addHighlightRule(syntaxName + idx, parts, false, tokenName);
                 } else {
                     Log.warn("Unknown token type: ", key);
                 }
             } else if (parts.get(0).matches("~" + REGEX_TOKEN_NAME + "[:]?")) {
                 String key = themeKey(parts.get(0));
-                if (colorTheme.containsKey(key)) {
+                String theme = colorTheme.get(key);
+                if (theme != null) {
                     parts.set(0, "icolor");
-                    parts.add(1, colorTheme.get(key));
+                    parts.add(1, theme);
                     addHighlightRule(syntaxName + idx, parts, true, tokenName);
                 } else {
                     Log.warn("Unknown token type: ", key);
