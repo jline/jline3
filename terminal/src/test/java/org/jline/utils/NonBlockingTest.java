@@ -51,6 +51,63 @@ public class NonBlockingTest {
     }
 
     @Test
+    public void testNonBlockingReaderBufferedWithNonBufferedInput() throws IOException {
+        NonBlockingInputStream nbis = new NonBlockingInputStream() {
+            int idx = 0;
+            byte[] input = "中英字典".getBytes(StandardCharsets.UTF_8);
+            @Override
+            public int read(long timeout, boolean isPeek) throws IOException {
+                if (idx < input.length) {
+                    return input[idx++] & 0x00FF;
+                } else {
+                    return -1;
+                }
+            }
+        };
+        NonBlockingReader nbr = NonBlocking.nonBlocking("name", nbis, StandardCharsets.UTF_8);
+        char[] buf = new char[4];
+        assertEquals( 1, nbr.readBuffered(buf, 0));
+        assertEquals('中', buf[0]);
+        assertEquals( 1, nbr.readBuffered(buf, 0));
+        assertEquals('英', buf[0]);
+        assertEquals( 1, nbr.readBuffered(buf, 0));
+        assertEquals('字', buf[0]);
+        assertEquals( 1, nbr.readBuffered(buf, 0));
+        assertEquals('典', buf[0]);
+    }
+
+    @Test
+    public void testNonBlockingReaderBufferedWithBufferedInput() throws IOException {
+        NonBlockingInputStream nbis = new NonBlockingInputStream() {
+            int idx = 0;
+            byte[] input = "中英字典".getBytes(StandardCharsets.UTF_8);
+            @Override
+            public int read(long timeout, boolean isPeek) throws IOException {
+                if (idx < input.length) {
+                    return input[idx++] & 0x00FF;
+                } else {
+                    return -1;
+                }
+            }
+            @Override
+            public int readBuffered(byte[] b, int off, int len, long timeout) throws IOException {
+                int i = 0;
+                while (i < len && idx < input.length) {
+                    b[off + i++] = input[idx++];
+                }
+                return i > 0 ? i : -1;
+            }
+        };
+        NonBlockingReader nbr = NonBlocking.nonBlocking("name", nbis, StandardCharsets.UTF_8);
+        char[] buf = new char[4];
+        assertEquals( 4, nbr.readBuffered(buf, 0));
+        assertEquals('中', buf[0]);
+        assertEquals('英', buf[1]);
+        assertEquals('字', buf[2]);
+        assertEquals('典', buf[3]);
+    }
+
+    @Test
     public void testNonBlockingPumpReader() throws IOException {
         NonBlockingPumpReader nbr = NonBlocking.nonBlockingPumpReader();
         Writer writer = nbr.getWriter();
