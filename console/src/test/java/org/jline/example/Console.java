@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2022, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -371,14 +371,15 @@ public class Console
             // Command registers
             //
             Supplier<Path> workDir = () -> Paths.get(System.getProperty("user.dir"));
-            Builtins builtins = new Builtins(workDir, null, null);
+            ConfigurationPath configPath = new ConfigurationPath(Paths.get("."), Paths.get("."));
+            Builtins builtins = new Builtins(workDir, configPath, null);
             builtins.rename(Builtins.Command.TTOP, "top");
             builtins.alias("zle", "widget");
             builtins.alias("bindkey", "keymap");
             Printer printer = new DefaultPrinter(null);
             Printer myPrinter = new MyPrinter(null, terminal);
             ExampleCommands exampleCommands = new ExampleCommands(printer, myPrinter);
-            SystemRegistryImpl masterRegistry = new SystemRegistryImpl(parser, terminal, workDir, null);
+            SystemRegistryImpl masterRegistry = new SystemRegistryImpl(parser, terminal, workDir, configPath);
             masterRegistry.setCommandRegistries(exampleCommands, builtins);
             masterRegistry.addCompleter(completer);
             //
