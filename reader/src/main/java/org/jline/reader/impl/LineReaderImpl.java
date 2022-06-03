@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2022, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -5137,7 +5137,7 @@ public class LineReaderImpl implements LineReader, Flushable
             this.startPos = startPos;
             endLine = line.substring(line.lastIndexOf('\n') + 1);
             boolean first = true;
-            while (endLine.length() + (first ? startPos : 0) > width) {
+            while (endLine.length() + (first ? startPos : 0) > width && width > 0) {
                 if (first) {
                     endLine = endLine.substring(width - startPos);
                 } else {
