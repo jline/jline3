@@ -336,8 +336,8 @@ public final class TerminalBuilder {
                     boolean ansiPassThrough = OSUtils.IS_CONEMU;
                     if (tbs.hasJnaSupport()) {
                         try {
-                            terminal = tbs.getJnaSupport().winSysTerminal(name, type, ansiPassThrough, encoding, codepage
-                                    , nativeSignals, signalHandler, paused);
+                            terminal = tbs.getJnaSupport().winSysTerminal(name, type, ansiPassThrough, encoding,
+                                    codepage, nativeSignals, signalHandler, paused);
                         } catch (Throwable t) {
                             Log.debug("Error creating JNA based terminal: ", t.getMessage(), t);
                             exception.addSuppressed(t);
@@ -345,8 +345,8 @@ public final class TerminalBuilder {
                     }
                     if (terminal == null && tbs.hasJansiSupport()) {
                         try {
-                            terminal = tbs.getJansiSupport().winSysTerminal(name, type, ansiPassThrough, encoding, codepage
-                                    , nativeSignals, signalHandler, paused);
+                            terminal = tbs.getJansiSupport().winSysTerminal(name, type, ansiPassThrough, encoding,
+                                    codepage, nativeSignals, signalHandler, paused);
                         } catch (Throwable t) {
                             Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
                             exception.addSuppressed(t);
