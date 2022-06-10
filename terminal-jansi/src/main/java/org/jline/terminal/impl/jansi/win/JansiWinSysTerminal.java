@@ -24,7 +24,7 @@ import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
 import org.jline.terminal.spi.JansiSupport;
-import org.jline.terminal.spi.NativeSupport;
+import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.OSUtils;
 
@@ -46,7 +46,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
     private static final long consoleOut = GetStdHandle(STD_OUTPUT_HANDLE);
     private static final long consoleErr = GetStdHandle(STD_ERROR_HANDLE);
 
-    public static JansiWinSysTerminal createTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler, boolean paused, NativeSupport.Stream consoleStream) throws IOException {
+    public static JansiWinSysTerminal createTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler, boolean paused, TerminalProvider.Stream consoleStream) throws IOException {
         Writer writer;
         int[] mode = new int[1];
         long console;

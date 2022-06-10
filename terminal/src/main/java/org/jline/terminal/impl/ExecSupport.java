@@ -6,10 +6,12 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.terminal.impl.exec;
+package org.jline.terminal.impl;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
@@ -18,43 +20,60 @@ import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.ExecPty;
-import org.jline.terminal.spi.NativeSupport;
+import org.jline.terminal.impl.ExternalTerminal;
+import org.jline.terminal.impl.PosixSysTerminal;
+import org.jline.terminal.spi.TerminalProvider;
 import org.jline.terminal.spi.Pty;
 import org.jline.utils.ExecHelper;
 import org.jline.utils.OSUtils;
 
-public class ExecSupport implements NativeSupport  {
+public class ExecSupport implements TerminalProvider
+{
 
     public String name() {
         return "exec";
     }
 
-    @Override
     public Pty current(Stream consoleStream) throws IOException {
         return ExecPty.current(consoleStream);
-    }
-
-    @Override
-    public Pty open(Attributes attributes, Size size) throws IOException {
-        throw new UnsupportedOperationException();
     }
 
     @Override
     public Terminal winSysTerminal( String name, String type, boolean ansiPassThrough, Charset encoding, int codepage,
                                     boolean nativeSignals, Terminal.SignalHandler signalHandler, boolean paused,
                                     Stream consoleStream ) throws IOException {
-        throw new UnsupportedOperationException();
+        if (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) {
+            Pty pty = current(consoleStream);
+            return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
+        } else {
+            return null;
+        }
     }
 
     @Override
-    public boolean isWindowsSystemStream( Stream stream )
-    {
-        throw new UnsupportedOperationException();
+    public Terminal posixSysTerminal( String name, String type, Charset encoding,
+                                      boolean nativeSignals, Terminal.SignalHandler signalHandler,
+                                      Stream consoleStream) throws IOException {
+        Pty pty = current(consoleStream);
+        return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
     }
 
     @Override
-    public boolean isPosixSystemStream(Stream stream)
+    public Terminal newTerminal( String name, String type, InputStream in, OutputStream out,
+                                 Charset encoding, Terminal.SignalHandler signalHandler, boolean paused,
+                                 Attributes attributes, Size size) throws IOException
     {
+        return new ExternalTerminal(name, type, in, out, encoding, signalHandler, paused, attributes, size);
+    }
+
+    @Override
+    public boolean isWindowsSystemStream(Stream stream) {
+        // TODO: implement
+        return false;
+    }
+
+    @Override
+    public boolean isPosixSystemStream(Stream stream) {
         try {
             Process p = new ProcessBuilder(OSUtils.TEST_COMMAND, "-t", Integer.toString(stream.ordinal()))
                     .inheritIO().start();
@@ -66,8 +85,7 @@ public class ExecSupport implements NativeSupport  {
     }
 
     @Override
-    public String posixSystemStreamName(Stream stream)
-    {
+    public String posixSystemStreamName(Stream stream) {
         try {
             ProcessBuilder.Redirect input = stream == Stream.Input
                                 ? ProcessBuilder.Redirect.INHERIT

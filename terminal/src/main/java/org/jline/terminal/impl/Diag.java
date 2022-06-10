@@ -18,14 +18,11 @@ import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.TimeUnit;
 
 import org.jline.terminal.Attributes;
-import org.jline.terminal.impl.exec.ExecSupport;
+import org.jline.terminal.Terminal;
 import org.jline.terminal.spi.JansiSupport;
 import org.jline.terminal.spi.JnaSupport;
-import org.jline.terminal.spi.NativeSupport;
+import org.jline.terminal.spi.TerminalProvider;
 import org.jline.terminal.spi.Pty;
-import org.jline.utils.NonBlocking;
-import org.jline.utils.NonBlockingInputStream;
-import org.jline.utils.NonBlockingReader;
 import org.jline.utils.OSUtils;
 
 public class Diag {
@@ -61,7 +58,7 @@ public class Diag {
         out.println("JnaSupport");
         out.println("=================");
         try {
-            NativeSupport jnaSupport = load(JnaSupport.class);
+            TerminalProvider jnaSupport = load(JnaSupport.class);
             try {
                 out.println("StdIn posix stream =    " + jnaSupport.isPosixSystemStream(JnaSupport.Stream.Input));
                 out.println("StdOut posix stream =   " + jnaSupport.isPosixSystemStream(JnaSupport.Stream.Output));
@@ -83,7 +80,8 @@ public class Diag {
             } catch (Throwable t2) {
                 out.println("Unable to check stream names: " + t2);
             }
-            testPty( out, () -> jnaSupport.current(NativeSupport.Stream.Output), "posix pty" );
+            testPty(out, () -> jnaSupport.posixSysTerminal("diag", "xterm", StandardCharsets.UTF_8,
+                    false, Terminal.SignalHandler.SIG_DFL, TerminalProvider.Stream.Output), "posix pty");
         } catch (Throwable t) {
             out.println("JNA support not available: " + t);
         }
@@ -92,7 +90,7 @@ public class Diag {
         out.println("JansiSupport");
         out.println("=================");
         try {
-            NativeSupport jansiSupport = load(JansiSupport.class);
+            TerminalProvider jansiSupport = load(JansiSupport.class);
             try {
                 out.println("StdIn posix stream =    " + jansiSupport.isPosixSystemStream(JansiSupport.Stream.Input));
                 out.println("StdOut posix stream =   " + jansiSupport.isPosixSystemStream(JansiSupport.Stream.Output));
@@ -114,7 +112,8 @@ public class Diag {
             } catch (Throwable t2) {
                 out.println("Unable to check stream names: " + t2);
             }
-            testPty( out, () -> jansiSupport.current(NativeSupport.Stream.Output), "posix pty" );
+            testPty(out, () -> jansiSupport.posixSysTerminal( "diag", "xterm", StandardCharsets.UTF_8,
+                    false, Terminal.SignalHandler.SIG_DFL, TerminalProvider.Stream.Output), "posix pty");
 //            try {
 //                try (Terminal terminal = jansiSupport.winSysTerminal("foo", "xterm", false,
 //                        StandardCharsets.UTF_8, 0, false, Terminal.SignalHandler.SIG_DFL, false)) {
@@ -139,7 +138,7 @@ public class Diag {
         out.println("Exec Support");
         out.println("=================");
         try {
-            NativeSupport execSupport = new ExecSupport();
+            TerminalProvider execSupport = new ExecSupport();
             try {
                 out.println("StdIn posix stream =    " + execSupport.isPosixSystemStream(JansiSupport.Stream.Input));
                 out.println("StdOut posix stream =   " + execSupport.isPosixSystemStream(JansiSupport.Stream.Output));
@@ -159,20 +158,24 @@ public class Diag {
         }
     }
 
-    private static void testPty(PrintStream out, ThrowingSupplier<Pty, IOException> ptySupplier, String name) {
-        try ( Pty pty = ptySupplier.get()) {
-            Attributes attr = enterRawMode(pty);
+    private static void testPty( PrintStream out, ThrowingSupplier<Terminal, IOException> terminalSupplier, String name) {
+        try ( Terminal terminal = terminalSupplier.get()) {
+            Attributes attr = terminal.enterRawMode();
             try {
-                NonBlockingInputStream is = NonBlocking.nonBlocking( name, pty.getSlaveInput());
-                NonBlockingReader reader = NonBlocking.nonBlocking( name, is, StandardCharsets.UTF_8);
-                ForkJoinTask<Integer> t = new ForkJoinPool(1).submit(() -> is.read(1) );
+                ForkJoinTask<Integer> t = new ForkJoinPool(1).submit(() -> terminal.reader().read(1) );
                 int r = t.get(1000, TimeUnit.MILLISECONDS);
-                out.println( "The " + name + " seems to work: " + pty );
+                StringBuilder sb = new StringBuilder();
+                sb.append("The ").append(name).append(" seems to work: ");
+                sb.append("terminal ").append(terminal.getClass().getName());
+                if (terminal instanceof AbstractPosixTerminal) {
+                    sb.append(" with pty ").append(((AbstractPosixTerminal) terminal).getPty().getClass().getName());
+                }
+                out.println(sb);
             } catch (Throwable t3) {
                 out.println("Unable to read from " + name + ": " + t3);
                 t3.printStackTrace();
             } finally {
-                pty.setAttr(attr);
+                terminal.setAttributes(attr);
             }
         } catch (Throwable t2) {
             out.println("Unable to open " + name + ": " + t2);

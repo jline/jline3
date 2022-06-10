@@ -8,17 +8,7 @@
  */
 package org.jline.terminal.spi;
 
-import org.jline.terminal.Attributes;
-import org.jline.terminal.Size;
-import org.jline.terminal.Terminal;
-
-import java.io.IOException;
-import java.nio.charset.Charset;
-
-public interface JansiSupport extends NativeSupport {
-
-    default String name() {
-        return "jansi";
-    }
+public interface JansiSupport extends TerminalProvider
+{
 
 }

@@ -20,7 +20,7 @@ import com.sun.jna.Platform;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractPty;
-import org.jline.terminal.spi.NativeSupport;
+import org.jline.terminal.spi.TerminalProvider;
 import org.jline.terminal.spi.Pty;
 import org.jline.terminal.impl.jna.freebsd.FreeBsdNativePty;
 import org.jline.terminal.impl.jna.linux.LinuxNativePty;
@@ -37,7 +37,7 @@ public abstract class JnaNativePty extends AbstractPty implements Pty {
     private final FileDescriptor slaveFD;
     private final FileDescriptor slaveOutFD;
 
-    public static JnaNativePty current(NativeSupport.Stream console) throws IOException {
+    public static JnaNativePty current( TerminalProvider.Stream console) throws IOException {
         if (Platform.isMac()) {
             if (Platform.is64Bit() && Platform.isARM()) {
                 throw new UnsupportedOperationException();
@@ -151,7 +151,7 @@ public abstract class JnaNativePty extends AbstractPty implements Pty {
         return "JnaNativePty[" + getName() + "]";
     }
 
-    public static boolean isPosixSystemStream(NativeSupport.Stream stream) {
+    public static boolean isPosixSystemStream( TerminalProvider.Stream stream) {
         switch (stream) {
             case Input: return isatty(0);
             case Output: return isatty(1);
@@ -160,7 +160,7 @@ public abstract class JnaNativePty extends AbstractPty implements Pty {
         }
     }
 
-    public static String posixSystemStreamName(NativeSupport.Stream stream) {
+    public static String posixSystemStreamName( TerminalProvider.Stream stream) {
         switch (stream) {
             case Input: return ttyname(0);
             case Output: return ttyname(1);

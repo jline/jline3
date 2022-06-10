@@ -9,13 +9,15 @@
 package org.jline.terminal.spi;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.Charset;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 
-public interface NativeSupport
+public interface TerminalProvider
 {
 
     enum Stream {
@@ -26,14 +28,19 @@ public interface NativeSupport
 
     String name();
 
-    Pty current(Stream consoleStream) throws IOException;
-
-    Pty open(Attributes attributes, Size size) throws IOException;
-
     Terminal winSysTerminal(String name, String type, boolean ansiPassThrough,
                             Charset encoding, int codepage, boolean nativeSignals,
                             Terminal.SignalHandler signalHandler, boolean paused,
                             Stream consoleStream) throws IOException;
+
+    Terminal posixSysTerminal(String name, String type, Charset encoding,
+                              boolean nativeSignals, Terminal.SignalHandler signalHandler,
+                              Stream consoleStream) throws IOException;
+
+    Terminal newTerminal(String name, String type,
+                         InputStream masterInput, OutputStream masterOutput,
+                         Charset encoding, Terminal.SignalHandler signalHandler,
+                         boolean paused, Attributes attributes, Size size) throws IOException;
 
     boolean isWindowsSystemStream(Stream stream);
 

@@ -17,8 +17,7 @@ import com.sun.jna.Platform;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.jna.JnaNativePty;
-import org.jline.terminal.impl.jna.osx.OsXNativePty;
-import org.jline.terminal.spi.NativeSupport;
+import org.jline.terminal.spi.TerminalProvider;
 
 import static org.jline.terminal.impl.jna.freebsd.CLibrary.TCSANOW;
 import static org.jline.terminal.impl.jna.freebsd.CLibrary.TIOCGWINSZ;
@@ -37,7 +36,7 @@ public class FreeBsdNativePty extends JnaNativePty {
         UtilLibrary INSTANCE = Native.load("util", UtilLibrary.class);
     }
 
-    public static FreeBsdNativePty current( NativeSupport.Stream consoleStream) throws IOException {
+    public static FreeBsdNativePty current( TerminalProvider.Stream consoleStream) throws IOException {
         switch (consoleStream) {
             case Output:
                 return new FreeBsdNativePty(-1, null, 0, FileDescriptor.in, 1, FileDescriptor.out, ttyname(0));

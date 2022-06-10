@@ -26,7 +26,7 @@ import org.jline.terminal.Attributes.InputFlag;
 import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Attributes.OutputFlag;
 import org.jline.terminal.Size;
-import org.jline.terminal.spi.NativeSupport;
+import org.jline.terminal.spi.TerminalProvider;
 import org.jline.terminal.spi.Pty;
 import org.jline.utils.OSUtils;
 
@@ -35,12 +35,12 @@ import static org.jline.utils.ExecHelper.exec;
 public class ExecPty extends AbstractPty implements Pty {
 
     private final String name;
-    private final NativeSupport.Stream console;
+    private final TerminalProvider.Stream console;
 
-    public static Pty current(NativeSupport.Stream console) throws IOException {
+    public static Pty current( TerminalProvider.Stream console) throws IOException {
         try {
             String result = exec(true, OSUtils.TTY_COMMAND);
-            if (console != NativeSupport.Stream.Output && console != NativeSupport.Stream.Error) {
+            if (console != TerminalProvider.Stream.Output && console != TerminalProvider.Stream.Error) {
                 throw new IllegalArgumentException("console should be Output or Error: " + console);
             }
             return new ExecPty(result.trim(), console);
@@ -49,7 +49,7 @@ public class ExecPty extends AbstractPty implements Pty {
         }
     }
 
-    protected ExecPty(String name, NativeSupport.Stream console) {
+    protected ExecPty(String name, TerminalProvider.Stream console) {
         this.name = name;
         this.console = console;
     }
@@ -81,9 +81,9 @@ public class ExecPty extends AbstractPty implements Pty {
 
     @Override
     public OutputStream getSlaveOutput() throws IOException {
-        return console == NativeSupport.Stream.Output
+        return console == TerminalProvider.Stream.Output
                 ? new FileOutputStream(FileDescriptor.out)
-                : console == NativeSupport.Stream.Error
+                : console == TerminalProvider.Stream.Error
                     ? new FileOutputStream(FileDescriptor.err)
                     : new FileOutputStream(getName());
     }
