@@ -20,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
@@ -55,6 +56,11 @@ public final class TerminalBuilder {
     public static final String PROP_EXEC = "org.jline.terminal.exec";
     public static final String PROP_DUMB = "org.jline.terminal.dumb";
     public static final String PROP_DUMB_COLOR = "org.jline.terminal.dumb.color";
+    public static final String PROP_OUTPUT = "org.jline.terminal.output";
+    public static final String PROP_OUTPUT_OUT = "out";
+    public static final String PROP_OUTPUT_ERR = "err";
+    public static final String PROP_OUTPUT_OUT_ERR = "out-err";
+    public static final String PROP_OUTPUT_ERR_OUT = "err-out";
 
     //
     // Other system properties controlling various jline parts
@@ -405,37 +411,26 @@ public final class TerminalBuilder {
                 }
             }
             if (systemOutput == null) {
+                String str = System.getProperty(PROP_OUTPUT);
+                if (str != null) {
+                    switch (str.trim().toLowerCase(Locale.ROOT)) {
+                        case PROP_OUTPUT_OUT: systemOutput = SystemOutput.SysOut; break;
+                        case PROP_OUTPUT_ERR: systemOutput = SystemOutput.SysErr; break;
+                        case PROP_OUTPUT_OUT_ERR: systemOutput = SystemOutput.SysOutOrSysErr; break;
+                        case PROP_OUTPUT_ERR_OUT: systemOutput = SystemOutput.SysErrOrSysOut; break;
+                        default:
+                            Log.debug("Unsupported value for " + PROP_OUTPUT + ": " + str + ". Supported values are: "
+                                    + String.join(", ", PROP_OUTPUT_OUT, PROP_OUTPUT_ERR, PROP_OUTPUT_OUT_ERR,PROP_OUTPUT_ERR_OUT)
+                                    + ".");
+                    }
+                }
+            }
+            if (systemOutput == null) {
                 systemOutput = SystemOutput.SysOutOrSysErr;
             }
             Map<TerminalProvider.Stream, Boolean> system = Stream.of(TerminalProvider.Stream.values())
                     .collect(Collectors.toMap(stream -> stream, stream -> providers.stream().anyMatch(p -> p.isSystemStream(stream))));
-            TerminalProvider.Stream console = null;
-            switch (systemOutput) {
-                case SysOut:
-                    if (system.get(TerminalProvider.Stream.Output)) {
-                        console = TerminalProvider.Stream.Output;
-                    }
-                    break;
-                case SysErr:
-                    if (system.get(TerminalProvider.Stream.Error)) {
-                        console = TerminalProvider.Stream.Error;
-                    }
-                    break;
-                case SysOutOrSysErr:
-                    if (system.get(TerminalProvider.Stream.Output)) {
-                        console = TerminalProvider.Stream.Output;
-                    } else if (system.get(TerminalProvider.Stream.Error)) {
-                        console = TerminalProvider.Stream.Error;
-                    }
-                    break;
-                case SysErrOrSysOut:
-                    if (system.get(TerminalProvider.Stream.Error)) {
-                        console = TerminalProvider.Stream.Error;
-                    } else if (system.get(TerminalProvider.Stream.Output)) {
-                        console = TerminalProvider.Stream.Output;
-                    }
-                    break;
-            }
+            TerminalProvider.Stream console = select(system, systemOutput);
 
             if (system.get(TerminalProvider.Stream.Input) && console != null) {
                 if (attributes != null || size != null) {
@@ -526,6 +521,29 @@ public final class TerminalBuilder {
             throw exception;
         }
         return terminal;
+    }
+
+    private TerminalProvider.Stream select(Map<TerminalProvider.Stream, Boolean> system, SystemOutput systemOutput) {
+        switch (systemOutput) {
+            case SysOut:
+                return select(system, TerminalProvider.Stream.Output);
+            case SysErr:
+                return select(system, TerminalProvider.Stream.Error);
+            case SysOutOrSysErr:
+                return select(system, TerminalProvider.Stream.Output, TerminalProvider.Stream.Error);
+            case SysErrOrSysOut:
+                return select(system, TerminalProvider.Stream.Error, TerminalProvider.Stream.Output);
+        }
+        return null;
+    }
+
+    private static TerminalProvider.Stream select(Map<TerminalProvider.Stream, Boolean> system, TerminalProvider.Stream... streams) {
+        for (TerminalProvider.Stream s : streams) {
+            if (system.get(s)) {
+                return s;
+            }
+        }
+        return null;
     }
 
     private static String getParentProcessCommand() {
