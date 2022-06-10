@@ -28,24 +28,18 @@ public interface TerminalProvider
 
     String name();
 
-    Terminal winSysTerminal(String name, String type, boolean ansiPassThrough,
-                            Charset encoding, int codepage, boolean nativeSignals,
-                            Terminal.SignalHandler signalHandler, boolean paused,
-                            Stream consoleStream) throws IOException;
-
-    Terminal posixSysTerminal(String name, String type, Charset encoding,
-                              boolean nativeSignals, Terminal.SignalHandler signalHandler,
-                              Stream consoleStream) throws IOException;
+    Terminal sysTerminal(String name, String type, boolean ansiPassThrough,
+                         Charset encoding, boolean nativeSignals,
+                         Terminal.SignalHandler signalHandler, boolean paused,
+                         Stream consoleStream) throws IOException;
 
     Terminal newTerminal(String name, String type,
                          InputStream masterInput, OutputStream masterOutput,
                          Charset encoding, Terminal.SignalHandler signalHandler,
                          boolean paused, Attributes attributes, Size size) throws IOException;
 
-    boolean isWindowsSystemStream(Stream stream);
+    boolean isSystemStream(Stream stream);
 
-    boolean isPosixSystemStream(Stream stream);
-
-    String posixSystemStreamName(Stream stream);
+    String systemStreamName(Stream stream);
 
 }

@@ -19,9 +19,6 @@ import java.nio.charset.Charset;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
-import org.jline.terminal.impl.ExecPty;
-import org.jline.terminal.impl.ExternalTerminal;
-import org.jline.terminal.impl.PosixSysTerminal;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.terminal.spi.Pty;
 import org.jline.utils.ExecHelper;
@@ -39,7 +36,17 @@ public class ExecSupport implements TerminalProvider
     }
 
     @Override
-    public Terminal winSysTerminal( String name, String type, boolean ansiPassThrough, Charset encoding, int codepage,
+    public Terminal sysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding,
+                                boolean nativeSignals, Terminal.SignalHandler signalHandler, boolean paused,
+                                Stream consoleStream) throws IOException {
+        if (OSUtils.IS_WINDOWS) {
+            return winSysTerminal(name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused, consoleStream );
+        } else {
+            return posixSysTerminal(name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused, consoleStream );
+        }
+    }
+
+    public Terminal winSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding,
                                     boolean nativeSignals, Terminal.SignalHandler signalHandler, boolean paused,
                                     Stream consoleStream ) throws IOException {
         if (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) {
@@ -50,29 +57,35 @@ public class ExecSupport implements TerminalProvider
         }
     }
 
-    @Override
-    public Terminal posixSysTerminal( String name, String type, Charset encoding,
-                                      boolean nativeSignals, Terminal.SignalHandler signalHandler,
-                                      Stream consoleStream) throws IOException {
+    public Terminal posixSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding,
+                                     boolean nativeSignals, Terminal.SignalHandler signalHandler, boolean paused,
+                                     Stream consoleStream) throws IOException {
         Pty pty = current(consoleStream);
         return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
     }
 
     @Override
-    public Terminal newTerminal( String name, String type, InputStream in, OutputStream out,
-                                 Charset encoding, Terminal.SignalHandler signalHandler, boolean paused,
-                                 Attributes attributes, Size size) throws IOException
+    public Terminal newTerminal(String name, String type, InputStream in, OutputStream out,
+                                Charset encoding, Terminal.SignalHandler signalHandler, boolean paused,
+                                Attributes attributes, Size size) throws IOException
     {
         return new ExternalTerminal(name, type, in, out, encoding, signalHandler, paused, attributes, size);
     }
 
     @Override
+    public boolean isSystemStream(Stream stream) {
+        try {
+            return isWindowsSystemStream(stream) || isPosixSystemStream(stream);
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
     public boolean isWindowsSystemStream(Stream stream) {
         // TODO: implement
         return false;
     }
 
-    @Override
     public boolean isPosixSystemStream(Stream stream) {
         try {
             Process p = new ProcessBuilder(OSUtils.TEST_COMMAND, "-t", Integer.toString(stream.ordinal()))
@@ -85,7 +98,7 @@ public class ExecSupport implements TerminalProvider
     }
 
     @Override
-    public String posixSystemStreamName(Stream stream) {
+    public String systemStreamName(Stream stream) {
         try {
             ProcessBuilder.Redirect input = stream == Stream.Input
                                 ? ProcessBuilder.Redirect.INHERIT

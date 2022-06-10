@@ -81,7 +81,7 @@ public class JansiSupportImpl implements JansiSupport {
         return "jansi";
     }
 
-    public Pty current( Stream consoleStream) throws IOException {
+    public Pty current(Stream consoleStream) throws IOException {
         String osName = System.getProperty("os.name");
         if (osName.startsWith("Linux")) {
             return LinuxNativePty.current(consoleStream);
@@ -122,12 +122,23 @@ public class JansiSupportImpl implements JansiSupport {
     }
 
     @Override
+    public Terminal sysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding,
+                                boolean nativeSignals, Terminal.SignalHandler signalHandler, boolean paused,
+                                Stream consoleStream) throws IOException {
+        if (OSUtils.IS_WINDOWS) {
+            return winSysTerminal(name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused, consoleStream );
+        } else {
+            return posixSysTerminal(name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused, consoleStream );
+        }
+    }
+
     public Terminal winSysTerminal(String name, String type, boolean ansiPassThrough,
-                                   Charset encoding, int codepage, boolean nativeSignals,
+                                   Charset encoding, boolean nativeSignals,
                                    Terminal.SignalHandler signalHandler, boolean paused,
                                    Stream consoleStream) throws IOException {
         if (isAtLeast(1, 12)) {
-            JansiWinSysTerminal terminal = JansiWinSysTerminal.createTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler, paused, consoleStream);
+            JansiWinSysTerminal terminal = JansiWinSysTerminal.createTerminal(name, type, ansiPassThrough, encoding,
+                    nativeSignals, signalHandler, paused, consoleStream);
             if (!isAtLeast(1, 16)) {
                 terminal.disableScrolling();
             }
@@ -136,10 +147,9 @@ public class JansiSupportImpl implements JansiSupport {
         throw new UnsupportedOperationException();
     }
 
-    @Override
-    public Terminal posixSysTerminal( String name, String type, Charset encoding,
-                                      boolean nativeSignals, Terminal.SignalHandler signalHandler,
-                                      Stream consoleStream) throws IOException {
+    public Terminal posixSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding,
+                                     boolean nativeSignals, Terminal.SignalHandler signalHandler, boolean paused,
+                                     Stream consoleStream) throws IOException {
         Pty pty = current(consoleStream);
         return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
     }
@@ -154,17 +164,24 @@ public class JansiSupportImpl implements JansiSupport {
     }
 
     @Override
+    public boolean isSystemStream(Stream stream) {
+        if (OSUtils.IS_WINDOWS) {
+            return isWindowsSystemStream(stream);
+        } else {
+            return isPosixSystemStream(stream);
+        }
+    }
+
     public boolean isWindowsSystemStream(Stream stream) {
         return JansiWinSysTerminal.isWindowsSystemStream(stream);
     }
 
-    @Override
     public boolean isPosixSystemStream(Stream stream) {
         return JansiNativePty.isPosixSystemStream(stream);
     }
 
     @Override
-    public String posixSystemStreamName(Stream stream) {
+    public String systemStreamName(Stream stream) {
         return JansiNativePty.posixSystemStreamName(stream);
     }
 

@@ -72,7 +72,7 @@ public class AbstractWindowsTerminalTest {
         public TestTerminal(StringWriter sw) throws IOException {
             super(new AnsiWriter(new BufferedWriter(sw)), "name",
                     AbstractWindowsTerminal.TYPE_DUMB,
-                    Charset.defaultCharset(), 0,
+                    Charset.defaultCharset(),
                     false, SignalHandler.SIG_DFL);
         }
 

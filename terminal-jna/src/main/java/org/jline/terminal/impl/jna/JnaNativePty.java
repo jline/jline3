@@ -37,7 +37,7 @@ public abstract class JnaNativePty extends AbstractPty implements Pty {
     private final FileDescriptor slaveFD;
     private final FileDescriptor slaveOutFD;
 
-    public static JnaNativePty current( TerminalProvider.Stream console) throws IOException {
+    public static JnaNativePty current(TerminalProvider.Stream console) throws IOException {
         if (Platform.isMac()) {
             if (Platform.is64Bit() && Platform.isARM()) {
                 throw new UnsupportedOperationException();
@@ -151,7 +151,7 @@ public abstract class JnaNativePty extends AbstractPty implements Pty {
         return "JnaNativePty[" + getName() + "]";
     }
 
-    public static boolean isPosixSystemStream( TerminalProvider.Stream stream) {
+    public static boolean isPosixSystemStream(TerminalProvider.Stream stream) {
         switch (stream) {
             case Input: return isatty(0);
             case Output: return isatty(1);
@@ -160,7 +160,7 @@ public abstract class JnaNativePty extends AbstractPty implements Pty {
         }
     }
 
-    public static String posixSystemStreamName( TerminalProvider.Stream stream) {
+    public static String posixSystemStreamName(TerminalProvider.Stream stream) {
         switch (stream) {
             case Input: return ttyname(0);
             case Output: return ttyname(1);

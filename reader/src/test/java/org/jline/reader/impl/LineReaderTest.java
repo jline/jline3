@@ -102,7 +102,7 @@ public class LineReaderTest {
     public void testConEmuLineReaderClearScreen() throws IOException {
         System.setProperty("org.jline.terminal.conemu.disable-activate", "false");
         StringWriter sw = new StringWriter();
-        AbstractWindowsTerminal terminal = new AbstractWindowsTerminal(new BufferedWriter(sw), "name", TYPE_WINDOWS_CONEMU, Charset.defaultCharset(), 0,
+        AbstractWindowsTerminal terminal = new AbstractWindowsTerminal(new BufferedWriter(sw), "name", TYPE_WINDOWS_CONEMU, Charset.defaultCharset(),
                 false, Terminal.SignalHandler.SIG_DFL) {
             @Override
             protected int getConsoleMode() {

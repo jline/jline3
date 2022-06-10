@@ -80,8 +80,8 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     protected boolean focusTracking = false;
     private volatile boolean closing;
 
-    public AbstractWindowsTerminal(Writer writer, String name, String type, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
-        super(name, type, selectCharset(encoding, codepage), signalHandler);
+    public AbstractWindowsTerminal(Writer writer, String name, String type, Charset encoding, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
+        super(name, type, encoding, signalHandler);
         NonBlockingPumpReader reader = NonBlocking.nonBlockingPumpReader();
         this.slaveInputPipe = reader.getWriter();
         this.reader = reader;
@@ -115,20 +115,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         }
     }
 
-    private static Charset selectCharset(Charset encoding, int codepage) {
-        if (encoding != null) {
-            return encoding;
-        }
-
-        if (codepage >= 0) {
-            return getCodepageCharset(codepage);
-        }
-
-        // Use UTF-8 as default
-        return StandardCharsets.UTF_8;
-    }
-
-    private static Charset getCodepageCharset(int codepage) {
+    public static Charset getCodepageCharset(int codepage) {
         //http://docs.oracle.com/javase/6/docs/technotes/guides/intl/encoding.doc.html
         if (codepage == UTF8_CODE_PAGE) {
             return StandardCharsets.UTF_8;

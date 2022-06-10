@@ -23,7 +23,7 @@ public class JnaNativePtyTest {
 
     @Test
     public void testDescriptor() {
-        assumeTrue(!System.getProperty( "os.name" ).startsWith( "Windows"));
+        assumeTrue(!System.getProperty("os.name").startsWith("Windows"));
         assertNotNull(JnaNativePty.newDescriptor(4));
     }
 

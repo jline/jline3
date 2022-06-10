@@ -46,7 +46,9 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
     private static final long consoleOut = GetStdHandle(STD_OUTPUT_HANDLE);
     private static final long consoleErr = GetStdHandle(STD_ERROR_HANDLE);
 
-    public static JansiWinSysTerminal createTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler, boolean paused, TerminalProvider.Stream consoleStream) throws IOException {
+    public static JansiWinSysTerminal createTerminal(String name, String type, boolean ansiPassThrough, Charset encoding,
+                                                     boolean nativeSignals, SignalHandler signalHandler, boolean paused,
+                                                     TerminalProvider.Stream consoleStream) throws IOException {
         Writer writer;
         int[] mode = new int[1];
         long console;
@@ -89,7 +91,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
         if (Kernel32.GetConsoleMode(consoleIn, mode) == 0) {
             throw new IOException("Failed to get console mode: " + getLastErrorMessage());
         }
-        JansiWinSysTerminal terminal = new JansiWinSysTerminal(writer, name, type, encoding, codepage, nativeSignals,
+        JansiWinSysTerminal terminal = new JansiWinSysTerminal(writer, name, type, encoding, nativeSignals,
                 signalHandler, consoleIn, console);
         // Start input pump thread
         if (!paused) {
@@ -113,9 +115,9 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
     private long console;
     private long outputHandle;
 
-    JansiWinSysTerminal(Writer writer, String name, String type, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler,
+    JansiWinSysTerminal(Writer writer, String name, String type, Charset encoding, boolean nativeSignals, SignalHandler signalHandler,
                          long console, long outputHandle) throws IOException {
-        super(writer, name, type, encoding, codepage, nativeSignals, signalHandler);
+        super(writer, name, type, encoding, nativeSignals, signalHandler);
         this.console = console;
         this.outputHandle = outputHandle;
     }

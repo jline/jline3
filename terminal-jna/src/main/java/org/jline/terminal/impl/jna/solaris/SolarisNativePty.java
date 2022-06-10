@@ -28,7 +28,7 @@ public class SolarisNativePty extends JnaNativePty {
 
     private static final CLibrary C_LIBRARY = Native.load(Platform.C_LIBRARY_NAME, CLibrary.class);
 
-    public static SolarisNativePty current( TerminalProvider.Stream consoleStream) throws IOException {
+    public static SolarisNativePty current(TerminalProvider.Stream consoleStream) throws IOException {
         switch (consoleStream) {
             case Output:
                 return new SolarisNativePty(-1, null, 0, FileDescriptor.in, 1, FileDescriptor.out, ttyname(0));

@@ -16,6 +16,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +29,7 @@ import java.util.stream.Stream;
 
 import org.jline.terminal.impl.AbstractPosixTerminal;
 import org.jline.terminal.impl.AbstractTerminal;
+import org.jline.terminal.impl.AbstractWindowsTerminal;
 import org.jline.terminal.impl.DumbTerminal;
 import org.jline.terminal.impl.ExecSupport;
 import org.jline.terminal.spi.JansiSupport;
@@ -318,12 +320,20 @@ public final class TerminalBuilder {
                 encoding = Charset.forName(charsetName);
             }
         }
-        int codepage = this.codepage;
-        if (codepage <= 0) {
-            String str = System.getProperty(PROP_CODEPAGE);
-            if (str != null) {
-                codepage = Integer.parseInt(str);
+        if (encoding == null) {
+            int codepage = this.codepage;
+            if (codepage <= 0) {
+                String str = System.getProperty(PROP_CODEPAGE);
+                if (str != null) {
+                    codepage = Integer.parseInt( str );
+                }
             }
+            if (codepage >= 0) {
+                encoding = AbstractWindowsTerminal.getCodepageCharset(codepage);
+            }
+        }
+        if (encoding == null) {
+            encoding = StandardCharsets.UTF_8;
         }
         String type = this.type;
         if (type == null) {
@@ -398,7 +408,7 @@ public final class TerminalBuilder {
                 systemOutput = SystemOutput.SysOutOrSysErr;
             }
             Map<TerminalProvider.Stream, Boolean> system = Stream.of(TerminalProvider.Stream.values())
-                    .collect(Collectors.toMap(stream -> stream, stream -> providers.stream().anyMatch(p -> isSystemStream(stream, p))));
+                    .collect(Collectors.toMap(stream -> stream, stream -> providers.stream().anyMatch(p -> p.isSystemStream(stream))));
             TerminalProvider.Stream console = null;
             switch (systemOutput) {
                 case SysOut:
@@ -431,40 +441,27 @@ public final class TerminalBuilder {
                 if (attributes != null || size != null) {
                     Log.warn("Attributes and size fields are ignored when creating a system terminal");
                 }
-                if (OSUtils.IS_WINDOWS) {
-                    boolean ansiPassThrough = OSUtils.IS_CONEMU;
-                    // Cygwin defaults to XTERM, but actually supports 256 colors,
-                    // so if the value comes from the environment, change it to xterm-256color
-                    if ((OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM)  && "xterm".equals(type)
-                            && this.type == null && System.getProperty(PROP_TYPE) == null) {
-                        type = "xterm-256color";
-                    }
-                    for ( TerminalProvider provider : providers) {
-                        if (terminal == null) {
-                            try {
-                                terminal = provider.winSysTerminal(name, type, ansiPassThrough, encoding,
-                                        codepage, nativeSignals, signalHandler, paused, console);
-                            } catch (Throwable t) {
-                                Log.debug("Error creating " + provider.name() + " based terminal: ", t.getMessage(), t);
-                                exception.addSuppressed(t);
-                            }
+                boolean ansiPassThrough = OSUtils.IS_CONEMU;
+                // Cygwin defaults to XTERM, but actually supports 256 colors,
+                // so if the value comes from the environment, change it to xterm-256color
+                if ((OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM)  && "xterm".equals(type)
+                        && this.type == null && System.getProperty(PROP_TYPE) == null) {
+                    type = "xterm-256color";
+                }
+                for ( TerminalProvider provider : providers) {
+                    if (terminal == null) {
+                        try {
+                            terminal = provider.sysTerminal(name, type, ansiPassThrough, encoding,
+                                    nativeSignals, signalHandler, paused, console);
+                        } catch (Throwable t) {
+                            Log.debug("Error creating " + provider.name() + " based terminal: ", t.getMessage(), t);
+                            exception.addSuppressed(t);
                         }
                     }
-                    if (terminal == null && !jna && !jansi && (dumb == null || !dumb)) {
-                        throw new IllegalStateException("Unable to create a system terminal. On windows, either "
-                                + "JNA or JANSI library is required.  Make sure to add one of those in the classpath.");
-                    }
-                } else {
-                    for (TerminalProvider provider : providers) {
-                        if (terminal == null) {
-                            try {
-                                terminal = provider.posixSysTerminal(name, type, encoding, nativeSignals, signalHandler, console);
-                            } catch (Throwable t) {
-                                Log.debug("Error creating " + provider.name() + " based terminal: ", t.getMessage(), t);
-                                exception.addSuppressed(t);
-                            }
-                        }
-                    }
+                }
+                if (terminal == null && OSUtils.IS_WINDOWS &&  !jna && !jansi && (dumb == null || !dumb)) {
+                    throw new IllegalStateException("Unable to create a system terminal. On windows, either "
+                            + "JNA or JANSI library is required.  Make sure to add one of those in the classpath.");
                 }
             }
             if (terminal instanceof AbstractTerminal) {
@@ -529,15 +526,6 @@ public final class TerminalBuilder {
             throw exception;
         }
         return terminal;
-    }
-
-    private boolean isSystemStream(TerminalProvider.Stream stream, TerminalProvider p) {
-        try {
-            return p.isPosixSystemStream( stream ) || p.isWindowsSystemStream( stream );
-        } catch (Throwable t) {
-            // ignore
-        }
-        return false;
     }
 
     private static String getParentProcessCommand() {

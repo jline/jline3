@@ -36,7 +36,7 @@ public class LinuxNativePty extends JnaNativePty {
         UtilLibrary INSTANCE = Native.load("util", UtilLibrary.class);
     }
 
-    public static LinuxNativePty current( TerminalProvider.Stream consoleStream) throws IOException {
+    public static LinuxNativePty current(TerminalProvider.Stream consoleStream) throws IOException {
         switch (consoleStream) {
             case Output:
                 return new LinuxNativePty(-1, null, 0, FileDescriptor.in, 1, FileDescriptor.out, ttyname(0));

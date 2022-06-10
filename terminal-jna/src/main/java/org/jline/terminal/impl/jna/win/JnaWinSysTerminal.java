@@ -31,7 +31,7 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
     private static final Pointer consoleOut = Kernel32.INSTANCE.GetStdHandle(Kernel32.STD_OUTPUT_HANDLE);
     private static final Pointer consoleErr = Kernel32.INSTANCE.GetStdHandle(Kernel32.STD_ERROR_HANDLE);
 
-    public static JnaWinSysTerminal createTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler, boolean paused, TerminalProvider.Stream console) throws IOException {
+    public static JnaWinSysTerminal createTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, boolean nativeSignals, SignalHandler signalHandler, boolean paused, TerminalProvider.Stream console) throws IOException {
         Writer writer;
         if (ansiPassThrough) {
             if (type == null) {
@@ -61,7 +61,7 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
                 }
             }
         }
-        JnaWinSysTerminal terminal = new JnaWinSysTerminal(writer, name, type, encoding, codepage, nativeSignals, signalHandler);
+        JnaWinSysTerminal terminal = new JnaWinSysTerminal(writer, name, type, encoding, nativeSignals, signalHandler);
         // Start input pump thread
         if (!paused) {
             terminal.resume();
@@ -86,8 +86,8 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
         }
     }
 
-    JnaWinSysTerminal(Writer writer, String name, String type, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
-        super(writer, name, type, encoding, codepage, nativeSignals, signalHandler);
+    JnaWinSysTerminal(Writer writer, String name, String type, Charset encoding, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
+        super(writer, name, type, encoding, nativeSignals, signalHandler);
         strings.put(InfoCmp.Capability.key_mouse, "\\E[M");
     }
 

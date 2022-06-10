@@ -21,7 +21,7 @@ import java.util.EnumSet;
 
 public class OsXNativePty extends JansiNativePty {
 
-    public static OsXNativePty current( TerminalProvider.Stream consoleStream) throws IOException {
+    public static OsXNativePty current(TerminalProvider.Stream consoleStream) throws IOException {
         try {
             switch (consoleStream) {
                 case Output:

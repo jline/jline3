@@ -37,7 +37,7 @@ public class ExecPty extends AbstractPty implements Pty {
     private final String name;
     private final TerminalProvider.Stream console;
 
-    public static Pty current( TerminalProvider.Stream console) throws IOException {
+    public static Pty current(TerminalProvider.Stream console) throws IOException {
         try {
             String result = exec(true, OSUtils.TTY_COMMAND);
             if (console != TerminalProvider.Stream.Output && console != TerminalProvider.Stream.Error) {

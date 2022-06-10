@@ -21,7 +21,7 @@ import java.util.EnumSet;
 
 public class FreeBsdNativePty extends JansiNativePty {
 
-    public static FreeBsdNativePty current( TerminalProvider.Stream consoleStream) throws IOException {
+    public static FreeBsdNativePty current(TerminalProvider.Stream consoleStream) throws IOException {
         try {
             switch (consoleStream) {
                 case Output:

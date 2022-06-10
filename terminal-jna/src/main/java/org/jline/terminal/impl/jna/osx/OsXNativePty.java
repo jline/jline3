@@ -29,7 +29,7 @@ public class OsXNativePty extends JnaNativePty {
 
     private static final CLibrary C_LIBRARY = Native.load(Platform.C_LIBRARY_NAME, CLibrary.class);
 
-    public static OsXNativePty current( TerminalProvider.Stream consoleStream) throws IOException {
+    public static OsXNativePty current(TerminalProvider.Stream consoleStream) throws IOException {
         switch (consoleStream) {
             case Output:
                 return new OsXNativePty(-1, null, 0, FileDescriptor.in, 1, FileDescriptor.out, ttyname(0));

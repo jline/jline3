@@ -21,7 +21,7 @@ import java.util.EnumSet;
 
 public class LinuxNativePty extends JansiNativePty {
 
-    public static LinuxNativePty current( TerminalProvider.Stream consoleStream) throws IOException {
+    public static LinuxNativePty current(TerminalProvider.Stream consoleStream) throws IOException {
         try {
             switch (consoleStream) {
                 case Output:
