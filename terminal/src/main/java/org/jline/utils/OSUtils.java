@@ -52,10 +52,10 @@ public class OSUtils {
         String infocmp;
         String test = null;
         if (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) {
-            tty = "tty.exe";
-            stty = "stty.exe";
+            tty = null;
+            stty = null;
             sttyfopt = null;
-            infocmp = "infocmp.exe";
+            infocmp = null;
             String path = System.getenv("PATH");
             if (path != null) {
                 String[] paths = path.split(";");
@@ -71,15 +71,20 @@ public class OSUtils {
                     }
                 }
             }
+            if (tty == null) {
+                tty = "tty.exe";
+            }
+            if (stty == null) {
+                stty = "stty.exe";
+            }
+            if (infocmp == null) {
+                infocmp = "infocmp.exe";
+            }
         } else {
             tty = "tty";
-            stty = "stty";
-            sttyfopt = "-F";
+            stty = IS_OSX ? "/bin/stty" : "stty";
+            sttyfopt = IS_OSX ? "-f" : "-F";
             infocmp = "infocmp";
-            if (IS_OSX) {
-                stty = "/bin/stty";
-                sttyfopt = "-f";
-            }
             test = "/bin/test";
         }
         TTY_COMMAND = tty;
