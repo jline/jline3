@@ -100,22 +100,26 @@ public class Diag {
         }
         try (Terminal terminal = provider.sysTerminal("diag", "xterm", false, StandardCharsets.UTF_8,
                 false, Terminal.SignalHandler.SIG_DFL, false, TerminalProvider.Stream.Output) ) {
-            Attributes attr = terminal.enterRawMode();
-            try {
-                ForkJoinTask<Integer> t = new ForkJoinPool(1).submit(() -> terminal.reader().read(1) );
-                int r = t.get(1000, TimeUnit.MILLISECONDS);
-                StringBuilder sb = new StringBuilder();
-                sb.append("The terminal seems to work: ");
-                sb.append("terminal ").append(terminal.getClass().getName());
-                if (terminal instanceof AbstractPosixTerminal) {
-                    sb.append(" with pty ").append(((AbstractPosixTerminal) terminal).getPty().getClass().getName());
+            if (terminal != null) {
+                Attributes attr = terminal.enterRawMode();
+                try {
+                    ForkJoinTask<Integer> t = new ForkJoinPool(1).submit(() -> terminal.reader().read(1) );
+                    int r = t.get(1000, TimeUnit.MILLISECONDS);
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("The terminal seems to work: ");
+                    sb.append("terminal ").append(terminal.getClass().getName());
+                    if (terminal instanceof AbstractPosixTerminal) {
+                        sb.append(" with pty ").append(((AbstractPosixTerminal) terminal).getPty().getClass().getName());
+                    }
+                    out.println(sb);
+                } catch (Throwable t3) {
+                    out.println("Unable to read from terminal: " + t3);
+                    t3.printStackTrace();
+                } finally {
+                    terminal.setAttributes(attr);
                 }
-                out.println(sb);
-            } catch (Throwable t3) {
-                out.println("Unable to read from terminal: " + t3);
-                t3.printStackTrace();
-            } finally {
-                terminal.setAttributes(attr);
+            } else {
+                out.println("Not supported by provider");
             }
         } catch (Throwable t2) {
             out.println("Unable to open terminal: " + t2);
