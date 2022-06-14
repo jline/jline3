@@ -18,11 +18,6 @@ public class OSUtils {
             && System.getenv("PWD") != null
             && System.getenv("PWD").startsWith("/");
 
-    @Deprecated
-    public static final boolean IS_MINGW = IS_WINDOWS
-            && System.getenv("MSYSTEM") != null
-            && System.getenv("MSYSTEM").startsWith("MINGW");
-
     public static final boolean IS_MSYSTEM = IS_WINDOWS
             && System.getenv("MSYSTEM") != null
             && (System.getenv("MSYSTEM").startsWith("MINGW")

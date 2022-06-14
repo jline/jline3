@@ -51,6 +51,7 @@ public final class TerminalBuilder {
     public static final String PROP_JNA = "org.jline.terminal.jna";
     public static final String PROP_JANSI = "org.jline.terminal.jansi";
     public static final String PROP_EXEC = "org.jline.terminal.exec";
+    public static final String PROP_JEP424 = "org.jline.terminal.jep424";
     public static final String PROP_DUMB = "org.jline.terminal.dumb";
     public static final String PROP_DUMB_COLOR = "org.jline.terminal.dumb.color";
     public static final String PROP_OUTPUT = "org.jline.terminal.output";
@@ -117,6 +118,7 @@ public final class TerminalBuilder {
     private Boolean jna;
     private Boolean jansi;
     private Boolean exec;
+    private Boolean jep424;
     private Boolean dumb;
     private Boolean color;
     private Attributes attributes;
@@ -170,6 +172,11 @@ public final class TerminalBuilder {
 
     public TerminalBuilder exec(boolean exec) {
         this.exec = exec;
+        return this;
+    }
+
+    public TerminalBuilder jep424(boolean jep424) {
+        this.jep424 = jep424;
         return this;
     }
 
@@ -357,12 +364,25 @@ public final class TerminalBuilder {
         if (exec == null) {
             exec = getBoolean(PROP_EXEC, true);
         }
+        Boolean jep424 = this.jep424;
+        if (jep424 == null) {
+            jep424 = getBoolean(PROP_JEP424, true);
+        }
         Boolean dumb = this.dumb;
         if (dumb == null) {
             dumb = getBoolean(PROP_DUMB, null);
         }
         IllegalStateException exception = new IllegalStateException("Unable to create a terminal");
         List<TerminalProvider> providers = new ArrayList<>();
+        if (jep424) {
+            try {
+                TerminalProvider provider = TerminalProvider.load("jep424");
+                providers.add(provider);
+            }  catch (Throwable t) {
+                Log.debug("Unable to load JEP424 support: ", t);
+                exception.addSuppressed(t);
+            }
+        }
         if (jna) {
             try {
                 TerminalProvider provider = TerminalProvider.load("jna");

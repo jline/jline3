@@ -50,6 +50,17 @@ public class Diag {
         out.println("IS_OSX =     " + OSUtils.IS_OSX);
         out.println();
 
+        // Jep424
+        out.println("Jep424 Support");
+        out.println("=================");
+        try {
+            TerminalProvider provider = TerminalProvider.load("jep424");
+            testProvider(out, provider);
+        } catch (Throwable t) {
+            out.println("Jep424 support not available: " + t);
+        }
+        out.println();
+
         out.println("JnaSupport");
         out.println("=================");
         try {
