@@ -66,7 +66,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
             if (type == null) {
                 type = OSUtils.IS_CONEMU ? TYPE_WINDOWS_CONEMU : TYPE_WINDOWS;
             }
-            writer = new JansiWinConsoleWriter();
+            writer = new JansiWinConsoleWriter(console);
         } else {
             if (Kernel32.GetConsoleMode(console, mode) == 0 ) {
                 throw new IOException("Failed to get console mode: " + getLastErrorMessage());
@@ -75,17 +75,17 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
                 if (type == null) {
                     type = TYPE_WINDOWS_VTP;
                 }
-                writer = new JansiWinConsoleWriter();
+                writer = new JansiWinConsoleWriter(console);
             } else if (OSUtils.IS_CONEMU) {
                 if (type == null) {
                     type = TYPE_WINDOWS_CONEMU;
                 }
-                writer = new JansiWinConsoleWriter();
+                writer = new JansiWinConsoleWriter(console);
             } else {
                 if (type == null) {
                     type = TYPE_WINDOWS;
                 }
-                writer = new WindowsAnsiWriter(new BufferedWriter(new JansiWinConsoleWriter()));
+                writer = new WindowsAnsiWriter(new BufferedWriter(new JansiWinConsoleWriter(console)));
             }
         }
         if (Kernel32.GetConsoleMode(consoleIn, mode) == 0) {
