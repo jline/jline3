@@ -20,6 +20,7 @@ import com.sun.jna.ptr.IntByReference;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
+import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.OSUtils;
 
@@ -27,34 +28,46 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
 
     private static final Pointer consoleIn = Kernel32.INSTANCE.GetStdHandle(Kernel32.STD_INPUT_HANDLE);
     private static final Pointer consoleOut = Kernel32.INSTANCE.GetStdHandle(Kernel32.STD_OUTPUT_HANDLE);
+    private static final Pointer consoleErr = Kernel32.INSTANCE.GetStdHandle(Kernel32.STD_ERROR_HANDLE);
 
-    public static JnaWinSysTerminal createTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, boolean nativeSignals, SignalHandler signalHandler, boolean paused) throws IOException {
+    public static JnaWinSysTerminal createTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, boolean nativeSignals, SignalHandler signalHandler, boolean paused, TerminalProvider.Stream consoleStream) throws IOException {
+        Pointer console;
+        switch (consoleStream) {
+            case Output:
+                console = JnaWinSysTerminal.consoleOut;
+                break;
+            case Error:
+                console = JnaWinSysTerminal.consoleErr;
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupport stream for console: " + consoleStream);
+        }
         Writer writer;
         if (ansiPassThrough) {
             if (type == null) {
                 type = OSUtils.IS_CONEMU ? TYPE_WINDOWS_CONEMU : TYPE_WINDOWS;
             }
-            writer = new JnaWinConsoleWriter(consoleOut);
+            writer = new JnaWinConsoleWriter(console);
         } else {
             IntByReference mode = new IntByReference();
-            Kernel32.INSTANCE.GetConsoleMode(consoleOut, mode);
+            Kernel32.INSTANCE.GetConsoleMode(console, mode);
             try {
-                Kernel32.INSTANCE.SetConsoleMode(consoleOut, mode.getValue() | AbstractWindowsTerminal.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+                Kernel32.INSTANCE.SetConsoleMode(console, mode.getValue() | AbstractWindowsTerminal.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
                 if (type == null) {
                     type = TYPE_WINDOWS_VTP;
                 }
-                writer = new JnaWinConsoleWriter(consoleOut);
+                writer = new JnaWinConsoleWriter(console);
             } catch (LastErrorException e) {
                 if (OSUtils.IS_CONEMU) {
                     if (type == null) {
                         type = TYPE_WINDOWS_CONEMU;
                     }
-                    writer = new JnaWinConsoleWriter(consoleOut);
+                    writer = new JnaWinConsoleWriter(console);
                 } else {
                     if (type == null) {
                         type = TYPE_WINDOWS;
                     }
-                    writer = new WindowsAnsiWriter(new BufferedWriter(new JnaWinConsoleWriter(consoleOut)), consoleOut);
+                    writer = new WindowsAnsiWriter(new BufferedWriter(new JnaWinConsoleWriter(console)), console);
                 }
             }
         }
@@ -66,31 +79,17 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
         return terminal;
     }
 
-    public static boolean isWindowsConsole() {
+    public static boolean isWindowsSystemStream(TerminalProvider.Stream stream) {
         try {
             IntByReference mode = new IntByReference();
-            Kernel32.INSTANCE.GetConsoleMode(consoleOut, mode);
-            Kernel32.INSTANCE.GetConsoleMode(consoleIn, mode);
-            return true;
-        } catch (LastErrorException e) {
-            return false;
-        }
-    }
-
-    public static boolean isConsoleOutput() {
-        try {
-            IntByReference mode = new IntByReference();
-            Kernel32.INSTANCE.GetConsoleMode(consoleOut, mode);
-            return true;
-        } catch (LastErrorException e) {
-            return false;
-        }
-    }
-
-    public static boolean isConsoleInput() {
-        try {
-            IntByReference mode = new IntByReference();
-            Kernel32.INSTANCE.GetConsoleMode(consoleIn, mode);
+            Pointer console;
+            switch (stream) {
+                case Input: console = consoleIn; break;
+                case Output: console = consoleOut; break;
+                case Error: console = consoleErr; break;
+                default: return false;
+            }
+            Kernel32.INSTANCE.GetConsoleMode(console, mode);
             return true;
         } catch (LastErrorException e) {
             return false;

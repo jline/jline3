@@ -19,8 +19,12 @@ import static org.fusesource.jansi.internal.Kernel32.WriteConsoleW;
 
 class JansiWinConsoleWriter extends AbstractWindowsConsoleWriter {
 
-    private static final long console = GetStdHandle(STD_OUTPUT_HANDLE);
+    private final long console;
     private final int[] writtenChars = new int[1];
+
+    public JansiWinConsoleWriter(long console) {
+        this.console = console;
+    }
 
     @Override
     protected void writeConsole(char[] text, int len) throws IOException {

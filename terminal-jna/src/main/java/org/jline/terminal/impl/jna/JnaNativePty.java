@@ -20,6 +20,7 @@ import com.sun.jna.Platform;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractPty;
+import org.jline.terminal.spi.TerminalProvider;
 import org.jline.terminal.spi.Pty;
 import org.jline.terminal.impl.jna.freebsd.FreeBsdNativePty;
 import org.jline.terminal.impl.jna.linux.LinuxNativePty;
@@ -36,18 +37,18 @@ public abstract class JnaNativePty extends AbstractPty implements Pty {
     private final FileDescriptor slaveFD;
     private final FileDescriptor slaveOutFD;
 
-    public static JnaNativePty current() throws IOException {
+    public static JnaNativePty current(TerminalProvider.Stream console) throws IOException {
         if (Platform.isMac()) {
             if (Platform.is64Bit() && Platform.isARM()) {
                 throw new UnsupportedOperationException();
             }
-            return OsXNativePty.current();
+            return OsXNativePty.current(console);
         } else if (Platform.isLinux()) {
-            return LinuxNativePty.current();
+            return LinuxNativePty.current(console);
         } else if (Platform.isSolaris()) {
-            return SolarisNativePty.current();
+            return SolarisNativePty.current(console);
         } else if (Platform.isFreeBSD()) {
-            return FreeBsdNativePty.current();
+            return FreeBsdNativePty.current(console);
         } else {
             throw new UnsupportedOperationException();
         }
@@ -150,12 +151,22 @@ public abstract class JnaNativePty extends AbstractPty implements Pty {
         return "JnaNativePty[" + getName() + "]";
     }
 
-    public static boolean isConsoleOutput() {
-        return isatty(1);
+    public static boolean isPosixSystemStream(TerminalProvider.Stream stream) {
+        switch (stream) {
+            case Input: return isatty(0);
+            case Output: return isatty(1);
+            case Error: return isatty(2);
+            default: return false;
+        }
     }
 
-    public static boolean isConsoleInput() {
-        return isatty(0);
+    public static String posixSystemStreamName(TerminalProvider.Stream stream) {
+        switch (stream) {
+            case Input: return ttyname(0);
+            case Output: return ttyname(1);
+            case Error: return ttyname(2);
+            default: return null;
+        }
     }
 
     private static boolean isatty(int fd) {
@@ -169,6 +180,20 @@ public abstract class JnaNativePty extends AbstractPty implements Pty {
             return FreeBsdNativePty.isatty(fd) == 1;
         } else {
             return false;
+        }
+    }
+
+    private static String ttyname(int fd) {
+        if (Platform.isMac()) {
+            return OsXNativePty.ttyname(fd);
+        } else if (Platform.isLinux()) {
+            return LinuxNativePty.ttyname(fd);
+        } else if (Platform.isSolaris()) {
+            return SolarisNativePty.ttyname(fd);
+        } else if (Platform.isFreeBSD()) {
+            return FreeBsdNativePty.ttyname(fd);
+        } else {
+            return null;
         }
     }
 

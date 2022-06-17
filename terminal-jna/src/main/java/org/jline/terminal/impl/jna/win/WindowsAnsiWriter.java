@@ -93,7 +93,7 @@ public final class WindowsAnsiWriter extends AnsiWriter {
     private void getConsoleInfo() throws IOException {
         out.flush();
         Kernel32.INSTANCE.GetConsoleScreenBufferInfo(console, info);
-        if( negative ) {
+        if (negative) {
             info.wAttributes = invertAttributeColors(info.wAttributes);
         }
     }
@@ -109,7 +109,7 @@ public final class WindowsAnsiWriter extends AnsiWriter {
         if (underline) {
             attributes |= BACKGROUND_INTENSITY;
         }
-        if( negative ) {
+        if (negative) {
             attributes = invertAttributeColors(attributes);
         }
         Kernel32.INSTANCE.SetConsoleTextAttribute(console, attributes);

@@ -28,6 +28,12 @@ public class OSUtils {
             && (System.getenv("MSYSTEM").startsWith("MINGW")
                 || System.getenv("MSYSTEM").equals("MSYS"));
 
+    public static final boolean IS_WSL = System.getenv("WSL_DISTRO_NAME") != null;
+
+    public static final boolean IS_WSL1 = IS_WSL && System.getenv("WSL_INTEROP") == null;
+
+    public static final boolean IS_WSL2 = IS_WSL && !IS_WSL1;
+
     public static final boolean IS_CONEMU = IS_WINDOWS
             && System.getenv("ConEmuPID") != null;
 
@@ -37,17 +43,20 @@ public class OSUtils {
     public static String STTY_COMMAND;
     public static String STTY_F_OPTION;
     public static String INFOCMP_COMMAND;
+    public static String TEST_COMMAND;
 
     static {
         String tty;
         String stty;
         String sttyfopt;
         String infocmp;
+        String test;
         if (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) {
             tty = null;
             stty = null;
             sttyfopt = null;
             infocmp = null;
+            test = null;
             String path = System.getenv("PATH");
             if (path != null) {
                 String[] paths = path.split(";");
@@ -61,6 +70,9 @@ public class OSUtils {
                     if (infocmp == null && new File(p, "infocmp.exe").exists()) {
                         infocmp = new File(p, "infocmp.exe").getAbsolutePath();
                     }
+                    if (test == null && new File(p, "test.exe").exists()) {
+                        test = new File(p, "test.exe").getAbsolutePath();
+                    }
                 }
             }
             if (tty == null) {
@@ -72,16 +84,21 @@ public class OSUtils {
             if (infocmp == null) {
                 infocmp = "infocmp.exe";
             }
+            if (test == null) {
+                test = "test.exe";
+            }
         } else {
             tty = "tty";
             stty = IS_OSX ? "/bin/stty" : "stty";
             sttyfopt = IS_OSX ? "-f" : "-F";
             infocmp = "infocmp";
+            test = "/bin/test";
         }
         TTY_COMMAND = tty;
         STTY_COMMAND = stty;
         STTY_F_OPTION = sttyfopt;
         INFOCMP_COMMAND = infocmp;
+        TEST_COMMAND = test;
     }
 
 }
