@@ -85,8 +85,7 @@ public class ExecTerminalProvider implements TerminalProvider
     }
 
     public boolean isWindowsSystemStream(Stream stream) {
-        // TODO: implement
-        return false;
+        return systemStreamName( stream ) != null;
     }
 
     public boolean isPosixSystemStream(Stream stream) {

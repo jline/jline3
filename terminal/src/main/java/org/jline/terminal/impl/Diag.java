@@ -101,6 +101,7 @@ public class Diag {
             if (terminal != null) {
                 Attributes attr = terminal.enterRawMode();
                 try {
+                    out.println("Terminal size: " + terminal.getSize());
                     ForkJoinTask<Integer> t = new ForkJoinPool(1).submit(() -> terminal.reader().read(1) );
                     int r = t.get(1000, TimeUnit.MILLISECONDS);
                     StringBuilder sb = new StringBuilder();

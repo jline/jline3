@@ -165,10 +165,14 @@ public class JansiTerminalProvider implements TerminalProvider {
 
     @Override
     public boolean isSystemStream(Stream stream) {
-        if (OSUtils.IS_WINDOWS) {
-            return isWindowsSystemStream(stream);
-        } else {
-            return isPosixSystemStream(stream);
+        try {
+            if (OSUtils.IS_WINDOWS) {
+                return isWindowsSystemStream(stream);
+            } else {
+                return isPosixSystemStream(stream);
+            }
+        } catch (Throwable t) {
+            return false;
         }
     }
 

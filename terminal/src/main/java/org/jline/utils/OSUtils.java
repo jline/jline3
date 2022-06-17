@@ -50,12 +50,13 @@ public class OSUtils {
         String stty;
         String sttyfopt;
         String infocmp;
-        String test = null;
+        String test;
         if (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) {
             tty = null;
             stty = null;
             sttyfopt = null;
             infocmp = null;
+            test = null;
             String path = System.getenv("PATH");
             if (path != null) {
                 String[] paths = path.split(";");
@@ -69,6 +70,9 @@ public class OSUtils {
                     if (infocmp == null && new File(p, "infocmp.exe").exists()) {
                         infocmp = new File(p, "infocmp.exe").getAbsolutePath();
                     }
+                    if (test == null && new File(p, "test.exe").exists()) {
+                        test = new File(p, "test.exe").getAbsolutePath();
+                    }
                 }
             }
             if (tty == null) {
@@ -79,6 +83,9 @@ public class OSUtils {
             }
             if (infocmp == null) {
                 infocmp = "infocmp.exe";
+            }
+            if (test == null) {
+                test = "test.exe";
             }
         } else {
             tty = "tty";
