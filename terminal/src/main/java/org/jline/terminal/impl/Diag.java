@@ -17,8 +17,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Terminal;
-import org.jline.terminal.spi.JansiSupport;
-import org.jline.terminal.spi.JnaSupport;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
 
@@ -55,7 +53,7 @@ public class Diag {
         out.println("JnaSupport");
         out.println("=================");
         try {
-            TerminalProvider provider = load(JnaSupport.class);
+            TerminalProvider provider = TerminalProvider.load("jna");
             testProvider(out, provider);
         } catch (Throwable t) {
             out.println("JNA support not available: " + t);
@@ -65,8 +63,8 @@ public class Diag {
         out.println("JansiSupport");
         out.println("=================");
         try {
-            TerminalProvider jansiSupport = load(JansiSupport.class);
-            testProvider(out, jansiSupport);
+            TerminalProvider provider = TerminalProvider.load("jansi");
+            testProvider(out, provider);
         } catch (Throwable t) {
             out.println("Jansi support not available: " + t);
         }
@@ -76,9 +74,9 @@ public class Diag {
         out.println("Exec Support");
         out.println("=================");
         try {
-            TerminalProvider execSupport = new ExecSupport();
-            testProvider(out, execSupport);
-       } catch (Throwable t) {
+            TerminalProvider provider = TerminalProvider.load("exec");
+            testProvider(out, provider);
+        } catch (Throwable t) {
             out.println("Exec support not available: " + t);
         }
     }

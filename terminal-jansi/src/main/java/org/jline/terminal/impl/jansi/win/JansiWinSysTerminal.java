@@ -23,7 +23,6 @@ import org.fusesource.jansi.internal.Kernel32.KEY_EVENT_RECORD;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
-import org.jline.terminal.spi.JansiSupport;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.OSUtils;
@@ -66,7 +65,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
             if (type == null) {
                 type = OSUtils.IS_CONEMU ? TYPE_WINDOWS_CONEMU : TYPE_WINDOWS;
             }
-            writer = new JansiWinConsoleWriter(console);
+            writer = newConsoleWriter(console);
         } else {
             if (Kernel32.GetConsoleMode(console, mode) == 0 ) {
                 throw new IOException("Failed to get console mode: " + getLastErrorMessage());
@@ -75,17 +74,17 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
                 if (type == null) {
                     type = TYPE_WINDOWS_VTP;
                 }
-                writer = new JansiWinConsoleWriter(console);
+                writer = newConsoleWriter(console);
             } else if (OSUtils.IS_CONEMU) {
                 if (type == null) {
                     type = TYPE_WINDOWS_CONEMU;
                 }
-                writer = new JansiWinConsoleWriter(console);
+                writer = newConsoleWriter(console);
             } else {
                 if (type == null) {
                     type = TYPE_WINDOWS;
                 }
-                writer = new WindowsAnsiWriter(new BufferedWriter(new JansiWinConsoleWriter(console)));
+                writer = new WindowsAnsiWriter(new BufferedWriter(newConsoleWriter(console)));
             }
         }
         if (Kernel32.GetConsoleMode(consoleIn, mode) == 0) {
@@ -100,7 +99,11 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
         return terminal;
     }
 
-    public static boolean isWindowsSystemStream(JansiSupport.Stream stream) {
+    private static Writer newConsoleWriter(long console) {
+        return new JansiWinConsoleWriter(console);
+    }
+
+    public static boolean isWindowsSystemStream(TerminalProvider.Stream stream) {
         int[] mode = new int[1];
         long console;
         switch (stream) {

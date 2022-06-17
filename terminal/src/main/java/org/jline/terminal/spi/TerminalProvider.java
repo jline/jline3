@@ -11,7 +11,10 @@ package org.jline.terminal.spi;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URL;
 import java.nio.charset.Charset;
+import java.util.Properties;
+import java.util.ServiceLoader;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
@@ -41,5 +44,29 @@ public interface TerminalProvider
     boolean isSystemStream(Stream stream);
 
     String systemStreamName(Stream stream);
+
+    static TerminalProvider load(String name) throws IOException {
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        if (cl == null) {
+            cl = ClassLoader.getSystemClassLoader();
+        }
+        InputStream is = cl.getResourceAsStream( "META-INF/services/org/jline/terminal/provider/" + name);
+        if (is != null) {
+            Properties props = new Properties();
+            try {
+                props.load(is);
+                String className = props.getProperty("class");
+                if (className == null) {
+                    throw new IOException("No class defined in terminal provider file " + name);
+                }
+                Class<?> clazz = cl.loadClass( className );
+                return (TerminalProvider) clazz.getConstructor().newInstance();
+            } catch ( Exception e ) {
+                throw new IOException("Unable to load terminal provider " + name, e);
+            }
+        } else {
+            throw new IOException("Unable to find terminal provider " + name);
+        }
+    }
 
 }

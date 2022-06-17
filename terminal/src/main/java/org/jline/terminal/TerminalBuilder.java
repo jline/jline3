@@ -32,9 +32,6 @@ import org.jline.terminal.impl.AbstractPosixTerminal;
 import org.jline.terminal.impl.AbstractTerminal;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
 import org.jline.terminal.impl.DumbTerminal;
-import org.jline.terminal.impl.ExecSupport;
-import org.jline.terminal.spi.JansiSupport;
-import org.jline.terminal.spi.JnaSupport;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.Log;
 import org.jline.utils.OSUtils;
@@ -368,7 +365,7 @@ public final class TerminalBuilder {
         List<TerminalProvider> providers = new ArrayList<>();
         if (jna) {
             try {
-                TerminalProvider provider = load(JnaSupport.class);
+                TerminalProvider provider = TerminalProvider.load("jna");
                 providers.add(provider);
             }  catch (Throwable t) {
                 Log.debug("Unable to load JNA support: ", t);
@@ -377,7 +374,7 @@ public final class TerminalBuilder {
         }
         if (jansi) {
             try {
-                TerminalProvider provider = load(JansiSupport.class);
+                TerminalProvider provider = TerminalProvider.load("jansi");
                 providers.add(provider);
             }  catch (Throwable t) {
                 Log.debug("Unable to load JANSI support: ", t);
@@ -387,7 +384,8 @@ public final class TerminalBuilder {
         if (exec)
         {
             try {
-                providers.add(new ExecSupport());
+                TerminalProvider provider = TerminalProvider.load("exec");
+                providers.add(provider);
             }  catch (Throwable t) {
                 Log.debug("Unable to load EXEC support: ", t);
                 exception.addSuppressed(t);

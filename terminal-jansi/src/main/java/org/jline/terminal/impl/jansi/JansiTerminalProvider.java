@@ -18,8 +18,8 @@ import org.jline.terminal.impl.jansi.freebsd.FreeBsdNativePty;
 import org.jline.terminal.impl.jansi.linux.LinuxNativePty;
 import org.jline.terminal.impl.jansi.osx.OsXNativePty;
 import org.jline.terminal.impl.jansi.win.JansiWinSysTerminal;
-import org.jline.terminal.spi.JansiSupport;
 import org.jline.terminal.spi.Pty;
+import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
 
 import java.io.IOException;
@@ -30,7 +30,7 @@ import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class JansiSupportImpl implements JansiSupport {
+public class JansiTerminalProvider implements TerminalProvider {
 
     static final int JANSI_MAJOR_VERSION;
     static final int JANSI_MINOR_VERSION;

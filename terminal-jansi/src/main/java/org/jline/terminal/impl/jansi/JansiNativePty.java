@@ -12,7 +12,7 @@ import org.fusesource.jansi.internal.CLibrary;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractPty;
-import org.jline.terminal.spi.JansiSupport;
+import org.jline.terminal.spi.TerminalProvider;
 import org.jline.terminal.spi.Pty;
 import org.jline.utils.OSUtils;
 
@@ -25,8 +25,8 @@ import java.io.OutputStream;
 import java.lang.reflect.Constructor;
 
 import static org.fusesource.jansi.internal.CLibrary.TCSANOW;
-import static org.jline.terminal.impl.jansi.JansiSupportImpl.JANSI_MAJOR_VERSION;
-import static org.jline.terminal.impl.jansi.JansiSupportImpl.JANSI_MINOR_VERSION;
+import static org.jline.terminal.impl.jansi.JansiTerminalProvider.JANSI_MAJOR_VERSION;
+import static org.jline.terminal.impl.jansi.JansiTerminalProvider.JANSI_MINOR_VERSION;
 import static org.jline.utils.ExecHelper.exec;
 
 public abstract class JansiNativePty extends AbstractPty implements Pty {
@@ -173,7 +173,7 @@ public abstract class JansiNativePty extends AbstractPty implements Pty {
         }
     }
 
-    public static boolean isPosixSystemStream(JansiSupport.Stream stream) {
+    public static boolean isPosixSystemStream(TerminalProvider.Stream stream) {
         switch (stream) {
             case Input: return CLibrary.isatty(0) == 1;
             case Output: return CLibrary.isatty(1) == 1;
@@ -182,7 +182,7 @@ public abstract class JansiNativePty extends AbstractPty implements Pty {
         }
     }
 
-    public static String posixSystemStreamName(JansiSupport.Stream stream) {
+    public static String posixSystemStreamName(TerminalProvider.Stream stream) {
         switch (stream) {
             case Input: return CLibrary.ttyname(0);
             case Output: return CLibrary.ttyname(1);

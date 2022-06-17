@@ -20,7 +20,6 @@ import com.sun.jna.ptr.IntByReference;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
-import org.jline.terminal.spi.JnaSupport;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.OSUtils;
@@ -80,7 +79,7 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
         return terminal;
     }
 
-    public static boolean isWindowsSystemStream(JnaSupport.Stream stream) {
+    public static boolean isWindowsSystemStream(TerminalProvider.Stream stream) {
         try {
             IntByReference mode = new IntByReference();
             Pointer console;

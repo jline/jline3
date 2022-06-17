@@ -14,7 +14,6 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.PosixPtyTerminal;
 import org.jline.terminal.impl.PosixSysTerminal;
 import org.jline.terminal.impl.jna.win.JnaWinSysTerminal;
-import org.jline.terminal.spi.JnaSupport;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.terminal.spi.Pty;
 import org.jline.utils.OSUtils;
@@ -24,7 +23,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 
-public class JnaSupportImpl implements JnaSupport
+public class JnaTerminalProvider implements TerminalProvider
 {
     @Override
     public String name() {

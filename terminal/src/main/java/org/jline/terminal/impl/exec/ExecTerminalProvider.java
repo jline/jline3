@@ -6,7 +6,7 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.terminal.impl;
+package org.jline.terminal.impl.exec;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
@@ -19,12 +19,15 @@ import java.nio.charset.Charset;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
-import org.jline.terminal.spi.TerminalProvider;
+import org.jline.terminal.impl.ExecPty;
+import org.jline.terminal.impl.ExternalTerminal;
+import org.jline.terminal.impl.PosixSysTerminal;
 import org.jline.terminal.spi.Pty;
+import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.ExecHelper;
 import org.jline.utils.OSUtils;
 
-public class ExecSupport implements TerminalProvider
+public class ExecTerminalProvider implements TerminalProvider
 {
 
     public String name() {

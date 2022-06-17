@@ -12,11 +12,12 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class JansiSupportImplTest {
+public class JansiTerminalProviderTest
+{
 
     @Test
     public void testJansiVersion() {
-        assertEquals(2, JansiSupportImpl.JANSI_MAJOR_VERSION);
-        assertEquals(4, JansiSupportImpl.JANSI_MINOR_VERSION);
+        assertEquals(2, JansiTerminalProvider.JANSI_MAJOR_VERSION);
+        assertEquals(4, JansiTerminalProvider.JANSI_MINOR_VERSION);
     }
 }
