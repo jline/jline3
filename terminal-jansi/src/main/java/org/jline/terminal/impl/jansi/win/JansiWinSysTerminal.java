@@ -41,7 +41,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
     private static final long consoleOut = GetStdHandle(STD_OUTPUT_HANDLE);
     private static final long consoleIn = GetStdHandle(STD_INPUT_HANDLE);
 
-    public static JansiWinSysTerminal createTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler, boolean paused) throws IOException {
+    public static JansiWinSysTerminal createTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, boolean nativeSignals, SignalHandler signalHandler, boolean paused) throws IOException {
         Writer writer;
         int[] mode = new int[1];
         if (ansiPassThrough) {
@@ -73,7 +73,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
         if (Kernel32.GetConsoleMode(consoleIn, mode) == 0) {
             throw new IOException("Failed to get console mode: " + getLastErrorMessage());
         }
-        JansiWinSysTerminal terminal = new JansiWinSysTerminal(writer, name, type, encoding, codepage, nativeSignals, signalHandler);
+        JansiWinSysTerminal terminal = new JansiWinSysTerminal(writer, name, type, encoding, nativeSignals, signalHandler);
         // Start input pump thread
         if (!paused) {
             terminal.resume();
@@ -96,8 +96,8 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
         return Kernel32.GetConsoleMode(consoleIn, mode) != 0;
     }
 
-    JansiWinSysTerminal(Writer writer, String name, String type, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
-        super(writer, name, type, encoding, codepage, nativeSignals, signalHandler);
+    JansiWinSysTerminal(Writer writer, String name, String type, Charset encoding, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
+        super(writer, name, type, encoding, nativeSignals, signalHandler);
     }
 
     @Override

@@ -27,7 +27,7 @@ public class AbstractWindowsTerminalTest {
     public void testWriterBuffering() throws Exception {
         System.setProperty("org.jline.terminal.conemu.disable-activate", "true");
         StringWriter sw = new StringWriter();
-        Terminal terminal = new AbstractWindowsTerminal(new AnsiWriter(new BufferedWriter(sw)), "name", TYPE_WINDOWS, Charset.defaultCharset(),0,
+        Terminal terminal = new AbstractWindowsTerminal(new AnsiWriter(new BufferedWriter(sw)), "name", TYPE_WINDOWS, Charset.defaultCharset(),
                 false, Terminal.SignalHandler.SIG_DFL) {
             @Override
             protected int getConsoleMode() {

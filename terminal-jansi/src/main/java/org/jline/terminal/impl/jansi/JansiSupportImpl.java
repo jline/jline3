@@ -117,13 +117,18 @@ public class JansiSupportImpl implements JansiSupport {
 
     @Override
     public Terminal winSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, Terminal.SignalHandler signalHandler) throws IOException {
-        return winSysTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler, false);
+        return winSysTerminal(name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, false);
     }
 
     @Override
     public Terminal winSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, Terminal.SignalHandler signalHandler, boolean paused) throws IOException {
+        return winSysTerminal(name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused);
+    }
+
+    @Override
+    public Terminal winSysTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, boolean nativeSignals, Terminal.SignalHandler signalHandler, boolean paused) throws IOException {
         if (isAtLeast(1, 12)) {
-            JansiWinSysTerminal terminal = JansiWinSysTerminal.createTerminal(name, type, ansiPassThrough, encoding, codepage, nativeSignals, signalHandler, paused);
+            JansiWinSysTerminal terminal = JansiWinSysTerminal.createTerminal(name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused);
             if (!isAtLeast(1, 16)) {
                 terminal.disableScrolling();
             }

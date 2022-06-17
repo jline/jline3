@@ -16,6 +16,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.Optional;
 import java.util.ServiceLoader;
@@ -291,11 +292,18 @@ public final class TerminalBuilder {
                 encoding = Charset.forName(charsetName);
             }
         }
-        int codepage = this.codepage;
-        if (codepage <= 0) {
-            String str = System.getProperty(PROP_CODEPAGE);
-            if (str != null) {
-                codepage = Integer.parseInt(str);
+        if (encoding == null) {
+            int codepage = this.codepage;
+            if (codepage <= 0) {
+                String str = System.getProperty(PROP_CODEPAGE);
+                if (str != null) {
+                    codepage = Integer.parseInt(str);
+                }
+            }
+            if (codepage >= 0) {
+                encoding = getCodepageCharset(codepage);
+            } else {
+                encoding = StandardCharsets.UTF_8;
             }
         }
         String type = this.type;
@@ -337,7 +345,7 @@ public final class TerminalBuilder {
                     if (tbs.hasJnaSupport()) {
                         try {
                             terminal = tbs.getJnaSupport().winSysTerminal(name, type, ansiPassThrough, encoding,
-                                    codepage, nativeSignals, signalHandler, paused);
+                                    nativeSignals, signalHandler, paused);
                         } catch (Throwable t) {
                             Log.debug("Error creating JNA based terminal: ", t.getMessage(), t);
                             exception.addSuppressed(t);
@@ -346,7 +354,7 @@ public final class TerminalBuilder {
                     if (terminal == null && tbs.hasJansiSupport()) {
                         try {
                             terminal = tbs.getJansiSupport().winSysTerminal(name, type, ansiPassThrough, encoding,
-                                    codepage, nativeSignals, signalHandler, paused);
+                                    nativeSignals, signalHandler, paused);
                         } catch (Throwable t) {
                             Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
                             exception.addSuppressed(t);
@@ -500,6 +508,24 @@ public final class TerminalBuilder {
 
     private static <S> S load(Class<S> clazz) {
         return ServiceLoader.load(clazz, clazz.getClassLoader()).iterator().next();
+    }
+
+    private static final int UTF8_CODE_PAGE = 65001;
+
+    private static Charset getCodepageCharset(int codepage) {
+        //http://docs.oracle.com/javase/6/docs/technotes/guides/intl/encoding.doc.html
+        if (codepage == UTF8_CODE_PAGE) {
+            return StandardCharsets.UTF_8;
+        }
+        String charsetMS = "ms" + codepage;
+        if (Charset.isSupported(charsetMS)) {
+            return Charset.forName(charsetMS);
+        }
+        String charsetCP = "cp" + codepage;
+        if (Charset.isSupported(charsetCP)) {
+            return Charset.forName(charsetCP);
+        }
+        return Charset.defaultCharset();
     }
 
     /**
