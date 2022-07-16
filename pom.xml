@@ -94,7 +94,8 @@
         <findbugs.version>3.0.2</findbugs.version>
         <groovy.version>4.0.3</groovy.version>
         <ivy.version>2.5.0</ivy.version>
-        <graal.version>19.3.1</graal.version>
+        <graal.version>22.1.0</graal.version>
+        <graal-maven-plugin.version>20.3.6.1</graal-maven-plugin.version>
 
         <surefire.argLine />
     </properties>
@@ -518,7 +519,7 @@
             <plugin>
                 <groupId>org.graalvm.nativeimage</groupId>
                 <artifactId>native-image-maven-plugin</artifactId>
-                <version>${graal.version}</version>
+                <version>${graal-maven-plugin.version}</version>
             </plugin>
         </plugins>
     </build>
