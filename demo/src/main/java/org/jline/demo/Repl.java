@@ -21,7 +21,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.jline.builtins.*;
-import org.jline.builtins.Nano.SyntaxHighlighter;
+import org.jline.builtins.SyntaxHighlighter;
 import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.console.impl.*;
 import org.jline.console.CommandInput;
@@ -51,6 +51,8 @@ import org.jline.widget.TailTipWidgets;
 import org.jline.widget.TailTipWidgets.TipType;
 import org.jline.widget.Widgets;
 
+import static org.jline.builtins.SyntaxHighlighter.DEFAULT_NANORC_FILE;
+import static org.jline.console.ConsoleEngine.VAR_NANORC;
 /**
  * Demo how to create REPL app with JLine.
  *
@@ -247,6 +249,8 @@ public class Repl {
             parser.setEofOnUnclosedQuote(true);
             parser.setEscapeChars(null);
             parser.setRegexCommand("[:]{0,1}[a-zA-Z!]{1,}\\S*");    // change default regex to support shell commands
+            parser.blockCommentDelims(new DefaultParser.BlockCommentDelims("/*", "*/"))
+                    .lineCommentDelims(new String[]{"//"});
             Terminal terminal = TerminalBuilder.builder().build();
             if (terminal.getWidth() == 0 || terminal.getHeight() == 0) {
                 terminal.setSize(new Size(120, 40));   // hard coded terminal size when redirecting
@@ -258,9 +262,10 @@ public class Repl {
             //
             File file = new File(Repl.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
             String root = file.getCanonicalPath().replace("classes", "").replaceAll("\\\\", "/"); // forward slashes works better also in windows!
-            File jnanorcFile = Paths.get(root, "jnanorc").toFile();
+            File jnanorcFile = Paths.get(root, DEFAULT_NANORC_FILE).toFile();
             if (!jnanorcFile.exists()) {
                 try (FileWriter fw = new FileWriter(jnanorcFile)) {
+                    fw.write("theme " + root + "nanorc/dark.nanorctheme\n");
                     fw.write("include " + root + "nanorc/*.nanorc\n");
                 }
             }
@@ -282,15 +287,24 @@ public class Repl {
             systemRegistry.addCompleter(scriptEngine.getScriptCompleter());
             systemRegistry.setScriptDescription(scriptEngine::scriptDescription);
             //
-            // LineReader
+            // Command line highlighter
             //
-            Path jnanorc = configPath.getConfig("jnanorc");
+            Path jnanorc = configPath.getConfig(DEFAULT_NANORC_FILE);
+            scriptEngine.put(VAR_NANORC, jnanorc.toString());
             SyntaxHighlighter commandHighlighter = SyntaxHighlighter.build(jnanorc,"COMMAND");
             SyntaxHighlighter argsHighlighter = SyntaxHighlighter.build(jnanorc,"ARGS");
             SyntaxHighlighter groovyHighlighter = SyntaxHighlighter.build(jnanorc,"Groovy");
             SystemHighlighter highlighter = new SystemHighlighter(commandHighlighter, argsHighlighter, groovyHighlighter);
+            if (!OSUtils.IS_WINDOWS) {
+                highlighter.setSpecificHighlighter("!", SyntaxHighlighter.build(jnanorc, "SH-REPL"));
+            }
             highlighter.addFileHighlight("nano", "less", "slurp");
             highlighter.addFileHighlight("groovy", "classloader", Arrays.asList("-a", "--add"));
+            highlighter.addExternalHighlighterRefresh(printer::refresh);
+            highlighter.addExternalHighlighterRefresh(scriptEngine::refresh);
+            //
+            // LineReader
+            //
             LineReader reader = LineReaderBuilder.builder()
                     .terminal(terminal)
                     .completer(systemRegistry.completer())

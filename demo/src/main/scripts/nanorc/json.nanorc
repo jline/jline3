@@ -1,0 +1,8 @@
+syntax "JSON" "\.json$"
+header "^\{$"
+
+NUMBER:   "\<[-]?[0-9]*([Ee][+-]?[0-9]+)?\>"  "\<[-]?[0](\.[0-9]+)?\>"
+NULL:     "\<null\>"
+BOOLEAN:  "\<(true|false)\>"
+ESCAPE:   "\\u[0-9a-fA-F]{4}|\\[bfnrt'"/\\]"
+$BALANCED_DELIMITERS  "", '"

@@ -166,7 +166,7 @@ public class Candidate implements Comparable<Candidate> {
     	if( sort == o.sort() ) {
             return value.compareTo(o.value);
     	} else {
-    		return sort - o.sort();
+    		return Integer.compare(sort, o.sort());
     	}
     }
 

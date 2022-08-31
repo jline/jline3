@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2021, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -26,9 +26,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import org.jline.builtins.Nano.Parser;
 import org.jline.builtins.Nano.PatternHistory;
-import org.jline.builtins.Nano.SyntaxHighlighter;
 import org.jline.builtins.Source.ResourceSource;
 import org.jline.builtins.Source.URLSource;
 import org.jline.keymap.BindingReader;
@@ -46,6 +44,7 @@ import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.NonBlockingReader;
 import org.jline.utils.Status;
 
+import static org.jline.builtins.SyntaxHighlighter.*;
 import static org.jline.keymap.KeyMap.alt;
 import static org.jline.keymap.KeyMap.ctrl;
 import static org.jline.keymap.KeyMap.del;
@@ -146,7 +145,7 @@ public class Less {
         this.display = new Display(terminal, true);
         this.bindingReader = new BindingReader(terminal.reader());
         this.currentDir = currentDir;
-        Path lessrc = configPath != null ? configPath.getConfig("jlessrc") : null;
+        Path lessrc = configPath != null ? configPath.getConfig(DEFAULT_LESSRC_FILE) : null;
         boolean ignorercfiles = opts!=null && opts.isSet("ignorercfiles");
         if (lessrc != null && !ignorercfiles) {
             try {
@@ -224,15 +223,11 @@ public class Less {
             while (line != null) {
                 line = line.trim();
                 if (line.length() > 0 && !line.startsWith("#")) {
-                    List<String> parts = Parser.split(line);
-                    if (parts.get(0).equals("include")) {
-                        if (parts.get(1).contains("*") || parts.get(1).contains("?")) {
-                            PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parts.get(1));
-                            Files.find(Paths.get(new File(parts.get(1)).getParent()), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
-                                    .forEach(syntaxFiles::add);
-                        } else {
-                            syntaxFiles.add(Paths.get(parts.get(1)));
-                        }
+                    List<String> parts = SyntaxHighlighter.RuleSplitter.split(line);
+                    if (parts.get(0).equals(COMMAND_INCLUDE)) {
+                        SyntaxHighlighter.nanorcInclude(parts.get(1), syntaxFiles);
+                    } else if(parts.get(0).equals(COMMAND_THEME)) {
+                        SyntaxHighlighter.nanorcTheme(parts.get(1), syntaxFiles);
                     } else if (parts.size() == 2
                             && (parts.get(0).equals("set") || parts.get(0).equals("unset"))) {
                         String option = parts.get(1);
@@ -1309,7 +1304,12 @@ public class Less {
         Pattern dpCompiled = getPattern(true);
         boolean fitOnOneScreen = false;
         boolean eof = false;
-        syntaxHighlighter.reset();
+        if (highlight) {
+            syntaxHighlighter.reset();
+            for (int i = Math.max(0, inputLine - height); i < inputLine; i++) {
+                syntaxHighlighter.highlight(getLine(i));
+            }
+        }
         for (int terminalLine = 0; terminalLine < height - 1; terminalLine++) {
             if (curLine == null) {
                 Pair<Integer, AttributedString> nextLine = nextLine2display(inputLine, dpCompiled);

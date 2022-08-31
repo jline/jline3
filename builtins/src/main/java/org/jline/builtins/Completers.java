@@ -330,7 +330,6 @@ public class Completers {
      */
     public static class FileNameCompleter implements org.jline.reader.Completer
     {
-        protected static StyleResolver resolver = Styles.lsStyle();
 
         public void complete(LineReader reader, ParsedLine commandLine, final List<Candidate> candidates) {
             assert commandLine != null;
@@ -358,6 +357,7 @@ public class Completers {
                     curBuf = "";
                     current = getUserDir();
                 }
+                StyleResolver resolver = Styles.lsStyle();
                 try (DirectoryStream<Path> directory = Files.newDirectoryStream(current, this::accept)) {
                     directory.forEach(p -> {
                         String value = curBuf + p.getFileName().toString();
@@ -696,7 +696,7 @@ public class Completers {
                     if (valueCompleter instanceof FileNameCompleter) {
                         FileNameCompleter cc = (FileNameCompleter)valueCompleter;
                         String sep = cc.getSeparator(reader.isSet(LineReader.Option.USE_FORWARD_SLASH));
-                        val = cc.getDisplay(reader.getTerminal(), Paths.get(c.value()), FileNameCompleter.resolver, sep);
+                        val = cc.getDisplay(reader.getTerminal(), Paths.get(c.value()), Styles.lsStyle(), sep);
                     }
                     candidates.add(new Candidate(curBuf + v, val, null, null, null, null, c.complete()));
                 }

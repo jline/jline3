@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (c) 2002-2021, the original author or authors.
+    Copyright (c) 2002-2022, the original author or authors.
 
     This software is distributable under the BSD license. See the terms of the
     BSD license in the documentation provided with this software.
@@ -92,10 +92,10 @@
         <gogo.jline.version>1.1.8</gogo.jline.version>
         <slf4j.version>1.7.21</slf4j.version>
         <findbugs.version>3.0.2</findbugs.version>
-        <groovy.version>3.0.8</groovy.version>
+        <groovy.version>4.0.3</groovy.version>
         <ivy.version>2.5.0</ivy.version>
-        <graal.version>19.3.1</graal.version>
-        <graal.plugin.version>21.2.0</graal.plugin.version>
+        <graal.version>22.1.0</graal.version>
+        <graal-maven-plugin.version>20.3.6.1</graal-maven-plugin.version>
 
         <surefire.argLine />
     </properties>
@@ -237,19 +237,19 @@
             </dependency>
 
             <dependency>
-                <groupId>org.codehaus.groovy</groupId>
+                <groupId>org.apache.groovy</groupId>
                 <artifactId>groovy</artifactId>
                 <version>${groovy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>org.codehaus.groovy</groupId>
+                <groupId>org.apache.groovy</groupId>
                 <artifactId>groovy-json</artifactId>
                 <version>${groovy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>org.codehaus.groovy</groupId>
+                <groupId>org.apache.groovy</groupId>
                 <artifactId>groovy-console</artifactId>
                 <version>${groovy.version}</version>
             </dependency>
@@ -595,6 +595,11 @@
                 <configuration>
                     <autoVersionSubmodules>true</autoVersionSubmodules>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.graalvm.nativeimage</groupId>
+                <artifactId>native-image-maven-plugin</artifactId>
+                <version>${graal-maven-plugin.version}</version>
             </plugin>
         </plugins>
     </build>

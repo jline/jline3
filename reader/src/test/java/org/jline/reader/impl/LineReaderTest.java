@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2022, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -163,5 +164,25 @@ public class LineReaderTest {
 
         assertEquals("Did not prefer appName from builder",
                 expectedAppName, lineReader.getAppName());
+    }
+
+    @Test
+    public void terminalLineInfiniteLoop() throws IOException
+    {
+        ByteArrayInputStream in = new ByteArrayInputStream( "hello\nworld\n".getBytes( StandardCharsets.UTF_8 ) );
+        ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
+
+        Terminal terminal = TerminalBuilder.builder().streams( in, out ).build();
+        terminal.setSize(new Size(0, 48));
+        LineReader lineReader = LineReaderBuilder.builder()
+                .terminal( terminal )
+                .variable( LineReader.SECONDARY_PROMPT_PATTERN, "%P " )
+                .build();
+
+        String read1 = lineReader.readLine("Input1: ");
+        String read2 = lineReader.readLine("Input2: ");
+
+        assertEquals( "hello", read1 );
+        assertEquals( "world", read2 );
     }
 }

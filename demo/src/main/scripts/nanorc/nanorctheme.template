@@ -1,0 +1,60 @@
+#
+# This file describes a default scheme template for nanorc syntax highlighting for terminals with dark background
+#
+# Actual nanorc themes can be generated using the themes available on https://mayccoll.github.io/Gogh/themes.
+#
+# Linux:
+# \> cd git/jline3
+# \> ./build rebuild
+# \> cd git/jline3/demo/target/nanorc
+# \> bash -c  "$(wget -qO- https://git.io/vQgMr)"
+# ...
+#
+
+PLAIN        %COLOR_08
+FUNCTION     %COLOR_11
+STRING       %COLOR_15
+COMMENT      %COLOR_07
+DOC_COMMENT  %COLOR_15
+TYPE         %COLOR_13
+BOOLEAN      %COLOR_16
+NULL         %COLOR_07
+NUMBER       %COLOR_05
+VARIABLE     %COLOR_12
+PACKAGE      %COLOR_03
+CLASS        %COLOR_03
+CONSTANT     %COLOR_04
+OPERATOR     %COLOR_04
+COMMAND      %COLOR_11
+OPTION       %COLOR_04
+KEYWORD      %COLOR_16
+JUMP         %COLOR_15
+SECTION      %COLOR_11
+ATTRIBUTE    %COLOR_03
+PATH         %COLOR_13
+EXECUTABLE   %COLOR_03
+LINK         %COLOR_07
+TITLE        %COLOR_13
+ESCAPE       %COLOR_01,%COLOR_07
+DEBUG        %COLOR_14
+ERROR        %COLOR_02
+TODO         %COLOR_16,%COLOR_07
+WARNING     ,%COLOR_02
+WHITESPACE  ,%COLOR_03
+HEADER      bold,%COLOR_13,~grey7,underline
+ROW_NUMBER  bold,%COLOR_13,~grey7
+ROW_STYLE   ,~grey15
+LIST_BACKGROUND ,~grey42
+LIST_GROUP       %COLOR_04
+#
+# mixin
+#
++FUNCTION           FUNCTION: "[A-Za-z_][A-Za-z0-9_]*[[:space:]]*[(]" \n PLAIN:    "[(]"
++LINT               WHITESPACE: "[[:space:]]+$" \n WARNING: "\t*"
++LONG_LINE_WARNING  WARNING: "^.{81,}$"
+#
+# parser
+#
+$LINE_COMMENT           COMMENT \n TODO: "FIXME|TODO|XXX"
+$BLOCK_COMMENT          COMMENT \n DOC_COMMENT: startWith=/** \n TODO: "FIXME|TODO|XXX"
+$BALANCED_DELIMITERS    STRING  \n VARIABLE: continueAs=\s*:

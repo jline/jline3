@@ -1,0 +1,18 @@
+## Groovy REPL sh commands highlight.
+##
+syntax "SH-REPL"
+
+## keywords:
+KEYWORD:  "\<(case|do|done|elif|else|esac|fi|for|function|if|in|select|then|time|until|while)\>"
+OPERATOR: "(\{|\}|\(|\)|\;|\]|\[|`|\\|\$|<|>|!|=|&|\|)"
+OPTION:   "-[Lldefgrtuwx]+\>"
+OPERATOR: "-(eq|ne|gt|lt|ge|le|s|n|z)\>"
+## builtins:
+FUNCTION: "\<(alias|bg|bind|break|builtin|caller|cd|command|compgen|complete|compopt|continue|declare|dirs|disown|echo|enable|eval|exec|exit|export|false|fc|fg|getopts|hash|help|history|jobs|kill|let|local|logout|mapfile|popd|printf|pushd|pwd|read|readarray|readonly|return|set|shift|shopt|source|suspend|test|times|trap|true|type|typeset|ulimit|umask|unalias|unset|wait)\>"
+## not buitins:
+FUNCTION: "\<(cat|chmod|chown|cp|env|grep|install|ln|make|mkdir|mv|rm|sed|tar|touch|ls)\>"
+~FUNCTION: "^\s+[0-9A-Z_]+\s+\(\)"
+~VARIABLE: "\$\{?[0-9A-Z_!@#$*?-]+\}?"
+COMMENT:  "^([[:space:]])*#.*$"
+$BLOCK_COMMENT:       "/*, */"
+$BALANCED_DELIMITERS: "", '"

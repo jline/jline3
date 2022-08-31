@@ -1,0 +1,26 @@
+## Here is an example for Java.
+##
+syntax "Java" "\.java$"
+
+# Class
+SECTION:  "class +[A-Za-z0-9]+ *((implements|extends) +[A-Za-z0-9.]+)?"
+
+# Annotation
+ESCAPE:      "@[A-Za-z]+"
+
+# +FUNCTION
+TYPE:        "\<(boolean|byte|char|double|float|int|long|new|short|this|transient|void)\>"
+KEYWORD:     "\<(case|catch|default|do|else|finally|for|if|return|switch|throw|try|while)\>"
+PACKAGE:     "(([a-z]{2,}[.]{1}){2,10}([a-z]{2,}){0,1})"
+CLASS:       "\<[A-Z]{0,2}([A-Z]{1}[a-z]+){1,}\>"
+KEYWORD:     "\<(abstract|class|extends|final|implements|import|instanceof|interface|native|package|private|protected|public|static|strictfp|super|synchronized|throws|volatile)\>"
+JUMP:        "\<(break|continue)\>"
+NULL:        "\<(null)\>"
+BOOLEAN:     "\<(true|false)\>"
+CONSTANT:    "\<[A-Z]+([_]{1}[A-Z]+){0,}\>"
+OPERATOR:    "[-+/*=<>?:!~%&|]"
+~NUMBER:     "\b(([1-9][0-9]+)|0+)\.[0-9]+\b" "\b[1-9][0-9]*\b" "\b0[0-7]*\b" "\b0x[1-9a-f][0-9a-f]*\b"
+$BALANCED_DELIMITERS:  """
+$LINE_COMMENT:         "//"
+$BLOCK_COMMENT:        "/*, */"
++LINT

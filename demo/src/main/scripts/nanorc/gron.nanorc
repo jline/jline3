@@ -1,0 +1,12 @@
+syntax "GRON" "\.gron$"
+header "^\[$"
+
+NUMBER:     "\<[-]?[0-9]*([Ee][+-]?[0-9]+)?\>"  "\<[-]?[0](\.[0-9]+)?\>"
+STRING:     "[a-zA-Z]+[a-zA-Z0-9]*"
+NULL:       "\<null\>"
+BOOLEAN:    "\<(true|false)\>"
+VARIABLE:   "(\[|,)\s*[a-zA-Z0-9_]*\s*:"
+VARIABLE:   "(^|:)[a-zA-Z0-9_]*="
+PLAIN:      "(=|:|\[|,|\])"
+ESCAPE:     "\\u[0-9a-fA-F]{4}|\\[bfnrt'"/\\]"
+$BALANCED_DELIMITERS  "", '"

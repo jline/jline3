@@ -98,6 +98,21 @@ public interface SystemRegistry extends CommandRegistry, ConsoleOptionGetter {
     Object consoleOption(String name);
 
     /**
+     * Return console option value
+     * @param name the option name
+     * @param defVal value to return if console option does not exists
+     * @return option value
+     */
+    <T> T consoleOption(String name, T defVal);
+
+    /**
+     * Set console option value
+     * @param name the option name
+     * @param value value to assign console option
+     */
+    void setConsoleOption(String name, Object value);
+
+    /**
      * @return terminal
      */
     Terminal terminal();

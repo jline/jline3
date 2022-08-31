@@ -391,7 +391,7 @@ public class TTop {
             long count = gc.getCollectionCount();
             long time = gc.getCollectionTime();
             sbc.append(gc.getName()).append(": ")
-                .append(Long.toString(count)).append(" col. / ")
+                .append(count).append(" col. / ")
                 .append(String.format("%d", time / 1000))
                 .append(".")
                 .append(String.format("%03d", time % 1000))
@@ -557,10 +557,7 @@ public class TTop {
             }
             return sb.toString();
         } else {
-            StringBuilder sb = new StringBuilder(nb);
-            sb.append(str, 0, nb - 3);
-            sb.append("...");
-            return sb.toString();
+            return str.substring(0, nb - 3) + "...";
         }
     }
     private static String memory(long cur, long max) {

@@ -18,8 +18,16 @@ CONSOLE_OPTIONS['docs'].put('java.*',['https://docs.oracle.com/javase/8/docs/api
                                       'http://docs.groovy-lang.org/latest/html/groovy-jdk/'])
 CONSOLE_OPTIONS['docs'].put('.*/java.*','https://docs.oracle.com/javase/8/docs/api/')
 CONSOLE_OPTIONS['docs'].put('org/jline/.*','https://www.javadoc.io/doc/org.jline/jline/latest/')
+CONSOLE_OPTIONS.PRNT_COLORS = 'th=HEADER:rn=ROW_NUMBER:rs=ROW_STYLE:mk=ATTRIBUTE:em=ERROR:vs=DEBUG'
+CONSOLE_OPTIONS.LS_COLORS = 'di=PATH:ex=EXECUTABLE:ln=LINK:fi='
+CONSOLE_OPTIONS.HELP_COLORS = "ti=TITLE:co=1:ar=3:op=OPTION"
+CONSOLE_OPTIONS.READER_COLORS = [:]
+CONSOLE_OPTIONS['READER_COLORS'].put('COMPLETION_STYLE_LIST_BACKGROUND', 'LIST_BACKGROUND')
+CONSOLE_OPTIONS['READER_COLORS'].put('COMPLETION_STYLE_LIST_GROUP', 'LIST_GROUP')
 
-CONSOLE_OPTIONS.PRNT_COLORS = 'th=bold,!blue,~grey7,underline:rn=bold,!blue,~grey7:rs=,~grey15:mk=1;34:em=31:vs=32'
+# refresh nanorc theme: command adds NANORC_THEME map to CONSOLE_OPTIONS and updates lineReader colors
+highlighter -r
+
 #
 # customize prnt command
 #
@@ -85,7 +93,9 @@ GROOVY_OPTIONS.metaMethodsCompletion = false
 GROOVY_OPTIONS.allClassesCompletion = false
 GROOVY_OPTIONS.allConstructorsCompletion = false
 GROOVY_OPTIONS.syntheticMethodsCompletion = false
-
+GROOVY_OPTIONS.GROOVY_COLORS = 'ti=TITLE:me=ERROR'
+GROOVY_OPTIONS.nanorcSyntax = 'Java'
+GROOVY_OPTIONS.nanorcValue = 'GRON'
 #
 # custom Groovy pipes
 #

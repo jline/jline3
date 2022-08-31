@@ -352,7 +352,7 @@ public interface LineReader {
     String AMBIGUOUS_BINDING = "ambiguous-binding";
 
     /**
-     * Columns separated list of patterns that will not be saved in history.
+     * Colon separated list of patterns that will not be saved in history.
      */
     String HISTORY_IGNORE = "history-ignore";
 
@@ -467,6 +467,9 @@ public interface LineReader {
 
         /** Show command options tab completion candidates for zero length word */
         EMPTY_WORD_OPTIONS(true),
+        
+        /** Disable the undo feature */
+        DISABLE_UNDO
         ;
 
         private final boolean def;

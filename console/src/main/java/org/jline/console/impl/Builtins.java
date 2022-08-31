@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2022, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,12 +8,14 @@
  */
 package org.jline.console.impl;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.jline.builtins.Commands;
+import org.jline.builtins.SyntaxHighlighter;
 import org.jline.builtins.TTop;
 import org.jline.builtins.Completers.FilesCompleter;
 import org.jline.builtins.Completers.OptDesc;
@@ -31,6 +33,9 @@ import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 
+import static org.jline.builtins.SyntaxHighlighter.DEFAULT_NANORC_FILE;
+import static org.jline.builtins.SyntaxHighlighter.TYPE_NANORCTHEME;
+
 /**
  * Builtins: create tab completers, execute and create descriptions for builtins commands.
  *
@@ -47,6 +52,7 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
                        , UNSETOPT
                        , TTOP
                        , COLORS
+                       , HIGHLIGHTER
                        }
 
     private final ConfigurationPath configPath;
@@ -68,6 +74,7 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
 
     public Builtins(Set<Command> commands, Supplier<Path> workDir, ConfigurationPath configpath, Function<String, Widget> widgetCreator) {
         super();
+        Objects.requireNonNull(configpath);
         this.configPath = configpath;
         this.widgetCreator = widgetCreator;
         this.workDir = workDir;
@@ -92,6 +99,7 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
         commandExecute.put(Command.UNSETOPT, new CommandMethods(this::unsetopt, this::unsetoptCompleter));
         commandExecute.put(Command.TTOP, new CommandMethods(this::ttop, this::defaultCompleter));
         commandExecute.put(Command.COLORS, new CommandMethods(this::colors, this::defaultCompleter));
+        commandExecute.put(Command.HIGHLIGHTER, new CommandMethods(this::highlighter, this::highlighterCompleter));
         registerCommands(commandName, commandExecute);
     }
 
@@ -179,6 +187,14 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
         }
     }
 
+    private void highlighter(CommandInput input) {
+        try {
+            Commands.highlighter(reader, input.terminal(), input.out(), input.err(), input.args(), configPath);
+        } catch (Exception e) {
+            saveException(e);
+        }
+    }
+
     private List<String> unsetOptions(boolean set) {
         List<String> out = new ArrayList<>();
         for (Option option : Option.values()) {
@@ -187,6 +203,35 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
             }
         }
         return out;
+    }
+
+    private List<Completer> highlighterCompleter(String name) {
+        List<Completer> completers = new ArrayList<>();
+        List<OptDesc> optDescs = commandOptions(name);
+        for (OptDesc o : optDescs) {
+            if (o.shortOption() != null && (o.shortOption().equals("-v") || o.shortOption().equals("-s"))) {
+                Path userConfig = null;
+                if (o.shortOption().equals("-s")) {
+                    try {
+                        userConfig = configPath.getUserConfig(DEFAULT_NANORC_FILE);
+                    } catch (IOException ignore) {
+                    }
+                }
+                if (o.shortOption().equals("-v") || userConfig != null) {
+                    Path ct = SyntaxHighlighter.build(configPath.getConfig(DEFAULT_NANORC_FILE), null)
+                            .getCurrentTheme();
+                    if (ct != null) {
+                        o.setValueCompleter(new FilesCompleter(ct.getParent(), "*" + TYPE_NANORCTHEME));
+                    }
+                }
+            }
+        }
+        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
+                , new OptionCompleter(NullCompleter.INSTANCE
+                , optDescs
+                , 1)
+        ));
+        return completers;
     }
 
     private Set<String> allWidgets() {
