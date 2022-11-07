@@ -93,7 +93,7 @@
         <slf4j.version>1.7.21</slf4j.version>
         <findbugs.version>3.0.2</findbugs.version>
         <groovy.version>4.0.3</groovy.version>
-        <ivy.version>2.5.0</ivy.version>
+        <ivy.version>2.5.1</ivy.version>
         <graal.version>22.1.0</graal.version>
         <graal-maven-plugin.version>20.3.6.1</graal-maven-plugin.version>
 
