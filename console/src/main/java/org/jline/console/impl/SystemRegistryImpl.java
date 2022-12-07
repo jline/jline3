@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2022, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -472,7 +472,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             outputStream = new FileOutputStream(file, append);
         }
 
-        public void open() throws IOException {
+        public void open(boolean redirectColor) throws IOException {
             if (redirecting || outputStream == null) {
                 return;
             }
@@ -490,9 +490,8 @@ public class SystemRegistryImpl implements SystemRegistry {
                 terminal = TerminalBuilder.builder()
                         .streams(in, outputStream)
                         .attributes(attrs)
-                        .jna(false)
-                        .jansi(false)
-                        .type(Terminal.TYPE_DUMB).build();
+                        .type((redirectColor ? Terminal.TYPE_DUMB_COLOR : Terminal.TYPE_DUMB))
+                        .build();
                 this.commandSession = new CommandRegistry.CommandSession(terminal, terminal.input(), out, out);
                 redirecting = true;
             } catch (IOException e) {
@@ -1176,7 +1175,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                     } else if (consoleId != null) {
                         outputStream.redirect();
                     }
-                    outputStream.open();
+                    outputStream.open(consoleOption("redirectColor", false));
                 }
                 boolean consoleScript = false;
                 try {
