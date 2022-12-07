@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2022, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -302,7 +302,7 @@ public class Less {
     }
 
     public void run(Source... sources) throws IOException, InterruptedException {
-        run(Arrays.asList(sources));
+        run(new ArrayList<>(Arrays.asList(sources)));
     }
 
     public void run(List<Source> sources) throws IOException, InterruptedException {
