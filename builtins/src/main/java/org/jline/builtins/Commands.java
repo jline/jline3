@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2022, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -110,13 +110,13 @@ public class Commands {
 
     public static void less(Terminal terminal, InputStream in, PrintStream out, PrintStream err,
             Path currentDir,
-            String[] argv) throws Exception {
+            Object[] argv) throws Exception {
         less(terminal, in, out, err, currentDir, argv, null);
     }
 
     public static void less(Terminal terminal, InputStream in, PrintStream out, PrintStream err,
                             Path currentDir,
-                            String[] argv,
+                            Object[] argv,
                             ConfigurationPath configPath) throws Exception {
         Options opt = Options.compile(Less.usage()).parse(argv);
         if (opt.isSet("help")) {
@@ -124,19 +124,37 @@ public class Commands {
         }
         Less less = new Less(terminal, currentDir, opt, configPath);
         List<Source> sources = new ArrayList<>();
-        if (opt.args().isEmpty()) {
-            opt.args().add("-");
+        if (opt.argObjects().isEmpty()) {
+            opt.argObjects().add("-");
         }
-        for (String arg : opt.args()) {
-            arg = arg.startsWith("~") ? arg.replace("~", System.getProperty("user.home")) : arg;
-            if ("-".equals(arg)) {
-                sources.add(new StdInSource(in));
-            } else if (arg.contains("*") || arg.contains("?")) {
-                for (Path p: findFiles(currentDir, arg)) {
-                    sources.add(new URLSource(p.toUri().toURL(), p.toString()));
+
+        for (Object o : opt.argObjects()) {
+            if (o instanceof String) {
+                String arg = (String)o;
+                arg = arg.startsWith("~") ? arg.replace("~", System.getProperty("user.home")) : arg;
+                if ("-".equals(arg)) {
+                    sources.add(new StdInSource(in));
+                } else if (arg.contains("*") || arg.contains("?")) {
+                    for (Path p : findFiles(currentDir, arg)) {
+                        sources.add(new URLSource(p.toUri().toURL(), p.toString()));
+                    }
+                } else {
+                    sources.add(new URLSource(currentDir.resolve(arg).toUri().toURL(), arg));
                 }
+            } else if (o instanceof Source) {
+                sources.add((Source) o);
             } else {
-                sources.add(new URLSource(currentDir.resolve(arg).toUri().toURL(), arg));
+                ByteArrayInputStream bais = null;
+                if (o instanceof String[]) {
+                    bais = new ByteArrayInputStream(String.join("\n", (String[])o).getBytes());
+                } else if (o instanceof ByteArrayInputStream) {
+                    bais = (ByteArrayInputStream)o;
+                } else if (o instanceof byte[]) {
+                    bais = new ByteArrayInputStream((byte[])o);
+                }
+                if (bais != null) {
+                    sources.add(new Source.InputStreamSource(bais, true, "Less"));
+                }
             }
         }
         less.run(sources);
