@@ -994,6 +994,94 @@ public class SystemRegistryImpl implements SystemRegistry {
             return arg;
         }
 
+        /**
+         * Unescapes a string that contains standard Java escape sequences.
+         * <ul>
+         * <li><strong>&#92;b &#92;f &#92;n &#92;r &#92;t &#92;" &#92;'</strong> :
+         * BS, FF, NL, CR, TAB, double and single quote.</li>
+         * <li><strong>&#92;X &#92;XX &#92;XXX</strong> : Octal character
+         * specification (0 - 377, 0x00 - 0xFF).</li>
+         * <li><strong>&#92;uXXXX</strong> : Hexadecimal based Unicode character.</li>
+         * </ul>
+         *
+         * @param arg
+         *            A string optionally containing standard java escape sequences.
+         * @return The translated string.
+         *
+         * @author Udo Klimaschewski, https://gist.github.com/uklimaschewski/6741769
+         */
+        private String unescape(String arg) {
+            if (arg == null || !parser.isEscapeChar('\\')) {
+                return arg;
+            }
+            StringBuilder sb = new StringBuilder(arg.length());
+            for (int i = 0; i < arg.length(); i++) {
+                char ch = arg.charAt(i);
+                if (ch == '\\') {
+                    char nextChar = (i == arg.length() - 1) ? '\\' : arg.charAt(i + 1);
+                    // Octal escape?
+                    if (nextChar >= '0' && nextChar <= '7') {
+                        String code = "" + nextChar;
+                        i++;
+                        if ((i < arg.length() - 1) && arg.charAt(i + 1) >= '0' && arg.charAt(i + 1) <= '7') {
+                            code += arg.charAt(i + 1);
+                            i++;
+                            if ((i < arg.length() - 1) && arg.charAt(i + 1) >= '0' && arg.charAt(i + 1) <= '7') {
+                                code += arg.charAt(i + 1);
+                                i++;
+                            }
+                        }
+                        sb.append((char) Integer.parseInt(code, 8));
+                        continue;
+                    }
+                    switch (nextChar) {
+                        case '\\':
+                            ch = '\\';
+                            break;
+                        case 'b':
+                            ch = '\b';
+                            break;
+                        case 'f':
+                            ch = '\f';
+                            break;
+                        case 'n':
+                            ch = '\n';
+                            break;
+                        case 'r':
+                            ch = '\r';
+                            break;
+                        case 't':
+                            ch = '\t';
+                            break;
+                        case '\"':
+                            ch = '\"';
+                            break;
+                        case '\'':
+                            ch = '\'';
+                            break;
+                        case ' ':
+                            ch = ' ';
+                            break;
+                        // Hex Unicode: u????
+                        case 'u':
+                            if (i >= arg.length() - 5) {
+                                ch = 'u';
+                                break;
+                            }
+                            int code = Integer.parseInt(
+                                    "" + arg.charAt(i + 2) + arg.charAt(i + 3)
+                                            + arg.charAt(i + 4) + arg.charAt(i + 5), 16);
+                            sb.append(Character.toChars(code));
+                            i += 5;
+                            continue;
+                    }
+                    i++;
+                }
+                sb.append(ch);
+            }
+            return sb.toString();
+        }
+
     }
 
     private String flipArgument(final String command, final String subLine, final List<String> pipes, List<String> arglist) {
@@ -1033,7 +1121,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 if (parser.args().size() > 1) {
                     this.args = new String[parser.args().size() - 1];
                     for (int i = 1; i < parser.args().size(); i++) {
-                        args[i - 1] = parser.unquote(parser.args().get(i));
+                        args[i - 1] = parser.unescape(parser.unquote(parser.args().get(i)));
                     }
                 }
             }
