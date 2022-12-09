@@ -1127,7 +1127,7 @@ public class Less {
                 String newSource = sources.get(--sourceIdx).getName();
                 try {
                     openSource();
-                    firstLineToDisplay = (int)(long)sources.get(sourceIdx).lines();
+                    moveTo(Integer.MAX_VALUE);
                     moveToPreviousMatch(true);
                 } catch (FileNotFoundException exp) {
                     ssp.restore(newSource);
@@ -1166,12 +1166,9 @@ public class Less {
             display.clear();
         }
         if (lines == Integer.MAX_VALUE) {
-            Long allLines = sources.get(sourceIdx).lines();
-            if (allLines != null) {
-                firstLineToDisplay = (int)(long)allLines;
-                for (int l = 0; l < height - 1; l++) {
-                    firstLineToDisplay = prevLine2display(firstLineToDisplay, dpCompiled).getU();
-                }
+            moveTo(Integer.MAX_VALUE);
+            for (int l = 0; l < height - 1; l++) {
+               firstLineToDisplay = prevLine2display(firstLineToDisplay, dpCompiled).getU();
             }
         }
         while (--lines >= 0) {
