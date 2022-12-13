@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2022, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -189,8 +189,16 @@ public interface Printer {
      */
     String VALUE_STYLE_ALL = "valueStyleAll";
 
+    /**
+     * Value: Boolean<br>
+     * Applies: TABLE<br>
+     * List the collection of simple values in multiple columns
+     * DEFAULT: list values in one column
+     */
+    String MULTI_COLUMNS = "multiColumns";
+
     List<String> BOOLEAN_KEYS = Arrays.asList(ALL, ONE_ROW_TABLE, ROWNUM, SHORT_NAMES, SKIP_DEFAULT_OPTIONS
-            , STRUCT_ON_TABLE, TO_STRING, VALUE_STYLE_ALL);
+            , STRUCT_ON_TABLE, TO_STRING, VALUE_STYLE_ALL, MULTI_COLUMNS);
 
     default void println(Object object) {
         println(new HashMap<>(), object);
