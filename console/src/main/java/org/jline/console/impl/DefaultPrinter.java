@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2022, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -110,6 +110,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                 "     --maxColumnWidth=WIDTH       Maximum column width",
                 "  -d --maxDepth=DEPTH             Maximum depth objects are resolved",
                 "  -n --maxrows=ROWS               Maximum number of lines to display",
+                "  -m --multiColumns               Display the collection of simple data in multiple columns",
                 "     --oneRowTable                Display one row data on table",
                 "  -h --rowHighlight=ROW           Highlight table rows. ROW = EVEN, ODD, ALL",
                 "  -r --rownum                     Display table row numbers",
@@ -198,6 +199,9 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                 exception.addSuppressed(e);
                 throw exception;
             }
+        }
+        if (opt.isSet(Printer.MULTI_COLUMNS)) {
+            options.put(Printer.MULTI_COLUMNS, true);
         }
         options.put("exception", "stack");
         return options;
@@ -990,26 +994,58 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         int maxrows = (int)options.get(Printer.MAXROWS);
         int indent = (int)options.get(Printer.INDENTION);
         List<Integer> tabs = new ArrayList<>();
-        tabs.add(indent*depth);
-        if (options.containsKey(Printer.ROWNUM)) {
-            tabs.add(indent*depth + digits(collection.size()) + 2);
-        }
-        options.remove(Printer.MAX_COLUMN_WIDTH);
-        SyntaxHighlighter highlighter = depth == 0 ? (SyntaxHighlighter)options.get(Printer.STYLE) : null;
-        for (Object o : collection) {
-            AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
-            if (depth > 0) {
-                asb.append("\t");
-            }
+        SyntaxHighlighter highlighter = depth == 0 ? (SyntaxHighlighter) options.get(Printer.STYLE) : null;
+        if (!(boolean)options.getOrDefault(Printer.MULTI_COLUMNS, false)) {
+            tabs.add(indent*depth);
             if (options.containsKey(Printer.ROWNUM)) {
-                asb.styled(prntStyle.resolve(".rn"), Integer.toString(row)).append(":");
-                asb.append("\t");
-                row++;
+                tabs.add(indent*depth + digits(collection.size()) + 2);
             }
-            if (highlighter != null && o instanceof String) {
-                asb.append(highlighter.highlight((String)o));
-            } else {
-                asb.append(highlightValue(options, null, o));
+            options.remove(Printer.MAX_COLUMN_WIDTH);
+            for (Object o : collection) {
+                AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
+                if (depth > 0) {
+                    asb.append("\t");
+                }
+                if (options.containsKey(Printer.ROWNUM)) {
+                    asb.styled(prntStyle.resolve(".rn"), Integer.toString(row)).append(":");
+                    asb.append("\t");
+                    row++;
+                }
+                if (highlighter != null && o instanceof String) {
+                    asb.append(highlighter.highlight((String) o));
+                } else {
+                    asb.append(highlightValue(options, null, o));
+                }
+                println(asb.columnSubSequence(0, width), maxrows);
+            }
+        } else {
+            int maxWidth = 0;
+            for (Object o : collection) {
+                AttributedString as;
+                if (highlighter != null && o instanceof String) {
+                    as = highlighter.highlight((String) o);
+                } else {
+                    as = highlightValue(options, null, o);
+                }
+                if (as.length() > maxWidth) {
+                    maxWidth = as.length();
+                }
+            }
+            int mcw = (int)options.getOrDefault(Printer.MAX_COLUMN_WIDTH, Integer.MAX_VALUE);
+            maxWidth = mcw < maxWidth ? mcw : maxWidth;
+            tabs.add(maxWidth + 1);
+            AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
+            for (Object o : collection) {
+                if (asb.length() + maxWidth > width) {
+                    println(asb.columnSubSequence(0, width), maxrows);
+                    asb = new AttributedStringBuilder().tabs(tabs);
+                }
+                if (highlighter != null && o instanceof String) {
+                    asb.append(highlighter.highlight((String) o));
+                } else {
+                    asb.append(highlightValue(options, null, o));
+                }
+                asb.append("\t");
             }
             println(asb.columnSubSequence(0, width), maxrows);
         }
