@@ -12,6 +12,7 @@ import org.fusesource.jansi.internal.CLibrary;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.jansi.JansiNativePty;
+import org.jline.terminal.spi.TerminalProvider;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
@@ -20,10 +21,16 @@ import java.util.EnumSet;
 
 public class FreeBsdNativePty extends JansiNativePty {
 
-    public static FreeBsdNativePty current() throws IOException {
+    public static FreeBsdNativePty current(TerminalProvider.Stream consoleStream) throws IOException {
         try {
-            String name = ttyname();
-            return new FreeBsdNativePty(-1, null, 0, FileDescriptor.in, 1, FileDescriptor.out, name);
+            switch (consoleStream) {
+                case Output:
+                    return new FreeBsdNativePty(-1, null, 0, FileDescriptor.in, 1, FileDescriptor.out, ttyname());
+                case Error:
+                    return new FreeBsdNativePty(-1, null, 0, FileDescriptor.in, 2, FileDescriptor.err, ttyname());
+                default:
+                    throw new IllegalArgumentException("Unsupport stream for console: " + consoleStream);
+            }
         } catch (IOException e) {
             throw new IOException("Not a tty", e);
         }
