@@ -16,21 +16,23 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.jline.terminal.impl.AbstractPosixTerminal;
 import org.jline.terminal.impl.AbstractTerminal;
+import org.jline.terminal.impl.AbstractWindowsTerminal;
 import org.jline.terminal.impl.DumbTerminal;
-import org.jline.terminal.impl.ExecPty;
-import org.jline.terminal.impl.ExternalTerminal;
-import org.jline.terminal.impl.PosixPtyTerminal;
-import org.jline.terminal.impl.PosixSysTerminal;
-import org.jline.terminal.spi.JansiSupport;
-import org.jline.terminal.spi.JnaSupport;
-import org.jline.terminal.spi.Pty;
+import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.Log;
 import org.jline.utils.OSUtils;
 
@@ -51,6 +53,11 @@ public final class TerminalBuilder {
     public static final String PROP_EXEC = "org.jline.terminal.exec";
     public static final String PROP_DUMB = "org.jline.terminal.dumb";
     public static final String PROP_DUMB_COLOR = "org.jline.terminal.dumb.color";
+    public static final String PROP_OUTPUT = "org.jline.terminal.output";
+    public static final String PROP_OUTPUT_OUT = "out";
+    public static final String PROP_OUTPUT_ERR = "err";
+    public static final String PROP_OUTPUT_OUT_ERR = "out-err";
+    public static final String PROP_OUTPUT_ERR_OUT = "err-out";
 
     //
     // Other system properties controlling various jline parts
@@ -59,6 +66,16 @@ public final class TerminalBuilder {
     public static final String PROP_NON_BLOCKING_READS = "org.jline.terminal.pty.nonBlockingReads";
     public static final String PROP_COLOR_DISTANCE = "org.jline.utils.colorDistance";
     public static final String PROP_DISABLE_ALTERNATE_CHARSET = "org.jline.utils.disableAlternateCharset";
+
+    //
+    // Terminal output control
+    //
+    public enum SystemOutput {
+        SysOut,
+        SysErr,
+        SysOutOrSysErr,
+        SysErrOrSysOut
+    }
 
     /**
      * Returns the default system terminal.
@@ -96,6 +113,7 @@ public final class TerminalBuilder {
     private Charset encoding;
     private int codepage;
     private Boolean system;
+    private SystemOutput systemOutput;
     private Boolean jna;
     private Boolean jansi;
     private Boolean exec;
@@ -123,6 +141,20 @@ public final class TerminalBuilder {
 
     public TerminalBuilder system(boolean system) {
         this.system = system;
+        return this;
+    }
+
+    /**
+     * Indicates which standard stream should be used when displaying to the terminal.
+     * The default is to use the system output stream.
+     * Building a system terminal will fail if one of the stream specified is not linked
+     * to the controlling terminal.
+     *
+     * @param systemOutput The mode to choose the output stream.
+     * @return The builder.
+     */
+    public TerminalBuilder systemOutput(SystemOutput systemOutput) {
+        this.systemOutput = systemOutput;
         return this;
     }
 
@@ -291,11 +323,18 @@ public final class TerminalBuilder {
                 encoding = Charset.forName(charsetName);
             }
         }
-        int codepage = this.codepage;
-        if (codepage <= 0) {
-            String str = System.getProperty(PROP_CODEPAGE);
-            if (str != null) {
-                codepage = Integer.parseInt(str);
+        if (encoding == null) {
+            int codepage = this.codepage;
+            if (codepage <= 0) {
+                String str = System.getProperty(PROP_CODEPAGE);
+                if (str != null) {
+                    codepage = Integer.parseInt(str);
+                }
+            }
+            if (codepage >= 0) {
+                encoding = getCodepageCharset(codepage);
+            } else {
+                encoding = StandardCharsets.UTF_8;
             }
         }
         String type = this.type;
@@ -321,99 +360,112 @@ public final class TerminalBuilder {
         if (dumb == null) {
             dumb = getBoolean(PROP_DUMB, null);
         }
+        IllegalStateException exception = new IllegalStateException("Unable to create a terminal");
+        List<TerminalProvider> providers = new ArrayList<>();
+        if (jna) {
+            try {
+                TerminalProvider provider = TerminalProvider.load("jna");
+                providers.add(provider);
+            }  catch (Throwable t) {
+                Log.debug("Unable to load JNA support: ", t);
+                exception.addSuppressed(t);
+            }
+        }
+        if (jansi) {
+            try {
+                TerminalProvider provider = TerminalProvider.load("jansi");
+                providers.add(provider);
+            }  catch (Throwable t) {
+                Log.debug("Unable to load JANSI support: ", t);
+                exception.addSuppressed(t);
+            }
+        }
+        if (exec)
+        {
+            try {
+                TerminalProvider provider = TerminalProvider.load("exec");
+                providers.add(provider);
+            }  catch (Throwable t) {
+                Log.debug("Unable to load EXEC support: ", t);
+                exception.addSuppressed(t);
+            }
+        }
+
+        Terminal terminal = null;
         if ((system != null && system) || (system == null && in == null && out == null)) {
-            if (system != null && ((in != null && !in.equals(System.in)) ||  (out != null && !out.equals(System.out)))) {
+            if (system != null && ((in != null && !in.equals(System.in)) ||
+                    (out != null && !out.equals(System.out) && !out.equals(System.err)))) {
                 throw new IllegalArgumentException("Cannot create a system terminal using non System streams");
             }
-            Terminal terminal = null;
-            IllegalStateException exception = new IllegalStateException("Unable to create a system terminal");
-            TerminalBuilderSupport tbs = new TerminalBuilderSupport(jna, jansi);
-            if (tbs.isConsoleInput() && tbs.isConsoleOutput()) {
+            if (attributes != null || size != null) {
+                Log.warn("Attributes and size fields are ignored when creating a system terminal");
+            }
+            if (out != null) {
+                if (out.equals(System.out)) {
+                    systemOutput = SystemOutput.SysOut;
+                } else if (out.equals(System.err)) {
+                    systemOutput = SystemOutput.SysErr;
+                }
+            }
+            if (systemOutput == null) {
+                String str = System.getProperty(PROP_OUTPUT);
+                if (str != null) {
+                    switch (str.trim().toLowerCase(Locale.ROOT)) {
+                        case PROP_OUTPUT_OUT: systemOutput = SystemOutput.SysOut; break;
+                        case PROP_OUTPUT_ERR: systemOutput = SystemOutput.SysErr; break;
+                        case PROP_OUTPUT_OUT_ERR: systemOutput = SystemOutput.SysOutOrSysErr; break;
+                        case PROP_OUTPUT_ERR_OUT: systemOutput = SystemOutput.SysErrOrSysOut; break;
+                        default:
+                            Log.debug("Unsupported value for " + PROP_OUTPUT + ": " + str + ". Supported values are: "
+                                    + String.join(", ", PROP_OUTPUT_OUT, PROP_OUTPUT_ERR, PROP_OUTPUT_OUT_ERR,PROP_OUTPUT_ERR_OUT)
+                                    + ".");
+                    }
+                }
+            }
+            if (systemOutput == null) {
+                systemOutput = SystemOutput.SysOutOrSysErr;
+            }
+            Map<TerminalProvider.Stream, Boolean> system = Stream.of(TerminalProvider.Stream.values())
+                    .collect(Collectors.toMap(stream -> stream, stream -> providers.stream().anyMatch(p -> p.isSystemStream(stream))));
+            TerminalProvider.Stream console = select(system, systemOutput);
+
+            if (system.get(TerminalProvider.Stream.Input) && console != null) {
                 if (attributes != null || size != null) {
                     Log.warn("Attributes and size fields are ignored when creating a system terminal");
                 }
-                if (OSUtils.IS_WINDOWS) {
-                    boolean ansiPassThrough = OSUtils.IS_CONEMU;
-                    if (tbs.hasJnaSupport()) {
+                boolean ansiPassThrough = OSUtils.IS_CONEMU;
+                // Cygwin defaults to XTERM, but actually supports 256 colors,
+                // so if the value comes from the environment, change it to xterm-256color
+                if ((OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM)  && "xterm".equals(type)
+                        && this.type == null && System.getProperty(PROP_TYPE) == null) {
+                    type = "xterm-256color";
+                }
+                for ( TerminalProvider provider : providers) {
+                    if (terminal == null) {
                         try {
-                            terminal = tbs.getJnaSupport().winSysTerminal(name, type, ansiPassThrough, encoding, codepage
-                                    , nativeSignals, signalHandler, paused);
+                            terminal = provider.sysTerminal(name, type, ansiPassThrough, encoding,
+                                    nativeSignals, signalHandler, paused, console);
                         } catch (Throwable t) {
-                            Log.debug("Error creating JNA based terminal: ", t.getMessage(), t);
-                            exception.addSuppressed(t);
-                        }
-                    }
-                    if (terminal == null && tbs.hasJansiSupport()) {
-                        try {
-                            terminal = tbs.getJansiSupport().winSysTerminal(name, type, ansiPassThrough, encoding, codepage
-                                    , nativeSignals, signalHandler, paused);
-                        } catch (Throwable t) {
-                            Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
-                            exception.addSuppressed(t);
-                        }
-                    }
-                    if (terminal == null && exec && (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM)) {
-                        //
-                        // Cygwin support
-                        //
-                        try {
-                            // Cygwin defaults to XTERM, but actually supports 256 colors,
-                            // so if the value comes from the environment, change it to xterm-256color
-                            if ("xterm".equals(type) && this.type == null && System.getProperty(PROP_TYPE) == null) {
-                                type = "xterm-256color";
-                            }
-                            terminal = new PosixSysTerminal(name, type, tbs.getExecPty(), encoding, nativeSignals, signalHandler);
-                        } catch (IOException e) {
-                            // Ignore if not a tty
-                            Log.debug("Error creating EXEC based terminal: ", e.getMessage(), e);
-                            exception.addSuppressed(e);
-                        }
-                    }
-                    if (terminal == null && !jna && !jansi && (dumb == null || !dumb)) {
-                        throw new IllegalStateException("Unable to create a system terminal. On windows, either "
-                                + "JNA or JANSI library is required.  Make sure to add one of those in the classpath.");
-                    }
-                } else {
-                    if (tbs.hasJnaSupport()) {
-                        try {
-                            Pty pty = tbs.getJnaSupport().current();
-                            terminal = new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
-                        } catch (Throwable t) {
-                            // ignore
-                            Log.debug("Error creating JNA based terminal: ", t.getMessage(), t);
-                            exception.addSuppressed(t);
-                        }
-                    }
-                    if (terminal == null && tbs.hasJansiSupport()) {
-                        try {
-                            Pty pty = tbs.getJansiSupport().current();
-                            terminal = new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
-                        } catch (Throwable t) {
-                            Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
-                            exception.addSuppressed(t);
-                        }
-                    }
-                    if (terminal == null && exec) {
-                        try {
-                            terminal = new PosixSysTerminal(name, type, tbs.getExecPty(), encoding, nativeSignals, signalHandler);
-                        } catch (Throwable t) {
-                            // Ignore if not a tty
-                            Log.debug("Error creating EXEC based terminal: ", t.getMessage(), t);
+                            Log.debug("Error creating " + provider.name() + " based terminal: ", t.getMessage(), t);
                             exception.addSuppressed(t);
                         }
                     }
                 }
-                if (terminal instanceof AbstractTerminal) {
-                    AbstractTerminal t = (AbstractTerminal) terminal;
-                    if (SYSTEM_TERMINAL.compareAndSet(null, t)) {
-                        t.setOnClose(() -> SYSTEM_TERMINAL.compareAndSet(t, null));
-                    } else {
-                        exception.addSuppressed(new IllegalStateException("A system terminal is already running. " +
-                                "Make sure to use the created system Terminal on the LineReaderBuilder if you're using one " +
-                                "or that previously created system Terminals have been correctly closed."));
-                        terminal.close();
-                        terminal = null;
-                    }
+                if (terminal == null && OSUtils.IS_WINDOWS &&  !jna && !jansi && (dumb == null || !dumb)) {
+                    throw new IllegalStateException("Unable to create a system terminal. On windows, either "
+                            + "JNA or JANSI library is required.  Make sure to add one of those in the classpath.");
+                }
+            }
+            if (terminal instanceof AbstractTerminal) {
+                AbstractTerminal t = (AbstractTerminal) terminal;
+                if (SYSTEM_TERMINAL.compareAndSet(null, t)) {
+                    t.setOnClose(() -> SYSTEM_TERMINAL.compareAndSet(t, null));
+                } else {
+                    exception.addSuppressed(new IllegalStateException("A system terminal is already running. " +
+                            "Make sure to use the created system Terminal on the LineReaderBuilder if you're using one " +
+                            "or that previously created system Terminals have been correctly closed."));
+                    terminal.close();
+                    terminal = null;
                 }
             }
             if (terminal == null && (dumb == null || dumb)) {
@@ -423,7 +475,8 @@ public final class TerminalBuilder {
                     color = getBoolean(PROP_DUMB_COLOR, false);
                     // detect emacs using the env variable
                     if (!color) {
-                        color = System.getenv("INSIDE_EMACS") != null;
+                        String emacs = System.getenv("INSIDE_EMACS");
+                        color = emacs != null && emacs.contains("comint");
                     }
                     // detect Intellij Idea
                     if (!color) {
@@ -431,12 +484,13 @@ public final class TerminalBuilder {
                         color = command != null && command.contains("idea");
                     }
                     if (!color) {
-                        color = tbs.isConsoleOutput() && System.getenv("TERM") != null;
+                        color = system.get(TerminalProvider.Stream.Output) && System.getenv("TERM") != null;
                     }
                     if (!color && dumb == null) {
                         if (Log.isDebugEnabled()) {
-                            Log.warn("input is tty: ", tbs.isConsoleInput());
-                            Log.warn("output is tty: ", tbs.isConsoleOutput());
+                            Log.warn("input is tty: {}", system.get(TerminalProvider.Stream.Input));
+                            Log.warn("output is tty: {}", system.get(TerminalProvider.Stream.Output));
+                            Log.warn("error is tty: {}", system.get(TerminalProvider.Stream.Error));
                             Log.warn("Creating a dumb terminal", exception);
                         } else {
                             Log.warn("Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)");
@@ -445,32 +499,48 @@ public final class TerminalBuilder {
                 }
                 terminal = new DumbTerminal(name, color ? Terminal.TYPE_DUMB_COLOR : Terminal.TYPE_DUMB,
                         new FileInputStream(FileDescriptor.in),
-                        new FileOutputStream(FileDescriptor.out),
+                        new FileOutputStream(console == TerminalProvider.Stream.Output ? FileDescriptor.out : FileDescriptor.err),
                         encoding, signalHandler);
             }
-            if (terminal == null) {
-                throw exception;
-            }
-            return terminal;
         } else {
-            if (jna) {
-                try {
-                    Pty pty = load(JnaSupport.class).open(attributes, size);
-                    return new PosixPtyTerminal(name, type, pty, in, out, encoding, signalHandler, paused);
-                } catch (Throwable t) {
-                    Log.debug("Error creating JNA based terminal: ", t.getMessage(), t);
+            for ( TerminalProvider provider : providers) {
+                if (terminal == null) {
+                    try {
+                        terminal = provider.newTerminal(name, type, in, out, encoding, signalHandler, paused, attributes, size);
+                    } catch (Throwable t) {
+                        Log.debug("Error creating " + provider.name() + " based terminal: ", t.getMessage(), t);
+                        exception.addSuppressed(t);
+                    }
                 }
             }
-            if (jansi) {
-                try {
-                    Pty pty = load(JansiSupport.class).open(attributes, size);
-                    return new PosixPtyTerminal(name, type, pty, in, out, encoding, signalHandler, paused);
-                } catch (Throwable t) {
-                    Log.debug("Error creating JANSI based terminal: ", t.getMessage(), t);
-                }
-            }
-            return new ExternalTerminal(name, type, in, out, encoding, signalHandler, paused, attributes, size);
         }
+        if (terminal == null) {
+            throw exception;
+        }
+        return terminal;
+    }
+
+    private TerminalProvider.Stream select(Map<TerminalProvider.Stream, Boolean> system, SystemOutput systemOutput) {
+        switch (systemOutput) {
+            case SysOut:
+                return select(system, TerminalProvider.Stream.Output);
+            case SysErr:
+                return select(system, TerminalProvider.Stream.Error);
+            case SysOutOrSysErr:
+                return select(system, TerminalProvider.Stream.Output, TerminalProvider.Stream.Error);
+            case SysErrOrSysOut:
+                return select(system, TerminalProvider.Stream.Error, TerminalProvider.Stream.Output);
+        }
+        return null;
+    }
+
+    private static TerminalProvider.Stream select(Map<TerminalProvider.Stream, Boolean> system, TerminalProvider.Stream... streams) {
+        for (TerminalProvider.Stream s : streams) {
+            if (system.get(s)) {
+                return s;
+            }
+        }
+        return null;
     }
 
     private static String getParentProcessCommand() {
@@ -500,6 +570,24 @@ public final class TerminalBuilder {
 
     private static <S> S load(Class<S> clazz) {
         return ServiceLoader.load(clazz, clazz.getClassLoader()).iterator().next();
+    }
+
+    private static final int UTF8_CODE_PAGE = 65001;
+
+    private static Charset getCodepageCharset(int codepage) {
+        //http://docs.oracle.com/javase/6/docs/technotes/guides/intl/encoding.doc.html
+        if (codepage == UTF8_CODE_PAGE) {
+            return StandardCharsets.UTF_8;
+        }
+        String charsetMS = "ms" + codepage;
+        if (Charset.isSupported(charsetMS)) {
+            return Charset.forName(charsetMS);
+        }
+        String charsetCP = "cp" + codepage;
+        if (Charset.isSupported(charsetCP)) {
+            return Charset.forName(charsetCP);
+        }
+        return Charset.defaultCharset();
     }
 
     /**
@@ -535,81 +623,4 @@ public final class TerminalBuilder {
         TERMINAL_OVERRIDE.set(terminal);
     }
 
-    private static class TerminalBuilderSupport {
-        private JansiSupport jansiSupport = null;
-        private JnaSupport jnaSupport = null;
-        private boolean jnaFullSupport;
-        private boolean jansiFullSupport;
-        private Pty pty = null;
-        private boolean consoleOutput;
-
-        TerminalBuilderSupport(boolean jna, boolean jansi) {
-            if (jna) {
-                try {
-                    jnaSupport = load(JnaSupport.class);
-                    consoleOutput = jnaSupport.isConsoleOutput();
-                    jnaFullSupport = true;
-                } catch (Throwable e) {
-                    Log.debug("jnaSupport.isConsoleOutput(): ", e);
-                }
-            }
-            if (jansi) {
-                try {
-                    jansiSupport = load(JansiSupport.class);
-                    consoleOutput = jansiSupport.isConsoleOutput();
-                    jansiFullSupport = true;
-                } catch (Throwable e) {
-                    Log.debug("jansiSupport.isConsoleOutput(): ", e);
-                }
-            }
-            if (!jnaFullSupport && !jansiFullSupport) {
-                try {
-                    pty = ExecPty.current();
-                    consoleOutput = true;
-                } catch (Exception e) {
-                    Log.debug("ExecPty.current(): ", e);
-                }
-            }
-        }
-
-        public boolean isConsoleOutput() {
-            return consoleOutput;
-        }
-
-        public boolean isConsoleInput() {
-            if (jnaFullSupport) {
-                return jnaSupport.isConsoleInput();
-            } else if (jansiFullSupport) {
-                return jansiSupport.isConsoleInput();
-            } else if (pty != null) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-        public boolean hasJnaSupport() {
-            return jnaSupport != null;
-        }
-
-        public boolean hasJansiSupport() {
-            return jansiSupport != null;
-        }
-
-        public JnaSupport getJnaSupport() {
-            return jnaSupport;
-        }
-
-        public JansiSupport getJansiSupport() {
-            return jansiSupport;
-        }
-
-        public Pty getExecPty() throws IOException {
-            if (pty == null) {
-                pty = ExecPty.current();
-            }
-            return pty;
-        }
-
-    }
 }

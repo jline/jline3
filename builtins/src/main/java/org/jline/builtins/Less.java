@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2022, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -302,7 +302,7 @@ public class Less {
     }
 
     public void run(Source... sources) throws IOException, InterruptedException {
-        run(Arrays.asList(sources));
+        run(new ArrayList<>(Arrays.asList(sources)));
     }
 
     public void run(List<Source> sources) throws IOException, InterruptedException {
@@ -1127,7 +1127,7 @@ public class Less {
                 String newSource = sources.get(--sourceIdx).getName();
                 try {
                     openSource();
-                    firstLineToDisplay = (int)(long)sources.get(sourceIdx).lines();
+                    moveTo(Integer.MAX_VALUE);
                     moveToPreviousMatch(true);
                 } catch (FileNotFoundException exp) {
                     ssp.restore(newSource);
@@ -1166,12 +1166,9 @@ public class Less {
             display.clear();
         }
         if (lines == Integer.MAX_VALUE) {
-            Long allLines = sources.get(sourceIdx).lines();
-            if (allLines != null) {
-                firstLineToDisplay = (int)(long)allLines;
-                for (int l = 0; l < height - 1; l++) {
-                    firstLineToDisplay = prevLine2display(firstLineToDisplay, dpCompiled).getU();
-                }
+            moveTo(Integer.MAX_VALUE);
+            for (int l = 0; l < height - 1; l++) {
+               firstLineToDisplay = prevLine2display(firstLineToDisplay, dpCompiled).getU();
             }
         }
         while (--lines >= 0) {

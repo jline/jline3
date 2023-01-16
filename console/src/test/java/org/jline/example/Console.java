@@ -153,10 +153,8 @@ public class Console
         private String command(String name) {
             if (commandExecute.containsKey(name)) {
                 return name;
-            } else if (aliasCommand.containsKey(name)) {
-                return aliasCommand.get(name);
             }
-            return null;
+            return aliasCommand.get(name);
         }
 
         public SystemCompleter compileCompleters() {

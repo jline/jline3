@@ -744,14 +744,13 @@ public class TailTipWidgets extends Widgets {
         }
 
         public CmdDesc getDescription(String command) {
-            CmdDesc out = null;
+            CmdDesc out;
             if (descriptions.containsKey(command)) {
                 out = descriptions.get(command);
             } else if (temporaryDescs.containsKey(command)) {
                 out = temporaryDescs.get(command);
-            } else if (volatileDescs.containsKey(command)) {
-                out = volatileDescs.get(command);
-                volatileDescs.remove(command);
+            } else {
+                out = volatileDescs.remove(command);
             }
             return out;
         }

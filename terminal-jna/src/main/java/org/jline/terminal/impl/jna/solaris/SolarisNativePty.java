@@ -16,6 +16,7 @@ import com.sun.jna.Platform;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.jna.JnaNativePty;
+import org.jline.terminal.spi.TerminalProvider;
 
 import static org.jline.terminal.impl.jna.solaris.CLibrary.TCSANOW;
 import static org.jline.terminal.impl.jna.solaris.CLibrary.TIOCGWINSZ;
@@ -27,18 +28,16 @@ public class SolarisNativePty extends JnaNativePty {
 
     private static final CLibrary C_LIBRARY = Native.load(Platform.C_LIBRARY_NAME, CLibrary.class);
 
-    public static SolarisNativePty current() throws IOException {
-        int slave = 0;
-        byte[] buf = new byte[64];
-        C_LIBRARY.ttyname_r(slave, buf, buf.length);
-        int len = 0;
-        while (buf[len] != 0) {
-            len++;
+    public static SolarisNativePty current(TerminalProvider.Stream consoleStream) throws IOException {
+        switch (consoleStream) {
+            case Output:
+                return new SolarisNativePty(-1, null, 0, FileDescriptor.in, 1, FileDescriptor.out, ttyname(0));
+            case Error:
+                return new SolarisNativePty(-1, null, 0, FileDescriptor.in, 2, FileDescriptor.err, ttyname(0));
+            default:
+                throw new IllegalArgumentException("Unsupport stream for console: " + consoleStream);
         }
-        String name = new String(buf, 0, len);
-        return new SolarisNativePty(-1, null, slave, FileDescriptor.in, 1, FileDescriptor.out, name);
     }
-
     public static SolarisNativePty open(Attributes attr, Size size) throws IOException {
         int[] master = new int[1];
         int[] slave = new int[1];
@@ -90,6 +89,16 @@ public class SolarisNativePty extends JnaNativePty {
 
     public static int isatty(int fd) {
         return C_LIBRARY.isatty(fd);
+    }
+
+    public static String ttyname(int slave) {
+        byte[] buf = new byte[64];
+        C_LIBRARY.ttyname_r(slave, buf, buf.length);
+        int len = 0;
+        while (buf[len] != 0) {
+            len++;
+        }
+        return new String(buf, 0, len);
     }
 
 }

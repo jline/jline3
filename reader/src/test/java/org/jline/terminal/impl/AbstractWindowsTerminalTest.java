@@ -52,6 +52,16 @@ public class AbstractWindowsTerminalTest {
             for (int i = 0; i < 100000; i++) {
                 str.append("0123456789");
             }
+            str.toString().chars().forEachOrdered(c -> process(terminal, c) );
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            str.setLength(0);
+            for (int i = 0; i < 100000; i++) {
+                str.append("0123456789");
+            }
             str.append(LineReaderImpl.BRACKETED_PASTE_END);
             str.append("\n");
             str.toString().chars().forEachOrdered(c -> process(terminal, c));
@@ -72,7 +82,7 @@ public class AbstractWindowsTerminalTest {
         public TestTerminal(StringWriter sw) throws IOException {
             super(new AnsiWriter(new BufferedWriter(sw)), "name",
                     AbstractWindowsTerminal.TYPE_DUMB,
-                    Charset.defaultCharset(), 0,
+                    Charset.defaultCharset(),
                     false, SignalHandler.SIG_DFL);
         }
 

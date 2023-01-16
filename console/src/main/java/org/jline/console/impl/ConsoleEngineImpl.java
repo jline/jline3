@@ -1283,8 +1283,8 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             if (words.size() > 1) {
                 String h = words.get(words.size() - 2);
                 if (h != null && h.length() > 0) {
-                     if(aliases.containsKey(h)){
-                          String v = aliases.get(h);
+                     String v = aliases.get(h);
+                     if (v != null) {
                           candidates.add(new Candidate(AttributedString.stripAnsi(v)
                                            , v, null, null, null, null, true));
                      }

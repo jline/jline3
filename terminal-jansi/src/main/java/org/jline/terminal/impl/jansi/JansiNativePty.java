@@ -12,6 +12,7 @@ import org.fusesource.jansi.internal.CLibrary;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractPty;
+import org.jline.terminal.spi.TerminalProvider;
 import org.jline.terminal.spi.Pty;
 import org.jline.utils.OSUtils;
 
@@ -24,8 +25,8 @@ import java.io.OutputStream;
 import java.lang.reflect.Constructor;
 
 import static org.fusesource.jansi.internal.CLibrary.TCSANOW;
-import static org.jline.terminal.impl.jansi.JansiSupportImpl.JANSI_MAJOR_VERSION;
-import static org.jline.terminal.impl.jansi.JansiSupportImpl.JANSI_MINOR_VERSION;
+import static org.jline.terminal.impl.jansi.JansiTerminalProvider.JANSI_MAJOR_VERSION;
+import static org.jline.terminal.impl.jansi.JansiTerminalProvider.JANSI_MINOR_VERSION;
 import static org.jline.utils.ExecHelper.exec;
 
 public abstract class JansiNativePty extends AbstractPty implements Pty {
@@ -172,11 +173,22 @@ public abstract class JansiNativePty extends AbstractPty implements Pty {
         }
     }
 
-    public static boolean isConsoleOutput() {
-        return CLibrary.isatty(1) == 1;
+    public static boolean isPosixSystemStream(TerminalProvider.Stream stream) {
+        switch (stream) {
+            case Input: return CLibrary.isatty(0) == 1;
+            case Output: return CLibrary.isatty(1) == 1;
+            case Error: return CLibrary.isatty(2) == 1;
+            default: return false;
+        }
     }
 
-    public static boolean isConsoleInput() {
-        return CLibrary.isatty(0) == 1;
+    public static String posixSystemStreamName(TerminalProvider.Stream stream) {
+        switch (stream) {
+            case Input: return CLibrary.ttyname(0);
+            case Output: return CLibrary.ttyname(1);
+            case Error: return CLibrary.ttyname(2);
+            default: return null;
+        }
     }
+
 }

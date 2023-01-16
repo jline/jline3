@@ -3797,6 +3797,9 @@ public class LineReaderImpl implements LineReader, Flushable
 
             Status status = Status.getStatus(terminal, false);
             if (status != null) {
+                if (terminal.getType().startsWith(AbstractWindowsTerminal.TYPE_WINDOWS)) {
+                    status.resize();
+                }
                 status.redraw();
             }
 

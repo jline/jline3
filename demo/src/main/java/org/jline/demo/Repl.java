@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2022, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -71,6 +71,7 @@ public class Repl {
             commandExecute.put("tput", new CommandMethods(this::tput, this::tputCompleter));
             commandExecute.put("testkey", new CommandMethods(this::testkey, this::defaultCompleter));
             commandExecute.put("clear", new CommandMethods(this::clear, this::defaultCompleter));
+            commandExecute.put("echo", new CommandMethods(this::echo, this::defaultCompleter));
             commandExecute.put("!", new CommandMethods(this::shell, this::defaultCompleter));
             registerCommands(commandExecute);
         }
@@ -140,6 +141,26 @@ public class Repl {
                 parseOptions(usage, input.args());
                 terminal().puts(Capability.clear_screen);
                 terminal().flush();
+            } catch (Exception e) {
+                saveException(e);
+            }
+        }
+
+        private void echo(CommandInput input) {
+            final String[] usage = {
+                    "echo - echos a value",
+                    "Usage:  echo [-hV] <args>",
+                    "-? --help                        Displays command help",
+                    "-v --version                     Print version"
+            };
+            try {
+                Options opt = parseOptions(usage, input.args());
+                List<String> argv = opt.args();
+                if (opt.isSet("version")) {
+                    terminal().writer().println("echo version: v0.1");
+                } else if (opt.args().size() >= 1) {
+                    terminal().writer().println(String.join(" ", opt.args()));
+                }
             } catch (Exception e) {
                 saveException(e);
             }
@@ -247,7 +268,6 @@ public class Repl {
             DefaultParser parser = new DefaultParser();
             parser.setEofOnUnclosedBracket(Bracket.CURLY, Bracket.ROUND, Bracket.SQUARE);
             parser.setEofOnUnclosedQuote(true);
-            parser.setEscapeChars(null);
             parser.setRegexCommand("[:]{0,1}[a-zA-Z!]{1,}\\S*");    // change default regex to support shell commands
             parser.blockCommentDelims(new DefaultParser.BlockCommentDelims("/*", "*/"))
                     .lineCommentDelims(new String[]{"//"});
