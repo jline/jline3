@@ -185,12 +185,7 @@ public abstract class AbstractCommandRegistry implements CommandRegistry {
 
         public T command(String name) {
             T out;
-            if (!hasCommand(name)) {
-                throw new IllegalArgumentException("Command does not exists!");
-            }
-            if (aliasCommand.containsKey(name)) {
-                name = aliasCommand.get(name);
-            }
+            name = aliasCommand.getOrDefault(name, name);
             if (nameCommand.containsKey(name)) {
                 out = nameCommand.get(name);
             } else {
@@ -248,10 +243,8 @@ public abstract class AbstractCommandRegistry implements CommandRegistry {
         public String command(String name) {
             if (commandExecute.containsKey(name)) {
                 return name;
-            } else if (aliasCommand.containsKey(name)) {
-                return aliasCommand.get(name);
             }
-            return null;
+            return aliasCommand.get(name);
         }
 
         public CommandMethods getCommandMethods(String command) {
