@@ -23,7 +23,7 @@
     <artifactId>jline-parent</artifactId>
     <name>JLine Parent</name>
     <description>JLine</description>
-    <version>3.22.0</version>
+    <version>3.22.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <licenses>
@@ -74,7 +74,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.build.outputTimestamp>2023-01-17T16:55:05Z</project.build.outputTimestamp>
+        <project.build.outputTimestamp>2023-01-17T16:56:47Z</project.build.outputTimestamp>
 
         <maven.version>3.5.0</maven.version>
         <maven.compiler.source>1.8</maven.compiler.source>
