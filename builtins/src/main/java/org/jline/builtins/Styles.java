@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.jline.utils.StyleResolver;
@@ -32,7 +33,8 @@ public class Styles {
     private static final String KEY = "([a-z]{2}|\\*\\.[a-zA-Z0-9]+)";
     private static final String VALUE = "(([!~#]?[a-zA-Z0-9]+[a-z0-9-;]*)?|" + REGEX_TOKEN_NAME + ")";
     private static final String VALUES = VALUE + "(," + VALUE + ")*";
-    private static final String STYLE_PATTERN = KEY + "=" + VALUES + "(:" + KEY + "=" + VALUES + ")*(:|)";
+    private static final Pattern STYLE_ELEMENT_SEPARATOR = Pattern.compile(":");
+    private static final Pattern STYLE_ELEMENT_PATTERN = Pattern.compile(KEY + "=" + VALUES);
 
     public static StyleResolver lsStyle() {
         return style(LS_COLORS, DEFAULT_LS_COLORS);
@@ -47,7 +49,11 @@ public class Styles {
     }
 
     public static boolean isStylePattern(String style) {
-        return style.matches(STYLE_PATTERN);
+        final String[] styleElements = STYLE_ELEMENT_SEPARATOR.split(style);
+        return Arrays.stream(styleElements)
+                .allMatch(element ->
+                        element.isEmpty() || STYLE_ELEMENT_PATTERN.matcher(element).matches()
+                );
     }
 
     public static StyleResolver style(String name, String defStyle) {
@@ -81,13 +87,13 @@ public class Styles {
         ConsoleOptionGetter cog = optionGetter();
         if (cog != null) {
             out = (String) cog.consoleOption(name);
-            if (out != null && !out.matches(STYLE_PATTERN)) {
+            if (out != null && !isStylePattern(out)) {
                 out = null;
             }
         }
         if (out == null) {
             out = System.getenv(name);
-            if (out != null && !out.matches(STYLE_PATTERN)) {
+            if (out != null && !isStylePattern(out)) {
                 out = null;
             }
         }
