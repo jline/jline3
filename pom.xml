@@ -502,6 +502,59 @@
                     <artifactId>maven-wrapper-plugin</artifactId>
                     <version>3.1.1</version>
                 </plugin>
+
+                <plugin>
+                    <groupId>com.diffplug.spotless</groupId>
+                    <artifactId>spotless-maven-plugin</artifactId>
+                    <version>2.28.0</version>
+                    <configuration>
+                        <java>
+                            <toggleOffOn />
+                            <palantirJavaFormat />
+                            <importOrder>
+                                <order>java|javax,org,,\#</order>
+                            </importOrder>
+                            <removeUnusedImports />
+                            <licenseHeader>
+                                <content>/*
+ * Copyright (c) $YEAR, the original author(s).
+ *
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
+ *
+ * https://opensource.org/licenses/BSD-3-Clause
+ */</content>
+                            </licenseHeader>
+                        </java>
+                        <pom>
+                            <sortPom>
+                                <expandEmptyElements>false</expandEmptyElements>
+                                <nrOfIndentSpace>4</nrOfIndentSpace>
+                                <spaceBeforeCloseEmptyElement>true</spaceBeforeCloseEmptyElement>
+                            </sortPom>
+                        </pom>
+                        <upToDateChecking>
+                            <enabled>true</enabled>
+                        </upToDateChecking>
+                    </configuration>
+                    <dependencies>
+                        <!--
+                        <dependency>
+                            <groupId>org.apache.maven.shared</groupId>
+                            <artifactId>maven-shared-resources</artifactId>
+                            <version>5</version>
+                        </dependency>
+                        -->
+                    </dependencies>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>${spotless.action}</goal>
+                            </goals>
+                            <phase>process-sources</phase>
+                        </execution>
+                    </executions>
+                </plugin>
             </plugins>
         </pluginManagement>
 
@@ -610,9 +663,15 @@
                     <autoVersionSubmodules>true</autoVersionSubmodules>
                 </configuration>
             </plugin>
+
             <plugin>
                 <groupId>org.graalvm.nativeimage</groupId>
                 <artifactId>native-image-maven-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>
@@ -707,6 +766,30 @@
             <id>native-image</id>
             <properties>
                 <native.image.skip>false</native.image.skip>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>format-check</id>
+            <activation>
+                <property>
+                    <name>!format</name>
+                </property>
+            </activation>
+            <properties>
+                <spotless.action>check</spotless.action>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>format</id>
+            <activation>
+                <property>
+                    <name>format</name>
+                </property>
+            </activation>
+            <properties>
+                <spotless.action>apply</spotless.action>
             </properties>
         </profile>
     </profiles>
