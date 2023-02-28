@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, the original author or authors.
+ * Copyright (c) 2023, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -14,12 +14,12 @@ import org.jline.terminal.TerminalBuilder;
 public class TerminalDemo {
 
     public static void main(String[] args) throws Exception {
-        try (Terminal terminal = TerminalBuilder.terminal() )
-        {
+        try (Terminal terminal = TerminalBuilder.terminal()) {
             terminal.enterRawMode();
 
             terminal.writer().println("Terminal: " + terminal);
-            terminal.writer().println("Type characters, which will be echoed to the terminal. Q will also exit this example.");
+            terminal.writer()
+                    .println("Type characters, which will be echoed to the terminal. Q will also exit this example.");
             terminal.writer().println();
             terminal.writer().flush();
 

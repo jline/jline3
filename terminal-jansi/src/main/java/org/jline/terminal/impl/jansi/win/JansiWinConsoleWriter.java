@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2017, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,13 +8,11 @@
  */
 package org.jline.terminal.impl.jansi.win;
 
+import java.io.IOException;
+
 import org.fusesource.jansi.WindowsSupport;
 import org.jline.terminal.impl.AbstractWindowsConsoleWriter;
 
-import java.io.IOException;
-
-import static org.fusesource.jansi.internal.Kernel32.GetStdHandle;
-import static org.fusesource.jansi.internal.Kernel32.STD_OUTPUT_HANDLE;
 import static org.fusesource.jansi.internal.Kernel32.WriteConsoleW;
 
 class JansiWinConsoleWriter extends AbstractWindowsConsoleWriter {
@@ -32,5 +30,4 @@ class JansiWinConsoleWriter extends AbstractWindowsConsoleWriter {
             throw new IOException("Failed to write to console: " + WindowsSupport.getLastErrorMessage());
         }
     }
-
 }

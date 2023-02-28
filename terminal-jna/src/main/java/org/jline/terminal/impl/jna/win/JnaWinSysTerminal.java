@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2020, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -14,9 +14,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.function.IntConsumer;
 
-import com.sun.jna.LastErrorException;
-import com.sun.jna.Pointer;
-import com.sun.jna.ptr.IntByReference;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
@@ -24,13 +21,26 @@ import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.OSUtils;
 
+import com.sun.jna.LastErrorException;
+import com.sun.jna.Pointer;
+import com.sun.jna.ptr.IntByReference;
+
 public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
 
     private static final Pointer consoleIn = Kernel32.INSTANCE.GetStdHandle(Kernel32.STD_INPUT_HANDLE);
     private static final Pointer consoleOut = Kernel32.INSTANCE.GetStdHandle(Kernel32.STD_OUTPUT_HANDLE);
     private static final Pointer consoleErr = Kernel32.INSTANCE.GetStdHandle(Kernel32.STD_ERROR_HANDLE);
 
-    public static JnaWinSysTerminal createTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, boolean nativeSignals, SignalHandler signalHandler, boolean paused, TerminalProvider.Stream consoleStream) throws IOException {
+    public static JnaWinSysTerminal createTerminal(
+            String name,
+            String type,
+            boolean ansiPassThrough,
+            Charset encoding,
+            boolean nativeSignals,
+            SignalHandler signalHandler,
+            boolean paused,
+            TerminalProvider.Stream consoleStream)
+            throws IOException {
         // Get input console mode
         IntByReference inMode = new IntByReference();
         Kernel32.INSTANCE.GetConsoleMode(JnaWinSysTerminal.consoleIn, inMode);
@@ -66,8 +76,17 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
             }
         }
         // Create terminal
-        JnaWinSysTerminal terminal = new JnaWinSysTerminal(writer, name, type, encoding, nativeSignals, signalHandler,
-            JnaWinSysTerminal.consoleIn, inMode.getValue(), console, outMode.getValue());
+        JnaWinSysTerminal terminal = new JnaWinSysTerminal(
+                writer,
+                name,
+                type,
+                encoding,
+                nativeSignals,
+                signalHandler,
+                JnaWinSysTerminal.consoleIn,
+                inMode.getValue(),
+                console,
+                outMode.getValue());
         // Start input pump thread
         if (!paused) {
             terminal.resume();
@@ -77,7 +96,8 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
 
     private static boolean enableVtp(Pointer console, int outMode) {
         try {
-            Kernel32.INSTANCE.SetConsoleMode(console, outMode | AbstractWindowsTerminal.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+            Kernel32.INSTANCE.SetConsoleMode(
+                    console, outMode | AbstractWindowsTerminal.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
             return true;
         } catch (LastErrorException e) {
             return false;
@@ -89,10 +109,17 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
             IntByReference mode = new IntByReference();
             Pointer console;
             switch (stream) {
-                case Input: console = consoleIn; break;
-                case Output: console = consoleOut; break;
-                case Error: console = consoleErr; break;
-                default: return false;
+                case Input:
+                    console = consoleIn;
+                    break;
+                case Output:
+                    console = consoleOut;
+                    break;
+                case Error:
+                    console = consoleErr;
+                    break;
+                default:
+                    return false;
             }
             Kernel32.INSTANCE.GetConsoleMode(console, mode);
             return true;
@@ -101,9 +128,29 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
         }
     }
 
-    JnaWinSysTerminal(Writer writer, String name, String type, Charset encoding, boolean nativeSignals, SignalHandler signalHandler,
-                      Pointer inConsole, int inConsoleMode, Pointer outConsole, int outConsoleMode) throws IOException {
-        super(writer, name, type, encoding, nativeSignals, signalHandler, inConsole, inConsoleMode, outConsole, outConsoleMode);
+    JnaWinSysTerminal(
+            Writer writer,
+            String name,
+            String type,
+            Charset encoding,
+            boolean nativeSignals,
+            SignalHandler signalHandler,
+            Pointer inConsole,
+            int inConsoleMode,
+            Pointer outConsole,
+            int outConsoleMode)
+            throws IOException {
+        super(
+                writer,
+                name,
+                type,
+                encoding,
+                nativeSignals,
+                signalHandler,
+                inConsole,
+                inConsoleMode,
+                outConsole,
+                outConsoleMode);
         this.strings.put(Capability.key_mouse, "\\E[M");
     }
 
@@ -157,10 +204,11 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
     }
 
     private void processKeyEvent(Kernel32.KEY_EVENT_RECORD keyEvent) throws IOException {
-        processKeyEvent(keyEvent.bKeyDown, keyEvent.wVirtualKeyCode, keyEvent.uChar.UnicodeChar, keyEvent.dwControlKeyState);
+        processKeyEvent(
+                keyEvent.bKeyDown, keyEvent.wVirtualKeyCode, keyEvent.uChar.UnicodeChar, keyEvent.dwControlKeyState);
     }
 
-    private char[] focus = new char[] { '\033', '[', ' ' };
+    private char[] focus = new char[] {'\033', '[', ' '};
 
     private void processFocusEvent(boolean hasFocus) throws IOException {
         if (focusTracking) {
@@ -169,7 +217,7 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
         }
     }
 
-    private char[] mouse = new char[] { '\033', '[', 'M', ' ', ' ', ' ' };
+    private char[] mouse = new char[] {'\033', '[', 'M', ' ', ' ', ' '};
 
     private void processMouseEvent(Kernel32.MOUSE_EVENT_RECORD mouseEvent) throws IOException {
         int dwEventFlags = mouseEvent.dwEventFlags;
@@ -180,7 +228,7 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
             return;
         }
         int cb = 0;
-        dwEventFlags &= ~ Kernel32.DOUBLE_CLICK; // Treat double-clicks as normal
+        dwEventFlags &= ~Kernel32.DOUBLE_CLICK; // Treat double-clicks as normal
         if (dwEventFlags == Kernel32.MOUSE_WHEELED) {
             cb |= 64;
             if ((dwButtonState >> 16) < 0) {
@@ -226,5 +274,4 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
         Kernel32.INSTANCE.GetConsoleScreenBufferInfo(consoleOut, info);
         return new Cursor(info.dwCursorPosition.X, info.dwCursorPosition.Y);
     }
-
 }

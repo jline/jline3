@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -84,10 +84,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
     @Override
     public AttributedString subSequence(int start, int end) {
         return new AttributedString(
-                Arrays.copyOfRange(buffer, start, end),
-                Arrays.copyOfRange(style, start, end),
-                0,
-                end - start);
+                Arrays.copyOfRange(buffer, start, end), Arrays.copyOfRange(style, start, end), 0, end - start);
     }
 
     @Override
@@ -120,12 +117,12 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
         return this;
     }
 
-    public AttributedStringBuilder style(Function<AttributedStyle,AttributedStyle> style) {
+    public AttributedStringBuilder style(Function<AttributedStyle, AttributedStyle> style) {
         current = style.apply(current);
         return this;
     }
 
-    public AttributedStringBuilder styled(Function<AttributedStyle,AttributedStyle> style, CharSequence cs) {
+    public AttributedStringBuilder styled(Function<AttributedStyle, AttributedStyle> style, CharSequence cs) {
         return styled(style, sb -> sb.append(cs));
     }
 
@@ -133,7 +130,8 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
         return styled(s -> style, sb -> sb.append(cs));
     }
 
-    public AttributedStringBuilder styled(Function<AttributedStyle,AttributedStyle> style, Consumer<AttributedStringBuilder> consumer) {
+    public AttributedStringBuilder styled(
+            Function<AttributedStyle, AttributedStyle> style, Consumer<AttributedStringBuilder> consumer) {
         AttributedStyle prev = current;
         current = style.apply(prev);
         consumer.accept(this);
@@ -357,17 +355,39 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                     ensureCapacity(length + 1);
                     if (inAltCharset) {
                         switch (c) {
-                            case 'j': c = '┘'; break;
-                            case 'k': c = '┐'; break;
-                            case 'l': c = '┌'; break;
-                            case 'm': c = '└'; break;
-                            case 'n': c = '┼'; break;
-                            case 'q': c = '─'; break;
-                            case 't': c = '├'; break;
-                            case 'u': c = '┤'; break;
-                            case 'v': c = '┴'; break;
-                            case 'w': c = '┬'; break;
-                            case 'x': c = '│'; break;
+                            case 'j':
+                                c = '┘';
+                                break;
+                            case 'k':
+                                c = '┐';
+                                break;
+                            case 'l':
+                                c = '┌';
+                                break;
+                            case 'm':
+                                c = '└';
+                                break;
+                            case 'n':
+                                c = '┼';
+                                break;
+                            case 'q':
+                                c = '─';
+                                break;
+                            case 't':
+                                c = '├';
+                                break;
+                            case 'u':
+                                c = '┤';
+                                break;
+                            case 'v':
+                                c = '┴';
+                                break;
+                            case 'w':
+                                c = '┬';
+                                break;
+                            case 'x':
+                                c = '│';
+                                break;
                         }
                     }
                     buffer[length] = c;
@@ -449,7 +469,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
         this.altOut = altOut != null ? altOut.toCharArray() : null;
         return this;
     }
-    
+
     public AttributedStringBuilder styleMatches(Pattern pattern, AttributedStyle s) {
         Matcher matcher = pattern.matcher(this);
         while (matcher.find()) {
@@ -472,7 +492,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
         }
         return this;
     }
-    
+
     private static class TabStops {
         private List<Integer> tabs = new ArrayList<>();
         private int lastStop = 0;
@@ -485,7 +505,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
         public TabStops(List<Integer> tabs) {
             this.tabs = tabs;
             int p = 0;
-            for (int s: tabs) {
+            for (int s : tabs) {
                 if (s <= p) {
                     continue;
                 }
@@ -504,7 +524,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
             if (lastLineLength >= lastStop) {
                 out = lastSize - (lastLineLength - lastStop) % lastSize;
             } else {
-                for (int s: tabs) {
+                for (int s : tabs) {
                     if (s > lastLineLength) {
                         out = s - lastLineLength;
                         break;
@@ -513,7 +533,5 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
             }
             return out;
         }
-
     }
-
 }

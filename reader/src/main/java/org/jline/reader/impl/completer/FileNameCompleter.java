@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -44,8 +44,7 @@ import org.jline.utils.AttributedStyle;
  * @deprecated use <code>org.jline.builtins.Completers$FileNameCompleter</code> instead
  */
 @Deprecated
-public class FileNameCompleter implements Completer
-{
+public class FileNameCompleter implements Completer {
 
     public void complete(LineReader reader, ParsedLine commandLine, final List<Candidate> candidates) {
         assert commandLine != null;
@@ -79,13 +78,14 @@ public class FileNameCompleter implements Completer
                     candidates.add(new Candidate(
                             value + (reader.isSet(Option.AUTO_PARAM_SLASH) ? sep : ""),
                             getDisplay(reader.getTerminal(), p),
-                            null, null,
+                            null,
+                            null,
                             reader.isSet(Option.AUTO_REMOVE_SLASH) ? sep : null,
                             null,
                             false));
                 } else {
-                    candidates.add(new Candidate(value, getDisplay(reader.getTerminal(), p),
-                            null, null, null, null, true));
+                    candidates.add(
+                            new Candidate(value, getDisplay(reader.getTerminal(), p), null, null, null, null, true));
                 }
             });
         } catch (IOException e) {
@@ -125,5 +125,4 @@ public class FileNameCompleter implements Completer
         }
         return name;
     }
-
 }

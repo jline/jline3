@@ -21,10 +21,10 @@
 
     <groupId>org.jline</groupId>
     <artifactId>jline-parent</artifactId>
-    <name>JLine Parent</name>
-    <description>JLine</description>
     <version>3.22.1-SNAPSHOT</version>
     <packaging>pom</packaging>
+    <name>JLine Parent</name>
+    <description>JLine</description>
 
     <licenses>
         <license>
@@ -33,33 +33,6 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
-
-    <scm>
-        <connection>scm:git:https://github.com/jline/jline3.git</connection>
-        <developerConnection>scm:git:https://github.com/jline/jline3.git</developerConnection>
-        <url>http://github.com/jline/jline3</url>
-    <tag>jline-parent-3.22.0</tag>
-  </scm>
-
-    <issueManagement>
-        <system>github</system>
-        <url>https://github.com/jline/jline3/issues</url>
-    </issueManagement>
-
-    <ciManagement>
-        <system>travis</system>
-        <url>https://travis-ci.org/jline/jline3</url>
-    </ciManagement>
-
-    <mailingLists>
-        <mailingList>
-            <name>jline-users</name>
-            <post>mailto:jline-users@googlegroups.com</post>
-            <unsubscribe>mailto:jline-users+unsubscribe@googlegroups.com</unsubscribe>
-            <subscribe>https://groups.google.com/group/jline-users</subscribe>
-            <archive>https://groups.google.com/group/jline-users</archive>
-        </mailingList>
-    </mailingLists>
 
     <developers>
         <developer>
@@ -71,6 +44,49 @@
             </roles>
         </developer>
     </developers>
+
+    <mailingLists>
+        <mailingList>
+            <name>jline-users</name>
+            <subscribe>https://groups.google.com/group/jline-users</subscribe>
+            <unsubscribe>mailto:jline-users+unsubscribe@googlegroups.com</unsubscribe>
+            <post>mailto:jline-users@googlegroups.com</post>
+            <archive>https://groups.google.com/group/jline-users</archive>
+        </mailingList>
+    </mailingLists>
+
+    <modules>
+        <module>native</module>
+        <module>terminal</module>
+        <module>terminal-jna</module>
+        <module>terminal-jansi</module>
+        <module>reader</module>
+        <module>builtins</module>
+        <module>console</module>
+        <module>groovy</module>
+        <module>remote-ssh</module>
+        <module>remote-telnet</module>
+        <module>style</module>
+        <module>demo</module>
+        <module>graal</module>
+    </modules>
+
+    <scm>
+        <connection>scm:git:https://github.com/jline/jline3.git</connection>
+        <developerConnection>scm:git:https://github.com/jline/jline3.git</developerConnection>
+        <tag>jline-parent-3.22.0</tag>
+        <url>http://github.com/jline/jline3</url>
+    </scm>
+
+    <issueManagement>
+        <system>github</system>
+        <url>https://github.com/jline/jline3/issues</url>
+    </issueManagement>
+
+    <ciManagement>
+        <system>travis</system>
+        <url>https://travis-ci.org/jline/jline3</url>
+    </ciManagement>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -100,20 +116,6 @@
 
         <surefire.argLine />
     </properties>
-
-    <repositories>
-        <repository>
-            <id>apache-snapshots</id>
-            <name>Apache Snapshots</name>
-            <url>https://repository.apache.org/content/groups/snapshots</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
 
     <dependencyManagement>
         <dependencies>
@@ -270,7 +272,7 @@
             <dependency>
                 <groupId>org.apache.ivy</groupId>
                 <artifactId>ivy</artifactId>
-                 <version>${ivy.version}</version>
+                <version>${ivy.version}</version>
             </dependency>
 
             <dependency>
@@ -304,6 +306,20 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <repositories>
+        <repository>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <id>apache-snapshots</id>
+            <name>Apache Snapshots</name>
+            <url>https://repository.apache.org/content/groups/snapshots</url>
+        </repository>
+    </repositories>
 
     <build>
         <defaultGoal>install</defaultGoal>
@@ -468,10 +484,10 @@
                     <executions>
                         <execution>
                             <id>sign-artifacts</id>
-                            <phase>verify</phase>
                             <goals>
                                 <goal>sign</goal>
                             </goals>
+                            <phase>verify</phase>
                             <configuration>
                                 <executable>gpg</executable>
                                 <gpgArguments>
@@ -592,10 +608,10 @@
                 </configuration>
                 <executions>
                     <execution>
-                        <phase>process-classes</phase>
                         <goals>
                             <goal>manifest</goal>
                         </goals>
+                        <phase>process-classes</phase>
                     </execution>
                 </executions>
             </plugin>
@@ -707,6 +723,13 @@
                             <additionalOptions>${javadocOptions}</additionalOptions>
                             <failOnError>false</failOnError>
                         </configuration>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.apache.commons</groupId>
+                                <artifactId>commons-lang3</artifactId>
+                                <version>3.12.0</version>
+                            </dependency>
+                        </dependencies>
                         <executions>
                             <execution>
                                 <id>javadoc</id>
@@ -715,13 +738,6 @@
                                 </goals>
                             </execution>
                         </executions>
-                        <dependencies>
-                            <dependency>
-                                <groupId>org.apache.commons</groupId>
-                                <artifactId>commons-lang3</artifactId>
-                                <version>3.12.0</version>
-                            </dependency>
-                        </dependencies>
                     </plugin>
                 </plugins>
             </build>
@@ -729,12 +745,12 @@
 
         <profile>
             <id>java9</id>
-            <properties>
-                <surefire.argLine>--add-opens java.base/java.io=ALL-UNNAMED</surefire.argLine>
-            </properties>
             <activation>
                 <jdk>[9,)</jdk>
             </activation>
+            <properties>
+                <surefire.argLine>--add-opens java.base/java.io=ALL-UNNAMED</surefire.argLine>
+            </properties>
             <build>
                 <plugins>
                     <plugin>
@@ -793,21 +809,5 @@
             </properties>
         </profile>
     </profiles>
-
-    <modules>
-        <module>native</module>
-        <module>terminal</module>
-        <module>terminal-jna</module>
-        <module>terminal-jansi</module>
-        <module>reader</module>
-        <module>builtins</module>
-        <module>console</module>
-        <module>groovy</module>
-        <module>remote-ssh</module>
-        <module>remote-telnet</module>
-        <module>style</module>
-        <module>demo</module>
-        <module>graal</module>
-    </modules>
 
 </project>

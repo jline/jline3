@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2016, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -10,7 +10,6 @@ package org.jline.keymap;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
@@ -19,10 +18,10 @@ import java.util.logging.Logger;
 
 import org.jline.reader.Binding;
 import org.jline.reader.Reference;
-import org.jline.terminal.Size;
-import org.jline.terminal.impl.DumbTerminal;
 import org.jline.reader.impl.ReaderTestSupport.EofPipedInputStream;
+import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
+import org.jline.terminal.impl.DumbTerminal;
 import org.junit.Before;
 import org.junit.Test;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2021, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -52,7 +52,8 @@ public abstract class AbstractTerminal implements Terminal {
         this(name, type, null, SignalHandler.SIG_DFL);
     }
 
-    public AbstractTerminal(String name, String type, Charset encoding, SignalHandler signalHandler) throws IOException {
+    public AbstractTerminal(String name, String type, Charset encoding, SignalHandler signalHandler)
+            throws IOException {
         this.name = name;
         this.type = type != null ? type : "ansi";
         this.encoding = encoding != null ? encoding : Charset.defaultCharset();
@@ -126,7 +127,7 @@ public abstract class AbstractTerminal implements Terminal {
         if (cc != null) {
             int vcc = getAttributes().getControlChar(cc);
             if (vcc > 0 && vcc < 32) {
-                writer().write(new char[]{'^', (char) (vcc + '@')}, 0, 2);
+                writer().write(new char[] {'^', (char) (vcc + '@')}, 0, 2);
             }
         }
     }
@@ -217,8 +218,7 @@ public abstract class AbstractTerminal implements Terminal {
     }
 
     private MouseEvent lastMouseEvent = new MouseEvent(
-                MouseEvent.Type.Moved, MouseEvent.Button.NoButton,
-                EnumSet.noneOf(MouseEvent.Modifier.class), 0, 0);
+            MouseEvent.Type.Moved, MouseEvent.Button.NoButton, EnumSet.noneOf(MouseEvent.Modifier.class), 0, 0);
 
     @Override
     public boolean hasMouseSupport() {
@@ -268,16 +268,13 @@ public abstract class AbstractTerminal implements Terminal {
     }
 
     @Override
-    public void pause() {
-    }
+    public void pause() {}
 
     @Override
-    public void pause(boolean wait) throws InterruptedException {
-    }
+    public void pause(boolean wait) throws InterruptedException {}
 
     @Override
-    public void resume() {
-    }
+    public void resume() {}
 
     @Override
     public boolean paused() {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2016, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -12,11 +12,11 @@ import java.io.File;
 
 public class OSUtils {
 
-    public static final boolean IS_WINDOWS = System.getProperty("os.name").toLowerCase().contains("win");
+    public static final boolean IS_WINDOWS =
+            System.getProperty("os.name").toLowerCase().contains("win");
 
-    public static final boolean IS_CYGWIN = IS_WINDOWS
-            && System.getenv("PWD") != null
-            && System.getenv("PWD").startsWith("/");
+    public static final boolean IS_CYGWIN =
+            IS_WINDOWS && System.getenv("PWD") != null && System.getenv("PWD").startsWith("/");
 
     @Deprecated
     public static final boolean IS_MINGW = IS_WINDOWS
@@ -26,7 +26,7 @@ public class OSUtils {
     public static final boolean IS_MSYSTEM = IS_WINDOWS
             && System.getenv("MSYSTEM") != null
             && (System.getenv("MSYSTEM").startsWith("MINGW")
-                || System.getenv("MSYSTEM").equals("MSYS"));
+                    || System.getenv("MSYSTEM").equals("MSYS"));
 
     public static final boolean IS_WSL = System.getenv("WSL_DISTRO_NAME") != null;
 
@@ -34,10 +34,10 @@ public class OSUtils {
 
     public static final boolean IS_WSL2 = IS_WSL && !IS_WSL1;
 
-    public static final boolean IS_CONEMU = IS_WINDOWS
-            && System.getenv("ConEmuPID") != null;
+    public static final boolean IS_CONEMU = IS_WINDOWS && System.getenv("ConEmuPID") != null;
 
-    public static final boolean IS_OSX = System.getProperty("os.name").toLowerCase().contains("mac");
+    public static final boolean IS_OSX =
+            System.getProperty("os.name").toLowerCase().contains("mac");
 
     public static String TTY_COMMAND;
     public static String STTY_COMMAND;
@@ -100,5 +100,4 @@ public class OSUtils {
         INFOCMP_COMMAND = infocmp;
         TEST_COMMAND = test;
     }
-
 }

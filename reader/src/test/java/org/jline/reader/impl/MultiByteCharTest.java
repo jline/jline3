@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2016, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.io.Reader;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 import org.jline.utils.InputStreamReader;
@@ -49,6 +48,5 @@ public class MultiByteCharTest extends ReaderTestSupport {
 
         b = new TestBuffer("\uD834\uDD21").left().ctrlD().enter();
         assertLine("", b, true);
-
     }
 }

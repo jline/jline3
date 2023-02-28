@@ -1,11 +1,12 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2017, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
+package org.jline.builtins.telnet;
 
 /*
  * Java TelnetD library (embeddable telnet daemon)
@@ -38,8 +39,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ***/
 
-package org.jline.builtins.telnet;
-
 import java.net.InetAddress;
 
 /**
@@ -68,5 +67,4 @@ public interface ConnectionFilter {
      * @return true if allowed to connect, false otherwise.
      */
     boolean isAllowed(InetAddress ip);
-
-}//interface ConnectionFilter
+} // interface ConnectionFilter

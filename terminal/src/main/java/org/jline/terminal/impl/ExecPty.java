@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2016, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,11 +8,11 @@
  */
 package org.jline.terminal.impl;
 
+import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.FileDescriptor;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,8 +26,8 @@ import org.jline.terminal.Attributes.InputFlag;
 import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Attributes.OutputFlag;
 import org.jline.terminal.Size;
-import org.jline.terminal.spi.TerminalProvider;
 import org.jline.terminal.spi.Pty;
+import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
 
 import static org.jline.utils.ExecHelper.exec;
@@ -55,8 +55,7 @@ public class ExecPty extends AbstractPty implements Pty {
     }
 
     @Override
-    public void close() throws IOException {
-    }
+    public void close() throws IOException {}
 
     public String getName() {
         return name;
@@ -74,9 +73,7 @@ public class ExecPty extends AbstractPty implements Pty {
 
     @Override
     protected InputStream doGetSlaveInput() throws IOException {
-        return console != null
-                ? new FileInputStream(FileDescriptor.in)
-                : new FileInputStream(getName());
+        return console != null ? new FileInputStream(FileDescriptor.in) : new FileInputStream(getName());
     }
 
     @Override
@@ -84,8 +81,8 @@ public class ExecPty extends AbstractPty implements Pty {
         return console == TerminalProvider.Stream.Output
                 ? new FileOutputStream(FileDescriptor.out)
                 : console == TerminalProvider.Stream.Error
-                    ? new FileOutputStream(FileDescriptor.err)
-                    : new FileOutputStream(getName());
+                        ? new FileOutputStream(FileDescriptor.err)
+                        : new FileOutputStream(getName());
     }
 
     @Override
@@ -137,11 +134,9 @@ public class ExecPty extends AbstractPty implements Pty {
                 commands.add(cchar.name().toLowerCase().substring(1));
                 if (cchar == ControlChar.VMIN || cchar == ControlChar.VTIME) {
                     commands.add(Integer.toString(v));
-                }
-                else if (v == 0) {
+                } else if (v == 0) {
                     commands.add(undef);
-                }
-                else {
+                } else {
                     if (v >= 128) {
                         v -= 128;
                         str += "M-";
@@ -166,7 +161,7 @@ public class ExecPty extends AbstractPty implements Pty {
 
     protected String doGetConfig() throws IOException {
         return console != null
-                ? exec(true,  OSUtils.STTY_COMMAND, "-a")
+                ? exec(true, OSUtils.STTY_COMMAND, "-a")
                 : exec(false, OSUtils.STTY_COMMAND, OSUtils.STTY_F_OPTION, getName(), "-a");
     }
 
@@ -201,16 +196,19 @@ public class ExecPty extends AbstractPty implements Pty {
             if ("reprint".endsWith(name)) {
                 name = "(?:reprint|rprnt)";
             }
-            Matcher matcher = Pattern.compile("[\\s;]" + name + "\\s*=\\s*(.+?)[\\s;]").matcher(cfg);
+            Matcher matcher =
+                    Pattern.compile("[\\s;]" + name + "\\s*=\\s*(.+?)[\\s;]").matcher(cfg);
             if (matcher.find()) {
-                attributes.setControlChar(cchar, parseControlChar(matcher.group(1).toUpperCase()));
+                attributes.setControlChar(
+                        cchar, parseControlChar(matcher.group(1).toUpperCase()));
             }
         }
         return attributes;
     }
 
     private static Boolean doGetFlag(String cfg, Enum<?> flag) {
-        Matcher matcher = Pattern.compile("(?:^|[\\s;])(\\-?" + flag.name().toLowerCase() + ")(?:[\\s;]|$)").matcher(cfg);
+        Matcher matcher = Pattern.compile("(?:^|[\\s;])(\\-?" + flag.name().toLowerCase() + ")(?:[\\s;]|$)")
+                .matcher(cfg);
         return matcher.find() ? !matcher.group(1).startsWith("-") : null;
     }
 
@@ -259,9 +257,7 @@ public class ExecPty extends AbstractPty implements Pty {
 
     static int doGetInt(String name, String cfg) throws IOException {
         String[] patterns = new String[] {
-                "\\b([0-9]+)\\s+" + name + "\\b",
-                "\\b" + name + "\\s+([0-9]+)\\b",
-                "\\b" + name + "\\s*=\\s*([0-9]+)\\b"
+            "\\b([0-9]+)\\s+" + name + "\\b", "\\b" + name + "\\s+([0-9]+)\\b", "\\b" + name + "\\s*=\\s*([0-9]+)\\b"
         };
         for (String pattern : patterns) {
             Matcher matcher = Pattern.compile(pattern).matcher(cfg);
@@ -275,16 +271,23 @@ public class ExecPty extends AbstractPty implements Pty {
     @Override
     public void setSize(Size size) throws IOException {
         if (console != null) {
-            exec(true,
-                 OSUtils.STTY_COMMAND,
-                 "columns", Integer.toString(size.getColumns()),
-                 "rows", Integer.toString(size.getRows()));
+            exec(
+                    true,
+                    OSUtils.STTY_COMMAND,
+                    "columns",
+                    Integer.toString(size.getColumns()),
+                    "rows",
+                    Integer.toString(size.getRows()));
         } else {
-            exec(false,
-                 OSUtils.STTY_COMMAND,
-                 OSUtils.STTY_F_OPTION, getName(),
-                 "columns", Integer.toString(size.getColumns()),
-                 "rows", Integer.toString(size.getRows()));
+            exec(
+                    false,
+                    OSUtils.STTY_COMMAND,
+                    OSUtils.STTY_F_OPTION,
+                    getName(),
+                    "columns",
+                    Integer.toString(size.getColumns()),
+                    "rows",
+                    Integer.toString(size.getRows()));
         }
     }
 
@@ -292,5 +295,4 @@ public class ExecPty extends AbstractPty implements Pty {
     public String toString() {
         return "ExecPty[" + getName() + (console != null ? ", system]" : "]");
     }
-
 }

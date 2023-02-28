@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,16 +8,16 @@
  */
 package org.jline.terminal.impl;
 
-import org.jline.terminal.Attributes;
-import org.jline.terminal.Cursor;
-import org.jline.terminal.Size;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.IntConsumer;
+
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Cursor;
+import org.jline.terminal.Size;
 
 /**
  * Console implementation with embedded line disciplined.
@@ -38,38 +38,46 @@ public class ExternalTerminal extends LineDisciplineTerminal {
     protected boolean paused = true;
     protected Thread pumpThread;
 
-    public ExternalTerminal(String name, String type,
-                            InputStream masterInput,
-                            OutputStream masterOutput,
-                            Charset encoding) throws IOException {
+    public ExternalTerminal(
+            String name, String type, InputStream masterInput, OutputStream masterOutput, Charset encoding)
+            throws IOException {
         this(name, type, masterInput, masterOutput, encoding, SignalHandler.SIG_DFL);
     }
 
-    public ExternalTerminal(String name, String type,
-                            InputStream masterInput,
-                            OutputStream masterOutput,
-                            Charset encoding,
-                            SignalHandler signalHandler) throws IOException {
+    public ExternalTerminal(
+            String name,
+            String type,
+            InputStream masterInput,
+            OutputStream masterOutput,
+            Charset encoding,
+            SignalHandler signalHandler)
+            throws IOException {
         this(name, type, masterInput, masterOutput, encoding, signalHandler, false);
     }
 
-    public ExternalTerminal(String name, String type,
-                            InputStream masterInput,
-                            OutputStream masterOutput,
-                            Charset encoding,
-                            SignalHandler signalHandler,
-                            boolean paused) throws IOException {
+    public ExternalTerminal(
+            String name,
+            String type,
+            InputStream masterInput,
+            OutputStream masterOutput,
+            Charset encoding,
+            SignalHandler signalHandler,
+            boolean paused)
+            throws IOException {
         this(name, type, masterInput, masterOutput, encoding, signalHandler, paused, null, null);
     }
 
-    public ExternalTerminal(String name, String type,
-                            InputStream masterInput,
-                            OutputStream masterOutput,
-                            Charset encoding,
-                            SignalHandler signalHandler,
-                            boolean paused,
-                            Attributes attributes,
-                            Size size) throws IOException {
+    public ExternalTerminal(
+            String name,
+            String type,
+            InputStream masterInput,
+            OutputStream masterOutput,
+            Charset encoding,
+            SignalHandler signalHandler,
+            boolean paused,
+            Attributes attributes,
+            Size size)
+            throws IOException {
         super(name, type, masterOutput, encoding, signalHandler);
         this.masterInput = masterInput;
         if (attributes != null) {
@@ -170,5 +178,4 @@ public class ExternalTerminal extends LineDisciplineTerminal {
     public Cursor getCursorPosition(IntConsumer discarded) {
         return CursorSupport.getCursorPosition(this, discarded);
     }
-
 }

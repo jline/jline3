@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2020, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -11,12 +11,13 @@ package org.jline.terminal.impl.jna.solaris;
 import java.io.FileDescriptor;
 import java.io.IOException;
 
-import com.sun.jna.Native;
-import com.sun.jna.Platform;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.jna.JnaNativePty;
 import org.jline.terminal.spi.TerminalProvider;
+
+import com.sun.jna.Native;
+import com.sun.jna.Platform;
 
 import static org.jline.terminal.impl.jna.solaris.CLibrary.TCSANOW;
 import static org.jline.terminal.impl.jna.solaris.CLibrary.TIOCGWINSZ;
@@ -38,13 +39,13 @@ public class SolarisNativePty extends JnaNativePty {
                 throw new IllegalArgumentException("Unsupport stream for console: " + consoleStream);
         }
     }
+
     public static SolarisNativePty open(Attributes attr, Size size) throws IOException {
         int[] master = new int[1];
         int[] slave = new int[1];
         byte[] buf = new byte[64];
-        C_LIBRARY.openpty(master, slave, buf,
-                attr != null ? new termios(attr) : null,
-                size != null ? new winsize(size) : null);
+        C_LIBRARY.openpty(
+                master, slave, buf, attr != null ? new termios(attr) : null, size != null ? new winsize(size) : null);
         int len = 0;
         while (buf[len] != 0) {
             len++;
@@ -57,7 +58,14 @@ public class SolarisNativePty extends JnaNativePty {
         super(master, masterFD, slave, slaveFD, name);
     }
 
-    public SolarisNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, int slaveOut, FileDescriptor slaveOutFD, String name) {
+    public SolarisNativePty(
+            int master,
+            FileDescriptor masterFD,
+            int slave,
+            FileDescriptor slaveFD,
+            int slaveOut,
+            FileDescriptor slaveOutFD,
+            String name) {
         super(master, masterFD, slave, slaveFD, slaveOut, slaveOutFD, name);
     }
 
@@ -100,5 +108,4 @@ public class SolarisNativePty extends JnaNativePty {
         }
         return new String(buf, 0, len);
     }
-
 }

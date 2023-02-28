@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2016, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -17,8 +17,6 @@ import static org.jline.keymap.KeyMap.ctrl;
 import static org.jline.reader.LineReader.BACKWARD_KILL_LINE;
 import static org.jline.reader.LineReader.BACKWARD_KILL_WORD;
 import static org.jline.reader.LineReader.BACKWARD_WORD;
-import static org.jline.reader.LineReader.EMACS_BACKWARD_WORD;
-import static org.jline.reader.LineReader.EMACS_FORWARD_WORD;
 import static org.jline.reader.LineReader.END_OF_LINE;
 import static org.jline.reader.LineReader.FORWARD_WORD;
 import static org.jline.reader.LineReader.KILL_WORD;
@@ -28,12 +26,11 @@ import static org.jline.reader.LineReader.KILL_WORD;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class EditLineTest
-    extends ReaderTestSupport
-{
+public class EditLineTest extends ReaderTestSupport {
     @Test
     public void testIssue101() throws Exception {
-        TestBuffer b = new TestBuffer("config:property-set --pid org.ops4j.pax.url.mvn org.ops4j.pax.url.mvn.globalChecksumPolicy crash")
+        TestBuffer b = new TestBuffer(
+                        "config:property-set --pid org.ops4j.pax.url.mvn org.ops4j.pax.url.mvn.globalChecksumPolicy crash")
                 .op(BACKWARD_WORD)
                 .op(BACKWARD_WORD)
                 .append("odsa odsa ")
@@ -67,84 +64,107 @@ public class EditLineTest
 
     @Test
     public void testMoveToEnd() throws Exception {
-        assertBuffer("This is a XtestX",
-            new TestBuffer("This is a test").op(BACKWARD_WORD)
-                .append('X')
-                .op(END_OF_LINE)
-                .append('X'));
+        assertBuffer(
+                "This is a XtestX",
+                new TestBuffer("This is a test")
+                        .op(BACKWARD_WORD)
+                        .append('X')
+                        .op(END_OF_LINE)
+                        .append('X'));
 
-        assertBuffer("This is Xa testX",
-            new TestBuffer("This is a test").op(BACKWARD_WORD)
-                .op(BACKWARD_WORD)
-                .append('X')
-                .op(END_OF_LINE)
-                .append('X'));
+        assertBuffer(
+                "This is Xa testX",
+                new TestBuffer("This is a test")
+                        .op(BACKWARD_WORD)
+                        .op(BACKWARD_WORD)
+                        .append('X')
+                        .op(END_OF_LINE)
+                        .append('X'));
 
-        assertBuffer("This Xis a testX",
-            new TestBuffer("This is a test").op(BACKWARD_WORD)
-                .op(BACKWARD_WORD)
-                .op(BACKWARD_WORD)
-                .append('X')
-                .op(END_OF_LINE)
-                .append('X'));
+        assertBuffer(
+                "This Xis a testX",
+                new TestBuffer("This is a test")
+                        .op(BACKWARD_WORD)
+                        .op(BACKWARD_WORD)
+                        .op(BACKWARD_WORD)
+                        .append('X')
+                        .op(END_OF_LINE)
+                        .append('X'));
     }
 
     @Test
     public void testPreviousWord() throws Exception {
-        assertBuffer("This is a Xtest",
-            new TestBuffer("This is a test").op(BACKWARD_WORD)
-                .append('X'));
-        assertBuffer("This is Xa test",
-            new TestBuffer("This is a test").op(BACKWARD_WORD)
-                .op(BACKWARD_WORD)
-                .append('X'));
-        assertBuffer("This Xis a test",
-            new TestBuffer("This is a test").op(BACKWARD_WORD)
-                .op(BACKWARD_WORD)
-                .op(BACKWARD_WORD)
-                .append('X'));
-        assertBuffer("XThis is a test",
-            new TestBuffer("This is a test").op(BACKWARD_WORD)
-                .op(BACKWARD_WORD)
-                .op(BACKWARD_WORD)
-                .op(BACKWARD_WORD)
-                .append('X'));
-        assertBuffer("XThis is a test",
-            new TestBuffer("This is a test").op(BACKWARD_WORD)
-                .op(BACKWARD_WORD)
-                .op(BACKWARD_WORD)
-                .op(BACKWARD_WORD)
-                .op(BACKWARD_WORD)
-                .append('X'));
-        assertBuffer("XThis is a test",
-            new TestBuffer("This is a test").op(BACKWARD_WORD)
-                .op(BACKWARD_WORD)
-                .op(BACKWARD_WORD)
-                .op(BACKWARD_WORD)
-                .op(BACKWARD_WORD)
-                .op(BACKWARD_WORD)
-                .append('X'));
+        assertBuffer(
+                "This is a Xtest",
+                new TestBuffer("This is a test").op(BACKWARD_WORD).append('X'));
+        assertBuffer(
+                "This is Xa test",
+                new TestBuffer("This is a test")
+                        .op(BACKWARD_WORD)
+                        .op(BACKWARD_WORD)
+                        .append('X'));
+        assertBuffer(
+                "This Xis a test",
+                new TestBuffer("This is a test")
+                        .op(BACKWARD_WORD)
+                        .op(BACKWARD_WORD)
+                        .op(BACKWARD_WORD)
+                        .append('X'));
+        assertBuffer(
+                "XThis is a test",
+                new TestBuffer("This is a test")
+                        .op(BACKWARD_WORD)
+                        .op(BACKWARD_WORD)
+                        .op(BACKWARD_WORD)
+                        .op(BACKWARD_WORD)
+                        .append('X'));
+        assertBuffer(
+                "XThis is a test",
+                new TestBuffer("This is a test")
+                        .op(BACKWARD_WORD)
+                        .op(BACKWARD_WORD)
+                        .op(BACKWARD_WORD)
+                        .op(BACKWARD_WORD)
+                        .op(BACKWARD_WORD)
+                        .append('X'));
+        assertBuffer(
+                "XThis is a test",
+                new TestBuffer("This is a test")
+                        .op(BACKWARD_WORD)
+                        .op(BACKWARD_WORD)
+                        .op(BACKWARD_WORD)
+                        .op(BACKWARD_WORD)
+                        .op(BACKWARD_WORD)
+                        .op(BACKWARD_WORD)
+                        .append('X'));
     }
 
     @Test
     public void testBackwardWord() throws Exception {
-        assertBuffer("This is a Xtest",
-                new TestBuffer("This is a test").op(BACKWARD_WORD)
-                        .append('X'));
+        assertBuffer(
+                "This is a Xtest",
+                new TestBuffer("This is a test").op(BACKWARD_WORD).append('X'));
 
-        assertBuffer("This is Xa test",
-                new TestBuffer("This is a test").op(BACKWARD_WORD).op(BACKWARD_WORD)
+        assertBuffer(
+                "This is Xa test",
+                new TestBuffer("This is a test")
+                        .op(BACKWARD_WORD)
+                        .op(BACKWARD_WORD)
                         .append('X'));
     }
 
     @Test
     public void testForwardWord() throws Exception {
-        assertBuffer("This Xis a test",
-                new TestBuffer("This is a test").ctrlA().op(FORWARD_WORD)
-                        .append('X'));
+        assertBuffer(
+                "This Xis a test",
+                new TestBuffer("This is a test").ctrlA().op(FORWARD_WORD).append('X'));
 
-        assertBuffer("This is Xa test",
-                new TestBuffer("This is a test").ctrlA().op(FORWARD_WORD).op(FORWARD_WORD)
+        assertBuffer(
+                "This is Xa test",
+                new TestBuffer("This is a test")
+                        .ctrlA()
+                        .op(FORWARD_WORD)
+                        .op(FORWARD_WORD)
                         .append('X'));
     }
 
@@ -153,12 +173,15 @@ public class EditLineTest
         // Use an empty string for WORDCHARS so that / is not treated as part of the word
         reader.setVariable(LineReader.WORDCHARS, "");
 
-        assertBuffer("/tmp/foo/Xmoo",
-                new TestBuffer("/tmp/foo/moo").op(BACKWARD_WORD)
-                        .append('X'));
+        assertBuffer(
+                "/tmp/foo/Xmoo",
+                new TestBuffer("/tmp/foo/moo").op(BACKWARD_WORD).append('X'));
 
-        assertBuffer("/tmp/Xfoo/moo",
-                new TestBuffer("/tmp/foo/moo").op(BACKWARD_WORD).op(BACKWARD_WORD)
+        assertBuffer(
+                "/tmp/Xfoo/moo",
+                new TestBuffer("/tmp/foo/moo")
+                        .op(BACKWARD_WORD)
+                        .op(BACKWARD_WORD)
                         .append('X'));
     }
 
@@ -167,12 +190,16 @@ public class EditLineTest
         // Use an empty string for WORDCHARS so that / is not treated as part of the word
         reader.setVariable(LineReader.WORDCHARS, "");
 
-        assertBuffer("/Xtmp/foo/moo",
-                new TestBuffer("/tmp/foo/moo").ctrlA().op(FORWARD_WORD)
-                        .append('X'));
+        assertBuffer(
+                "/Xtmp/foo/moo",
+                new TestBuffer("/tmp/foo/moo").ctrlA().op(FORWARD_WORD).append('X'));
 
-        assertBuffer("/tmp/Xfoo/moo",
-                new TestBuffer("/tmp/foo/moo").ctrlA().op(FORWARD_WORD).op(FORWARD_WORD)
+        assertBuffer(
+                "/tmp/Xfoo/moo",
+                new TestBuffer("/tmp/foo/moo")
+                        .ctrlA()
+                        .op(FORWARD_WORD)
+                        .op(FORWARD_WORD)
                         .append('X'));
     }
 
@@ -180,12 +207,15 @@ public class EditLineTest
     public void testEmacsBackwardWord() throws Exception {
         reader.getKeys().bind(new Reference(LineReader.EMACS_BACKWARD_WORD), KeyMap.alt('b'));
 
-        assertBuffer("This is a Xtest",
-                new TestBuffer("This is a test").op(BACKWARD_WORD)
-                        .append('X'));
+        assertBuffer(
+                "This is a Xtest",
+                new TestBuffer("This is a test").op(BACKWARD_WORD).append('X'));
 
-        assertBuffer("This is Xa test",
-                new TestBuffer("This is a test").op(BACKWARD_WORD).op(BACKWARD_WORD)
+        assertBuffer(
+                "This is Xa test",
+                new TestBuffer("This is a test")
+                        .op(BACKWARD_WORD)
+                        .op(BACKWARD_WORD)
                         .append('X'));
     }
 
@@ -193,12 +223,16 @@ public class EditLineTest
     public void testEmacsForwardWord() throws Exception {
         reader.getKeys().bind(new Reference(LineReader.EMACS_FORWARD_WORD), KeyMap.alt('f'));
 
-        assertBuffer("This Xis a test",
-                new TestBuffer("This is a test").ctrlA().op(FORWARD_WORD)
-                        .append('X'));
+        assertBuffer(
+                "This Xis a test",
+                new TestBuffer("This is a test").ctrlA().op(FORWARD_WORD).append('X'));
 
-        assertBuffer("This is Xa test",
-                new TestBuffer("This is a test").ctrlA().op(FORWARD_WORD).op(FORWARD_WORD)
+        assertBuffer(
+                "This is Xa test",
+                new TestBuffer("This is a test")
+                        .ctrlA()
+                        .op(FORWARD_WORD)
+                        .op(FORWARD_WORD)
                         .append('X'));
     }
 
@@ -209,12 +243,15 @@ public class EditLineTest
         // Use an empty string for WORDCHARS so that / is not treated as part of the word
         reader.setVariable(LineReader.WORDCHARS, "");
 
-        assertBuffer("/tmp/foo/Xmoo",
-                new TestBuffer("/tmp/foo/moo").op(BACKWARD_WORD)
-                        .append('X'));
+        assertBuffer(
+                "/tmp/foo/Xmoo",
+                new TestBuffer("/tmp/foo/moo").op(BACKWARD_WORD).append('X'));
 
-        assertBuffer("/tmp/Xfoo/moo",
-                new TestBuffer("/tmp/foo/moo").op(BACKWARD_WORD).op(BACKWARD_WORD)
+        assertBuffer(
+                "/tmp/Xfoo/moo",
+                new TestBuffer("/tmp/foo/moo")
+                        .op(BACKWARD_WORD)
+                        .op(BACKWARD_WORD)
                         .append('X'));
     }
 
@@ -225,21 +262,25 @@ public class EditLineTest
         // Use an empty string for WORDCHARS so that / is not treated as part of the word
         reader.setVariable(LineReader.WORDCHARS, "");
 
-        assertBuffer("/Xtmp/foo/moo",
-                new TestBuffer("/tmp/foo/moo").ctrlA().op(FORWARD_WORD)
-                        .append('X'));
+        assertBuffer(
+                "/Xtmp/foo/moo",
+                new TestBuffer("/tmp/foo/moo").ctrlA().op(FORWARD_WORD).append('X'));
 
-        assertBuffer("/tmp/Xfoo/moo",
-                new TestBuffer("/tmp/foo/moo").ctrlA().op(FORWARD_WORD).op(FORWARD_WORD)
+        assertBuffer(
+                "/tmp/Xfoo/moo",
+                new TestBuffer("/tmp/foo/moo")
+                        .ctrlA()
+                        .op(FORWARD_WORD)
+                        .op(FORWARD_WORD)
                         .append('X'));
     }
 
     @Test
     public void testLineStart() throws Exception {
-        assertBuffer("XThis is a test",
-            new TestBuffer("This is a test").ctrlA().append('X'));
-        assertBuffer("TXhis is a test",
-            new TestBuffer("This is a test").ctrlA().right().append('X'));
+        assertBuffer("XThis is a test", new TestBuffer("This is a test").ctrlA().append('X'));
+        assertBuffer(
+                "TXhis is a test",
+                new TestBuffer("This is a test").ctrlA().right().append('X'));
     }
 
     @Test
@@ -319,10 +360,12 @@ public class EditLineTest
 
         out.reset();
 
-        assertBuffer("",
-            new TestBuffer("This is a test").op(BACKWARD_WORD)
-                                        .op(BACKWARD_WORD)
-                                        .ctrl('G'));
+        assertBuffer(
+                "",
+                new TestBuffer("This is a test")
+                        .op(BACKWARD_WORD)
+                        .op(BACKWARD_WORD)
+                        .ctrl('G'));
         assertConsoleOutputContains("\n");
         assertBeeped();
     }
@@ -332,7 +375,9 @@ public class EditLineTest
         boolean prev = ((DefaultParser) reader.getParser()).isEofOnEscapedNewLine();
         ((DefaultParser) reader.getParser()).setEofOnEscapedNewLine(true);
         try {
-            assertLine("echo foobar", new TestBuffer("echo foo\\").enter().append("bar").enter());
+            assertLine(
+                    "echo foobar",
+                    new TestBuffer("echo foo\\").enter().append("bar").enter());
         } finally {
             ((DefaultParser) reader.getParser()).setEofOnEscapedNewLine(prev);
         }

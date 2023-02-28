@@ -1,4 +1,14 @@
 /*
+ * Copyright (c) 2023, the original author(s).
+ *
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
+ *
+ * https://opensource.org/licenses/BSD-3-Clause
+ */
+package org.jline.nativ;
+
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,7 +26,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.jline.nativ;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

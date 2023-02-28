@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2017, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,15 +8,14 @@
  */
 package org.jline.builtins;
 
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
+
 import org.jline.keymap.KeyMap;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.LineDisciplineTerminal;
 import org.junit.Test;
-
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
 
 public class NanoTest {
 
@@ -31,7 +30,10 @@ public class NanoTest {
         terminal.processInputByte(KeyMap.ctrl('X').getBytes()[0]);
         terminal.processInputByte('n');
         String[] argv = {"--ignorercfiles"};
-        Nano nano = new Nano(terminal, Paths.get("target/test.txt"), Options.compile(Nano.usage()).parse(argv));
+        Nano nano = new Nano(
+                terminal,
+                Paths.get("target/test.txt"),
+                Options.compile(Nano.usage()).parse(argv));
         nano.run();
     }
 }

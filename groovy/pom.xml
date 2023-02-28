@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
 
     Copyright (c) 2002-2022, the original author or authors.
@@ -25,28 +25,28 @@
     </properties>
 
     <dependencies>
-         <dependency>
+        <dependency>
             <groupId>org.jline</groupId>
             <artifactId>jline-console</artifactId>
         </dependency>
         <dependency>
-             <groupId>org.apache.groovy</groupId>
-             <artifactId>groovy</artifactId>
+            <groupId>org.apache.groovy</groupId>
+            <artifactId>groovy</artifactId>
         </dependency>
         <dependency>
-             <groupId>org.apache.groovy</groupId>
-             <artifactId>groovy-json</artifactId>
+            <groupId>org.apache.groovy</groupId>
+            <artifactId>groovy-json</artifactId>
         </dependency>
         <dependency>
-             <groupId>org.apache.groovy</groupId>
-             <artifactId>groovy-console</artifactId>
-             <optional>true</optional>
+            <groupId>org.apache.groovy</groupId>
+            <artifactId>groovy-console</artifactId>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.apache.ivy</groupId>
             <artifactId>ivy</artifactId>
             <optional>true</optional>
-        </dependency>        
+        </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>

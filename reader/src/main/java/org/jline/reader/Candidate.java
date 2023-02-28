@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019, the original author or authors.
+ * Copyright (c) 2002-2019, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -47,7 +47,15 @@ public class Candidate implements Comparable<Candidate> {
      * @param complete the complete flag
      * @param sort the sort flag
      */
-    public Candidate(String value, String displ, String group, String descr, String suffix, String key, boolean complete, int sort) {
+    public Candidate(
+            String value,
+            String displ,
+            String group,
+            String descr,
+            String suffix,
+            String key,
+            boolean complete,
+            int sort) {
         this.value = Objects.requireNonNull(value);
         this.displ = Objects.requireNonNull(displ);
         this.group = group;
@@ -69,8 +77,9 @@ public class Candidate implements Comparable<Candidate> {
      * @param key the key
      * @param complete the complete flag
      */
-    public Candidate(String value, String displ, String group, String descr, String suffix, String key, boolean complete) {
-    	this(value, displ, group, descr, suffix, key, complete, 0);
+    public Candidate(
+            String value, String displ, String group, String descr, String suffix, String key, boolean complete) {
+        this(value, displ, group, descr, suffix, key, complete, 0);
     }
 
     /**
@@ -152,22 +161,21 @@ public class Candidate implements Comparable<Candidate> {
     }
 
     /**
-     * Integer used to override default sort logic. 
+     * Integer used to override default sort logic.
      * @return the sort int
      */
     public int sort() {
         return sort;
     }
-    
 
     @Override
     public int compareTo(Candidate o) {
-    	// If both candidates have same sort, use default behavior
-    	if( sort == o.sort() ) {
+        // If both candidates have same sort, use default behavior
+        if (sort == o.sort()) {
             return value.compareTo(o.value);
-    	} else {
-    		return Integer.compare(sort, o.sort());
-    	}
+        } else {
+            return Integer.compare(sort, o.sort());
+        }
     }
 
     @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2016, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -148,7 +148,6 @@ public class DefaultParserTest extends ReaderTestSupport {
         delimited = parser.parse("'//'\\'1 /*'2'\n */3", 0);
         assertEquals(Arrays.asList("//'1", "3"), delimited.words());
 
-
         delimited = parser.parse("hello/*comment*/world", 0);
         assertEquals(Arrays.asList("hello", "world"), delimited.words());
     }
@@ -157,7 +156,7 @@ public class DefaultParserTest extends ReaderTestSupport {
     public void testSqlComments() {
         // The test check sql line comment --
         // and sql block comments /* */
-        parser.setLineCommentDelims(new String[]{"--"});
+        parser.setLineCommentDelims(new String[] {"--"});
         parser.setBlockCommentDelims(new DefaultParser.BlockCommentDelims("/*", "*/"));
 
         delimited = parser.parse("/*/g */", 0);

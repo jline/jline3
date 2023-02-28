@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2017, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,9 +8,9 @@
  */
 package org.jline.style;
 
-import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Map;
+import javax.annotation.Nullable;
 
 import static java.util.Objects.requireNonNull;
 
@@ -19,8 +19,7 @@ import static java.util.Objects.requireNonNull;
  *
  * @since 3.4
  */
-public class NopStyleSource
-        implements StyleSource {
+public class NopStyleSource implements StyleSource {
     // NOTE: preconditions here to help validate usage when this impl is used
 
     /**

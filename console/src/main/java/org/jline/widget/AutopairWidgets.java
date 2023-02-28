@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2020, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -29,10 +29,10 @@ public class AutopairWidgets extends Widgets {
      *  Inspired by zsh-autopair
      *  https://github.com/hlissner/zsh-autopair
      */
-    private static final Map<String,String> LBOUNDS;
-    private static final Map<String,String> RBOUNDS;
-    private final Map<String,String> pairs;
-    private final Map<String,Binding> defaultBindings = new HashMap<>();
+    private static final Map<String, String> LBOUNDS;
+    private static final Map<String, String> RBOUNDS;
+    private final Map<String, String> pairs;
+    private final Map<String, Binding> defaultBindings = new HashMap<>();
     private boolean enabled;
 
     {
@@ -44,6 +44,7 @@ public class AutopairWidgets extends Widgets {
         pairs.put("(", ")");
         pairs.put(" ", " ");
     }
+
     static {
         LBOUNDS = new HashMap<>();
         LBOUNDS.put("all", "[.:/\\!]");
@@ -81,7 +82,7 @@ public class AutopairWidgets extends Widgets {
         addWidget(AUTOPAIR_TOGGLE, this::toggleKeyBindings);
 
         KeyMap<Binding> map = getKeyMap();
-        for (Map.Entry<String, String> p: pairs.entrySet()) {
+        for (Map.Entry<String, String> p : pairs.entrySet()) {
             defaultBindings.put(p.getKey(), map.getBound(p.getKey()));
             if (!p.getKey().equals(p.getValue())) {
                 defaultBindings.put(p.getValue(), map.getBound(p.getValue()));
@@ -128,8 +129,7 @@ public class AutopairWidgets extends Widgets {
     }
 
     public boolean autopairClose() {
-        if (pairs.containsValue(lastBinding())
-            && currChar().equals(lastBinding())) {
+        if (pairs.containsValue(lastBinding()) && currChar().equals(lastBinding())) {
             callWidget(LineReader.FORWARD_CHAR);
         } else {
             callWidget(LineReader.SELF_INSERT);
@@ -138,8 +138,7 @@ public class AutopairWidgets extends Widgets {
     }
 
     public boolean autopairDelete() {
-        if (pairs.containsKey(prevChar()) && pairs.get(prevChar()).equals(currChar())
-                && canDelete(prevChar())) {
+        if (pairs.containsKey(prevChar()) && pairs.get(prevChar()).equals(currChar()) && canDelete(prevChar())) {
             callWidget(LineReader.DELETE_CHAR);
         }
         callWidget(LineReader.BACKWARD_DELETE_CHAR);
@@ -164,7 +163,7 @@ public class AutopairWidgets extends Widgets {
             callWidget(TAILTIP_TOGGLE);
         }
         KeyMap<Binding> map = getKeyMap();
-        for (Map.Entry<String, String> p: pairs.entrySet()) {
+        for (Map.Entry<String, String> p : pairs.entrySet()) {
             map.bind(new Reference(AP_INSERT), p.getKey());
             if (!p.getKey().equals(p.getValue())) {
                 map.bind(new Reference("_autopair-close"), p.getValue());
@@ -179,7 +178,7 @@ public class AutopairWidgets extends Widgets {
 
     private void defaultBindings() {
         KeyMap<Binding> map = getKeyMap();
-        for (Map.Entry<String, String> p: pairs.entrySet()) {
+        for (Map.Entry<String, String> p : pairs.entrySet()) {
             map.bind(defaultBindings.get(p.getKey()), p.getKey());
             if (!p.getKey().equals(p.getValue())) {
                 map.bind(defaultBindings.get(p.getValue()), p.getValue());
@@ -207,8 +206,7 @@ public class AutopairWidgets extends Widgets {
     }
 
     private boolean canSkip(String d) {
-        return pairs.get(d).equals(d) && d.charAt(0) != ' ' && currChar().equals(d)
-                && balanced(d);
+        return pairs.get(d).equals(d) && d.charAt(0) != ' ' && currChar().equals(d) && balanced(d);
     }
 
     private boolean canDelete(String d) {
@@ -220,16 +218,16 @@ public class AutopairWidgets extends Widgets {
         Buffer buf = buffer();
         String lbuf = buf.upToCursor();
         String rbuf = buf.substring(lbuf.length());
-        String regx1 = pairs.get(d).equals(d)? d : "\\" + d;
-        String regx2 = pairs.get(d).equals(d)? pairs.get(d) : "\\" + pairs.get(d);
+        String regx1 = pairs.get(d).equals(d) ? d : "\\" + d;
+        String regx2 = pairs.get(d).equals(d) ? pairs.get(d) : "\\" + pairs.get(d);
         int llen = lbuf.length() - lbuf.replaceAll(regx1, "").length();
         int rlen = rbuf.length() - rbuf.replaceAll(regx2, "").length();
         if (llen == 0 && rlen == 0) {
             out = true;
         } else if (d.charAt(0) == ' ') {
-               out = true;
+            out = true;
         } else if (pairs.get(d).equals(d)) {
-            if ( llen == rlen || (llen + rlen) % 2 == 0 ) {
+            if (llen == rlen || (llen + rlen) % 2 == 0) {
                 out = true;
             }
         } else {
@@ -249,8 +247,7 @@ public class AutopairWidgets extends Widgets {
 
     private boolean boundary(String lb, String rb) {
         return (lb.length() > 0 && prevChar().matches(lb))
-                ||
-                (rb.length() > 0 && currChar().matches(rb));
+                || (rb.length() > 0 && currChar().matches(rb));
     }
 
     private boolean nexToBoundary(String d) {
@@ -266,7 +263,7 @@ public class AutopairWidgets extends Widgets {
         if (LBOUNDS.containsKey(d) && RBOUNDS.containsKey(d)) {
             bk.add(d);
         }
-        for (String k: bk) {
+        for (String k : bk) {
             if (boundary(LBOUNDS.get(k), RBOUNDS.get(k))) {
                 return true;
             }

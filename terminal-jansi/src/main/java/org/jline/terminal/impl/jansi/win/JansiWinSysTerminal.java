@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2020, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -45,9 +45,16 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
     private static final long consoleOut = GetStdHandle(STD_OUTPUT_HANDLE);
     private static final long consoleErr = GetStdHandle(STD_ERROR_HANDLE);
 
-    public static JansiWinSysTerminal createTerminal(String name, String type, boolean ansiPassThrough, Charset encoding,
-                                                     boolean nativeSignals, SignalHandler signalHandler, boolean paused,
-                                                     TerminalProvider.Stream consoleStream) throws IOException {
+    public static JansiWinSysTerminal createTerminal(
+            String name,
+            String type,
+            boolean ansiPassThrough,
+            Charset encoding,
+            boolean nativeSignals,
+            SignalHandler signalHandler,
+            boolean paused,
+            TerminalProvider.Stream consoleStream)
+            throws IOException {
         // Get input console mode
         int[] inMode = new int[1];
         if (Kernel32.GetConsoleMode(consoleIn, inMode) == 0) {
@@ -87,8 +94,8 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
             }
         }
         // Create terminal
-        JansiWinSysTerminal terminal = new JansiWinSysTerminal(writer, name, type, encoding, nativeSignals,
-                signalHandler, consoleIn, inMode[0], console, outMode[0]);
+        JansiWinSysTerminal terminal = new JansiWinSysTerminal(
+                writer, name, type, encoding, nativeSignals, signalHandler, consoleIn, inMode[0], console, outMode[0]);
         // Start input pump thread
         if (!paused) {
             terminal.resume();
@@ -97,7 +104,8 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
     }
 
     private static boolean enableVtp(long console, int outMode) {
-        return Kernel32.SetConsoleMode(console, outMode | AbstractWindowsTerminal.ENABLE_VIRTUAL_TERMINAL_PROCESSING) != 0;
+        return Kernel32.SetConsoleMode(console, outMode | AbstractWindowsTerminal.ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+                != 0;
     }
 
     private static Writer newConsoleWriter(long console) {
@@ -108,16 +116,33 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
         int[] mode = new int[1];
         long console;
         switch (stream) {
-            case Input: console = consoleIn; break;
-            case Output: console = consoleOut; break;
-            case Error: console = consoleErr; break;
-            default: return false;
+            case Input:
+                console = consoleIn;
+                break;
+            case Output:
+                console = consoleOut;
+                break;
+            case Error:
+                console = consoleErr;
+                break;
+            default:
+                return false;
         }
         return Kernel32.GetConsoleMode(console, mode) != 0;
     }
 
-    JansiWinSysTerminal(Writer writer, String name, String type, Charset encoding, boolean nativeSignals, SignalHandler signalHandler,
-                         long inConsole, int inMode, long outConsole, int outMode) throws IOException {
+    JansiWinSysTerminal(
+            Writer writer,
+            String name,
+            String type,
+            Charset encoding,
+            boolean nativeSignals,
+            SignalHandler signalHandler,
+            long inConsole,
+            int inMode,
+            long outConsole,
+            int outMode)
+            throws IOException {
         super(writer, name, type, encoding, nativeSignals, signalHandler, inConsole, inMode, outConsole, outMode);
     }
 
@@ -150,8 +175,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
 
     protected boolean processConsoleInput() throws IOException {
         INPUT_RECORD[] events;
-        if (inConsole != INVALID_HANDLE_VALUE
-                && WaitForSingleObject(inConsole, 100) == 0) {
+        if (inConsole != INVALID_HANDLE_VALUE && WaitForSingleObject(inConsole, 100) == 0) {
             events = readConsoleInputHelper(inConsole, 1, false);
         } else {
             return false;
@@ -161,7 +185,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
         for (INPUT_RECORD event : events) {
             if (event.eventType == INPUT_RECORD.KEY_EVENT) {
                 KEY_EVENT_RECORD keyEvent = event.keyEvent;
-                processKeyEvent(keyEvent.keyDown , keyEvent.keyCode, keyEvent.uchar, keyEvent.controlKeyState);
+                processKeyEvent(keyEvent.keyDown, keyEvent.keyCode, keyEvent.uchar, keyEvent.controlKeyState);
                 flush = true;
             } else if (event.eventType == INPUT_RECORD.WINDOW_BUFFER_SIZE_EVENT) {
                 raise(Signal.WINCH);
@@ -176,7 +200,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
         return flush;
     }
 
-    private char[] focus = new char[] { '\033', '[', ' ' };
+    private char[] focus = new char[] {'\033', '[', ' '};
 
     private void processFocusEvent(boolean hasFocus) throws IOException {
         if (focusTracking) {
@@ -185,18 +209,20 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
         }
     }
 
-    private char[] mouse = new char[] { '\033', '[', 'M', ' ', ' ', ' ' };
+    private char[] mouse = new char[] {'\033', '[', 'M', ' ', ' ', ' '};
 
     private void processMouseEvent(Kernel32.MOUSE_EVENT_RECORD mouseEvent) throws IOException {
         int dwEventFlags = mouseEvent.eventFlags;
         int dwButtonState = mouseEvent.buttonState;
         if (tracking == MouseTracking.Off
                 || tracking == MouseTracking.Normal && dwEventFlags == Kernel32.MOUSE_EVENT_RECORD.MOUSE_MOVED
-                || tracking == MouseTracking.Button && dwEventFlags == Kernel32.MOUSE_EVENT_RECORD.MOUSE_MOVED && dwButtonState == 0) {
+                || tracking == MouseTracking.Button
+                        && dwEventFlags == Kernel32.MOUSE_EVENT_RECORD.MOUSE_MOVED
+                        && dwButtonState == 0) {
             return;
         }
         int cb = 0;
-        dwEventFlags &= ~ Kernel32.MOUSE_EVENT_RECORD.DOUBLE_CLICK; // Treat double-clicks as normal
+        dwEventFlags &= ~Kernel32.MOUSE_EVENT_RECORD.DOUBLE_CLICK; // Treat double-clicks as normal
         if (dwEventFlags == Kernel32.MOUSE_EVENT_RECORD.MOUSE_WHEELED) {
             cb |= 64;
             if ((dwButtonState >> 16) < 0) {
@@ -248,5 +274,4 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
         FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, 0, errorCode, 0, data, bufferSize, null);
         return new String(data, StandardCharsets.UTF_16LE).trim();
     }
-
 }

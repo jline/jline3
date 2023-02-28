@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2016, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -22,10 +22,10 @@ import java.util.logging.Logger;
 import org.jline.reader.Binding;
 import org.jline.reader.Reference;
 import org.jline.reader.impl.LineReaderImpl;
-import org.jline.terminal.Size;
-import org.jline.terminal.impl.DumbTerminal;
 import org.jline.reader.impl.ReaderTestSupport.EofPipedInputStream;
+import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
+import org.jline.terminal.impl.DumbTerminal;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,7 +43,6 @@ import static org.jline.reader.LineReader.SEND_BREAK;
 import static org.jline.reader.LineReader.UP_HISTORY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-
 
 public class KeyMapTest {
 
@@ -138,26 +137,23 @@ public class KeyMapTest {
 
     @Test
     public void testTranslate() {
-        assertEquals("\\\u0007\b\u001b\u001b\f\n\r\t\u000b\u0053\u0045\u2345",
+        assertEquals(
+                "\\\u0007\b\u001b\u001b\f\n\r\t\u000b\u0053\u0045\u2345",
                 translate("\\\\\\a\\b\\e\\E\\f\\n\\r\\t\\v\\123\\x45\\u2345"));
-        assertEquals("\u0001\u0001\u0002\u0002\u0003\u0003\u007f^",
-                translate("\\Ca\\CA\\C-B\\C-b^c^C^?^^"));
+        assertEquals("\u0001\u0001\u0002\u0002\u0003\u0003\u007f^", translate("\\Ca\\CA\\C-B\\C-b^c^C^?^^"));
         assertEquals("\u001b3", translate("'\\e3'"));
         assertEquals("\u001b3", translate("\"\\e3\""));
     }
 
     @Test
     public void testDisplay() {
-        assertEquals("\"\\\\^G^H^[^L^J^M^I\\u0098\\u2345\"",
-                display("\\\u0007\b\u001b\f\n\r\t\u0098\u2345"));
-        assertEquals("\"^A^B^C^?\\^\\\\\"",
-                display("\u0001\u0002\u0003\u007f^\\"));
+        assertEquals("\"\\\\^G^H^[^L^J^M^I\\u0098\\u2345\"", display("\\\u0007\b\u001b\f\n\r\t\u0098\u2345"));
+        assertEquals("\"^A^B^C^?\\^\\\\\"", display("\u0001\u0002\u0003\u007f^\\"));
     }
-    
+
     @Test
     public void testRange() {
         Collection<String> range = range("a^A-a^D");
         assertEquals(Arrays.asList(translate("a^A"), translate("a^B"), translate("a^C"), translate("a^D")), range);
     }
-
 }

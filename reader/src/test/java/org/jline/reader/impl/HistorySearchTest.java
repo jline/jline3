@@ -1,3 +1,11 @@
+/*
+ * Copyright (c) 2023, the original author(s).
+ *
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
+ *
+ * https://opensource.org/licenses/BSD-3-Clause
+ */
 package org.jline.reader.impl;
 
 import java.io.ByteArrayInputStream;
@@ -9,8 +17,6 @@ import org.junit.Test;
 
 import static org.jline.keymap.KeyMap.translate;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class HistorySearchTest extends ReaderTestSupport {

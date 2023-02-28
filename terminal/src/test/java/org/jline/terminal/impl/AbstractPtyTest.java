@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, the original author or authors.
+ * Copyright (c) 2023, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -18,5 +18,4 @@ public class AbstractPtyTest {
     public void testDescriptor() {
         assertNotNull(AbstractPty.newDescriptor(4));
     }
-
 }

@@ -1,27 +1,20 @@
 /*
- * Copyright (C) 2009-2018 the original author(s).
+ * Copyright (c) 2009-2018, the original author(s).
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
  *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.terminal.impl.jansi.win;
+
+import java.io.IOException;
+import java.io.Writer;
 
 import org.fusesource.jansi.WindowsSupport;
 import org.fusesource.jansi.internal.Kernel32.*;
 import org.jline.utils.AnsiWriter;
 import org.jline.utils.Colors;
-
-import java.io.IOException;
-import java.io.Writer;
 
 import static org.fusesource.jansi.internal.Kernel32.*;
 
@@ -50,25 +43,25 @@ public final class WindowsAnsiWriter extends AnsiWriter {
     private static final short BACKGROUND_WHITE = (short) (BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_BLUE);
 
     private static final short[] ANSI_FOREGROUND_COLOR_MAP = {
-            FOREGROUND_BLACK,
-            FOREGROUND_RED,
-            FOREGROUND_GREEN,
-            FOREGROUND_YELLOW,
-            FOREGROUND_BLUE,
-            FOREGROUND_MAGENTA,
-            FOREGROUND_CYAN,
-            FOREGROUND_WHITE,
+        FOREGROUND_BLACK,
+        FOREGROUND_RED,
+        FOREGROUND_GREEN,
+        FOREGROUND_YELLOW,
+        FOREGROUND_BLUE,
+        FOREGROUND_MAGENTA,
+        FOREGROUND_CYAN,
+        FOREGROUND_WHITE,
     };
 
     private static final short[] ANSI_BACKGROUND_COLOR_MAP = {
-            BACKGROUND_BLACK,
-            BACKGROUND_RED,
-            BACKGROUND_GREEN,
-            BACKGROUND_YELLOW,
-            BACKGROUND_BLUE,
-            BACKGROUND_MAGENTA,
-            BACKGROUND_CYAN,
-            BACKGROUND_WHITE,
+        BACKGROUND_BLACK,
+        BACKGROUND_RED,
+        BACKGROUND_GREEN,
+        BACKGROUND_YELLOW,
+        BACKGROUND_BLUE,
+        BACKGROUND_MAGENTA,
+        BACKGROUND_CYAN,
+        BACKGROUND_WHITE,
     };
 
     private final CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO();
@@ -150,14 +143,13 @@ public final class WindowsAnsiWriter extends AnsiWriter {
                 COORD topLeft2 = new COORD();
                 topLeft2.x = 0;
                 topLeft2.y = info.window.top;
-                int lengthToCursor = (info.cursorPosition.y - info.window.top) * info.size.x
-                        + info.cursorPosition.x;
+                int lengthToCursor = (info.cursorPosition.y - info.window.top) * info.size.x + info.cursorPosition.x;
                 FillConsoleOutputAttribute(console, originalColors, lengthToCursor, topLeft2, written);
                 FillConsoleOutputCharacterW(console, ' ', lengthToCursor, topLeft2, written);
                 break;
             case ERASE_SCREEN_TO_END:
-                int lengthToEnd = (info.window.bottom - info.cursorPosition.y) * info.size.x +
-                        (info.size.x - info.cursorPosition.x);
+                int lengthToEnd = (info.window.bottom - info.cursorPosition.y) * info.size.x
+                        + (info.size.x - info.cursorPosition.x);
                 FillConsoleOutputAttribute(console, originalColors, lengthToEnd, info.cursorPosition.copy(), written);
                 FillConsoleOutputCharacterW(console, ' ', lengthToEnd, info.cursorPosition.copy(), written);
                 break;
@@ -185,7 +177,8 @@ public final class WindowsAnsiWriter extends AnsiWriter {
                 break;
             case ERASE_LINE_TO_END:
                 int lengthToLastCol = info.size.x - info.cursorPosition.x;
-                FillConsoleOutputAttribute(console, originalColors, lengthToLastCol, info.cursorPosition.copy(), written);
+                FillConsoleOutputAttribute(
+                        console, originalColors, lengthToLastCol, info.cursorPosition.copy(), written);
                 FillConsoleOutputCharacterW(console, ' ', lengthToLastCol, info.cursorPosition.copy(), written);
                 break;
             default:
@@ -234,7 +227,7 @@ public final class WindowsAnsiWriter extends AnsiWriter {
             scroll.top = 0;
             COORD org = new COORD();
             org.x = 0;
-            org.y = (short)(- nb);
+            org.y = (short) (-nb);
             CHAR_INFO info = new CHAR_INFO();
             info.unicodeChar = ' ';
             info.attributes = originalColors;
@@ -362,7 +355,7 @@ public final class WindowsAnsiWriter extends AnsiWriter {
         scroll.top = info.cursorPosition.y;
         COORD org = new COORD();
         org.x = 0;
-        org.y = (short)(info.cursorPosition.y + optionInt);
+        org.y = (short) (info.cursorPosition.y + optionInt);
         CHAR_INFO info = new CHAR_INFO();
         info.attributes = originalColors;
         info.unicodeChar = ' ';
@@ -378,7 +371,7 @@ public final class WindowsAnsiWriter extends AnsiWriter {
         scroll.top = info.cursorPosition.y;
         COORD org = new COORD();
         org.x = 0;
-        org.y = (short)(info.cursorPosition.y - optionInt);
+        org.y = (short) (info.cursorPosition.y - optionInt);
         CHAR_INFO info = new CHAR_INFO();
         info.attributes = originalColors;
         info.unicodeChar = ' ';

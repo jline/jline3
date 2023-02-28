@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, the original author or authors.
+ * Copyright (c) 2022, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -11,17 +11,14 @@ package org.jline.terminal.spi;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.Properties;
-import java.util.ServiceLoader;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 
-public interface TerminalProvider
-{
+public interface TerminalProvider {
 
     enum Stream {
         Input,
@@ -31,15 +28,28 @@ public interface TerminalProvider
 
     String name();
 
-    Terminal sysTerminal(String name, String type, boolean ansiPassThrough,
-                         Charset encoding, boolean nativeSignals,
-                         Terminal.SignalHandler signalHandler, boolean paused,
-                         Stream consoleStream) throws IOException;
+    Terminal sysTerminal(
+            String name,
+            String type,
+            boolean ansiPassThrough,
+            Charset encoding,
+            boolean nativeSignals,
+            Terminal.SignalHandler signalHandler,
+            boolean paused,
+            Stream consoleStream)
+            throws IOException;
 
-    Terminal newTerminal(String name, String type,
-                         InputStream masterInput, OutputStream masterOutput,
-                         Charset encoding, Terminal.SignalHandler signalHandler,
-                         boolean paused, Attributes attributes, Size size) throws IOException;
+    Terminal newTerminal(
+            String name,
+            String type,
+            InputStream masterInput,
+            OutputStream masterOutput,
+            Charset encoding,
+            Terminal.SignalHandler signalHandler,
+            boolean paused,
+            Attributes attributes,
+            Size size)
+            throws IOException;
 
     boolean isSystemStream(Stream stream);
 
@@ -50,7 +60,7 @@ public interface TerminalProvider
         if (cl == null) {
             cl = ClassLoader.getSystemClassLoader();
         }
-        InputStream is = cl.getResourceAsStream( "META-INF/services/org/jline/terminal/provider/" + name);
+        InputStream is = cl.getResourceAsStream("META-INF/services/org/jline/terminal/provider/" + name);
         if (is != null) {
             Properties props = new Properties();
             try {
@@ -59,14 +69,13 @@ public interface TerminalProvider
                 if (className == null) {
                     throw new IOException("No class defined in terminal provider file " + name);
                 }
-                Class<?> clazz = cl.loadClass( className );
+                Class<?> clazz = cl.loadClass(className);
                 return (TerminalProvider) clazz.getConstructor().newInstance();
-            } catch ( Exception e ) {
+            } catch (Exception e) {
                 throw new IOException("Unable to load terminal provider " + name, e);
             }
         } else {
             throw new IOException("Unable to find terminal provider " + name);
         }
     }
-
 }

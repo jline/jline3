@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019, the original author or authors.
+ * Copyright (c) 2002-2019, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,14 +8,15 @@
  */
 package org.jline.utils;
 
-import java.util.Objects;
-import java.util.Collections;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+
+import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.AbstractTerminal;
 import org.jline.utils.InfoCmp.Capability;
-import org.jline.terminal.Size;
 
 public class Status {
 
@@ -35,18 +36,15 @@ public class Status {
     }
 
     public static Status getStatus(Terminal terminal, boolean create) {
-        return terminal instanceof AbstractTerminal
-                ? ((AbstractTerminal) terminal).getStatus(create)
-                : null;
+        return terminal instanceof AbstractTerminal ? ((AbstractTerminal) terminal).getStatus(create) : null;
     }
-
 
     public Status(AbstractTerminal terminal) {
         this.terminal = Objects.requireNonNull(terminal, "terminal can not be null");
         this.supported = terminal.getStringCapability(Capability.change_scroll_region) != null
-            && terminal.getStringCapability(Capability.save_cursor) != null
-            && terminal.getStringCapability(Capability.restore_cursor) != null
-            && terminal.getStringCapability(Capability.cursor_address) != null;
+                && terminal.getStringCapability(Capability.save_cursor) != null
+                && terminal.getStringCapability(Capability.restore_cursor) != null
+                && terminal.getStringCapability(Capability.cursor_address) != null;
         if (supported) {
             char borderChar = '─';
             AttributedStringBuilder bb = new AttributedStringBuilder();
@@ -154,7 +152,8 @@ public class Status {
             terminal.puts(Capability.cursor_address, rows - lines.size() + i, 0);
             if (lines.get(i).length() > columns) {
                 AttributedStringBuilder asb = new AttributedStringBuilder();
-                asb.append(lines.get(i).substring(0, columns - 3)).append("...", new AttributedStyle(AttributedStyle.INVERSE));
+                asb.append(lines.get(i).substring(0, columns - 3))
+                        .append("...", new AttributedStyle(AttributedStyle.INVERSE));
                 asb.toAttributedString().columnSubSequence(0, columns).print(terminal);
             } else {
                 lines.get(i).columnSubSequence(0, columns).print(terminal);
@@ -190,5 +189,4 @@ public class Status {
     public int size() {
         return oldLines.size() + border;
     }
-
 }

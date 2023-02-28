@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2022, the original author or authors.
+ * Copyright (c) 2002-2022, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -21,11 +21,6 @@ import org.jline.console.CommandInput;
 import org.jline.console.CommandMethods;
 import org.jline.console.CommandRegistry;
 import org.jline.console.Printer;
-import org.jline.utils.AttributedStringBuilder;
-import org.jline.widget.AutopairWidgets;
-import org.jline.widget.AutosuggestionWidgets;
-import org.jline.widget.TailTipWidgets;
-import org.jline.widget.TailTipWidgets.TipType;
 import org.jline.console.impl.Builtins;
 import org.jline.console.impl.DefaultPrinter;
 import org.jline.console.impl.SystemRegistryImpl;
@@ -36,30 +31,35 @@ import org.jline.reader.LineReader.SuggestionType;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.LineReaderImpl;
 import org.jline.reader.impl.completer.ArgumentCompleter;
+import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.reader.impl.completer.SystemCompleter;
-import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.InfoCmp.Capability;
+import org.jline.widget.AutopairWidgets;
+import org.jline.widget.AutosuggestionWidgets;
+import org.jline.widget.TailTipWidgets;
+import org.jline.widget.TailTipWidgets.TipType;
 
-public class Console
-{
-    private static Map<String,CmdDesc> compileTailTips() {
+public class Console {
+    private static Map<String, CmdDesc> compileTailTips() {
         Map<String, CmdDesc> tailTips = new HashMap<>();
         Map<String, List<AttributedString>> optDesc = new HashMap<>();
         optDesc.put("--optionA", Arrays.asList(new AttributedString("optionA description...")));
         optDesc.put("--noitpoB", Arrays.asList(new AttributedString("noitpoB description...")));
-        optDesc.put("--optionC", Arrays.asList(new AttributedString("optionC description...")
-                                             , new AttributedString("line2")));
+        optDesc.put(
+                "--optionC",
+                Arrays.asList(new AttributedString("optionC description..."), new AttributedString("line2")));
         Map<String, List<AttributedString>> widgetOpts = new HashMap<>();
-        List<AttributedString> mainDesc = Arrays.asList(new AttributedString("widget -N new-widget [function-name]")
-                                        , new AttributedString("widget -D widget ...")
-                                        , new AttributedString("widget -A old-widget new-widget")
-                                        , new AttributedString("widget -U string ...")
-                                        , new AttributedString("widget -l [options]")
-                       );
+        List<AttributedString> mainDesc = Arrays.asList(
+                new AttributedString("widget -N new-widget [function-name]"),
+                new AttributedString("widget -D widget ..."),
+                new AttributedString("widget -A old-widget new-widget"),
+                new AttributedString("widget -U string ..."),
+                new AttributedString("widget -l [options]"));
         widgetOpts.put("-N", Arrays.asList(new AttributedString("Create new widget")));
         widgetOpts.put("-D", Arrays.asList(new AttributedString("Delete widgets")));
         widgetOpts.put("-A", Arrays.asList(new AttributedString("Create alias to widget")));
@@ -68,32 +68,39 @@ public class Console
 
         tailTips.put("widget", new CmdDesc(mainDesc, ArgDesc.doArgNames(Arrays.asList("[pN...]")), widgetOpts));
         tailTips.put("foo12", new CmdDesc(ArgDesc.doArgNames(Arrays.asList("param1", "param2", "[paramN...]"))));
-        tailTips.put("foo11", new CmdDesc(Arrays.asList(
-                new ArgDesc("param1",Arrays.asList(new AttributedString("Param1 description...")
-                                                , new AttributedString("line 2: This is a very long line that does exceed the terminal width."
-                                                      +" The line will be truncated automatically (by Status class) before printing out.")
-                                                , new AttributedString("line 3")
-                                                , new AttributedString("line 4")
-                                                , new AttributedString("line 5")
-                                                , new AttributedString("line 6")
-                                                  ))
-              , new ArgDesc("param2",Arrays.asList(new AttributedString("Param2 description...")
-                                                , new AttributedString("line 2")
-                                                  ))
-              , new ArgDesc("param3", new ArrayList<>())
-              ), optDesc));
+        tailTips.put(
+                "foo11",
+                new CmdDesc(
+                        Arrays.asList(
+                                new ArgDesc(
+                                        "param1",
+                                        Arrays.asList(
+                                                new AttributedString("Param1 description..."),
+                                                new AttributedString(
+                                                        "line 2: This is a very long line that does exceed the terminal width."
+                                                                + " The line will be truncated automatically (by Status class) before printing out."),
+                                                new AttributedString("line 3"),
+                                                new AttributedString("line 4"),
+                                                new AttributedString("line 5"),
+                                                new AttributedString("line 6"))),
+                                new ArgDesc(
+                                        "param2",
+                                        Arrays.asList(
+                                                new AttributedString("Param2 description..."),
+                                                new AttributedString("line 2"))),
+                                new ArgDesc("param3", new ArrayList<>())),
+                        optDesc));
         return tailTips;
     }
-
 
     private static class ExampleCommands implements CommandRegistry {
         private LineReader reader;
         private AutosuggestionWidgets autosuggestionWidgets;
         private TailTipWidgets tailtipWidgets;
         private AutopairWidgets autopairWidgets;
-        private final Map<String,CommandMethods> commandExecute = new HashMap<>();
-        private final Map<String,List<String>> commandInfo = new HashMap<>();
-        private final Map<String,String> aliasCommand = new HashMap<>();
+        private final Map<String, CommandMethods> commandExecute = new HashMap<>();
+        private final Map<String, List<String>> commandInfo = new HashMap<>();
+        private final Map<String, String> aliasCommand = new HashMap<>();
         private Exception exception;
         private final Printer printer;
         private final Printer myPrinter;
@@ -105,13 +112,18 @@ public class Console
             commandExecute.put("testkey", new CommandMethods(this::testkey, this::defaultCompleter));
             commandExecute.put("clear", new CommandMethods(this::clear, this::defaultCompleter));
             commandExecute.put("autopair", new CommandMethods(this::autopair, this::defaultCompleter));
-            commandExecute.put("autosuggestion", new CommandMethods(this::autosuggestion, this::autosuggestionCompleter));
+            commandExecute.put(
+                    "autosuggestion", new CommandMethods(this::autosuggestion, this::autosuggestionCompleter));
 
-            commandInfo.put("testprint", Arrays.asList("print table using DefaultPrinter (args.length=0) or MyPrinter (args.length>0)"));
+            commandInfo.put(
+                    "testprint",
+                    Arrays.asList("print table using DefaultPrinter (args.length=0) or MyPrinter (args.length>0)"));
             commandInfo.put("testkey", Arrays.asList("display key events"));
             commandInfo.put("clear", Arrays.asList("clear screen"));
             commandInfo.put("autopair", Arrays.asList("toggle brackets/quotes autopair key bindings"));
-            commandInfo.put("autosuggestion", Arrays.asList("set autosuggestion modality: history, completer, tailtip or none"));
+            commandInfo.put(
+                    "autosuggestion",
+                    Arrays.asList("set autosuggestion modality: history, completer, tailtip or none"));
         }
 
         public void setLineReader(LineReader reader) {
@@ -180,9 +192,9 @@ public class Console
             return new CmdDesc(false);
         }
 
-        private Map<String,Object> fillMap(String name, Integer age, String country, String town) {
-            Map<String,Object> out = new HashMap<>();
-            Map<String,String> address = new HashMap<>();
+        private Map<String, Object> fillMap(String name, Integer age, String country, String town) {
+            Map<String, Object> out = new HashMap<>();
+            Map<String, String> address = new HashMap<>();
             address.put("country", country);
             address.put("town", town);
             out.put("name", name);
@@ -193,20 +205,20 @@ public class Console
 
         private void testprint(CommandInput input) {
             Printer p = input.args().length > 0 ? myPrinter : printer;
-            List<Map<String,Object>> data = new ArrayList<>();
+            List<Map<String, Object>> data = new ArrayList<>();
             data.add(fillMap("heikki", 10, "finland", "helsinki"));
             data.add(fillMap("pietro", 11, "italy", "milano"));
             data.add(fillMap("john", 12, "england", "london"));
             p.println("Printing tables using: " + p.getClass().getName());
             p.println(data);
-            Map<String,Object> options = new HashMap<>();
+            Map<String, Object> options = new HashMap<>();
             options.put(Printer.STRUCT_ON_TABLE, true);
             options.put(Printer.VALUE_STYLE, "classpath:/org/jline/example/gron.nanorc");
-            p.println(options,data);
+            p.println(options, data);
             options.clear();
             options.put(Printer.COLUMNS, Arrays.asList("name", "age", "address.country", "address.town"));
             options.put(Printer.SHORT_NAMES, true);
-            p.println(options,data);
+            p.println(options, data);
         }
 
         private void testkey(CommandInput input) {
@@ -302,13 +314,15 @@ public class Console
 
         private List<Completer> autosuggestionCompleter(String command) {
             List<Completer> out = new ArrayList<>();
-            out.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                                        , new StringsCompleter("history", "completer", "none")
-                                        , NullCompleter.INSTANCE));
-            out.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                                        , new StringsCompleter("tailtip")
-                                        , new StringsCompleter("tailtip", "completer", "combined")
-                                        , NullCompleter.INSTANCE));
+            out.add(new ArgumentCompleter(
+                    NullCompleter.INSTANCE,
+                    new StringsCompleter("history", "completer", "none"),
+                    NullCompleter.INSTANCE));
+            out.add(new ArgumentCompleter(
+                    NullCompleter.INSTANCE,
+                    new StringsCompleter("tailtip"),
+                    new StringsCompleter("tailtip", "completer", "combined"),
+                    NullCompleter.INSTANCE));
             return out;
         }
     }
@@ -347,21 +361,25 @@ public class Console
 
     public static void main(String[] args) {
         try {
-            Completer completer = new ArgumentCompleter(new Completer() {
-                @Override
-                public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
-                    candidates.add(new Candidate("foo11", "foo11", null, "complete cmdDesc", null, null, true));
-                    candidates.add(new Candidate("foo12", "foo12", null, "cmdDesc -names only", null, null, true));
-                    candidates.add(new Candidate("foo13", "foo13", null, "-", null, null, true));
-                    candidates.add(
-                            new Candidate("widget", "widget", null, "cmdDesc with short options", null, null, true));
-                }
-            }, new StringsCompleter("foo21", "foo22", "foo23"), new Completer() {
-                @Override
-                public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
-                    candidates.add(new Candidate("", "", null, "frequency in MHz", null, null, false));
-                }
-            });
+            Completer completer = new ArgumentCompleter(
+                    new Completer() {
+                        @Override
+                        public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
+                            candidates.add(new Candidate("foo11", "foo11", null, "complete cmdDesc", null, null, true));
+                            candidates.add(
+                                    new Candidate("foo12", "foo12", null, "cmdDesc -names only", null, null, true));
+                            candidates.add(new Candidate("foo13", "foo13", null, "-", null, null, true));
+                            candidates.add(new Candidate(
+                                    "widget", "widget", null, "cmdDesc with short options", null, null, true));
+                        }
+                    },
+                    new StringsCompleter("foo21", "foo22", "foo23"),
+                    new Completer() {
+                        @Override
+                        public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
+                            candidates.add(new Candidate("", "", null, "frequency in MHz", null, null, false));
+                        }
+                    });
 
             Terminal terminal = TerminalBuilder.builder().build();
             Parser parser = new DefaultParser();
@@ -421,22 +439,17 @@ public class Console
                     masterRegistry.cleanUp();
                     String line = reader.readLine("prompt> ", null, (MaskingCallback) null, null);
                     masterRegistry.execute(line);
-                }
-                catch (UserInterruptException e) {
+                } catch (UserInterruptException e) {
                     // Ignore
-                }
-                catch (EndOfFileException e) {
+                } catch (EndOfFileException e) {
                     break;
-                }
-                catch (Exception|Error e) {
+                } catch (Exception | Error e) {
                     masterRegistry.trace(true, e);
                 }
             }
             masterRegistry.close();
-        }
-        catch (Throwable t) {
+        } catch (Throwable t) {
             t.printStackTrace();
         }
     }
-
 }

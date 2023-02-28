@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2020, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,20 +8,20 @@
  */
 package org.jline.terminal.impl.jansi;
 
-import org.fusesource.jansi.internal.CLibrary;
-import org.jline.terminal.Attributes;
-import org.jline.terminal.Size;
-import org.jline.terminal.impl.AbstractPty;
-import org.jline.terminal.spi.TerminalProvider;
-import org.jline.terminal.spi.Pty;
-import org.jline.utils.OSUtils;
-
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+
+import org.fusesource.jansi.internal.CLibrary;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Size;
+import org.jline.terminal.impl.AbstractPty;
+import org.jline.terminal.spi.Pty;
+import org.jline.terminal.spi.TerminalProvider;
+import org.jline.utils.OSUtils;
 
 import static org.fusesource.jansi.internal.CLibrary.TCSANOW;
 import static org.jline.terminal.impl.jansi.JansiTerminalProvider.JANSI_MAJOR_VERSION;
@@ -42,7 +42,14 @@ public abstract class JansiNativePty extends AbstractPty implements Pty {
         this(master, masterFD, slave, slaveFD, slave, slaveFD, name);
     }
 
-    public JansiNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, int slaveOut, FileDescriptor slaveOutFD, String name) {
+    public JansiNativePty(
+            int master,
+            FileDescriptor masterFD,
+            int slave,
+            FileDescriptor slaveFD,
+            int slaveOut,
+            FileDescriptor slaveOutFD,
+            String name) {
         this.master = master;
         this.slave = slave;
         this.slaveOut = slaveOut;
@@ -126,7 +133,6 @@ public abstract class JansiNativePty extends AbstractPty implements Pty {
         return new FileOutputStream(getSlaveOutFD());
     }
 
-
     @Override
     public Attributes getAttr() throws IOException {
         CLibrary.Termios tios = new CLibrary.Termios();
@@ -170,20 +176,27 @@ public abstract class JansiNativePty extends AbstractPty implements Pty {
 
     public static boolean isPosixSystemStream(TerminalProvider.Stream stream) {
         switch (stream) {
-            case Input: return CLibrary.isatty(0) == 1;
-            case Output: return CLibrary.isatty(1) == 1;
-            case Error: return CLibrary.isatty(2) == 1;
-            default: return false;
+            case Input:
+                return CLibrary.isatty(0) == 1;
+            case Output:
+                return CLibrary.isatty(1) == 1;
+            case Error:
+                return CLibrary.isatty(2) == 1;
+            default:
+                return false;
         }
     }
 
     public static String posixSystemStreamName(TerminalProvider.Stream stream) {
         switch (stream) {
-            case Input: return CLibrary.ttyname(0);
-            case Output: return CLibrary.ttyname(1);
-            case Error: return CLibrary.ttyname(2);
-            default: return null;
+            case Input:
+                return CLibrary.ttyname(0);
+            case Output:
+                return CLibrary.ttyname(1);
+            case Error:
+                return CLibrary.ttyname(2);
+            default:
+                return null;
         }
     }
-
 }

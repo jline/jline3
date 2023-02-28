@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2022, the original author or authors.
+ * Copyright (c) 2002-2022, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -67,23 +67,21 @@ import static org.jline.terminal.TerminalBuilder.PROP_DISABLE_ALTERNATE_CHARSET;
  * @author <a href="mailto:gnodet@gmail.com">Guillaume Nodet</a>
  */
 @SuppressWarnings("StatementWithEmptyBody")
-public class LineReaderImpl implements LineReader, Flushable
-{
+public class LineReaderImpl implements LineReader, Flushable {
     public static final char NULL_MASK = 0;
 
     public static final int TAB_WIDTH = 4;
-
 
     public static final String DEFAULT_WORDCHARS = "*?_-.[]~=/&;!#$%^(){}<>";
     public static final String DEFAULT_REMOVE_SUFFIX_CHARS = " \t\n;&|";
     public static final String DEFAULT_COMMENT_BEGIN = "#";
     public static final String DEFAULT_SEARCH_TERMINATORS = "\033\012";
     public static final String DEFAULT_BELL_STYLE = "";
-    public static final int    DEFAULT_LIST_MAX = 100;
-    public static final int    DEFAULT_MENU_LIST_MAX = Integer.MAX_VALUE;
-    public static final int    DEFAULT_ERRORS = 2;
-    public static final long   DEFAULT_BLINK_MATCHING_PAREN = 500L;
-    public static final long   DEFAULT_AMBIGUOUS_BINDING = 1000L;
+    public static final int DEFAULT_LIST_MAX = 100;
+    public static final int DEFAULT_MENU_LIST_MAX = Integer.MAX_VALUE;
+    public static final int DEFAULT_ERRORS = 2;
+    public static final long DEFAULT_BLINK_MATCHING_PAREN = 500L;
+    public static final long DEFAULT_AMBIGUOUS_BINDING = 1000L;
     public static final String DEFAULT_SECONDARY_PROMPT_PATTERN = "%M> ";
     public static final String DEFAULT_OTHERS_GROUP_NAME = "others";
     public static final String DEFAULT_ORIGINAL_GROUP_NAME = "original";
@@ -97,9 +95,9 @@ public class LineReaderImpl implements LineReader, Flushable
     public static final String DEFAULT_COMPLETION_STYLE_LIST_GROUP = "fg:black,bold";
     public static final String DEFAULT_COMPLETION_STYLE_LIST_SELECTION = DEFAULT_COMPLETION_STYLE_SELECTION;
     public static final String DEFAULT_COMPLETION_STYLE_LIST_BACKGROUND = "bg:bright-magenta";
-    public static final int    DEFAULT_INDENTATION = 0;
-    public static final int    DEFAULT_FEATURES_MAX_BUFFER_SIZE = 1000;
-    public static final int    DEFAULT_SUGGESTIONS_MIN_BUFFER_SIZE = 1;
+    public static final int DEFAULT_INDENTATION = 0;
+    public static final int DEFAULT_FEATURES_MAX_BUFFER_SIZE = 1000;
+    public static final int DEFAULT_SUGGESTIONS_MIN_BUFFER_SIZE = 1;
 
     private static final int MIN_ROWS = 3;
 
@@ -198,27 +196,28 @@ public class LineReaderImpl implements LineReader, Flushable
     protected int searchIndex = -1;
     protected boolean doAutosuggestion;
 
-
     // Reading buffers
     protected final BindingReader bindingReader;
-
 
     /**
      * VI character find
      */
     protected int findChar;
+
     protected int findDir;
     protected int findTailAdd;
     /**
      * VI history string search
      */
     private int searchDir;
+
     private String searchString;
 
     /**
      * Region state
      */
     protected int regionMark;
+
     protected RegionType regionActive;
 
     private boolean forceChar;
@@ -243,7 +242,7 @@ public class LineReaderImpl implements LineReader, Flushable
     /*
      * Current internal state of the line reader
      */
-    protected State   state = State.DONE;
+    protected State state = State.DONE;
     protected final AtomicBoolean startedReading = new AtomicBoolean();
     protected boolean reading;
 
@@ -497,7 +496,8 @@ public class LineReaderImpl implements LineReader, Flushable
      * @param buffer    A string that will be set for editing.
      * @return          A line that is read from the terminal, can never be null.
      */
-    public String readLine(String prompt, Character mask, String buffer) throws UserInterruptException, EndOfFileException {
+    public String readLine(String prompt, Character mask, String buffer)
+            throws UserInterruptException, EndOfFileException {
         return readLine(prompt, null, mask, buffer);
     }
 
@@ -511,7 +511,8 @@ public class LineReaderImpl implements LineReader, Flushable
      * @param buffer      A string that will be set for editing.
      * @return            A line that is read from the terminal, can never be null.
      */
-    public String readLine(String prompt, String rightPrompt, Character mask, String buffer) throws UserInterruptException, EndOfFileException {
+    public String readLine(String prompt, String rightPrompt, Character mask, String buffer)
+            throws UserInterruptException, EndOfFileException {
         return readLine(prompt, rightPrompt, mask != null ? new SimpleMaskingCallback(mask) : null, buffer);
     }
 
@@ -525,7 +526,8 @@ public class LineReaderImpl implements LineReader, Flushable
      * @param buffer          A string that will be set for editing.
      * @return                A line that is read from the terminal, can never be null.
      */
-    public String readLine(String prompt, String rightPrompt, MaskingCallback maskingCallback, String buffer) throws UserInterruptException, EndOfFileException {
+    public String readLine(String prompt, String rightPrompt, MaskingCallback maskingCallback, String buffer)
+            throws UserInterruptException, EndOfFileException {
         // prompt may be null
         // maskingCallback may be null
         // buffer may be null
@@ -626,12 +628,9 @@ public class LineReaderImpl implements LineReader, Flushable
                 // Move into application mode
                 if (!dumb) {
                     terminal.puts(Capability.keypad_xmit);
-                    if (isSet(Option.AUTO_FRESH_LINE))
-                        callWidget(FRESH_LINE);
-                    if (isSet(Option.MOUSE))
-                        terminal.trackMouse(Terminal.MouseTracking.Normal);
-                    if (isSet(Option.BRACKETED_PASTE))
-                        terminal.writer().write(BRACKETED_PASTE_ON);
+                    if (isSet(Option.AUTO_FRESH_LINE)) callWidget(FRESH_LINE);
+                    if (isSet(Option.MOUSE)) terminal.trackMouse(Terminal.MouseTracking.Normal);
+                    if (isSet(Option.BRACKETED_PASTE)) terminal.writer().write(BRACKETED_PASTE_ON);
                 } else {
                     // For dumb terminals, we need to make sure that CR are ignored
                     Attributes attr = new Attributes(originalAttributes);
@@ -641,8 +640,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
                 callWidget(CALLBACK_INIT);
 
-                if (!isSet(Option.DISABLE_UNDO))
-                    undo.newState(buf.copy());
+                if (!isSet(Option.DISABLE_UNDO)) undo.newState(buf.copy());
 
                 // Draw initial prompt
                 redrawLine();
@@ -662,7 +660,8 @@ public class LineReaderImpl implements LineReader, Flushable
                     throw new EndOfFileException().partialLine(buf.length() > 0 ? buf.toString() : null);
                 }
                 Log.trace("Binding: ", o);
-                if (buf.length() == 0 && getLastBinding().charAt(0) == originalAttributes.getControlChar(ControlChar.VEOF)) {
+                if (buf.length() == 0
+                        && getLastBinding().charAt(0) == originalAttributes.getControlChar(ControlChar.VEOF)) {
                     throw new EndOfFileException();
                 }
 
@@ -683,12 +682,17 @@ public class LineReaderImpl implements LineReader, Flushable
                 try {
                     lock.lock();
                     // Get executable widget
-                    Buffer copy = buf.length() <= getInt(FEATURES_MAX_BUFFER_SIZE, DEFAULT_FEATURES_MAX_BUFFER_SIZE) ? buf.copy() : null;
+                    Buffer copy = buf.length() <= getInt(FEATURES_MAX_BUFFER_SIZE, DEFAULT_FEATURES_MAX_BUFFER_SIZE)
+                            ? buf.copy()
+                            : null;
                     Widget w = getWidget(o);
                     if (!w.apply()) {
                         beep();
                     }
-                    if (!isSet(Option.DISABLE_UNDO) && !isUndo && copy != null && buf.length() <= getInt(FEATURES_MAX_BUFFER_SIZE, DEFAULT_FEATURES_MAX_BUFFER_SIZE)
+                    if (!isSet(Option.DISABLE_UNDO)
+                            && !isUndo
+                            && copy != null
+                            && buf.length() <= getInt(FEATURES_MAX_BUFFER_SIZE, DEFAULT_FEATURES_MAX_BUFFER_SIZE)
                             && !copy.toString().equals(buf.toString())) {
                         undo.newState(buf.copy());
                     }
@@ -726,8 +730,7 @@ public class LineReaderImpl implements LineReader, Flushable
             } else {
                 throw e;
             }
-        }
-        finally {
+        } finally {
             try {
                 lock.lock();
 
@@ -754,8 +757,7 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     private boolean isTerminalDumb() {
-        return Terminal.TYPE_DUMB.equals(terminal.getType())
-                || Terminal.TYPE_DUMB_COLOR.equals(terminal.getType());
+        return Terminal.TYPE_DUMB.equals(terminal.getType()) || Terminal.TYPE_DUMB_COLOR.equals(terminal.getType());
     }
 
     private void doDisplay() {
@@ -765,8 +767,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
         display = new Display(terminal, false);
         display.resize(size.getRows(), size.getColumns());
-        if (isSet(Option.DELAY_LINE_WRAP))
-            display.setDelayLineWrap(true);
+        if (isSet(Option.DELAY_LINE_WRAP)) display.setDelayLineWrap(true);
     }
 
     @Override
@@ -973,8 +974,10 @@ public class LineReaderImpl implements LineReader, Flushable
             if (!YANK_POP.equals(ref) && !YANK.equals(ref)) {
                 killRing.resetLastYank();
             }
-            if (!KILL_LINE.equals(ref) && !KILL_WHOLE_LINE.equals(ref)
-                    && !BACKWARD_KILL_WORD.equals(ref) && !KILL_WORD.equals(ref)) {
+            if (!KILL_LINE.equals(ref)
+                    && !KILL_WHOLE_LINE.equals(ref)
+                    && !BACKWARD_KILL_WORD.equals(ref)
+                    && !KILL_WORD.equals(ref)) {
                 killRing.resetLastKill();
             }
         }
@@ -1145,7 +1148,7 @@ public class LineReaderImpl implements LineReader, Flushable
         }
 
         // we only add it to the history if the buffer is not empty
-        if (historyLine != null && historyLine.length() > 0 ) {
+        if (historyLine != null && historyLine.length() > 0) {
             history.add(Instant.now(), historyLine);
         }
         return str;
@@ -1163,8 +1166,7 @@ public class LineReaderImpl implements LineReader, Flushable
             // restores prompt but also prevents scrolling in consoleZ, see #492
             // redrawLine();
             redisplay();
-        }
-        else if (signal == Signal.CONT) {
+        } else if (signal == Signal.CONT) {
             terminal.enterRawMode();
             size.copy(terminal.getBufferSize());
             display.resize(size.getRows(), size.getColumns());
@@ -1208,13 +1210,11 @@ public class LineReaderImpl implements LineReader, Flushable
     //
 
     public void setPrompt(final String prompt) {
-        this.prompt = (prompt == null ? AttributedString.EMPTY
-                       : expandPromptPattern(prompt, 0, "", 0));
+        this.prompt = (prompt == null ? AttributedString.EMPTY : expandPromptPattern(prompt, 0, "", 0));
     }
 
     public void setRightPrompt(final String rightPrompt) {
-        this.rightPrompt = (rightPrompt == null ? AttributedString.EMPTY
-                            : expandPromptPattern(rightPrompt, 0, "", 0));
+        this.rightPrompt = (rightPrompt == null ? AttributedString.EMPTY : expandPromptPattern(rightPrompt, 0, "", 0));
     }
 
     protected void setBuffer(Buffer buffer) {
@@ -1241,7 +1241,7 @@ public class LineReaderImpl implements LineReader, Flushable
      * @param op The incoming operation to remap
      * @return The remaped operation
      */
-    protected String viDeleteChangeYankToRemap (String op) {
+    protected String viDeleteChangeYankToRemap(String op) {
         switch (op) {
             case SEND_BREAK:
             case BACKWARD_CHAR:
@@ -1300,7 +1300,6 @@ public class LineReaderImpl implements LineReader, Flushable
         return VICMD.equals(keyMap);
     }
 
-
     //
     // Movement
     //
@@ -1340,7 +1339,6 @@ public class LineReaderImpl implements LineReader, Flushable
         return true;
     }
 
-
     //
     // Word movement
     //
@@ -1373,9 +1371,7 @@ public class LineReaderImpl implements LineReader, Flushable
                     buf.move(1);
                 }
             } else {
-                while (buf.cursor() < buf.length()
-                        && !isViAlphaNum(buf.currChar())
-                        && !isWhitespace(buf.currChar())) {
+                while (buf.cursor() < buf.length() && !isViAlphaNum(buf.currChar()) && !isWhitespace(buf.currChar())) {
                     buf.move(1);
                 }
             }
@@ -1383,9 +1379,7 @@ public class LineReaderImpl implements LineReader, Flushable
                 return true;
             }
             int nl = buf.currChar() == '\n' ? 1 : 0;
-            while (buf.cursor() < buf.length()
-                    && nl < 2
-                    && isWhitespace(buf.currChar())) {
+            while (buf.cursor() < buf.length() && nl < 2 && isWhitespace(buf.currChar())) {
                 buf.move(1);
                 nl += buf.currChar() == '\n' ? 1 : 0;
             }
@@ -1405,9 +1399,7 @@ public class LineReaderImpl implements LineReader, Flushable
                 return true;
             }
             int nl = buf.currChar() == '\n' ? 1 : 0;
-            while (buf.cursor() < buf.length()
-                    && nl < 2
-                    && isWhitespace(buf.currChar())) {
+            while (buf.cursor() < buf.length() && nl < 2 && isWhitespace(buf.currChar())) {
                 buf.move(1);
                 nl += buf.currChar() == '\n' ? 1 : 0;
             }
@@ -1459,7 +1451,9 @@ public class LineReaderImpl implements LineReader, Flushable
                     }
                 } else {
                     buf.move(1);
-                    while (buf.cursor() < buf.length() && !isViAlphaNum(buf.nextChar()) && !isWhitespace(buf.nextChar())) {
+                    while (buf.cursor() < buf.length()
+                            && !isViAlphaNum(buf.nextChar())
+                            && !isWhitespace(buf.nextChar())) {
                         buf.move(1);
                     }
                 }
@@ -1728,9 +1722,7 @@ public class LineReaderImpl implements LineReader, Flushable
                 buf.move(1);
             }
             while (buf.cursor() < buf.length() && isWord(buf.currChar())) {
-                buf.currChar(first
-                        ? Character.toUpperCase(buf.currChar())
-                        : Character.toLowerCase(buf.currChar()));
+                buf.currChar(first ? Character.toUpperCase(buf.currChar()) : Character.toLowerCase(buf.currChar()));
                 buf.move(1);
                 first = false;
             }
@@ -1818,7 +1810,8 @@ public class LineReaderImpl implements LineReader, Flushable
                 sta1--;
             }
             end1 = sta1;
-            while (end1 < lend && !isDelimiter(buf.atChar(++end1)));
+            while (end1 < lend && !isDelimiter(buf.atChar(++end1)))
+                ;
             if (neg) {
                 end2 = sta1 - 1;
                 while (end2 > lstart && isDelimiter(buf.atChar(end2 - 1))) {
@@ -1827,9 +1820,11 @@ public class LineReaderImpl implements LineReader, Flushable
                 if (end2 < lstart) {
                     // No word before, use the word after
                     sta2 = end1;
-                    while (isDelimiter(buf.atChar(++sta2)));
+                    while (isDelimiter(buf.atChar(++sta2)))
+                        ;
                     end2 = sta2;
-                    while (end2 < lend && !isDelimiter(buf.atChar(++end2)));
+                    while (end2 < lend && !isDelimiter(buf.atChar(++end2)))
+                        ;
                 } else {
                     sta2 = end2;
                     while (sta2 > lstart && !isDelimiter(buf.atChar(sta2 - 1))) {
@@ -1838,7 +1833,8 @@ public class LineReaderImpl implements LineReader, Flushable
                 }
             } else {
                 sta2 = end1;
-                while (sta2 < lend && isDelimiter(buf.atChar(++sta2)));
+                while (sta2 < lend && isDelimiter(buf.atChar(++sta2)))
+                    ;
                 if (sta2 == lend) {
                     // No word after, use the word before
                     end2 = sta1;
@@ -1851,19 +1847,24 @@ public class LineReaderImpl implements LineReader, Flushable
                     }
                 } else {
                     end2 = sta2;
-                    while (end2 < lend && !isDelimiter(buf.atChar(++end2))) ;
+                    while (end2 < lend && !isDelimiter(buf.atChar(++end2)))
+                        ;
                 }
             }
             if (sta1 < sta2) {
-                String res = buf.substring(0, sta1) + buf.substring(sta2, end2)
-                        + buf.substring(end1, sta2) + buf.substring(sta1, end1)
+                String res = buf.substring(0, sta1)
+                        + buf.substring(sta2, end2)
+                        + buf.substring(end1, sta2)
+                        + buf.substring(sta1, end1)
                         + buf.substring(end2);
                 buf.clear();
                 buf.write(res);
                 buf.cursor(neg ? end1 : end2);
             } else {
-                String res = buf.substring(0, sta2) + buf.substring(sta1, end1)
-                        + buf.substring(end2, sta1) + buf.substring(sta2, end2)
+                String res = buf.substring(0, sta2)
+                        + buf.substring(sta1, end1)
+                        + buf.substring(end2, sta1)
+                        + buf.substring(sta2, end2)
                         + buf.substring(end1);
                 buf.clear();
                 buf.write(res);
@@ -1996,11 +1997,11 @@ public class LineReaderImpl implements LineReader, Flushable
         while (count-- > 0) {
             do {
                 buf.move(findDir);
-            } while (buf.cursor() > 0 && buf.cursor() < buf.length()
+            } while (buf.cursor() > 0
+                    && buf.cursor() < buf.length()
                     && buf.currChar() != findChar
                     && buf.currChar() != '\n');
-            if (buf.cursor() <= 0 || buf.cursor() >= buf.length()
-                    || buf.currChar() == '\n') {
+            if (buf.cursor() <= 0 || buf.cursor() >= buf.length() || buf.currChar() == '\n') {
                 buf.cursor(cursor);
                 return false;
             }
@@ -2219,18 +2220,17 @@ public class LineReaderImpl implements LineReader, Flushable
      *   character or if there was no matching bracket.
      */
     protected boolean doViMatchBracket() {
-        int pos        = buf.cursor();
+        int pos = buf.cursor();
 
         if (pos == buf.length()) {
             return false;
         }
 
-        int type       = getBracketType(buf.atChar(pos));
-        int move       = (type < 0) ? -1 : 1;
-        int count      = 1;
+        int type = getBracketType(buf.atChar(pos));
+        int move = (type < 0) ? -1 : 1;
+        int count = 1;
 
-        if (type == 0)
-            return false;
+        if (type == 0) return false;
 
         while (count > 0) {
             pos += move;
@@ -2243,8 +2243,7 @@ public class LineReaderImpl implements LineReader, Flushable
             int curType = getBracketType(buf.atChar(pos));
             if (curType == type) {
                 ++count;
-            }
-            else if (curType == -type) {
+            } else if (curType == -type) {
                 --count;
             }
         }
@@ -2253,8 +2252,7 @@ public class LineReaderImpl implements LineReader, Flushable
          * Slight adjustment for delete-to, yank-to, change-to to ensure
          * that the matching paren is consumed
          */
-        if (move > 0 && isInViMoveOperation())
-            ++pos;
+        if (move > 0 && isInViMoveOperation()) ++pos;
 
         buf.cursor(pos);
         return true;
@@ -2267,14 +2265,20 @@ public class LineReaderImpl implements LineReader, Flushable
      * @return 1 is square, 2 curly, 3 parent, or zero for none.  The value
      *   will be negated if it is the closing form of the bracket.
      */
-    protected int getBracketType (int ch) {
+    protected int getBracketType(int ch) {
         switch (ch) {
-            case '[': return  1;
-            case ']': return -1;
-            case '{': return  2;
-            case '}': return -2;
-            case '(': return  3;
-            case ')': return -3;
+            case '[':
+                return 1;
+            case ']':
+                return -1;
+            case '{':
+                return 2;
+            case '}':
+                return -2;
+            case '(':
+                return 3;
+            case ')':
+                return -3;
             default:
                 return 0;
         }
@@ -2339,7 +2343,7 @@ public class LineReaderImpl implements LineReader, Flushable
             buf.clear();
             println();
             redrawLine();
-//            state = State.INTERRUPT;
+            //            state = State.INTERRUPT;
             return false;
         }
         return true;
@@ -2446,10 +2450,12 @@ public class LineReaderImpl implements LineReader, Flushable
     protected boolean viYankWholeLine() {
         int s, e;
         int p = buf.cursor();
-        while (buf.move(-1) == -1 && buf.prevChar() != '\n') ;
+        while (buf.move(-1) == -1 && buf.prevChar() != '\n')
+            ;
         s = buf.cursor();
         for (int i = 0; i < repeatCount; i++) {
-            while (buf.move(1) == 1 && buf.prevChar() != '\n') ;
+            while (buf.move(1) == 1 && buf.prevChar() != '\n')
+                ;
         }
         e = buf.cursor();
         yankBuffer = buf.substring(s, e);
@@ -2562,15 +2568,19 @@ public class LineReaderImpl implements LineReader, Flushable
         return doSearchHistory(true);
     }
 
-    static class Pair<U,V> {
-        final U u; final V v;
+    static class Pair<U, V> {
+        final U u;
+        final V v;
+
         public Pair(U u, V v) {
             this.u = u;
             this.v = v;
         }
+
         public U getU() {
             return u;
         }
+
         public V getV() {
             return v;
         }
@@ -2583,7 +2593,8 @@ public class LineReaderImpl implements LineReader, Flushable
 
         KeyMap<Binding> terminators = new KeyMap<>();
         getString(SEARCH_TERMINATORS, DEFAULT_SEARCH_TERMINATORS)
-                .codePoints().forEach(c -> bind(terminators, ACCEPT_LINE, new String(Character.toChars(c))));
+                .codePoints()
+                .forEach(c -> bind(terminators, ACCEPT_LINE, new String(Character.toChars(c))));
 
         Buffer originalBuffer = buf.copy();
         searchIndex = -1;
@@ -2591,8 +2602,8 @@ public class LineReaderImpl implements LineReader, Flushable
         searchBackward = backward;
         searchFailing = false;
         post = () -> new AttributedString((searchFailing ? "failing" + " " : "")
-                        + (searchBackward ? "bck-i-search" : "fwd-i-search")
-                        + ": " + searchTerm + "_");
+                + (searchBackward ? "bck-i-search" : "fwd-i-search")
+                + ": " + searchTerm + "_");
 
         redisplay();
         try {
@@ -2638,8 +2649,9 @@ public class LineReaderImpl implements LineReader, Flushable
                     searchFailing = false;
                 } else {
                     boolean caseInsensitive = isSet(Option.CASE_INSENSITIVE_SEARCH);
-                    Pattern pat = Pattern.compile(pattern, caseInsensitive ? Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE
-                                                                           : Pattern.UNICODE_CASE);
+                    Pattern pat = Pattern.compile(
+                            pattern,
+                            caseInsensitive ? Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE : Pattern.UNICODE_CASE);
                     Pair<Integer, Integer> pair = null;
                     if (searchBackward) {
                         boolean nextOnly = next;
@@ -2649,7 +2661,11 @@ public class LineReaderImpl implements LineReader, Flushable
                                 .orElse(null);
                         if (pair == null) {
                             pair = StreamSupport.stream(
-                                    Spliterators.spliteratorUnknownSize(history.reverseIterator(searchIndex < 0 ? history.last() : searchIndex - 1), Spliterator.ORDERED), false)
+                                            Spliterators.spliteratorUnknownSize(
+                                                    history.reverseIterator(
+                                                            searchIndex < 0 ? history.last() : searchIndex - 1),
+                                                    Spliterator.ORDERED),
+                                            false)
                                     .flatMap(e -> matches(pat, e.line(), e.index()).stream())
                                     .findFirst()
                                     .orElse(null);
@@ -2662,7 +2678,11 @@ public class LineReaderImpl implements LineReader, Flushable
                                 .orElse(null);
                         if (pair == null) {
                             pair = StreamSupport.stream(
-                                    Spliterators.spliteratorUnknownSize(history.iterator((searchIndex < 0 ? history.last() : searchIndex) + 1), Spliterator.ORDERED), false)
+                                            Spliterators.spliteratorUnknownSize(
+                                                    history.iterator(
+                                                            (searchIndex < 0 ? history.last() : searchIndex) + 1),
+                                                    Spliterator.ORDERED),
+                                            false)
                                     .flatMap(e -> matches(pat, e.line(), e.index()).stream())
                                     .findFirst()
                                     .orElse(null);
@@ -2722,7 +2742,10 @@ public class LineReaderImpl implements LineReader, Flushable
                     sb.append("\\E");
                     inQuote = false;
                 }
-                sb.append("[").append(Character.toLowerCase(c)).append(Character.toUpperCase(c)).append("]");
+                sb.append("[")
+                        .append(Character.toLowerCase(c))
+                        .append(Character.toUpperCase(c))
+                        .append("]");
             } else {
                 if (!inQuote) {
                     sb.append("\\Q");
@@ -2750,8 +2773,7 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     protected boolean historySearchForward() {
-        if (historyBuffer == null || buf.length() == 0
-                || !buf.toString().equals(history.current())) {
+        if (historyBuffer == null || buf.length() == 0 || !buf.toString().equals(history.current())) {
             historyBuffer = buf.copy();
             searchBuffer = getFirstWord();
         }
@@ -2799,8 +2821,7 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     protected boolean historySearchBackward() {
-        if (historyBuffer == null || buf.length() == 0
-                || !buf.toString().equals(history.current())) {
+        if (historyBuffer == null || buf.length() == 0 || !buf.toString().equals(history.current())) {
             historyBuffer = buf.copy();
             searchBuffer = getFirstWord();
         }
@@ -2992,7 +3013,7 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     void indention(int nb, StringBuilder sb) {
-        int indent = getInt(INDENTATION, DEFAULT_INDENTATION)*nb;
+        int indent = getInt(INDENTATION, DEFAULT_INDENTATION) * nb;
         for (int i = 0; i < indent; i++) {
             sb.append(' ');
         }
@@ -3024,7 +3045,6 @@ public class LineReaderImpl implements LineReader, Flushable
         overTyping = !overTyping;
         return true;
     }
-
 
     //
     // History Control
@@ -3116,13 +3136,11 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     protected boolean viUpLineOrHistory() {
-        return upLine()
-                || upHistory() && viFirstNonBlank();
+        return upLine() || upHistory() && viFirstNonBlank();
     }
 
     protected boolean viDownLineOrHistory() {
-        return downLine()
-                || downHistory() && viFirstNonBlank();
+        return downLine() || downHistory() && viFirstNonBlank();
     }
 
     protected boolean upLine() {
@@ -3183,8 +3201,7 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     protected boolean viChangeEol() {
-        return viChange(buf.cursor(), buf.length())
-                && setKeyMap(VIINS);
+        return viChange(buf.cursor(), buf.length()) && setKeyMap(VIINS);
     }
 
     protected boolean viKillEol() {
@@ -3207,7 +3224,8 @@ public class LineReaderImpl implements LineReader, Flushable
 
     protected boolean viJoin() {
         if (buf.down()) {
-            while (buf.move(-1) == -1 && buf.prevChar() != '\n') ;
+            while (buf.move(-1) == -1 && buf.prevChar() != '\n')
+                ;
             buf.backspace();
             buf.write(' ');
             buf.move(-1);
@@ -3261,14 +3279,16 @@ public class LineReaderImpl implements LineReader, Flushable
 
     protected boolean beginningOfLine() {
         while (count-- > 0) {
-            while (buf.move(-1) == -1 && buf.prevChar() != '\n') ;
+            while (buf.move(-1) == -1 && buf.prevChar() != '\n')
+                ;
         }
         return true;
     }
 
     protected boolean endOfLine() {
         while (count-- > 0) {
-            while (buf.move(1) == 1 && buf.currChar() != '\n') ;
+            while (buf.move(1) == 1 && buf.currChar() != '\n')
+                ;
         }
         return true;
     }
@@ -3392,7 +3412,7 @@ public class LineReaderImpl implements LineReader, Flushable
         // what is really happening is that if we are in "move-mode" then the
         // cursor can't be moved off the end of the line, but in "edit-mode" it
         // is ok, but I have no easy way of knowing which mode we are in.
-        if (! isChange && startPos > 0 && startPos == buf.length()) {
+        if (!isChange && startPos > 0 && startPos == buf.length()) {
             buf.move(-1);
         }
         return true;
@@ -3432,14 +3452,16 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     protected boolean viOpenLineAbove() {
-        while (buf.move(-1) == -1 && buf.prevChar() != '\n') ;
+        while (buf.move(-1) == -1 && buf.prevChar() != '\n')
+            ;
         buf.write('\n');
         buf.move(-1);
         return setKeyMap(VIINS);
     }
 
     protected boolean viOpenLineBelow() {
-        while (buf.move(1) == 1 && buf.currChar() != '\n') ;
+        while (buf.move(1) == 1 && buf.currChar() != '\n')
+            ;
         buf.write('\n');
         return setKeyMap(VIINS);
     }
@@ -3451,11 +3473,12 @@ public class LineReaderImpl implements LineReader, Flushable
      */
     protected boolean viPutAfter() {
         if (yankBuffer.indexOf('\n') >= 0) {
-            while (buf.move(1) == 1 && buf.currChar() != '\n');
+            while (buf.move(1) == 1 && buf.currChar() != '\n')
+                ;
             buf.move(1);
             putString(yankBuffer);
-            buf.move(- yankBuffer.length());
-        } else if (yankBuffer.length () != 0) {
+            buf.move(-yankBuffer.length());
+        } else if (yankBuffer.length() != 0) {
             if (buf.cursor() < buf.length()) {
                 buf.move(1);
             }
@@ -3469,10 +3492,11 @@ public class LineReaderImpl implements LineReader, Flushable
 
     protected boolean viPutBefore() {
         if (yankBuffer.indexOf('\n') >= 0) {
-            while (buf.move(-1) == -1 && buf.prevChar() != '\n');
+            while (buf.move(-1) == -1 && buf.prevChar() != '\n')
+                ;
             putString(yankBuffer);
-            buf.move(- yankBuffer.length());
-        } else if (yankBuffer.length () != 0) {
+            buf.move(-yankBuffer.length());
+        } else if (yankBuffer.length() != 0) {
             if (buf.cursor() > 0) {
                 buf.move(-1);
             }
@@ -3689,7 +3713,7 @@ public class LineReaderImpl implements LineReader, Flushable
         addBuiltinWidget(widgets, MENU_EXPAND_OR_COMPLETE, this::menuExpandOrComplete);
         addBuiltinWidget(widgets, NEG_ARGUMENT, this::negArgument);
         addBuiltinWidget(widgets, OVERWRITE_MODE, this::overwriteMode);
-//        addBuiltinWidget(widgets, QUIT, this::quit);
+        //        addBuiltinWidget(widgets, QUIT, this::quit);
         addBuiltinWidget(widgets, QUOTED_INSERT, this::quotedInsert);
         addBuiltinWidget(widgets, REDISPLAY, this::redisplay);
         addBuiltinWidget(widgets, REDRAW_LINE, this::redrawLine);
@@ -3782,6 +3806,7 @@ public class LineReaderImpl implements LineReader, Flushable
             public String toString() {
                 return name;
             }
+
             @Override
             public boolean apply() {
                 return widget.apply();
@@ -3892,7 +3917,8 @@ public class LineReaderImpl implements LineReader, Flushable
                     buffer = maskingCallback.display(buffer);
                 }
                 sb.append(insertSecondaryPrompts(new AttributedString(buffer), secondaryPrompts, false));
-                List<AttributedString> promptLines = sb.columnSplitLength(size.getColumns(), false, display.delayLineWrap());
+                List<AttributedString> promptLines =
+                        sb.columnSplitLength(size.getColumns(), false, display.delayLineWrap());
                 if (!promptLines.isEmpty()) {
                     cursorNewLinesId = promptLines.size() - 1;
                     cursorColPos = promptLines.get(promptLines.size() - 1).columnLength();
@@ -3912,7 +3938,7 @@ public class LineReaderImpl implements LineReader, Flushable
                 int lineId = newLines.size() - displaySize + 1;
                 int endId = displaySize;
                 int startId = 1;
-                if (lineId  > cursorNewLinesId) {
+                if (lineId > cursorNewLinesId) {
                     lineId = cursorNewLinesId;
                     endId = displaySize - 1;
                     startId = 0;
@@ -3957,10 +3983,9 @@ public class LineReaderImpl implements LineReader, Flushable
         }
         History history = getHistory();
         StringBuilder sb = new StringBuilder();
-        for (char c: buffer.replace("\\", "\\\\").toCharArray()) {
-            if (c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}' || c == '^' || c == '*'
-                     || c == '$' || c == '.' || c == '?' || c == '+' || c == '|' || c == '<' || c == '>' || c == '!'
-                     || c == '-') {
+        for (char c : buffer.replace("\\", "\\\\").toCharArray()) {
+            if (c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}' || c == '^' || c == '*' || c == '$'
+                    || c == '.' || c == '?' || c == '+' || c == '|' || c == '<' || c == '>' || c == '!' || c == '-') {
                 sb.append('\\');
             }
             sb.append(c);
@@ -4048,15 +4073,15 @@ public class LineReaderImpl implements LineReader, Flushable
         if (maskingCallback != null) {
             buffer = maskingCallback.display(buffer);
         }
-        if (highlighter != null && !isSet(Option.DISABLE_HIGHLIGHTER)
+        if (highlighter != null
+                && !isSet(Option.DISABLE_HIGHLIGHTER)
                 && buffer.length() < getInt(FEATURES_MAX_BUFFER_SIZE, DEFAULT_FEATURES_MAX_BUFFER_SIZE)) {
             return highlighter.highlight(this, buffer);
         }
         return new AttributedString(buffer);
     }
 
-    private AttributedString expandPromptPattern(String pattern, int padToWidth,
-                                                 String message, int line) {
+    private AttributedString expandPromptPattern(String pattern, int padToWidth, String message, int line) {
         ArrayList<AttributedString> parts = new ArrayList<>();
         boolean isHidden = false;
         int padPartIndex = -1;
@@ -4073,7 +4098,8 @@ public class LineReaderImpl implements LineReader, Flushable
             if (ch == '%' && i < plen) {
                 int count = 0;
                 boolean countSeen = false;
-                decode: while (true) {
+                decode:
+                while (true) {
                     ch = pattern.charAt(i++);
                     switch (ch) {
                         case '{':
@@ -4104,12 +4130,10 @@ public class LineReaderImpl implements LineReader, Flushable
                             sb.append(getInt(LINE_OFFSET, 0) + line);
                             break decode;
                         case 'M':
-                            if (message != null)
-                                sb.append(message);
+                            if (message != null) sb.append(message);
                             break decode;
                         case 'P':
-                            if (countSeen && count >= 0)
-                                padToWidth = count;
+                            if (countSeen && count >= 0) padToWidth = count;
                             if (i < plen) {
                                 padChar = pattern.charAt(i++);
                                 // FIXME check surrogate
@@ -4148,15 +4172,13 @@ public class LineReaderImpl implements LineReader, Flushable
                             break decode;
                     }
                 }
-            } else
-                sb.append(ch);
+            } else sb.append(ch);
         }
         if (padToWidth > cols) {
             int padCharCols = WCWidth.wcwidth(padChar);
             int padCount = (padToWidth - cols) / padCharCols;
             sb = padPartString;
-            while (--padCount >= 0)
-                sb.insert(padPos, (char) padChar); // FIXME if wide
+            while (--padCount >= 0) sb.insert(padPos, (char) padChar); // FIXME if wide
             parts.set(padPartIndex, fromAnsi(sb.toString()));
         }
         return AttributedString.join(null, parts);
@@ -4170,7 +4192,8 @@ public class LineReaderImpl implements LineReader, Flushable
         return insertSecondaryPrompts(str, prompts, true);
     }
 
-    private AttributedString insertSecondaryPrompts(AttributedString strAtt, List<AttributedString> prompts, boolean computePrompts) {
+    private AttributedString insertSecondaryPrompts(
+            AttributedString strAtt, List<AttributedString> prompts, boolean computePrompts) {
         Objects.requireNonNull(prompts);
         List<AttributedString> lines = strAtt.columnSplitLength(Integer.MAX_VALUE);
         AttributedStringBuilder sb = new AttributedStringBuilder();
@@ -4183,7 +4206,9 @@ public class LineReaderImpl implements LineReader, Flushable
         if (computePrompts && secondaryPromptPattern.contains("%P")) {
             width = prompt.columnLength();
             if (width > size.getColumns() || prompt.contains('\n')) {
-                width = new TerminalLine(prompt.toString(), 0, size.getColumns()).getEndLine().length();
+                width = new TerminalLine(prompt.toString(), 0, size.getColumns())
+                        .getEndLine()
+                        .length();
             }
             for (int line = 0; line < lines.size() - 1; line++) {
                 AttributedString prompt;
@@ -4239,11 +4264,9 @@ public class LineReaderImpl implements LineReader, Flushable
 
     private AttributedString addRightPrompt(AttributedString prompt, AttributedString line) {
         int width = prompt.columnLength();
-        boolean endsWithNl = line.length() > 0
-            && line.charAt(line.length() - 1) == '\n';
+        boolean endsWithNl = line.length() > 0 && line.charAt(line.length() - 1) == '\n';
         // columnLength counts -1 for the final newline; adjust for that
-        int nb = size.getColumns() - width
-            - (line.columnLength() + (endsWithNl ? 1 : 0));
+        int nb = size.getColumns() - width - (line.columnLength() + (endsWithNl ? 1 : 0));
         if (nb >= 3) {
             AttributedStringBuilder sb = new AttributedStringBuilder(size.getColumns());
             sb.append(line, 0, endsWithNl ? line.length() - 1 : line.length());
@@ -4265,8 +4288,8 @@ public class LineReaderImpl implements LineReader, Flushable
 
     protected boolean insertTab() {
         return isSet(Option.INSERT_TAB)
-                    && getLastBinding().equals("\t")
-                    && buf.toString().matches("(^|[\\s\\S]*\n)[\r\n\t ]*");
+                && getLastBinding().equals("\t")
+                && buf.toString().matches("(^|[\\s\\S]*\n)[\r\n\t ]*");
     }
 
     protected boolean expandHistory() {
@@ -4477,7 +4500,8 @@ public class LineReaderImpl implements LineReader, Flushable
                     if (op != null) {
                         String chars = getString(REMOVE_SUFFIX_CHARS, DEFAULT_REMOVE_SUFFIX_CHARS);
                         String ref = op instanceof Reference ? ((Reference) op).name() : null;
-                        if (SELF_INSERT.equals(ref) && chars.indexOf(getLastBinding().charAt(0)) >= 0
+                        if (SELF_INSERT.equals(ref)
+                                        && chars.indexOf(getLastBinding().charAt(0)) >= 0
                                 || ACCEPT_LINE.equals(ref)) {
                             buf.backspace(completion.suffix().length());
                             if (getLastBinding().charAt(0) != ' ') {
@@ -4545,27 +4569,35 @@ public class LineReaderImpl implements LineReader, Flushable
                 public String word() {
                     return line.word();
                 }
+
                 public int wordCursor() {
                     return line.wordCursor();
                 }
+
                 public int wordIndex() {
                     return line.wordIndex();
                 }
+
                 public List<String> words() {
                     return line.words();
                 }
+
                 public String line() {
                     return line.line();
                 }
+
                 public int cursor() {
                     return line.cursor();
                 }
+
                 public CharSequence escape(CharSequence candidate, boolean complete) {
                     return candidate;
                 }
+
                 public int rawWordCursor() {
                     return wordCursor();
                 }
+
                 public int rawWordLength() {
                     return word().length();
                 }
@@ -4576,8 +4608,7 @@ public class LineReaderImpl implements LineReader, Flushable
     protected Comparator<Candidate> getCandidateComparator(boolean caseInsensitive, String word) {
         String wdi = caseInsensitive ? word.toLowerCase() : word;
         ToIntFunction<String> wordDistance = w -> ReaderUtils.distance(wdi, caseInsensitive ? w.toLowerCase() : w);
-        return Comparator
-                .comparing(Candidate::value, Comparator.comparingInt(wordDistance))
+        return Comparator.comparing(Candidate::value, Comparator.comparingInt(wordDistance))
                 .thenComparing(Comparator.naturalOrder());
     }
 
@@ -4589,9 +4620,10 @@ public class LineReaderImpl implements LineReader, Flushable
         return getString(ORIGINAL_GROUP_NAME, DEFAULT_ORIGINAL_GROUP_NAME);
     }
 
-
     protected Comparator<String> getGroupComparator() {
-        return Comparator.<String>comparingInt(s -> getOthersGroupName().equals(s) ? 1 : getOriginalGroupName().equals(s) ? -1 : 0)
+        return Comparator.<String>comparingInt(s -> getOthersGroupName().equals(s)
+                        ? 1
+                        : getOriginalGroupName().equals(s) ? -1 : 0)
                 .thenComparing(String::toLowerCase, Comparator.naturalOrder());
     }
 
@@ -4612,11 +4644,9 @@ public class LineReaderImpl implements LineReader, Flushable
                     // the same description
                     candidates.sort(Comparator.comparing(Candidate::value));
                     Candidate first = candidates.get(0);
-                    String disp = candidates.stream()
-                            .map(Candidate::displ)
-                            .collect(Collectors.joining(" "));
-                    possible.add(new Candidate(first.value(), disp, first.group(),
-                            first.descr(), first.suffix(), null, first.complete()));
+                    String disp = candidates.stream().map(Candidate::displ).collect(Collectors.joining(" "));
+                    possible.add(new Candidate(
+                            first.value(), disp, first.group(), first.descr(), first.suffix(), null, first.complete()));
                 }
             }
         }
@@ -4648,8 +4678,10 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     private int promptLines() {
-        AttributedString text = insertSecondaryPrompts(AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
-        return text.columnSplitLength(size.getColumns(), false, display.delayLineWrap()).size();
+        AttributedString text =
+                insertSecondaryPrompts(AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
+        return text.columnSplitLength(size.getColumns(), false, display.delayLineWrap())
+                .size();
     }
 
     private class MenuSupport implements Supplier<AttributedString> {
@@ -4663,7 +4695,8 @@ public class LineReaderImpl implements LineReader, Flushable
         int columns;
         String completed;
 
-        public MenuSupport(List<Candidate> original, String completed, BiFunction<CharSequence, Boolean, CharSequence> escaper) {
+        public MenuSupport(
+                List<Candidate> original, String completed, BiFunction<CharSequence, Boolean, CharSequence> escaper) {
             this.possible = new ArrayList<>();
             this.escaper = escaper;
             this.selection = -1;
@@ -4726,7 +4759,7 @@ public class LineReaderImpl implements LineReader, Flushable
             if (selection - row + axis > options) {
                 // selection is the last row/column
                 // so there are fewer options than other rows
-                axis = options%axis;
+                axis = options % axis;
             }
             selection = selection - row + ((axis + row + step) % axis);
             update();
@@ -4784,7 +4817,9 @@ public class LineReaderImpl implements LineReader, Flushable
                 AttributedString post = pr.post;
                 if (post.length() > 0 && post.charAt(post.length() - 1) != '\n') {
                     post = new AttributedStringBuilder(post.length() + 1)
-                            .append(post).append("\n").toAttributedString();
+                            .append(post)
+                            .append("\n")
+                            .toAttributedString();
                 }
                 List<AttributedString> lines = post.columnSplitLength(size.getColumns(), true, display.delayLineWrap());
                 List<AttributedString> sub = new ArrayList<>(lines.subList(topLine, topLine + displayed));
@@ -4797,7 +4832,8 @@ public class LineReaderImpl implements LineReader, Flushable
                         .append(" of ")
                         .append(Integer.toString(lines.size()))
                         .append("\n")
-                        .style(AttributedStyle.DEFAULT).toAttributedString());
+                        .style(AttributedStyle.DEFAULT)
+                        .toAttributedString());
                 computed = AttributedString.join(AttributedString.EMPTY, sub);
             } else {
                 computed = pr.post;
@@ -4810,10 +4846,10 @@ public class LineReaderImpl implements LineReader, Flushable
         public AttributedString get() {
             return computed;
         }
-
     }
 
-    protected boolean doMenu(List<Candidate> original, String completed, BiFunction<CharSequence, Boolean, CharSequence> escaper) {
+    protected boolean doMenu(
+            List<Candidate> original, String completed, BiFunction<CharSequence, Boolean, CharSequence> escaper) {
         // Reorder candidates according to display order
         final List<Candidate> possible = new ArrayList<>();
         boolean caseInsensitive = isSet(Option.CASE_INSENSITIVE);
@@ -4866,7 +4902,7 @@ public class LineReaderImpl implements LineReader, Flushable
                     if (completion.suffix() != null) {
                         String chars = getString(REMOVE_SUFFIX_CHARS, DEFAULT_REMOVE_SUFFIX_CHARS);
                         if (SELF_INSERT.equals(ref)
-                                && chars.indexOf(getLastBinding().charAt(0)) >= 0
+                                        && chars.indexOf(getLastBinding().charAt(0)) >= 0
                                 || BACKWARD_DELETE_CHAR.equals(ref)) {
                             buf.backspace(completion.suffix().length());
                         }
@@ -4878,8 +4914,8 @@ public class LineReaderImpl implements LineReader, Flushable
                     }
                     if (!ACCEPT_LINE.equals(ref)
                             && !(SELF_INSERT.equals(ref)
-                                && completion.suffix() != null
-                                && completion.suffix().startsWith(getLastBinding()))) {
+                                    && completion.suffix() != null
+                                    && completion.suffix().startsWith(getLastBinding()))) {
                         pushBackBinding(true);
                     }
                     post = null;
@@ -4900,26 +4936,33 @@ public class LineReaderImpl implements LineReader, Flushable
         return doList(new ArrayList<>(), "", false, null, false);
     }
 
-    protected boolean doList(List<Candidate> possible
-                           , String completed, boolean runLoop, BiFunction<CharSequence, Boolean, CharSequence> escaper) {
+    protected boolean doList(
+            List<Candidate> possible,
+            String completed,
+            boolean runLoop,
+            BiFunction<CharSequence, Boolean, CharSequence> escaper) {
         return doList(possible, completed, runLoop, escaper, false);
     }
 
-    protected boolean doList(List<Candidate> possible
-                           , String completed
-                           , boolean runLoop, BiFunction<CharSequence, Boolean, CharSequence> escaper, boolean forSuggestion) {
+    protected boolean doList(
+            List<Candidate> possible,
+            String completed,
+            boolean runLoop,
+            BiFunction<CharSequence, Boolean, CharSequence> escaper,
+            boolean forSuggestion) {
         // If we list only and if there's a big
         // number of items, we should ask the user
         // for confirmation, display the list
         // and redraw the line at the bottom
         mergeCandidates(possible);
-        AttributedString text = insertSecondaryPrompts(AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
-        int promptLines = text.columnSplitLength(size.getColumns(), false, display.delayLineWrap()).size();
+        AttributedString text =
+                insertSecondaryPrompts(AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
+        int promptLines = text.columnSplitLength(size.getColumns(), false, display.delayLineWrap())
+                .size();
         PostResult postResult = computePost(possible, null, null, completed);
         int lines = postResult.lines;
         int listMax = getInt(LIST_MAX, DEFAULT_LIST_MAX);
-        if (listMax > 0 && possible.size() >= listMax
-                || lines >= size.getRows() - promptLines) {
+        if (listMax > 0 && possible.size() >= listMax || lines >= size.getRows() - promptLines) {
             if (!forSuggestion) {
                 // prompt
                 post = () -> new AttributedString(getAppName() + ": do you wish to see all " + possible.size()
@@ -4942,8 +4985,7 @@ public class LineReaderImpl implements LineReader, Flushable
             String current = completed + sb.toString();
             List<Candidate> cands;
             if (sb.length() > 0) {
-                completionMatcher.compile(options, false, new CompletingWord(current), caseInsensitive, 0
-                        , null);
+                completionMatcher.compile(options, false, new CompletingWord(current), caseInsensitive, 0, null);
                 cands = completionMatcher.matches(possible).stream()
                         .sorted(getCandidateComparator(caseInsensitive, current))
                         .collect(Collectors.toList());
@@ -4956,8 +4998,10 @@ public class LineReaderImpl implements LineReader, Flushable
                 candidateStartPosition = candidateStartPosition(cands);
             }
             post = () -> {
-                AttributedString t = insertSecondaryPrompts(AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
-                int pl = t.columnSplitLength(size.getColumns(), false, display.delayLineWrap()).size();
+                AttributedString t = insertSecondaryPrompts(
+                        AttributedStringBuilder.append(prompt, buf.toString()), new ArrayList<>());
+                int pl = t.columnSplitLength(size.getColumns(), false, display.delayLineWrap())
+                        .size();
                 PostResult pr = computePost(cands, null, null, current);
                 if (pr.lines >= size.getRows() - pl) {
                     post = null;
@@ -4966,7 +5010,8 @@ public class LineReaderImpl implements LineReader, Flushable
                     redisplay(false);
                     buf.cursor(oldCursor);
                     println();
-                    List<AttributedString> ls = pr.post.columnSplitLength(size.getColumns(), false, display.delayLineWrap());
+                    List<AttributedString> ls =
+                            pr.post.columnSplitLength(size.getColumns(), false, display.delayLineWrap());
                     Display d = new Display(terminal, false);
                     d.resize(size.getRows(), size.getColumns());
                     d.update(ls, -1);
@@ -5086,19 +5131,36 @@ public class LineReaderImpl implements LineReader, Flushable
         }
     }
 
-    protected PostResult computePost(List<Candidate> possible, Candidate selection, List<Candidate> ordered, String completed) {
-        return computePost(possible, selection, ordered, completed, display::wcwidth, size.getColumns(), isSet(Option.AUTO_GROUP), isSet(Option.GROUP), isSet(Option.LIST_ROWS_FIRST));
+    protected PostResult computePost(
+            List<Candidate> possible, Candidate selection, List<Candidate> ordered, String completed) {
+        return computePost(
+                possible,
+                selection,
+                ordered,
+                completed,
+                display::wcwidth,
+                size.getColumns(),
+                isSet(Option.AUTO_GROUP),
+                isSet(Option.GROUP),
+                isSet(Option.LIST_ROWS_FIRST));
     }
 
-    protected PostResult computePost(List<Candidate> possible, Candidate selection, List<Candidate> ordered, String completed, Function<String, Integer> wcwidth, int width, boolean autoGroup, boolean groupName, boolean rowsFirst) {
+    protected PostResult computePost(
+            List<Candidate> possible,
+            Candidate selection,
+            List<Candidate> ordered,
+            String completed,
+            Function<String, Integer> wcwidth,
+            int width,
+            boolean autoGroup,
+            boolean groupName,
+            boolean rowsFirst) {
         List<Object> strings = new ArrayList<>();
         boolean customOrder = possible.stream().anyMatch(c -> c.sort() != 0);
         if (groupName) {
             Comparator<String> groupComparator = getGroupComparator();
             Map<String, Map<Object, Candidate>> sorted;
-            sorted = groupComparator != null
-                        ? new TreeMap<>(groupComparator)
-                        : new LinkedHashMap<>();
+            sorted = groupComparator != null ? new TreeMap<>(groupComparator) : new LinkedHashMap<>();
             for (Candidate cand : possible) {
                 String group = cand.group();
                 sorted.computeIfAbsent(group != null ? group : "", s -> new LinkedHashMap<>())
@@ -5175,12 +5237,15 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     private int candidateStartPosition(List<Candidate> cands) {
-        List<String> values = cands.stream().map(c -> AttributedString.stripAnsi(c.displ()))
-                .filter(c -> !c.matches("\\w+") && c.length() > 1).collect(Collectors.toList());
+        List<String> values = cands.stream()
+                .map(c -> AttributedString.stripAnsi(c.displ()))
+                .filter(c -> !c.matches("\\w+") && c.length() > 1)
+                .collect(Collectors.toList());
         Set<String> notDelimiters = new HashSet<>();
-        values.forEach(v -> v.substring(0, v.length() - 1).chars()
+        values.forEach(v -> v.substring(0, v.length() - 1)
+                .chars()
                 .filter(c -> !Character.isDigit(c) && !Character.isAlphabetic(c))
-                .forEach(c -> notDelimiters.add(Character.toString((char)c))));
+                .forEach(c -> notDelimiters.add(Character.toString((char) c))));
         int width = size.getColumns();
         int promptLength = prompt != null ? prompt.length() : 0;
         if (promptLength > 0) {
@@ -5191,8 +5256,7 @@ public class LineReaderImpl implements LineReader, Flushable
         int out = tl.getStartPos();
         String buffer = tl.getEndLine();
         for (int i = buffer.length(); i > 0; i--) {
-            if (buffer.substring(0, i).matches(".*\\W")
-                    && !notDelimiters.contains(buffer.substring(i - 1, i))) {
+            if (buffer.substring(0, i).matches(".*\\W") && !notDelimiters.contains(buffer.substring(i - 1, i))) {
                 out += i;
                 break;
             }
@@ -5201,7 +5265,13 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     @SuppressWarnings("unchecked")
-    protected PostResult toColumns(List<Object> items, Candidate selection, String completed, Function<String, Integer> wcwidth, int width, boolean rowsFirst) {
+    protected PostResult toColumns(
+            List<Object> items,
+            Candidate selection,
+            String completed,
+            Function<String, Integer> wcwidth,
+            int width,
+            boolean rowsFirst) {
         int[] out = new int[2];
         // TODO: support Option.LIST_PACKED
         // Compute column width
@@ -5211,8 +5281,7 @@ public class LineReaderImpl implements LineReader, Flushable
             if (item instanceof String) {
                 int len = wcwidth.apply((String) item);
                 maxWidth = Math.max(maxWidth, len);
-            }
-            else if (item instanceof List) {
+            } else if (item instanceof List) {
                 for (Candidate cand : (List<Candidate>) item) {
                     listSize++;
                     int len = wcwidth.apply(cand.displ());
@@ -5230,7 +5299,10 @@ public class LineReaderImpl implements LineReader, Flushable
         AttributedStringBuilder sb = new AttributedStringBuilder();
         if (listSize > 0) {
             if (isSet(Option.AUTO_MENU_LIST)
-                    && listSize < Math.min(getInt(MENU_LIST_MAX, DEFAULT_MENU_LIST_MAX), visibleDisplayRows() - promptLines())) {
+                    && listSize
+                            < Math.min(
+                                    getInt(MENU_LIST_MAX, DEFAULT_MENU_LIST_MAX),
+                                    visibleDisplayRows() - promptLines())) {
                 maxWidth = Math.max(maxWidth, MENU_LIST_WIDTH);
                 sb.tabs(Math.max(Math.min(candidateStartPosition, width - maxWidth - 1), 1));
                 width = maxWidth + 2;
@@ -5263,8 +5335,16 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     @SuppressWarnings("unchecked")
-    protected void toColumns(Object items, int width, int maxWidth, AttributedStringBuilder sb, Candidate selection, String completed
-                           , boolean rowsFirst, boolean doMenuList, int[] out) {
+    protected void toColumns(
+            Object items,
+            int width,
+            int maxWidth,
+            AttributedStringBuilder sb,
+            Candidate selection,
+            String completed,
+            boolean rowsFirst,
+            boolean doMenuList,
+            int[] out) {
         if (maxWidth <= 0 || width <= 0) {
             return;
         }
@@ -5322,13 +5402,15 @@ public class LineReaderImpl implements LineReader, Flushable
                         int lw = left.columnLength();
                         int rw = 0;
                         if (right != null) {
-                            int rem = maxWidth - (lw + MARGIN_BETWEEN_DISPLAY_AND_DESC
-                                    + DESC_PREFIX.length() + DESC_SUFFIX.length());
+                            int rem = maxWidth
+                                    - (lw
+                                            + MARGIN_BETWEEN_DISPLAY_AND_DESC
+                                            + DESC_PREFIX.length()
+                                            + DESC_SUFFIX.length());
                             rw = right.columnLength();
                             if (rw > rem) {
                                 right = AttributedStringBuilder.append(
-                                            right.columnSubSequence(0, rem - WCWidth.wcwidth('…')),
-                                            "…");
+                                        right.columnSubSequence(0, rem - WCWidth.wcwidth('…')), "…");
                                 rw = right.columnLength();
                             }
                             right = AttributedStringBuilder.append(DESC_PREFIX, right, DESC_SUFFIX);
@@ -5337,8 +5419,9 @@ public class LineReaderImpl implements LineReader, Flushable
                         if (cand == selection) {
                             out[1] = i;
                             asb.style(getCompletionStyleSelection(doMenuList));
-                            if (left.toString().regionMatches(
-                                    isSet(Option.CASE_INSENSITIVE), 0, completed, 0, completed.length())) {
+                            if (left.toString()
+                                    .regionMatches(
+                                            isSet(Option.CASE_INSENSITIVE), 0, completed, 0, completed.length())) {
                                 asb.append(left.toString(), 0, completed.length());
                                 asb.append(left.toString(), completed.length(), left.length());
                             } else {
@@ -5352,8 +5435,9 @@ public class LineReaderImpl implements LineReader, Flushable
                             }
                             asb.style(AttributedStyle.DEFAULT);
                         } else {
-                            if (left.toString().regionMatches(
-                                    isSet(Option.CASE_INSENSITIVE), 0, completed, 0, completed.length())) {
+                            if (left.toString()
+                                    .regionMatches(
+                                            isSet(Option.CASE_INSENSITIVE), 0, completed, 0, completed.length())) {
                                 asb.style(getCompletionStyleStarting(doMenuList));
                                 asb.append(left, 0, completed.length());
                                 asb.style(AttributedStyle.DEFAULT);
@@ -5489,14 +5573,14 @@ public class LineReaderImpl implements LineReader, Flushable
         }
         if (next && !history.next()) {
             return false;
-        }
-        else if (!next && !history.previous()) {
+        } else if (!next && !history.previous()) {
             return false;
         }
 
-        setBuffer(modifiedHistory.containsKey(history.index())
-                    ? modifiedHistory.get(history.index())
-                    : history.current());
+        setBuffer(
+                modifiedHistory.containsKey(history.index())
+                        ? modifiedHistory.get(history.index())
+                        : history.current());
 
         return true;
     }
@@ -5526,7 +5610,6 @@ public class LineReaderImpl implements LineReader, Flushable
         print("\n");
         redrawLine();
     }
-
 
     //
     // Actions
@@ -5737,8 +5820,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     public boolean mouse() {
         MouseEvent event = readMouseEvent();
-        if (event.getType() == MouseEvent.Type.Released
-                && event.getButton() == MouseEvent.Button.Button1) {
+        if (event.getType() == MouseEvent.Type.Released && event.getButton() == MouseEvent.Button.Button1) {
             StringBuilder tsb = new StringBuilder();
             Cursor cursor = terminal.getCursorPosition(c -> tsb.append((char) c));
             bindingReader.runMacro(tsb.toString());
@@ -5749,12 +5831,17 @@ public class LineReaderImpl implements LineReader, Flushable
             AttributedStringBuilder sb = new AttributedStringBuilder().tabs(TAB_WIDTH);
             sb.append(prompt);
             sb.append(insertSecondaryPrompts(new AttributedString(buf.upToCursor()), secondaryPrompts, false));
-            List<AttributedString> promptLines = sb.columnSplitLength(size.getColumns(), false, display.delayLineWrap());
+            List<AttributedString> promptLines =
+                    sb.columnSplitLength(size.getColumns(), false, display.delayLineWrap());
 
             int currentLine = promptLines.size() - 1;
             int wantedLine = Math.max(0, Math.min(currentLine + event.getY() - cursor.getY(), secondaryPrompts.size()));
-            int pl0 = currentLine == 0 ? prompt.columnLength() : secondaryPrompts.get(currentLine - 1).columnLength();
-            int pl1 = wantedLine == 0 ? prompt.columnLength() : secondaryPrompts.get(wantedLine - 1).columnLength();
+            int pl0 = currentLine == 0
+                    ? prompt.columnLength()
+                    : secondaryPrompts.get(currentLine - 1).columnLength();
+            int pl1 = wantedLine == 0
+                    ? prompt.columnLength()
+                    : secondaryPrompts.get(wantedLine - 1).columnLength();
             int adjust = pl1 - pl0;
             buf.moveXY(event.getX() - cursor.getX() - adjust, event.getY() - cursor.getY());
         }
@@ -5826,13 +5913,11 @@ public class LineReaderImpl implements LineReader, Flushable
                 bell_preference = BellType.VISIBLE;
                 break;
             case "on":
-                bell_preference = getBoolean(PREFER_VISIBLE_BELL, false)
-                        ? BellType.VISIBLE : BellType.AUDIBLE;
+                bell_preference = getBoolean(PREFER_VISIBLE_BELL, false) ? BellType.VISIBLE : BellType.AUDIBLE;
                 break;
         }
         if (bell_preference == BellType.VISIBLE) {
-            if (terminal.puts(Capability.flash_screen)
-                    || terminal.puts(Capability.bell)) {
+            if (terminal.puts(Capability.flash_screen) || terminal.puts(Capability.bell)) {
                 flush();
             }
         } else if (bell_preference == BellType.AUDIBLE) {
@@ -5881,8 +5966,7 @@ public class LineReaderImpl implements LineReader, Flushable
 
     protected boolean isWord(int c) {
         String wordchars = getString(WORDCHARS, DEFAULT_WORDCHARS);
-        return Character.isLetterOrDigit(c)
-                || (c < 128 && wordchars.indexOf((char) c) >= 0);
+        return Character.isLetterOrDigit(c) || (c < 128 && wordchars.indexOf((char) c) >= 0);
     }
 
     String getString(String name, String def) {
@@ -5929,232 +6013,232 @@ public class LineReaderImpl implements LineReader, Flushable
     public KeyMap<Binding> emacs() {
         KeyMap<Binding> emacs = new KeyMap<>();
         bindKeys(emacs);
-        bind(emacs, SET_MARK_COMMAND,                       ctrl('@'));
-        bind(emacs, BEGINNING_OF_LINE,                      ctrl('A'));
-        bind(emacs, BACKWARD_CHAR,                          ctrl('B'));
-        bind(emacs, DELETE_CHAR_OR_LIST,                    ctrl('D'));
-        bind(emacs, END_OF_LINE,                            ctrl('E'));
-        bind(emacs, FORWARD_CHAR,                           ctrl('F'));
-        bind(emacs, SEND_BREAK,                             ctrl('G'));
-        bind(emacs, BACKWARD_DELETE_CHAR,                   ctrl('H'));
-        bind(emacs, EXPAND_OR_COMPLETE,                     ctrl('I'));
-        bind(emacs, ACCEPT_LINE,                            ctrl('J'));
-        bind(emacs, KILL_LINE,                              ctrl('K'));
-        bind(emacs, CLEAR_SCREEN,                           ctrl('L'));
-        bind(emacs, ACCEPT_LINE,                            ctrl('M'));
-        bind(emacs, DOWN_LINE_OR_HISTORY,                   ctrl('N'));
-        bind(emacs, ACCEPT_LINE_AND_DOWN_HISTORY,           ctrl('O'));
-        bind(emacs, UP_LINE_OR_HISTORY,                     ctrl('P'));
-        bind(emacs, HISTORY_INCREMENTAL_SEARCH_BACKWARD,    ctrl('R'));
-        bind(emacs, HISTORY_INCREMENTAL_SEARCH_FORWARD,     ctrl('S'));
-        bind(emacs, TRANSPOSE_CHARS,                        ctrl('T'));
-        bind(emacs, KILL_WHOLE_LINE,                        ctrl('U'));
-        bind(emacs, QUOTED_INSERT,                          ctrl('V'));
-        bind(emacs, BACKWARD_KILL_WORD,                     ctrl('W'));
-        bind(emacs, YANK,                                   ctrl('Y'));
-        bind(emacs, CHARACTER_SEARCH,                       ctrl(']'));
-        bind(emacs, UNDO,                                   ctrl('_'));
-        bind(emacs, SELF_INSERT,                            range(" -~"));
-        bind(emacs, INSERT_CLOSE_PAREN,                     ")");
-        bind(emacs, INSERT_CLOSE_SQUARE,                    "]");
-        bind(emacs, INSERT_CLOSE_CURLY,                     "}");
-        bind(emacs, BACKWARD_DELETE_CHAR,                   del());
-        bind(emacs, VI_MATCH_BRACKET,                       translate("^X^B"));
-        bind(emacs, SEND_BREAK,                             translate("^X^G"));
-        bind(emacs, EDIT_AND_EXECUTE_COMMAND,               translate("^X^E"));
-        bind(emacs, VI_FIND_NEXT_CHAR,                      translate("^X^F"));
-        bind(emacs, VI_JOIN,                                translate("^X^J"));
-        bind(emacs, KILL_BUFFER,                            translate("^X^K"));
-        bind(emacs, INFER_NEXT_HISTORY,                     translate("^X^N"));
-        bind(emacs, OVERWRITE_MODE,                         translate("^X^O"));
-        bind(emacs, REDO,                                   translate("^X^R"));
-        bind(emacs, UNDO,                                   translate("^X^U"));
-        bind(emacs, VI_CMD_MODE,                            translate("^X^V"));
-        bind(emacs, EXCHANGE_POINT_AND_MARK,                translate("^X^X"));
-        bind(emacs, DO_LOWERCASE_VERSION,                   translate("^XA-^XZ"));
-        bind(emacs, WHAT_CURSOR_POSITION,                   translate("^X="));
-        bind(emacs, KILL_LINE,                              translate("^X^?"));
-        bind(emacs, SEND_BREAK,                             alt(ctrl('G')));
-        bind(emacs, BACKWARD_KILL_WORD,                     alt(ctrl('H')));
-        bind(emacs, SELF_INSERT_UNMETA,                     alt(ctrl('M')));
-        bind(emacs, COMPLETE_WORD,                          alt(esc()));
-        bind(emacs, CHARACTER_SEARCH_BACKWARD,              alt(ctrl(']')));
-        bind(emacs, COPY_PREV_WORD,                         alt(ctrl('_')));
-        bind(emacs, SET_MARK_COMMAND,                       alt(' '));
-        bind(emacs, NEG_ARGUMENT,                           alt('-'));
-        bind(emacs, DIGIT_ARGUMENT,                         range("\\E0-\\E9"));
-        bind(emacs, BEGINNING_OF_HISTORY,                   alt('<'));
-        bind(emacs, LIST_CHOICES,                           alt('='));
-        bind(emacs, END_OF_HISTORY,                         alt('>'));
-        bind(emacs, LIST_CHOICES,                           alt('?'));
-        bind(emacs, DO_LOWERCASE_VERSION,                   range("^[A-^[Z"));
-        bind(emacs, ACCEPT_AND_HOLD,                        alt('a'));
-        bind(emacs, BACKWARD_WORD,                          alt('b'));
-        bind(emacs, CAPITALIZE_WORD,                        alt('c'));
-        bind(emacs, KILL_WORD,                              alt('d'));
-        bind(emacs, KILL_WORD,                              translate("^[[3;5~")); // ctrl-delete
-        bind(emacs, FORWARD_WORD,                           alt('f'));
-        bind(emacs, DOWN_CASE_WORD,                         alt('l'));
-        bind(emacs, HISTORY_SEARCH_FORWARD,                 alt('n'));
-        bind(emacs, HISTORY_SEARCH_BACKWARD,                alt('p'));
-        bind(emacs, TRANSPOSE_WORDS,                        alt('t'));
-        bind(emacs, UP_CASE_WORD,                           alt('u'));
-        bind(emacs, YANK_POP,                               alt('y'));
-        bind(emacs, BACKWARD_KILL_WORD,                     alt(del()));
+        bind(emacs, SET_MARK_COMMAND, ctrl('@'));
+        bind(emacs, BEGINNING_OF_LINE, ctrl('A'));
+        bind(emacs, BACKWARD_CHAR, ctrl('B'));
+        bind(emacs, DELETE_CHAR_OR_LIST, ctrl('D'));
+        bind(emacs, END_OF_LINE, ctrl('E'));
+        bind(emacs, FORWARD_CHAR, ctrl('F'));
+        bind(emacs, SEND_BREAK, ctrl('G'));
+        bind(emacs, BACKWARD_DELETE_CHAR, ctrl('H'));
+        bind(emacs, EXPAND_OR_COMPLETE, ctrl('I'));
+        bind(emacs, ACCEPT_LINE, ctrl('J'));
+        bind(emacs, KILL_LINE, ctrl('K'));
+        bind(emacs, CLEAR_SCREEN, ctrl('L'));
+        bind(emacs, ACCEPT_LINE, ctrl('M'));
+        bind(emacs, DOWN_LINE_OR_HISTORY, ctrl('N'));
+        bind(emacs, ACCEPT_LINE_AND_DOWN_HISTORY, ctrl('O'));
+        bind(emacs, UP_LINE_OR_HISTORY, ctrl('P'));
+        bind(emacs, HISTORY_INCREMENTAL_SEARCH_BACKWARD, ctrl('R'));
+        bind(emacs, HISTORY_INCREMENTAL_SEARCH_FORWARD, ctrl('S'));
+        bind(emacs, TRANSPOSE_CHARS, ctrl('T'));
+        bind(emacs, KILL_WHOLE_LINE, ctrl('U'));
+        bind(emacs, QUOTED_INSERT, ctrl('V'));
+        bind(emacs, BACKWARD_KILL_WORD, ctrl('W'));
+        bind(emacs, YANK, ctrl('Y'));
+        bind(emacs, CHARACTER_SEARCH, ctrl(']'));
+        bind(emacs, UNDO, ctrl('_'));
+        bind(emacs, SELF_INSERT, range(" -~"));
+        bind(emacs, INSERT_CLOSE_PAREN, ")");
+        bind(emacs, INSERT_CLOSE_SQUARE, "]");
+        bind(emacs, INSERT_CLOSE_CURLY, "}");
+        bind(emacs, BACKWARD_DELETE_CHAR, del());
+        bind(emacs, VI_MATCH_BRACKET, translate("^X^B"));
+        bind(emacs, SEND_BREAK, translate("^X^G"));
+        bind(emacs, EDIT_AND_EXECUTE_COMMAND, translate("^X^E"));
+        bind(emacs, VI_FIND_NEXT_CHAR, translate("^X^F"));
+        bind(emacs, VI_JOIN, translate("^X^J"));
+        bind(emacs, KILL_BUFFER, translate("^X^K"));
+        bind(emacs, INFER_NEXT_HISTORY, translate("^X^N"));
+        bind(emacs, OVERWRITE_MODE, translate("^X^O"));
+        bind(emacs, REDO, translate("^X^R"));
+        bind(emacs, UNDO, translate("^X^U"));
+        bind(emacs, VI_CMD_MODE, translate("^X^V"));
+        bind(emacs, EXCHANGE_POINT_AND_MARK, translate("^X^X"));
+        bind(emacs, DO_LOWERCASE_VERSION, translate("^XA-^XZ"));
+        bind(emacs, WHAT_CURSOR_POSITION, translate("^X="));
+        bind(emacs, KILL_LINE, translate("^X^?"));
+        bind(emacs, SEND_BREAK, alt(ctrl('G')));
+        bind(emacs, BACKWARD_KILL_WORD, alt(ctrl('H')));
+        bind(emacs, SELF_INSERT_UNMETA, alt(ctrl('M')));
+        bind(emacs, COMPLETE_WORD, alt(esc()));
+        bind(emacs, CHARACTER_SEARCH_BACKWARD, alt(ctrl(']')));
+        bind(emacs, COPY_PREV_WORD, alt(ctrl('_')));
+        bind(emacs, SET_MARK_COMMAND, alt(' '));
+        bind(emacs, NEG_ARGUMENT, alt('-'));
+        bind(emacs, DIGIT_ARGUMENT, range("\\E0-\\E9"));
+        bind(emacs, BEGINNING_OF_HISTORY, alt('<'));
+        bind(emacs, LIST_CHOICES, alt('='));
+        bind(emacs, END_OF_HISTORY, alt('>'));
+        bind(emacs, LIST_CHOICES, alt('?'));
+        bind(emacs, DO_LOWERCASE_VERSION, range("^[A-^[Z"));
+        bind(emacs, ACCEPT_AND_HOLD, alt('a'));
+        bind(emacs, BACKWARD_WORD, alt('b'));
+        bind(emacs, CAPITALIZE_WORD, alt('c'));
+        bind(emacs, KILL_WORD, alt('d'));
+        bind(emacs, KILL_WORD, translate("^[[3;5~")); // ctrl-delete
+        bind(emacs, FORWARD_WORD, alt('f'));
+        bind(emacs, DOWN_CASE_WORD, alt('l'));
+        bind(emacs, HISTORY_SEARCH_FORWARD, alt('n'));
+        bind(emacs, HISTORY_SEARCH_BACKWARD, alt('p'));
+        bind(emacs, TRANSPOSE_WORDS, alt('t'));
+        bind(emacs, UP_CASE_WORD, alt('u'));
+        bind(emacs, YANK_POP, alt('y'));
+        bind(emacs, BACKWARD_KILL_WORD, alt(del()));
         bindArrowKeys(emacs);
-        bind(emacs, FORWARD_WORD,                           translate("^[[1;5C")); // ctrl-left
-        bind(emacs, BACKWARD_WORD,                          translate("^[[1;5D")); // ctrl-right
-        bind(emacs, FORWARD_WORD,                           alt(key(Capability.key_right)));
-        bind(emacs, BACKWARD_WORD,                          alt(key(Capability.key_left)));
-        bind(emacs, FORWARD_WORD,                           alt(translate("^[[C")));
-        bind(emacs, BACKWARD_WORD,                          alt(translate("^[[D")));
+        bind(emacs, FORWARD_WORD, translate("^[[1;5C")); // ctrl-left
+        bind(emacs, BACKWARD_WORD, translate("^[[1;5D")); // ctrl-right
+        bind(emacs, FORWARD_WORD, alt(key(Capability.key_right)));
+        bind(emacs, BACKWARD_WORD, alt(key(Capability.key_left)));
+        bind(emacs, FORWARD_WORD, alt(translate("^[[C")));
+        bind(emacs, BACKWARD_WORD, alt(translate("^[[D")));
         return emacs;
     }
 
     public KeyMap<Binding> viInsertion() {
         KeyMap<Binding> viins = new KeyMap<>();
         bindKeys(viins);
-        bind(viins, SELF_INSERT,                            range("^@-^_"));
-        bind(viins, LIST_CHOICES,                           ctrl('D'));
-        bind(viins, SEND_BREAK,                             ctrl('G'));
-        bind(viins, BACKWARD_DELETE_CHAR,                   ctrl('H'));
-        bind(viins, EXPAND_OR_COMPLETE,                     ctrl('I'));
-        bind(viins, ACCEPT_LINE,                            ctrl('J'));
-        bind(viins, CLEAR_SCREEN,                           ctrl('L'));
-        bind(viins, ACCEPT_LINE,                            ctrl('M'));
-        bind(viins, MENU_COMPLETE,                          ctrl('N'));
-        bind(viins, REVERSE_MENU_COMPLETE,                  ctrl('P'));
-        bind(viins, HISTORY_INCREMENTAL_SEARCH_BACKWARD,    ctrl('R'));
-        bind(viins, HISTORY_INCREMENTAL_SEARCH_FORWARD,     ctrl('S'));
-        bind(viins, TRANSPOSE_CHARS,                        ctrl('T'));
-        bind(viins, KILL_WHOLE_LINE,                        ctrl('U'));
-        bind(viins, QUOTED_INSERT,                          ctrl('V'));
-        bind(viins, BACKWARD_KILL_WORD,                     ctrl('W'));
-        bind(viins, YANK,                                   ctrl('Y'));
-        bind(viins, VI_CMD_MODE,                            ctrl('['));
-        bind(viins, UNDO,                                   ctrl('_'));
-        bind(viins, HISTORY_INCREMENTAL_SEARCH_BACKWARD,    ctrl('X') + "r");
-        bind(viins, HISTORY_INCREMENTAL_SEARCH_FORWARD,     ctrl('X') + "s");
-        bind(viins, SELF_INSERT,                            range(" -~"));
-        bind(viins, INSERT_CLOSE_PAREN,                     ")");
-        bind(viins, INSERT_CLOSE_SQUARE,                    "]");
-        bind(viins, INSERT_CLOSE_CURLY,                     "}");
-        bind(viins, BACKWARD_DELETE_CHAR,                   del());
+        bind(viins, SELF_INSERT, range("^@-^_"));
+        bind(viins, LIST_CHOICES, ctrl('D'));
+        bind(viins, SEND_BREAK, ctrl('G'));
+        bind(viins, BACKWARD_DELETE_CHAR, ctrl('H'));
+        bind(viins, EXPAND_OR_COMPLETE, ctrl('I'));
+        bind(viins, ACCEPT_LINE, ctrl('J'));
+        bind(viins, CLEAR_SCREEN, ctrl('L'));
+        bind(viins, ACCEPT_LINE, ctrl('M'));
+        bind(viins, MENU_COMPLETE, ctrl('N'));
+        bind(viins, REVERSE_MENU_COMPLETE, ctrl('P'));
+        bind(viins, HISTORY_INCREMENTAL_SEARCH_BACKWARD, ctrl('R'));
+        bind(viins, HISTORY_INCREMENTAL_SEARCH_FORWARD, ctrl('S'));
+        bind(viins, TRANSPOSE_CHARS, ctrl('T'));
+        bind(viins, KILL_WHOLE_LINE, ctrl('U'));
+        bind(viins, QUOTED_INSERT, ctrl('V'));
+        bind(viins, BACKWARD_KILL_WORD, ctrl('W'));
+        bind(viins, YANK, ctrl('Y'));
+        bind(viins, VI_CMD_MODE, ctrl('['));
+        bind(viins, UNDO, ctrl('_'));
+        bind(viins, HISTORY_INCREMENTAL_SEARCH_BACKWARD, ctrl('X') + "r");
+        bind(viins, HISTORY_INCREMENTAL_SEARCH_FORWARD, ctrl('X') + "s");
+        bind(viins, SELF_INSERT, range(" -~"));
+        bind(viins, INSERT_CLOSE_PAREN, ")");
+        bind(viins, INSERT_CLOSE_SQUARE, "]");
+        bind(viins, INSERT_CLOSE_CURLY, "}");
+        bind(viins, BACKWARD_DELETE_CHAR, del());
         bindArrowKeys(viins);
         return viins;
     }
 
     public KeyMap<Binding> viCmd() {
         KeyMap<Binding> vicmd = new KeyMap<>();
-        bind(vicmd, LIST_CHOICES,                           ctrl('D'));
-        bind(vicmd, EMACS_EDITING_MODE,                     ctrl('E'));
-        bind(vicmd, SEND_BREAK,                             ctrl('G'));
-        bind(vicmd, VI_BACKWARD_CHAR,                       ctrl('H'));
-        bind(vicmd, ACCEPT_LINE,                            ctrl('J'));
-        bind(vicmd, KILL_LINE,                              ctrl('K'));
-        bind(vicmd, CLEAR_SCREEN,                           ctrl('L'));
-        bind(vicmd, ACCEPT_LINE,                            ctrl('M'));
-        bind(vicmd, VI_DOWN_LINE_OR_HISTORY,                ctrl('N'));
-        bind(vicmd, VI_UP_LINE_OR_HISTORY,                  ctrl('P'));
-        bind(vicmd, QUOTED_INSERT,                          ctrl('Q'));
-        bind(vicmd, HISTORY_INCREMENTAL_SEARCH_BACKWARD,    ctrl('R'));
-        bind(vicmd, HISTORY_INCREMENTAL_SEARCH_FORWARD,     ctrl('S'));
-        bind(vicmd, TRANSPOSE_CHARS,                        ctrl('T'));
-        bind(vicmd, KILL_WHOLE_LINE,                        ctrl('U'));
-        bind(vicmd, QUOTED_INSERT,                          ctrl('V'));
-        bind(vicmd, BACKWARD_KILL_WORD,                     ctrl('W'));
-        bind(vicmd, YANK,                                   ctrl('Y'));
-        bind(vicmd, HISTORY_INCREMENTAL_SEARCH_BACKWARD,    ctrl('X') + "r");
-        bind(vicmd, HISTORY_INCREMENTAL_SEARCH_FORWARD,     ctrl('X') + "s");
-        bind(vicmd, SEND_BREAK,                             alt(ctrl('G')));
-        bind(vicmd, BACKWARD_KILL_WORD,                     alt(ctrl('H')));
-        bind(vicmd, SELF_INSERT_UNMETA,                     alt(ctrl('M')));
-        bind(vicmd, COMPLETE_WORD,                          alt(esc()));
-        bind(vicmd, CHARACTER_SEARCH_BACKWARD,              alt(ctrl(']')));
-        bind(vicmd, SET_MARK_COMMAND,                       alt(' '));
-//        bind(vicmd, INSERT_COMMENT,                         alt('#'));
-//        bind(vicmd, INSERT_COMPLETIONS,                     alt('*'));
-        bind(vicmd, DIGIT_ARGUMENT,                         alt('-'));
-        bind(vicmd, BEGINNING_OF_HISTORY,                   alt('<'));
-        bind(vicmd, LIST_CHOICES,                           alt('='));
-        bind(vicmd, END_OF_HISTORY,                         alt('>'));
-        bind(vicmd, LIST_CHOICES,                           alt('?'));
-        bind(vicmd, DO_LOWERCASE_VERSION,                   range("^[A-^[Z"));
-        bind(vicmd, BACKWARD_WORD,                          alt('b'));
-        bind(vicmd, CAPITALIZE_WORD,                        alt('c'));
-        bind(vicmd, KILL_WORD,                              alt('d'));
-        bind(vicmd, FORWARD_WORD,                           alt('f'));
-        bind(vicmd, DOWN_CASE_WORD,                         alt('l'));
-        bind(vicmd, HISTORY_SEARCH_FORWARD,                 alt('n'));
-        bind(vicmd, HISTORY_SEARCH_BACKWARD,                alt('p'));
-        bind(vicmd, TRANSPOSE_WORDS,                        alt('t'));
-        bind(vicmd, UP_CASE_WORD,                           alt('u'));
-        bind(vicmd, YANK_POP,                               alt('y'));
-        bind(vicmd, BACKWARD_KILL_WORD,                     alt(del()));
+        bind(vicmd, LIST_CHOICES, ctrl('D'));
+        bind(vicmd, EMACS_EDITING_MODE, ctrl('E'));
+        bind(vicmd, SEND_BREAK, ctrl('G'));
+        bind(vicmd, VI_BACKWARD_CHAR, ctrl('H'));
+        bind(vicmd, ACCEPT_LINE, ctrl('J'));
+        bind(vicmd, KILL_LINE, ctrl('K'));
+        bind(vicmd, CLEAR_SCREEN, ctrl('L'));
+        bind(vicmd, ACCEPT_LINE, ctrl('M'));
+        bind(vicmd, VI_DOWN_LINE_OR_HISTORY, ctrl('N'));
+        bind(vicmd, VI_UP_LINE_OR_HISTORY, ctrl('P'));
+        bind(vicmd, QUOTED_INSERT, ctrl('Q'));
+        bind(vicmd, HISTORY_INCREMENTAL_SEARCH_BACKWARD, ctrl('R'));
+        bind(vicmd, HISTORY_INCREMENTAL_SEARCH_FORWARD, ctrl('S'));
+        bind(vicmd, TRANSPOSE_CHARS, ctrl('T'));
+        bind(vicmd, KILL_WHOLE_LINE, ctrl('U'));
+        bind(vicmd, QUOTED_INSERT, ctrl('V'));
+        bind(vicmd, BACKWARD_KILL_WORD, ctrl('W'));
+        bind(vicmd, YANK, ctrl('Y'));
+        bind(vicmd, HISTORY_INCREMENTAL_SEARCH_BACKWARD, ctrl('X') + "r");
+        bind(vicmd, HISTORY_INCREMENTAL_SEARCH_FORWARD, ctrl('X') + "s");
+        bind(vicmd, SEND_BREAK, alt(ctrl('G')));
+        bind(vicmd, BACKWARD_KILL_WORD, alt(ctrl('H')));
+        bind(vicmd, SELF_INSERT_UNMETA, alt(ctrl('M')));
+        bind(vicmd, COMPLETE_WORD, alt(esc()));
+        bind(vicmd, CHARACTER_SEARCH_BACKWARD, alt(ctrl(']')));
+        bind(vicmd, SET_MARK_COMMAND, alt(' '));
+        //        bind(vicmd, INSERT_COMMENT,                         alt('#'));
+        //        bind(vicmd, INSERT_COMPLETIONS,                     alt('*'));
+        bind(vicmd, DIGIT_ARGUMENT, alt('-'));
+        bind(vicmd, BEGINNING_OF_HISTORY, alt('<'));
+        bind(vicmd, LIST_CHOICES, alt('='));
+        bind(vicmd, END_OF_HISTORY, alt('>'));
+        bind(vicmd, LIST_CHOICES, alt('?'));
+        bind(vicmd, DO_LOWERCASE_VERSION, range("^[A-^[Z"));
+        bind(vicmd, BACKWARD_WORD, alt('b'));
+        bind(vicmd, CAPITALIZE_WORD, alt('c'));
+        bind(vicmd, KILL_WORD, alt('d'));
+        bind(vicmd, FORWARD_WORD, alt('f'));
+        bind(vicmd, DOWN_CASE_WORD, alt('l'));
+        bind(vicmd, HISTORY_SEARCH_FORWARD, alt('n'));
+        bind(vicmd, HISTORY_SEARCH_BACKWARD, alt('p'));
+        bind(vicmd, TRANSPOSE_WORDS, alt('t'));
+        bind(vicmd, UP_CASE_WORD, alt('u'));
+        bind(vicmd, YANK_POP, alt('y'));
+        bind(vicmd, BACKWARD_KILL_WORD, alt(del()));
 
-        bind(vicmd, FORWARD_CHAR,                           " ");
-        bind(vicmd, VI_INSERT_COMMENT,                      "#");
-        bind(vicmd, END_OF_LINE,                            "$");
-        bind(vicmd, VI_MATCH_BRACKET,                       "%");
-        bind(vicmd, VI_DOWN_LINE_OR_HISTORY,                "+");
-        bind(vicmd, VI_REV_REPEAT_FIND,                     ",");
-        bind(vicmd, VI_UP_LINE_OR_HISTORY,                  "-");
-        bind(vicmd, VI_REPEAT_CHANGE,                       ".");
-        bind(vicmd, VI_HISTORY_SEARCH_BACKWARD,             "/");
-        bind(vicmd, VI_DIGIT_OR_BEGINNING_OF_LINE,          "0");
-        bind(vicmd, DIGIT_ARGUMENT,                         range("1-9"));
-        bind(vicmd, VI_REPEAT_FIND,                         ";");
-        bind(vicmd, LIST_CHOICES,                           "=");
-        bind(vicmd, VI_HISTORY_SEARCH_FORWARD,              "?");
-        bind(vicmd, VI_ADD_EOL,                             "A");
-        bind(vicmd, VI_BACKWARD_BLANK_WORD,                 "B");
-        bind(vicmd, VI_CHANGE_EOL,                          "C");
-        bind(vicmd, VI_KILL_EOL,                            "D");
-        bind(vicmd, VI_FORWARD_BLANK_WORD_END,              "E");
-        bind(vicmd, VI_FIND_PREV_CHAR,                      "F");
-        bind(vicmd, VI_FETCH_HISTORY,                       "G");
-        bind(vicmd, VI_INSERT_BOL,                          "I");
-        bind(vicmd, VI_JOIN,                                "J");
-        bind(vicmd, VI_REV_REPEAT_SEARCH,                   "N");
-        bind(vicmd, VI_OPEN_LINE_ABOVE,                     "O");
-        bind(vicmd, VI_PUT_BEFORE,                          "P");
-        bind(vicmd, VI_REPLACE,                             "R");
-        bind(vicmd, VI_KILL_LINE,                           "S");
-        bind(vicmd, VI_FIND_PREV_CHAR_SKIP,                 "T");
-        bind(vicmd, REDO,                                   "U");
-        bind(vicmd, VISUAL_LINE_MODE,                       "V");
-        bind(vicmd, VI_FORWARD_BLANK_WORD,                  "W");
-        bind(vicmd, VI_BACKWARD_DELETE_CHAR,                "X");
-        bind(vicmd, VI_YANK_WHOLE_LINE,                     "Y");
-        bind(vicmd, VI_FIRST_NON_BLANK,                     "^");
-        bind(vicmd, VI_ADD_NEXT,                            "a");
-        bind(vicmd, VI_BACKWARD_WORD,                       "b");
-        bind(vicmd, VI_CHANGE,                              "c");
-        bind(vicmd, VI_DELETE,                              "d");
-        bind(vicmd, VI_FORWARD_WORD_END,                    "e");
-        bind(vicmd, VI_FIND_NEXT_CHAR,                      "f");
-        bind(vicmd, WHAT_CURSOR_POSITION,                   "ga");
-        bind(vicmd, VI_BACKWARD_BLANK_WORD_END,             "gE");
-        bind(vicmd, VI_BACKWARD_WORD_END,                   "ge");
-        bind(vicmd, VI_BACKWARD_CHAR,                       "h");
-        bind(vicmd, VI_INSERT,                              "i");
-        bind(vicmd, DOWN_LINE_OR_HISTORY,                   "j");
-        bind(vicmd, UP_LINE_OR_HISTORY,                     "k");
-        bind(vicmd, VI_FORWARD_CHAR,                        "l");
-        bind(vicmd, VI_REPEAT_SEARCH,                       "n");
-        bind(vicmd, VI_OPEN_LINE_BELOW,                     "o");
-        bind(vicmd, VI_PUT_AFTER,                           "p");
-        bind(vicmd, VI_REPLACE_CHARS,                       "r");
-        bind(vicmd, VI_SUBSTITUTE,                          "s");
-        bind(vicmd, VI_FIND_NEXT_CHAR_SKIP,                 "t");
-        bind(vicmd, UNDO,                                   "u");
-        bind(vicmd, VISUAL_MODE,                            "v");
-        bind(vicmd, VI_FORWARD_WORD,                        "w");
-        bind(vicmd, VI_DELETE_CHAR,                         "x");
-        bind(vicmd, VI_YANK,                                "y");
-        bind(vicmd, VI_GOTO_COLUMN,                         "|");
-        bind(vicmd, VI_SWAP_CASE,                           "~");
-        bind(vicmd, VI_BACKWARD_CHAR,                       del());
+        bind(vicmd, FORWARD_CHAR, " ");
+        bind(vicmd, VI_INSERT_COMMENT, "#");
+        bind(vicmd, END_OF_LINE, "$");
+        bind(vicmd, VI_MATCH_BRACKET, "%");
+        bind(vicmd, VI_DOWN_LINE_OR_HISTORY, "+");
+        bind(vicmd, VI_REV_REPEAT_FIND, ",");
+        bind(vicmd, VI_UP_LINE_OR_HISTORY, "-");
+        bind(vicmd, VI_REPEAT_CHANGE, ".");
+        bind(vicmd, VI_HISTORY_SEARCH_BACKWARD, "/");
+        bind(vicmd, VI_DIGIT_OR_BEGINNING_OF_LINE, "0");
+        bind(vicmd, DIGIT_ARGUMENT, range("1-9"));
+        bind(vicmd, VI_REPEAT_FIND, ";");
+        bind(vicmd, LIST_CHOICES, "=");
+        bind(vicmd, VI_HISTORY_SEARCH_FORWARD, "?");
+        bind(vicmd, VI_ADD_EOL, "A");
+        bind(vicmd, VI_BACKWARD_BLANK_WORD, "B");
+        bind(vicmd, VI_CHANGE_EOL, "C");
+        bind(vicmd, VI_KILL_EOL, "D");
+        bind(vicmd, VI_FORWARD_BLANK_WORD_END, "E");
+        bind(vicmd, VI_FIND_PREV_CHAR, "F");
+        bind(vicmd, VI_FETCH_HISTORY, "G");
+        bind(vicmd, VI_INSERT_BOL, "I");
+        bind(vicmd, VI_JOIN, "J");
+        bind(vicmd, VI_REV_REPEAT_SEARCH, "N");
+        bind(vicmd, VI_OPEN_LINE_ABOVE, "O");
+        bind(vicmd, VI_PUT_BEFORE, "P");
+        bind(vicmd, VI_REPLACE, "R");
+        bind(vicmd, VI_KILL_LINE, "S");
+        bind(vicmd, VI_FIND_PREV_CHAR_SKIP, "T");
+        bind(vicmd, REDO, "U");
+        bind(vicmd, VISUAL_LINE_MODE, "V");
+        bind(vicmd, VI_FORWARD_BLANK_WORD, "W");
+        bind(vicmd, VI_BACKWARD_DELETE_CHAR, "X");
+        bind(vicmd, VI_YANK_WHOLE_LINE, "Y");
+        bind(vicmd, VI_FIRST_NON_BLANK, "^");
+        bind(vicmd, VI_ADD_NEXT, "a");
+        bind(vicmd, VI_BACKWARD_WORD, "b");
+        bind(vicmd, VI_CHANGE, "c");
+        bind(vicmd, VI_DELETE, "d");
+        bind(vicmd, VI_FORWARD_WORD_END, "e");
+        bind(vicmd, VI_FIND_NEXT_CHAR, "f");
+        bind(vicmd, WHAT_CURSOR_POSITION, "ga");
+        bind(vicmd, VI_BACKWARD_BLANK_WORD_END, "gE");
+        bind(vicmd, VI_BACKWARD_WORD_END, "ge");
+        bind(vicmd, VI_BACKWARD_CHAR, "h");
+        bind(vicmd, VI_INSERT, "i");
+        bind(vicmd, DOWN_LINE_OR_HISTORY, "j");
+        bind(vicmd, UP_LINE_OR_HISTORY, "k");
+        bind(vicmd, VI_FORWARD_CHAR, "l");
+        bind(vicmd, VI_REPEAT_SEARCH, "n");
+        bind(vicmd, VI_OPEN_LINE_BELOW, "o");
+        bind(vicmd, VI_PUT_AFTER, "p");
+        bind(vicmd, VI_REPLACE_CHARS, "r");
+        bind(vicmd, VI_SUBSTITUTE, "s");
+        bind(vicmd, VI_FIND_NEXT_CHAR_SKIP, "t");
+        bind(vicmd, UNDO, "u");
+        bind(vicmd, VISUAL_MODE, "v");
+        bind(vicmd, VI_FORWARD_WORD, "w");
+        bind(vicmd, VI_DELETE_CHAR, "x");
+        bind(vicmd, VI_YANK, "y");
+        bind(vicmd, VI_GOTO_COLUMN, "|");
+        bind(vicmd, VI_SWAP_CASE, "~");
+        bind(vicmd, VI_BACKWARD_CHAR, del());
 
         bindArrowKeys(vicmd);
         return vicmd;
@@ -6162,38 +6246,38 @@ public class LineReaderImpl implements LineReader, Flushable
 
     public KeyMap<Binding> menu() {
         KeyMap<Binding> menu = new KeyMap<>();
-        bind(menu, MENU_COMPLETE,                     "\t");
-        bind(menu, REVERSE_MENU_COMPLETE,             key(Capability.back_tab));
-        bind(menu, ACCEPT_LINE,                       "\r", "\n");
+        bind(menu, MENU_COMPLETE, "\t");
+        bind(menu, REVERSE_MENU_COMPLETE, key(Capability.back_tab));
+        bind(menu, ACCEPT_LINE, "\r", "\n");
         bindArrowKeys(menu);
         return menu;
     }
 
     public KeyMap<Binding> safe() {
         KeyMap<Binding> safe = new KeyMap<>();
-        bind(safe, SELF_INSERT,                 range("^@-^?"));
-        bind(safe, ACCEPT_LINE,                 "\r", "\n");
-        bind(safe, SEND_BREAK,                  ctrl('G'));
+        bind(safe, SELF_INSERT, range("^@-^?"));
+        bind(safe, ACCEPT_LINE, "\r", "\n");
+        bind(safe, SEND_BREAK, ctrl('G'));
         return safe;
     }
 
     public KeyMap<Binding> visual() {
         KeyMap<Binding> visual = new KeyMap<>();
-        bind(visual, UP_LINE,                   key(Capability.key_up),     "k");
-        bind(visual, DOWN_LINE,                 key(Capability.key_down),   "j");
-        bind(visual, this::deactivateRegion,    esc());
-        bind(visual, EXCHANGE_POINT_AND_MARK,   "o");
-        bind(visual, PUT_REPLACE_SELECTION,     "p");
-        bind(visual, VI_DELETE,                 "x");
-        bind(visual, VI_OPER_SWAP_CASE,         "~");
+        bind(visual, UP_LINE, key(Capability.key_up), "k");
+        bind(visual, DOWN_LINE, key(Capability.key_down), "j");
+        bind(visual, this::deactivateRegion, esc());
+        bind(visual, EXCHANGE_POINT_AND_MARK, "o");
+        bind(visual, PUT_REPLACE_SELECTION, "p");
+        bind(visual, VI_DELETE, "x");
+        bind(visual, VI_OPER_SWAP_CASE, "~");
         return visual;
     }
 
     public KeyMap<Binding> viOpp() {
         KeyMap<Binding> viOpp = new KeyMap<>();
-        bind(viOpp, UP_LINE,                    key(Capability.key_up),     "k");
-        bind(viOpp, DOWN_LINE,                  key(Capability.key_down),   "j");
-        bind(viOpp, VI_CMD_MODE,                esc());
+        bind(viOpp, UP_LINE, key(Capability.key_up), "k");
+        bind(viOpp, DOWN_LINE, key(Capability.key_down), "j");
+        bind(viOpp, VI_CMD_MODE, esc());
         return viOpp;
     }
 
@@ -6222,19 +6306,19 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     private void bindArrowKeys(KeyMap<Binding> map) {
-        bind(map, UP_LINE_OR_SEARCH,    key(Capability.key_up));
-        bind(map, DOWN_LINE_OR_SEARCH,  key(Capability.key_down));
-        bind(map, BACKWARD_CHAR,        key(Capability.key_left));
-        bind(map, FORWARD_CHAR,         key(Capability.key_right));
-        bind(map, BEGINNING_OF_LINE,    key(Capability.key_home));
-        bind(map, END_OF_LINE,          key(Capability.key_end));
-        bind(map, DELETE_CHAR,          key(Capability.key_dc));
-        bind(map, KILL_WHOLE_LINE,      key(Capability.key_dl));
-        bind(map, OVERWRITE_MODE,       key(Capability.key_ic));
-        bind(map, MOUSE,                key(Capability.key_mouse));
-        bind(map, BEGIN_PASTE,          BRACKETED_PASTE_BEGIN);
-        bind(map, FOCUS_IN,             FOCUS_IN_SEQ);
-        bind(map, FOCUS_OUT,            FOCUS_OUT_SEQ);
+        bind(map, UP_LINE_OR_SEARCH, key(Capability.key_up));
+        bind(map, DOWN_LINE_OR_SEARCH, key(Capability.key_down));
+        bind(map, BACKWARD_CHAR, key(Capability.key_left));
+        bind(map, FORWARD_CHAR, key(Capability.key_right));
+        bind(map, BEGINNING_OF_LINE, key(Capability.key_home));
+        bind(map, END_OF_LINE, key(Capability.key_end));
+        bind(map, DELETE_CHAR, key(Capability.key_dc));
+        bind(map, KILL_WHOLE_LINE, key(Capability.key_dl));
+        bind(map, OVERWRITE_MODE, key(Capability.key_ic));
+        bind(map, MOUSE, key(Capability.key_mouse));
+        bind(map, BEGIN_PASTE, BRACKETED_PASTE_BEGIN);
+        bind(map, FOCUS_IN, FOCUS_IN_SEQ);
+        bind(map, FOCUS_OUT, FOCUS_OUT_SEQ);
     }
 
     /**
@@ -6243,14 +6327,10 @@ public class LineReaderImpl implements LineReader, Flushable
      */
     private void bindConsoleChars(KeyMap<Binding> keyMap, Attributes attr) {
         if (attr != null) {
-            rebind(keyMap, BACKWARD_DELETE_CHAR,
-                    del(), (char) attr.getControlChar(ControlChar.VERASE));
-            rebind(keyMap, BACKWARD_KILL_WORD,
-                    ctrl('W'),  (char) attr.getControlChar(ControlChar.VWERASE));
-            rebind(keyMap, KILL_WHOLE_LINE,
-                    ctrl('U'), (char) attr.getControlChar(ControlChar.VKILL));
-            rebind(keyMap, QUOTED_INSERT,
-                    ctrl('V'), (char) attr.getControlChar(ControlChar.VLNEXT));
+            rebind(keyMap, BACKWARD_DELETE_CHAR, del(), (char) attr.getControlChar(ControlChar.VERASE));
+            rebind(keyMap, BACKWARD_KILL_WORD, ctrl('W'), (char) attr.getControlChar(ControlChar.VWERASE));
+            rebind(keyMap, KILL_WHOLE_LINE, ctrl('U'), (char) attr.getControlChar(ControlChar.VKILL));
+            rebind(keyMap, QUOTED_INSERT, ctrl('V'), (char) attr.getControlChar(ControlChar.VLNEXT));
         }
     }
 
@@ -6261,5 +6341,4 @@ public class LineReaderImpl implements LineReader, Flushable
             keyMap.bind(ref, Character.toString(newBinding));
         }
     }
-
 }

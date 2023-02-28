@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2023, the original author or authors.
+ * Copyright (c) 2002-2023, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -7,9 +7,6 @@
  * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.widget;
-
-import static org.jline.keymap.KeyMap.alt;
-import static org.jline.keymap.KeyMap.ctrl;
 
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
@@ -20,13 +17,16 @@ import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
 import org.jline.reader.Buffer;
 import org.jline.reader.LineReader;
+import org.jline.reader.LineReader.SuggestionType;
 import org.jline.reader.Parser;
+import org.jline.reader.Parser.ParseContext;
 import org.jline.reader.Reference;
 import org.jline.reader.Widget;
-import org.jline.reader.LineReader.SuggestionType;
-import org.jline.reader.Parser.ParseContext;
 import org.jline.utils.AttributedString;
 import org.jline.utils.Status;
+
+import static org.jline.keymap.KeyMap.alt;
+import static org.jline.keymap.KeyMap.ctrl;
 
 /**
  * Create custom widgets by extending Widgets class
@@ -63,6 +63,7 @@ public abstract class Widgets {
             public String toString() {
                 return name;
             }
+
             @Override
             public boolean apply() {
                 return widget.apply();
@@ -123,7 +124,7 @@ public abstract class Widgets {
         try {
             widget(name);
             return true;
-        } catch(Exception e) {
+        } catch (Exception e) {
             // ignore
         }
         return false;
@@ -179,7 +180,9 @@ public abstract class Widgets {
      * @return command line arguments
      */
     public List<String> args() {
-        return reader.getParser().parse(buffer().toString(), 0, ParseContext.COMPLETE).words();
+        return reader.getParser()
+                .parse(buffer().toString(), 0, ParseContext.COMPLETE)
+                .words();
     }
 
     /**
@@ -187,7 +190,7 @@ public abstract class Widgets {
      * @return previous character
      */
     public String prevChar() {
-        return String.valueOf((char)reader.getBuffer().prevChar());
+        return String.valueOf((char) reader.getBuffer().prevChar());
     }
 
     /**
@@ -195,7 +198,7 @@ public abstract class Widgets {
      * @return current character
      */
     public String currChar() {
-        return String.valueOf((char)reader.getBuffer().currChar());
+        return String.valueOf((char) reader.getBuffer().currChar());
     }
 
     /**

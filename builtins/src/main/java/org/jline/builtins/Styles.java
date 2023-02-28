@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2021, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -21,8 +21,19 @@ import static org.jline.builtins.SyntaxHighlighter.REGEX_TOKEN_NAME;
 
 public class Styles {
     public static final String NANORC_THEME = "NANORC_THEME";
-    protected static final List<String> ANSI_STYLES = Arrays.asList("blink", "bold", "conceal", "crossed-out"
-            , "crossedout", "faint", "hidden", "inverse", "inverse-neg", "inverseneg", "italic", "underline");
+    protected static final List<String> ANSI_STYLES = Arrays.asList(
+            "blink",
+            "bold",
+            "conceal",
+            "crossed-out",
+            "crossedout",
+            "faint",
+            "hidden",
+            "inverse",
+            "inverse-neg",
+            "inverseneg",
+            "italic",
+            "underline");
     private static final String DEFAULT_LS_COLORS = "di=1;91:ex=1;92:ln=1;96:fi=";
     private static final String DEFAULT_HELP_COLORS = "ti=1;34:co=1:ar=3:op=33";
     private static final String DEFAULT_PRNT_COLORS = "th=1;34:rn=1;34:rs=,~grey15:mk=1;34:em=31:vs=32";
@@ -51,9 +62,8 @@ public class Styles {
     public static boolean isStylePattern(String style) {
         final String[] styleElements = STYLE_ELEMENT_SEPARATOR.split(style);
         return Arrays.stream(styleElements)
-                .allMatch(element ->
-                        element.isEmpty() || STYLE_ELEMENT_PATTERN.matcher(element).matches()
-                );
+                .allMatch(element -> element.isEmpty()
+                        || STYLE_ELEMENT_PATTERN.matcher(element).matches());
     }
 
     public static StyleResolver style(String name, String defStyle) {
@@ -67,7 +77,8 @@ public class Styles {
     private static ConsoleOptionGetter optionGetter() {
         try {
             return (ConsoleOptionGetter) Class.forName("org.jline.console.SystemRegistry")
-                    .getDeclaredMethod("get").invoke(null);
+                    .getDeclaredMethod("get")
+                    .invoke(null);
         } catch (Exception ignore) {
         }
         return null;
@@ -102,17 +113,18 @@ public class Styles {
 
     public static StyleResolver style(String style) {
         Map<String, String> colors = Arrays.stream(style.split(":"))
-                .collect(Collectors.toMap(s -> s.substring(0, s.indexOf('=')),
-                        s -> s.substring(s.indexOf('=') + 1)));
+                .collect(Collectors.toMap(s -> s.substring(0, s.indexOf('=')), s -> s.substring(s.indexOf('=') + 1)));
         return new StyleResolver(new StyleCompiler(colors)::getStyle);
     }
 
     public static class StyleCompiler {
         private static final String ANSI_VALUE = "[0-9]*(;[0-9]+){0,2}";
         private static final String COLORS_24BIT = "[#x][0-9a-fA-F]{6}";
-        private static final List<String> COLORS_8 = Arrays.asList("white", "black", "red", "blue", "green", "yellow", "magenta", "cyan");
+        private static final List<String> COLORS_8 =
+                Arrays.asList("white", "black", "red", "blue", "green", "yellow", "magenta", "cyan");
         // https://github.com/lhmouse/nano-win/commit/a7aab18dfeef8a0e8073d5fa420677dc8fe548da
-        private static final Map<String,Integer> COLORS_NANO = new HashMap<>();
+        private static final Map<String, Integer> COLORS_NANO = new HashMap<>();
+
         static {
             COLORS_NANO.put("pink", 204);
             COLORS_NANO.put("purple", 163);
@@ -124,14 +136,16 @@ public class Styles {
             COLORS_NANO.put("orange", 208);
             COLORS_NANO.put("latte", 137);
         }
-        private final Map<String,String> colors;
-        private final Map<String,String> tokenColors;
+
+        private final Map<String, String> colors;
+        private final Map<String, String> tokenColors;
         private final boolean nanoStyle;
 
-        public StyleCompiler(Map<String,String> colors) {
+        public StyleCompiler(Map<String, String> colors) {
             this(colors, false);
         }
-        public StyleCompiler(Map<String,String> colors, boolean nanoStyle) {
+
+        public StyleCompiler(Map<String, String> colors, boolean nanoStyle) {
             this.colors = colors;
             this.nanoStyle = nanoStyle;
             this.tokenColors = consoleOption(NANORC_THEME, new HashMap<>());
@@ -159,9 +173,16 @@ public class Styles {
                 }
                 if (ANSI_STYLES.contains(s)) {
                     out.append(s);
-                } else if (COLORS_8.contains(s) || COLORS_NANO.containsKey(s) || s.startsWith("light")
-                        || s.startsWith("bright") || s.startsWith("~") || s.startsWith("!") || s.matches("\\d+")
-                        || s.matches(COLORS_24BIT) || s.equals("normal") || s.equals("default")) {
+                } else if (COLORS_8.contains(s)
+                        || COLORS_NANO.containsKey(s)
+                        || s.startsWith("light")
+                        || s.startsWith("bright")
+                        || s.startsWith("~")
+                        || s.startsWith("!")
+                        || s.matches("\\d+")
+                        || s.matches(COLORS_24BIT)
+                        || s.equals("normal")
+                        || s.equals("default")) {
                     if (s.matches(COLORS_24BIT)) {
                         if (fg) {
                             out.append("fg-rgb:");

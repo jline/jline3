@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2022, the original author or authors.
+ * Copyright (c) 2002-2022, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -49,7 +49,7 @@ public interface Source {
             Long out = null;
             try {
                 out = Files.lines(new File(url.toURI()).toPath()).count();
-            } catch (Exception e) {                
+            } catch (Exception e) {
             }
             return out;
         }
@@ -83,7 +83,7 @@ public interface Source {
             Long out = null;
             try {
                 out = Files.lines(path).count();
-            } catch (Exception e) {                
+            } catch (Exception e) {
             }
             return out;
         }
@@ -100,8 +100,7 @@ public interface Source {
             } else {
                 this.in = new FilterInputStream(in) {
                     @Override
-                    public void close() throws IOException {
-                    }
+                    public void close() throws IOException {}
                 };
             }
             if (this.in.markSupported()) {
@@ -138,7 +137,6 @@ public interface Source {
         public StdInSource(InputStream in) {
             super(in, false, null);
         }
-
     }
 
     class ResourceSource implements Source {

@@ -1,11 +1,12 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
+package org.jline.builtins.telnet;
 
 /*
  * Java TelnetD library (embeddable telnet daemon)
@@ -38,8 +39,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ***/
 
-package org.jline.builtins.telnet;
-
 /**
  * Class implementing a ConnectionEvent.<br>
  * These events are used to communicate things that are
@@ -66,7 +65,7 @@ public class ConnectionEvent {
     public ConnectionEvent(Connection source, Type type) {
         this.type = type;
         this.source = source;
-    }//constructor
+    } // constructor
 
     /**
      * Accessor method returning the source of the
@@ -76,7 +75,7 @@ public class ConnectionEvent {
      */
     public Connection getSource() {
         return source;
-    }//getSource
+    } // getSource
 
     /**
      * Method that helps identifying the type.
@@ -85,7 +84,7 @@ public class ConnectionEvent {
      */
     public Type getType() {
         return type;
-    }//getType
+    } // getType
 
     public enum Type {
         /**
@@ -123,6 +122,4 @@ public class ConnectionEvent {
          */
         CONNECTION_TERMINAL_GEOMETRY_CHANGED;
     }
-
-
-}//class ConnectionEvent
+} // class ConnectionEvent
