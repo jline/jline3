@@ -22,13 +22,6 @@ import static org.junit.Assume.assumeTrue;
 public class JnaNativePtyTest {
 
     @Test
-    public void testDescriptor() {
-        assumeTrue(!System.getProperty("os.name").startsWith("Windows"));
-        assertNotNull(JnaNativePty.newDescriptor(4));
-    }
-
-
-    @Test
     public void testOpen() throws IOException {
         // https://github.com/jline/jline3/issues/688
         // currently disabled on Mac M1 silicon

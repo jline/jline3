@@ -119,6 +119,12 @@
         <dependencies>
             <dependency>
                 <groupId>org.jline</groupId>
+                <artifactId>jline-native</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jline</groupId>
                 <artifactId>jline-terminal</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -376,7 +382,7 @@
                     <configuration>
                         <showWarnings>true</showWarnings>
                         <compilerArgs>
-                            <arg>-Xlint:all,-options</arg>
+                            <arg>-Xlint:all,-options,-processing</arg>
                             <arg>-Werror</arg>
                             <arg>-profile</arg>
                             <arg>compact1</arg>
@@ -706,6 +712,7 @@
     </profiles>
 
     <modules>
+        <module>native</module>
         <module>terminal</module>
         <module>terminal-jna</module>
         <module>terminal-jansi</module>

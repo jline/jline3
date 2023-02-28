@@ -68,6 +68,16 @@ public final class TerminalBuilder {
     public static final String PROP_DISABLE_ALTERNATE_CHARSET = "org.jline.utils.disableAlternateCharset";
 
     //
+    // System properties controlling how FileDescriptor are create.
+    // The value can be a comma separated list of defined mechanisms.
+    //
+    public static final String PROP_FILE_DESCRIPTOR_CREATION_MODE = "org.jline.terminal.pty.fileDescriptorCreationMode";
+    public static final String PROP_FILE_DESCRIPTOR_CREATION_MODE_NATIVE = "native";
+    public static final String PROP_FILE_DESCRIPTOR_CREATION_MODE_REFLECTION = "reflection";
+    public static final String PROP_FILE_DESCRIPTOR_CREATION_MODE_DEFAULT = "reflection,native";
+
+
+    //
     // Terminal output control
     //
     public enum SystemOutput {

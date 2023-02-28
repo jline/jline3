@@ -22,7 +22,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Constructor;
 
 import static org.fusesource.jansi.internal.CLibrary.TCSANOW;
 import static org.jline.terminal.impl.jansi.JansiTerminalProvider.JANSI_MAJOR_VERSION;
@@ -161,16 +160,6 @@ public abstract class JansiNativePty extends AbstractPty implements Pty {
     @Override
     public String toString() {
         return "JansiNativePty[" + getName() + "]";
-    }
-
-    protected static FileDescriptor newDescriptor(int fd) {
-        try {
-            Constructor<FileDescriptor> cns = FileDescriptor.class.getDeclaredConstructor(int.class);
-            cns.setAccessible(true);
-            return cns.newInstance(fd);
-        } catch (Throwable e) {
-            throw new RuntimeException("Unable to create FileDescriptor", e);
-        }
     }
 
     public static boolean isPosixSystemStream(TerminalProvider.Stream stream) {
