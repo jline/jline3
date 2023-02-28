@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2020, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -15,16 +15,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import com.sun.jna.Platform;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractPty;
-import org.jline.terminal.spi.TerminalProvider;
-import org.jline.terminal.spi.Pty;
 import org.jline.terminal.impl.jna.freebsd.FreeBsdNativePty;
 import org.jline.terminal.impl.jna.linux.LinuxNativePty;
 import org.jline.terminal.impl.jna.osx.OsXNativePty;
 import org.jline.terminal.impl.jna.solaris.SolarisNativePty;
+import org.jline.terminal.spi.Pty;
+import org.jline.terminal.spi.TerminalProvider;
+
+import com.sun.jna.Platform;
 
 public abstract class JnaNativePty extends AbstractPty implements Pty {
 
@@ -74,7 +75,14 @@ public abstract class JnaNativePty extends AbstractPty implements Pty {
         this(master, masterFD, slave, slaveFD, slave, slaveFD, name);
     }
 
-    protected JnaNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, int slaveOut, FileDescriptor slaveOutFD, String name) {
+    protected JnaNativePty(
+            int master,
+            FileDescriptor masterFD,
+            int slave,
+            FileDescriptor slaveFD,
+            int slaveOut,
+            FileDescriptor slaveOutFD,
+            String name) {
         this.master = master;
         this.slave = slave;
         this.slaveOut = slaveOut;
@@ -145,19 +153,27 @@ public abstract class JnaNativePty extends AbstractPty implements Pty {
 
     public static boolean isPosixSystemStream(TerminalProvider.Stream stream) {
         switch (stream) {
-            case Input: return isatty(0);
-            case Output: return isatty(1);
-            case Error: return isatty(2);
-            default: return false;
+            case Input:
+                return isatty(0);
+            case Output:
+                return isatty(1);
+            case Error:
+                return isatty(2);
+            default:
+                return false;
         }
     }
 
     public static String posixSystemStreamName(TerminalProvider.Stream stream) {
         switch (stream) {
-            case Input: return ttyname(0);
-            case Output: return ttyname(1);
-            case Error: return ttyname(2);
-            default: return null;
+            case Input:
+                return ttyname(0);
+            case Output:
+                return ttyname(1);
+            case Error:
+                return ttyname(2);
+            default:
+                return null;
         }
     }
 
@@ -188,5 +204,4 @@ public abstract class JnaNativePty extends AbstractPty implements Pty {
             return null;
         }
     }
-
 }

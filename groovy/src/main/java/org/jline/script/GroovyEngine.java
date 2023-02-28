@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2022, the original author or authors.
+ * Copyright (c) 2002-2022, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -19,13 +19,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import groovy.lang.*;
 import org.apache.groovy.ast.tools.ImmutablePropertyUtils;
 import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
 import org.codehaus.groovy.runtime.metaclass.MissingMethodExceptionNoStack;
 import org.codehaus.groovy.syntax.SyntaxException;
-import org.jline.builtins.SyntaxHighlighter;
 import org.jline.builtins.Styles;
+import org.jline.builtins.SyntaxHighlighter;
 import org.jline.console.CmdDesc;
 import org.jline.console.CmdLine;
 import org.jline.console.ScriptEngine;
@@ -45,6 +44,8 @@ import org.jline.utils.Log;
 import org.jline.utils.OSUtils;
 import org.jline.utils.StyleResolver;
 
+import groovy.lang.*;
+
 import static org.jline.console.ConsoleEngine.VAR_NANORC;
 
 /**
@@ -55,7 +56,11 @@ import static org.jline.console.ConsoleEngine.VAR_NANORC;
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public class GroovyEngine implements ScriptEngine {
-    public enum Format {JSON, GROOVY, NONE}
+    public enum Format {
+        JSON,
+        GROOVY,
+        NONE
+    }
 
     public static final String CANONICAL_NAMES = "canonicalNames";
     public static final String NANORC_SYNTAX = "nanorcSyntax";
@@ -76,29 +81,34 @@ public class GroovyEngine implements ScriptEngine {
     private static final String REGEX_SYSTEM_VAR = "[A-Z]+[A-Z_]*";
     private static final String REGEX_VAR = "[a-zA-Z_]+[a-zA-Z0-9_]*";
     private static final Pattern PATTERN_FUNCTION_DEF = Pattern.compile(
-                                      "^def\\s+(" + REGEX_VAR + ")\\s*\\(([a-zA-Z0-9_ ,]*)\\)\\s*\\{(.*)?}(|\n)$"
-                                           , Pattern.DOTALL);
-    private static final Pattern PATTERN_CLASS_DEF = Pattern.compile("^class\\s+(" + REGEX_VAR + ")\\s*(.*?\\{.*?})(|\n)$"
-                                                                  , Pattern.DOTALL);
-    private static final Pattern PATTERN_TRAIT_DEF = Pattern.compile("^trait\\s+(" + REGEX_VAR + ")\\s*(\\{.*?})(|\n)$"
-                                                                    , Pattern.DOTALL);
+            "^def\\s+(" + REGEX_VAR + ")\\s*\\(([a-zA-Z0-9_ ,]*)\\)\\s*\\{(.*)?}(|\n)$", Pattern.DOTALL);
+    private static final Pattern PATTERN_CLASS_DEF =
+            Pattern.compile("^class\\s+(" + REGEX_VAR + ")\\s*(.*?\\{.*?})(|\n)$", Pattern.DOTALL);
+    private static final Pattern PATTERN_TRAIT_DEF =
+            Pattern.compile("^trait\\s+(" + REGEX_VAR + ")\\s*(\\{.*?})(|\n)$", Pattern.DOTALL);
     private static final String REGEX_CLASS = "(.*?)\\.([A-Z_].*)";
     private static final Pattern PATTERN_CLASS = Pattern.compile(REGEX_CLASS);
     private static final String REGEX_PACKAGE = "([a-z][a-z_0-9]*\\.)*";
     private static final String REGEX_CLASS_NAME = "[A-Z_](\\w)*";
-    private static final Pattern PATTERN_LOAD_CLASS = Pattern.compile("(import\\s+|new\\s+|\\s*)?("
-            + REGEX_PACKAGE + ")(" + REGEX_CLASS_NAME + ")(\\..*|\\(.*)?");
-    private static final List<String> DEFAULT_IMPORTS = Arrays.asList("java.lang.*", "java.util.*", "java.io.*"
-                                                     , "java.net.*", "groovy.lang.*", "groovy.util.*"
-                                                     , "java.math.BigInteger", "java.math.BigDecimal");
-    private final Map<String,Class<?>> defaultNameClass = new HashMap<>();
+    private static final Pattern PATTERN_LOAD_CLASS = Pattern.compile(
+            "(import\\s+|new\\s+|\\s*)?(" + REGEX_PACKAGE + ")(" + REGEX_CLASS_NAME + ")(\\..*|\\(.*)?");
+    private static final List<String> DEFAULT_IMPORTS = Arrays.asList(
+            "java.lang.*",
+            "java.util.*",
+            "java.io.*",
+            "java.net.*",
+            "groovy.lang.*",
+            "groovy.util.*",
+            "java.math.BigInteger",
+            "java.math.BigDecimal");
+    private final Map<String, Class<?>> defaultNameClass = new HashMap<>();
     private final GroovyShell shell;
     protected Binding sharedData;
-    private final Map<String,String> imports = new HashMap<>();
-    private final Map<String,String> methods = new HashMap<>();
-    private final Map<String,String> classes = new HashMap<>();
-    private final Map<String,String> traits = new HashMap<>();
-    private final Map<String,Class<?>> nameClass;
+    private final Map<String, String> imports = new HashMap<>();
+    private final Map<String, String> methods = new HashMap<>();
+    private final Map<String, String> classes = new HashMap<>();
+    private final Map<String, String> traits = new HashMap<>();
+    private final Map<String, Class<?>> nameClass;
     private Cloner objectCloner = new ObjectCloner();
     protected final EngineClassLoader classLoader;
     private SyntaxHighlighter syntaxHighlighter;
@@ -106,7 +116,9 @@ public class GroovyEngine implements ScriptEngine {
 
     public interface Cloner {
         Object clone(Object obj);
+
         void markCache();
+
         void purgeCache();
     }
 
@@ -142,7 +154,7 @@ public class GroovyEngine implements ScriptEngine {
 
     @SuppressWarnings("unchecked")
     @Override
-    public Map<String,Object> find(String name) {
+    public Map<String, Object> find(String name) {
         Map<String, Object> out = new HashMap<>();
         if (name == null) {
             out = sharedData.getVariables();
@@ -236,7 +248,7 @@ public class GroovyEngine implements ScriptEngine {
         Set<Object> out = new HashSet<>(PackageHelper.getClassesForPackage(name));
         out.addAll(JrtJavaBasePackages.getClassesForPackage(name));
         if (shell != null) {
-            EngineClassLoader classLoader = (EngineClassLoader)shell.getClassLoader();
+            EngineClassLoader classLoader = (EngineClassLoader) shell.getClassLoader();
             String packageName = pckgname;
             if (pckgname.endsWith(".*")) {
                 packageName = pckgname.substring(0, pckgname.length() - 1);
@@ -257,19 +269,17 @@ public class GroovyEngine implements ScriptEngine {
             } else {
                 out.addAll(classNames);
             }
-            out.addAll(new HashSet<>(PackageHelper.getClassesForPackage(name, shell.getClassLoader()
-                    , n ->
-                    {
-                        if (n.contains("-")) {
-                            return null;
-                        }
-                        Class<?> o = null;
-                        try {
-                            o = (Class<?>) shell.evaluate(n + ".class");
-                        } catch (Exception | Error ignore) {
-                        }
-                        return o;
-                    })));
+            out.addAll(new HashSet<>(PackageHelper.getClassesForPackage(name, shell.getClassLoader(), n -> {
+                if (n.contains("-")) {
+                    return null;
+                }
+                Class<?> o = null;
+                try {
+                    o = (Class<?>) shell.evaluate(n + ".class");
+                } catch (Exception | Error ignore) {
+                }
+                return o;
+            })));
             classLoader.purgeClassCache();
         }
         return out;
@@ -280,10 +290,10 @@ public class GroovyEngine implements ScriptEngine {
     }
 
     @SuppressWarnings("unchecked")
-    private void addToNameClass(String name, Map<String,Class<?>> nameClass) {
+    private void addToNameClass(String name, Map<String, Class<?>> nameClass) {
         try {
             if (name.endsWith(".*")) {
-                for (Class<?> c : (Collection<Class<?>>)(Object)classesForPackage(name, shell)) {
+                for (Class<?> c : (Collection<Class<?>>) (Object) classesForPackage(name, shell)) {
                     nameClass.put(c.getSimpleName(), c);
                 }
             } else {
@@ -342,7 +352,8 @@ public class GroovyEngine implements ScriptEngine {
         return out;
     }
 
-    private static Object executeStatement(GroovyShell shell, Map<String, String> imports, String statement) throws IOException {
+    private static Object executeStatement(GroovyShell shell, Map<String, String> imports, String statement)
+            throws IOException {
         int idx = statement.indexOf("=") + 1;
         Matcher matcher = PATTERN_LOAD_CLASS.matcher(statement.substring(idx));
         if (matcher.matches()) {
@@ -356,15 +367,19 @@ public class GroovyEngine implements ScriptEngine {
                     try {
                         shell.evaluate(file);
                     } catch (GroovyRuntimeException e) {
-                        if (!(e instanceof MissingMethodExceptionNoStack)              // thrown when class without main()
-                                && !(e.getCause() instanceof NoSuchMethodException)) { // thrown traits... no constructor
+                        if (!(e instanceof MissingMethodExceptionNoStack) // thrown when class without main()
+                                && !(e.getCause()
+                                        instanceof NoSuchMethodException)) { // thrown traits... no constructor
                             throw e;
                         }
                     }
                     if (importStatement) {
                         statement = importClass + matcher.group(4) + ".class";
                     } else {
-                        statement = importClass + statement.substring(0, idx) + convertNull(matcher.group(1)) + matcher.group(4)
+                        statement = importClass
+                                + statement.substring(0, idx)
+                                + convertNull(matcher.group(1))
+                                + matcher.group(4)
                                 + convertNull(matcher.group(6));
                     }
                     break;
@@ -391,7 +406,7 @@ public class GroovyEngine implements ScriptEngine {
         if (!(closure instanceof Closure)) {
             throw new IllegalArgumentException();
         }
-        return ((Closure<?>)closure).call(args);
+        return ((Closure<?>) closure).call(args);
     }
 
     @Override
@@ -407,10 +422,10 @@ public class GroovyEngine implements ScriptEngine {
     @SuppressWarnings("unchecked")
     private List<String> internalFind(String var) {
         List<String> out = new ArrayList<>();
-        if(!var.contains(".") && var.contains("*")) {
+        if (!var.contains(".") && var.contains("*")) {
             var = var.replaceAll("\\*", ".*");
         }
-        for (String v :  (Set<String>)sharedData.getVariables().keySet()) {
+        for (String v : (Set<String>) sharedData.getVariables().keySet()) {
             if (v.matches(var)) {
                 out.add(v);
             }
@@ -418,7 +433,7 @@ public class GroovyEngine implements ScriptEngine {
         return out;
     }
 
-    private boolean functionDef(String statement) throws Exception{
+    private boolean functionDef(String statement) throws Exception {
         boolean out = false;
         Matcher m = PATTERN_FUNCTION_DEF.matcher(statement);
         if (m.matches()) {
@@ -430,7 +445,8 @@ public class GroovyEngine implements ScriptEngine {
     }
 
     private static boolean classOrTraitDef(String statement) {
-        return PATTERN_CLASS_DEF.matcher(statement).matches() || PATTERN_TRAIT_DEF.matcher(statement).matches();
+        return PATTERN_CLASS_DEF.matcher(statement).matches()
+                || PATTERN_TRAIT_DEF.matcher(statement).matches();
     }
 
     private void refreshNameClass() {
@@ -466,7 +482,7 @@ public class GroovyEngine implements ScriptEngine {
             traits.remove(var);
             classLoader.purgeClassCache(var + "(\\$.*)?");
         } else if (!var.contains(".") && var.contains("*")) {
-            for (String v : internalFind(var)){
+            for (String v : internalFind(var)) {
                 if (sharedData.hasVariable(v) && !v.equals("_") && !v.matches(REGEX_SYSTEM_VAR)) {
                     sharedData.getVariables().remove(v);
                     methods.remove(v);
@@ -480,7 +496,7 @@ public class GroovyEngine implements ScriptEngine {
         if (vars == null) {
             return;
         }
-        for (String s: vars) {
+        for (String s : vars) {
             del(s);
         }
     }
@@ -496,7 +512,7 @@ public class GroovyEngine implements ScriptEngine {
     }
 
     @Override
-    public Map<String,Object> toMap(Object obj) {
+    public Map<String, Object> toMap(Object obj) {
         return Utils.toMap(obj);
     }
 
@@ -513,17 +529,16 @@ public class GroovyEngine implements ScriptEngine {
     }
 
     @SuppressWarnings("unchecked")
-    protected Map<String,Object> groovyOptions() {
-        return hasVariable(VAR_GROOVY_OPTIONS) ? (Map<String, Object>) get(VAR_GROOVY_OPTIONS)
-                                                       : new HashMap<>();
+    protected Map<String, Object> groovyOptions() {
+        return hasVariable(VAR_GROOVY_OPTIONS) ? (Map<String, Object>) get(VAR_GROOVY_OPTIONS) : new HashMap<>();
     }
 
-    protected <T>T groovyOption(String option, T defval) {
+    protected <T> T groovyOption(String option, T defval) {
         return groovyOption(groovyOptions(), option, defval);
     }
 
     @SuppressWarnings("unchecked")
-    protected static <T>T groovyOption(Map<String,Object> options, String option, T defval) {
+    protected static <T> T groovyOption(Map<String, Object> options, String option, T defval) {
         T out = defval;
         try {
             out = (T) options.getOrDefault(option, defval);
@@ -557,19 +572,32 @@ public class GroovyEngine implements ScriptEngine {
 
     private Completer compileCompleter() {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(new StringsCompleter("def"), new StringsCompleter(methods::keySet)
-                                           , NullCompleter.INSTANCE));
-        completers.add(new ArgumentCompleter(new StringsCompleter("class"), new StringsCompleter(classes::keySet)
-                                           , NullCompleter.INSTANCE));
-        completers.add(new ArgumentCompleter(new StringsCompleter("trait"), new StringsCompleter(traits::keySet)
-                                           , NullCompleter.INSTANCE));
-        completers.add(new ArgumentCompleter(new StringsCompleter("import")
-                                           , new PackageCompleter(CandidateType.PACKAGE, this), NullCompleter.INSTANCE));
+        completers.add(new ArgumentCompleter(
+                new StringsCompleter("def"), new StringsCompleter(methods::keySet), NullCompleter.INSTANCE));
+        completers.add(new ArgumentCompleter(
+                new StringsCompleter("class"), new StringsCompleter(classes::keySet), NullCompleter.INSTANCE));
+        completers.add(new ArgumentCompleter(
+                new StringsCompleter("trait"), new StringsCompleter(traits::keySet), NullCompleter.INSTANCE));
+        completers.add(new ArgumentCompleter(
+                new StringsCompleter("import"),
+                new PackageCompleter(CandidateType.PACKAGE, this),
+                NullCompleter.INSTANCE));
         completers.add(new MethodCompleter(this));
         return new AggregateCompleter(completers);
     }
 
-    private enum CandidateType {CONSTRUCTOR, STATIC_METHOD, PACKAGE, METHOD, FIELD, IDENTIFIER, META_METHOD, STRING, CLASSES, OTHER}
+    private enum CandidateType {
+        CONSTRUCTOR,
+        STATIC_METHOD,
+        PACKAGE,
+        METHOD,
+        FIELD,
+        IDENTIFIER,
+        META_METHOD,
+        STRING,
+        CLASSES,
+        OTHER
+    }
 
     private static Class<?> classResolver(String classDotName, GroovyShell shell) {
         Class<?> out = null;
@@ -580,7 +608,7 @@ public class GroovyEngine implements ScriptEngine {
                 out = Class.forName(matcher.group(1) + "." + classname);
             } catch (ClassNotFoundException ex) {
                 try {
-                    out = (Class<?>)executeStatement(shell, new HashMap<>(), classDotName + ".class");
+                    out = (Class<?>) executeStatement(shell, new HashMap<>(), classDotName + ".class");
                 } catch (Exception e) {
                     if (Log.isDebugEnabled()) {
                         ex.printStackTrace();
@@ -606,9 +634,9 @@ public class GroovyEngine implements ScriptEngine {
         //
         // groovy source imports require classes to be loaded
         //
-        Iterator<Map.Entry<String,String>> iter = imports.entrySet().iterator();
+        Iterator<Map.Entry<String, String>> iter = imports.entrySet().iterator();
         while (iter.hasNext()) {
-            Map.Entry<String,String> entry = iter.next();
+            Map.Entry<String, String> entry = iter.next();
             try {
                 executeStatement(shell, new HashMap<>(), entry.getValue());
             } catch (Exception e) {
@@ -620,7 +648,7 @@ public class GroovyEngine implements ScriptEngine {
 
     public static class EngineClassLoader extends GroovyClassLoader {
 
-        public EngineClassLoader(){
+        public EngineClassLoader() {
             super();
         }
 
@@ -656,7 +684,7 @@ public class GroovyEngine implements ScriptEngine {
             this(new HashMap<>());
         }
 
-        public AccessRules(Map<String,Object> options) {
+        public AccessRules(Map<String, Object> options) {
             this.allMethods = groovyOption(options, ALL_METHODS_COMPLETION, false);
             this.allFields = groovyOption(options, ALL_FIELDS_COMPLETION, false);
             this.allConstructors = groovyOption(options, ALL_CONSTRUCTORS_COMPLETION, false);
@@ -726,7 +754,8 @@ public class GroovyEngine implements ScriptEngine {
             return getMethods(clazz, all, synthetic, true, true).isEmpty();
         }
 
-        private static Set<String> getMethods(Class<?> clazz, boolean all, boolean synthetic, boolean statc, boolean firstOnly) {
+        private static Set<String> getMethods(
+                Class<?> clazz, boolean all, boolean synthetic, boolean statc, boolean firstOnly) {
             Set<String> out = new HashSet<>();
             try {
                 for (Method method : getClassMethods(clazz, all, synthetic)) {
@@ -744,11 +773,11 @@ public class GroovyEngine implements ScriptEngine {
             return out;
         }
 
-        public static Map<String,String> getFields(Class<?> clazz, boolean all, boolean synthetic) {
+        public static Map<String, String> getFields(Class<?> clazz, boolean all, boolean synthetic) {
             return getFields(clazz, all, synthetic, false, false);
         }
 
-        public static Map<String,String> getStaticFields(Class<?> clazz, boolean all, boolean synthetic) {
+        public static Map<String, String> getStaticFields(Class<?> clazz, boolean all, boolean synthetic) {
             return getFields(clazz, all, synthetic, true, false);
         }
 
@@ -756,11 +785,12 @@ public class GroovyEngine implements ScriptEngine {
             return getFields(clazz, all, synthetic, true, true).isEmpty();
         }
 
-        private static Map<String,String> getFields(Class<?> clazz, boolean all, boolean synthetic, boolean statc, boolean firstOnly) {
-            Map<String,String> out = new HashMap<>();
+        private static Map<String, String> getFields(
+                Class<?> clazz, boolean all, boolean synthetic, boolean statc, boolean firstOnly) {
+            Map<String, String> out = new HashMap<>();
             for (Field field : all ? clazz.getDeclaredFields() : clazz.getFields()) {
                 if (((statc && Modifier.isStatic(field.getModifiers()))
-                        || (!statc && !Modifier.isStatic(field.getModifiers())))
+                                || (!statc && !Modifier.isStatic(field.getModifiers())))
                         && (synthetic || !field.isSynthetic())) {
                     out.put(field.getName(), field.getType().getSimpleName());
                     if (firstOnly) {
@@ -789,11 +819,12 @@ public class GroovyEngine implements ScriptEngine {
             } else {
                 dom = separator + "(|.*)";
             }
-            PathMatcher matcher = FileSystems.getDefault().getPathMatcher("regex:\\." + dom
-                    + "[A-Z]+[a-zA-Z]*\\.groovy");
+            PathMatcher matcher =
+                    FileSystems.getDefault().getPathMatcher("regex:\\." + dom + "[A-Z]+[a-zA-Z]*\\.groovy");
             Set<String> out = new HashSet<>();
             try {
-                List<Path> paths = Files.walk(Paths.get(".")).filter(matcher::matches).collect(Collectors.toList());
+                List<Path> paths =
+                        Files.walk(Paths.get(".")).filter(matcher::matches).collect(Collectors.toList());
                 for (Path p : paths) {
                     if (!p.getFileName().toString().matches("[A-Z]+[a-zA-Z]*\\.groovy")) {
                         continue;
@@ -809,7 +840,7 @@ public class GroovyEngine implements ScriptEngine {
                         out.add(className);
                     }
                 }
-            } catch(Exception ignore) {
+            } catch (Exception ignore) {
 
             }
             return out;
@@ -821,7 +852,7 @@ public class GroovyEngine implements ScriptEngine {
 
         public static Set<String> nextDomain(String domain, AccessRules access, CandidateType type, GroovyShell shell) {
             Set<String> out = new HashSet<>();
-            EngineClassLoader classLoader = (EngineClassLoader)shell.getClassLoader();
+            EngineClassLoader classLoader = (EngineClassLoader) shell.getClassLoader();
             if (domain.isEmpty()) {
                 for (String p : loadedPackages(classLoader)) {
                     out.add(p.split("\\.")[0]);
@@ -834,13 +865,16 @@ public class GroovyEngine implements ScriptEngine {
                         if (o instanceof Class<?>) {
                             Class<?> c = (Class<?>) o;
                             try {
-                                if ((!Modifier.isPublic(c.getModifiers()) && !access.allClasses) || c.getCanonicalName() == null) {
+                                if ((!Modifier.isPublic(c.getModifiers()) && !access.allClasses)
+                                        || c.getCanonicalName() == null) {
                                     continue;
                                 }
-                                if ((type == CandidateType.CONSTRUCTOR && (c.getConstructors().length == 0
-                                        || Modifier.isAbstract(c.getModifiers())))
-                                        || (type == CandidateType.STATIC_METHOD && noStaticMethods(c, access.allMethods, true)
-                                        && noStaticFields(c, access.allFields, true))) {
+                                if ((type == CandidateType.CONSTRUCTOR
+                                                && (c.getConstructors().length == 0
+                                                        || Modifier.isAbstract(c.getModifiers())))
+                                        || (type == CandidateType.STATIC_METHOD
+                                                && noStaticMethods(c, access.allMethods, true)
+                                                && noStaticFields(c, access.allFields, true))) {
                                     continue;
                                 }
                                 name = c.getCanonicalName();
@@ -850,7 +884,7 @@ public class GroovyEngine implements ScriptEngine {
                                 }
                             }
                         } else if (o instanceof String) {
-                            name = ((String)o).replace("$", ".");
+                            name = ((String) o).replace("$", ".");
                         }
                         if (name != null) {
                             Log.debug(name);
@@ -885,19 +919,20 @@ public class GroovyEngine implements ScriptEngine {
         }
 
         private static Map<String, String> listToMap(Collection<String> list) {
-            return list.stream()
-                    .collect(Collectors.toMap(it -> it, it -> ""));
+            return list.stream().collect(Collectors.toMap(it -> it, it -> ""));
         }
 
-        public static void doCandidates(List<Candidate> candidates, Collection<String> fields, String curBuf, CandidateType type) {
+        public static void doCandidates(
+                List<Candidate> candidates, Collection<String> fields, String curBuf, CandidateType type) {
             doCandidates(candidates, listToMap(fields), curBuf, type);
         }
 
-        public static void doCandidates(List<Candidate> candidates, Map<String,String> fields, String curBuf, CandidateType type) {
+        public static void doCandidates(
+                List<Candidate> candidates, Map<String, String> fields, String curBuf, CandidateType type) {
             if (fields == null || fields.isEmpty()) {
                 return;
             }
-            for (Map.Entry<String,String> entry : fields.entrySet()) {
+            for (Map.Entry<String, String> entry : fields.entrySet()) {
                 String group = null;
                 String desc = entry.getValue().isEmpty() ? null : entry.getValue();
                 String s = entry.getKey();
@@ -927,8 +962,11 @@ public class GroovyEngine implements ScriptEngine {
                     group = "Fields";
                 } else if (type == CandidateType.IDENTIFIER) {
                     group = "Identifiers";
-                    if (s.contains("-") || s.contains("+") || s.contains(" ") || s.contains("#")
-                            || !s.matches("[a-zA-Z$_].*")){
+                    if (s.contains("-")
+                            || s.contains("+")
+                            || s.contains(" ")
+                            || s.contains("#")
+                            || !s.matches("[a-zA-Z$_].*")) {
                         continue;
                     }
                 } else if (type == CandidateType.META_METHOD) {
@@ -939,8 +977,8 @@ public class GroovyEngine implements ScriptEngine {
                     postFix = quote;
                     preFix = quote;
                 }
-                candidates.add(new Candidate(AttributedString.stripAnsi(curBuf + preFix + s + postFix), s, group
-                        , desc, null,null, false));
+                candidates.add(new Candidate(
+                        AttributedString.stripAnsi(curBuf + preFix + s + postFix), s, group, desc, null, null, false));
             }
         }
 
@@ -948,34 +986,39 @@ public class GroovyEngine implements ScriptEngine {
             String buf = buffer;
             while (buf.matches(".*\\)\\.\\w+$")) {
                 int idx = buf.lastIndexOf(".");
-                int openingRound = Brackets.indexOfOpeningRound(buf.substring(0,idx));
-                buf = buf.substring(0,openingRound);
+                int openingRound = Brackets.indexOfOpeningRound(buf.substring(0, idx));
+                buf = buf.substring(0, openingRound);
             }
             return statementBegin(new Brackets(buf));
         }
 
         public static int statementBegin(String buffer, String wordbuffer, Brackets brackets) {
-            int out =  -1;
+            int out = -1;
             int idx = buffer.lastIndexOf(wordbuffer);
             if (idx > -1) {
-                out = statementBegin(brackets.lastDelim() - idx
-                                   , brackets.lastOpenRound() - idx
-                                   , brackets.lastComma() - idx
-                                   , brackets.lastOpenCurly() - idx
-                                   , brackets.lastCloseCurly() - idx
-                                   , brackets.lastSemicolon() - idx);
+                out = statementBegin(
+                        brackets.lastDelim() - idx,
+                        brackets.lastOpenRound() - idx,
+                        brackets.lastComma() - idx,
+                        brackets.lastOpenCurly() - idx,
+                        brackets.lastCloseCurly() - idx,
+                        brackets.lastSemicolon() - idx);
             }
             return out;
         }
 
         private static int statementBegin(Brackets brackets) {
-            return statementBegin(brackets.lastDelim()
-                                , brackets.lastOpenRound()
-                                , brackets.lastComma()
-                                , brackets.lastOpenCurly(), brackets.lastCloseCurly(), brackets.lastSemicolon());
+            return statementBegin(
+                    brackets.lastDelim(),
+                    brackets.lastOpenRound(),
+                    brackets.lastComma(),
+                    brackets.lastOpenCurly(),
+                    brackets.lastCloseCurly(),
+                    brackets.lastSemicolon());
         }
 
-        private static int statementBegin(int lastDelim, int openRound, int comma, int openCurly, int closeCurly, int semicolon) {
+        private static int statementBegin(
+                int lastDelim, int openRound, int comma, int openCurly, int closeCurly, int semicolon) {
             int out = lastDelim;
             if (openRound > out) {
                 out = openRound;
@@ -998,7 +1041,6 @@ public class GroovyEngine implements ScriptEngine {
         public static boolean constructorStatement(String fragment) {
             return fragment.matches("(.*\\s+new|.*\\(new|.*\\{new|.*=new|.*,new|new)");
         }
-
     }
 
     private static class PackageCompleter implements Completer {
@@ -1020,11 +1062,12 @@ public class GroovyEngine implements ScriptEngine {
             if (lastDelim > -1) {
                 curBuf = buffer.substring(0, lastDelim + 1);
             }
-            Helpers.doCandidates(candidates
-                               , Helpers.nextDomain(curBuf, new AccessRules(groovyEngine.groovyOptions()), type, groovyEngine.shell)
-                               , curBuf, type);
+            Helpers.doCandidates(
+                    candidates,
+                    Helpers.nextDomain(curBuf, new AccessRules(groovyEngine.groovyOptions()), type, groovyEngine.shell),
+                    curBuf,
+                    type);
         }
-
     }
 
     private static class MethodCompleter implements Completer {
@@ -1038,7 +1081,7 @@ public class GroovyEngine implements ScriptEngine {
         private boolean identifierCompletion;
         private boolean syntheticCompletion;
 
-        public MethodCompleter(GroovyEngine engine){
+        public MethodCompleter(GroovyEngine engine) {
             this.groovyEngine = engine;
         }
 
@@ -1047,7 +1090,8 @@ public class GroovyEngine implements ScriptEngine {
             assert commandLine != null;
             assert candidates != null;
             if (systemRegistry.isCommandOrScript(commandLine)
-                    || (commandLine.wordIndex() > 0 && commandLine.words().get(0).equals("import"))) {
+                    || (commandLine.wordIndex() > 0
+                            && commandLine.words().get(0).equals("import"))) {
                 return;
             }
             String wordbuffer = commandLine.word();
@@ -1088,19 +1132,23 @@ public class GroovyEngine implements ScriptEngine {
                     if (idx > 0 && wordbuffer.substring(idx + 1).matches("[A-Z]+.*")) {
                         try {
                             Class.forName(wordbuffer);
-                            Helpers.doCandidates(candidates, Collections.singletonList("("), wordbuffer, CandidateType.OTHER);
+                            Helpers.doCandidates(
+                                    candidates, Collections.singletonList("("), wordbuffer, CandidateType.OTHER);
                         } catch (Exception e) {
                             String param = wordbuffer.substring(0, idx + 1);
-                            Helpers.doCandidates(candidates
-                                               , Helpers.nextDomain(param, CandidateType.CONSTRUCTOR, inspector.shell)
-                                               , param, CandidateType.CONSTRUCTOR);
+                            Helpers.doCandidates(
+                                    candidates,
+                                    Helpers.nextDomain(param, CandidateType.CONSTRUCTOR, inspector.shell),
+                                    param,
+                                    CandidateType.CONSTRUCTOR);
                         }
                     } else {
-                        new PackageCompleter(CandidateType.CONSTRUCTOR, groovyEngine).complete(reader, commandLine, candidates);
+                        new PackageCompleter(CandidateType.CONSTRUCTOR, groovyEngine)
+                                .complete(reader, commandLine, candidates);
                     }
                 } else {
-                    Helpers.doCandidates(candidates, retrieveConstructors(access.allConstructors), ""
-                            , CandidateType.CONSTRUCTOR);
+                    Helpers.doCandidates(
+                            candidates, retrieveConstructors(access.allConstructors), "", CandidateType.CONSTRUCTOR);
                 }
             } else {
                 boolean addKeyWords = eqsep == brackets.lastSemicolon() || eqsep == brackets.lastOpenCurly();
@@ -1112,7 +1160,8 @@ public class GroovyEngine implements ScriptEngine {
                 } else if (varsep < 0 || varsep < eqsep) {
                     String curBuf = wordbuffer.substring(0, eqsep + 1);
                     if (addKeyWords) {
-                        Helpers.doCandidates(candidates, ObjectInspector.GLOBAL_META_METHODS, curBuf, CandidateType.METHOD);
+                        Helpers.doCandidates(
+                                candidates, ObjectInspector.GLOBAL_META_METHODS, curBuf, CandidateType.METHOD);
                     } else {
                         Helpers.doCandidates(candidates, VALUES, curBuf, CandidateType.OTHER);
                     }
@@ -1146,7 +1195,7 @@ public class GroovyEngine implements ScriptEngine {
                             param = wordbuffer.substring(eqsep + 1, varsep);
                             Class<?> clazz = classResolver(param, inspector.shell);
                             if (clazz == null) {
-                                clazz = (Class<?>)inspector.execute(param + ".class");
+                                clazz = (Class<?>) inspector.execute(param + ".class");
                             }
                             if (clazz != null) {
                                 doStaticMethodCandidates(candidates, clazz, curBuf);
@@ -1155,9 +1204,11 @@ public class GroovyEngine implements ScriptEngine {
                             // ignore
                         } finally {
                             param = wordbuffer.substring(eqsep + 1, varsep + 1);
-                            Helpers.doCandidates(candidates
-                                    , Helpers.nextDomain(param, CandidateType.STATIC_METHOD, inspector.shell)
-                                    , curBuf, CandidateType.PACKAGE);
+                            Helpers.doCandidates(
+                                    candidates,
+                                    Helpers.nextDomain(param, CandidateType.STATIC_METHOD, inspector.shell),
+                                    curBuf,
+                                    CandidateType.PACKAGE);
                         }
                     }
                 }
@@ -1165,12 +1216,12 @@ public class GroovyEngine implements ScriptEngine {
         }
 
         private boolean completingConstructor(ParsedLine commandLine) {
-            return !commandLine.word().contains("(") && (
-                    (commandLine.wordIndex() == 1 && commandLine.words().get(0).matches("(new|\\w+=[{]?new)"))
-                          ||
-                    (commandLine.wordIndex() > 1
-                            && Helpers.constructorStatement(commandLine.words().get(commandLine.wordIndex() - 1)))
-                    );
+            return !commandLine.word().contains("(")
+                    && ((commandLine.wordIndex() == 1
+                                    && commandLine.words().get(0).matches("(new|\\w+=[{]?new)"))
+                            || (commandLine.wordIndex() > 1
+                                    && Helpers.constructorStatement(
+                                            commandLine.words().get(commandLine.wordIndex() - 1))));
         }
 
         @SuppressWarnings("unchecked")
@@ -1178,18 +1229,19 @@ public class GroovyEngine implements ScriptEngine {
             if (!(object instanceof Map)) {
                 return;
             }
-            Map<?,?> map = (Map<?,?>)object;
+            Map<?, ?> map = (Map<?, ?>) object;
             if (map.isEmpty() || !(map.keySet().iterator().next() instanceof String)) {
                 return;
             }
-            Helpers.doCandidates(candidates, (Set<String>)map.keySet(), curBuf, CandidateType.IDENTIFIER);
+            Helpers.doCandidates(candidates, (Set<String>) map.keySet(), curBuf, CandidateType.IDENTIFIER);
         }
 
         private void doValueCandidate(List<Candidate> candidates, String objectStatement, String curBuf) {
             try {
                 Object object = inspector.execute(objectStatement);
                 if (object instanceof String) {
-                    Helpers.doCandidates(candidates, Collections.singletonList((String) object), curBuf, CandidateType.STRING);
+                    Helpers.doCandidates(
+                            candidates, Collections.singletonList((String) object), curBuf, CandidateType.STRING);
                 }
             } catch (Exception e) {
                 // ignore
@@ -1198,13 +1250,14 @@ public class GroovyEngine implements ScriptEngine {
 
         private Set<String> doMetaMethodCandidates(List<Candidate> candidates, Object object, String curBuf) {
             ObjectInspector inspector = new ObjectInspector(object);
-            List<Map<String,String>> mms = inspector.metaMethods(false);
+            List<Map<String, String>> mms = inspector.metaMethods(false);
             Set<String> metaMethods = new HashSet<>();
             Set<String> identifiers = new HashSet<>();
-            for (Map<String,String> mm : mms) {
+            for (Map<String, String> mm : mms) {
                 String name = mm.get(ObjectInspector.FIELD_NAME);
                 metaMethods.add(name);
-                if (identifierCompletion && name.matches(REGEX_GET_METHOD)
+                if (identifierCompletion
+                        && name.matches(REGEX_GET_METHOD)
                         && mm.get(ObjectInspector.FIELD_PARAMETERS).isEmpty()) {
                     identifiers.add(convertGetMethod2identifier(name));
                 }
@@ -1239,12 +1292,20 @@ public class GroovyEngine implements ScriptEngine {
             if (metaMethodCompletion) {
                 metaMethods = doMetaMethodCandidates(candidates, object, curBuf);
             }
-            doMethodCandidates(candidates, object.getClass(), curBuf
-                    , identifierCompletion  && !(object instanceof Map), metaMethods);
+            doMethodCandidates(
+                    candidates,
+                    object.getClass(),
+                    curBuf,
+                    identifierCompletion && !(object instanceof Map),
+                    metaMethods);
         }
 
-        private void doMethodCandidates(List<Candidate> candidates, Class<?> clazz, String curBuf, boolean addIdentifiers
-                , Set<String> metaMethods) {
+        private void doMethodCandidates(
+                List<Candidate> candidates,
+                Class<?> clazz,
+                String curBuf,
+                boolean addIdentifiers,
+                Set<String> metaMethods) {
             if (clazz == null) {
                 return;
             }
@@ -1277,8 +1338,11 @@ public class GroovyEngine implements ScriptEngine {
                 }
             }
             Helpers.doCandidates(candidates, methods, curBuf, CandidateType.METHOD);
-            Helpers.doCandidates(candidates, Helpers.getFields(clazz, access.allFields, syntheticCompletion), curBuf
-                    , CandidateType.FIELD);
+            Helpers.doCandidates(
+                    candidates,
+                    Helpers.getFields(clazz, access.allFields, syntheticCompletion),
+                    curBuf,
+                    CandidateType.FIELD);
         }
 
         private String convertGetMethod2identifier(String name) {
@@ -1291,19 +1355,28 @@ public class GroovyEngine implements ScriptEngine {
             if (clazz == null) {
                 return;
             }
-            Helpers.doCandidates(candidates, Helpers.getStaticMethods(clazz, access.allMethods, syntheticCompletion), curBuf
-                               , CandidateType.METHOD);
-            Helpers.doCandidates(candidates, Helpers.getStaticFields(clazz, access.allFields, syntheticCompletion), curBuf
-                               , CandidateType.FIELD);
+            Helpers.doCandidates(
+                    candidates,
+                    Helpers.getStaticMethods(clazz, access.allMethods, syntheticCompletion),
+                    curBuf,
+                    CandidateType.METHOD);
+            Helpers.doCandidates(
+                    candidates,
+                    Helpers.getStaticFields(clazz, access.allFields, syntheticCompletion),
+                    curBuf,
+                    CandidateType.FIELD);
         }
 
         private Set<String> retrieveConstructors(boolean all) {
             Set<String> out = new HashSet<>();
-            for (Iterator<Map.Entry<String, Class<?>>> it = inspector.nameClass().entrySet().iterator(); it.hasNext(); ) {
+            for (Iterator<Map.Entry<String, Class<?>>> it =
+                            inspector.nameClass().entrySet().iterator();
+                    it.hasNext(); ) {
                 Map.Entry<String, Class<?>> entry = it.next();
                 Class<?> c = entry.getValue();
                 try {
-                    if ((!all && c.getConstructors().length == 0) || (all && c.getDeclaredConstructors().length == 0)
+                    if ((!all && c.getConstructors().length == 0)
+                            || (all && c.getDeclaredConstructors().length == 0)
                             || Modifier.isAbstract(c.getModifiers())) {
                         continue;
                     }
@@ -1328,7 +1401,9 @@ public class GroovyEngine implements ScriptEngine {
 
         private Set<String> retrieveClassesWithStaticMethods() {
             Set<String> out = new HashSet<>();
-            for (Iterator<Map.Entry<String, Class<?>>> it = inspector.nameClass().entrySet().iterator(); it.hasNext(); ) {
+            for (Iterator<Map.Entry<String, Class<?>>> it =
+                            inspector.nameClass().entrySet().iterator();
+                    it.hasNext(); ) {
                 Map.Entry<String, Class<?>> entry = it.next();
                 Class<?> c = entry.getValue();
                 try {
@@ -1349,8 +1424,8 @@ public class GroovyEngine implements ScriptEngine {
         static final Pattern PATTERN_FOR = Pattern.compile("^for\\s*\\((.*?)");
         static final Pattern PATTERN_FOR_EACH = Pattern.compile("^for\\s*\\((.*?):(.*?)\\).*");
         static final Pattern PATTERN_LAMBDA = Pattern.compile(".*\\([(]*(.*?)[)]*->.*");
-        static final Pattern PATTERN_FUNCTION_BODY = Pattern.compile("^\\s*\\(([a-zA-Z0-9_ ,]*)\\)\\s*\\{(.*)?}(|\n)$"
-                                                                   , Pattern.DOTALL);
+        static final Pattern PATTERN_FUNCTION_BODY =
+                Pattern.compile("^\\s*\\(([a-zA-Z0-9_ ,]*)\\)\\s*\\{(.*)?}(|\n)$", Pattern.DOTALL);
         static final Pattern PATTERN_FUNCTION = Pattern.compile("\\s*def\\s+\\w+\\s*\\((.*?)\\).*");
         static final Pattern PATTERN_CLOSURE = Pattern.compile(".*\\{(.*?)->.*");
         static final Pattern PATTERN_TYPE_VAR = Pattern.compile("(\\w+)\\s+(\\w+)");
@@ -1358,8 +1433,8 @@ public class GroovyEngine implements ScriptEngine {
 
         private final GroovyShell shell;
         protected Binding sharedData = new Binding();
-        private final Map<String,String> imports;
-        private final Map<String,Class<?>> nameClass;
+        private final Map<String, String> imports;
+        private final Map<String, Class<?>> nameClass;
         private PrintStream nullstream;
         private final boolean canonicalNames;
         private final boolean noSyntaxCheck;
@@ -1399,9 +1474,10 @@ public class GroovyEngine implements ScriptEngine {
             } catch (Exception e) {
                 // ignore
             }
-            for (Map.Entry<String,String> entry : groovyEngine.methods.entrySet()) {
+            for (Map.Entry<String, String> entry : groovyEngine.methods.entrySet()) {
                 Matcher m = PATTERN_FUNCTION_BODY.matcher(entry.getValue());
-                if (m.matches() && sharedData.hasVariable(entry.getKey())
+                if (m.matches()
+                        && sharedData.hasVariable(entry.getKey())
                         && sharedData.getVariable(entry.getKey()) instanceof Closure) {
                     sharedData.setVariable(entry.getKey(), execute("{" + m.group(1) + "->" + m.group(2) + "}"));
                 }
@@ -1417,7 +1493,7 @@ public class GroovyEngine implements ScriptEngine {
             try {
                 involvedObject = execute(objectStatement);
                 if (involvedObject instanceof Class) {
-                    out = (Class<?>)involvedObject;
+                    out = (Class<?>) involvedObject;
                     if (!objectStatement.endsWith(".class")) {
                         involvedObject = null;
                     }
@@ -1432,13 +1508,13 @@ public class GroovyEngine implements ScriptEngine {
             }
             try {
                 if (out == null) {
-                    if (!objectStatement.contains(".") ) {
-                        out = (Class<?>)execute(objectStatement + ".class");
+                    if (!objectStatement.contains(".")) {
+                        out = (Class<?>) execute(objectStatement + ".class");
                     } else {
                         try {
                             out = Class.forName(objectStatement);
                         } catch (ClassNotFoundException e) {
-                            out = (Class<?>)execute(objectStatement + ".class");
+                            out = (Class<?>) execute(objectStatement + ".class");
                         }
                     }
                 }
@@ -1497,10 +1573,16 @@ public class GroovyEngine implements ScriptEngine {
 
         private String constructVariable(String type, String name) {
             String out = "";
-            if (type.matches("[B|b]yte") || type.matches("[S|s]hort")
-                    || type.equals("int") || type.equals("Integer") || type.matches("[L|l]ong")
-                    || type.matches("[F|f]loat") || type.matches("[D|d]ouble")
-                    || type.matches("[B|b]oolean") || type.equals("char") || type.equals("Character")) {
+            if (type.matches("[B|b]yte")
+                    || type.matches("[S|s]hort")
+                    || type.equals("int")
+                    || type.equals("Integer")
+                    || type.matches("[L|l]ong")
+                    || type.matches("[F|f]loat")
+                    || type.matches("[D|d]ouble")
+                    || type.matches("[B|b]oolean")
+                    || type.equals("char")
+                    || type.equals("Character")) {
                 out = name + " = (" + type + ")0; ";
             } else if (type.matches("[A-Z].*")) {
                 out = "try {" + name + " = new " + type + "() } catch (Exception e) {" + name + " = null}; ";
@@ -1522,10 +1604,14 @@ public class GroovyEngine implements ScriptEngine {
                     Matcher functionMatcher = PATTERN_FUNCTION.matcher(statement);
                     Matcher closureMatcher = PATTERN_CLOSURE.matcher(statement);
                     Matcher typeVarMatcher = PATTERN_TYPE_VAR.matcher(statement);
-                    if (statement.matches("^(if|while)\\s*\\(.*") || statement.matches("(}\\s*|^)else(\\s*\\{|$)")
-                            || statement.matches("(}\\s*|^)else\\s+if\\s*\\(.*") || statement.matches("^break[;]+")
-                            || statement.matches("^case\\s+.*:") || statement.matches("^default\\s+:")
-                            || statement.matches("([{}])") || statement.length() == 0) {
+                    if (statement.matches("^(if|while)\\s*\\(.*")
+                            || statement.matches("(}\\s*|^)else(\\s*\\{|$)")
+                            || statement.matches("(}\\s*|^)else\\s+if\\s*\\(.*")
+                            || statement.matches("^break[;]+")
+                            || statement.matches("^case\\s+.*:")
+                            || statement.matches("^default\\s+:")
+                            || statement.matches("([{}])")
+                            || statement.length() == 0) {
                         continue;
                     } else if (forEachMatcher.matches()) {
                         statement = stripVarType(forEachMatcher.group(1).trim());
@@ -1557,7 +1643,7 @@ public class GroovyEngine implements ScriptEngine {
                         } else {
                             st = statement.substring(idx + 1).trim();
                         }
-                        if (!st.isEmpty() && !st.equals("new") ) {
+                        if (!st.isEmpty() && !st.equals("new")) {
                             execute(statement);
                         }
                     }
@@ -1569,7 +1655,7 @@ public class GroovyEngine implements ScriptEngine {
             }
         }
 
-        public Map<String,Class<?>> nameClass() {
+        public Map<String, Class<?>> nameClass() {
             return nameClass;
         }
 
@@ -1590,16 +1676,16 @@ public class GroovyEngine implements ScriptEngine {
             CmdDesc out = null;
             try {
                 switch (line.getDescriptionType()) {
-                case COMMAND:
-                    break;
-                case METHOD:
-                    out = methodDescription(line);
-                    break;
-                case SYNTAX:
-                    if (!noSyntaxCheck) {
-                        out = checkSyntax(line);
-                    }
-                    break;
+                    case COMMAND:
+                        break;
+                    case METHOD:
+                        out = methodDescription(line);
+                        break;
+                    case SYNTAX:
+                        if (!noSyntaxCheck) {
+                            out = checkSyntax(line);
+                        }
+                        break;
                 }
             } catch (Throwable e) {
                 if (Log.isDebugEnabled()) {
@@ -1657,7 +1743,8 @@ public class GroovyEngine implements ScriptEngine {
                 if (!restrictedCompletion || nb == 0) {
                     clazz = evaluateClass(st);
                 }
-            } else if (args.size() > 1 && Helpers.constructorStatement(args.get(args.size() - 2))
+            } else if (args.size() > 1
+                    && Helpers.constructorStatement(args.get(args.size() - 2))
                     && args.get(args.size() - 1).matches("[A-Z]+\\w+\\s*\\(.*")
                     && new Brackets(args.get(args.size() - 1)).openRound()) {
                 constructor = true;
@@ -1667,8 +1754,8 @@ public class GroovyEngine implements ScriptEngine {
             if (clazz != null) {
                 mainDesc.add(syntaxHighlighter.highlight(clazz.toString()));
                 if (constructor) {
-                    for (Constructor<?> m : access.allConstructors ? clazz.getDeclaredConstructors()
-                                                                   : clazz.getConstructors()) {
+                    for (Constructor<?> m :
+                            access.allConstructors ? clazz.getDeclaredConstructors() : clazz.getConstructors()) {
                         StringBuilder sb = new StringBuilder();
                         String name = m.getName();
                         if (!canonicalNames) {
@@ -1702,7 +1789,7 @@ public class GroovyEngine implements ScriptEngine {
                 } else {
                     List<String> addedMethods = new ArrayList<>();
                     if (metaMethodsCompletion && involvedObject != null) {
-                        for (Map<String,String> mm : new ObjectInspector(involvedObject).metaMethods(false)) {
+                        for (Map<String, String> mm : new ObjectInspector(involvedObject).metaMethods(false)) {
                             if (!mm.get(ObjectInspector.FIELD_NAME).equals(methodName)) {
                                 continue;
                             }
@@ -1718,7 +1805,8 @@ public class GroovyEngine implements ScriptEngine {
                             if (!modifiers.isEmpty()) {
                                 sb.append(modifiers).append(" ");
                             }
-                            sb.append(convertArrayParams(mm.get(ObjectInspector.FIELD_RETURN))).append(" ");
+                            sb.append(convertArrayParams(mm.get(ObjectInspector.FIELD_RETURN)))
+                                    .append(" ");
                             sb.append(methodName).append("(");
                             sb.append(convertArrayParams(mm.get(ObjectInspector.FIELD_PARAMETERS)));
                             sb.append(")");
@@ -1729,12 +1817,14 @@ public class GroovyEngine implements ScriptEngine {
                         }
                         if (clazz.getCanonicalName().endsWith("[]")) {
                             if (methodName.equals("sort") || methodName.equals("reverse")) {
-                                mainDesc.add(syntaxHighlighter.highlight(clazz.getComponentType().getSimpleName() +
-                                        "[] " + methodName + "()"));
-                            } else if (methodName.equals("first") || methodName.equals("last")
-                                    || methodName.equals("min") || methodName.equals("max")) {
-                                mainDesc.add(syntaxHighlighter.highlight(clazz.getComponentType().getSimpleName()
-                                        + " " + methodName + "()"));
+                                mainDesc.add(syntaxHighlighter.highlight(
+                                        clazz.getComponentType().getSimpleName() + "[] " + methodName + "()"));
+                            } else if (methodName.equals("first")
+                                    || methodName.equals("last")
+                                    || methodName.equals("min")
+                                    || methodName.equals("max")) {
+                                mainDesc.add(syntaxHighlighter.highlight(
+                                        clazz.getComponentType().getSimpleName() + " " + methodName + "()"));
                             } else if (methodName.equals("size")) {
                                 mainDesc.add(syntaxHighlighter.highlight("int size()"));
                             } else if (methodName.equals("toList")) {
@@ -1757,7 +1847,10 @@ public class GroovyEngine implements ScriptEngine {
                         if (Modifier.isStatic(m.getModifiers())) {
                             sb.append("static ");
                         }
-                        sb.append(canonicalNames ? m.getReturnType().getCanonicalName() : m.getReturnType().getSimpleName());
+                        sb.append(
+                                canonicalNames
+                                        ? m.getReturnType().getCanonicalName()
+                                        : m.getReturnType().getSimpleName());
                         sb.append(" ");
                         sb.append(methodName);
                         sb.append("(");
@@ -1840,8 +1933,7 @@ public class GroovyEngine implements ScriptEngine {
             String objEquation = line.getHead().substring(eqsep + 1, end).trim();
             equationLines = objEquation.split("\\r?\\n");
             cuttedSize = eqsep + 1;
-            if (objEquation.matches("\\(\\s*\\w+\\s*[,\\s*\\w+]*\\)")
-                    || objEquation.matches("\\(\\s*\\)")) {
+            if (objEquation.matches("\\(\\s*\\w+\\s*[,\\s*\\w+]*\\)") || objEquation.matches("\\(\\s*\\)")) {
                 // do nothing
             } else {
                 try {
@@ -1878,7 +1970,7 @@ public class GroovyEngine implements ScriptEngine {
                         mainDesc.addAll(doExceptionMessage(e));
                     }
                 } catch (NullPointerException e) {
-                   throw e;
+                    throw e;
                 } catch (Exception e) {
                     mainDesc.addAll(doExceptionMessage(e));
                 }
@@ -1893,15 +1985,16 @@ public class GroovyEngine implements ScriptEngine {
             Pattern header = Pattern.compile("^[a-zA-Z() ]{3,}:(\\s+|$)");
             out.add(syntaxHighlighter.highlight(exception.getClass().getCanonicalName()));
             if (exception.getMessage() != null) {
-                for (String s: exception.getMessage().split("\\r?\\n")) {
+                for (String s : exception.getMessage().split("\\r?\\n")) {
                     if (s.trim().length() == 0) {
                         // do nothing
                     } else if (s.length() > 80) {
                         boolean doHeader = true;
                         int start = 0;
                         for (int i = 80; i < s.length(); i++) {
-                            if ((s.charAt(i) == ' ' && i - start > 80 ) || i - start > 100) {
-                                AttributedString as = new AttributedString(s.substring(start, i), resolver.resolve(".me"));
+                            if ((s.charAt(i) == ' ' && i - start > 80) || i - start > 100) {
+                                AttributedString as =
+                                        new AttributedString(s.substring(start, i), resolver.resolve(".me"));
                                 if (doHeader) {
                                     as = as.styleMatches(header, resolver.resolve(".ti"));
                                     doHeader = false;
@@ -1941,7 +2034,7 @@ public class GroovyEngine implements ScriptEngine {
             }
             int tot = 0;
             if (line != null) {
-                for (String l: equationLines) {
+                for (String l : equationLines) {
                     if (l.contains(line)) {
                         break;
                     }
@@ -1951,23 +2044,22 @@ public class GroovyEngine implements ScriptEngine {
             out = cuttedSize + tot + se.getStartColumn() - 1;
             return out;
         }
-
     }
 
     private static class ObjectCloner implements Cloner {
-        Map<String,Object> cache = new HashMap<>();
+        Map<String, Object> cache = new HashMap<>();
         Set<String> marked = new HashSet<>();
 
-        public ObjectCloner() {
-
-        }
+        public ObjectCloner() {}
 
         /**
          * Shallow copy of the object using java Cloneable clone() method.
          */
         public Object clone(Object obj) {
-            if (obj == null || ImmutablePropertyUtils.builtinOrMarkedImmutableClass(obj.getClass())
-                    || obj instanceof Exception || obj instanceof Closure) {
+            if (obj == null
+                    || ImmutablePropertyUtils.builtinOrMarkedImmutableClass(obj.getClass())
+                    || obj instanceof Exception
+                    || obj instanceof Closure) {
                 return obj;
             }
             Object out;
@@ -2002,7 +2094,6 @@ public class GroovyEngine implements ScriptEngine {
         private String cacheKey(Object obj) {
             return obj.getClass().getCanonicalName() + ":" + obj.hashCode();
         }
-
     }
 
     private static class Brackets {
@@ -2010,7 +2101,7 @@ public class GroovyEngine implements ScriptEngine {
         static char[] quote = {'"', '\''};
         Deque<Integer> roundOpen = new ArrayDeque<>();
         Deque<Integer> curlyOpen = new ArrayDeque<>();
-        Map<Integer,Integer> lastComma = new HashMap<>();
+        Map<Integer, Integer> lastComma = new HashMap<>();
         int lastRoundClose = -1;
         int lastCurlyClose = -1;
         int lastSemicolon = -1;
@@ -2176,11 +2267,10 @@ public class GroovyEngine implements ScriptEngine {
 
         public String toString() {
             return "rounds: " + rounds + "\n"
-                 + "curlies: " + curlies + "\n"
-                 + "lastOpenRound: " + lastOpenRound() + "\n"
-                 + "lastCloseRound: " + lastRoundClose + "\n"
-                 + "lastComma: " + lastComma() + "\n";
+                    + "curlies: " + curlies + "\n"
+                    + "lastOpenRound: " + lastOpenRound() + "\n"
+                    + "lastCloseRound: " + lastRoundClose + "\n"
+                    + "lastComma: " + lastComma() + "\n";
         }
     }
-
 }

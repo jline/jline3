@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -34,6 +34,7 @@ public interface Terminal extends Closeable, Flushable {
      * Type used for dumb terminals.
      */
     String TYPE_DUMB = "dumb";
+
     String TYPE_DUMB_COLOR = "dumb-color";
 
     String getName();
@@ -71,15 +72,15 @@ public interface Terminal extends Closeable, Flushable {
      * Retrieve the <code>Reader</code> for this terminal.
      * This is the standard way to read input from this terminal.
      * The reader is non blocking.
-     * 
+     *
      * @return The non blocking reader
      */
     NonBlockingReader reader();
-    
+
     /**
      * Retrieve the <code>Writer</code> for this terminal.
      * This is the standard way to write to this terminal.
-     * 
+     *
      * @return The writer
      */
     PrintWriter writer();
@@ -94,12 +95,12 @@ public interface Terminal extends Closeable, Flushable {
 
     /**
      * Retrieve the input stream for this terminal.
-     * In some rare cases, there may be a need to access the 
-     * terminal input stream directly. In the usual cases, 
+     * In some rare cases, there may be a need to access the
+     * terminal input stream directly. In the usual cases,
      * use the {@link #reader()} instead.
-     * 
+     *
      * @return The input stream
-     * 
+     *
      * @see #reader()
      */
     InputStream input();
@@ -109,9 +110,9 @@ public interface Terminal extends Closeable, Flushable {
      * In some rare cases, there may be a need to access the
      * terminal output stream directly. In the usual cases,
      * use the {@link #writer()} instead.
-     * 
+     *
      * @return The output stream
-     * 
+     *
      * @see #writer()
      */
     OutputStream output();
@@ -122,7 +123,7 @@ public interface Terminal extends Closeable, Flushable {
 
     /**
      * Whether this terminal supports {@link #pause()} and {@link #resume()} calls.
-     * 
+     *
      * @return whether this terminal supports {@link #pause()} and {@link #resume()} calls.
      * @see #paused()
      * @see #pause()
@@ -140,7 +141,7 @@ public interface Terminal extends Closeable, Flushable {
 
     /**
      * Stop reading the input stream and optionally wait for the underlying threads to finish.
-     * 
+     *
      * @param wait <code>true</code> to wait until the terminal is actually paused
      * @throws InterruptedException if the call has been interrupted
      */
@@ -347,5 +348,4 @@ public interface Terminal extends Closeable, Flushable {
      * Color support
      */
     ColorPalette getPalette();
-
 }

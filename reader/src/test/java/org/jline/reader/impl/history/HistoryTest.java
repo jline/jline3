@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2021, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -7,13 +7,6 @@
  * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.reader.impl.history;
-
-import org.jline.reader.History;
-import org.jline.reader.LineReader;
-import org.jline.reader.impl.ReaderTestSupport;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -23,9 +16,16 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jline.reader.History;
+import org.jline.reader.LineReader;
+import org.jline.reader.impl.ReaderTestSupport;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -33,8 +33,7 @@ import static org.junit.Assert.fail;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class HistoryTest extends ReaderTestSupport
-{
+public class HistoryTest extends ReaderTestSupport {
     private DefaultHistory history;
 
     @Before
@@ -61,7 +60,7 @@ public class HistoryTest extends ReaderTestSupport
 
     private void assertHistoryContains(final int offset, final String... items) {
         assertEquals(items.length, history.size());
-        int i=0;
+        int i = 0;
         for (History.Entry entry : history) {
             assertEquals(offset + i, entry.index());
             assertEquals(items[i++], entry.line());
@@ -187,5 +186,4 @@ public class HistoryTest extends ReaderTestSupport
         assertTrue(defaultHistory.matchPatterns("foo:bar", "bar"));
         assertFalse(defaultHistory.matchPatterns("foo*", "bar"));
     }
-
 }

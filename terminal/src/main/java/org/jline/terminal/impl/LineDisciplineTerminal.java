@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -45,20 +45,19 @@ import org.jline.utils.NonBlockingReader;
  */
 public class LineDisciplineTerminal extends AbstractTerminal {
 
-    private static final String DEFAULT_TERMINAL_ATTRIBUTES =
-                    "speed 9600 baud; 24 rows; 80 columns;\n" +
-                    "lflags: icanon isig iexten echo echoe -echok echoke -echonl echoctl\n" +
-                    "\t-echoprt -altwerase -noflsh -tostop -flusho pendin -nokerninfo\n" +
-                    "\t-extproc\n" +
-                    "iflags: -istrip icrnl -inlcr -igncr ixon -ixoff ixany imaxbel iutf8\n" +
-                    "\t-ignbrk brkint -inpck -ignpar -parmrk\n" +
-                    "oflags: opost onlcr -oxtabs -onocr -onlret\n" +
-                    "cflags: cread cs8 -parenb -parodd hupcl -clocal -cstopb -crtscts -dsrflow\n" +
-                    "\t-dtrflow -mdmbuf\n" +
-                    "cchars: discard = ^O; dsusp = ^Y; eof = ^D; eol = <undef>;\n" +
-                    "\teol2 = <undef>; erase = ^?; intr = ^C; kill = ^U; lnext = ^V;\n" +
-                    "\tmin = 1; quit = ^\\; reprint = ^R; start = ^Q; status = ^T;\n" +
-                    "\tstop = ^S; susp = ^Z; time = 0; werase = ^W;\n";
+    private static final String DEFAULT_TERMINAL_ATTRIBUTES = "speed 9600 baud; 24 rows; 80 columns;\n"
+            + "lflags: icanon isig iexten echo echoe -echok echoke -echonl echoctl\n"
+            + "\t-echoprt -altwerase -noflsh -tostop -flusho pendin -nokerninfo\n"
+            + "\t-extproc\n"
+            + "iflags: -istrip icrnl -inlcr -igncr ixon -ixoff ixany imaxbel iutf8\n"
+            + "\t-ignbrk brkint -inpck -ignpar -parmrk\n"
+            + "oflags: opost onlcr -oxtabs -onocr -onlret\n"
+            + "cflags: cread cs8 -parenb -parodd hupcl -clocal -cstopb -crtscts -dsrflow\n"
+            + "\t-dtrflow -mdmbuf\n"
+            + "cchars: discard = ^O; dsusp = ^Y; eof = ^D; eol = <undef>;\n"
+            + "\teol2 = <undef>; erase = ^?; intr = ^C; kill = ^U; lnext = ^V;\n"
+            + "\tmin = 1; quit = ^\\; reprint = ^R; start = ^Q; status = ^T;\n"
+            + "\tstop = ^S; susp = ^Z; time = 0; werase = ^W;\n";
 
     private static final int PIPE_SIZE = 1024;
 
@@ -84,20 +83,17 @@ public class LineDisciplineTerminal extends AbstractTerminal {
      * Console data
      */
     protected final Attributes attributes;
+
     protected final Size size;
 
-    public LineDisciplineTerminal(String name,
-                                  String type,
-                                  OutputStream masterOutput,
-                                  Charset encoding) throws IOException {
+    public LineDisciplineTerminal(String name, String type, OutputStream masterOutput, Charset encoding)
+            throws IOException {
         this(name, type, masterOutput, encoding, SignalHandler.SIG_DFL);
     }
 
-    public LineDisciplineTerminal(String name,
-                                  String type,
-                                  OutputStream masterOutput,
-                                  Charset encoding,
-                                  SignalHandler signalHandler) throws IOException {
+    public LineDisciplineTerminal(
+            String name, String type, OutputStream masterOutput, Charset encoding, SignalHandler signalHandler)
+            throws IOException {
         super(name, type, encoding, signalHandler);
         NonBlockingPumpInputStream input = NonBlocking.nonBlockingPumpInputStream(PIPE_SIZE);
         this.slaveInputPipe = input.getOutputStream();
@@ -147,9 +143,9 @@ public class LineDisciplineTerminal extends AbstractTerminal {
         size.copy(sz);
     }
 
-   @Override
+    @Override
     public void raise(Signal signal) {
-       Objects.requireNonNull(signal);
+        Objects.requireNonNull(signal);
         // Do not call clear() atm as this can cause
         // deadlock between reading / writing threads
         // TODO: any way to fix that ?
@@ -282,13 +278,12 @@ public class LineDisciplineTerminal extends AbstractTerminal {
         public void write(byte[] b, int off, int len) throws IOException {
             if (b == null) {
                 throw new NullPointerException();
-            } else if ((off < 0) || (off > b.length) || (len < 0) ||
-                    ((off + len) > b.length) || ((off + len) < 0)) {
+            } else if ((off < 0) || (off > b.length) || (len < 0) || ((off + len) > b.length) || ((off + len) < 0)) {
                 throw new IndexOutOfBoundsException();
             } else if (len == 0) {
                 return;
             }
-            for (int i = 0 ; i < len ; i++) {
+            for (int i = 0; i < len; i++) {
                 processOutputByte(b[off + i]);
             }
             flush();

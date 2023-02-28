@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2020, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -130,9 +130,7 @@ public class CompletionTest extends ReaderTestSupport {
         Completer read = new StringsCompleter("read");
         Completer and = new StringsCompleter("and");
         Completer save = new StringsCompleter("save");
-        Completer aggregator = new AggregateCompleter(
-                new ArgumentCompleter(read, and, save, nil)
-        );
+        Completer aggregator = new AggregateCompleter(new ArgumentCompleter(read, and, save, nil));
         reader.setCompleter(aggregator);
 
         reader.getKeys().bind(new Reference("complete-word"), "\t");
@@ -148,24 +146,23 @@ public class CompletionTest extends ReaderTestSupport {
     @Test
     public void testSuffix() {
         reader.setCompleter((reader, line, candidates) -> {
-                    candidates.add(new Candidate(
-                            /* value    = */ "range(",
-                            /* displ    = */ "range(",
-                            /* group    = */ null,
-                            /* descr    = */ null,
-                            /* suffix   = */ "(",
-                            /* key      = */ null,
-                            /* complete = */ false));
-                    candidates.add(new Candidate(
-                            /* value    = */ "strangeTest",
-                            /* displ    = */ "strangeTest",
-                            /* group    = */ null,
-                            /* descr    = */ null,
-                            /* suffix   = */ "Test",
-                            /* key      = */ null,
-                            /* complete = */ false));
-                }
-        );
+            candidates.add(new Candidate(
+                    /* value    = */ "range(",
+                    /* displ    = */ "range(",
+                    /* group    = */ null,
+                    /* descr    = */ null,
+                    /* suffix   = */ "(",
+                    /* key      = */ null,
+                    /* complete = */ false));
+            candidates.add(new Candidate(
+                    /* value    = */ "strangeTest",
+                    /* displ    = */ "strangeTest",
+                    /* group    = */ null,
+                    /* descr    = */ null,
+                    /* suffix   = */ "Test",
+                    /* key      = */ null,
+                    /* complete = */ false));
+        });
         //  DEFAULT_REMOVE_SUFFIX_CHARS = " \t\n;&|";
 
         assertLine("range ;", new TestBuffer("r\t;\n"));
@@ -176,7 +173,8 @@ public class CompletionTest extends ReaderTestSupport {
 
     @Test
     public void testMenuOrder() {
-        reader.setCompleter(new StringsCompleter(Arrays.asList("ae_helloWorld1", "ad_helloWorld12", "ac_helloWorld1234", "ab_helloWorld123", "aa_helloWorld12345")));
+        reader.setCompleter(new StringsCompleter(Arrays.asList(
+                "ae_helloWorld1", "ad_helloWorld12", "ac_helloWorld1234", "ab_helloWorld123", "aa_helloWorld12345")));
         reader.unsetOpt(Option.AUTO_LIST);
         reader.setOpt(Option.AUTO_MENU);
 
@@ -188,7 +186,8 @@ public class CompletionTest extends ReaderTestSupport {
     @Test
     public void testDumbTerminalNoSizeComplete() {
         terminal.setSize(new Size());
-        reader.setCompleter(new StringsCompleter(Arrays.asList("ae_helloWorld", "ad_helloWorld", "ac_helloWorld", "ab_helloWorld", "aa_helloWorld")));
+        reader.setCompleter(new StringsCompleter(
+                Arrays.asList("ae_helloWorld", "ad_helloWorld", "ac_helloWorld", "ab_helloWorld", "aa_helloWorld")));
 
         assertLine("a", new TestBuffer("a\t\n\n"));
     }
@@ -201,5 +200,4 @@ public class CompletionTest extends ReaderTestSupport {
 
         assertLine("test ", new TestBuffer("test \\\t\n\n"));
     }
-
 }

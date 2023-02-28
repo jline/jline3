@@ -52,10 +52,8 @@
                 <configuration>
                     <instructions>
                         <Export-Package>*;-noimport:=true</Export-Package>
-                        <Import-Package>
-                            org.fusesource.jansi;version="[1.12,3)",
-                            org.fusesource.jansi.internal;version="[1.6,3)"
-                        </Import-Package>
+                        <Import-Package>org.fusesource.jansi;version="[1.12,3)",
+                            org.fusesource.jansi.internal;version="[1.6,3)"</Import-Package>
                         <Fragment-Host>org.jline.terminal</Fragment-Host>
                     </instructions>
                 </configuration>

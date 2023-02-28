@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2017, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,18 +8,18 @@
  */
 package org.jline.style;
 
-import org.jline.style.StyleBundle.DefaultStyle;
-import org.jline.style.StyleBundle.StyleGroup;
-import org.jline.style.StyleBundle.StyleName;
-import org.jline.utils.AttributedString;
-import org.jline.utils.AttributedStyle;
-
-import javax.annotation.Nullable;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Nullable;
+
+import org.jline.style.StyleBundle.DefaultStyle;
+import org.jline.style.StyleBundle.StyleGroup;
+import org.jline.style.StyleBundle.StyleName;
+import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStyle;
 
 import static java.util.Objects.requireNonNull;
 
@@ -29,8 +29,7 @@ import static java.util.Objects.requireNonNull;
  * @see StyleBundle
  * @since 3.4
  */
-class StyleBundleInvocationHandler
-        implements InvocationHandler {
+class StyleBundleInvocationHandler implements InvocationHandler {
     private static final Logger log = Logger.getLogger(StyleBundleInvocationHandler.class.getName());
 
     private final Class<? extends StyleBundle> type;
@@ -111,7 +110,7 @@ class StyleBundleInvocationHandler
         }
 
         StyleBundleInvocationHandler handler = new StyleBundleInvocationHandler(type, resolver);
-        return (T) Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[]{type}, handler);
+        return (T) Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[] {type}, handler);
     }
 
     /**
@@ -187,17 +186,14 @@ class StyleBundleInvocationHandler
      * Thrown when {@link StyleBundle} method has missing {@link DefaultStyle}.
      */
     // @VisibleForTesting
-    static class StyleBundleMethodMissingDefaultStyleException
-            extends RuntimeException {
+    static class StyleBundleMethodMissingDefaultStyleException extends RuntimeException {
 
         private static final long serialVersionUID = 1L;
 
         public StyleBundleMethodMissingDefaultStyleException(final Method method) {
-            super(String.format("%s method missing @%s: %s",
-                    StyleBundle.class.getSimpleName(),
-                    DefaultStyle.class.getSimpleName(),
-                    method
-            ));
+            super(String.format(
+                    "%s method missing @%s: %s",
+                    StyleBundle.class.getSimpleName(), DefaultStyle.class.getSimpleName(), method));
         }
     }
 
@@ -205,8 +201,7 @@ class StyleBundleInvocationHandler
      * Thrown when processing {@link StyleBundle} method is found to be invalid.
      */
     // @VisibleForTesting
-    static class InvalidStyleBundleMethodException
-            extends RuntimeException {
+    static class InvalidStyleBundleMethodException extends RuntimeException {
 
         private static final long serialVersionUID = 1L;
 
@@ -219,17 +214,14 @@ class StyleBundleInvocationHandler
      * Thrown when looking up {@link StyleGroup} on a type found to be missing or invalid.
      */
     // @VisibleForTesting
-    static class InvalidStyleGroupException
-            extends RuntimeException {
+    static class InvalidStyleGroupException extends RuntimeException {
 
         private static final long serialVersionUID = 1L;
 
         public InvalidStyleGroupException(final Class<?> type) {
-            super(String.format("%s missing or invalid @%s: %s",
-                    StyleBundle.class.getSimpleName(),
-                    StyleGroup.class.getSimpleName(),
-                    type.getName()
-            ));
+            super(String.format(
+                    "%s missing or invalid @%s: %s",
+                    StyleBundle.class.getSimpleName(), StyleGroup.class.getSimpleName(), type.getName()));
         }
     }
 }

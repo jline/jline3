@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2017, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,38 +8,36 @@
  */
 package org.jline.demo;
 
-import org.apache.felix.service.command.Converter;
-import org.apache.felix.service.command.Function;
-
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.*;
 import java.util.Arrays;
 import java.util.Collections;
+
+import org.apache.felix.service.command.Converter;
+import org.apache.felix.service.command.Function;
 
 public class FunctionConverter implements Converter {
 
     @Override
     public Object convert(Class<?> desiredType, Object in) throws Exception {
         if (in instanceof Function && desiredType.isInterface() && isFunctional(desiredType)) {
-            return Proxy.newProxyInstance(desiredType.getClassLoader(),
-                    new Class<?>[]{desiredType}, new InvocationHandler() {
+            return Proxy.newProxyInstance(
+                    desiredType.getClassLoader(), new Class<?>[] {desiredType}, new InvocationHandler() {
                         Function command = ((Function) in);
 
-                        public Object invoke(Object proxy, Method method, Object[] args)
-                                throws Throwable {
+                        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
                             if (isObjectMethod(method)) {
                                 return method.invoke(command, args);
                             } else if (method.isDefault()) {
                                 final Field field = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
                                 field.setAccessible(true);
                                 final MethodHandles.Lookup lookup = (MethodHandles.Lookup) field.get(null);
-                                return lookup
-                                        .unreflectSpecial(method, method.getDeclaringClass())
+                                return lookup.unreflectSpecial(method, method.getDeclaringClass())
                                         .bindTo(proxy)
                                         .invokeWithArguments(args);
                             } else {
-                                return command.execute(null,
-                                        args != null ? Arrays.asList(args) : Collections.emptyList());
+                                return command.execute(
+                                        null, args != null ? Arrays.asList(args) : Collections.emptyList());
                             }
                         }
                     });
@@ -73,8 +71,7 @@ public class FunctionConverter implements Converter {
     public static boolean isObjectMethod(Method method) {
         switch (method.getName()) {
             case "toString":
-                if (method.getParameterCount() == 0
-                        && method.getReturnType() == String.class) {
+                if (method.getParameterCount() == 0 && method.getReturnType() == String.class) {
                     return true;
                 }
                 break;
@@ -86,13 +83,11 @@ public class FunctionConverter implements Converter {
                 }
                 break;
             case "hashCode":
-                if (method.getParameterCount() == 0
-                        && method.getReturnType() == int.class) {
+                if (method.getParameterCount() == 0 && method.getReturnType() == int.class) {
                     return true;
                 }
                 break;
         }
         return false;
     }
-
 }

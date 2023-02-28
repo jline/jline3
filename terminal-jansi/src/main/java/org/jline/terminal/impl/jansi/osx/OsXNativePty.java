@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2017, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,16 +8,16 @@
  */
 package org.jline.terminal.impl.jansi.osx;
 
+import java.io.FileDescriptor;
+import java.io.IOException;
+import java.util.EnumMap;
+import java.util.EnumSet;
+
 import org.fusesource.jansi.internal.CLibrary;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.jansi.JansiNativePty;
 import org.jline.terminal.spi.TerminalProvider;
-
-import java.io.FileDescriptor;
-import java.io.IOException;
-import java.util.EnumMap;
-import java.util.EnumSet;
 
 public class OsXNativePty extends JansiNativePty {
 
@@ -40,7 +40,10 @@ public class OsXNativePty extends JansiNativePty {
         int[] master = new int[1];
         int[] slave = new int[1];
         byte[] buf = new byte[64];
-        CLibrary.openpty(master, slave, buf,
+        CLibrary.openpty(
+                master,
+                slave,
+                buf,
                 attr != null ? termios(attr) : null,
                 size != null ? new CLibrary.WinSize((short) size.getRows(), (short) size.getColumns()) : null);
         int len = 0;
@@ -55,95 +58,102 @@ public class OsXNativePty extends JansiNativePty {
         super(master, masterFD, slave, slaveFD, name);
     }
 
-    public OsXNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, int slaveOut, FileDescriptor slaveOutFD, String name) {
+    public OsXNativePty(
+            int master,
+            FileDescriptor masterFD,
+            int slave,
+            FileDescriptor slaveFD,
+            int slaveOut,
+            FileDescriptor slaveOutFD,
+            String name) {
         super(master, masterFD, slave, slaveFD, slaveOut, slaveOutFD, name);
     }
     // CONSTANTS
 
-    private static final int VEOF        = 0;
-    private static final int VEOL        = 1;
-    private static final int VEOL2       = 2;
-    private static final int VERASE      = 3;
-    private static final int VWERASE     = 4;
-    private static final int VKILL       = 5;
-    private static final int VREPRINT    = 6;
-    private static final int VINTR       = 8;
-    private static final int VQUIT       = 9;
-    private static final int VSUSP       = 10;
-    private static final int VDSUSP      = 11;
-    private static final int VSTART      = 12;
-    private static final int VSTOP       = 13;
-    private static final int VLNEXT      = 14;
-    private static final int VDISCARD    = 15;
-    private static final int VMIN        = 16;
-    private static final int VTIME       = 17;
-    private static final int VSTATUS     = 18;
+    private static final int VEOF = 0;
+    private static final int VEOL = 1;
+    private static final int VEOL2 = 2;
+    private static final int VERASE = 3;
+    private static final int VWERASE = 4;
+    private static final int VKILL = 5;
+    private static final int VREPRINT = 6;
+    private static final int VINTR = 8;
+    private static final int VQUIT = 9;
+    private static final int VSUSP = 10;
+    private static final int VDSUSP = 11;
+    private static final int VSTART = 12;
+    private static final int VSTOP = 13;
+    private static final int VLNEXT = 14;
+    private static final int VDISCARD = 15;
+    private static final int VMIN = 16;
+    private static final int VTIME = 17;
+    private static final int VSTATUS = 18;
 
-    private static final int IGNBRK      = 0x00000001;
-    private static final int BRKINT      = 0x00000002;
-    private static final int IGNPAR      = 0x00000004;
-    private static final int PARMRK      = 0x00000008;
-    private static final int INPCK       = 0x00000010;
-    private static final int ISTRIP      = 0x00000020;
-    private static final int INLCR       = 0x00000040;
-    private static final int IGNCR       = 0x00000080;
-    private static final int ICRNL       = 0x00000100;
-    private static final int IXON        = 0x00000200;
-    private static final int IXOFF       = 0x00000400;
-    private static final int IXANY       = 0x00000800;
-    private static final int IMAXBEL     = 0x00002000;
-    private static final int IUTF8       = 0x00004000;
+    private static final int IGNBRK = 0x00000001;
+    private static final int BRKINT = 0x00000002;
+    private static final int IGNPAR = 0x00000004;
+    private static final int PARMRK = 0x00000008;
+    private static final int INPCK = 0x00000010;
+    private static final int ISTRIP = 0x00000020;
+    private static final int INLCR = 0x00000040;
+    private static final int IGNCR = 0x00000080;
+    private static final int ICRNL = 0x00000100;
+    private static final int IXON = 0x00000200;
+    private static final int IXOFF = 0x00000400;
+    private static final int IXANY = 0x00000800;
+    private static final int IMAXBEL = 0x00002000;
+    private static final int IUTF8 = 0x00004000;
 
-    private static final int OPOST       = 0x00000001;
-    private static final int ONLCR       = 0x00000002;
-    private static final int OXTABS      = 0x00000004;
-    private static final int ONOEOT      = 0x00000008;
-    private static final int OCRNL       = 0x00000010;
-    private static final int ONOCR       = 0x00000020;
-    private static final int ONLRET      = 0x00000040;
-    private static final int OFILL       = 0x00000080;
-    private static final int NLDLY       = 0x00000300;
-    private static final int TABDLY      = 0x00000c04;
-    private static final int CRDLY       = 0x00003000;
-    private static final int FFDLY       = 0x00004000;
-    private static final int BSDLY       = 0x00008000;
-    private static final int VTDLY       = 0x00010000;
-    private static final int OFDEL       = 0x00020000;
+    private static final int OPOST = 0x00000001;
+    private static final int ONLCR = 0x00000002;
+    private static final int OXTABS = 0x00000004;
+    private static final int ONOEOT = 0x00000008;
+    private static final int OCRNL = 0x00000010;
+    private static final int ONOCR = 0x00000020;
+    private static final int ONLRET = 0x00000040;
+    private static final int OFILL = 0x00000080;
+    private static final int NLDLY = 0x00000300;
+    private static final int TABDLY = 0x00000c04;
+    private static final int CRDLY = 0x00003000;
+    private static final int FFDLY = 0x00004000;
+    private static final int BSDLY = 0x00008000;
+    private static final int VTDLY = 0x00010000;
+    private static final int OFDEL = 0x00020000;
 
-    private static final int CIGNORE     = 0x00000001;
-    private static final int CS5         = 0x00000000;
-    private static final int CS6         = 0x00000100;
-    private static final int CS7         = 0x00000200;
-    private static final int CS8         = 0x00000300;
-    private static final int CSTOPB      = 0x00000400;
-    private static final int CREAD       = 0x00000800;
-    private static final int PARENB      = 0x00001000;
-    private static final int PARODD      = 0x00002000;
-    private static final int HUPCL       = 0x00004000;
-    private static final int CLOCAL      = 0x00008000;
-    private static final int CCTS_OFLOW  = 0x00010000;
-    private static final int CRTS_IFLOW  = 0x00020000;
-    private static final int CDTR_IFLOW  = 0x00040000;
-    private static final int CDSR_OFLOW  = 0x00080000;
-    private static final int CCAR_OFLOW  = 0x00100000;
+    private static final int CIGNORE = 0x00000001;
+    private static final int CS5 = 0x00000000;
+    private static final int CS6 = 0x00000100;
+    private static final int CS7 = 0x00000200;
+    private static final int CS8 = 0x00000300;
+    private static final int CSTOPB = 0x00000400;
+    private static final int CREAD = 0x00000800;
+    private static final int PARENB = 0x00001000;
+    private static final int PARODD = 0x00002000;
+    private static final int HUPCL = 0x00004000;
+    private static final int CLOCAL = 0x00008000;
+    private static final int CCTS_OFLOW = 0x00010000;
+    private static final int CRTS_IFLOW = 0x00020000;
+    private static final int CDTR_IFLOW = 0x00040000;
+    private static final int CDSR_OFLOW = 0x00080000;
+    private static final int CCAR_OFLOW = 0x00100000;
 
-    private static final int ECHOKE      = 0x00000001;
-    private static final int ECHOE       = 0x00000002;
-    private static final int ECHOK       = 0x00000004;
-    private static final int ECHO        = 0x00000008;
-    private static final int ECHONL      = 0x00000010;
-    private static final int ECHOPRT     = 0x00000020;
-    private static final int ECHOCTL     = 0x00000040;
-    private static final int ISIG        = 0x00000080;
-    private static final int ICANON      = 0x00000100;
-    private static final int ALTWERASE   = 0x00000200;
-    private static final int IEXTEN      = 0x00000400;
-    private static final int EXTPROC     = 0x00000800;
-    private static final int TOSTOP      = 0x00400000;
-    private static final int FLUSHO      = 0x00800000;
-    private static final int NOKERNINFO  = 0x02000000;
-    private static final int PENDIN      = 0x20000000;
-    private static final int NOFLSH      = 0x80000000;
+    private static final int ECHOKE = 0x00000001;
+    private static final int ECHOE = 0x00000002;
+    private static final int ECHOK = 0x00000004;
+    private static final int ECHO = 0x00000008;
+    private static final int ECHONL = 0x00000010;
+    private static final int ECHOPRT = 0x00000020;
+    private static final int ECHOCTL = 0x00000040;
+    private static final int ISIG = 0x00000080;
+    private static final int ICANON = 0x00000100;
+    private static final int ALTWERASE = 0x00000200;
+    private static final int IEXTEN = 0x00000400;
+    private static final int EXTPROC = 0x00000800;
+    private static final int TOSTOP = 0x00400000;
+    private static final int FLUSHO = 0x00800000;
+    private static final int NOKERNINFO = 0x02000000;
+    private static final int PENDIN = 0x20000000;
+    private static final int NOFLSH = 0x80000000;
 
     protected CLibrary.Termios toTermios(Attributes t) {
         return termios(t);
@@ -237,7 +247,7 @@ public class OsXNativePty extends JansiNativePty {
         tio.c_cc[VSTATUS] = (byte) t.getControlChar(Attributes.ControlChar.VSTATUS);
         return tio;
     }
-    
+
     protected Attributes toAttributes(CLibrary.Termios tio) {
         Attributes attr = new Attributes();
         // Input flags

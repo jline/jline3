@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2016, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -43,8 +43,6 @@ public class HistoryPersistenceTest extends ReaderTestSupport {
         Files.deleteIfExists(Paths.get("test"));
     }
 
-
-
     private void doTestFileHistory(int count, CyclicBarrier barrier) {
         DefaultHistory history = new DefaultHistory(reader);
         try {
@@ -53,8 +51,7 @@ public class HistoryPersistenceTest extends ReaderTestSupport {
             throw new RuntimeException(e);
         }
         assertEquals(count, history.size());
-        IntStream.range(0, count)
-                .forEach(i -> history.add("cmd" + i));
+        IntStream.range(0, count).forEach(i -> history.add("cmd" + i));
         // we need to synchronize here
         // if we don't, multiple writes can occur at the same time and some
         // history items may be lost, we'd have to use a file lock to fix that
@@ -65,8 +62,7 @@ public class HistoryPersistenceTest extends ReaderTestSupport {
         synchronized (reader) {
             try {
                 history.save();
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }
@@ -81,8 +77,7 @@ public class HistoryPersistenceTest extends ReaderTestSupport {
         int nbThreads = 3;
 
         DefaultHistory history = new DefaultHistory(reader);
-        IntStream.range(0, cmdsPerThread)
-                .forEach(i -> history.add("cmd" + i));
+        IntStream.range(0, cmdsPerThread).forEach(i -> history.add("cmd" + i));
         history.save();
 
         List<String> lines = Files.readAllLines(Paths.get("test"));

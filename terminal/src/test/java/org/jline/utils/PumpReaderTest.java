@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2017, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -7,10 +7,6 @@
  * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.utils;
-
-import static org.junit.Assert.assertEquals;
-
-import org.junit.Test;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -20,6 +16,10 @@ import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.lang.Thread.State;
 import java.nio.charset.StandardCharsets;
+
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 public class PumpReaderTest {
 
@@ -49,7 +49,8 @@ public class PumpReaderTest {
         PumpReader pump = writeInput();
 
         // Read it using an input stream
-        BufferedReader reader = new BufferedReader(new InputStreamReader(pump.createInputStream(StandardCharsets.UTF_8), StandardCharsets.UTF_8));
+        BufferedReader reader = new BufferedReader(
+                new InputStreamReader(pump.createInputStream(StandardCharsets.UTF_8), StandardCharsets.UTF_8));
         assertEquals("Hello world!", reader.readLine());
         assertEquals("\uD83D\uDE0A㐀", reader.readLine());
     }
@@ -61,12 +62,14 @@ public class PumpReaderTest {
 
         // Write some input
         new Thread(() -> {
-            writer.println("Hello world!");
-            writer.println("\uD83D\uDE0A㐀");
-        }).start();
+                    writer.println("Hello world!");
+                    writer.println("\uD83D\uDE0A㐀");
+                })
+                .start();
 
         // Read it using an input stream
-        BufferedReader reader = new BufferedReader(new InputStreamReader(pump.createInputStream(StandardCharsets.UTF_8), StandardCharsets.UTF_8));
+        BufferedReader reader = new BufferedReader(
+                new InputStreamReader(pump.createInputStream(StandardCharsets.UTF_8), StandardCharsets.UTF_8));
         assertEquals("Hello world!", reader.readLine());
         assertEquals("\uD83D\uDE0A㐀", reader.readLine());
     }
@@ -80,19 +83,20 @@ public class PumpReaderTest {
         Thread thread = Thread.currentThread();
 
         new Thread(() -> {
-            // Busy wait until InputStream blocks for more chars to encode
-            // (rather brittle, but cannot be easily implemented in a different way)
-            while (thread.getState() != State.WAITING && thread.getState() != State.TIMED_WAITING) {
-                Thread.yield();
-            }
-            try {
-                // Complete the surrogate pair
-                writer.write('\uDE0A');
-                writer.close();
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-        }).start();
+                    // Busy wait until InputStream blocks for more chars to encode
+                    // (rather brittle, but cannot be easily implemented in a different way)
+                    while (thread.getState() != State.WAITING && thread.getState() != State.TIMED_WAITING) {
+                        Thread.yield();
+                    }
+                    try {
+                        // Complete the surrogate pair
+                        writer.write('\uDE0A');
+                        writer.close();
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                })
+                .start();
 
         InputStream inputStream = pump.createInputStream(StandardCharsets.UTF_8);
         byte[] expectedEncoded = "\uD83D\uDE0A".getBytes(StandardCharsets.UTF_8);
@@ -116,5 +120,4 @@ public class PumpReaderTest {
         assertEquals('?', inputStream.read());
         assertEquals(-1, inputStream.read());
     }
-
 }

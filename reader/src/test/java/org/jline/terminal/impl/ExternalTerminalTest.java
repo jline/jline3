@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2016, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -62,7 +62,8 @@ public class ExternalTerminalTest {
     }
     */
 
-    private void testConsole(PipedOutputStream outIn, ByteArrayOutputStream out, Terminal terminal) throws IOException, InterruptedException {
+    private void testConsole(PipedOutputStream outIn, ByteArrayOutputStream out, Terminal terminal)
+            throws IOException, InterruptedException {
         Attributes attributes = terminal.getAttributes();
         attributes.setLocalFlag(LocalFlag.ECHO, true);
         attributes.setInputFlag(InputFlag.IGNCR, true);
@@ -89,8 +90,7 @@ public class ExternalTerminalTest {
         attributes.setLocalFlag(LocalFlag.ISIG, true);
         attributes.setControlChar(ControlChar.VINTR, 3);
         console.setAttributes(attributes);
-        LineReader lineReader = LineReaderBuilder.builder()
-                .terminal(console).build();
+        LineReader lineReader = LineReaderBuilder.builder().terminal(console).build();
         assertNotNull(lineReader);
         Thread th = new Thread() {
             public void run() {
@@ -120,13 +120,13 @@ public class ExternalTerminalTest {
     }
 
     @Test
-    public void testCursorPosition() throws IOException  {
+    public void testCursorPosition() throws IOException {
         PipedInputStream in = new PipedInputStream();
         final PipedOutputStream outIn = new PipedOutputStream(in);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ExternalTerminal console = new ExternalTerminal("foo", "ansi", in, out, StandardCharsets.UTF_8);
 
-        outIn.write(new byte[] { 'a', '\033', 'b', '\033', '[', '2', ';', '3', 'R', 'f'});
+        outIn.write(new byte[] {'a', '\033', 'b', '\033', '[', '2', ';', '3', 'R', 'f'});
         outIn.flush();
 
         StringBuilder sb = new StringBuilder();
@@ -142,7 +142,11 @@ public class ExternalTerminalTest {
     public void testPaused() throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ByteArrayInputStream bais = new ByteArrayInputStream("abcdefghijklmnopqrstuvwxyz".getBytes());
-        Terminal term = TerminalBuilder.builder().system(false).streams(bais, baos).paused(true).build();
+        Terminal term = TerminalBuilder.builder()
+                .system(false)
+                .streams(bais, baos)
+                .paused(true)
+                .build();
         assertTrue(term.paused());
     }
 
@@ -159,6 +163,7 @@ public class ExternalTerminalTest {
                 }
                 return r;
             }
+
             public int read(byte b[], int off, int len) throws IOException {
                 if (b == null) {
                     throw new NullPointerException();
@@ -171,19 +176,20 @@ public class ExternalTerminalTest {
                 if (c == -1) {
                     return -1;
                 }
-                b[off] = (byte)c;
+                b[off] = (byte) c;
                 int i = 1;
-                for (; i < len ; i++) {
+                for (; i < len; i++) {
                     c = read();
                     if (c == -1) {
                         break;
                     }
-                    b[off + i] = (byte)c;
+                    b[off + i] = (byte) c;
                 }
                 return i;
             }
         };
-        Terminal term = TerminalBuilder.builder().system(false).streams(in, baos).build();
+        Terminal term =
+                TerminalBuilder.builder().system(false).streams(in, baos).build();
         Thread.sleep(100);
         try {
             term.input().read();
@@ -195,25 +201,24 @@ public class ExternalTerminalTest {
 
     @Test
     public void testReadUntilEof() throws IOException, InterruptedException {
-        String str = "test 1\n" +
-                "test 2\n" +
-                "test 3\n" +
-                "exit\n";
+        String str = "test 1\n" + "test 2\n" + "test 3\n" + "exit\n";
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         InputStream in = new ByteArrayInputStream(str.getBytes(StandardCharsets.UTF_8));
-        Terminal term = TerminalBuilder.builder().system(false).streams(in, baos).build();
+        Terminal term =
+                TerminalBuilder.builder().system(false).streams(in, baos).build();
         Thread.sleep(100);
         ByteArrayOutputStream baos2 = new ByteArrayOutputStream();
         byte[] buffer = new byte[1014];
         int l;
-        for (;;) {
+        for (; ; ) {
             l = term.input().read(buffer);
             if (l >= 0) {
                 baos2.write(buffer, 0, l);
             } else {
                 break;
             }
-        };
+        }
+        ;
         String str2 = new String(baos2.toByteArray(), StandardCharsets.UTF_8);
         assertEquals(str, str2);
     }

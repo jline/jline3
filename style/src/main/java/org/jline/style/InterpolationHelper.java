@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2017, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -16,25 +16,19 @@ import java.util.function.Function;
  */
 public final class InterpolationHelper {
 
-    private InterpolationHelper() {
-    }
+    private InterpolationHelper() {}
 
     private static final char ESCAPE_CHAR = '\\';
     private static final String DELIM_START = "@{";
     private static final String DELIM_STOP = "}";
     private static final String MARKER = "@__";
 
-
-    public static String substVars(String val,
-                                   Function<String, String> callback,
-                                   boolean defaultsToEmptyString)
+    public static String substVars(String val, Function<String, String> callback, boolean defaultsToEmptyString)
             throws IllegalArgumentException {
         return unescape(doSubstVars(val, callback, defaultsToEmptyString));
     }
 
-    private static String doSubstVars(String val,
-                                      Function<String, String> callback,
-                                      boolean defaultsToEmptyString)
+    private static String doSubstVars(String val, Function<String, String> callback, boolean defaultsToEmptyString)
             throws IllegalArgumentException {
         // Assume we have a value that is something like:
         // "leading @{foo.@{bar}} middle @{baz} trailing"
@@ -62,8 +56,7 @@ public final class InterpolationHelper {
                     startDelim = idx;
                 }
             }
-        }
-        while (startDelim >= 0 && stopDelim >= 0 && stopDelim < startDelim + DELIM_START.length());
+        } while (startDelim >= 0 && stopDelim >= 0 && stopDelim < startDelim + DELIM_START.length());
 
         // If we do not have a start or stop delimiter, then just
         // return the existing value.
@@ -118,5 +111,4 @@ public final class InterpolationHelper {
         }
         return val;
     }
-
 }

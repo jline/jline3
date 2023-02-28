@@ -111,24 +111,24 @@
         </dependency>
 
         <dependency>
-             <groupId>org.apache.groovy</groupId>
-             <artifactId>groovy</artifactId>
+            <groupId>org.apache.groovy</groupId>
+            <artifactId>groovy</artifactId>
         </dependency>
 
         <dependency>
-             <groupId>org.apache.groovy</groupId>
-             <artifactId>groovy-json</artifactId>
+            <groupId>org.apache.groovy</groupId>
+            <artifactId>groovy-json</artifactId>
         </dependency>
 
         <dependency>
-             <groupId>org.apache.groovy</groupId>
-             <artifactId>groovy-console</artifactId>
+            <groupId>org.apache.groovy</groupId>
+            <artifactId>groovy-console</artifactId>
         </dependency>
 
         <dependency>
             <groupId>org.apache.ivy</groupId>
             <artifactId>ivy</artifactId>
-        </dependency>        
+        </dependency>
 
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -161,10 +161,10 @@
                 <executions>
                     <execution>
                         <id>copy-scripts</id>
-                        <phase>validate</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
+                        <phase>validate</phase>
                         <configuration>
                             <outputDirectory>${basedir}/target/scripts</outputDirectory>
                             <resources>
@@ -183,10 +183,10 @@
                     </execution>
                     <execution>
                         <id>copy-nanorc</id>
-                        <phase>validate</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
+                        <phase>validate</phase>
                         <configuration>
                             <outputDirectory>${basedir}/target/nanorc</outputDirectory>
                             <resources>
@@ -201,10 +201,10 @@
                     </execution>
                     <execution>
                         <id>copy-root</id>
-                        <phase>validate</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
+                        <phase>validate</phase>
                         <configuration>
                             <outputDirectory>${basedir}/target</outputDirectory>
                             <resources>

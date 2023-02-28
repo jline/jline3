@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -13,20 +13,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.jline.reader.Candidate;
-import org.jline.reader.Completer;
-import org.jline.reader.CompletingParsedLine;
-import org.jline.reader.LineReader;
-import org.jline.reader.LineReader.Option;
 import org.jline.reader.ParsedLine;
-import org.jline.reader.Parser;
-import org.jline.reader.Reference;
-import org.jline.reader.SyntaxError;
-import org.jline.reader.impl.completer.AggregateCompleter;
-import org.jline.reader.impl.completer.ArgumentCompleter;
-import org.jline.reader.impl.completer.NullCompleter;
-import org.jline.reader.impl.completer.StringsCompleter;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 public class CompletionWithParserTest extends ReaderTestSupport {
@@ -46,22 +33,27 @@ public class CompletionWithParserTest extends ReaderTestSupport {
             public String word() {
                 return "";
             }
+
             @Override
             public int wordCursor() {
                 return 0;
             }
+
             @Override
             public int wordIndex() {
                 return 3;
             }
+
             @Override
             public List<String> words() {
                 return Arrays.asList("{", "List", ".", "", "}");
             }
+
             @Override
             public String line() {
                 return "{List.}";
             }
+
             @Override
             public int cursor() {
                 return 6;
@@ -70,5 +62,4 @@ public class CompletionWithParserTest extends ReaderTestSupport {
 
         assertBuffer("{List.range}", new TestBuffer("{List.}").left().tab());
     }
-
 }

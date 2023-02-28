@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2017, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -96,12 +96,13 @@ public class ShellFactoryImpl implements ShellFactory {
         public void start(final ChannelSession session, final Environment env) throws IOException {
             try {
                 new Thread(() -> {
-                    try {
-                        ShellImpl.this.run(session, env);
-                    } catch (Throwable t) {
-                        t.printStackTrace();
-                    }
-                }).start();
+                            try {
+                                ShellImpl.this.run(session, env);
+                            } catch (Throwable t) {
+                                t.printStackTrace();
+                            }
+                        })
+                        .start();
             } catch (Exception e) {
                 throw new IOException("Unable to start shell", e);
             }
@@ -115,8 +116,9 @@ public class ShellFactoryImpl implements ShellFactory {
                         .system(false)
                         .streams(in, out)
                         .build();
-                terminal.setSize(new Size(Integer.parseInt(env.getEnv().get("COLUMNS")),
-                                          Integer.parseInt(env.getEnv().get("LINES"))));
+                terminal.setSize(new Size(
+                        Integer.parseInt(env.getEnv().get("COLUMNS")),
+                        Integer.parseInt(env.getEnv().get("LINES"))));
                 Attributes attr = terminal.getAttributes();
                 for (Map.Entry<PtyMode, Integer> e : env.getPtyModes().entrySet()) {
                     switch (e.getKey()) {
@@ -162,14 +164,14 @@ public class ShellFactoryImpl implements ShellFactory {
                         case VLNEXT:
                             attr.setControlChar(ControlChar.VLNEXT, e.getValue());
                             break;
-                        /*
-                        case VFLUSH:
-                            attr.setControlChar(ControlChar.VMIN, e.getValue());
-                            break;
-                        case VSWTCH:
-                            attr.setControlChar(ControlChar.VTIME, e.getValue());
-                            break;
-                        */
+                            /*
+                            case VFLUSH:
+                                attr.setControlChar(ControlChar.VMIN, e.getValue());
+                                break;
+                            case VSWTCH:
+                                attr.setControlChar(ControlChar.VTIME, e.getValue());
+                                break;
+                            */
                         case VSTATUS:
                             attr.setControlChar(ControlChar.VSTATUS, e.getValue());
                             break;
@@ -209,11 +211,14 @@ public class ShellFactoryImpl implements ShellFactory {
                     }
                 }
                 terminal.setAttributes(attr);
-                env.addSignalListener((channel, signals) -> {
-                    terminal.setSize(new Size(Integer.parseInt(env.getEnv().get("COLUMNS")),
-                            Integer.parseInt(env.getEnv().get("LINES"))));
-                    terminal.raise(Terminal.Signal.WINCH);
-                }, Signal.WINCH);
+                env.addSignalListener(
+                        (channel, signals) -> {
+                            terminal.setSize(new Size(
+                                    Integer.parseInt(env.getEnv().get("COLUMNS")),
+                                    Integer.parseInt(env.getEnv().get("LINES"))));
+                            terminal.raise(Terminal.Signal.WINCH);
+                        },
+                        Signal.WINCH);
 
                 shell.accept(new Ssh.ShellParams(env.getEnv(), session.getSession(), terminal, () -> destroy(session)));
             } catch (Throwable t) {
@@ -229,7 +234,5 @@ public class ShellFactoryImpl implements ShellFactory {
                 callback.onExit(0);
             }
         }
-
     }
-
 }

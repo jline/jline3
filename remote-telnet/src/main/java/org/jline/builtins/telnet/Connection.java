@@ -1,11 +1,12 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
+package org.jline.builtins.telnet;
 
 /*
  * Java TelnetD library (embeddable telnet daemon)
@@ -38,8 +39,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ***/
 
-package org.jline.builtins.telnet;
-
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
@@ -68,16 +67,15 @@ import java.util.logging.Logger;
  * @see ConnectionManager
  * @see ConnectionData
  */
-public abstract class Connection
-        extends Thread {
+public abstract class Connection extends Thread {
 
     private static final Logger LOG = Logger.getLogger(Connection.class.getName());
-    private static int number;            //unique number for a thread in the thread group
+    private static int number; // unique number for a thread in the thread group
     private boolean dead;
     private List<ConnectionListener> listeners;
 
-    //Associations
-    private ConnectionData connectionData;    //associated information
+    // Associations
+    private ConnectionData connectionData; // associated information
 
     /**
      * Constructs a TelnetConnection by invoking its parent constructor
@@ -94,11 +92,11 @@ public abstract class Connection
         super(tcg, ("Connection" + (++number)));
 
         connectionData = cd;
-        //init the connection listeners for events
-        //(there should actually be only one or two)
+        // init the connection listeners for events
+        // (there should actually be only one or two)
         listeners = new CopyOnWriteArrayList<ConnectionListener>();
         dead = false;
-    }//constructor
+    } // constructor
 
     /**
      * Method overloaded to implement following behaviour:
@@ -115,15 +113,15 @@ public abstract class Connection
             doRun();
 
         } catch (Exception ex) {
-            LOG.log(Level.SEVERE, "run()", ex); //Handle properly
+            LOG.log(Level.SEVERE, "run()", ex); // Handle properly
         } finally {
-            //call close if not dead already
+            // call close if not dead already
             if (!dead) {
                 close();
             }
         }
         LOG.log(Level.FINE, "run():: Returning from " + this.toString());
-    }//run
+    } // run
 
     protected abstract void doRun() throws Exception;
 
@@ -137,7 +135,7 @@ public abstract class Connection
      */
     public ConnectionData getConnectionData() {
         return connectionData;
-    }//getConnectionData
+    } // getConnectionData
 
     /**
      * Closes the connection and its underlying i/o and network
@@ -148,40 +146,39 @@ public abstract class Connection
             return;
         } else {
             try {
-                //connection dead
+                // connection dead
                 dead = true;
-                //close i/o
+                // close i/o
                 doClose();
             } catch (Exception ex) {
                 LOG.log(Level.SEVERE, "close()", ex);
-                //handle
+                // handle
             }
             try {
-                //close socket
+                // close socket
                 connectionData.getSocket().close();
             } catch (Exception ex) {
                 LOG.log(Level.SEVERE, "close()", ex);
-                //handle
+                // handle
             }
             try {
-                //register closed connection in ConnectionManager
+                // register closed connection in ConnectionManager
                 connectionData.getManager().registerClosedConnection(this);
             } catch (Exception ex) {
                 LOG.log(Level.SEVERE, "close()", ex);
-                //handle
+                // handle
             }
             try {
-                //try to interrupt it
+                // try to interrupt it
                 interrupt();
             } catch (Exception ex) {
                 LOG.log(Level.SEVERE, "close()", ex);
-                //handle
+                // handle
             }
-
 
             LOG.log(Level.FINE, "Closed " + this.toString() + " and inactive.");
         }
-    }//close
+    } // close
 
     /**
      * Returns if a connection has been closed.<br>
@@ -190,7 +187,7 @@ public abstract class Connection
      */
     public boolean isActive() {
         return !dead;
-    }//isClosed
+    } // isClosed
 
     /****** Event handling ****************/
 
@@ -203,7 +200,7 @@ public abstract class Connection
      */
     public void addConnectionListener(ConnectionListener cl) {
         listeners.add(cl);
-    }//addConnectionListener
+    } // addConnectionListener
 
     /**
      * Method that removes a ConnectionListener from the
@@ -214,8 +211,7 @@ public abstract class Connection
      */
     public void removeConnectionListener(ConnectionListener cl) {
         listeners.remove(cl);
-    }//removeConnectionListener
-
+    } // removeConnectionListener
 
     /**
      * Method called by the io subsystem to pass on a
@@ -244,6 +240,5 @@ public abstract class Connection
                     cl.connectionTerminalGeometryChanged(ce);
             }
         }
-    }//processConnectionEvent
-
-}//class Connection
+    } // processConnectionEvent
+} // class Connection

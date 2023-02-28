@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, the original author or authors.
+ * Copyright (c) 2022, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -96,19 +96,31 @@ public class Diag {
         } catch (Throwable t2) {
             out.println("Unable to check stream names: " + t2);
         }
-        try (Terminal terminal = provider.sysTerminal("diag", "xterm", false, StandardCharsets.UTF_8,
-                false, Terminal.SignalHandler.SIG_DFL, false, TerminalProvider.Stream.Output) ) {
+        try (Terminal terminal = provider.sysTerminal(
+                "diag",
+                "xterm",
+                false,
+                StandardCharsets.UTF_8,
+                false,
+                Terminal.SignalHandler.SIG_DFL,
+                false,
+                TerminalProvider.Stream.Output)) {
             if (terminal != null) {
                 Attributes attr = terminal.enterRawMode();
                 try {
                     out.println("Terminal size: " + terminal.getSize());
-                    ForkJoinTask<Integer> t = new ForkJoinPool(1).submit(() -> terminal.reader().read(1) );
+                    ForkJoinTask<Integer> t =
+                            new ForkJoinPool(1).submit(() -> terminal.reader().read(1));
                     int r = t.get(1000, TimeUnit.MILLISECONDS);
                     StringBuilder sb = new StringBuilder();
                     sb.append("The terminal seems to work: ");
                     sb.append("terminal ").append(terminal.getClass().getName());
                     if (terminal instanceof AbstractPosixTerminal) {
-                        sb.append(" with pty ").append(((AbstractPosixTerminal) terminal).getPty().getClass().getName());
+                        sb.append(" with pty ")
+                                .append(((AbstractPosixTerminal) terminal)
+                                        .getPty()
+                                        .getClass()
+                                        .getName());
                     }
                     out.println(sb);
                 } catch (Throwable t3) {
@@ -129,5 +141,4 @@ public class Diag {
     static <S> S load(Class<S> clazz) {
         return ServiceLoader.load(clazz, clazz.getClassLoader()).iterator().next();
     }
-
 }

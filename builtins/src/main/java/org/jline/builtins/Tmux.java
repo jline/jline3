@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019, the original author or authors.
+ * Copyright (c) 2002-2019, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -99,78 +99,105 @@ public class Tmux {
     public static final String CMD_LSW = "lsw";
 
     private static final int[][][] WINDOW_CLOCK_TABLE = {
-          { { 1,1,1,1,1 }, /* 0 */
-            { 1,0,0,0,1 },
-            { 1,0,0,0,1 },
-            { 1,0,0,0,1 },
-            { 1,1,1,1,1 } },
-          { { 0,0,0,0,1 }, /* 1 */
-            { 0,0,0,0,1 },
-            { 0,0,0,0,1 },
-            { 0,0,0,0,1 },
-            { 0,0,0,0,1 } },
-          { { 1,1,1,1,1 }, /* 2 */
-            { 0,0,0,0,1 },
-            { 1,1,1,1,1 },
-            { 1,0,0,0,0 },
-            { 1,1,1,1,1 } },
-          { { 1,1,1,1,1 }, /* 3 */
-            { 0,0,0,0,1 },
-            { 1,1,1,1,1 },
-            { 0,0,0,0,1 },
-            { 1,1,1,1,1 } },
-          { { 1,0,0,0,1 }, /* 4 */
-            { 1,0,0,0,1 },
-            { 1,1,1,1,1 },
-            { 0,0,0,0,1 },
-            { 0,0,0,0,1 } },
-          { { 1,1,1,1,1 }, /* 5 */
-            { 1,0,0,0,0 },
-            { 1,1,1,1,1 },
-            { 0,0,0,0,1 },
-            { 1,1,1,1,1 } },
-          { { 1,1,1,1,1 }, /* 6 */
-            { 1,0,0,0,0 },
-            { 1,1,1,1,1 },
-            { 1,0,0,0,1 },
-            { 1,1,1,1,1 } },
-          { { 1,1,1,1,1 }, /* 7 */
-            { 0,0,0,0,1 },
-            { 0,0,0,0,1 },
-            { 0,0,0,0,1 },
-            { 0,0,0,0,1 } },
-          { { 1,1,1,1,1 }, /* 8 */
-            { 1,0,0,0,1 },
-            { 1,1,1,1,1 },
-            { 1,0,0,0,1 },
-            { 1,1,1,1,1 } },
-          { { 1,1,1,1,1 }, /* 9 */
-            { 1,0,0,0,1 },
-            { 1,1,1,1,1 },
-            { 0,0,0,0,1 },
-            { 1,1,1,1,1 } },
-          { { 0,0,0,0,0 }, /* : */
-            { 0,0,1,0,0 },
-            { 0,0,0,0,0 },
-            { 0,0,1,0,0 },
-            { 0,0,0,0,0 } },
-          { { 1,1,1,1,1 }, /* A */
-            { 1,0,0,0,1 },
-            { 1,1,1,1,1 },
-            { 1,0,0,0,1 },
-            { 1,0,0,0,1 } },
-          { { 1,1,1,1,1 }, /* P */
-            { 1,0,0,0,1 },
-            { 1,1,1,1,1 },
-            { 1,0,0,0,0 },
-            { 1,0,0,0,0 } },
-          { { 1,0,0,0,1 }, /* M */
-            { 1,1,0,1,1 },
-            { 1,0,1,0,1 },
-            { 1,0,0,0,1 },
-            { 1,0,0,0,1 } },
+        {
+            {1, 1, 1, 1, 1}, /* 0 */
+            {1, 0, 0, 0, 1},
+            {1, 0, 0, 0, 1},
+            {1, 0, 0, 0, 1},
+            {1, 1, 1, 1, 1}
+        },
+        {
+            {0, 0, 0, 0, 1}, /* 1 */
+            {0, 0, 0, 0, 1},
+            {0, 0, 0, 0, 1},
+            {0, 0, 0, 0, 1},
+            {0, 0, 0, 0, 1}
+        },
+        {
+            {1, 1, 1, 1, 1}, /* 2 */
+            {0, 0, 0, 0, 1},
+            {1, 1, 1, 1, 1},
+            {1, 0, 0, 0, 0},
+            {1, 1, 1, 1, 1}
+        },
+        {
+            {1, 1, 1, 1, 1}, /* 3 */
+            {0, 0, 0, 0, 1},
+            {1, 1, 1, 1, 1},
+            {0, 0, 0, 0, 1},
+            {1, 1, 1, 1, 1}
+        },
+        {
+            {1, 0, 0, 0, 1}, /* 4 */
+            {1, 0, 0, 0, 1},
+            {1, 1, 1, 1, 1},
+            {0, 0, 0, 0, 1},
+            {0, 0, 0, 0, 1}
+        },
+        {
+            {1, 1, 1, 1, 1}, /* 5 */
+            {1, 0, 0, 0, 0},
+            {1, 1, 1, 1, 1},
+            {0, 0, 0, 0, 1},
+            {1, 1, 1, 1, 1}
+        },
+        {
+            {1, 1, 1, 1, 1}, /* 6 */
+            {1, 0, 0, 0, 0},
+            {1, 1, 1, 1, 1},
+            {1, 0, 0, 0, 1},
+            {1, 1, 1, 1, 1}
+        },
+        {
+            {1, 1, 1, 1, 1}, /* 7 */
+            {0, 0, 0, 0, 1},
+            {0, 0, 0, 0, 1},
+            {0, 0, 0, 0, 1},
+            {0, 0, 0, 0, 1}
+        },
+        {
+            {1, 1, 1, 1, 1}, /* 8 */
+            {1, 0, 0, 0, 1},
+            {1, 1, 1, 1, 1},
+            {1, 0, 0, 0, 1},
+            {1, 1, 1, 1, 1}
+        },
+        {
+            {1, 1, 1, 1, 1}, /* 9 */
+            {1, 0, 0, 0, 1},
+            {1, 1, 1, 1, 1},
+            {0, 0, 0, 0, 1},
+            {1, 1, 1, 1, 1}
+        },
+        {
+            {0, 0, 0, 0, 0}, /* : */
+            {0, 0, 1, 0, 0},
+            {0, 0, 0, 0, 0},
+            {0, 0, 1, 0, 0},
+            {0, 0, 0, 0, 0}
+        },
+        {
+            {1, 1, 1, 1, 1}, /* A */
+            {1, 0, 0, 0, 1},
+            {1, 1, 1, 1, 1},
+            {1, 0, 0, 0, 1},
+            {1, 0, 0, 0, 1}
+        },
+        {
+            {1, 1, 1, 1, 1}, /* P */
+            {1, 0, 0, 0, 1},
+            {1, 1, 1, 1, 1},
+            {1, 0, 0, 0, 0},
+            {1, 0, 0, 0, 0}
+        },
+        {
+            {1, 0, 0, 0, 1}, /* M */
+            {1, 1, 0, 1, 1},
+            {1, 0, 1, 0, 1},
+            {1, 0, 0, 0, 1},
+            {1, 0, 0, 0, 1}
+        },
     };
-
 
     private final AtomicBoolean dirty = new AtomicBoolean(true);
     private final AtomicBoolean resized = new AtomicBoolean(true);
@@ -194,7 +221,9 @@ public class Tmux {
     private KeyMap<Object> keyMap;
 
     enum Binding {
-        Discard, SelfInsert, Mouse
+        Discard,
+        SelfInsert,
+        Mouse
     }
 
     private class Window {
@@ -212,9 +241,16 @@ public class Tmux {
             layout.sx = size.getColumns();
             layout.sy = size.getRows();
             layout.type = WindowPane;
-            active = new VirtualConsole(paneId.incrementAndGet(), term
-                                      , 0, 0, size.getColumns(), size.getRows() - 1
-                                      , tmux::setDirty, tmux::close, layout);
+            active = new VirtualConsole(
+                    paneId.incrementAndGet(),
+                    term,
+                    0,
+                    0,
+                    size.getColumns(),
+                    size.getRows() - 1,
+                    tmux::setDirty,
+                    tmux::close,
+                    layout);
             active.active = lastActive++;
             active.getConsole().setAttributes(terminal.getAttributes());
             panes.add(active);
@@ -225,6 +261,7 @@ public class Tmux {
         public String getName() {
             return name;
         }
+
         public List<VirtualConsole> getPanes() {
             return panes;
         }
@@ -239,8 +276,10 @@ public class Tmux {
                 console.layout.remove();
                 if (active == console) {
                     active = panes.stream()
-                                .sorted(Comparator.<VirtualConsole>comparingInt(p -> p.active).reversed())
-                                .findFirst().get();
+                            .sorted(Comparator.<VirtualConsole>comparingInt(p -> p.active)
+                                    .reversed())
+                            .findFirst()
+                            .get();
                 }
                 layout = active.layout;
                 while (layout.parent != null) {
@@ -254,8 +293,10 @@ public class Tmux {
         public void handleResize() {
             layout.resize(size.getColumns(), size.getRows() - 1);
             panes.forEach(vc -> {
-                if (vc.width() != vc.layout.sx || vc.height() != vc.layout.sy
-                        || vc.left() != vc.layout.xoff || vc.top() != vc.layout.yoff) {
+                if (vc.width() != vc.layout.sx
+                        || vc.height() != vc.layout.sy
+                        || vc.left() != vc.layout.xoff
+                        || vc.top() != vc.layout.yoff) {
                     vc.resize(vc.layout.xoff, vc.layout.yoff, vc.layout.sx, vc.layout.sy);
                     display.clear();
                 }
@@ -265,7 +306,7 @@ public class Tmux {
         public VirtualConsole splitPane(Options opt) throws IOException {
             Layout.Type type = opt.isSet("horizontal") ? LeftRight : TopBottom;
             // If we're splitting the main pane, create a parent
-           if (layout.type == WindowPane) {
+            if (layout.type == WindowPane) {
                 Layout p = new Layout();
                 p.sx = layout.sx;
                 p.sy = layout.sy;
@@ -298,9 +339,16 @@ public class Tmux {
                 return null;
             }
 
-            VirtualConsole newConsole = new VirtualConsole(paneId.incrementAndGet(), term
-                                                         , newCell.xoff, newCell.yoff, newCell.sx, newCell.sy
-                                                         , tmux::setDirty, tmux::close, newCell);
+            VirtualConsole newConsole = new VirtualConsole(
+                    paneId.incrementAndGet(),
+                    term,
+                    newCell.xoff,
+                    newCell.yoff,
+                    newCell.sx,
+                    newCell.sy,
+                    tmux::setDirty,
+                    tmux::close,
+                    newCell);
             panes.add(newConsole);
             newConsole.getConsole().setAttributes(terminal.getAttributes());
             if (!opt.isSet("d")) {
@@ -316,35 +364,40 @@ public class Tmux {
                 active = panes.stream()
                         .filter(c -> c.bottom() > active.top() && c.top() < active.bottom())
                         .filter(c -> c != active)
-                        .sorted(Comparator
-                                .<VirtualConsole>comparingInt(c -> c.left() > active.left() ? c.left() : c.left() + size.getColumns()).reversed()
-                                .<VirtualConsole>thenComparingInt(c -> - c.active))
-                        .findFirst().orElse(active);
-            }
-            else if (opt.isSet("R")) {
+                        .sorted(Comparator.<VirtualConsole>comparingInt(
+                                        c -> c.left() > active.left() ? c.left() : c.left() + size.getColumns())
+                                .reversed()
+                                .<VirtualConsole>thenComparingInt(c -> -c.active))
+                        .findFirst()
+                        .orElse(active);
+            } else if (opt.isSet("R")) {
                 active = panes.stream()
                         .filter(c -> c.bottom() > active.top() && c.top() < active.bottom())
                         .filter(c -> c != active)
-                        .sorted(Comparator
-                                .<VirtualConsole>comparingInt(c -> c.left() > active.left() ? c.left() : c.left() + size.getColumns())
-                                .<VirtualConsole>thenComparingInt(c -> - c.active))
-                        .findFirst().orElse(active);
+                        .sorted(Comparator.<VirtualConsole>comparingInt(
+                                        c -> c.left() > active.left() ? c.left() : c.left() + size.getColumns())
+                                .<VirtualConsole>thenComparingInt(c -> -c.active))
+                        .findFirst()
+                        .orElse(active);
             } else if (opt.isSet("U")) {
                 active = panes.stream()
                         .filter(c -> c.right() > active.left() && c.left() < active.right())
                         .filter(c -> c != active)
-                        .sorted(Comparator
-                                .<VirtualConsole>comparingInt(c -> c.top() > active.top() ? c.top() : c.top() + size.getRows()).reversed()
-                                .<VirtualConsole>thenComparingInt(c -> - c.active))
-                        .findFirst().orElse(active);
+                        .sorted(Comparator.<VirtualConsole>comparingInt(
+                                        c -> c.top() > active.top() ? c.top() : c.top() + size.getRows())
+                                .reversed()
+                                .<VirtualConsole>thenComparingInt(c -> -c.active))
+                        .findFirst()
+                        .orElse(active);
             } else if (opt.isSet("D")) {
                 active = panes.stream()
                         .filter(c -> c.right() > active.left() && c.left() < active.right())
                         .filter(c -> c != active)
-                        .sorted(Comparator
-                                .<VirtualConsole>comparingInt(c -> c.top() > active.top() ? c.top() : c.top() + size.getRows())
-                                .<VirtualConsole>thenComparingInt(c -> - c.active))
-                        .findFirst().orElse(active);
+                        .sorted(Comparator.<VirtualConsole>comparingInt(
+                                        c -> c.top() > active.top() ? c.top() : c.top() + size.getRows())
+                                .<VirtualConsole>thenComparingInt(c -> -c.active))
+                        .findFirst()
+                        .orElse(active);
             }
             boolean out = false;
             if (prevActive != active) {
@@ -402,9 +455,12 @@ public class Tmux {
         keyMap.bind(CMD_RESIZE_PANE + " -L 5", prefix + esc() + key(terminal, Capability.key_left));
         keyMap.bind(CMD_RESIZE_PANE + " -R 5", prefix + esc() + key(terminal, Capability.key_right));
         keyMap.bind(CMD_RESIZE_PANE + " -U", prefix + translate("^[[1;5A"), prefix + alt(translate("^[[A"))); // ctrl-up
-        keyMap.bind(CMD_RESIZE_PANE + " -D", prefix + translate("^[[1;5B"), prefix + alt(translate("^[[B"))); // ctrl-down
-        keyMap.bind(CMD_RESIZE_PANE + " -L", prefix + translate("^[[1;5C"), prefix + alt(translate("^[[C"))); // ctrl-left
-        keyMap.bind(CMD_RESIZE_PANE + " -R", prefix + translate("^[[1;5D"), prefix + alt(translate("^[[D"))); // ctrl-right
+        keyMap.bind(
+                CMD_RESIZE_PANE + " -D", prefix + translate("^[[1;5B"), prefix + alt(translate("^[[B"))); // ctrl-down
+        keyMap.bind(
+                CMD_RESIZE_PANE + " -L", prefix + translate("^[[1;5C"), prefix + alt(translate("^[[C"))); // ctrl-left
+        keyMap.bind(
+                CMD_RESIZE_PANE + " -R", prefix + translate("^[[1;5D"), prefix + alt(translate("^[[D"))); // ctrl-right
         keyMap.bind(CMD_DISPLAY_PANES, prefix + "q");
         keyMap.bind(CMD_CLOCK_MODE, prefix + "t");
         keyMap.bind(CMD_NEW_WINDOW, prefix + "c");
@@ -418,7 +474,7 @@ public class Tmux {
         keyMap.setUnicode(Binding.SelfInsert);
         keyMap.setNomatch(Binding.SelfInsert);
         for (int i = 0; i < 255; i++) {
-            keyMap.bind(Binding.Discard, prefix + (char)(i));
+            keyMap.bind(Binding.Discard, prefix + (char) (i));
         }
         keyMap.bind(Binding.Mouse, key(terminal, Capability.key_mouse));
         return keyMap;
@@ -516,7 +572,8 @@ public class Tmux {
                         }
                         setDirty();
                     } else {
-                        active().getMasterInputOutput().write(reader.getLastBinding().getBytes());
+                        active().getMasterInputOutput()
+                                .write(reader.getLastBinding().getBytes());
                         first = false;
                     }
                 } else {
@@ -528,12 +585,12 @@ public class Tmux {
                     }
                     if (b == Binding.Mouse) {
                         MouseEvent event = terminal.readMouseEvent();
-                        //System.err.println(event.toString());
+                        // System.err.println(event.toString());
                     } else if (b instanceof String || b instanceof String[]) {
                         ByteArrayOutputStream out = new ByteArrayOutputStream();
                         ByteArrayOutputStream err = new ByteArrayOutputStream();
                         try (PrintStream pout = new PrintStream(out);
-                             PrintStream perr = new PrintStream(err)) {
+                                PrintStream perr = new PrintStream(err)) {
                             if (b instanceof String) {
                                 execute(pout, perr, (String) b);
                             } else {
@@ -558,7 +615,7 @@ public class Tmux {
     private synchronized void close(VirtualConsole terminal) {
         int idx = -1;
         Window window = null;
-        for (Window w: windows) {
+        for (Window w : windows) {
             idx = w.getPanes().indexOf(terminal);
             if (idx >= 0) {
                 window = w;
@@ -676,39 +733,33 @@ public class Tmux {
     }
 
     protected void listWindows(PrintStream out, PrintStream err, List<String> args) throws Exception {
-        final String[] usage = {
-                "list-windows - ",
-                "Usage: list-windows",
-                "  -? --help                    Show help"
-        };
+        final String[] usage = {"list-windows - ", "Usage: list-windows", "  -? --help                    Show help"};
         Options opt = Options.compile(usage).parse(args);
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
         IntStream.range(0, windows.size())
-            .mapToObj(i -> {
-                StringBuilder sb = new StringBuilder();
-                sb.append(i);
-                sb.append(": ");
-                sb.append(windows.get(i).getName());
-                sb.append(i == activeWindow ? "* " : " ");
-                sb.append("(");
-                sb.append(windows.get(i).getPanes().size());
-                sb.append(" panes)");
-                if (i == activeWindow) {
-                    sb.append(" (active)");
-                }
-                return sb.toString();
-            })
-            .sorted()
-            .forEach(out::println);
+                .mapToObj(i -> {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append(i);
+                    sb.append(": ");
+                    sb.append(windows.get(i).getName());
+                    sb.append(i == activeWindow ? "* " : " ");
+                    sb.append("(");
+                    sb.append(windows.get(i).getPanes().size());
+                    sb.append(" panes)");
+                    if (i == activeWindow) {
+                        sb.append(" (active)");
+                    }
+                    return sb.toString();
+                })
+                .sorted()
+                .forEach(out::println);
     }
 
     protected void previousWindow(PrintStream out, PrintStream err, List<String> args) throws Exception {
         final String[] usage = {
-                "previous-window - ",
-                "Usage: previous-window",
-                "  -? --help                    Show help"
+            "previous-window - ", "Usage: previous-window", "  -? --help                    Show help"
         };
         Options opt = Options.compile(usage).parse(args);
         if (opt.isSet("help")) {
@@ -724,11 +775,7 @@ public class Tmux {
     }
 
     protected void nextWindow(PrintStream out, PrintStream err, List<String> args) throws Exception {
-        final String[] usage = {
-                "next-window - ",
-                "Usage: next-window",
-                "  -? --help                    Show help"
-        };
+        final String[] usage = {"next-window - ", "Usage: next-window", "  -? --help                    Show help"};
         Options opt = Options.compile(usage).parse(args);
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
@@ -743,11 +790,7 @@ public class Tmux {
     }
 
     protected void newWindow(PrintStream out, PrintStream err, List<String> args) throws Exception {
-        final String[] usage = {
-                "new-window - ",
-                "Usage: new-window",
-                "  -? --help                    Show help"
-        };
+        final String[] usage = {"new-window - ", "Usage: new-window", "  -? --help                    Show help"};
         Options opt = Options.compile(usage).parse(args);
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
@@ -760,10 +803,10 @@ public class Tmux {
 
     protected void setOption(PrintStream out, PrintStream err, List<String> args) throws Exception {
         final String[] usage = {
-                "set-option - ",
-                "Usage: set-option [-agosquw] option [value]",
-                "  -? --help                    Show help",
-                "  -u --unset                   Unset the option"
+            "set-option - ",
+            "Usage: set-option [-agosquw] option [value]",
+            "  -? --help                    Show help",
+            "  -u --unset                   Unset the option"
         };
         Options opt = Options.compile(usage).parse(args);
         if (opt.isSet("help")) {
@@ -806,9 +849,9 @@ public class Tmux {
 
     protected void bindKey(PrintStream out, PrintStream err, List<String> args) throws Exception {
         final String[] usage = {
-                "bind-key - ",
-                "Usage: bind-key key command [arguments]", /* [-cnr] [-t mode-table] [-T key-table] */
-                "  -? --help                    Show help"
+            "bind-key - ",
+            "Usage: bind-key key command [arguments]", /* [-cnr] [-t mode-table] [-T key-table] */
+            "  -? --help                    Show help"
         };
         Options opt = Options.compile(usage).setOptionsFirst(true).parse(args);
         if (opt.isSet("help")) {
@@ -826,9 +869,9 @@ public class Tmux {
 
     protected void unbindKey(PrintStream out, PrintStream err, List<String> args) throws Exception {
         final String[] usage = {
-                "unbind-key - ",
-                "Usage: unbind-key key", /* [-an] [-t mode-table] [-T key-table] */
-                "  -? --help                    Show help"
+            "unbind-key - ",
+            "Usage: unbind-key key", /* [-an] [-t mode-table] [-T key-table] */
+            "  -? --help                    Show help"
         };
         Options opt = Options.compile(usage).setOptionsFirst(true).parse(args);
         if (opt.isSet("help")) {
@@ -846,9 +889,9 @@ public class Tmux {
 
     protected void listKeys(PrintStream out, PrintStream err, List<String> args) throws Exception {
         final String[] usage = {
-                "list-keys - ",
-                "Usage: list-keys ", /* [-t mode-table] [-T key-table] */
-                "  -? --help                    Show help",
+            "list-keys - ",
+            "Usage: list-keys ", /* [-t mode-table] [-T key-table] */
+            "  -? --help                    Show help",
         };
         Options opt = Options.compile(usage).parse(args);
         if (opt.isSet("help")) {
@@ -881,11 +924,11 @@ public class Tmux {
 
     protected void sendKeys(PrintStream out, PrintStream err, List<String> args) throws Exception {
         final String[] usage = {
-                "send-keys - ",
-                "Usage: send-keys [-lXRM] [-N repeat-count] [-t target-pane] key...",
-                "  -? --help                    Show help",
-                "  -l --literal                Send key literally",
-                "  -N --number=repeat-count     Specifies a repeat count"
+            "send-keys - ",
+            "Usage: send-keys [-lXRM] [-N repeat-count] [-t target-pane] key...",
+            "  -? --help                    Show help",
+            "  -l --literal                Send key literally",
+            "  -N --number=repeat-count     Specifies a repeat count"
         };
         Options opt = Options.compile(usage).parse(args);
         if (opt.isSet("help")) {
@@ -900,11 +943,7 @@ public class Tmux {
     }
 
     protected void clockMode(PrintStream out, PrintStream err, List<String> args) throws Exception {
-        final String[] usage = {
-                "clock-mode - ",
-                "Usage: clock-mode",
-                "  -? --help                    Show help"
-        };
+        final String[] usage = {"clock-mode - ", "Usage: clock-mode", "  -? --help                    Show help"};
         Options opt = Options.compile(usage).parse(args);
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
@@ -912,7 +951,8 @@ public class Tmux {
         active().clock = true;
 
         if (clockFuture == null) {
-            long initial = Instant.now().until(Instant.now().truncatedTo(ChronoUnit.MINUTES).plusSeconds(60), ChronoUnit.MILLIS);
+            long initial = Instant.now()
+                    .until(Instant.now().truncatedTo(ChronoUnit.MINUTES).plusSeconds(60), ChronoUnit.MILLIS);
             long delay = TimeUnit.MILLISECONDS.convert(1, TimeUnit.SECONDS);
             clockFuture = executor.scheduleWithFixedDelay(this::setDirty, initial, delay, TimeUnit.MILLISECONDS);
         }
@@ -920,34 +960,33 @@ public class Tmux {
     }
 
     protected void displayPanes(PrintStream out, PrintStream err, List<String> args) throws Exception {
-        final String[] usage = {
-                "display-panes - ",
-                "Usage: display-panes",
-                "  -? --help                    Show help"
-        };
+        final String[] usage = {"display-panes - ", "Usage: display-panes", "  -? --help                    Show help"};
         Options opt = Options.compile(usage).parse(args);
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
         identify = true;
         setDirty();
-        executor.schedule(() -> {
-            identify = false;
-            setDirty();
-        }, 1, TimeUnit.SECONDS);
+        executor.schedule(
+                () -> {
+                    identify = false;
+                    setDirty();
+                },
+                1,
+                TimeUnit.SECONDS);
     }
 
     protected void resizePane(PrintStream out, PrintStream err, List<String> args) throws Exception {
         final String[] usage = {
-                "resize-pane - ",
-                "Usage: resize-pane [-UDLR] [-x width] [-y height] [-t target-pane] [adjustment]",
-                "  -? --help                    Show help",
-                "  -U                           Resize pane upward",
-                "  -D                           Select pane downward",
-                "  -L                           Select pane to the left",
-                "  -R                           Select pane to the right",
-                "  -x --width=width             Set the width of the pane",
-                "  -y --height=height           Set the height of the pane"
+            "resize-pane - ",
+            "Usage: resize-pane [-UDLR] [-x width] [-y height] [-t target-pane] [adjustment]",
+            "  -? --help                    Show help",
+            "  -U                           Resize pane upward",
+            "  -D                           Select pane downward",
+            "  -L                           Select pane to the left",
+            "  -R                           Select pane to the right",
+            "  -x --width=width             Set the width of the pane",
+            "  -y --height=height           Set the height of the pane"
         };
         Options opt = Options.compile(usage).parse(args);
         if (opt.isSet("help")) {
@@ -967,13 +1006,13 @@ public class Tmux {
 
     protected void selectPane(PrintStream out, PrintStream err, List<String> args) throws Exception {
         final String[] usage = {
-                "select-pane - ",
-                "Usage: select-pane [-UDLR] [-t target-pane]",
-                "  -? --help                    Show help",
-                "  -U                           Select pane up",
-                "  -D                           Select pane down",
-                "  -L                           Select pane left",
-                "  -R                           Select pane right",
+            "select-pane - ",
+            "Usage: select-pane [-UDLR] [-t target-pane]",
+            "  -? --help                    Show help",
+            "  -U                           Select pane up",
+            "  -D                           Select pane down",
+            "  -L                           Select pane left",
+            "  -R                           Select pane right",
         };
         Options opt = Options.compile(usage).parse(args);
         if (opt.isSet("help")) {
@@ -986,9 +1025,7 @@ public class Tmux {
 
     protected void sendPrefix(PrintStream out, PrintStream err, List<String> args) throws Exception {
         final String[] usage = {
-                "send-prefix - ",
-                "Usage: send-prefix [-2] [-t target-pane]",
-                "  -? --help                    Show help",
+            "send-prefix - ", "Usage: send-prefix [-2] [-t target-pane]", "  -? --help                    Show help",
         };
         Options opt = Options.compile(usage).parse(args);
         if (opt.isSet("help")) {
@@ -999,16 +1036,16 @@ public class Tmux {
 
     protected void splitWindow(PrintStream out, PrintStream err, List<String> args) throws Exception {
         final String[] usage = {
-                "split-window - ",
-                "Usage: split-window [-bdfhvP] [-c start-directory] [-F format] [-p percentage|-l size] [-t target-pane] [command]",
-                "  -? --help                    Show help",
-                "  -h --horizontal              Horizontal split",
-                "  -v --vertical                Vertical split",
-                "  -l --size=size               Size",
-                "  -p --perc=percentage         Percentage",
-                "  -b --before                  Insert the new pane before the active one",
-                "  -f                           Split the full window instead of the active pane",
-                "  -d                           Do not make the new pane the active one"
+            "split-window - ",
+            "Usage: split-window [-bdfhvP] [-c start-directory] [-F format] [-p percentage|-l size] [-t target-pane] [command]",
+            "  -? --help                    Show help",
+            "  -h --horizontal              Horizontal split",
+            "  -v --vertical                Vertical split",
+            "  -l --size=size               Size",
+            "  -p --perc=percentage         Percentage",
+            "  -b --before                  Insert the new pane before the active one",
+            "  -f                           Split the full window instead of the active pane",
+            "  -d                           Do not make the new pane the active one"
         };
         Options opt = Options.compile(usage).parse(args);
         if (opt.isSet("help")) {
@@ -1038,7 +1075,12 @@ public class Tmux {
                 print(screen, terminal, str, CLOCK_COLOR);
             } else {
                 // Dump terminal
-                terminal.dump(screen, terminal.top(), terminal.left(), size.getRows(), size.getColumns(),
+                terminal.dump(
+                        screen,
+                        terminal.top(),
+                        terminal.left(),
+                        size.getRows(),
+                        size.getColumns(),
                         terminal == active() ? cursor : null);
             }
 
@@ -1051,7 +1093,10 @@ public class Tmux {
         }
         drawBorder(screen, size, active(), 0x010080000L << 32);
         // Draw status
-        Arrays.fill(screen, (size.getRows() - 1) * size.getColumns(), size.getRows() * size.getColumns(),
+        Arrays.fill(
+                screen,
+                (size.getRows() - 1) * size.getColumns(),
+                size.getRows() * size.getColumns(),
                 0x20000080L << 32 | 0x0020L);
 
         // Attribute mask: 0xYXFFFBBB00000000L
@@ -1081,12 +1126,12 @@ public class Tmux {
                 int a = (int) (d >> 32);
                 int bg = a & 0x000fff;
                 int fg = (a & 0xfff000) >> 12;
-                boolean ul =      ((a & 0x01000000) != 0);
-                boolean inv =     ((a & 0x02000000) != 0);
+                boolean ul = ((a & 0x01000000) != 0);
+                boolean inv = ((a & 0x02000000) != 0);
                 boolean conceal = ((a & 0x04000000) != 0);
-                boolean bold =    ((a & 0x08000000) != 0);
-                boolean hasFg =   ((a & 0x10000000) != 0);
-                boolean hasBg =   ((a & 0x20000000) != 0);
+                boolean bold = ((a & 0x08000000) != 0);
+                boolean hasFg = ((a & 0x10000000) != 0);
+                boolean hasBg = ((a & 0x20000000) != 0);
 
                 if ((hasBg && prevHasBg && bg != prevBg) || prevHasBg != hasBg) {
                     if (!hasBg) {
@@ -1143,28 +1188,44 @@ public class Tmux {
                 char ch = id.charAt(i);
                 int idx;
                 switch (ch) {
-                case '0':
-                case '1':
-                case '2':
-                case '3':
-                case '4':
-                case '5':
-                case '6':
-                case '7':
-                case '8':
-                case '9': idx = ch - '0'; break;
-                case ':': idx = 10; break;
-                case 'A': idx = 11; break;
-                case 'P': idx = 12; break;
-                case 'M': idx = 13; break;
-                default:  idx = -1; break;
+                    case '0':
+                    case '1':
+                    case '2':
+                    case '3':
+                    case '4':
+                    case '5':
+                    case '6':
+                    case '7':
+                    case '8':
+                    case '9':
+                        idx = ch - '0';
+                        break;
+                    case ':':
+                        idx = 10;
+                        break;
+                    case 'A':
+                        idx = 11;
+                        break;
+                    case 'P':
+                        idx = 12;
+                        break;
+                    case 'M':
+                        idx = 13;
+                        break;
+                    default:
+                        idx = -1;
+                        break;
                 }
                 if (idx >= 0) {
                     int[][] data = WINDOW_CLOCK_TABLE[idx];
                     for (int y = 0; y < data.length; y++) {
                         for (int x = 0; x < data[y].length; x++) {
                             if (data[y][x] != 0) {
-                                int off = (terminal.top + yoff + y) * size.getColumns() + terminal.left() + xoff + x + 6 * i;
+                                int off = (terminal.top + yoff + y) * size.getColumns()
+                                        + terminal.left()
+                                        + xoff
+                                        + x
+                                        + 6 * i;
                                 screen[off] = attr | ' ';
                             }
                         }
@@ -1203,7 +1264,7 @@ public class Tmux {
 
     private void drawBorderChar(long[] screen, Size size, int x, int y, long attr, int c) {
         if (x >= 0 && x < size.getColumns() && y >= 0 && y < size.getRows() - 1) {
-            int oldc = (int)(screen[y * size.getColumns() + x] & 0xFFFFFFFFL);
+            int oldc = (int) (screen[y * size.getColumns() + x] & 0xFFFFFFFFL);
             c = addBorder(c, oldc);
             screen[y * size.getColumns() + x] = attr | c;
         }
@@ -1239,61 +1300,101 @@ public class Tmux {
                 return addBorder('╵', addBorder('─', oldc));
             case '╴':
                 switch (oldc) {
-                    case '│': return '┤';
-                    case '─': return '─';
-                    case '┌': return '┬';
-                    case '┐': return '┐';
-                    case '└': return '┴';
-                    case '┘': return '┘';
-                    case '├': return '┼';
-                    case '┤': return '┤';
-                    case '┬': return '┬';
-                    case '┴': return '┴';
+                    case '│':
+                        return '┤';
+                    case '─':
+                        return '─';
+                    case '┌':
+                        return '┬';
+                    case '┐':
+                        return '┐';
+                    case '└':
+                        return '┴';
+                    case '┘':
+                        return '┘';
+                    case '├':
+                        return '┼';
+                    case '┤':
+                        return '┤';
+                    case '┬':
+                        return '┬';
+                    case '┴':
+                        return '┴';
                     default:
                         throw new IllegalArgumentException();
                 }
             case '╵':
                 switch (oldc) {
-                    case '│': return '│';
-                    case '─': return '┴';
-                    case '┌': return '├';
-                    case '┐': return '┤';
-                    case '└': return '└';
-                    case '┘': return '┘';
-                    case '├': return '├';
-                    case '┤': return '┤';
-                    case '┬': return '┼';
-                    case '┴': return '┴';
+                    case '│':
+                        return '│';
+                    case '─':
+                        return '┴';
+                    case '┌':
+                        return '├';
+                    case '┐':
+                        return '┤';
+                    case '└':
+                        return '└';
+                    case '┘':
+                        return '┘';
+                    case '├':
+                        return '├';
+                    case '┤':
+                        return '┤';
+                    case '┬':
+                        return '┼';
+                    case '┴':
+                        return '┴';
                     default:
                         throw new IllegalArgumentException();
                 }
             case '╶':
                 switch (oldc) {
-                    case '│': return '├';
-                    case '─': return '─';
-                    case '┌': return '┌';
-                    case '┐': return '┬';
-                    case '└': return '└';
-                    case '┘': return '┴';
-                    case '├': return '├';
-                    case '┤': return '┼';
-                    case '┬': return '┬';
-                    case '┴': return '┴';
+                    case '│':
+                        return '├';
+                    case '─':
+                        return '─';
+                    case '┌':
+                        return '┌';
+                    case '┐':
+                        return '┬';
+                    case '└':
+                        return '└';
+                    case '┘':
+                        return '┴';
+                    case '├':
+                        return '├';
+                    case '┤':
+                        return '┼';
+                    case '┬':
+                        return '┬';
+                    case '┴':
+                        return '┴';
                     default:
                         throw new IllegalArgumentException();
                 }
             case '╷':
                 switch (oldc) {
-                    case '│': return '│';
-                    case '─': return '┬';
-                    case '┌': return '┌';
-                    case '┐': return '┐';
-                    case '└': return '├';
-                    case '┘': return '┤';
-                    case '├': return '├';
-                    case '┤': return '┤';
-                    case '┬': return '┬';
-                    case '┴': return '┼';
+                    case '│':
+                        return '│';
+                    case '─':
+                        return '┬';
+                    case '┌':
+                        return '┌';
+                    case '┐':
+                        return '┐';
+                    case '└':
+                        return '├';
+                    case '┘':
+                        return '┤';
+                    case '├':
+                        return '├';
+                    case '┤':
+                        return '┤';
+                    case '┬':
+                        return '┬';
+                    case '┴':
+                        return '┼';
                     default:
                         throw new IllegalArgumentException();
                 }
@@ -1307,7 +1408,11 @@ public class Tmux {
         static final Pattern PATTERN = Pattern.compile("([0-9]+)x([0-9]+),([0-9]+),([0-9]+)([^0-9]\\S*)?");
         private static final int PANE_MINIMUM = 3;
 
-        enum Type { LeftRight, TopBottom, WindowPane }
+        enum Type {
+            LeftRight,
+            TopBottom,
+            WindowPane
+        }
 
         Type type;
         Layout parent;
@@ -1345,11 +1450,17 @@ public class Tmux {
         }
 
         private static char toHexChar(int i) {
-            return (i < 10) ? (char)(i + '0') : (char)(i - 10 + 'a');
+            return (i < 10) ? (char) (i + '0') : (char) (i - 10 + 'a');
         }
 
         private void doDump(StringBuilder sb) {
-            sb.append(sx).append('x').append(sy).append(',').append(xoff).append(',').append(yoff);
+            sb.append(sx)
+                    .append('x')
+                    .append(sy)
+                    .append(',')
+                    .append(xoff)
+                    .append(',')
+                    .append(yoff);
             switch (type) {
                 case WindowPane:
                     sb.append(',').append('0');
@@ -1409,7 +1520,7 @@ public class Tmux {
         int resizePaneGrow(Type type, int needed, boolean opposite) {
             int size = 0;
             /* Growing. Always add to the current cell. */
-            Layout lcadd  = this;
+            Layout lcadd = this;
             /* Look towards the tail for a suitable cell for reduction. */
             Layout lcremove = this.nextSibling();
             while (lcremove != null) {
@@ -1621,7 +1732,8 @@ public class Tmux {
                         c.resizeAdjust(type, -1);
                         change++;
                     }
-                };
+                }
+                ;
             }
         }
 
@@ -1645,13 +1757,9 @@ public class Tmux {
             }
         }
 
-        public void fixPanes() {
+        public void fixPanes() {}
 
-        }
-
-        public void fixPanes(int sx, int sy) {
-
-        }
+        public void fixPanes(int sx, int sy) {}
 
         public int countCells() {
             switch (type) {
@@ -1839,7 +1947,17 @@ public class Tmux {
         private final OutputStream masterInputOutput;
         private final LineDisciplineTerminal console;
 
-        public VirtualConsole(int id, String type, int left, int top, int columns, int rows, Runnable dirty, Consumer<VirtualConsole> closer, Layout layout) throws IOException {
+        public VirtualConsole(
+                int id,
+                String type,
+                int left,
+                int top,
+                int columns,
+                int rows,
+                Runnable dirty,
+                Consumer<VirtualConsole> closer,
+                Layout layout)
+                throws IOException {
             String name = String.format("tmux%02d", id);
             this.id = id;
             this.left = left;
@@ -1859,11 +1977,7 @@ public class Tmux {
                     console.processInputByte(b);
                 }
             };
-            this.console = new LineDisciplineTerminal(
-                    name,
-                    type,
-                    masterOutput,
-                    null) {
+            this.console = new LineDisciplineTerminal(name, type, masterOutput, null) {
                 @Override
                 protected void doClose() throws IOException {
                     super.doClose();
@@ -1929,7 +2043,8 @@ public class Tmux {
 
         private class MasterOutputStream extends OutputStream {
             private final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            private final CharsetDecoder decoder = Charset.defaultCharset().newDecoder()
+            private final CharsetDecoder decoder = Charset.defaultCharset()
+                    .newDecoder()
                     .onMalformedInput(CodingErrorAction.REPLACE)
                     .onUnmappableCharacter(CodingErrorAction.REPLACE);
 
@@ -1973,7 +2088,5 @@ public class Tmux {
                 flush();
             }
         }
-
     }
-
 }

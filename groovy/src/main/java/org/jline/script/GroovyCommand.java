@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2021, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -13,14 +13,14 @@ import java.nio.file.*;
 import java.util.*;
 
 import org.jline.builtins.Completers;
-import org.jline.console.CommandInput;
-import org.jline.console.CommandMethods;
-import org.jline.console.impl.AbstractCommandRegistry;
 import org.jline.builtins.Completers.OptDesc;
 import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.console.CmdDesc;
+import org.jline.console.CommandInput;
+import org.jline.console.CommandMethods;
 import org.jline.console.CommandRegistry;
 import org.jline.console.Printer;
+import org.jline.console.impl.AbstractCommandRegistry;
 import org.jline.groovy.ObjectInspector;
 import org.jline.reader.Completer;
 import org.jline.reader.impl.completer.ArgumentCompleter;
@@ -32,12 +32,18 @@ import groovy.console.ui.Console;
 import groovy.console.ui.ObjectBrowser;
 
 public class GroovyCommand extends AbstractCommandRegistry implements CommandRegistry {
-    public enum Command {INSPECT, CONSOLE, GRAB, CLASSLOADER}
+    public enum Command {
+        INSPECT,
+        CONSOLE,
+        GRAB,
+        CLASSLOADER
+    }
+
     private static final String DEFAULT_NANORC_VALUE = "classpath:/org/jline/groovy/gron.nanorc";
     private final GroovyEngine engine;
     private final Printer printer;
-    private final Map<Command,CmdDesc> commandDescs = new HashMap<>();
-    private final Map<Command,List<String>> commandInfos = new HashMap<>();
+    private final Map<Command, CmdDesc> commandDescs = new HashMap<>();
+    private final Map<Command, List<String>> commandInfos = new HashMap<>();
     private boolean consoleUi;
     private boolean ivy;
 
@@ -56,14 +62,14 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         }
         try {
             Class.forName("org.apache.ivy.util.Message");
-            System.setProperty("groovy.grape.report.downloads","false");
+            System.setProperty("groovy.grape.report.downloads", "false");
             ivy = true;
         } catch (Exception e) {
             // ignore
         }
         Set<Command> cmds;
-        Map<Command,String> commandName = new HashMap<>();
-        Map<Command,CommandMethods> commandExecute = new HashMap<>();
+        Map<Command, String> commandName = new HashMap<>();
+        Map<Command, CommandMethods> commandExecute = new HashMap<>();
         if (commands == null) {
             cmds = new HashSet<>(EnumSet.allOf(Command.class));
         } else {
@@ -75,7 +81,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         if (!ivy) {
             cmds.remove(Command.GRAB);
         }
-        for (Command c: cmds) {
+        for (Command c : cmds) {
             commandName.put(c, c.name().toLowerCase());
         }
         commandExecute.put(Command.INSPECT, new CommandMethods(this::inspect, this::inspectCompleter));
@@ -91,14 +97,14 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
 
     @Override
     public List<String> commandInfo(String command) {
-        Command cmd = (Command)registeredCommand(command);
+        Command cmd = (Command) registeredCommand(command);
         return commandInfos.get(cmd);
     }
 
     @Override
     public CmdDesc commandDescription(List<String> args) {
         String command = args != null && !args.isEmpty() ? args.get(0) : "";
-        Command cmd = (Command)registeredCommand(command);
+        Command cmd = (Command) registeredCommand(command);
         return commandDescs.get(cmd);
     }
 
@@ -126,10 +132,10 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
                 int artifactId = 0;
                 if (input.args().length == 2) {
                     if (input.args()[0].equals("-v") || input.args()[0].equals("--verbose")) {
-                        System.setProperty("groovy.grape.report.downloads","true");
+                        System.setProperty("groovy.grape.report.downloads", "true");
                         artifactId = 1;
                     } else if (input.args()[1].equals("-v") || input.args()[1].equals("--verbose")) {
-                        System.setProperty("groovy.grape.report.downloads","true");
+                        System.setProperty("groovy.grape.report.downloads", "true");
                     } else {
                         throw new IllegalArgumentException("Unknown command parameters!");
                     }
@@ -155,7 +161,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         } catch (Exception e) {
             saveException(e);
         } finally {
-            System.setProperty("groovy.grape.report.downloads","false");
+            System.setProperty("groovy.grape.report.downloads", "false");
         }
         return null;
     }
@@ -201,7 +207,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
             Object obj = input.xargs()[id];
             ObjectInspector inspector = new ObjectInspector(obj);
             Object out = null;
-            Map<String,Object> options = new HashMap<>();
+            Map<String, Object> options = new HashMap<>();
             if (option.equals("-m") || option.equals("--methods")) {
                 out = inspector.methods();
                 options.put(Printer.COLUMNS, ObjectInspector.METHOD_COLUMNS);
@@ -253,7 +259,8 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
                 case "--view":
                     Map<String, Object> options = new HashMap<>();
                     options.put(Printer.SKIP_DEFAULT_OPTIONS, true);
-                    options.put(Printer.VALUE_STYLE, engine.groovyOption(GroovyEngine.NANORC_VALUE, DEFAULT_NANORC_VALUE));
+                    options.put(
+                            Printer.VALUE_STYLE, engine.groovyOption(GroovyEngine.NANORC_VALUE, DEFAULT_NANORC_VALUE));
                     options.put(Printer.MAX_DEPTH, 1);
                     options.put(Printer.INDENTION, 4);
                     options.put(Printer.COLUMNS, Arrays.asList("loadedClasses", "definedPackages", "classPath"));
@@ -277,10 +284,13 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
                         if (arg.endsWith(separator)) {
                             separator = "";
                         }
-                        PathMatcher matcher = FileSystems.getDefault().getPathMatcher("regex:"
-                                + arg.replace("\\", "\\\\").replace(".", "\\.")
-                                + separator.replace("\\", "\\\\") + ".*\\.jar");
-                        Files.walk(Paths.get(arg)).filter(matcher::matches).map(Path::toString)
+                        PathMatcher matcher = FileSystems.getDefault()
+                                .getPathMatcher("regex:"
+                                        + arg.replace("\\", "\\\\").replace(".", "\\.")
+                                        + separator.replace("\\", "\\\\") + ".*\\.jar");
+                        Files.walk(Paths.get(arg))
+                                .filter(matcher::matches)
+                                .map(Path::toString)
                                 .forEach(engine.classLoader::addClasspath);
                     } else {
                         engine.classLoader.addClasspath(arg);
@@ -298,10 +308,10 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
     }
 
     private CmdDesc grabCmdDesc() {
-        Map<String,List<AttributedString>> optDescs = new HashMap<>();
-        optDescs.put("-? --help", doDescription ("Displays command help"));
-        optDescs.put("-l --list", doDescription ("List the modules in the cache"));
-        optDescs.put("-v --verbose", doDescription ("Report downloads"));
+        Map<String, List<AttributedString>> optDescs = new HashMap<>();
+        optDescs.put("-? --help", doDescription("Displays command help"));
+        optDescs.put("-l --list", doDescription("List the modules in the cache"));
+        optDescs.put("-v --verbose", doDescription("Report downloads"));
         CmdDesc out = new CmdDesc(new ArrayList<>(), optDescs);
         List<AttributedString> mainDesc = new ArrayList<>();
         List<String> info = new ArrayList<>();
@@ -315,8 +325,8 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
     }
 
     private CmdDesc consoleCmdDesc() {
-        Map<String,List<AttributedString>> optDescs = new HashMap<>();
-        optDescs.put("-? --help", doDescription ("Displays command help"));
+        Map<String, List<AttributedString>> optDescs = new HashMap<>();
+        optDescs.put("-? --help", doDescription("Displays command help"));
         CmdDesc out = new CmdDesc(new ArrayList<>(), optDescs);
         List<AttributedString> mainDesc = new ArrayList<>();
         List<String> info = new ArrayList<>();
@@ -329,14 +339,14 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
     }
 
     private CmdDesc inspectCmdDesc() {
-        Map<String,List<AttributedString>> optDescs = new HashMap<>();
-        optDescs.put("-? --help", doDescription ("Displays command help"));
+        Map<String, List<AttributedString>> optDescs = new HashMap<>();
+        optDescs.put("-? --help", doDescription("Displays command help"));
         if (consoleUi) {
-            optDescs.put("-g --gui", doDescription ("Launch object browser"));
+            optDescs.put("-g --gui", doDescription("Launch object browser"));
         }
-        optDescs.put("-i --info", doDescription ("Object class info"));
-        optDescs.put("-m --methods", doDescription ("List object methods"));
-        optDescs.put("-n --metaMethods", doDescription ("List object metaMethods"));
+        optDescs.put("-i --info", doDescription("Object class info"));
+        optDescs.put("-m --methods", doDescription("List object methods"));
+        optDescs.put("-n --metaMethods", doDescription("List object metaMethods"));
         CmdDesc out = new CmdDesc(new ArrayList<>(), optDescs);
         List<AttributedString> mainDesc = new ArrayList<>();
         List<String> info = new ArrayList<>();
@@ -349,11 +359,11 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
     }
 
     private CmdDesc classLoaderCmdDesc() {
-        Map<String,List<AttributedString>> optDescs = new HashMap<>();
-        optDescs.put("-? --help", doDescription ("Displays command help"));
-        optDescs.put("-v --view", doDescription ("View class loader info"));
-        optDescs.put("-d --delete [REGEX]", doDescription ("Delete loaded classes"));
-        optDescs.put("-a --add PATH", doDescription ("Add classpath PATH - a jar file or a directory"));
+        Map<String, List<AttributedString>> optDescs = new HashMap<>();
+        optDescs.put("-? --help", doDescription("Displays command help"));
+        optDescs.put("-v --view", doDescription("View class loader info"));
+        optDescs.put("-d --delete [REGEX]", doDescription("Delete loaded classes"));
+        optDescs.put("-a --add PATH", doDescription("Add classpath PATH - a jar file or a directory"));
         CmdDesc out = new CmdDesc(new ArrayList<>(), optDescs);
         List<AttributedString> mainDesc = new ArrayList<>();
         List<String> info = new ArrayList<>();
@@ -393,7 +403,8 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
     private List<OptDesc> compileOptDescs(String command) {
         List<OptDesc> out = new ArrayList<>();
         Command cmd = Command.valueOf(command.toUpperCase());
-        for (Map.Entry<String,List<AttributedString>> entry : commandDescs.get(cmd).getOptsDesc().entrySet()) {
+        for (Map.Entry<String, List<AttributedString>> entry :
+                commandDescs.get(cmd).getOptsDesc().entrySet()) {
             String[] option = entry.getKey().split("\\s+");
             String desc = entry.getValue().get(0).toString();
             if (option.length == 2) {
@@ -415,29 +426,28 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         options.add(new OptDesc("-a", "--add", new Completers.FilesCompleter(new File("."), "*.jar")));
         options.add(new OptDesc("-d", "--delete", NullCompleter.INSTANCE));
         options.add(new OptDesc("-v", "--view", NullCompleter.INSTANCE));
-        ArgumentCompleter ac = new ArgumentCompleter(NullCompleter.INSTANCE
-                                    , new OptionCompleter(argsCompleters, options, 1)
-                                    );
+        ArgumentCompleter ac =
+                new ArgumentCompleter(NullCompleter.INSTANCE, new OptionCompleter(argsCompleters, options, 1));
         out.add(ac);
         return out;
     }
 
     private List<Completer> inspectCompleter(String command) {
         List<Completer> out = new ArrayList<>();
-        ArgumentCompleter ac = new ArgumentCompleter(NullCompleter.INSTANCE
-                                   , new OptionCompleter(Arrays.asList(new StringsCompleter(this::variables), NullCompleter.INSTANCE)
-                                                       , this::compileOptDescs, 1)
-                                   );
+        ArgumentCompleter ac = new ArgumentCompleter(
+                NullCompleter.INSTANCE,
+                new OptionCompleter(
+                        Arrays.asList(new StringsCompleter(this::variables), NullCompleter.INSTANCE),
+                        this::compileOptDescs,
+                        1));
         out.add(ac);
         return out;
     }
 
     private List<Completer> defaultCompleter(String command) {
         List<Completer> out = new ArrayList<>();
-        ArgumentCompleter ac = new ArgumentCompleter(NullCompleter.INSTANCE
-                                    , new OptionCompleter(NullCompleter.INSTANCE
-                                                        , this::compileOptDescs, 1)
-                                    );
+        ArgumentCompleter ac = new ArgumentCompleter(
+                NullCompleter.INSTANCE, new OptionCompleter(NullCompleter.INSTANCE, this::compileOptDescs, 1));
         out.add(ac);
         return out;
     }

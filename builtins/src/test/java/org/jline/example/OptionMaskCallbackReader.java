@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2017, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -18,21 +18,18 @@ import org.jline.reader.MaskingCallback;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
-public  class OptionMaskCallbackReader
-{
+public class OptionMaskCallbackReader {
     /**
      * Mask a certain option value in the command line. So for example for the option '--password', '--password mypassword'
      * will be displayed as '--password **********'.
      */
     public static void usage() {
-        System.out.println("Usage: java "
-            + OptionMaskCallbackReader.class.getName() + " [option-name-to-mask]");
+        System.out.println("Usage: java " + OptionMaskCallbackReader.class.getName() + " [option-name-to-mask]");
     }
 
     public static void main(String[] args) throws IOException {
         Terminal terminal = TerminalBuilder.terminal();
-        LineReader reader = LineReaderBuilder.builder()
-            .terminal(terminal).build();
+        LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
 
         String optionToMask = args[0];
 
@@ -42,8 +39,7 @@ public  class OptionMaskCallbackReader
         do {
             line = reader.readLine("prompt> ", null, maskingCallback, null);
             System.out.println("Got line: " + line);
-        }
-        while (line != null && line.length() > 0);
+        } while (line != null && line.length() > 0);
     }
 
     private static class OptionValueMask implements MaskingCallback {
@@ -52,7 +48,7 @@ public  class OptionMaskCallbackReader
         private static final Character mask = '*';
 
         public OptionValueMask(String option) {
-            String patternString=  ".*?" + Pattern.quote(option) + " ??([^ ]+)";    
+            String patternString = ".*?" + Pattern.quote(option) + " ??([^ ]+)";
             this.pattern = Pattern.compile(patternString);
         }
 
@@ -62,21 +58,20 @@ public  class OptionMaskCallbackReader
         }
 
         @Override
-        public String history(String line)
-        {
+        public String history(String line) {
             final String filter = filter(line);
             System.out.println();
-            System.out.print("Adding to history: " + filter );
+            System.out.print("Adding to history: " + filter);
             return filter;
         }
 
         public String filter(String line) {
             Matcher m = pattern.matcher(line);
 
-            if( m.find() ) {
+            if (m.find()) {
                 StringBuilder maskedLine = new StringBuilder(line);
-                for(int i = m.start(1); i < m.end(1); i++){
-                    maskedLine.replace(i,i+1, String.valueOf(mask));
+                for (int i = m.start(1); i < m.end(1); i++) {
+                    maskedLine.replace(i, i + 1, String.valueOf(mask));
                 }
                 return maskedLine.toString();
             } else {
@@ -84,5 +79,4 @@ public  class OptionMaskCallbackReader
             }
         }
     }
-
 }

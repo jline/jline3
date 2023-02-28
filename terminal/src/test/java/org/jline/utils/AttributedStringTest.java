@@ -1,18 +1,23 @@
+/*
+ * Copyright (c) 2023, the original author(s).
+ *
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
+ *
+ * https://opensource.org/licenses/BSD-3-Clause
+ */
 package org.jline.utils;
-
-import org.jline.terminal.Terminal;
-import org.jline.terminal.impl.DumbTerminal;
-import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
+
+import org.jline.terminal.impl.DumbTerminal;
+import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
 public class AttributedStringTest {
-
 
     @Test
     public void test() {
@@ -94,8 +99,7 @@ public class AttributedStringTest {
     @Test
     public void testBoldAndFaint() {
         AttributedStringBuilder sb = new AttributedStringBuilder();
-        sb.styled(AttributedStyle::bold,
-                s -> s.append("bold ").styled(AttributedStyle::faint, "faint"));
+        sb.styled(AttributedStyle::bold, s -> s.append("bold ").styled(AttributedStyle::faint, "faint"));
         assertEquals("\u001b[1mbold \u001b[2mfaint\u001b[0m", sb.toAnsi());
     }
 
@@ -104,16 +108,20 @@ public class AttributedStringTest {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         sb.style(sb.style().background(254));
         sb.append("Hello");
-        assertEquals("\033[48;5;254mHello\033[0m", sb.toAnsi(
-                new DumbTerminal("dumb", "xterm-256color",
-                        new ByteArrayInputStream(new byte[0]), new ByteArrayOutputStream(),
+        assertEquals(
+                "\033[48;5;254mHello\033[0m",
+                sb.toAnsi(new DumbTerminal(
+                        "dumb",
+                        "xterm-256color",
+                        new ByteArrayInputStream(new byte[0]),
+                        new ByteArrayOutputStream(),
                         null)));
     }
 
     @Test
     public void testCharWidth() {
         AttributedStringBuilder sb = new AttributedStringBuilder();
-        sb.append("\u2329\u2329\u2329\u2329");  // 〈〈〈
+        sb.append("\u2329\u2329\u2329\u2329"); // 〈〈〈
         assertEquals(4, sb.length());
         assertEquals(8, sb.columnLength());
 
@@ -144,15 +152,12 @@ public class AttributedStringTest {
         AttributedString messageAgain = message.columnSubSequence(0, messageLength);
         assertEquals("👍", messageAgain.toString());
 
-        message = new AttributedString(
-                "\uD83D\uDC46" +
-                "\uD83D\uDC46\uD83C\uDFFB" +
-                "\uD83D\uDC46\uD83C\uDFFC" +
-                "\uD83D\uDC46\uD83C\uDFFD" +
-                "\uD83D\uDC46\uD83C\uDFFE" +
-                "\uD83D\uDC46\uD83C\uDFFF");
+        message = new AttributedString("\uD83D\uDC46" + "\uD83D\uDC46\uD83C\uDFFB"
+                + "\uD83D\uDC46\uD83C\uDFFC"
+                + "\uD83D\uDC46\uD83C\uDFFD"
+                + "\uD83D\uDC46\uD83C\uDFFE"
+                + "\uD83D\uDC46\uD83C\uDFFF");
         messageLength = message.columnLength();
         assertEquals(12, messageLength);
     }
-
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -7,6 +7,10 @@
  * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.builtins;
+
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import org.jline.reader.History;
 import org.jline.reader.LineReader;
@@ -17,10 +21,6 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.junit.Test;
 
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-
 import static org.junit.Assert.assertEquals;
 
 public class CommandsTest {
@@ -28,12 +28,10 @@ public class CommandsTest {
     public void testHistoryForFileWithMoreHistoryRecordsThanAtHistoryFileSize() {
         try {
             final ByteArrayOutputStream os = new ByteArrayOutputStream();
-            final File tmpHistoryFile = Files.createTempFile("tmpHistory", "temp").toFile();
+            final File tmpHistoryFile =
+                    Files.createTempFile("tmpHistory", "temp").toFile();
             tmpHistoryFile.deleteOnExit();
-            try (BufferedWriter bw =
-                         new BufferedWriter(
-                                 new OutputStreamWriter(
-                                         new FileOutputStream(tmpHistoryFile)))) {
+            try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(tmpHistoryFile)))) {
                 bw.write("1536743099591:SELECT \\n CURRENT_TIMESTAMP \\n as \\n c1;\n"
                         + "1536743104551:SELECT \\n 'asd' as \"sdf\", 4 \\n \\n as \\n c2;\\n\n"
                         + "1536743104551:SELECT \\n 'asd' \\n as \\n c2;\\n\n"
@@ -45,7 +43,8 @@ public class CommandsTest {
                         + "1536743115431:!/ 8\n");
                 bw.flush();
             }
-            Terminal terminal = TerminalBuilder.builder().streams(System.in, System.out).build();
+            Terminal terminal =
+                    TerminalBuilder.builder().streams(System.in, System.out).build();
             terminal.setSize(new Size(50, 30));
             final History historyFromFile = new DefaultHistory();
             final LineReaderBuilder lineReaderBuilder = LineReaderBuilder.builder()
@@ -59,10 +58,9 @@ public class CommandsTest {
             lineReader.getHistory().save();
             PrintStream out = new PrintStream(os, false);
             Commands.history(lineReader, out, out, Paths.get(""), new String[] {"-d"});
-            assertEquals(maxLines + 1,
-                    os.toString("UTF8").split("\\s+\\d{2}:\\d{2}:\\d{2}\\s+").length);
+            assertEquals(maxLines + 1, os.toString("UTF8").split("\\s+\\d{2}:\\d{2}:\\d{2}\\s+").length);
         } catch (Exception e) {
             throw new RuntimeException("Test failed", e);
         }
     }
-} 
+}

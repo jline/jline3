@@ -1,11 +1,12 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
+package org.jline.builtins.telnet;
 
 /*
  * Java TelnetD library (embeddable telnet daemon)
@@ -38,8 +39,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ***/
 
-package org.jline.builtins.telnet;
-
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.HashMap;
@@ -56,23 +55,23 @@ import java.util.Map;
  */
 public class ConnectionData {
 
-    //Associations
-    private ConnectionManager connectionManager;    //the connection's ConnectionManager
-    private Socket socket;                            //the connection's socket
-    private InetAddress address;                    //the connection's IP Address Object
-    private Map<String, String> environment;        //the environment
+    // Associations
+    private ConnectionManager connectionManager; // the connection's ConnectionManager
+    private Socket socket; // the connection's socket
+    private InetAddress address; // the connection's IP Address Object
+    private Map<String, String> environment; // the environment
 
-    //Members
-    private String hostName;                        //cache for the hostname
-    private String hostAddress;                        //cache for the host ip
-    private int port;                                //port of the connection
-    private Locale locale;                            //locale of the connection
-    private long lastActivity;                        //timestamp for the last activity
-    private boolean warned;                            //warned flag
-    private String negotiatedTerminalType;            //negotiated TerminalType as String
-    private int[] terminalGeometry;                    //negotiated terminal geometry
-    private boolean terminalGeometryChanged = true;    //flag for changes in the terminal geometry
-    private String loginShell;                      //the login shell
+    // Members
+    private String hostName; // cache for the hostname
+    private String hostAddress; // cache for the host ip
+    private int port; // port of the connection
+    private Locale locale; // locale of the connection
+    private long lastActivity; // timestamp for the last activity
+    private boolean warned; // warned flag
+    private String negotiatedTerminalType; // negotiated TerminalType as String
+    private int[] terminalGeometry; // negotiated terminal geometry
+    private boolean terminalGeometryChanged = true; // flag for changes in the terminal geometry
+    private String loginShell; // the login shell
     private boolean lineMode = false;
 
     /**
@@ -90,16 +89,15 @@ public class ConnectionData {
         setHostAddress();
         setLocale();
         port = sock.getPort();
-        //this will set a default geometry and terminal type for the terminal
+        // this will set a default geometry and terminal type for the terminal
         terminalGeometry = new int[2];
-        terminalGeometry[0] = 80;    //width
-        terminalGeometry[1] = 25;    //height
+        terminalGeometry[0] = 80; // width
+        terminalGeometry[1] = 25; // height
         negotiatedTerminalType = "default";
         environment = new HashMap<String, String>(20);
-        //this will stamp the first activity for validity :)
+        // this will stamp the first activity for validity :)
         activity();
-    }//ConnectionData
-
+    } // ConnectionData
 
     /**
      * Returns a reference to the ConnectionManager the
@@ -110,7 +108,7 @@ public class ConnectionData {
      */
     public ConnectionManager getManager() {
         return connectionManager;
-    }//getManager
+    } // getManager
 
     /**
      * Returns a reference to the socket the Connection
@@ -121,7 +119,7 @@ public class ConnectionData {
      */
     public Socket getSocket() {
         return socket;
-    }//getSocket
+    } // getSocket
 
     /**
      * Returns the remote port to which the socket is connected.
@@ -130,7 +128,7 @@ public class ConnectionData {
      */
     public int getPort() {
         return port;
-    }//getPort
+    } // getPort
 
     /**
      * Returns the fully qualified host name for the connection's IP address.<br>
@@ -141,7 +139,7 @@ public class ConnectionData {
      */
     public String getHostName() {
         return hostName;
-    }//getHostName
+    } // getHostName
 
     /**
      * Returns the IP address of the connection.
@@ -151,7 +149,7 @@ public class ConnectionData {
      */
     public String getHostAddress() {
         return hostAddress;
-    }//getHostAddress
+    } // getHostAddress
 
     /**
      * Returns the InetAddress object associated with the connection.
@@ -160,7 +158,7 @@ public class ConnectionData {
      */
     public InetAddress getInetAddress() {
         return address;
-    }//getInetAddress
+    } // getInetAddress
 
     /**
      * Returns the Locale object associated with the connection
@@ -181,8 +179,7 @@ public class ConnectionData {
      */
     public Locale getLocale() {
         return locale;
-    }//getLocale
-
+    } // getLocale
 
     /**
      * Returns a timestamp of the last activity that happened on
@@ -194,8 +191,7 @@ public class ConnectionData {
      */
     public long getLastActivity() {
         return lastActivity;
-    }//getLastActivity
-
+    } // getLastActivity
 
     /**
      * Sets a new timestamp to the actual time in millis
@@ -210,7 +206,7 @@ public class ConnectionData {
     public void activity() {
         warned = false;
         lastActivity = System.currentTimeMillis();
-    }//setLastActivity
+    } // setLastActivity
 
     /**
      * Returns the state of the idle warning flag, which
@@ -221,7 +217,7 @@ public class ConnectionData {
      */
     public boolean isWarned() {
         return warned;
-    }//isWarned
+    } // isWarned
 
     /**
      * Sets the state of the idle warning flag.<br>
@@ -239,7 +235,7 @@ public class ConnectionData {
         if (!bool) {
             lastActivity = System.currentTimeMillis();
         }
-    }//setWarned
+    } // setWarned
 
     /**
      * Sets the terminal geometry data.<br>
@@ -254,7 +250,7 @@ public class ConnectionData {
         terminalGeometry[0] = width;
         terminalGeometry[1] = height;
         terminalGeometryChanged = true;
-    }//setTerminalGeometry
+    } // setTerminalGeometry
 
     /**
      * Returns the terminal geometry in an array of two integers.
@@ -267,10 +263,10 @@ public class ConnectionData {
      * @return integer array containing width and height.
      */
     public int[] getTerminalGeometry() {
-        //we toggle the flag because the change should now be known
+        // we toggle the flag because the change should now be known
         if (terminalGeometryChanged) terminalGeometryChanged = false;
         return terminalGeometry;
-    }//getTerminalGeometry
+    } // getTerminalGeometry
 
     /**
      * Returns the width of the terminal in columns for convenience.
@@ -279,7 +275,7 @@ public class ConnectionData {
      */
     public int getTerminalColumns() {
         return terminalGeometry[0];
-    }//getTerminalColumns
+    } // getTerminalColumns
 
     /**
      * Returns the height of the terminal in rows for convenience.
@@ -288,7 +284,7 @@ public class ConnectionData {
      */
     public int getTerminalRows() {
         return terminalGeometry[1];
-    }//getTerminalRows
+    } // getTerminalRows
 
     /**
      * Returns the state of the terminal geometry changed flag,
@@ -299,7 +295,7 @@ public class ConnectionData {
      */
     public boolean isTerminalGeometryChanged() {
         return terminalGeometryChanged;
-    }//isTerminalGeometryChanged
+    } // isTerminalGeometryChanged
 
     /**
      * Returns the terminal type that has been negotiated
@@ -310,7 +306,7 @@ public class ConnectionData {
      */
     public String getNegotiatedTerminalType() {
         return negotiatedTerminalType;
-    }//getNegotiatedTerminalType
+    } // getNegotiatedTerminalType
 
     /**
      * Sets the terminal type that has been negotiated
@@ -324,7 +320,7 @@ public class ConnectionData {
      */
     public void setNegotiatedTerminalType(String termtype) {
         negotiatedTerminalType = termtype;
-    }//setNegotiatedTerminalType
+    } // setNegotiatedTerminalType
 
     /**
      * Returns the hashmap for storing and
@@ -335,7 +331,7 @@ public class ConnectionData {
      */
     public Map<String, String> getEnvironment() {
         return environment;
-    }//getEnvironment
+    } // getEnvironment
 
     /**
      * Returns the login shell name.
@@ -344,7 +340,7 @@ public class ConnectionData {
      */
     public String getLoginShell() {
         return loginShell;
-    }//getLoginShell
+    } // getLoginShell
 
     /**
      * Sets the login shell name.
@@ -353,7 +349,7 @@ public class ConnectionData {
      */
     public void setLoginShell(String s) {
         loginShell = s;
-    }//setLoginShell
+    } // setLoginShell
 
     /**
      * Tests if in line mode.
@@ -362,7 +358,7 @@ public class ConnectionData {
      */
     public boolean isLineMode() {
         return lineMode;
-    }//isLineMode
+    } // isLineMode
 
     /**
      * Sets the line mode flag for the connection.
@@ -374,21 +370,21 @@ public class ConnectionData {
      */
     public void setLineMode(boolean b) {
         lineMode = b;
-    }//setLineMode
+    } // setLineMode
 
     /**
      * Mutator for HostName cache
      */
     private void setHostName() {
         hostName = address.getHostName();
-    }//setHostName
+    } // setHostName
 
     /**
      * Mutator for HostAddress cache
      */
     private void setHostAddress() {
         hostAddress = address.getHostAddress();
-    }//setHostAddress
+    } // setHostAddress
 
     /**
      * Mutator for Locale
@@ -428,13 +424,12 @@ public class ConnectionData {
             } else if (country.equals("mil")) {
                 locale = Locale.US;
             } else {
-                //default to english
+                // default to english
                 locale = Locale.ENGLISH;
             }
         } catch (Exception ex) {
-            //default to english
+            // default to english
             locale = Locale.ENGLISH;
         }
-    }//setLocale
-
-}//class ConnectionData
+    } // setLocale
+} // class ConnectionData

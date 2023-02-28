@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2020, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,12 +8,12 @@
  */
 package org.jline.console;
 
-import org.jline.reader.impl.completer.SystemCompleter;
-import org.jline.terminal.Terminal;
-
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.*;
+
+import org.jline.reader.impl.completer.SystemCompleter;
+import org.jline.terminal.Terminal;
 
 /**
  * Store command information, compile tab completers and execute registered commands.
@@ -27,9 +27,9 @@ public interface CommandRegistry {
      * @param commandRegistries command registeries which completers is to be aggregated
      * @return uncompiled SystemCompleter
      */
-    static SystemCompleter aggregateCompleters(CommandRegistry ... commandRegistries) {
+    static SystemCompleter aggregateCompleters(CommandRegistry... commandRegistries) {
         SystemCompleter out = new SystemCompleter();
-        for (CommandRegistry r: commandRegistries) {
+        for (CommandRegistry r : commandRegistries) {
             out.add(r.compileCompleters());
         }
         return out;
@@ -40,7 +40,7 @@ public interface CommandRegistry {
      * @param commandRegistries command registeries which completers is to be aggregated and compile
      * @return compiled SystemCompleter
      */
-    static SystemCompleter compileCompleters(CommandRegistry ... commandRegistries) {
+    static SystemCompleter compileCompleters(CommandRegistry... commandRegistries) {
         SystemCompleter out = aggregateCompleters(commandRegistries);
         out.compile();
         return out;
@@ -104,7 +104,8 @@ public interface CommandRegistry {
      * @throws Exception in case of error
      */
     default Object invoke(CommandSession session, String command, Object... args) throws Exception {
-        throw new IllegalStateException("CommandRegistry method invoke(session, command, ... args) is not implemented!");
+        throw new IllegalStateException(
+                "CommandRegistry method invoke(session, command, ... args) is not implemented!");
     }
 
     class CommandSession {
@@ -146,7 +147,5 @@ public interface CommandRegistry {
         public PrintStream err() {
             return err;
         }
-
     }
-
 }

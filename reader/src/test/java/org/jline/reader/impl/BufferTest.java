@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2016, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -20,12 +20,12 @@ public class BufferTest {
     public void testUpDown() {
         BufferImpl buffer = new BufferImpl();
         buffer.write("a\ncd\nefg\nhijk\nlmn\nop\nq");
-        buffer.cursor(13);                 // after k
-        assertTrue(buffer.up());           // after g
+        buffer.cursor(13); // after k
+        assertTrue(buffer.up()); // after g
         assertEquals(8, buffer.cursor());
-        buffer.move(-1);                   // on g
+        buffer.move(-1); // on g
         assertEquals(7, buffer.cursor());
-        assertTrue(buffer.up());           // after d
+        assertTrue(buffer.up()); // after d
         assertEquals(4, buffer.cursor());
         assertTrue(buffer.up());
         assertEquals(1, buffer.cursor());

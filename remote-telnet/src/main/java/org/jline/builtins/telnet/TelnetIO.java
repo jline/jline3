@@ -1,11 +1,12 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
+package org.jline.builtins.telnet;
 
 /*
  * Java TelnetD library (embeddable telnet daemon)
@@ -37,8 +38,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  ***/
-
-package org.jline.builtins.telnet;
 
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -190,7 +189,6 @@ public class TelnetIO {
 
     /**** End implementation of OutputStream ***********************************************/
 
-
     /**** Implementation of InputStream ****************************************************/
     /**
      * Telnet Option: Logout<br>
@@ -203,32 +201,32 @@ public class TelnetIO {
      * The infamous line mode option.
      */
     protected static final int LINEMODE = 34;
+
     protected static final int LM_MODE = 1;
     protected static final int LM_EDIT = 1;
     protected static final int LM_TRAPSIG = 2;
 
     /**** Implementation of InputStream ****************************************************/
 
-
     /****
      * Following methods implement init/request/answer procedures for telnet
      * protocol level communication.
      */
     protected static final int LM_MODEACK = 4;
+
     protected static final int LM_FORWARDMASK = 2;
     protected static final int LM_SLC = 3;
     protected static final int LM_SLC_NOSUPPORT = 0;
     protected static final int LM_SLC_DEFAULT = 3;
 
-
     /**** End telnet protocol level communication methods *******************************/
     protected static final int LM_SLC_VALUE = 2;
 
-
     /** Constants declaration ***********************************************/
 
-//Telnet Protocoll Constants
+    // Telnet Protocoll Constants
     protected static final int LM_SLC_CANTCHANGE = 1;
+
     protected static final int LM_SLC_LEVELBITS = 3;
     protected static final int LM_SLC_ACK = 128;
     protected static final int LM_SLC_FLUSHIN = 64;
@@ -246,12 +244,14 @@ public class TelnetIO {
      * on a standard telnet implementation.
      */
     protected static final int LM_SLC_ABORT = 7;
+
     protected static final int LM_SLC_EOF = 8;
     protected static final int LM_SLC_SUSP = 9;
     /**
      * Telnet Option: Environment
      */
     protected static final int NEWENV = 39;
+
     protected static final int NE_INFO = 2;
 
     /**
@@ -260,6 +260,7 @@ public class TelnetIO {
      * specification.
      */
     protected static final int NE_VAR = 0;
+
     protected static final int NE_VALUE = 1;
 
     /**
@@ -267,6 +268,7 @@ public class TelnetIO {
      * based upon the telnet protocol specification.
      */
     protected static final int NE_ESC = 2;
+
     protected static final int NE_USERVAR = 3;
     protected static final int NE_VAR_OK = 2;
     protected static final int NE_VAR_DEFINED = 1;
@@ -279,27 +281,29 @@ public class TelnetIO {
     /**
      * Unused
      */
-    protected static final int EXT_ASCII = 17;        //Defines Extended ASCII
-    protected static final int SEND_LOC = 23;        //Defines Send Location
-    protected static final int AUTHENTICATION = 37;    //Defines Authentication
-    protected static final int ENCRYPT = 38;            //Defines Encryption
+    protected static final int EXT_ASCII = 17; // Defines Extended ASCII
+
+    protected static final int SEND_LOC = 23; // Defines Send Location
+    protected static final int AUTHENTICATION = 37; // Defines Authentication
+    protected static final int ENCRYPT = 38; // Defines Encryption
     private static final Logger LOG = Logger.getLogger(TelnetIO.class.getName());
     /**
      * Window Size Constants
      */
     private static final int SMALLEST_BELIEVABLE_WIDTH = 20;
+
     private static final int SMALLEST_BELIEVABLE_HEIGHT = 6;
     private static final int DEFAULT_WIDTH = 80;
     private static final int DEFAULT_HEIGHT = 25;
-    private Connection connection;                    //a reference to the connection this instance works for
-    private ConnectionData connectionData;            //holds all important information of the connection
-    private DataOutputStream out;                    //the byte oriented outputstream
-    private DataInputStream in;                        //the byte oriented input stream
-    //Aggregations
-    private IACHandler iacHandler;                    //holds a reference to the aggregated IACHandler
-    //Members
-    private InetAddress localAddress;                //address of the host the telnetd is running on
-    private boolean noIac = false;                    //describes if IAC was found and if its just processed
+    private Connection connection; // a reference to the connection this instance works for
+    private ConnectionData connectionData; // holds all important information of the connection
+    private DataOutputStream out; // the byte oriented outputstream
+    private DataInputStream in; // the byte oriented input stream
+    // Aggregations
+    private IACHandler iacHandler; // holds a reference to the aggregated IACHandler
+    // Members
+    private InetAddress localAddress; // address of the host the telnetd is running on
+    private boolean noIac = false; // describes if IAC was found and if its just processed
     private boolean initializing;
     private boolean crFlag;
     /**
@@ -307,27 +311,27 @@ public class TelnetIO {
      * Input- and OutputStreams are properly set and the primary telnet
      * protocol initialization is carried out by the inner IACHandler class.<BR>
      */
-    public TelnetIO() {
-    }//constructor
+    public TelnetIO() {} // constructor
 
     public void initIO() throws IOException {
-        //we make an instance of our inner class
+        // we make an instance of our inner class
         iacHandler = new IACHandler();
-        //we setup underlying byte oriented streams
+        // we setup underlying byte oriented streams
         in = new DataInputStream(connectionData.getSocket().getInputStream());
-        out = new DataOutputStream(new BufferedOutputStream(connectionData.getSocket().getOutputStream()));
+        out = new DataOutputStream(
+                new BufferedOutputStream(connectionData.getSocket().getOutputStream()));
 
-        //we save the local address (necessary?)
+        // we save the local address (necessary?)
         localAddress = connectionData.getSocket().getLocalAddress();
         crFlag = false;
-        //bootstrap telnet communication
+        // bootstrap telnet communication
         initTelnetCommunication();
-    }//initIO
+    } // initIO
 
     public void setConnection(Connection con) {
         connection = con;
         connectionData = connection.getConnectionData();
-    }//setConnection
+    } // setConnection
 
     /**
      * Method to output a byte. Ensures that CR(\r) is never send
@@ -337,8 +341,8 @@ public class TelnetIO {
      * @throws IOException if an error occurs
      */
     public void write(byte b) throws IOException {
-        //ensure CRLF(\r\n) is written for LF(\n) to adhere
-        //to the telnet protocol.
+        // ensure CRLF(\r\n) is written for LF(\n) to adhere
+        // to the telnet protocol.
         if (!crFlag && b == 10) {
             out.write(13);
         }
@@ -350,7 +354,7 @@ public class TelnetIO {
         } else {
             crFlag = false;
         }
-    }//write(byte)
+    } // write(byte)
 
     /**
      * Method to output an int.
@@ -358,10 +362,9 @@ public class TelnetIO {
      * @param i Integer to be written.
      * @throws IOException if an error occurs
      */
-    public void write(int i)
-            throws IOException {
+    public void write(int i) throws IOException {
         write((byte) i);
-    }//write(int)
+    } // write(int)
 
     /**
      * Method to write an array of bytes.
@@ -373,7 +376,7 @@ public class TelnetIO {
         for (byte b : sequence) {
             write(b);
         }
-    }//write(byte[])
+    } // write(byte[])
 
     /**
      * Method to output an array of int' s.
@@ -385,7 +388,7 @@ public class TelnetIO {
         for (int i : sequence) {
             write((byte) i);
         }
-    }//write(int[])
+    } // write(int[])
 
     /**
      * Method to write a char.
@@ -395,7 +398,7 @@ public class TelnetIO {
      */
     public void write(char ch) throws IOException {
         write((byte) ch);
-    }//write(char)
+    } // write(char)
 
     /**
      * Method to output a string.
@@ -405,7 +408,7 @@ public class TelnetIO {
      */
     public void write(String str) throws IOException {
         write(str.getBytes());
-    }//write(String)
+    } // write(String)
 
     /**
      * Method to flush all buffered output.
@@ -414,7 +417,7 @@ public class TelnetIO {
      */
     public void flush() throws IOException {
         out.flush();
-    }//flush
+    } // flush
 
     /**
      * Method to close the underlying output stream to free system resources.<br>
@@ -424,22 +427,22 @@ public class TelnetIO {
     public void closeOutput() {
 
         try {
-            //sends telnetprotocol logout acknowledgement
+            // sends telnetprotocol logout acknowledgement
             write(IAC);
             write(DO);
             write(LOGOUT);
-            //and now close underlying outputstream
+            // and now close underlying outputstream
 
             out.close();
         } catch (IOException ex) {
             LOG.log(Level.SEVERE, "closeOutput()", ex);
-            //handle?
+            // handle?
         }
-    }//close
+    } // close
 
     private void rawWrite(int i) throws IOException {
         out.write(i);
-    }//rawWrite
+    } // rawWrite
 
     /**
      * Method to read a byte from the InputStream.
@@ -450,7 +453,7 @@ public class TelnetIO {
      */
     public int read() throws IOException {
         int c = rawread();
-        //if (c == 255) {
+        // if (c == 255) {
         noIac = false;
         while ((c == 255) && (!noIac)) {
             /**
@@ -466,7 +469,7 @@ public class TelnetIO {
             }
         }
         return stripCRSeq(c);
-    }//read
+    } // read
 
     /**
      * Method to close the underlying inputstream to free system resources.<br>
@@ -477,9 +480,9 @@ public class TelnetIO {
         try {
             in.close();
         } catch (IOException e) {
-            //handle?
+            // handle?
         }
-    }//closeInput
+    } // closeInput
 
     /**
      * This method reads an unsigned 16bit Integer from the stream,
@@ -490,7 +493,7 @@ public class TelnetIO {
     private int read16int() throws IOException {
         int c = in.readUnsignedShort();
         return c;
-    }//read16int
+    } // read16int
 
     /*
      * The following options are options which might be of interest, but are not
@@ -507,11 +510,11 @@ public class TelnetIO {
     private int rawread() throws IOException {
         int b = 0;
 
-        //try {
+        // try {
         b = in.readUnsignedByte();
         connectionData.activity();
         return b;
-    }//rawread
+    } // rawread
 
     /**
      * Checks for the telnet protocol specified  CR followed by NULL or LF<BR>
@@ -526,7 +529,7 @@ public class TelnetIO {
             return 10;
         }
         return input;
-    }//stripCRSeq
+    } // stripCRSeq
 
     /**
      * Method that initializes the telnet communication layer.
@@ -535,7 +538,7 @@ public class TelnetIO {
 
         initializing = true;
         try {
-            //start out, some clients just wait
+            // start out, some clients just wait
             if (connectionData.isLineMode()) {
                 iacHandler.doLineModeInit();
                 LOG.log(Level.FINE, "Line mode initialized.");
@@ -543,15 +546,15 @@ public class TelnetIO {
                 iacHandler.doCharacterModeInit();
                 LOG.log(Level.FINE, "Character mode initialized.");
             }
-            //open for a defined timeout so we read incoming negotiation
+            // open for a defined timeout so we read incoming negotiation
             connectionData.getSocket().setSoTimeout(1000);
             read();
 
         } catch (Exception e) {
-            //handle properly
-            //log.error("initTelnetCommunication()",e);
+            // handle properly
+            // log.error("initTelnetCommunication()",e);
         } finally {
-            //this is important, dont ask me why :)
+            // this is important, dont ask me why :)
             try {
                 connectionData.getSocket().setSoTimeout(0);
             } catch (Exception ex) {
@@ -559,7 +562,7 @@ public class TelnetIO {
             }
         }
         initializing = false;
-    }//initTelnetCommunication
+    } // initTelnetCommunication
 
     /**
      * Method that represents the answer to the
@@ -574,14 +577,14 @@ public class TelnetIO {
         } catch (Exception ex) {
             LOG.log(Level.SEVERE, "IamHere()", ex);
         }
-    }//IamHere
+    } // IamHere
 
     /**
      * Network virtual terminal break.
      */
     private void nvtBreak() {
         connection.processConnectionEvent(new ConnectionEvent(connection, ConnectionEvent.Type.CONNECTION_BREAK));
-    }//nvtBreak
+    } // nvtBreak
 
     /**
      * Method that checks reported terminal sizes and sets the
@@ -598,14 +601,13 @@ public class TelnetIO {
         if (height < SMALLEST_BELIEVABLE_HEIGHT) {
             height = DEFAULT_HEIGHT;
         }
-        //DEBUG: write("[New Window Size " + window_width + "x" + window_height + "]");
+        // DEBUG: write("[New Window Size " + window_width + "x" + window_height + "]");
         connectionData.setTerminalGeometry(width, height);
-        connection.processConnectionEvent(new ConnectionEvent(connection,
-                ConnectionEvent.Type.CONNECTION_TERMINAL_GEOMETRY_CHANGED));
-    }//setTerminalGeometry
+        connection.processConnectionEvent(
+                new ConnectionEvent(connection, ConnectionEvent.Type.CONNECTION_TERMINAL_GEOMETRY_CHANGED));
+    } // setTerminalGeometry
 
-    public void setEcho(boolean b) {
-    }//setEcho
+    public void setEcho(boolean b) {} // setEcho
 
     /**
      * An inner class for handling incoming option negotiations implementing the <B>telnet protocol</B>
@@ -691,6 +693,7 @@ public class TelnetIO {
          * Are we waiting for a DO reply?
          */
         private boolean WAIT_DO_REPLY_SUPGA = false;
+
         private boolean WAIT_DO_REPLY_ECHO = false;
         private boolean WAIT_DO_REPLY_NAWS = false;
         private boolean WAIT_DO_REPLY_TTYPE = false;
@@ -704,20 +707,20 @@ public class TelnetIO {
          * Are we waiting for a WILL reply?
          */
         private boolean WAIT_WILL_REPLY_SUPGA = false;
+
         private boolean WAIT_WILL_REPLY_ECHO = false;
         private boolean WAIT_WILL_REPLY_NAWS = false;
         private boolean WAIT_WILL_REPLY_TTYPE = false;
 
-
         public void doCharacterModeInit() throws IOException {
             sendCommand(WILL, ECHO, true);
-            sendCommand(DONT, ECHO, true); //necessary for some clients
+            sendCommand(DONT, ECHO, true); // necessary for some clients
             sendCommand(DO, NAWS, true);
             sendCommand(WILL, SUPGA, true);
             sendCommand(DO, SUPGA, true);
             sendCommand(DO, TTYPE, true);
-            sendCommand(DO, NEWENV, true); //environment variables
-        }//doCharacterModeInit
+            sendCommand(DO, NEWENV, true); // environment variables
+        } // doCharacterModeInit
 
         public void doLineModeInit() throws IOException {
             sendCommand(DO, NAWS, true);
@@ -726,8 +729,7 @@ public class TelnetIO {
             sendCommand(DO, TTYPE, true);
             sendCommand(DO, LINEMODE, true);
             sendCommand(DO, NEWENV, true);
-        }//doLineModeInit
-
+        } // doLineModeInit
 
         /**
          * Method to handle a IAC that came in over the line.
@@ -742,7 +744,7 @@ public class TelnetIO {
             }
             buffer[0] = 0;
             buffer[1] = 0;
-        }//handleC
+        } // handleC
 
         /**
          * Method that parses for options with two characters.
@@ -753,8 +755,8 @@ public class TelnetIO {
         private boolean parseTWO(int[] buf) {
             switch (buf[0]) {
                 case IAC:
-                    //doubled IAC to escape 255 is handled within the
-                    //read method.
+                    // doubled IAC to escape 255 is handled within the
+                    // read method.
                     break;
                 case AYT:
                     IamHere();
@@ -772,7 +774,7 @@ public class TelnetIO {
                     return false;
             }
             return true;
-        }//parseTWO
+        } // parseTWO
 
         /**
          * Method that parses further on for options.
@@ -781,10 +783,10 @@ public class TelnetIO {
          */
         private void parse(int[] buf) throws IOException {
             switch (buf[0]) {
-        /* First switch on the Negotiation Option */
+                    /* First switch on the Negotiation Option */
                 case WILL:
                     if (supported(buf[1]) && isEnabled(buf[1])) {
-                        ;// do nothing
+                        ; // do nothing
                     } else {
                         if (waitDOreply(buf[1]) && supported(buf[1])) {
                             enable(buf[1]);
@@ -837,10 +839,10 @@ public class TelnetIO {
                     }
                     break;
 
-          /* Now about other two byte IACs */
-                case DM:    //How do I implement a SYNCH signal?
+                    /* Now about other two byte IACs */
+                case DM: // How do I implement a SYNCH signal?
                     break;
-                case SB: //handle subnegotiations
+                case SB: // handle subnegotiations
                     if ((supported(buf[1])) && (isEnabled(buf[1]))) {
                         switch (buf[1]) {
                             case NAWS:
@@ -859,13 +861,13 @@ public class TelnetIO {
                                 ;
                         }
                     } else {
-                        //do nothing
+                        // do nothing
                     }
                     break;
                 default:
                     ;
-            }//switch
-        }//parse
+            } // switch
+        } // parse
 
         /**
          * Method that reads a NawsSubnegotiation that ends up with a IAC SE
@@ -874,15 +876,15 @@ public class TelnetIO {
         private void handleNAWS() throws IOException {
             int width = read16int();
             if (width == 255) {
-                width = read16int(); //handle doubled 255 value;
+                width = read16int(); // handle doubled 255 value;
             }
             int height = read16int();
             if (height == 255) {
-                height = read16int(); //handle doubled 255 value;
+                height = read16int(); // handle doubled 255 value;
             }
             skipToSE();
             setTerminalGeometry(width, height);
-        }//handleNAWS
+        } // handleNAWS
 
         /**
          * Method that reads a TTYPE Subnegotiation String that ends up with a IAC SE
@@ -892,11 +894,11 @@ public class TelnetIO {
             String tmpstr = "";
             // The next read should be 0 which is IS by the protocol
             // specs. hmmm?
-            rawread(); //that should be the is :)
+            rawread(); // that should be the is :)
             tmpstr = readIACSETerminatedString(40);
             LOG.log(Level.FINE, "Reported terminal name " + tmpstr);
             connectionData.setNegotiatedTerminalType(tmpstr);
-        }//handleTTYPE
+        } // handleTTYPE
 
         /**
          * Method that handles LINEMODE subnegotiation.
@@ -915,14 +917,14 @@ public class TelnetIO {
                     handleLMForwardMask(c);
                     break;
                 default:
-                    //skip to (including) SE
+                    // skip to (including) SE
                     skipToSE();
             }
-        }//handleLINEMODE
+        } // handleLINEMODE
 
         public void handleLMMode() throws IOException {
-            //we sent the default which no client might deny
-            //so we only wait the ACK
+            // we sent the default which no client might deny
+            // so we only wait the ACK
             if (WAIT_LM_MODE_ACK) {
                 int mask = rawread();
                 if (mask != (LM_EDIT | LM_TRAPSIG | LM_MODEACK)) {
@@ -931,23 +933,23 @@ public class TelnetIO {
                 WAIT_LM_MODE_ACK = false;
             }
             skipToSE();
-        }//handleLMMode
+        } // handleLMMode
 
         public void handleLMSLC() throws IOException {
             int[] triple = new int[3];
             if (!readTriple(triple)) return;
 
-            //SLC will be initiated by the client
-            //case 1. client requests set
-            //LINEMODE SLC 0 SLC_DEFAULT 0
+            // SLC will be initiated by the client
+            // case 1. client requests set
+            // LINEMODE SLC 0 SLC_DEFAULT 0
             if ((triple[0] == 0) && (triple[1] == LM_SLC_DEFAULT) && (triple[2] == 0)) {
                 skipToSE();
-                //reply with SLC xxx SLC_DEFAULT 0
+                // reply with SLC xxx SLC_DEFAULT 0
                 rawWrite(IAC);
                 rawWrite(SB);
                 rawWrite(LINEMODE);
                 rawWrite(LM_SLC);
-                //triples defaults for all
+                // triples defaults for all
                 for (int i = 1; i < 12; i++) {
                     rawWrite(i);
                     rawWrite(LM_SLC_DEFAULT);
@@ -958,7 +960,7 @@ public class TelnetIO {
                 flush();
             } else {
 
-                //case 2: just acknowledge anything we get from the client
+                // case 2: just acknowledge anything we get from the client
                 rawWrite(IAC);
                 rawWrite(SB);
                 rawWrite(LINEMODE);
@@ -975,7 +977,7 @@ public class TelnetIO {
                 rawWrite(SE);
                 flush();
             }
-        }//handleLMSLC
+        } // handleLMSLC
 
         public void handleLMForwardMask(int WHAT) throws IOException {
             switch (WHAT) {
@@ -986,7 +988,7 @@ public class TelnetIO {
                     break;
             }
             skipToSE();
-        }//handleLMForward
+        } // handleLMForward
 
         public void handleNEWENV() throws IOException {
             LOG.log(Level.FINE, "handleNEWENV()");
@@ -999,19 +1001,19 @@ public class TelnetIO {
                     handleNEInfo();
                     break;
                 default:
-                    //skip to (including) SE
+                    // skip to (including) SE
                     skipToSE();
             }
-        }//handleNEWENV
+        } // handleNEWENV
 
         /*
-          The characters following a "type" up to the next "type" or VALUE specify the
-          variable name.
+         The characters following a "type" up to the next "type" or VALUE specify the
+         variable name.
 
-          If a "type" is not followed by a VALUE
-          (e.g., by another VAR, USERVAR, or IAC SE) then that variable is
-          undefined.
-         */
+         If a "type" is not followed by a VALUE
+         (e.g., by another VAR, USERVAR, or IAC SE) then that variable is
+         undefined.
+        */
         private int readNEVariableName(StringBuffer sbuf) throws IOException {
             LOG.log(Level.FINE, "readNEVariableName()");
             int i = -1;
@@ -1022,12 +1024,12 @@ public class TelnetIO {
                 } else if (i == IAC) {
                     i = rawread();
                     if (i == IAC) {
-                        //duplicated IAC
+                        // duplicated IAC
                         sbuf.append((char) i);
                     } else if (i == SE) {
                         return NE_IN_END;
                     } else {
-                        //Error should have been duplicated
+                        // Error should have been duplicated
                         return NE_IN_ERROR;
                     }
                 } else if (i == NE_ESC) {
@@ -1042,17 +1044,16 @@ public class TelnetIO {
                 } else if (i == NE_VALUE) {
                     return NE_VAR_DEFINED;
                 } else {
-                    //check maximum length to prevent overflow
+                    // check maximum length to prevent overflow
                     if (sbuf.length() >= NE_VAR_NAME_MAXLENGTH) {
-                        //TODO: Log Overflow
+                        // TODO: Log Overflow
                         return NE_IN_ERROR;
                     } else {
                         sbuf.append((char) i);
                     }
                 }
             } while (true);
-        }//readNEVariableName
-
+        } // readNEVariableName
 
         /*
           The characters following a VALUE up to the next
@@ -1065,25 +1066,25 @@ public class TelnetIO {
         */
         private int readNEVariableValue(StringBuffer sbuf) throws IOException {
             LOG.log(Level.FINE, "readNEVariableValue()");
-            //check conditions for first character after VALUE
+            // check conditions for first character after VALUE
             int i = rawread();
             if (i == -1) {
                 return NE_IN_ERROR;
             } else if (i == IAC) {
                 i = rawread();
                 if (i == IAC) {
-                    //Double IAC
+                    // Double IAC
                     return NE_VAR_DEFINED_EMPTY;
                 } else if (i == SE) {
                     return NE_IN_END;
                 } else {
-                    //according to rule IAC has to be duplicated
+                    // according to rule IAC has to be duplicated
                     return NE_IN_ERROR;
                 }
             } else if (i == NE_VAR || i == NE_USERVAR) {
                 return NE_VAR_DEFINED_EMPTY;
             } else if (i == NE_ESC) {
-                //escaped value
+                // escaped value
                 i = rawread();
                 if (i == NE_ESC || i == NE_VAR || i == NE_USERVAR || i == NE_VALUE) {
                     sbuf.append((char) i);
@@ -1091,10 +1092,10 @@ public class TelnetIO {
                     return NE_IN_ERROR;
                 }
             } else {
-                //character
+                // character
                 sbuf.append((char) i);
             }
-            //loop until end of value (IAC SE or TYPE)
+            // loop until end of value (IAC SE or TYPE)
             do {
                 i = rawread();
                 if (i == -1) {
@@ -1102,12 +1103,12 @@ public class TelnetIO {
                 } else if (i == IAC) {
                     i = rawread();
                     if (i == IAC) {
-                        //duplicated IAC
+                        // duplicated IAC
                         sbuf.append((char) i);
                     } else if (i == SE) {
                         return NE_IN_END;
                     } else {
-                        //Error should have been duplicated
+                        // Error should have been duplicated
                         return NE_IN_ERROR;
                     }
                 } else if (i == NE_ESC) {
@@ -1120,24 +1121,23 @@ public class TelnetIO {
                 } else if (i == NE_VAR || i == NE_USERVAR) {
                     return NE_VAR_OK;
                 } else {
-                    //check maximum length to prevent overflow
+                    // check maximum length to prevent overflow
                     if (sbuf.length() > NE_VAR_VALUE_MAXLENGTH) {
-                        //TODO: LOG Overflow
+                        // TODO: LOG Overflow
                         return NE_IN_ERROR;
                     } else {
                         sbuf.append((char) i);
                     }
                 }
             } while (true);
-        }//readNEVariableValue
-
+        } // readNEVariableValue
 
         public void readNEVariables() throws IOException {
             LOG.log(Level.FINE, "readNEVariables()");
             StringBuffer sbuf = new StringBuffer(50);
             int i = rawread();
             if (i == IAC) {
-                //invalid or empty response
+                // invalid or empty response
                 skipToSE();
                 LOG.log(Level.FINE, "readNEVariables()::INVALID VARIABLE");
                 return;
@@ -1167,9 +1167,14 @@ public class TelnetIO {
                                     LOG.log(Level.FINE, "readNEVariables()::NE_VAR_DEFINED_EMPTY");
                                     break;
                                 case NE_VAR_OK:
-                                    //add variable
-                                    LOG.log(Level.FINE, "readNEVariables()::NE_VAR_OK:VAR=" + str + " VAL=" + sbuf.toString());
-                                    TelnetIO.this.connectionData.getEnvironment().put(str, sbuf.toString());
+                                    // add variable
+                                    LOG.log(
+                                            Level.FINE,
+                                            "readNEVariables()::NE_VAR_OK:VAR=" + str + " VAL=" + sbuf.toString());
+                                    TelnetIO.this
+                                            .connectionData
+                                            .getEnvironment()
+                                            .put(str, sbuf.toString());
                                     sbuf.delete(0, sbuf.length());
                                     break;
                             }
@@ -1180,21 +1185,21 @@ public class TelnetIO {
                     }
                 } while (cont);
             }
-        }//readVariables
+        } // readVariables
 
         public void handleNEIs() throws IOException {
             LOG.log(Level.FINE, "handleNEIs()");
             if (isEnabled(NEWENV)) {
                 readNEVariables();
             }
-        }//handleNEIs
+        } // handleNEIs
 
         public void handleNEInfo() throws IOException {
             LOG.log(Level.FINE, "handleNEInfo()");
             if (isEnabled(NEWENV)) {
                 readNEVariables();
             }
-        }//handleNEInfo
+        } // handleNEInfo
 
         /**
          * Method that sends a TTYPE Subnegotiation Request.
@@ -1210,7 +1215,7 @@ public class TelnetIO {
                 rawWrite(SE);
                 flush();
             }
-        }//getTTYPE
+        } // getTTYPE
 
         /**
          * Method that sends a LINEMODE MODE Subnegotiation request.
@@ -1227,7 +1232,7 @@ public class TelnetIO {
                 rawWrite(SE);
                 WAIT_LM_MODE_ACK = true;
 
-                //dont forwardmask
+                // dont forwardmask
                 rawWrite(IAC);
                 rawWrite(SB);
                 rawWrite(LINEMODE);
@@ -1238,7 +1243,7 @@ public class TelnetIO {
                 WAIT_LM_DO_REPLY_FORWARDMASK = true;
                 flush();
             }
-        }//negotiateLineMode
+        } // negotiateLineMode
 
         /**
          * Method that sends a NEW-ENVIRON SEND subnegotiation request
@@ -1246,7 +1251,7 @@ public class TelnetIO {
          * IAC SB NEW-ENVIRON SEND VAR USERVAR IAC SE
          */
         private void negotiateEnvironment() throws IOException {
-            //log.debug("negotiateEnvironment()");
+            // log.debug("negotiateEnvironment()");
             if (isEnabled(NEWENV)) {
                 rawWrite(IAC);
                 rawWrite(SB);
@@ -1259,14 +1264,15 @@ public class TelnetIO {
                 WAIT_NE_SEND_REPLY = true;
                 flush();
             }
-        }//negotiateEnvironment
+        } // negotiateEnvironment
 
         /**
          * Method that skips a subnegotiation response.
          */
         private void skipToSE() throws IOException {
-            while (rawread() != SE) ;
-        }//skipSubnegotiation
+            while (rawread() != SE)
+                ;
+        } // skipSubnegotiation
 
         private boolean readTriple(int[] triple) throws IOException {
             triple[0] = rawread();
@@ -1277,7 +1283,7 @@ public class TelnetIO {
                 triple[2] = rawread();
                 return true;
             }
-        }//readTriple
+        } // readTriple
 
         /**
          * Method that reads a subnegotiation String,
@@ -1308,7 +1314,7 @@ public class TelnetIO {
                 }
                 if (cont) {
                     b = (char) i;
-                    //Fix for overflow wimpi (10/06/2004)
+                    // Fix for overflow wimpi (10/06/2004)
                     if (b == '\n' || b == '\r' || where == maxlength) {
                         cont = false;
                     } else {
@@ -1318,7 +1324,7 @@ public class TelnetIO {
             } while (cont);
 
             return (new String(cbuf, 0, where));
-        }//readIACSETerminatedString
+        } // readIACSETerminatedString
 
         /**
          * Method that informs internally about the supported Negotiation Options
@@ -1339,7 +1345,7 @@ public class TelnetIO {
                 default:
                     return false;
             }
-        }//supported
+        } // supported
 
         /**
          * Method that sends a Telnet IAC String with TelnetIO.write(byte b) method.
@@ -1356,7 +1362,7 @@ public class TelnetIO {
             // we started with WILL OPTION and now wait for reply
             if ((i == WILL) && westarted) setWait(WILL, j, true);
             flush();
-        }//sendCommand
+        } // sendCommand
 
         /**
          * Method enables or disables a supported Option
@@ -1397,7 +1403,7 @@ public class TelnetIO {
                 case LINEMODE:
                     if (DO_LINEMODE) {
                         DO_LINEMODE = false;
-                        //set false in connection data, so the application knows.
+                        // set false in connection data, so the application knows.
                         connectionData.setLineMode(false);
                     } else {
                         DO_LINEMODE = true;
@@ -1413,7 +1419,7 @@ public class TelnetIO {
                     }
                     break;
             }
-        }//enable
+        } // enable
 
         /**
          * Method that informs internally about the status of the supported
@@ -1439,7 +1445,7 @@ public class TelnetIO {
                 default:
                     return false;
             }
-        }//isEnabled
+        } // isEnabled
 
         /**
          * Method that informs internally about the WILL wait status
@@ -1461,7 +1467,7 @@ public class TelnetIO {
                 default:
                     return false;
             }
-        }//waitWILLreply
+        } // waitWILLreply
 
         /**
          * Method that informs internally about the DO wait status
@@ -1487,7 +1493,7 @@ public class TelnetIO {
                 default:
                     return false;
             }
-        }//waitDOreply
+        } // waitDOreply
 
         /**
          * Method that mutates the wait status of an option in
@@ -1540,10 +1546,8 @@ public class TelnetIO {
                     }
                     break;
             }
-        }//setWait
-
-    }//inner class IACHandler
+        } // setWait
+    } // inner class IACHandler
 
     /** end Constants declaration **************************************************/
-
-}//class TelnetIO
+} // class TelnetIO

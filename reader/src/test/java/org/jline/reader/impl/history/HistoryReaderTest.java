@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2016, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -29,8 +29,7 @@ import static org.jline.reader.LineReader.UP_LINE_OR_HISTORY;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class HistoryReaderTest extends ReaderTestSupport
-{
+public class HistoryReaderTest extends ReaderTestSupport {
     @Test
     public void testSingleHistory() throws Exception {
         KeyMap<Binding> map = reader.getKeys();
@@ -39,14 +38,18 @@ public class HistoryReaderTest extends ReaderTestSupport
         map.bind(new Reference(UP_LINE_OR_HISTORY), "\033[A");
         map.bind(new Reference(DOWN_LINE_OR_HISTORY), "\033[B");
 
-
-        TestBuffer b = new TestBuffer().
-            append("test line 1").op(ACCEPT_LINE).
-            append("test line 2").op(ACCEPT_LINE).
-            append("test line 3").op(ACCEPT_LINE).
-            append("test line 4").op(ACCEPT_LINE).
-            append("test line 5").op(ACCEPT_LINE).
-            append("ab");
+        TestBuffer b = new TestBuffer()
+                .append("test line 1")
+                .op(ACCEPT_LINE)
+                .append("test line 2")
+                .op(ACCEPT_LINE)
+                .append("test line 3")
+                .op(ACCEPT_LINE)
+                .append("test line 4")
+                .op(ACCEPT_LINE)
+                .append("test line 5")
+                .op(ACCEPT_LINE)
+                .append("ab");
 
         assertBuffer("ab", b);
 
@@ -100,13 +103,18 @@ public class HistoryReaderTest extends ReaderTestSupport
         map.bind(new Reference(HISTORY_SEARCH_BACKWARD), "\033[0A");
         map.bind(new Reference(HISTORY_SEARCH_FORWARD), "\033[0B");
 
-        TestBuffer b = new TestBuffer().
-            append("toes").op(ACCEPT_LINE).
-            append("the quick brown").op(ACCEPT_LINE).
-            append("fox jumps").op(ACCEPT_LINE).
-            append("over the").op(ACCEPT_LINE).
-            append("lazy dog").op(ACCEPT_LINE).
-            append("");
+        TestBuffer b = new TestBuffer()
+                .append("toes")
+                .op(ACCEPT_LINE)
+                .append("the quick brown")
+                .op(ACCEPT_LINE)
+                .append("fox jumps")
+                .op(ACCEPT_LINE)
+                .append("over the")
+                .op(ACCEPT_LINE)
+                .append("lazy dog")
+                .op(ACCEPT_LINE)
+                .append("");
 
         assertBuffer("", b);
 

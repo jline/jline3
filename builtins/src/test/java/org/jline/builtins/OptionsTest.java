@@ -1,11 +1,12 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2016, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
+package org.jline.builtins;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -25,7 +26,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.jline.builtins;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -47,26 +47,28 @@ public class OptionsTest {
     @Test
     public void testOptions() {
         final String[] usage = {
-                "test - test Options usage",
-                "  text before Usage: is displayed when usage() is called and no error has occurred.",
-                "  so can be used as a simple help message.",
-                "",
-                "Usage: testOptions [OPTION]... PATTERN [FILES]...",
-                "  Output control: arbitary non-option text can be included.",
-                "  -? --help                show help",
-                "  -c --count=COUNT           show COUNT lines",
-                "  -h --no-filename         suppress the prefixing filename on output",
-                "  -q --quiet, --silent     suppress all normal output",
-                "     --binary-files=TYPE   assume that binary files are TYPE",
-                "                           TYPE is 'binary', 'text', or 'without-match'",
-                "  -I                       equivalent to --binary-files=without-match",
-                "  -d --directories=ACTION  how to handle directories (default=skip)",
-                "                           ACTION is 'read', 'recurse', or 'skip'",
-                "  -D --devices=ACTION      how to handle devices, FIFOs and sockets",
-                "                           ACTION is 'read' or 'skip'",
-                "  -R, -r --recursive       equivalent to --directories=recurse" };
+            "test - test Options usage",
+            "  text before Usage: is displayed when usage() is called and no error has occurred.",
+            "  so can be used as a simple help message.",
+            "",
+            "Usage: testOptions [OPTION]... PATTERN [FILES]...",
+            "  Output control: arbitary non-option text can be included.",
+            "  -? --help                show help",
+            "  -c --count=COUNT           show COUNT lines",
+            "  -h --no-filename         suppress the prefixing filename on output",
+            "  -q --quiet, --silent     suppress all normal output",
+            "     --binary-files=TYPE   assume that binary files are TYPE",
+            "                           TYPE is 'binary', 'text', or 'without-match'",
+            "  -I                       equivalent to --binary-files=without-match",
+            "  -d --directories=ACTION  how to handle directories (default=skip)",
+            "                           ACTION is 'read', 'recurse', or 'skip'",
+            "  -D --devices=ACTION      how to handle devices, FIFOs and sockets",
+            "                           ACTION is 'read' or 'skip'",
+            "  -R, -r --recursive       equivalent to --directories=recurse"
+        };
 
-        Options opt = Options.compile(usage).parse("test -c 2 --binary-files=foo --binary-files bar pattern".split("\\s"));
+        Options opt =
+                Options.compile(usage).parse("test -c 2 --binary-files=foo --binary-files bar pattern".split("\\s"));
         assertTrue(opt.isSet("count"));
         assertEquals(2, opt.getNumber("count"));
         assertFalse(opt.isSet("no-filename"));
@@ -78,30 +80,30 @@ public class OptionsTest {
     @Test
     public void testColor() throws IOException {
         final String[] usage = {
-                "test - test Options usage",
-                "  text before Usage: is displayed when usage() is called and no error has occurred.",
-                "  so can be used as a simple help message.",
-                "",
-                "Usage: testOptions [OPTION]... PATTERN [FILES]...",
-                "  Output control: arbitary non-option text can be included.",
-                "  -? --help                show help",
-                "  -c --count=COUNT         show COUNT lines",
-                "  -h --no-filename         suppress the prefixing filename on output",
-                "  -q --quiet, --silent     suppress all normal output",
-                "     --binary-files=TYPE   assume that binary files are TYPE",
-                "                           TYPE is 'binary', 'text', or 'without-match'",
-                "  -I                       equivalent to --binary-files=without-match",
-                "  -d --directories=ACTION  how to handle directories (default=skip)",
-                "                           ACTION is 'read', 'recurse', or 'skip'",
-                "  -D --devices=ACTION      how to handle devices, FIFOs and sockets",
-                "                           ACTION is 'read' or 'skip'",
-                "  -R, -r --recursive       equivalent to --directories=recurse" };
+            "test - test Options usage",
+            "  text before Usage: is displayed when usage() is called and no error has occurred.",
+            "  so can be used as a simple help message.",
+            "",
+            "Usage: testOptions [OPTION]... PATTERN [FILES]...",
+            "  Output control: arbitary non-option text can be included.",
+            "  -? --help                show help",
+            "  -c --count=COUNT         show COUNT lines",
+            "  -h --no-filename         suppress the prefixing filename on output",
+            "  -q --quiet, --silent     suppress all normal output",
+            "     --binary-files=TYPE   assume that binary files are TYPE",
+            "                           TYPE is 'binary', 'text', or 'without-match'",
+            "  -I                       equivalent to --binary-files=without-match",
+            "  -d --directories=ACTION  how to handle directories (default=skip)",
+            "                           ACTION is 'read', 'recurse', or 'skip'",
+            "  -D --devices=ACTION      how to handle devices, FIFOs and sockets",
+            "                           ACTION is 'read' or 'skip'",
+            "  -R, -r --recursive       equivalent to --directories=recurse"
+        };
 
         String inputString = "";
         InputStream inputStream = new ByteArrayInputStream(inputString.getBytes());
-        Terminal terminal = TerminalBuilder.builder()
-                                .streams(inputStream, System.out)
-                                .build();
+        Terminal terminal =
+                TerminalBuilder.builder().streams(inputStream, System.out).build();
 
         AttributedString as = HelpException.highlight(String.join("\n", usage), HelpException.defaultStyle());
         as.print(terminal);

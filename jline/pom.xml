@@ -115,10 +115,10 @@
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
                     <execution>
-                        <phase>process-sources</phase>
                         <goals>
                             <goal>unpack</goal>
                         </goals>
+                        <phase>process-sources</phase>
                         <configuration>
                             <artifactItems>
                                 <!-- sources -->
@@ -279,10 +279,10 @@
                 <executions>
                     <execution>
                         <id>add-source</id>
-                        <phase>generate-sources</phase>
                         <goals>
                             <goal>add-source</goal>
                         </goals>
+                        <phase>generate-sources</phase>
                         <configuration>
                             <sources>
                                 <source>${project.build.directory}/generated-sources</source>
@@ -291,10 +291,10 @@
                     </execution>
                     <execution>
                         <id>add-resource</id>
-                        <phase>generate-resources</phase>
                         <goals>
                             <goal>add-resource</goal>
                         </goals>
+                        <phase>generate-resources</phase>
                         <configuration>
                             <resources>
                                 <resource>
@@ -353,18 +353,16 @@
                     <instructions>
                         <Automatic-Module-Name>${automatic.module.name}</Automatic-Module-Name>
                         <Export-Package>*;-noimport:=true</Export-Package>
-                        <Import-Package>
-                            com.sun.jna*,
+                        <Import-Package>com.sun.jna*,
                             org.apache.sshd*,
                             org.fusesource.jansi;version="[1.12,3)",
                             org.fusesource.jansi.internal;version="[1.6,3)",
                             sun.misc;resolution:=optional,
-                            *
-                        </Import-Package>
+                            *</Import-Package>
                     </instructions>
                 </configuration>
             </plugin>
-       </plugins>
+        </plugins>
     </build>
 
 </project>

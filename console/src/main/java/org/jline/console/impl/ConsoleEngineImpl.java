@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2021, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -52,14 +52,16 @@ import org.jline.utils.OSUtils;
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEngine {
-    public enum Command {SHOW
-                       , DEL
-                       , PRNT
-                       , ALIAS
-                       , PIPE
-                       , UNALIAS
-                       , DOC
-                       , SLURP}
+    public enum Command {
+        SHOW,
+        DEL,
+        PRNT,
+        ALIAS,
+        PIPE,
+        UNALIAS,
+        DOC,
+        SLURP
+    }
 
     private static final String VAR_CONSOLE_OPTIONS = "CONSOLE_OPTIONS";
     private static final String VAR_PATH = "PATH";
@@ -80,27 +82,32 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     private boolean executing = false;
     private final Printer printer;
 
-    public ConsoleEngineImpl(ScriptEngine engine, Printer printer
-            , Supplier<Path> workDir, ConfigurationPath configPath) throws IOException {
+    public ConsoleEngineImpl(ScriptEngine engine, Printer printer, Supplier<Path> workDir, ConfigurationPath configPath)
+            throws IOException {
         this(null, engine, printer, workDir, configPath);
     }
 
     @SuppressWarnings("unchecked")
-    public ConsoleEngineImpl(Set<Command> commands, ScriptEngine engine, Printer printer
-                           , Supplier<Path> workDir, ConfigurationPath configPath) throws IOException {
+    public ConsoleEngineImpl(
+            Set<Command> commands,
+            ScriptEngine engine,
+            Printer printer,
+            Supplier<Path> workDir,
+            ConfigurationPath configPath)
+            throws IOException {
         super();
         this.engine = engine;
         this.workDir = workDir;
         this.printer = printer;
-        Map<Command,String> commandName = new HashMap<>();
-        Map<Command,CommandMethods> commandExecute = new HashMap<>();
+        Map<Command, String> commandName = new HashMap<>();
+        Map<Command, CommandMethods> commandExecute = new HashMap<>();
         Set<Command> cmds;
         if (commands == null) {
             cmds = new HashSet<>(EnumSet.allOf(Command.class));
         } else {
             cmds = new HashSet<>(commands);
         }
-        for (Command c: cmds) {
+        for (Command c : cmds) {
             commandName.put(c, c.name().toLowerCase());
         }
         commandExecute.put(Command.DEL, new CommandMethods(this::del, this::variableCompleter));
@@ -120,7 +127,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             }
             persist(aliasFile, aliases);
         } else {
-            aliases.putAll((Map<String,String>)slurp(aliasFile));
+            aliases.putAll((Map<String, String>) slurp(aliasFile));
         }
         registerCommands(commandName, commandExecute);
     }
@@ -163,7 +170,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     }
 
     @Override
-    public Map<String,List<String>> getPipes() {
+    public Map<String, List<String>> getPipes() {
         return pipes;
     }
 
@@ -179,7 +186,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             }
         }
         opers.addAll(systemRegistry.getPipeNames());
-        for (Map.Entry<String,String> entry : aliases.entrySet()) {
+        for (Map.Entry<String, String> entry : aliases.entrySet()) {
             if (opers.contains(entry.getValue().split(" ")[0])) {
                 out.add(entry.getKey());
             }
@@ -190,22 +197,21 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     @Override
     public List<Completer> scriptCompleters() {
         List<Completer> out = new ArrayList<>();
-        out.add(new ArgumentCompleter(new StringsCompleter(this::scriptNames)
-                                    , new OptionCompleter(NullCompleter.INSTANCE
-                                                        , this::commandOptions
-                                                        , 1)
-                                       ));
-        out.add(new ArgumentCompleter(new StringsCompleter(this::commandAliasNames)
-                                     , NullCompleter.INSTANCE));
+        out.add(new ArgumentCompleter(
+                new StringsCompleter(this::scriptNames),
+                new OptionCompleter(NullCompleter.INSTANCE, this::commandOptions, 1)));
+        out.add(new ArgumentCompleter(new StringsCompleter(this::commandAliasNames), NullCompleter.INSTANCE));
         return out;
     }
 
     private Set<String> commandAliasNames() {
-        Set<String> opers = pipes.keySet().stream().filter(p -> !p.matches("\\w+")).collect(Collectors.toSet());
+        Set<String> opers =
+                pipes.keySet().stream().filter(p -> !p.matches("\\w+")).collect(Collectors.toSet());
         opers.addAll(systemRegistry.getPipeNames());
         return aliases.entrySet().stream()
                 .filter(e -> !opers.contains(e.getValue().split(" ")[0]))
-                .map(Map.Entry::getKey).collect(Collectors.toSet());
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
     }
 
     private Set<String> scriptNames() {
@@ -231,8 +237,11 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                     for (String e : scriptExtensions()) {
                         String regex = pp + "/*." + e;
                         PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + regex);
-                        Files.find(Paths.get(new File(regex).getParent()), Integer.MAX_VALUE,
-                                    (path, f) -> pathMatcher.matches(path)).forEach(scripts::add);
+                        Files.find(
+                                        Paths.get(new File(regex).getParent()),
+                                        Integer.MAX_VALUE,
+                                        (path, f) -> pathMatcher.matches(path))
+                                .forEach(scripts::add);
                     }
                 }
             }
@@ -348,8 +357,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     }
 
     private String quote(String var) {
-        if ((var.startsWith("\"") && var.endsWith("\""))
-                || (var.startsWith("'") && var.endsWith("'"))) {
+        if ((var.startsWith("\"") && var.endsWith("\"")) || (var.startsWith("'") && var.endsWith("'"))) {
             return var;
         }
         if (var.contains("\\\"")) {
@@ -460,13 +468,14 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 return false;
             }
             result = null;
-            if (Arrays.asList(args).contains(OPTION_HELP[0]) || Arrays.asList(args).contains(OPTION_HELP[1])) {
-                try(BufferedReader br = new BufferedReader(new FileReader(script))) {
+            if (Arrays.asList(args).contains(OPTION_HELP[0])
+                    || Arrays.asList(args).contains(OPTION_HELP[1])) {
+                try (BufferedReader br = new BufferedReader(new FileReader(script))) {
                     int size = 0;
                     StringBuilder usage = new StringBuilder();
                     boolean helpEnd = false;
                     boolean headComment = false;
-                    for(String l; (l = br.readLine()) != null; ) {
+                    for (String l; (l = br.readLine()) != null; ) {
                         size++;
                         l = l.replaceAll("\\s+$", "");
                         String line = l;
@@ -519,7 +528,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 boolean done = true;
                 String line = "";
                 try (BufferedReader br = new BufferedReader(new FileReader(script))) {
-                    for (String l; (l = br.readLine()) != null;) {
+                    for (String l; (l = br.readLine()) != null; ) {
                         if (l.trim().isEmpty() || l.trim().startsWith("#")) {
                             done = true;
                             continue;
@@ -529,16 +538,16 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                             parser().parse(line, line.length() + 1, ParseContext.ACCEPT_LINE);
                             done = true;
                             for (int i = 1; i < args.length; i++) {
-                                line = line.replaceAll("\\s\\$" + i + "\\b",
-                                             (" " + expandParameterName(args[i]) + " "));
-                                line = line.replaceAll("\\$\\{" + i + "(|:-.*)}",
-                                             expandParameterName(args[i]));
+                                line = line.replaceAll(
+                                        "\\s\\$" + i + "\\b", (" " + expandParameterName(args[i]) + " "));
+                                line = line.replaceAll("\\$\\{" + i + "(|:-.*)}", expandParameterName(args[i]));
                             }
                             line = line.replaceAll("\\$\\{@}", expandToList(args));
                             line = line.replaceAll("\\$@", expandToList(args));
                             line = line.replaceAll("\\s\\$\\d\\b", "");
                             line = line.replaceAll("\\$\\{\\d+}", "");
-                            Matcher matcher = Pattern.compile("\\$\\{\\d+:-(.*?)}").matcher(line);
+                            Matcher matcher =
+                                    Pattern.compile("\\$\\{\\d+:-(.*?)}").matcher(line);
                             if (matcher.find()) {
                                 line = matcher.replaceAll(expandParameterName(matcher.group(1)));
                             }
@@ -599,7 +608,6 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             sb.append("]");
             return sb.toString();
         }
-
     }
 
     @Override
@@ -633,9 +641,13 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                     argv[i] = quote(argv[i]);
                 }
             }
-            String cmd = hasAlias(ws.get(0).substring(idx + 1)) ? getAlias(ws.get(0).substring(idx + 1))
-                                                                : ws.get(0).substring(idx + 1);
-            sb.append(SystemRegistry.class.getCanonicalName()).append(".get().invoke('").append(cmd).append("'");
+            String cmd = hasAlias(ws.get(0).substring(idx + 1))
+                    ? getAlias(ws.get(0).substring(idx + 1))
+                    : ws.get(0).substring(idx + 1);
+            sb.append(SystemRegistry.class.getCanonicalName())
+                    .append(".get().invoke('")
+                    .append(cmd)
+                    .append("'");
             for (int i = 1; i < argv.length; i++) {
                 sb.append(", ");
                 sb.append(argv[i]);
@@ -669,7 +681,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             line = line.trim();
             if (isCodeBlock(line)) {
                 StringBuilder sb = new StringBuilder();
-                for (String s: line.split("\\r?\\n")) {
+                for (String s : line.split("\\r?\\n")) {
                     sb.append(expandCommandLine(s));
                     sb.append("\n");
                 }
@@ -730,14 +742,15 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String,Object> consoleOptions() {
-        return engine.hasVariable(VAR_CONSOLE_OPTIONS) ? (Map<String, Object>) engine.get(VAR_CONSOLE_OPTIONS)
-                                                       : new HashMap<>();
+    private Map<String, Object> consoleOptions() {
+        return engine.hasVariable(VAR_CONSOLE_OPTIONS)
+                ? (Map<String, Object>) engine.get(VAR_CONSOLE_OPTIONS)
+                : new HashMap<>();
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T>T consoleOption(String option, T defval) {
+    public <T> T consoleOption(String option, T defval) {
         T out = defval;
         try {
             out = (T) consoleOptions().getOrDefault(option, defval);
@@ -766,7 +779,8 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     public ExecutionResult postProcess(String line, Object result, String output) {
         ExecutionResult out;
         Object _output = output != null && !output.trim().isEmpty() && !consoleOption("no-splittedOutput")
-                         ? output.split("\\r?\\n") : output;
+                ? output.split("\\r?\\n")
+                : output;
         String consoleVar = parser().getVariable(line);
         if (consoleVar != null && result != null) {
             engine.put("output", _output);
@@ -783,7 +797,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
     private ExecutionResult postProcess(String line, Object result) {
         int status = 0;
-        Object out = result instanceof String && ((String)result).trim().isEmpty() ? null : result;
+        Object out = result instanceof String && ((String) result).trim().isEmpty() ? null : result;
         String consoleVar = parser().getVariable(line);
         if (consoleVar != null) {
             status = saveResult(consoleVar, result);
@@ -860,7 +874,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             }
         } else if (level == 1) {
             if (object instanceof SystemRegistryImpl.CommandData) {
-                toPrint = ((SystemRegistryImpl.CommandData)object).rawLine();
+                toPrint = ((SystemRegistryImpl.CommandData) object).rawLine();
             }
         } else if (level > 1) {
             if (object instanceof SystemRegistryImpl.CommandData) {
@@ -883,9 +897,9 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
     private Object show(CommandInput input) {
         final String[] usage = {
-                "show -  list console variables",
-                "Usage: show [VARIABLE]",
-                "  -? --help                       Displays command help",
+            "show -  list console variables",
+            "Usage: show [VARIABLE]",
+            "  -? --help                       Displays command help",
         };
         try {
             parseOptions(usage, input.args());
@@ -900,9 +914,9 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
     private Object del(CommandInput input) {
         final String[] usage = {
-                "del -  delete console variables, methods, classes and imports",
-                "Usage: del [var1] ...",
-                "  -? --help                       Displays command help",
+            "del -  delete console variables, methods, classes and imports",
+            "Usage: del [var1] ...",
+            "  -? --help                       Displays command help",
         };
         try {
             parseOptions(usage, input.args());
@@ -923,23 +937,27 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
     private Object slurpcmd(CommandInput input) {
         final String[] usage = {
-                "slurp -  slurp file or string variable context to object",
-                "Usage: slurp [OPTIONS] file|variable",
-                "  -? --help                       Displays command help",
-                "  -e --encoding=ENCODING          Encoding (default UTF-8)",
-                "  -f --format=FORMAT              Serialization format"
+            "slurp -  slurp file or string variable context to object",
+            "Usage: slurp [OPTIONS] file|variable",
+            "  -? --help                       Displays command help",
+            "  -e --encoding=ENCODING          Encoding (default UTF-8)",
+            "  -f --format=FORMAT              Serialization format"
         };
         Object out = null;
         try {
             Options opt = parseOptions(usage, input.xargs());
-            if (!opt.args().isEmpty()){
+            if (!opt.args().isEmpty()) {
                 Object _arg = opt.argObjects().get(0);
                 if (!(_arg instanceof String)) {
-                    throw new IllegalArgumentException("Invalid parameter type: " + _arg.getClass().getSimpleName());
+                    throw new IllegalArgumentException(
+                            "Invalid parameter type: " + _arg.getClass().getSimpleName());
                 }
-                String arg = (String)_arg;
-                Charset encoding = opt.isSet("encoding") ? Charset.forName(opt.get("encoding")): StandardCharsets.UTF_8;
-                String format = opt.isSet("format") ? opt.get("format") : engine.getSerializationFormats().get(0);
+                String arg = (String) _arg;
+                Charset encoding =
+                        opt.isSet("encoding") ? Charset.forName(opt.get("encoding")) : StandardCharsets.UTF_8;
+                String format = opt.isSet("format")
+                        ? opt.get("format")
+                        : engine.getSerializationFormats().get(0);
                 try {
                     Path path = Paths.get(arg);
                     if (path.toFile().exists()) {
@@ -972,7 +990,8 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
     @Override
     public Object slurp(Path file) throws IOException {
-        return slurp(file, StandardCharsets.UTF_8, engine.getSerializationFormats().get(0));
+        return slurp(
+                file, StandardCharsets.UTF_8, engine.getSerializationFormats().get(0));
     }
 
     private Object slurp(Path file, Charset encoding, String format) throws IOException {
@@ -982,9 +1001,9 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
     private Object aliascmd(CommandInput input) {
         final String[] usage = {
-                "alias -  create command alias",
-                "Usage: alias [ALIAS] [COMMANDLINE]",
-                "  -? --help                       Displays command help"
+            "alias -  create command alias",
+            "Usage: alias [ALIAS] [COMMANDLINE]",
+            "  -? --help                       Displays command help"
         };
         Object out = null;
         try {
@@ -997,11 +1016,11 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             } else {
                 String alias = String.join(" ", args.subList(1, args.size()));
                 for (int j = 0; j < 10; j++) {
-                    alias = alias.replaceAll("%" + j , "\\$" + j);
+                    alias = alias.replaceAll("%" + j, "\\$" + j);
                     alias = alias.replaceAll("%\\{" + j + "}", "\\$\\{" + j + "\\}");
                     alias = alias.replaceAll("%\\{" + j + ":-", "\\$\\{" + j + ":-");
                 }
-                alias = alias.replaceAll("%@" , "\\$@");
+                alias = alias.replaceAll("%@", "\\$@");
                 alias = alias.replaceAll("%\\{@}", "\\$\\{@\\}");
                 aliases.put(args.get(0), alias);
                 persist(aliasFile, aliases);
@@ -1014,9 +1033,9 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
     private Object unalias(CommandInput input) {
         final String[] usage = {
-                "unalias -  remove command alias",
-                "Usage: unalias [ALIAS...]",
-                "  -? --help                       Displays command help"
+            "unalias -  remove command alias",
+            "Usage: unalias [ALIAS...]",
+            "  -? --help                       Displays command help"
         };
         try {
             Options opt = parseOptions(usage, input.args());
@@ -1032,22 +1051,22 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
     private Object pipe(CommandInput input) {
         final String[] usage = {
-                "pipe -  create/delete pipe operator",
-                "Usage: pipe [OPERATOR] [PREFIX] [POSTFIX]",
-                "       pipe --list",
-                "       pipe --delete [OPERATOR...]",
-                "  -? --help                       Displays command help",
-                "  -d --delete                     Delete pipe operators",
-                "  -l --list                       List pipe operators",
+            "pipe -  create/delete pipe operator",
+            "Usage: pipe [OPERATOR] [PREFIX] [POSTFIX]",
+            "       pipe --list",
+            "       pipe --delete [OPERATOR...]",
+            "  -? --help                       Displays command help",
+            "  -d --delete                     Delete pipe operators",
+            "  -l --list                       List pipe operators",
         };
         try {
             Options opt = parseOptions(usage, input.args());
             Map<String, Object> options = new HashMap<>();
             if (opt.isSet("delete")) {
-                if ( opt.args().size() == 1 && opt.args().get(0).equals("*")) {
+                if (opt.args().size() == 1 && opt.args().get(0).equals("*")) {
                     pipes.clear();
                 } else {
-                    for (String p: opt.args()) {
+                    for (String p : opt.args()) {
                         pipes.remove(p.trim());
                     }
                 }
@@ -1072,9 +1091,9 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
     private Object doc(CommandInput input) {
         final String[] usage = {
-                "doc -  open document on browser",
-                "Usage: doc [OBJECT]",
-                "  -? --help                       Displays command help"
+            "doc -  open document on browser",
+            "Usage: doc [OBJECT]",
+            "  -? --help                       Displays command help"
         };
         try {
             parseOptions(usage, input.xargs());
@@ -1084,7 +1103,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             if (!Desktop.isDesktopSupported()) {
                 throw new IllegalStateException("Desktop is not supported!");
             }
-            Map<String,Object> docs;
+            Map<String, Object> docs;
             try {
                 docs = consoleOption("docs", null);
             } catch (Exception e) {
@@ -1098,7 +1117,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             boolean done = false;
             Object arg = input.xargs()[0];
             if (arg instanceof String) {
-                String address = (String)docs.get(input.args()[0]);
+                String address = (String) docs.get(input.args()[0]);
                 if (address != null) {
                     done = true;
                     if (urlExists(address)) {
@@ -1110,14 +1129,14 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             }
             if (!done) {
                 String name;
-                if (arg instanceof String && ((String)arg).matches("([a-z]+\\.)+[A-Z][a-zA-Z]+")) {
-                    name = (String)arg;
+                if (arg instanceof String && ((String) arg).matches("([a-z]+\\.)+[A-Z][a-zA-Z]+")) {
+                    name = (String) arg;
                 } else {
                     name = arg.getClass().getCanonicalName();
                 }
                 name = name.replaceAll("\\.", "/") + ".html";
                 Object doc = null;
-                for (Map.Entry<String,Object> entry : docs.entrySet()) {
+                for (Map.Entry<String, Object> entry : docs.entrySet()) {
                     if (name.matches(entry.getKey())) {
                         doc = entry.getValue();
                         break;
@@ -1174,14 +1193,11 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 break;
             }
         }
-        AggregateCompleter argCompleter = new AggregateCompleter(new FilesCompleter(workDir)
-                                                               , new VariableReferenceCompleter(engine));
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                               , new OptionCompleter(Arrays.asList(argCompleter
-                                                                 , NullCompleter.INSTANCE)
-                                                   , optDescs
-                                                   , 1)
-                                            ));
+        AggregateCompleter argCompleter =
+                new AggregateCompleter(new FilesCompleter(workDir), new VariableReferenceCompleter(engine));
+        completers.add(new ArgumentCompleter(
+                NullCompleter.INSTANCE,
+                new OptionCompleter(Arrays.asList(argCompleter, NullCompleter.INSTANCE), optDescs, 1)));
         return completers;
     }
 
@@ -1193,12 +1209,12 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
     private List<Completer> prntCompleter(String command) {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                       , new OptionCompleter(Arrays.asList(new VariableReferenceCompleter(engine)
-                                                         , NullCompleter.INSTANCE)
-                                           , this::commandOptions
-                                           , 1)
-                                    ));
+        completers.add(new ArgumentCompleter(
+                NullCompleter.INSTANCE,
+                new OptionCompleter(
+                        Arrays.asList(new VariableReferenceCompleter(engine), NullCompleter.INSTANCE),
+                        this::commandOptions,
+                        1)));
         return completers;
     }
 
@@ -1219,8 +1235,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 if (!word.contains(".") && !word.contains("}")) {
                     for (String v : engine.find().keySet()) {
                         String c = "${" + v + "}";
-                        candidates.add(new Candidate(AttributedString.stripAnsi(c)
-                                , c, null, null, null, null, false));
+                        candidates.add(new Candidate(AttributedString.stripAnsi(c), c, null, null, null, null, false));
                     }
                 } else if (word.startsWith("${") && word.contains("}") && word.contains(".")) {
                     String var = word.substring(2, word.indexOf('}'));
@@ -1230,14 +1245,22 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                         Object obj = curBuf.contains(".") ? engine.execute(objStatement) : engine.get(var);
                         Map<?, ?> map = obj instanceof Map ? (Map<?, ?>) obj : null;
                         Set<String> identifiers = new HashSet<>();
-                        if (map != null && !map.isEmpty() && map.keySet().iterator().next() instanceof String) {
-                            identifiers = (Set<String>)map.keySet();
+                        if (map != null
+                                && !map.isEmpty()
+                                && map.keySet().iterator().next() instanceof String) {
+                            identifiers = (Set<String>) map.keySet();
                         } else if (map == null && obj != null) {
                             identifiers = getClassMethodIdentifiers(obj.getClass());
                         }
                         for (String key : identifiers) {
-                            candidates.add(new Candidate(AttributedString.stripAnsi(curBuf + "." + key)
-                                    , key, null, null, null, null, false));
+                            candidates.add(new Candidate(
+                                    AttributedString.stripAnsi(curBuf + "." + key),
+                                    key,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    false));
                         }
                     }
                 }
@@ -1269,9 +1292,9 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     }
 
     private static class AliasValueCompleter implements Completer {
-        private final Map<String,String> aliases;
+        private final Map<String, String> aliases;
 
-        public AliasValueCompleter(Map<String,String> aliases) {
+        public AliasValueCompleter(Map<String, String> aliases) {
             this.aliases = aliases;
         }
 
@@ -1283,11 +1306,10 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             if (words.size() > 1) {
                 String h = words.get(words.size() - 2);
                 if (h != null && h.length() > 0) {
-                     String v = aliases.get(h);
-                     if (v != null) {
-                          candidates.add(new Candidate(AttributedString.stripAnsi(v)
-                                           , v, null, null, null, null, true));
-                     }
+                    String v = aliases.get(h);
+                    if (v != null) {
+                        candidates.add(new Candidate(AttributedString.stripAnsi(v), v, null, null, null, null, true));
+                    }
                 }
             }
         }
@@ -1298,27 +1320,22 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         List<Completer> params = new ArrayList<>();
         params.add(new StringsCompleter(aliases::keySet));
         params.add(new AliasValueCompleter(aliases));
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                , new OptionCompleter(params
-                                    , this::commandOptions
-                                    , 1)
-                             ));
+        completers.add(
+                new ArgumentCompleter(NullCompleter.INSTANCE, new OptionCompleter(params, this::commandOptions, 1)));
         return completers;
     }
 
     private List<Completer> unaliasCompleter(String command) {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                , new OptionCompleter(new StringsCompleter(aliases::keySet)
-                                    , this::commandOptions
-                                    , 1)
-                             ));
+        completers.add(new ArgumentCompleter(
+                NullCompleter.INSTANCE,
+                new OptionCompleter(new StringsCompleter(aliases::keySet), this::commandOptions, 1)));
         return completers;
     }
 
     private List<String> docs() {
         List<String> out = new ArrayList<>();
-        Map<String,String> docs = consoleOption("docs", null);
+        Map<String, String> docs = consoleOption("docs", null);
         if (docs == null) {
             return out;
         }
@@ -1326,7 +1343,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             out.add("$" + v);
         }
         if (!docs.isEmpty()) {
-            for (String d :  docs.keySet()) {
+            for (String d : docs.keySet()) {
                 if (d.matches("\\w+")) {
                     out.add(d);
                 }
@@ -1337,12 +1354,12 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
     private List<Completer> docCompleter(String command) {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                       , new OptionCompleter(Arrays.asList(new StringsCompleter(this::docs)
-                                                         , NullCompleter.INSTANCE)
-                                           , this::commandOptions
-                                           , 1)
-                                    ));
+        completers.add(new ArgumentCompleter(
+                NullCompleter.INSTANCE,
+                new OptionCompleter(
+                        Arrays.asList(new StringsCompleter(this::docs), NullCompleter.INSTANCE),
+                        this::commandOptions,
+                        1)));
         return completers;
     }
 }

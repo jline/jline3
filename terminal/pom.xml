@@ -53,10 +53,8 @@
                 <configuration>
                     <instructions>
                         <Export-Package>*;-noimport:=true</Export-Package>
-                        <Import-Package>
-                            sun.misc;resolution:=optional,
-                            *
-                        </Import-Package>
+                        <Import-Package>sun.misc;resolution:=optional,
+                            *</Import-Package>
                     </instructions>
                 </configuration>
             </plugin>

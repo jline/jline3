@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2016, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -18,9 +18,7 @@ import org.junit.Test;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class ArgumentCompleterTest
-    extends ReaderTestSupport
-{
+public class ArgumentCompleterTest extends ReaderTestSupport {
     @Test
     public void test1() throws Exception {
         reader.setCompleter(new ArgumentCompleter(new StringsCompleter("foo", "bar", "baz")));
@@ -31,18 +29,22 @@ public class ArgumentCompleterTest
         assertBuffer("foo baz ", new TestBuffer("foo baz").tab());
 
         // test completion in the mid range
-        assertBuffer("foo baz", new TestBuffer("f baz").left().left().left().left().tab());
-        assertBuffer("ba foo", new TestBuffer("b foo").left().left().left().left().tab());
-        assertBuffer("foo ba baz", new TestBuffer("foo b baz").left().left().left().left().tab());
-        assertBuffer("foo foo baz", new TestBuffer("foo f baz").left().left().left().left().tab());
+        assertBuffer(
+                "foo baz", new TestBuffer("f baz").left().left().left().left().tab());
+        assertBuffer(
+                "ba foo", new TestBuffer("b foo").left().left().left().left().tab());
+        assertBuffer(
+                "foo ba baz",
+                new TestBuffer("foo b baz").left().left().left().left().tab());
+        assertBuffer(
+                "foo foo baz",
+                new TestBuffer("foo f baz").left().left().left().left().tab());
     }
 
     @Test
     public void testMultiple() throws Exception {
         ArgumentCompleter argCompleter = new ArgumentCompleter(
-                new StringsCompleter("bar", "baz"),
-                new StringsCompleter("foo"),
-                new StringsCompleter("ree"));
+                new StringsCompleter("bar", "baz"), new StringsCompleter("foo"), new StringsCompleter("ree"));
         reader.setCompleter(argCompleter);
 
         assertBuffer("bar foo ", new TestBuffer("bar f").tab());
@@ -59,9 +61,7 @@ public class ArgumentCompleterTest
     @Test
     public void test2() throws Exception {
         reader.setCompleter(
-                new ArgumentCompleter(
-                        new StringsCompleter("some", "any"),
-                        new StringsCompleter("foo", "bar", "baz")));
+                new ArgumentCompleter(new StringsCompleter("some", "any"), new StringsCompleter("foo", "bar", "baz")));
 
         assertBuffer("some foo ", new TestBuffer("some fo").tab());
     }

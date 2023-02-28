@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,17 +8,16 @@
  */
 package org.jline.builtins;
 
-
-import org.jline.reader.LineReader;
-import org.jline.reader.Macro;
-import org.jline.reader.Reference;
-import org.jline.utils.Log;
-
 import java.io.*;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+
+import org.jline.reader.LineReader;
+import org.jline.reader.Macro;
+import org.jline.reader.Reference;
+import org.jline.utils.Log;
 
 public final class InputRC {
 
@@ -151,8 +150,7 @@ public final class InputRC {
                         }
                     }
                 }
-                while (i < line.length() && line.charAt(i) != ':'
-                        && line.charAt(i) != ' ' && line.charAt(i) != '\t') {
+                while (i < line.length() && line.charAt(i) != ':' && line.charAt(i) != ' ' && line.charAt(i) != '\t') {
                     i++;
                 }
                 String keySeq = line.substring(0, i);
@@ -202,13 +200,15 @@ public final class InputRC {
                             }
                         }
                     }
-                    for (; i < line.length() && line.charAt(i) != ' ' && line.charAt(i) != '\t'; i++) ;
+                    for (; i < line.length() && line.charAt(i) != ' ' && line.charAt(i) != '\t'; i++)
+                        ;
                     String val = line.substring(Math.min(start, line.length()), Math.min(i, line.length()));
                     if (keySeq.charAt(0) == '"') {
                         keySeq = translateQuoted(keySeq);
                     } else {
                         // Bind key name
-                        String keyName = keySeq.lastIndexOf('-') > 0 ? keySeq.substring(keySeq.lastIndexOf('-') + 1) : keySeq;
+                        String keyName =
+                                keySeq.lastIndexOf('-') > 0 ? keySeq.substring(keySeq.lastIndexOf('-') + 1) : keySeq;
                         char key = getKeyFromName(keyName);
                         keyName = keySeq.toLowerCase();
                         keySeq = "";
@@ -381,5 +381,4 @@ public final class InputRC {
 
         reader.setVariable(key, val);
     }
-
 }

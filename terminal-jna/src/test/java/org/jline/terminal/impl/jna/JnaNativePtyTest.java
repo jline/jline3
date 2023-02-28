@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2016, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -10,14 +10,14 @@ package org.jline.terminal.impl.jna;
 
 import java.io.IOException;
 
-import com.sun.jna.Platform;
 import org.jline.terminal.Size;
 import org.junit.Test;
+
+import com.sun.jna.Platform;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assume.assumeFalse;
-import static org.junit.Assume.assumeTrue;
 
 public class JnaNativePtyTest {
 

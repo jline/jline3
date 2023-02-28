@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, the original author or authors.
+ * Copyright (c) 2021, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -70,7 +70,7 @@ public class DisplayTest {
                 }
                 lines.add(sb.toAttributedString());
             }
-            assertEquals("009: Chaine de test...   ", lines.get(rows-1).toString());
+            assertEquals("009: Chaine de test...   ", lines.get(rows - 1).toString());
 
             terminal.setAttributes(savedAttributes);
             terminal.puts(exit_ca_mode);
@@ -80,6 +80,7 @@ public class DisplayTest {
     static class VirtualTerminal extends LineDisciplineTerminal {
         private final ScreenTerminal virtual;
         private final OutputStream masterInputOutput;
+
         public VirtualTerminal(String name, String type, Charset encoding, int cols, int rows) throws IOException {
             super(name, type, new DelegateOutputStream(), encoding);
             setSize(new Size(cols, rows));
@@ -130,7 +131,8 @@ public class DisplayTest {
 
         private class MasterOutputStream extends OutputStream {
             private final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            private final CharsetDecoder decoder = Charset.defaultCharset().newDecoder()
+            private final CharsetDecoder decoder = Charset.defaultCharset()
+                    .newDecoder()
                     .onMalformedInput(CodingErrorAction.REPLACE)
                     .onUnmappableCharacter(CodingErrorAction.REPLACE);
 

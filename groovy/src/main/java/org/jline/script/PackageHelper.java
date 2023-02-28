@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2021, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -7,8 +7,6 @@
  * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.script;
-
-import groovy.lang.GroovyClassLoader;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,14 +21,26 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+
+import groovy.lang.GroovyClassLoader;
+
 /**
  *
  * https://stackoverflow.com/questions/520328/can-you-find-all-classes-in-a-package-using-reflection/22462785#22462785
  *
  */
 public class PackageHelper {
-    private enum ClassesToScann {ALL, PACKAGE_ALL, PACKAGE_CLASS}
-    private enum ClassOutput {NAME, CLASS, MIXED}
+    private enum ClassesToScann {
+        ALL,
+        PACKAGE_ALL,
+        PACKAGE_CLASS
+    }
+
+    private enum ClassOutput {
+        NAME,
+        CLASS,
+        MIXED
+    }
     /**
      * Private helper method
      *
@@ -44,8 +54,13 @@ public class PackageHelper {
      * @param scann
      *            determinate which classes will be added
      */
-    private static void checkDirectory(File directory, String pckgname, List<Object> classes, ClassesToScann scann
-            , ClassOutput outType, Function<String,Class<?>> classResolver) {
+    private static void checkDirectory(
+            File directory,
+            String pckgname,
+            List<Object> classes,
+            ClassesToScann scann,
+            ClassOutput outType,
+            Function<String, Class<?>> classResolver) {
         File tmpDirectory;
 
         if (directory.exists() && directory.isDirectory()) {
@@ -60,8 +75,13 @@ public class PackageHelper {
                         addClass(className, classes, classResolver);
                     }
                 } else if (scann == ClassesToScann.ALL && (tmpDirectory = new File(directory, file)).isDirectory()) {
-                    checkDirectory(tmpDirectory, pckgname + "." + file, classes, ClassesToScann.ALL
-                            , ClassOutput.NAME, classResolver);
+                    checkDirectory(
+                            tmpDirectory,
+                            pckgname + "." + file,
+                            classes,
+                            ClassesToScann.ALL,
+                            ClassOutput.NAME,
+                            classResolver);
                 }
             }
         }
@@ -82,20 +102,26 @@ public class PackageHelper {
      * @throws IOException
      *             if it can't correctly read from the jar file.
      */
-    private static void checkJarFile(final JarFile jarFile, String pckgname, List<Object> classes, ClassesToScann scann
-            , ClassOutput outType, Function<String,Class<?>> classResolver)
+    private static void checkJarFile(
+            final JarFile jarFile,
+            String pckgname,
+            List<Object> classes,
+            ClassesToScann scann,
+            ClassOutput outType,
+            Function<String, Class<?>> classResolver)
             throws IOException {
         final Enumeration<JarEntry> entries = jarFile.entries();
         String name;
 
-        for (JarEntry jarEntry; entries.hasMoreElements() && ((jarEntry = entries.nextElement()) != null);) {
+        for (JarEntry jarEntry; entries.hasMoreElements() && ((jarEntry = entries.nextElement()) != null); ) {
             name = jarEntry.getName();
             if (name.contains(".class")) {
                 name = name.substring(0, name.length() - 6).replace('/', '.');
                 if (scann != ClassesToScann.ALL) {
                     String namepckg = name.substring(0, name.lastIndexOf("."));
-                    if (pckgname.equals(namepckg) && ((scann == ClassesToScann.PACKAGE_CLASS && !name.contains("$"))
-                                                    || scann == ClassesToScann.PACKAGE_ALL)) {
+                    if (pckgname.equals(namepckg)
+                            && ((scann == ClassesToScann.PACKAGE_CLASS && !name.contains("$"))
+                                    || scann == ClassesToScann.PACKAGE_ALL)) {
                         if (outType == ClassOutput.CLASS) {
                             addClass(name, classes, classResolver);
                         } else {
@@ -103,8 +129,9 @@ public class PackageHelper {
                         }
                     }
                 } else if (name.contains(pckgname)) {
-                    if (outType == ClassOutput.CLASS || (outType == ClassOutput.MIXED
-                            && Character.isUpperCase(name.charAt(pckgname.length() + 1)))) {
+                    if (outType == ClassOutput.CLASS
+                            || (outType == ClassOutput.MIXED
+                                    && Character.isUpperCase(name.charAt(pckgname.length() + 1)))) {
                         addClass(name, classes, classResolver);
                     } else {
                         classes.add(name);
@@ -114,7 +141,7 @@ public class PackageHelper {
         }
     }
 
-    private static void addClass(String className, List<Object> classes, Function<String,Class<?>> classResolver) {
+    private static void addClass(String className, List<Object> classes, Function<String, Class<?>> classResolver) {
         if (classResolver != null) {
             Class<?> clazz = classResolver.apply(className);
             if (clazz != null) {
@@ -129,7 +156,7 @@ public class PackageHelper {
         Class<?> out = null;
         try {
             out = Class.forName(name);
-        } catch (Exception|Error ignore) {
+        } catch (Exception | Error ignore) {
 
         }
         return out;
@@ -167,10 +194,9 @@ public class PackageHelper {
         public ClassOutput outType() {
             return outType;
         }
-
     }
 
-    static private Enumeration<URL> toEnumeration(final URL[] urls) {
+    private static Enumeration<URL> toEnumeration(final URL[] urls) {
         return (new Enumeration<URL>() {
             final int size = urls.length;
 
@@ -186,18 +212,16 @@ public class PackageHelper {
         });
     }
 
-    private static Enumeration<URL> getResources(final ClassLoader classLoader, String packageName) throws ClassNotFoundException {
+    private static Enumeration<URL> getResources(final ClassLoader classLoader, String packageName)
+            throws ClassNotFoundException {
         try {
             return classLoader.getResources(packageName.replace('.', '/'));
         } catch (final NullPointerException ex) {
             throw new ClassNotFoundException(
-                    packageName
-                            + " does not appear to be a valid package (Null pointer exception)",
-                    ex);
+                    packageName + " does not appear to be a valid package (Null pointer exception)", ex);
         } catch (final IOException ioex) {
             throw new ClassNotFoundException(
-                    "IOException was thrown when trying to get all resources for "
-                            + packageName, ioex);
+                    "IOException was thrown when trying to get all resources for " + packageName, ioex);
         }
     }
 
@@ -215,8 +239,8 @@ public class PackageHelper {
         try {
             PackageNameParser pnp = new PackageNameParser(pckgname);
             Enumeration<URL> resources = getResources(classLoader, pnp.packageName());
-            return (List<String>)(Object)getClassesForPackage(pnp.packageName(), resources, pnp.classesToScann()
-                    , ClassOutput.NAME, null);
+            return (List<String>) (Object)
+                    getClassesForPackage(pnp.packageName(), resources, pnp.classesToScann(), ClassOutput.NAME, null);
         } catch (Exception ignore) {
         }
         return new ArrayList<>();
@@ -234,8 +258,9 @@ public class PackageHelper {
      * @throws ClassNotFoundException
      *             if something went wrong
      */
-    public static List<Object> getClassesForPackage(String pckgname, GroovyClassLoader classLoader
-            , Function<String,Class<?>> classResolver) throws ClassNotFoundException {
+    public static List<Object> getClassesForPackage(
+            String pckgname, GroovyClassLoader classLoader, Function<String, Class<?>> classResolver)
+            throws ClassNotFoundException {
         PackageNameParser pnp = new PackageNameParser(pckgname);
         Enumeration<URL> resources = toEnumeration(classLoader.getURLs());
         return getClassesForPackage(pnp.packageName(), resources, pnp.classesToScann(), pnp.outType(), classResolver);
@@ -258,11 +283,17 @@ public class PackageHelper {
         }
         PackageNameParser pnp = new PackageNameParser(pckgname);
         Enumeration<URL> resources = getResources(cld, pnp.packageName());
-        return getClassesForPackage(pnp.packageName(), resources, pnp.classesToScann(), pnp.outType(), PackageHelper::classResolver);
+        return getClassesForPackage(
+                pnp.packageName(), resources, pnp.classesToScann(), pnp.outType(), PackageHelper::classResolver);
     }
 
-    private static List<Object> getClassesForPackage(String pckgname, final Enumeration<URL> resources, ClassesToScann scann
-            , ClassOutput outType, Function<String, Class<?>> classResolver) throws ClassNotFoundException {
+    private static List<Object> getClassesForPackage(
+            String pckgname,
+            final Enumeration<URL> resources,
+            ClassesToScann scann,
+            ClassOutput outType,
+            Function<String, Class<?>> classResolver)
+            throws ClassNotFoundException {
         List<Object> classes = new ArrayList<>();
         URLConnection connection;
 
@@ -271,8 +302,17 @@ public class PackageHelper {
                 connection = url.openConnection();
 
                 if (connection instanceof JarURLConnection) {
-                    checkJarFile(((JarURLConnection) connection).getJarFile(), pckgname, classes, scann, outType, classResolver);
-                } else if (connection.getClass().getCanonicalName().equals("sun.net.www.protocol.file.FileURLConnection")) {
+                    checkJarFile(
+                            ((JarURLConnection) connection).getJarFile(),
+                            pckgname,
+                            classes,
+                            scann,
+                            outType,
+                            classResolver);
+                } else if (connection
+                        .getClass()
+                        .getCanonicalName()
+                        .equals("sun.net.www.protocol.file.FileURLConnection")) {
                     try {
                         File file = new File(URLDecoder.decode(url.getPath(), "UTF-8"));
                         if (file.exists()) {
@@ -284,19 +324,15 @@ public class PackageHelper {
                         }
                     } catch (final UnsupportedEncodingException ex) {
                         throw new ClassNotFoundException(
-                                pckgname
-                                        + " does not appear to be a valid package (Unsupported encoding)",
-                                ex);
+                                pckgname + " does not appear to be a valid package (Unsupported encoding)", ex);
                     }
                 } else {
-                    throw new ClassNotFoundException(pckgname + " ("
-                            + url.getPath()
-                            + ") does not appear to be a valid package");
+                    throw new ClassNotFoundException(
+                            pckgname + " (" + url.getPath() + ") does not appear to be a valid package");
                 }
             } catch (final IOException ioex) {
                 throw new ClassNotFoundException(
-                        "IOException was thrown when trying to get all resources for "
-                                + pckgname, ioex);
+                        "IOException was thrown when trying to get all resources for " + pckgname, ioex);
             }
         }
         return classes;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2021, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,12 +8,12 @@
  */
 package org.jline.reader.impl;
 
-import org.jline.reader.*;
-import org.junit.Test;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+
+import org.jline.reader.*;
+import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
@@ -22,15 +22,18 @@ public class CompletionMatcherTest {
     private CompletionMatcher compileCompletionMatcher(String line) {
         CompletionMatcher completionMatcher = new CompletionMatcherImpl();
         Parser parser = new DefaultParser();
-        completionMatcher.compile(new HashMap<>(), false, LineReaderImpl.wrap(parser.parse(line, line.length()))
-                , true, 0, "");
+        completionMatcher.compile(
+                new HashMap<>(), false, LineReaderImpl.wrap(parser.parse(line, line.length())), true, 0, "");
         return completionMatcher;
     }
 
     @Test
     public void uniqueCandidates() {
         Candidate c = new Candidate("foo");
-        assertEquals("Expected only one element", 1, compileCompletionMatcher("").matches(Arrays.asList(c, c)).size());
+        assertEquals(
+                "Expected only one element",
+                1,
+                compileCompletionMatcher("").matches(Arrays.asList(c, c)).size());
     }
 
     @Test

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2016, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -22,7 +22,6 @@ import java.nio.charset.CodingErrorAction;
 import java.nio.charset.MalformedInputException;
 import java.nio.charset.UnmappableCharacterException;
 
-
 /**
  *
  * NOTE for JLine: the default InputStreamReader that comes from the JRE
@@ -38,7 +37,7 @@ import java.nio.charset.UnmappableCharacterException;
  * "file.encoding" system property. {@code InputStreamReader} contains a buffer
  * of bytes read from the source stream and converts these into characters as
  * needed. The buffer size is 8K.
- * 
+ *
  * @see OutputStreamWriter
  */
 public class InputStreamReader extends Reader {
@@ -59,16 +58,17 @@ public class InputStreamReader extends Reader {
      * {@code in}. This constructor sets the character converter to the encoding
      * specified in the "file.encoding" property and falls back to ISO 8859_1
      * (ISO-Latin-1) if the property doesn't exist.
-     * 
+     *
      * @param in
      *            the input stream from which to read characters.
      */
     public InputStreamReader(InputStream in) {
         super(in);
         this.in = in;
-        decoder = Charset.defaultCharset().newDecoder().onMalformedInput(
-                CodingErrorAction.REPLACE).onUnmappableCharacter(
-                CodingErrorAction.REPLACE);
+        decoder = Charset.defaultCharset()
+                .newDecoder()
+                .onMalformedInput(CodingErrorAction.REPLACE)
+                .onUnmappableCharacter(CodingErrorAction.REPLACE);
         bytes.limit(0);
     }
 
@@ -77,7 +77,7 @@ public class InputStreamReader extends Reader {
      * character converter that is used to decode bytes into characters is
      * identified by name by {@code enc}. If the encoding cannot be found, an
      * UnsupportedEncodingException error is thrown.
-     * 
+     *
      * @param in
      *            the InputStream from which to read characters.
      * @param enc
@@ -87,20 +87,19 @@ public class InputStreamReader extends Reader {
      * @throws UnsupportedEncodingException
      *             if the encoding specified by {@code enc} cannot be found.
      */
-    public InputStreamReader(InputStream in, final String enc)
-            throws UnsupportedEncodingException {
+    public InputStreamReader(InputStream in, final String enc) throws UnsupportedEncodingException {
         super(in);
         if (enc == null) {
             throw new NullPointerException();
         }
         this.in = in;
         try {
-            decoder = Charset.forName(enc).newDecoder().onMalformedInput(
-                    CodingErrorAction.REPLACE).onUnmappableCharacter(
-                    CodingErrorAction.REPLACE);
+            decoder = Charset.forName(enc)
+                    .newDecoder()
+                    .onMalformedInput(CodingErrorAction.REPLACE)
+                    .onUnmappableCharacter(CodingErrorAction.REPLACE);
         } catch (IllegalArgumentException e) {
-            throw (UnsupportedEncodingException)
-                    new UnsupportedEncodingException(enc).initCause(e);
+            throw (UnsupportedEncodingException) new UnsupportedEncodingException(enc).initCause(e);
         }
         bytes.limit(0);
     }
@@ -108,7 +107,7 @@ public class InputStreamReader extends Reader {
     /**
      * Constructs a new InputStreamReader on the InputStream {@code in} and
      * CharsetDecoder {@code dec}.
-     * 
+     *
      * @param in
      *            the source InputStream from which to read characters.
      * @param dec
@@ -125,7 +124,7 @@ public class InputStreamReader extends Reader {
     /**
      * Constructs a new InputStreamReader on the InputStream {@code in} and
      * Charset {@code charset}.
-     * 
+     *
      * @param in
      *            the source InputStream from which to read characters.
      * @param charset
@@ -134,16 +133,16 @@ public class InputStreamReader extends Reader {
     public InputStreamReader(InputStream in, Charset charset) {
         super(in);
         this.in = in;
-        decoder = charset.newDecoder().onMalformedInput(
-                CodingErrorAction.REPLACE).onUnmappableCharacter(
-                CodingErrorAction.REPLACE);
+        decoder = charset.newDecoder()
+                .onMalformedInput(CodingErrorAction.REPLACE)
+                .onUnmappableCharacter(CodingErrorAction.REPLACE);
         bytes.limit(0);
     }
 
     /**
      * Closes this reader. This implementation closes the source InputStream and
      * releases all local storage.
-     * 
+     *
      * @throws IOException
      *             if an error occurs attempting to close this reader.
      */
@@ -161,7 +160,7 @@ public class InputStreamReader extends Reader {
     /**
      * Returns the name of the encoding used to convert bytes into characters.
      * The value {@code null} is returned if this reader has been closed.
-     * 
+     *
      * @return the name of the character converter or {@code null} if this
      *         reader is closed.
      */
@@ -178,7 +177,7 @@ public class InputStreamReader extends Reader {
      * reader has been reached. The byte value is either obtained from
      * converting bytes in this reader's buffer or by first filling the buffer
      * from the source InputStream and then reading from the buffer.
-     * 
+     *
      * @return the character read or -1 if the end of the reader has been
      *         reached.
      * @throws IOException
@@ -216,7 +215,7 @@ public class InputStreamReader extends Reader {
      * been reached. The bytes are either obtained from converting bytes in this
      * reader's buffer or by first filling the buffer from the source
      * InputStream and then reading from the buffer.
-     * 
+     *
      * @param buf
      *            the array to store the characters read.
      * @param offset
@@ -257,8 +256,7 @@ public class InputStreamReader extends Reader {
                 // fill the buffer if needed
                 if (needInput) {
                     try {
-                        if ((in.available() == 0) 
-                            && (out.position() > offset)) {
+                        if ((in.available() == 0) && (out.position() > offset)) {
                             // we could return the result without blocking read
                             break;
                         }
@@ -324,7 +322,7 @@ public class InputStreamReader extends Reader {
      * {@code read()} is called. This implementation returns {@code true} if
      * there are bytes available in the buffer or the source stream has bytes
      * available.
-     * 
+     *
      * @return {@code true} if the receiver will not block when {@code read()}
      *         is called, {@code false} if unknown or blocking will occur.
      * @throws IOException

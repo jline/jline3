@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2017, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -83,5 +83,4 @@ public interface Buffer {
     Buffer copy();
 
     void copyFrom(Buffer buffer);
-
 }

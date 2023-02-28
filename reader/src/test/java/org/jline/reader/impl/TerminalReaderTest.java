@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2016, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -9,15 +9,14 @@
 package org.jline.reader.impl;
 
 import java.io.ByteArrayInputStream;
-import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
 import org.jline.reader.Expander;
+import org.jline.reader.History;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReader.Option;
-import org.jline.reader.History;
 import org.jline.reader.Reference;
 import org.jline.reader.Widget;
 import org.jline.reader.impl.history.DefaultHistory;
@@ -34,8 +33,7 @@ import static org.junit.Assert.fail;
 /**
  * Tests for the {@link LineReaderImpl}.
  */
-public class TerminalReaderTest extends ReaderTestSupport
-{
+public class TerminalReaderTest extends ReaderTestSupport {
 
     @Before
     public void setUp() throws Exception {
@@ -53,7 +51,7 @@ public class TerminalReaderTest extends ReaderTestSupport
         System.setProperty("input.encoding", StandardCharsets.UTF_8.name());
         assertLine("\u6771\u00E9\u00E8", new TestBuffer("\u6771\u00E9\u00E8\n"));
     }
-    
+
     @Test
     public void testReadlineWithMask() throws Exception {
         mask = '*';
@@ -70,7 +68,7 @@ public class TerminalReaderTest extends ReaderTestSupport
         history.add("dir");
         history.add("cd c:\\");
         history.add("mkdir monkey");
-        
+
         Expander expander = new DefaultExpander();
 
         assertEquals("echo a!", expander.expandHistory(history, "echo a!"));
@@ -179,7 +177,7 @@ public class TerminalReaderTest extends ReaderTestSupport
         reader.setVariable(LineReader.HISTORY_SIZE, 3);
 
         Expander expander = new DefaultExpander();
-        
+
         // we can't go back to previous arguments if there are none
         try {
             expander.expandHistory(history, "!$");
@@ -196,11 +194,11 @@ public class TerminalReaderTest extends ReaderTestSupport
         history.add("ls /home");
         assertEquals("/home", expander.expandHistory(history, "!$"));
 
-        //we always take the last argument
+        // we always take the last argument
         history.add("ls /home /etc");
         assertEquals("/etc", expander.expandHistory(history, "!$"));
 
-        //make sure we don't add spaces accidentally
+        // make sure we don't add spaces accidentally
         history.add("ls /home  /foo ");
         assertEquals("/foo", expander.expandHistory(history, "!$"));
     }
@@ -243,79 +241,39 @@ public class TerminalReaderTest extends ReaderTestSupport
          */
 
         // \! (escaped expansion v1)
-        assertLineAndHistory(
-                "echo ab!ef",
-                "echo ab\\!ef",
-                new TestBuffer("echo ab\\!ef\n"), true, "cd");
+        assertLineAndHistory("echo ab!ef", "echo ab\\!ef", new TestBuffer("echo ab\\!ef\n"), true, "cd");
 
-        assertLineAndHistory(
-                "echo ab\\!ef",
-                "echo ab\\!ef",
-                new TestBuffer("echo ab\\!ef\n"), false, "cd");
+        assertLineAndHistory("echo ab\\!ef", "echo ab\\!ef", new TestBuffer("echo ab\\!ef\n"), false, "cd");
 
         // \!\! (escaped expansion v2)
-        assertLineAndHistory(
-                "echo ab!!ef",
-                "echo ab\\!\\!ef",
-                new TestBuffer("echo ab\\!\\!ef\n"), true, "cd");
+        assertLineAndHistory("echo ab!!ef", "echo ab\\!\\!ef", new TestBuffer("echo ab\\!\\!ef\n"), true, "cd");
 
-        assertLineAndHistory(
-                "echo ab\\!\\!ef",
-                "echo ab\\!\\!ef",
-                new TestBuffer("echo ab\\!\\!ef\n"), false, "cd");
+        assertLineAndHistory("echo ab\\!\\!ef", "echo ab\\!\\!ef", new TestBuffer("echo ab\\!\\!ef\n"), false, "cd");
 
         // !! (expansion)
-        assertLineAndHistory(
-                "echo abcdef",
-                "echo abcdef",
-                new TestBuffer("echo ab!!ef\n"), true, "cd");
+        assertLineAndHistory("echo abcdef", "echo abcdef", new TestBuffer("echo ab!!ef\n"), true, "cd");
 
-        assertLineAndHistory(
-                "echo ab!!ef",
-                "echo ab!!ef",
-                new TestBuffer("echo ab!!ef\n"), false, "cd");
+        assertLineAndHistory("echo ab!!ef", "echo ab!!ef", new TestBuffer("echo ab!!ef\n"), false, "cd");
 
         // \G (backslash no expansion)
-        assertLineAndHistory(
-                "echo abcGdef",
-                "echo abc\\Gdef",
-                new TestBuffer("echo abc\\Gdef\n"), true, "cd");
+        assertLineAndHistory("echo abcGdef", "echo abc\\Gdef", new TestBuffer("echo abc\\Gdef\n"), true, "cd");
 
-        assertLineAndHistory(
-                "echo abc\\Gdef",
-                "echo abc\\Gdef",
-                new TestBuffer("echo abc\\Gdef\n"), false, "cd");
+        assertLineAndHistory("echo abc\\Gdef", "echo abc\\Gdef", new TestBuffer("echo abc\\Gdef\n"), false, "cd");
 
         // \^ (escaped expansion)
-        assertLineAndHistory(
-                "^abc^def",
-                "\\^abc^def",
-                new TestBuffer("\\^abc^def\n"), true, "echo abc");
+        assertLineAndHistory("^abc^def", "\\^abc^def", new TestBuffer("\\^abc^def\n"), true, "echo abc");
 
-        assertLineAndHistory(
-                "\\^abc^def",
-                "\\^abc^def",
-                new TestBuffer("\\^abc^def\n"), false, "echo abc");
+        assertLineAndHistory("\\^abc^def", "\\^abc^def", new TestBuffer("\\^abc^def\n"), false, "echo abc");
 
         // ^^ (expansion)
-        assertLineAndHistory(
-                "echo def",
-                "echo def",
-                new TestBuffer("^abc^def\n"), true, "echo abc");
+        assertLineAndHistory("echo def", "echo def", new TestBuffer("^abc^def\n"), true, "echo abc");
 
-        assertLineAndHistory(
-                "^abc^def",
-                "^abc^def",
-                new TestBuffer("^abc^def\n"), false, "echo abc");
+        assertLineAndHistory("^abc^def", "^abc^def", new TestBuffer("^abc^def\n"), false, "echo abc");
     }
 
     @Test
     public void testStoringHistoryWithExpandEventsOff() throws Exception {
-        assertLineAndHistory(
-                "foo ! bar",
-                "foo ! bar",
-                new TestBuffer("foo ! bar\n"), false
-        );
+        assertLineAndHistory("foo ! bar", "foo ! bar", new TestBuffer("foo ! bar\n"), false);
     }
 
     @Test
@@ -369,7 +327,12 @@ public class TerminalReaderTest extends ReaderTestSupport
         return history;
     }
 
-    private void assertLineAndHistory(String expectedLine, String expectedHistory, TestBuffer input, boolean expandEvents, String... historyItems) {
+    private void assertLineAndHistory(
+            String expectedLine,
+            String expectedHistory,
+            TestBuffer input,
+            boolean expandEvents,
+            String... historyItems) {
         DefaultHistory history = new DefaultHistory();
         reader.setHistory(history);
         if (historyItems != null) {
@@ -391,7 +354,8 @@ public class TerminalReaderTest extends ReaderTestSupport
      * Validates that an 'event not found' IllegalArgumentException is thrown
      * for the expansion event.
      */
-    protected void assertExpansionIllegalArgumentException(Expander expander, History history, String event) throws Exception {
+    protected void assertExpansionIllegalArgumentException(Expander expander, History history, String event)
+            throws Exception {
         try {
             expander.expandHistory(history, event);
             fail("Expected IllegalArgumentException for " + event);
@@ -399,5 +363,4 @@ public class TerminalReaderTest extends ReaderTestSupport
             assertEquals(event + ": event not found", e.getMessage());
         }
     }
-
 }

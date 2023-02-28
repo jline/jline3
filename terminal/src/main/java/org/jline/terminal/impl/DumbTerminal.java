@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -35,17 +35,20 @@ public class DumbTerminal extends AbstractTerminal {
         this(TYPE_DUMB, TYPE_DUMB, in, out, null);
     }
 
-    public DumbTerminal(String name, String type, InputStream in, OutputStream out, Charset encoding) throws IOException {
+    public DumbTerminal(String name, String type, InputStream in, OutputStream out, Charset encoding)
+            throws IOException {
         this(name, type, in, out, encoding, SignalHandler.SIG_DFL);
     }
 
-    public DumbTerminal(String name, String type, InputStream in, OutputStream out, Charset encoding, SignalHandler signalHandler) throws IOException {
+    public DumbTerminal(
+            String name, String type, InputStream in, OutputStream out, Charset encoding, SignalHandler signalHandler)
+            throws IOException {
         super(name, type, encoding, signalHandler);
         NonBlockingInputStream nbis = NonBlocking.nonBlocking(getName(), in);
         this.input = new NonBlockingInputStream() {
             @Override
             public int read(long timeout, boolean isPeek) throws IOException {
-                for (;;) {
+                for (; ; ) {
                     int c = nbis.read(timeout, isPeek);
                     if (attributes.getLocalFlag(Attributes.LocalFlag.ISIG)) {
                         if (c == attributes.getControlChar(ControlChar.VINTR)) {
@@ -80,10 +83,10 @@ public class DumbTerminal extends AbstractTerminal {
         this.reader = NonBlocking.nonBlocking(getName(), input, encoding());
         this.writer = new PrintWriter(new OutputStreamWriter(output, encoding()));
         this.attributes = new Attributes();
-        this.attributes.setControlChar(ControlChar.VERASE,  (char) 127);
+        this.attributes.setControlChar(ControlChar.VERASE, (char) 127);
         this.attributes.setControlChar(ControlChar.VWERASE, (char) 23);
-        this.attributes.setControlChar(ControlChar.VKILL,   (char) 21);
-        this.attributes.setControlChar(ControlChar.VLNEXT,  (char) 22);
+        this.attributes.setControlChar(ControlChar.VKILL, (char) 21);
+        this.attributes.setControlChar(ControlChar.VLNEXT, (char) 22);
         this.size = new Size();
         parseInfoCmp();
     }
@@ -123,5 +126,4 @@ public class DumbTerminal extends AbstractTerminal {
     public void setSize(Size sz) {
         size.copy(sz);
     }
-
 }
