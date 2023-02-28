@@ -28,6 +28,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-native</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.easymock</groupId>
             <artifactId>easymock</artifactId>
             <scope>test</scope>

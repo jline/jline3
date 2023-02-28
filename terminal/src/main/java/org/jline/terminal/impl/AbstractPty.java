@@ -8,15 +8,23 @@
  */
 package org.jline.terminal.impl;
 
+import org.jline.nativ.JLineLibrary;
+import org.jline.nativ.JLineNativeLoader;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.spi.Pty;
 import org.jline.utils.NonBlockingInputStream;
 
-import java.io.IOError;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.InterruptedIOException;
+import java.io.FileDescriptor;
+import java.io.IOException;
+import java.io.IOError;
+import java.io.InputStream;
+import java.lang.reflect.Field;
 
+import static org.jline.terminal.TerminalBuilder.PROP_FILE_DESCRIPTOR_CREATION_MODE;
+import static org.jline.terminal.TerminalBuilder.PROP_FILE_DESCRIPTOR_CREATION_MODE_DEFAULT;
+import static org.jline.terminal.TerminalBuilder.PROP_FILE_DESCRIPTOR_CREATION_MODE_NATIVE;
+import static org.jline.terminal.TerminalBuilder.PROP_FILE_DESCRIPTOR_CREATION_MODE_REFLECTION;
 import static org.jline.terminal.TerminalBuilder.PROP_NON_BLOCKING_READS;
 
 public abstract class AbstractPty implements Pty {
@@ -99,6 +107,105 @@ public abstract class AbstractPty implements Pty {
                     throw new IOError(e);
                 }
             }
+        }
+    }
+
+    private static FileDescriptorCreator fileDescriptorCreator;
+
+    protected static FileDescriptor newDescriptor(int fd) {
+        if (fileDescriptorCreator == null) {
+            String str = System.getProperty(PROP_FILE_DESCRIPTOR_CREATION_MODE, PROP_FILE_DESCRIPTOR_CREATION_MODE_DEFAULT);
+            String[] modes = str.split(",");
+            IllegalStateException ise = new IllegalStateException("Unable to create FileDescriptor");
+            for (String mode : modes) {
+                try {
+                    switch (mode) {
+                        case PROP_FILE_DESCRIPTOR_CREATION_MODE_NATIVE:
+                            fileDescriptorCreator = new NativeFileDescriptorCreator();
+                            break;
+                        case PROP_FILE_DESCRIPTOR_CREATION_MODE_REFLECTION:
+                            fileDescriptorCreator = new ReflectionFileDescriptorCreator();
+                            break;
+                    }
+                } catch (Throwable t) {
+                    // ignore
+                    ise.addSuppressed(t);
+                }
+                if (fileDescriptorCreator != null) {
+                    break;
+                }
+            }
+            if (fileDescriptorCreator == null) {
+                throw ise;
+            }
+        }
+        return fileDescriptorCreator.newDescriptor(fd);
+    }
+
+    interface FileDescriptorCreator {
+        FileDescriptor newDescriptor(int fd);
+    }
+
+    /*
+     * Class that could be used on OpenJDK 17.  However, it requires the following JVM option
+     *   --add-exports java.base/jdk.internal.access=ALL-UNNAMED
+     * so the benefit does not seem important enough to warrant the problems caused
+     * by access the jdk.internal.access package at compile time, which itself requires
+     * custom compiler options and a different maven module, or at least a different compile
+     * phase with a JDK 17 compiler.
+     * So, just keep the ReflectionFileDescriptorCreator for now.
+     *
+    static class Jdk17FileDescriptorCreator implements FileDescriptorCreator {
+        private final jdk.internal.access.JavaIOFileDescriptorAccess fdAccess;
+        Jdk17FileDescriptorCreator() {
+            fdAccess = jdk.internal.access.SharedSecrets.getJavaIOFileDescriptorAccess();
+        }
+
+        @Override
+        public FileDescriptor newDescriptor(int fd) {
+            FileDescriptor descriptor = new FileDescriptor();
+            fdAccess.set(descriptor, fd);
+            return descriptor;
+        }
+    }
+     */
+
+    /**
+     * Reflection based file descriptor creator.
+     * This requires the following option
+     *   --add-opens java.base/java.io=ALL-UNNAMED
+     */
+    static class ReflectionFileDescriptorCreator implements FileDescriptorCreator {
+        private final Field fileDescriptorField;
+
+        ReflectionFileDescriptorCreator() throws Exception {
+            Field field = FileDescriptor.class.getDeclaredField("fd");
+            field.setAccessible(true);
+            fileDescriptorField = field;
+        }
+
+        @Override
+        public FileDescriptor newDescriptor(int fd) {
+            FileDescriptor descriptor = new FileDescriptor();
+            try {
+                fileDescriptorField.set(descriptor, fd);
+            } catch (IllegalAccessException e) {
+                // This should not happen as the field has been set accessible
+                throw new IllegalStateException(e);
+            }
+            return descriptor;
+        }
+    }
+
+    static class NativeFileDescriptorCreator implements FileDescriptorCreator {
+        NativeFileDescriptorCreator() {
+            // Force load the library
+            JLineNativeLoader.initialize();
+        }
+
+        @Override
+        public FileDescriptor newDescriptor(int fd) {
+            return JLineLibrary.newFileDescriptor(fd);
         }
     }
 
