@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2022, the original author or authors.
+ * Copyright (c) 2002-2023, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -13,6 +13,7 @@ import org.jline.utils.*;
 import java.io.*;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -471,7 +472,7 @@ public class SyntaxHighlighter {
         }
 
         public NanorcParser(InputStream in, String name, String target) {
-            this.reader = new BufferedReader(new InputStreamReader(in));
+            this.reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
             this.name = name;
             this.target = target;
             highlightRules.put(TOKEN_NANORC, new ArrayList<>());
