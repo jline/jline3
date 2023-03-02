@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2022, the original author or authors.
+ * Copyright (c) 2002-2023, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -174,7 +174,7 @@ public class Commands {
                 searchRoot = Paths.get(sr + "/");
             }
         } else {
-            regex = (root.toString().length() == 0 ? "" : root.toString() + "/") + files;
+            regex = (root.toString().length() == 0 ? "" : root + "/") + files;
             regex = regex.replaceAll("\\\\", "/").replaceAll("//", "/");
             searchRoot = root;
         }
@@ -581,7 +581,7 @@ public class Commands {
                 "       keymap [options] -D keymap ...",
                 "       keymap [options] -A old-keymap new-keymap",
                 "       keymap [options] -N new-keymap [old-keymap]",
-                "       keymap [options] -m",
+                "       keymap [options] -M",
                 "       keymap [options] -r in-string ...",
                 "       keymap [options] -s in-string out-string ...",
                 "       keymap [options] in-string command ...",
@@ -888,7 +888,7 @@ public class Commands {
                                     sb.append(KeyMap.display(last));
                                     sb.append(" ");
                                     displayValue(sb, begin.getValue());
-                                    out.println(sb.toString());
+                                    out.println(sb);
                                 } else {
                                     if (commands) {
                                         sb.append("-R ");
@@ -898,7 +898,7 @@ public class Commands {
                                     sb.append(KeyMap.display(last));
                                     sb.append(" ");
                                     displayValue(sb, begin.getValue());
-                                    out.println(sb.toString());
+                                    out.println(sb);
                                 }
                                 begin = entry;
                                 last = key;
@@ -1018,7 +1018,7 @@ public class Commands {
         } else if (value instanceof Reference) {
             sb.append(((Reference) value).name());
         } else {
-            sb.append(value.toString());
+            sb.append(value);
         }
     }
 
@@ -1199,7 +1199,7 @@ public class Commands {
             for (int i = 0; i < s; i++) {
                 lp.append(" ");
             }
-            return lp.toString() + field;
+            return lp + field;
         }
 
         private void setFixedStyle(String style) {
