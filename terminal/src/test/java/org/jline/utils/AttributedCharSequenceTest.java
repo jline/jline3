@@ -52,7 +52,24 @@ public class AttributedCharSequenceTest {
 
         assertEquals("\33[32;1mtest\33[0m", AttributedString.fromAnsi("\33[32m\33[1mtest\33[0m").toAnsi(terminal));
         assertEquals("\33[32;1mtest\33[0m", AttributedString.fromAnsi("\33[1m\33[32mtest\33[0m").toAnsi(terminal));
-
     }
 
+    @Test
+    public void testRoundTrip() throws IOException {
+        ExternalTerminal terminal = new ExternalTerminal(
+            "my term",
+            "xterm",
+            new ByteArrayInputStream(new byte[0]),
+            new ByteArrayOutputStream(),
+            StandardCharsets.UTF_8);
+
+
+        AttributedString org = new AttributedStringBuilder()
+            .append("─")
+            .toAttributedString();
+
+        AttributedString rndTrip = AttributedString.fromAnsi(org.toAnsi(terminal));
+
+        assertEquals(org, rndTrip);
+    }
 }
