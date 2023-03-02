@@ -18,6 +18,7 @@ import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -482,18 +483,27 @@ public final class TerminalBuilder {
                 // forced colored dumb terminal
                 Boolean color = this.color;
                 if (color == null) {
-                    color = getBoolean(PROP_DUMB_COLOR, false);
+                    color = getBoolean(PROP_DUMB_COLOR, null);
                     // detect emacs using the env variable
-                    if (!color) {
+                    if (color == null) {
                         String emacs = System.getenv("INSIDE_EMACS");
-                        color = emacs != null && emacs.contains("comint");
+                        if (emacs != null && emacs.contains("comint")) {
+                            color = true;
+                        }
                     }
                     // detect Intellij Idea
-                    if (!color) {
-                        String command = getParentProcessCommand();
-                        color = command != null && command.contains("idea");
+                    if (color == null) {
+                        String ideHome = System.getenv("IDE_HOME");
+                        if (ideHome != null) {
+                            color = true;
+                        } else {
+                            String command = getParentProcessCommand();
+                            if (command != null && command.endsWith("/idea")) {
+                                color = true;
+                            }
+                        }
                     }
-                    if (!color) {
+                    if (color == null) {
                         color = system.get(TerminalProvider.Stream.Output) && System.getenv("TERM") != null;
                     }
                     if (!color && dumb == null) {
