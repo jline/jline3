@@ -19,6 +19,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -48,6 +50,8 @@ public final class TerminalBuilder {
     public static final String PROP_ENCODING = "org.jline.terminal.encoding";
     public static final String PROP_CODEPAGE = "org.jline.terminal.codepage";
     public static final String PROP_TYPE = "org.jline.terminal.type";
+    public static final String PROP_PROVIDERS = "org.jline.terminal.providers";
+    public static final String PROP_PROVIDERS_DEFAULT = "jansi,jna,exec";
     public static final String PROP_JNA = "org.jline.terminal.jna";
     public static final String PROP_JANSI = "org.jline.terminal.jansi";
     public static final String PROP_EXEC = "org.jline.terminal.exec";
@@ -400,6 +404,11 @@ public final class TerminalBuilder {
                 exception.addSuppressed(t);
             }
         }
+        List<String> order = Arrays.asList(System.getProperty(PROP_PROVIDERS, PROP_PROVIDERS_DEFAULT).split(","));
+        providers.sort(Comparator.comparing(l -> {
+            int idx = order.indexOf(l);
+            return idx >= 0 ? idx : Integer.MAX_VALUE;
+        }));
 
         Terminal terminal = null;
         if ((system != null && system) || (system == null && in == null && out == null)) {
