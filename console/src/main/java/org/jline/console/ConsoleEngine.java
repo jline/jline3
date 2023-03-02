@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2023, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -198,6 +198,7 @@ public interface ConsoleEngine extends CommandRegistry {
     ExecutionResult postProcess(Object result);
 
     /**
+     * Print object if trace is enabled
      * @param object object to print
      */
     void trace(Object object);
@@ -242,8 +243,8 @@ public interface ConsoleEngine extends CommandRegistry {
     boolean executeWidget(Object function);
 
     /**
-     *
-     * @return true if consoleEngine is executing script
+     * Checks if consoleEngine is executing script
+     * @return true when executing script
      */
     boolean isExecuting();
 
