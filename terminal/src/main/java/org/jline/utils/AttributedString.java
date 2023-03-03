@@ -8,6 +8,8 @@
  */
 package org.jline.utils;
 
+import org.jline.terminal.Terminal;
+
 import java.security.InvalidParameterException;
 import java.util.Arrays;
 import java.util.List;
@@ -103,11 +105,28 @@ public class AttributedString extends AttributedCharSequence {
     }
 
     public static AttributedString fromAnsi(String ansi, List<Integer> tabs) {
+        return fromAnsi(ansi, tabs, null, null);
+    }
+
+    public static AttributedString fromAnsi(String ansi, Terminal terminal) {
+        String alternateIn, alternateOut;
+        if (!DISABLE_ALTERNATE_CHARSET) {
+            alternateIn = Curses.tputs(terminal.getStringCapability(InfoCmp.Capability.enter_alt_charset_mode));
+            alternateOut = Curses.tputs(terminal.getStringCapability(InfoCmp.Capability.exit_alt_charset_mode));
+        } else {
+            alternateIn = null;
+            alternateOut = null;
+        }
+        return fromAnsi(ansi, Arrays.asList(0), alternateIn, alternateOut);
+    }
+
+    public static AttributedString fromAnsi(String ansi, List<Integer> tabs, String altIn, String altOut) {
         if (ansi == null) {
             return null;
         }
         return new AttributedStringBuilder(ansi.length())
                 .tabs(tabs)
+                .altCharset(altIn, altOut)
                 .ansiAppend(ansi)
                 .toAttributedString();
     }

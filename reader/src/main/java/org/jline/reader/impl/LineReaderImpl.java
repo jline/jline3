@@ -56,6 +56,7 @@ import static org.jline.keymap.KeyMap.del;
 import static org.jline.keymap.KeyMap.esc;
 import static org.jline.keymap.KeyMap.range;
 import static org.jline.keymap.KeyMap.translate;
+import static org.jline.terminal.TerminalBuilder.PROP_DISABLE_ALTERNATE_CHARSET;
 
 /**
  * A reader for terminal applications. It supports custom tab-completion,
@@ -278,7 +279,10 @@ public class LineReaderImpl implements LineReader, Flushable
      */
     protected List<String> commandsBuffer = new ArrayList<>();
 
-    int candidateStartPosition = 0;
+    protected int candidateStartPosition = 0;
+
+    protected String alternateIn;
+    protected String alternateOut;
 
     public LineReaderImpl(Terminal terminal) throws IOException {
         this(terminal, terminal.getName(), null);
@@ -301,6 +305,10 @@ public class LineReaderImpl implements LineReader, Flushable
             this.variables = new HashMap<>();
         }
         this.keyMaps = defaultKeyMaps();
+        if (!Boolean.getBoolean(PROP_DISABLE_ALTERNATE_CHARSET)) {
+            this.alternateIn = Curses.tputs(terminal.getStringCapability(Capability.enter_alt_charset_mode));
+            this.alternateOut = Curses.tputs(terminal.getStringCapability(Capability.exit_alt_charset_mode));
+        }
 
         builtinWidgets = builtinWidgets();
         widgets = new HashMap<>(builtinWidgets);
@@ -4073,7 +4081,7 @@ public class LineReaderImpl implements LineReader, Flushable
                             String str = sb.toString();
                             AttributedString astr;
                             if (!isHidden) {
-                                astr = AttributedString.fromAnsi(str);
+                                astr = fromAnsi(str);
                                 cols += astr.columnLength();
                             } else {
                                 astr = new AttributedString(str, AttributedStyle.HIDDEN);
@@ -4149,9 +4157,13 @@ public class LineReaderImpl implements LineReader, Flushable
             sb = padPartString;
             while (--padCount >= 0)
                 sb.insert(padPos, (char) padChar); // FIXME if wide
-            parts.set(padPartIndex, AttributedString.fromAnsi(sb.toString()));
+            parts.set(padPartIndex, fromAnsi(sb.toString()));
         }
         return AttributedString.join(null, parts);
+    }
+
+    private AttributedString fromAnsi(String str) {
+        return AttributedString.fromAnsi(str, Collections.singletonList(0), alternateIn, alternateOut);
     }
 
     private AttributedString insertSecondaryPrompts(AttributedString str, List<AttributedString> prompts) {
@@ -5305,8 +5317,8 @@ public class LineReaderImpl implements LineReader, Flushable
                     if (idx < candidates.size()) {
                         Candidate cand = candidates.get(idx);
                         boolean hasRightItem = j < columns - 1 && index.applyAsInt(i, j + 1) < candidates.size();
-                        AttributedString left = AttributedString.fromAnsi(cand.displ());
-                        AttributedString right = AttributedString.fromAnsi(cand.descr());
+                        AttributedString left = fromAnsi(cand.displ());
+                        AttributedString right = fromAnsi(cand.descr());
                         int lw = left.columnLength();
                         int rw = 0;
                         if (right != null) {
@@ -5447,7 +5459,7 @@ public class LineReaderImpl implements LineReader, Flushable
     }
 
     protected AttributedStyle buildStyle(String str) {
-        return AttributedString.fromAnsi("\u001b[" + str + "m ").styleAt(0);
+        return fromAnsi("\u001b[" + str + "m ").styleAt(0);
     }
 
     /**

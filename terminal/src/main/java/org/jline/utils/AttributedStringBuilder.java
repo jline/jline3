@@ -27,6 +27,9 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
     private long[] style;
     private int length;
     private TabStops tabs = new TabStops(0);
+    private char[] altIn;
+    private char[] altOut;
+    private boolean inAltCharset;
     private int lastLineLength = 0;
     private AttributedStyle current = AttributedStyle.DEFAULT;
 
@@ -338,21 +341,66 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                     // This is not a SGR code, so ignore
                     ansiState = 0;
                 }
-            } else if (c == '\t' && tabs.defined()) {
-                insertTab(current);
             } else {
-                ensureCapacity(length + 1);
-                buffer[length] = c;
-                style[length] = this.current.getStyle();
-                if (c == '\n') {
-                    lastLineLength = 0;
-                } else {
-                    lastLineLength++;
+                if (ansiState >= 1) {
+                    ensureCapacity(length + 1);
+                    buffer[length++] = 27;
+                    if (ansiState >= 2) {
+                        ensureCapacity(length + 1);
+                        buffer[length++] = '[';
+                    }
+                    ansiState = 0;
                 }
-                length++;
+                if (c == '\t' && tabs.defined()) {
+                    insertTab(current);
+                } else {
+                    ensureCapacity(length + 1);
+                    if (inAltCharset) {
+                        switch (c) {
+                            case 'j': c = '┘'; break;
+                            case 'k': c = '┐'; break;
+                            case 'l': c = '┌'; break;
+                            case 'm': c = '└'; break;
+                            case 'n': c = '┼'; break;
+                            case 'q': c = '─'; break;
+                            case 't': c = '├'; break;
+                            case 'u': c = '┤'; break;
+                            case 'v': c = '┴'; break;
+                            case 'w': c = '┬'; break;
+                            case 'x': c = '│'; break;
+                        }
+                    }
+                    buffer[length] = c;
+                    style[length] = this.current.getStyle();
+                    if (c == '\n') {
+                        lastLineLength = 0;
+                    } else {
+                        lastLineLength++;
+                    }
+                    length++;
+                    if (altIn != null && altOut != null) {
+                        char[] alt = inAltCharset ? altOut : altIn;
+                        if (equals(buffer, length - alt.length, alt, 0, alt.length)) {
+                            inAltCharset = !inAltCharset;
+                            length -= alt.length;
+                        }
+                    }
+                }
             }
         }
         return this;
+    }
+
+    private static boolean equals(char[] a, int aFromIndex, char[] b, int bFromIndex, int length) {
+        if (aFromIndex < 0 || bFromIndex < 0 || aFromIndex + length > a.length || bFromIndex + length > b.length) {
+            return false;
+        }
+        for (int i = 0; i < length; i++) {
+            if (a[aFromIndex + i] != b[bFromIndex + i]) {
+                return false;
+            }
+        }
+        return true;
     }
 
     protected void insertTab(AttributedStyle s) {
@@ -390,6 +438,15 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
             throw new IllegalStateException("Cannot change tab size after appending text");
         }
         this.tabs = new TabStops(tabs);
+        return this;
+    }
+
+    public AttributedStringBuilder altCharset(String altIn, String altOut) {
+        if (length > 0) {
+            throw new IllegalStateException("Cannot change alternative charset after appending text");
+        }
+        this.altIn = altIn != null ? altIn.toCharArray() : null;
+        this.altOut = altOut != null ? altOut.toCharArray() : null;
         return this;
     }
     
