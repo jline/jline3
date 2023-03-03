@@ -78,21 +78,21 @@ public class AbstractWindowsTerminalTest {
         }
     }
 
-    private static class TestTerminal extends AbstractWindowsTerminal {
+    private static class TestTerminal extends AbstractWindowsTerminal<Object> {
         public TestTerminal(StringWriter sw) throws IOException {
             super(new AnsiWriter(new BufferedWriter(sw)), "name",
                     AbstractWindowsTerminal.TYPE_DUMB,
                     Charset.defaultCharset(),
-                    false, SignalHandler.SIG_DFL);
+                    false, SignalHandler.SIG_DFL, null, null);
         }
 
         @Override
-        protected int getConsoleMode() {
+        protected int getConsoleMode(Object console) {
             return 0;
         }
 
         @Override
-        protected void setConsoleMode(int mode) {
+        protected void setConsoleMode(Object console, int mode) {
         }
 
         @Override

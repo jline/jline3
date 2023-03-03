@@ -21,10 +21,10 @@ import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
 import org.jline.terminal.spi.TerminalProvider;
-import org.jline.utils.InfoCmp;
+import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.OSUtils;
 
-public class JnaWinSysTerminal extends AbstractWindowsTerminal {
+public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
 
     private static final Pointer consoleIn = Kernel32.INSTANCE.GetStdHandle(Kernel32.STD_INPUT_HANDLE);
     private static final Pointer consoleOut = Kernel32.INSTANCE.GetStdHandle(Kernel32.STD_OUTPUT_HANDLE);
@@ -71,7 +71,7 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
                 }
             }
         }
-        JnaWinSysTerminal terminal = new JnaWinSysTerminal(writer, name, type, encoding, nativeSignals, signalHandler);
+        JnaWinSysTerminal terminal = new JnaWinSysTerminal(writer, name, type, encoding, nativeSignals, signalHandler, JnaWinSysTerminal.consoleIn, console);
         // Start input pump thread
         if (!paused) {
             terminal.resume();
@@ -96,26 +96,27 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal {
         }
     }
 
-    JnaWinSysTerminal(Writer writer, String name, String type, Charset encoding, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
-        super(writer, name, type, encoding, nativeSignals, signalHandler);
-        strings.put(InfoCmp.Capability.key_mouse, "\\E[M");
+    JnaWinSysTerminal(Writer writer, String name, String type, Charset encoding, boolean nativeSignals, SignalHandler signalHandler,
+                      Pointer inConsole, Pointer outConsole) throws IOException {
+        super(writer, name, type, encoding, nativeSignals, signalHandler, inConsole, outConsole);
+        this.strings.put(Capability.key_mouse, "\\E[M");
     }
 
     @Override
-    protected int getConsoleMode() {
+    protected int getConsoleMode(Pointer console) {
         IntByReference mode = new IntByReference();
-        Kernel32.INSTANCE.GetConsoleMode(consoleIn, mode);
+        Kernel32.INSTANCE.GetConsoleMode(console, mode);
         return mode.getValue();
     }
 
     @Override
-    protected void setConsoleMode(int mode) {
-        Kernel32.INSTANCE.SetConsoleMode(consoleIn, mode);
+    protected void setConsoleMode(Pointer console, int mode) {
+        Kernel32.INSTANCE.SetConsoleMode(console, mode);
     }
 
     public Size getSize() {
         Kernel32.CONSOLE_SCREEN_BUFFER_INFO info = new Kernel32.CONSOLE_SCREEN_BUFFER_INFO();
-        Kernel32.INSTANCE.GetConsoleScreenBufferInfo(consoleOut, info);
+        Kernel32.INSTANCE.GetConsoleScreenBufferInfo(outConsole, info);
         return new Size(info.windowWidth(), info.windowHeight());
     }
 

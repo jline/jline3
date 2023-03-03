@@ -27,7 +27,6 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -43,7 +42,7 @@ import java.util.Map;
  * the writer() becomes the primary output, while the output() is bridged
  * to the writer() using a WriterOutputStream wrapper.
  */
-public abstract class AbstractWindowsTerminal extends AbstractTerminal {
+public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal {
 
     public static final String TYPE_WINDOWS = "windows";
     public static final String TYPE_WINDOWS_256_COLOR = "windows-256color";
@@ -70,7 +69,10 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     protected final Map<Signal, Object> nativeHandlers = new HashMap<>();
     protected final ShutdownHooks.Task closer;
     protected final Attributes attributes = new Attributes();
-    protected final int originalConsoleMode;
+    protected final Console inConsole;
+    protected final Console outConsole;
+    protected final int originalInConsoleMode;
+    protected final int originalOutConsoleMode;
 
     protected final Object lock = new Object();
     protected boolean paused = true;
@@ -80,7 +82,8 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     protected boolean focusTracking = false;
     private volatile boolean closing;
 
-    public AbstractWindowsTerminal(Writer writer, String name, String type, Charset encoding, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
+    public AbstractWindowsTerminal(Writer writer, String name, String type, Charset encoding, boolean nativeSignals, SignalHandler signalHandler,
+                                   Console inConsole, Console outConsole) throws IOException {
         super(name, type, encoding, signalHandler);
         NonBlockingPumpReader reader = NonBlocking.nonBlockingPumpReader();
         this.slaveInputPipe = reader.getWriter();
@@ -88,9 +91,12 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         this.input = NonBlocking.nonBlockingStream(reader, encoding());
         this.writer = new PrintWriter(writer);
         this.output = new WriterOutputStream(writer, encoding());
+        this.inConsole = inConsole;
+        this.outConsole = outConsole;
         parseInfoCmp();
         // Attributes
-        originalConsoleMode = getConsoleMode();
+        this.originalInConsoleMode = getConsoleMode(inConsole);
+        this.originalOutConsoleMode = getConsoleMode(outConsole);
         attributes.setLocalFlag(Attributes.LocalFlag.ISIG, true);
         attributes.setControlChar(Attributes.ControlChar.VINTR, ctrl('C'));
         attributes.setControlChar(Attributes.ControlChar.VEOF,  ctrl('D'));
@@ -147,7 +153,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
     }
 
     public Attributes getAttributes() {
-        int mode = getConsoleMode();
+        int mode = getConsoleMode(inConsole);
         if ((mode & ENABLE_ECHO_INPUT) != 0) {
             attributes.setLocalFlag(Attributes.LocalFlag.ECHO, true);
         }
@@ -173,7 +179,7 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         if (tracking != MouseTracking.Off) {
             mode |= ENABLE_MOUSE_INPUT;
         }
-        setConsoleMode(mode);
+        setConsoleMode(inConsole, mode);
     }
 
     protected int ctrl(char key) {
@@ -196,7 +202,8 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         }
         reader.close();
         writer.close();
-        setConsoleMode(originalConsoleMode);
+        setConsoleMode(inConsole, originalInConsoleMode);
+        setConsoleMode(outConsole, originalOutConsoleMode);
     }
 
     static final int SHIFT_FLAG = 0x01;
@@ -487,9 +494,9 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         return true;
     }
 
-    protected abstract int getConsoleMode();
+    protected abstract int getConsoleMode(Console console);
 
-    protected abstract void setConsoleMode(int mode);
+    protected abstract void setConsoleMode(Console console, int mode);
 
     /**
      * Read a single input event from the input buffer and process it.
