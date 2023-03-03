@@ -107,9 +107,7 @@ public class DumbTerminal extends AbstractTerminal {
     }
 
     public Attributes getAttributes() {
-        Attributes attr = new Attributes();
-        attr.copy(attributes);
-        return attr;
+        return new Attributes(attributes);
     }
 
     public void setAttributes(Attributes attr) {
