@@ -180,8 +180,21 @@ public interface Terminal extends Closeable, Flushable {
 
     boolean echo(boolean echo);
 
+    /**
+     * Returns the terminal attributes.
+     * The returned object can be safely modified
+     * further used in a call to {@link #setAttributes(Attributes)}.
+     *
+     * @return the terminal attributes.
+     */
     Attributes getAttributes();
 
+    /**
+     * Set the terminal attributes.
+     * The terminal will perform a copy of the given attributes.
+     *
+     * @param attr the new attributes
+     */
     void setAttributes(Attributes attr);
 
     /**
