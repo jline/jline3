@@ -39,7 +39,7 @@ import static org.fusesource.jansi.internal.Kernel32.STD_OUTPUT_HANDLE;
 import static org.fusesource.jansi.internal.Kernel32.WaitForSingleObject;
 import static org.fusesource.jansi.internal.Kernel32.readConsoleInputHelper;
 
-public class JansiWinSysTerminal extends AbstractWindowsTerminal {
+public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
 
     private static final long consoleIn = GetStdHandle(STD_INPUT_HANDLE);
     private static final long consoleOut = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -115,18 +115,13 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
         return Kernel32.GetConsoleMode(console, mode) != 0;
     }
 
-    private long console;
-    private long outputHandle;
-
     JansiWinSysTerminal(Writer writer, String name, String type, Charset encoding, boolean nativeSignals, SignalHandler signalHandler,
-                         long console, long outputHandle) throws IOException {
-        super(writer, name, type, encoding, nativeSignals, signalHandler);
-        this.console = console;
-        this.outputHandle = outputHandle;
+                         long inConsole, long outConsole) throws IOException {
+        super(writer, name, type, encoding, nativeSignals, signalHandler, inConsole, outConsole);
     }
 
     @Override
-    protected int getConsoleMode() {
+    protected int getConsoleMode(Long console) {
         int[] mode = new int[1];
         if (Kernel32.GetConsoleMode(console, mode) == 0) {
             return -1;
@@ -135,28 +130,28 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
     }
 
     @Override
-    protected void setConsoleMode(int mode) {
+    protected void setConsoleMode(Long console, int mode) {
         Kernel32.SetConsoleMode(console, mode);
     }
 
     public Size getSize() {
         CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO();
-        Kernel32.GetConsoleScreenBufferInfo(outputHandle, info);
+        Kernel32.GetConsoleScreenBufferInfo(outConsole, info);
         return new Size(info.windowWidth(), info.windowHeight());
     }
 
     @Override
     public Size getBufferSize() {
         CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO();
-        Kernel32.GetConsoleScreenBufferInfo(outputHandle, info);
+        Kernel32.GetConsoleScreenBufferInfo(outConsole, info);
         return new Size(info.size.x, info.size.y);
     }
 
     protected boolean processConsoleInput() throws IOException {
         INPUT_RECORD[] events;
-        if (console != INVALID_HANDLE_VALUE
-                && WaitForSingleObject(console, 100) == 0) {
-            events = readConsoleInputHelper(console, 1, false);
+        if (inConsole != INVALID_HANDLE_VALUE
+                && WaitForSingleObject(inConsole, 100) == 0) {
+            events = readConsoleInputHelper(inConsole, 1, false);
         } else {
             return false;
         }
@@ -228,7 +223,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
     @Override
     public Cursor getCursorPosition(IntConsumer discarded) {
         CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO();
-        if (GetConsoleScreenBufferInfo(outputHandle, info) == 0) {
+        if (GetConsoleScreenBufferInfo(outConsole, info) == 0) {
             throw new IOError(new IOException("Could not get the cursor position: " + getLastErrorMessage()));
         }
         return new Cursor(info.cursorPosition.x, info.cursorPosition.y);
