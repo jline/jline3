@@ -228,7 +228,7 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
             // Pressing "Alt Gr" is translated to Alt-Ctrl, hence it has to be checked that Ctrl is _not_ pressed,
             // otherwise inserting of "Alt Gr" codes on non-US keyboards would yield errors
             if (ch != 0
-                    && (controlKeyState & (RIGHT_ALT_PRESSED | LEFT_ALT_PRESSED | RIGHT_CTRL_PRESSED | LEFT_CTRL_PRESSED | SHIFT_PRESSED))
+                    && (controlKeyState & (RIGHT_ALT_PRESSED | LEFT_ALT_PRESSED | RIGHT_CTRL_PRESSED | LEFT_CTRL_PRESSED))
                         == (RIGHT_ALT_PRESSED | LEFT_CTRL_PRESSED)) {
                 processInputChar(ch);
             } else {
