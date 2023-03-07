@@ -484,6 +484,8 @@ public final class TerminalBuilder {
                 Boolean color = this.color;
                 if (color == null) {
                     color = getBoolean(PROP_DUMB_COLOR, null);
+                }
+                if (dumb == null) {
                     // detect emacs using the env variable
                     if (color == null) {
                         String emacs = System.getenv("INSIDE_EMACS");
@@ -493,10 +495,12 @@ public final class TerminalBuilder {
                     }
                     // detect Intellij Idea
                     if (color == null) {
+                        // using the env variable on windows
                         String ideHome = System.getenv("IDE_HOME");
                         if (ideHome != null) {
                             color = true;
                         } else {
+                            // using the parent process command on unix/mac
                             String command = getParentProcessCommand();
                             if (command != null && command.endsWith("/idea")) {
                                 color = true;
@@ -504,17 +508,19 @@ public final class TerminalBuilder {
                         }
                     }
                     if (color == null) {
-                        color = system.get(TerminalProvider.Stream.Output) && System.getenv("TERM") != null;
+                        color = system.get(console) && System.getenv("TERM") != null;
                     }
-                    if (!color && dumb == null) {
-                        if (Log.isDebugEnabled()) {
-                            Log.warn("input is tty: {}", system.get(TerminalProvider.Stream.Input));
-                            Log.warn("output is tty: {}", system.get(TerminalProvider.Stream.Output));
-                            Log.warn("error is tty: {}", system.get(TerminalProvider.Stream.Error));
-                            Log.warn("Creating a dumb terminal", exception);
-                        } else {
-                            Log.warn("Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)");
-                        }
+                    if (Log.isDebugEnabled()) {
+                        Log.warn("input is tty: {}", system.get(TerminalProvider.Stream.Input));
+                        Log.warn("output is tty: {}", system.get(TerminalProvider.Stream.Output));
+                        Log.warn("error is tty: {}", system.get(TerminalProvider.Stream.Error));
+                        Log.warn("Creating a dumb terminal", exception);
+                    } else {
+                        Log.warn("Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)");
+                    }
+                } else {
+                    if (color == null) {
+                        color = false;
                     }
                 }
                 terminal = new DumbTerminal(name, color ? Terminal.TYPE_DUMB_COLOR : Terminal.TYPE_DUMB,
