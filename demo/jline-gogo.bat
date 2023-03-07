@@ -62,12 +62,12 @@ set "logconf=%DIRNAME%etc\logging.properties"
     goto :RUN_LOOP
 
 :EXECUTE_DEBUG
-    set "opts=%opts% -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
+    set "opts=%opts% -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
     shift
     goto :RUN_LOOP
 
 :EXECUTE_DEBUGS
-    set "opts=%opts% -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
+    set "opts=%opts% -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005"
     shift
     goto :RUN_LOOP
 
