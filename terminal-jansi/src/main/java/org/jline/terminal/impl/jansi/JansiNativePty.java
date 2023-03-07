@@ -143,14 +143,20 @@ public abstract class JansiNativePty extends AbstractPty implements Pty {
     @Override
     public Size getSize() throws IOException {
         CLibrary.WinSize sz = new CLibrary.WinSize();
-        CLibrary.ioctl(slave, CLibrary.TIOCGWINSZ, sz);
+        int res = CLibrary.ioctl(slave, CLibrary.TIOCGWINSZ, sz);
+        if (res != 0) {
+            throw new IOException("Error calling ioctl(TIOCGWINSZ): return code is " + res);
+        }
         return new Size(sz.ws_col, sz.ws_row);
     }
 
     @Override
     public void setSize(Size size) throws IOException {
         CLibrary.WinSize sz = new CLibrary.WinSize((short) size.getRows(), (short) size.getColumns());
-        CLibrary.ioctl(slave, CLibrary.TIOCSWINSZ, sz);
+        int res = CLibrary.ioctl(slave, CLibrary.TIOCSWINSZ, sz);
+        if (res != 0) {
+            throw new IOException("Error calling ioctl(TIOCSWINSZ): return code is " + res);
+        }
     }
 
     protected abstract CLibrary.Termios toTermios(Attributes t);
