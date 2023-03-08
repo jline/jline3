@@ -508,7 +508,7 @@ public final class TerminalBuilder {
                         }
                     }
                     if (color == null) {
-                        color = system.get(console) && System.getenv("TERM") != null;
+                        color = console != null && System.getenv("TERM") != null;
                     }
                     if (Log.isDebugEnabled()) {
                         Log.warn("input is tty: {}", system.get(TerminalProvider.Stream.Input));
