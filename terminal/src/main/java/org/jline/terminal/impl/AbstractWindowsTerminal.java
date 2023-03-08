@@ -83,7 +83,7 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
     private volatile boolean closing;
 
     public AbstractWindowsTerminal(Writer writer, String name, String type, Charset encoding, boolean nativeSignals, SignalHandler signalHandler,
-                                   Console inConsole, Console outConsole) throws IOException {
+                                   Console inConsole, int inConsoleMode, Console outConsole, int outConsoleMode) throws IOException {
         super(name, type, encoding, signalHandler);
         NonBlockingPumpReader reader = NonBlocking.nonBlockingPumpReader();
         this.slaveInputPipe = reader.getWriter();
@@ -95,8 +95,8 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
         this.outConsole = outConsole;
         parseInfoCmp();
         // Attributes
-        this.originalInConsoleMode = getConsoleMode(inConsole);
-        this.originalOutConsoleMode = getConsoleMode(outConsole);
+        this.originalInConsoleMode = inConsoleMode;
+        this.originalOutConsoleMode = outConsoleMode;
         attributes.setLocalFlag(Attributes.LocalFlag.ISIG, true);
         attributes.setControlChar(Attributes.ControlChar.VINTR, ctrl('C'));
         attributes.setControlChar(Attributes.ControlChar.VEOF,  ctrl('D'));
