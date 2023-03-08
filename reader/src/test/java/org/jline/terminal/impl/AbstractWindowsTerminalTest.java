@@ -83,7 +83,7 @@ public class AbstractWindowsTerminalTest {
             super(new AnsiWriter(new BufferedWriter(sw)), "name",
                     AbstractWindowsTerminal.TYPE_DUMB,
                     Charset.defaultCharset(),
-                    false, SignalHandler.SIG_DFL, null, null);
+                    false, SignalHandler.SIG_DFL, null, 0, null, 0);
         }
 
         @Override

@@ -103,7 +103,7 @@ public class LineReaderTest {
         System.setProperty("org.jline.terminal.conemu.disable-activate", "false");
         StringWriter sw = new StringWriter();
         AbstractWindowsTerminal<?> terminal = new AbstractWindowsTerminal<Object>(new BufferedWriter(sw), "name", TYPE_WINDOWS_CONEMU, Charset.defaultCharset(),
-                false, Terminal.SignalHandler.SIG_DFL, null, null) {
+                false, Terminal.SignalHandler.SIG_DFL, null, 0, null, 0) {
             @Override
             protected int getConsoleMode(Object console) {
                 return 0;

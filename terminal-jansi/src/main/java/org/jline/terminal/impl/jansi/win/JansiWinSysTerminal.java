@@ -48,8 +48,12 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
     public static JansiWinSysTerminal createTerminal(String name, String type, boolean ansiPassThrough, Charset encoding,
                                                      boolean nativeSignals, SignalHandler signalHandler, boolean paused,
                                                      TerminalProvider.Stream consoleStream) throws IOException {
-        Writer writer;
-        int[] mode = new int[1];
+        // Get input console mode
+        int[] inMode = new int[1];
+        if (Kernel32.GetConsoleMode(consoleIn, inMode) == 0) {
+            throw new IOException("Failed to get console mode: " + getLastErrorMessage());
+        }
+        // Get output console and mode
         long console;
         switch (consoleStream) {
             case Output:
@@ -59,44 +63,41 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
                 console = consoleErr;
                 break;
             default:
-                throw new IllegalArgumentException("Unsupport stream for console: " + consoleStream);
+                throw new IllegalArgumentException("Unsupported stream for console: " + consoleStream);
         }
+        int[] outMode = new int[1];
+        if (Kernel32.GetConsoleMode(console, outMode) == 0) {
+            throw new IOException("Failed to get console mode: " + getLastErrorMessage());
+        }
+        // Create writer
+        Writer writer;
         if (ansiPassThrough) {
-            if (type == null) {
-                type = OSUtils.IS_CONEMU ? TYPE_WINDOWS_CONEMU : TYPE_WINDOWS;
-            }
+            type = type != null ? type : OSUtils.IS_CONEMU ? TYPE_WINDOWS_CONEMU : TYPE_WINDOWS;
             writer = newConsoleWriter(console);
         } else {
-            if (Kernel32.GetConsoleMode(console, mode) == 0 ) {
-                throw new IOException("Failed to get console mode: " + getLastErrorMessage());
-            }
-            if (Kernel32.SetConsoleMode(console, mode[0] | AbstractWindowsTerminal.ENABLE_VIRTUAL_TERMINAL_PROCESSING) != 0) {
-                if (type == null) {
-                    type = TYPE_WINDOWS_VTP;
-                }
+            if (enableVtp(console, outMode[0])) {
+                type = type != null ? type : TYPE_WINDOWS_VTP;
                 writer = newConsoleWriter(console);
             } else if (OSUtils.IS_CONEMU) {
-                if (type == null) {
-                    type = TYPE_WINDOWS_CONEMU;
-                }
+                type = type != null ? type : TYPE_WINDOWS_CONEMU;
                 writer = newConsoleWriter(console);
             } else {
-                if (type == null) {
-                    type = TYPE_WINDOWS;
-                }
+                type = type != null ? type : TYPE_WINDOWS;
                 writer = new WindowsAnsiWriter(new BufferedWriter(newConsoleWriter(console)));
             }
         }
-        if (Kernel32.GetConsoleMode(consoleIn, mode) == 0) {
-            throw new IOException("Failed to get console mode: " + getLastErrorMessage());
-        }
+        // Create terminal
         JansiWinSysTerminal terminal = new JansiWinSysTerminal(writer, name, type, encoding, nativeSignals,
-                signalHandler, consoleIn, console);
+                signalHandler, consoleIn, inMode[0], console, outMode[0]);
         // Start input pump thread
         if (!paused) {
             terminal.resume();
         }
         return terminal;
+    }
+
+    private static boolean enableVtp(long console, int outMode) {
+        return Kernel32.SetConsoleMode(console, outMode | AbstractWindowsTerminal.ENABLE_VIRTUAL_TERMINAL_PROCESSING) != 0;
     }
 
     private static Writer newConsoleWriter(long console) {
@@ -116,8 +117,8 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
     }
 
     JansiWinSysTerminal(Writer writer, String name, String type, Charset encoding, boolean nativeSignals, SignalHandler signalHandler,
-                         long inConsole, long outConsole) throws IOException {
-        super(writer, name, type, encoding, nativeSignals, signalHandler, inConsole, outConsole);
+                         long inConsole, int inMode, long outConsole, int outMode) throws IOException {
+        super(writer, name, type, encoding, nativeSignals, signalHandler, inConsole, inMode, outConsole, outMode);
     }
 
     @Override
