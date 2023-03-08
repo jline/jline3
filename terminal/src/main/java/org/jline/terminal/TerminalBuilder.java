@@ -18,6 +18,7 @@ import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -491,29 +492,44 @@ public final class TerminalBuilder {
                 // forced colored dumb terminal
                 Boolean color = this.color;
                 if (color == null) {
-                    color = getBoolean(PROP_DUMB_COLOR, false);
+                    color = getBoolean(PROP_DUMB_COLOR, null);
+                }
+                if (dumb == null) {
                     // detect emacs using the env variable
-                    if (!color) {
+                    if (color == null) {
                         String emacs = System.getenv("INSIDE_EMACS");
-                        color = emacs != null && emacs.contains("comint");
+                        if (emacs != null && emacs.contains("comint")) {
+                            color = true;
+                        }
                     }
                     // detect Intellij Idea
-                    if (!color) {
-                        String command = getParentProcessCommand();
-                        color = command != null && command.contains("idea");
-                    }
-                    if (!color) {
-                        color = system.get(TerminalProvider.Stream.Output) && System.getenv("TERM") != null;
-                    }
-                    if (!color && dumb == null) {
-                        if (Log.isDebugEnabled()) {
-                            Log.warn("input is tty: {}", system.get(TerminalProvider.Stream.Input));
-                            Log.warn("output is tty: {}", system.get(TerminalProvider.Stream.Output));
-                            Log.warn("error is tty: {}", system.get(TerminalProvider.Stream.Error));
-                            Log.warn("Creating a dumb terminal", exception);
+                    if (color == null) {
+                        // using the env variable on windows
+                        String ideHome = System.getenv("IDE_HOME");
+                        if (ideHome != null) {
+                            color = true;
                         } else {
-                            Log.warn("Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)");
+                            // using the parent process command on unix/mac
+                            String command = getParentProcessCommand();
+                            if (command != null && command.endsWith("/idea")) {
+                                color = true;
+                            }
                         }
+                    }
+                    if (color == null) {
+                        color = console != null && System.getenv("TERM") != null;
+                    }
+                    if (Log.isDebugEnabled()) {
+                        Log.warn("input is tty: {}", system.get(TerminalProvider.Stream.Input));
+                        Log.warn("output is tty: {}", system.get(TerminalProvider.Stream.Output));
+                        Log.warn("error is tty: {}", system.get(TerminalProvider.Stream.Error));
+                        Log.warn("Creating a dumb terminal", exception);
+                    } else {
+                        Log.warn("Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)");
+                    }
+                } else {
+                    if (color == null) {
+                        color = false;
                     }
                 }
                 terminal = new DumbTerminal(name, color ? Terminal.TYPE_DUMB_COLOR : Terminal.TYPE_DUMB,
