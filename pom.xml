@@ -21,7 +21,7 @@
 
     <groupId>org.jline</groupId>
     <artifactId>jline-parent</artifactId>
-    <version>3.23.0</version>
+    <version>3.23.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>JLine Parent</name>
     <description>JLine</description>
@@ -90,7 +90,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.build.outputTimestamp>2023-03-08T19:44:04Z</project.build.outputTimestamp>
+        <project.build.outputTimestamp>2023-03-08T19:46:51Z</project.build.outputTimestamp>
 
         <maven.version>3.5.0</maven.version>
         <maven.compiler.source>1.8</maven.compiler.source>
