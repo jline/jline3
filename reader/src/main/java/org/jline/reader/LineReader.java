@@ -21,7 +21,7 @@ import org.jline.utils.AttributedString;
 
 /** Read lines from the console, with input editing.
  *
- * <h3>Thread safety</h3>
+ * <h2>Thread safety</h2>
  * The <code>LineReader</code> implementations are not thread safe,
  * thus you should not attempt to use a single reader in several threads.
  * Any attempt to call one of the <code>readLine</code> call while one is
@@ -31,7 +31,7 @@ import org.jline.utils.AttributedString;
  * {@link #printAbove(String)} or {@link #printAbove(AttributedString)} at
  * any time to allow text to be printed above the current prompt.
  *
- * <h3>Prompt strings</h3>
+ * <h2>Prompt strings</h2>
  * It is traditional for an interactive console-based program
  * to print a short prompt string to signal that the user is expected
  * to type a command.  JLine supports 3 kinds of prompt string:

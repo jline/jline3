@@ -115,7 +115,7 @@ public abstract class ConnectionManager implements Runnable {
 
     /**
      * Returns the number of open connections.
-     * @return the number of open connections as <tt>int</tt>.
+     * @return the number of open connections as {@code int}.
      */
     public int openConnectionCount() {
         return openConnections.size();
@@ -134,11 +134,11 @@ public abstract class ConnectionManager implements Runnable {
 
     /**
      * Get all {@link Connection} instances with the given
-     * <tt>InetAddress</tt>.
+     * {@code InetAddress}.
      *
      * @param addr the address
      * @return all {@link Connection} instances with the given
-     *         <tt>InetAddress</tt>.
+     *         {@code InetAddress}.
      */
     public Connection[] getConnectionsByAdddress(InetAddress addr) {
         ArrayList<Connection> l = new ArrayList<Connection>();
@@ -154,7 +154,7 @@ public abstract class ConnectionManager implements Runnable {
     }//getConnectionsByAddress
 
     /**
-     * Starts this <tt>ConnectionManager</tt>.
+     * Starts this {@code ConnectionManager}.
      */
     public void start() {
         thread = new Thread(this);
@@ -162,7 +162,7 @@ public abstract class ConnectionManager implements Runnable {
     }//start
 
     /**
-     * Stops this <tt>ConnectionManager</tt>.
+     * Stops this {@code ConnectionManager}.
      */
     public void stop() {
         LOG.log(Level.FINE, "stop()::" + this.toString());

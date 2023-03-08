@@ -50,9 +50,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Class that implements a <tt>PortListener</tt>.<br>
+ * Class that implements a {@code PortListener}.<br>
  * If available, it accepts incoming connections and passes them
- * to an associated <tt>ConnectionManager</tt>.
+ * to an associated {@code ConnectionManager}.
  *
  * @author Dieter Wimberger
  * @version 2.0 (16/07/2006)
@@ -91,16 +91,16 @@ public class PortListener
     }//constructor
 
     /**
-     * Returns the name of this <tt>PortListener</tt>.
+     * Returns the name of this {@code PortListener}.
      *
-     * @return the name as <tt>String</tt>.
+     * @return the name as {@code String}.
      */
     public String getName() {
         return name;
     }//getName
 
     /**
-     * Tests if this <tt>PortListener</tt> is available.
+     * Tests if this {@code PortListener} is available.
      *
      * @return true if available, false otherwise.
      */
@@ -109,7 +109,7 @@ public class PortListener
     }//isAvailable
 
     /**
-     * Sets the availability flag of this <tt>PortListener</tt>.
+     * Sets the availability flag of this {@code PortListener}.
      *
      * @param b true if to be available, false otherwise.
      */
@@ -118,7 +118,7 @@ public class PortListener
     }//setAvailable
 
     /**
-     * Starts this <tt>PortListener</tt>.
+     * Starts this {@code PortListener}.
      */
     public void start() {
         LOG.log(Level.FINE, "start()");
@@ -128,7 +128,7 @@ public class PortListener
     }//start
 
     /**
-     * Stops this <tt>PortListener</tt>, and returns
+     * Stops this {@code PortListener}, and returns
      * when everything was stopped successfully.
      */
     public void stop() {
