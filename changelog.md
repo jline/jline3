@@ -1,6 +1,34 @@
 # [JLine3](https://github.com/jline/jline3)
 <!-- git log --pretty=format:'* [`%h`](https://github.com/jline/jline3/commit/%H) %s' -->
 
+## [JLine 3.23.0][3_23_0]
+[3_23_0]: https://repo1.maven.org/maven2/org/jline/jline/3.23.0/
+
+* [`e82b526a`](https://github.com/jline/jline3/commit/e82b526acadaa037459fb7651588910c98c28873) Reformat
+* [`8951fc85`](https://github.com/jline/jline3/commit/8951fc8558846104b24fbb0f10549a51cfba1697) Add spotless
+* [`0eddc136`](https://github.com/jline/jline3/commit/0eddc136e955aa8284efe20b7ef7bc2ecaf71041) Fix javadoc
+* [`cc021a55`](https://github.com/jline/jline3/commit/cc021a55abd172bf81fe8f0dd51329341c21c293) Fix signal processing on windows, fixes #822
+* [`6fa8b785`](https://github.com/jline/jline3/commit/6fa8b7859015b7755247a6a5fbea59c6dfaad5ea) Clean up console mode4
+* [`c571b146`](https://github.com/jline/jline3/commit/c571b14604b11067448392688e35293c4e1f9e88) Refine color support in various environments, fixes #814 (#829)
+* [`f3fa7036`](https://github.com/jline/jline3/commit/f3fa70368f3c8873d31a02c09df3cbf4513da97f) Verify ioctl return value in jansi
+* [`362b233e`](https://github.com/jline/jline3/commit/362b233e6aefc7bf6e19606fc3c3829825331b2e) The JNA ioctl call is broken on Mac/aarch64
+* [`ca176daf`](https://github.com/jline/jline3/commit/ca176daf5d5f7c24ecb8e5641d5ceaf69c34c6e4) This is a demo, so allow remote connections for debugging VM
+* [`117782b0`](https://github.com/jline/jline3/commit/117782b017b23abcd71c6a615414e59ebcea1838) Fix calling commands in gogo under jdk 17
+* [`6c5a2759`](https://github.com/jline/jline3/commit/6c5a2759775b1dbf68e79dd3ce32692c1f447090) Add missing ConEmu capabilities, fixes #800
+* [`63618cc6`](https://github.com/jline/jline3/commit/63618cc6c02010a56f317c514cbcb96a47ca5977) Fix AltGr+Shift characters, fixes #747
+* [`4dbe26bc`](https://github.com/jline/jline3/commit/4dbe26bcb22ae119921189c7f3a405fdeb620288) Decode alternative charset in/out sequences, fixes #805
+* [`64fc2f20`](https://github.com/jline/jline3/commit/64fc2f208c675ba31109987ac5af532c7910b0d5) Add a test for #i805
+* [`caa2d14a`](https://github.com/jline/jline3/commit/caa2d14a513467ba015dfdd94f22768cbb9c6d8b) Fix restoration of Terminal at close, fixes #819
+* [`0b97167f`](https://github.com/jline/jline3/commit/0b97167f33a2f0060f3fcb613cc849d262d35ed5) Allow custom sort of providers, and prefer jansi by default
+* [`6fcf987d`](https://github.com/jline/jline3/commit/6fcf987d13107213811aaf2298a4933b2d74725e) Add some javadoc on Terminal getAttributes/setAttributes
+* [`b0b4f709`](https://github.com/jline/jline3/commit/b0b4f7097faabc643fae8de0be107a8abf704dae) Use Attributes copy constructor
+* [`3e872d86`](https://github.com/jline/jline3/commit/3e872d861c83f3865a4b0fe89709c69a7d62cc97) fix javadocs of classes ConsoleEngine, JrtJavaBasePackages and Widgets
+* [`c6a476e4`](https://github.com/jline/jline3/commit/c6a476e46f88ce9f80608cc3ad29204524223401) SyntaxHighlighter and Repl demo: use UTF-8 character encoding instead of JVM default
+* [`90e9e868`](https://github.com/jline/jline3/commit/90e9e8688553db728a0efe0b676b9fa0e3b1071a) builtins Commands: fix keymap help and remove redundant toString() calls
+* [`2c55e39b`](https://github.com/jline/jline3/commit/2c55e39b0380a1b6ce4696bb6068c0091568d336) Use a native library to create FileDescriptors if reflection does not allow access (fixes #575)
+* [`e893fb48`](https://github.com/jline/jline3/commit/e893fb48308aa584f75a853984e722e2d745d2a9) Optimized Styles.isStylePattern() to avoid StackOverflowError (#817)
+* [`8cb3793a`](https://github.com/jline/jline3/commit/8cb3793add3b2c46d86adcfd608ba7ea3de992de) Fix missing graalvm information for the exec provider (fixes #820)
+
 ## [JLine 3.22.0][3_22_0]
 [3_22_0]: https://repo1.maven.org/maven2/org/jline/jline/3.22.0/
 
