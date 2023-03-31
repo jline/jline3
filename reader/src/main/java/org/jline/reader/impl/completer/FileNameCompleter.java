@@ -9,6 +9,7 @@
 package org.jline.reader.impl.completer;
 
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -71,8 +72,8 @@ public class FileNameCompleter implements Completer {
             curBuf = "";
             current = getUserDir();
         }
-        try {
-            Files.newDirectoryStream(current, this::accept).forEach(p -> {
+        try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(current, this::accept)) {
+            directoryStream.forEach(p -> {
                 String value = curBuf + p.getFileName().toString();
                 if (Files.isDirectory(p)) {
                     candidates.add(new Candidate(

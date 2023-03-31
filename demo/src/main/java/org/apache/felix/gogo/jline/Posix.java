@@ -1025,8 +1025,10 @@ public class Posix {
                 sources.add(new StdInSource(process));
             } else if (arg.contains("*") || arg.contains("?")) {
                 PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + arg);
-                Files.find(session.currentDir(), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
-                        .forEach(p -> sources.add(doUrlSource(session.currentDir(), p)));
+                try (Stream<Path> pathStream =
+                        Files.find(session.currentDir(), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))) {
+                    pathStream.forEach(p -> sources.add(doUrlSource(session.currentDir(), p)));
+                }
             } else {
                 sources.add(new PathSource(session.currentDir().resolve(arg), arg));
             }
@@ -1432,10 +1434,12 @@ public class Posix {
             if (expanded.size() > 1) {
                 out.println(currentDir.relativize(path).toString() + ":");
             }
-            display.accept(Stream.concat(Stream.of(".", "..").map(path::resolve), Files.list(path))
-                    .filter(filter)
-                    .map(p -> new PathEntry(p, path))
-                    .sorted());
+            try (Stream<Path> pathStream = Files.list(path)) {
+                display.accept(Stream.concat(Stream.of(".", "..").map(path::resolve), pathStream)
+                        .filter(filter)
+                        .map(p -> new PathEntry(p, path))
+                        .sorted());
+            }
         }
     }
 

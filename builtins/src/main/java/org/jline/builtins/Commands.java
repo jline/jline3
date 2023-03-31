@@ -190,8 +190,10 @@ public class Commands {
             searchRoot = root;
         }
         PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + regex);
-        return Files.find(searchRoot, Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
-                .collect(Collectors.toList());
+        try (Stream<Path> pathStream =
+                Files.find(searchRoot, Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))) {
+            return pathStream.collect(Collectors.toList());
+        }
     }
 
     public static void history(LineReader reader, PrintStream out, PrintStream err, Path currentDir, String[] argv)
@@ -1677,11 +1679,12 @@ public class Commands {
                         String parameter = replaceFileName(currentTheme, "*" + TYPE_NANORCTHEME);
                         out.println(currentTheme.getParent() + ":");
                         PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parameter);
-                        Files.find(
-                                        Paths.get(new File(parameter).getParent()),
-                                        Integer.MAX_VALUE,
-                                        (path, f) -> pathMatcher.matches(path))
-                                .forEach(p -> out.println(p.getFileName()));
+                        try (Stream<Path> pathStream = Files.find(
+                                Paths.get(new File(parameter).getParent()),
+                                Integer.MAX_VALUE,
+                                (path, f) -> pathMatcher.matches(path))) {
+                            pathStream.forEach(p -> out.println(p.getFileName()));
+                        }
                     } else {
                         File themeFile;
                         if (opt.isSet("view")) {

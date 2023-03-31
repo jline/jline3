@@ -18,6 +18,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.groovy.ast.tools.ImmutablePropertyUtils;
 import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
@@ -822,10 +823,8 @@ public class GroovyEngine implements ScriptEngine {
             PathMatcher matcher =
                     FileSystems.getDefault().getPathMatcher("regex:\\." + dom + "[A-Z]+[a-zA-Z]*\\.groovy");
             Set<String> out = new HashSet<>();
-            try {
-                List<Path> paths =
-                        Files.walk(Paths.get(".")).filter(matcher::matches).collect(Collectors.toList());
-                for (Path p : paths) {
+            try (Stream<Path> pathStream = Files.walk(Paths.get(".")).filter(matcher::matches)) {
+                for (Path p : pathStream.collect(Collectors.toList())) {
                     if (!p.getFileName().toString().matches("[A-Z]+[a-zA-Z]*\\.groovy")) {
                         continue;
                     }

@@ -17,6 +17,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Stream;
 
 import org.jline.utils.*;
 
@@ -150,11 +151,12 @@ public class SyntaxHighlighter {
     protected static void nanorcInclude(String parameter, List<Path> syntaxFiles) throws IOException {
         if (parameter.contains("*") || parameter.contains("?")) {
             PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parameter);
-            Files.find(
-                            Paths.get(new File(parameter).getParent()),
-                            Integer.MAX_VALUE,
-                            (path, f) -> pathMatcher.matches(path))
-                    .forEach(syntaxFiles::add);
+            try (Stream<Path> pathStream = Files.find(
+                    Paths.get(new File(parameter).getParent()),
+                    Integer.MAX_VALUE,
+                    (path, f) -> pathMatcher.matches(path))) {
+                pathStream.forEach(syntaxFiles::add);
+            }
         } else {
             syntaxFiles.add(Paths.get(parameter));
         }
@@ -163,12 +165,12 @@ public class SyntaxHighlighter {
     protected static void nanorcTheme(String parameter, List<Path> syntaxFiles) throws IOException {
         if (parameter.contains("*") || parameter.contains("?")) {
             PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parameter);
-            Files.find(
-                            Paths.get(new File(parameter).getParent()),
-                            Integer.MAX_VALUE,
-                            (path, f) -> pathMatcher.matches(path))
-                    .findFirst()
-                    .ifPresent(path -> syntaxFiles.add(0, path));
+            try (Stream<Path> pathStream = Files.find(
+                    Paths.get(new File(parameter).getParent()),
+                    Integer.MAX_VALUE,
+                    (path, f) -> pathMatcher.matches(path))) {
+                pathStream.findFirst().ifPresent(path -> syntaxFiles.add(0, path));
+            }
         } else {
             syntaxFiles.add(0, Paths.get(parameter));
         }
