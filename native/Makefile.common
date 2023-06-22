@@ -107,7 +107,7 @@ OpenBSD-x86_64_LIBNAME   := libjlinenative.so
 
 SunOS-sparcv9_CC        := $(CROSS_PREFIX)gcc
 SunOS-sparcv9_STRIP     := $(CROSS_PREFIX)strip
-SunOS-sparcv9_CCFLAGS   := -I$(JAVA_HOME)/include -Itarget/inc -Itarget/inc/unix -O2s-fPIC -m64 -fvisibility=hidden
+SunOS-sparcv9_CCFLAGS   := -I$(JAVA_HOME)/include -Itarget/inc -Itarget/inc/unix -O2s -fPIC -m64 -fvisibility=hidden
 SunOS-sparcv9_LINKFLAGS := -shared -static-libgcc
 SunOS-sparcv9_LIBNAME   := libjlinenative.so
 
