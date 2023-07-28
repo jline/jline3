@@ -404,7 +404,7 @@ public final class TerminalBuilder {
         List<String> order = Arrays.asList(
                 System.getProperty(PROP_PROVIDERS, PROP_PROVIDERS_DEFAULT).split(","));
         providers.sort(Comparator.comparing(l -> {
-            int idx = order.indexOf(l);
+            int idx = order.indexOf(l.name());
             return idx >= 0 ? idx : Integer.MAX_VALUE;
         }));
 
