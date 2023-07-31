@@ -46,54 +46,48 @@ public class OSUtils {
     public static String TEST_COMMAND;
 
     static {
-        String tty;
-        String stty;
-        String sttyfopt;
-        String infocmp;
-        String test;
-        if (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) {
-            tty = null;
-            stty = null;
-            sttyfopt = null;
-            infocmp = null;
-            test = null;
-            String path = System.getenv("PATH");
-            if (path != null) {
-                String[] paths = path.split(";");
-                for (String p : paths) {
-                    if (tty == null && new File(p, "tty.exe").exists()) {
-                        tty = new File(p, "tty.exe").getAbsolutePath();
-                    }
-                    if (stty == null && new File(p, "stty.exe").exists()) {
-                        stty = new File(p, "stty.exe").getAbsolutePath();
-                    }
-                    if (infocmp == null && new File(p, "infocmp.exe").exists()) {
-                        infocmp = new File(p, "infocmp.exe").getAbsolutePath();
-                    }
-                    if (test == null && new File(p, "test.exe").exists()) {
-                        test = new File(p, "test.exe").getAbsolutePath();
-                    }
+        boolean cygwinOrMsys = OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM;
+        String suffix = cygwinOrMsys ? ".exe" : "";
+        String tty = null;
+        String stty = null;
+        String sttyfopt = null;
+        String infocmp = null;
+        String test = null;
+        String path = System.getenv("PATH");
+        if (path != null) {
+            String[] paths = path.split(File.pathSeparator);
+            for (String p : paths) {
+                File ttyFile = new File(p, "tty" + suffix);
+                if (tty == null && ttyFile.canExecute()) {
+                    tty = ttyFile.getAbsolutePath();
+                }
+                File sttyFile = new File(p, "stty" + suffix);
+                if (stty == null && sttyFile.canExecute()) {
+                    stty = sttyFile.getAbsolutePath();
+                }
+                File infocmpFile = new File(p, "infocmp" + suffix);
+                if (infocmp == null && infocmpFile.canExecute()) {
+                    infocmp = infocmpFile.getAbsolutePath();
+                }
+                File testFile = new File(p, "test" + suffix);
+                if (test == null && testFile.canExecute()) {
+                    test = testFile.getAbsolutePath();
                 }
             }
-            if (tty == null) {
-                tty = "tty.exe";
-            }
-            if (stty == null) {
-                stty = "stty.exe";
-            }
-            if (infocmp == null) {
-                infocmp = "infocmp.exe";
-            }
-            if (test == null) {
-                test = "test.exe";
-            }
-        } else {
-            tty = "tty";
-            stty = IS_OSX ? "/bin/stty" : "stty";
-            sttyfopt = IS_OSX ? "-f" : "-F";
-            infocmp = "infocmp";
-            test = "/bin/test";
         }
+        if (tty == null) {
+            tty = "tty" + suffix;
+        }
+        if (stty == null) {
+            stty = "stty" + suffix;
+        }
+        if (infocmp == null) {
+            infocmp = "infocmp" + suffix;
+        }
+        if (test == null) {
+            test = "test" + suffix;
+        }
+        sttyfopt = IS_OSX ? "-f" : "-F";
         TTY_COMMAND = tty;
         STTY_COMMAND = stty;
         STTY_F_OPTION = sttyfopt;
