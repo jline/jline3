@@ -559,7 +559,7 @@ public final class TerminalBuilder {
                         color ? Terminal.TYPE_DUMB_COLOR : Terminal.TYPE_DUMB,
                         new FileInputStream(FileDescriptor.in),
                         new FileOutputStream(
-                                console == TerminalProvider.Stream.Output ? FileDescriptor.out : FileDescriptor.err),
+                                console == TerminalProvider.Stream.Error ? FileDescriptor.err : FileDescriptor.out),
                         encoding,
                         signalHandler);
             }
