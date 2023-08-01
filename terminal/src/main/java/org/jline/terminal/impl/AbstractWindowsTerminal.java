@@ -82,6 +82,7 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
     protected boolean focusTracking = false;
     private volatile boolean closing;
 
+    @SuppressWarnings("this-escape")
     public AbstractWindowsTerminal(
             Writer writer,
             String name,

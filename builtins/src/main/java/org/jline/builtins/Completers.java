@@ -446,6 +446,7 @@ public class Completers {
             this(Arrays.asList(nodes));
         }
 
+        @SuppressWarnings("this-escape")
         public TreeCompleter(List<Node> nodes) {
             StringBuilder sb = new StringBuilder();
             addRoots(sb, nodes);

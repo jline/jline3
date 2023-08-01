@@ -81,6 +81,7 @@ public class ConnectionData {
      * @param sock Socket of the inbound connection.
      * @param cm the connection manager
      */
+    @SuppressWarnings("this-escape")
     public ConnectionData(Socket sock, ConnectionManager cm) {
         socket = sock;
         connectionManager = cm;

@@ -81,6 +81,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     private boolean commandGroups = true;
     private Function<CmdLine, CmdDesc> scriptDescription;
 
+    @SuppressWarnings("this-escape")
     public SystemRegistryImpl(Parser parser, Terminal terminal, Supplier<Path> workDir, ConfigurationPath configPath) {
         this.parser = parser;
         this.workDir = workDir;

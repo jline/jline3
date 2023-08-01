@@ -39,6 +39,7 @@ public class Status {
         return terminal instanceof AbstractTerminal ? ((AbstractTerminal) terminal).getStatus(create) : null;
     }
 
+    @SuppressWarnings("this-escape")
     public Status(AbstractTerminal terminal) {
         this.terminal = Objects.requireNonNull(terminal, "terminal can not be null");
         this.supported = terminal.getStringCapability(Capability.change_scroll_region) != null

@@ -74,6 +74,7 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
         this(null, workDir, configPath, widgetCreator);
     }
 
+    @SuppressWarnings("this-escape")
     public Builtins(
             Set<Command> commands,
             Supplier<Path> workDir,

@@ -44,7 +44,7 @@ public abstract class AbstractTerminal implements Terminal {
     protected final Set<Capability> bools = new HashSet<>();
     protected final Map<Capability, Integer> ints = new HashMap<>();
     protected final Map<Capability, String> strings = new HashMap<>();
-    protected final ColorPalette palette = new ColorPalette(this);
+    protected final ColorPalette palette;
     protected Status status;
     protected Runnable onClose;
 
@@ -52,11 +52,13 @@ public abstract class AbstractTerminal implements Terminal {
         this(name, type, null, SignalHandler.SIG_DFL);
     }
 
+    @SuppressWarnings("this-escape")
     public AbstractTerminal(String name, String type, Charset encoding, SignalHandler signalHandler)
             throws IOException {
         this.name = name;
         this.type = type != null ? type : "ansi";
         this.encoding = encoding != null ? encoding : Charset.defaultCharset();
+        this.palette = new ColorPalette(this);
         for (Signal signal : Signal.values()) {
             handlers.put(signal, signalHandler);
         }

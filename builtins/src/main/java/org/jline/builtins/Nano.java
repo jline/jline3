@@ -1551,6 +1551,7 @@ public class Nano implements Editor {
         this(terminal, root, opts, null);
     }
 
+    @SuppressWarnings("this-escape")
     public Nano(Terminal terminal, Path root, Options opts, ConfigurationPath configPath) {
         this.terminal = terminal;
         this.windowsTerminal = terminal.getClass().getSimpleName().endsWith("WinSysTerminal");

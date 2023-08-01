@@ -232,7 +232,7 @@ public class LineReaderImpl implements LineReader, Flushable {
 
     protected KillRing killRing = new KillRing();
 
-    protected UndoTree<Buffer> undo = new UndoTree<>(this::setBuffer);
+    protected UndoTree<Buffer> undo;
     protected boolean isUndo;
 
     /**
@@ -291,6 +291,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         this(terminal, appName, null);
     }
 
+    @SuppressWarnings("this-escape")
     public LineReaderImpl(Terminal terminal, String appName, Map<String, Object> variables) {
         Objects.requireNonNull(terminal, "terminal can not be null");
         this.terminal = terminal;
@@ -309,6 +310,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             this.alternateOut = Curses.tputs(terminal.getStringCapability(Capability.exit_alt_charset_mode));
         }
 
+        undo = new UndoTree<>(this::setBuffer);
         builtinWidgets = builtinWidgets();
         widgets = new HashMap<>(builtinWidgets);
         bindingReader = new BindingReader(terminal.reader());
