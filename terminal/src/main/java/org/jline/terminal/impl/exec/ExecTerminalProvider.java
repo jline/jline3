@@ -25,9 +25,12 @@ import org.jline.terminal.impl.PosixSysTerminal;
 import org.jline.terminal.spi.Pty;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.ExecHelper;
+import org.jline.utils.Log;
 import org.jline.utils.OSUtils;
 
 public class ExecTerminalProvider implements TerminalProvider {
+
+    private static boolean warned;
 
     public String name() {
         return "exec";
@@ -142,11 +145,21 @@ public class ExecTerminalProvider implements TerminalProvider {
                 return result.trim();
             }
         } catch (Throwable t) {
+            if ("java.lang.reflect.InaccessibleObjectException"
+                            .equals(t.getClass().getName())
+                    && !warned) {
+                Log.warn(
+                        "The ExecTerminalProvider requires the JVM options: '--add-opens java.base/java.lang=ALL-UNNAMED'");
+                warned = true;
+            }
             // ignore
         }
         return null;
     }
 
+    /**
+     * This requires --add-opens java.base/java.lang=ALL-UNNAMED
+     */
     private ProcessBuilder.Redirect getRedirect(FileDescriptor fd) throws ReflectiveOperationException {
         // This is not really allowed, but this is the only way to redirect the output or error stream
         // to the input.  This is definitely not something you'd usually want to do, but in the case of
