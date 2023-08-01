@@ -87,7 +87,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         this(null, engine, printer, workDir, configPath);
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "this-escape"})
     public ConsoleEngineImpl(
             Set<Command> commands,
             ScriptEngine engine,

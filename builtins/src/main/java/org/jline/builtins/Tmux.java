@@ -428,6 +428,7 @@ public class Tmux {
         }
     }
 
+    @SuppressWarnings("this-escape")
     public Tmux(Terminal terminal, PrintStream err, Consumer<Terminal> runner) throws IOException {
         this.terminal = terminal;
         this.err = err;

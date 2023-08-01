@@ -22,6 +22,7 @@ import org.jline.reader.impl.BufferImpl;
 public class AutosuggestionWidgets extends Widgets {
     private boolean enabled = false;
 
+    @SuppressWarnings("this-escape")
     public AutosuggestionWidgets(LineReader reader) {
         super(reader);
         if (existsWidget("_autosuggest-forward-char")) {

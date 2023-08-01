@@ -51,6 +51,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
         this(null, engine, printer);
     }
 
+    @SuppressWarnings("this-escape")
     public GroovyCommand(Set<Command> commands, GroovyEngine engine, Printer printer) {
         this.engine = engine;
         this.printer = printer;

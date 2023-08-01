@@ -74,6 +74,7 @@ public abstract class ConnectionManager implements Runnable {
     private boolean lineMode = false;
     private boolean stopping = false;
 
+    @SuppressWarnings("this-escape")
     public ConnectionManager() {
         threadGroup = new ThreadGroup(toString() + "Connections");
         closedConnections = new Stack<Connection>();

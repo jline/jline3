@@ -124,6 +124,7 @@ public class TailTipWidgets extends Widgets {
         this(reader, null, descriptionSize, tipType, descFun);
     }
 
+    @SuppressWarnings("this-escape")
     private TailTipWidgets(
             LineReader reader,
             Map<String, CmdDesc> tailTips,

@@ -137,6 +137,7 @@ public class Attributes {
 
     public Attributes() {}
 
+    @SuppressWarnings("this-escape")
     public Attributes(Attributes attr) {
         copy(attr);
     }

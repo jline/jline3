@@ -68,6 +68,7 @@ public class AutopairWidgets extends Widgets {
         this(reader, false);
     }
 
+    @SuppressWarnings("this-escape")
     public AutopairWidgets(LineReader reader, boolean addCurlyBrackets) {
         super(reader);
         if (existsWidget(AP_INSERT)) {
