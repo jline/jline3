@@ -1025,9 +1025,10 @@ public class Posix {
                 sources.add(new StdInSource(process));
             } else if (arg.contains("*") || arg.contains("?")) {
                 PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + arg);
-                try (Stream<Path> pathStream =
-                        Files.find(session.currentDir(), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))) {
-                    pathStream.forEach(p -> sources.add(doUrlSource(session.currentDir(), p)));
+                try (Stream<Path> pathStream = Files.walk(session.currentDir())) {
+                    pathStream
+                            .filter(pathMatcher::matches)
+                            .forEach(p -> sources.add(doUrlSource(session.currentDir(), p)));
                 }
             } else {
                 sources.add(new PathSource(session.currentDir().resolve(arg), arg));

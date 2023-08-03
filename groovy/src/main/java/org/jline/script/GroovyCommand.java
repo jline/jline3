@@ -289,9 +289,11 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
                                 .getPathMatcher("regex:"
                                         + arg.replace("\\", "\\\\").replace(".", "\\.")
                                         + separator.replace("\\", "\\\\") + ".*\\.jar");
-                        try (Stream<Path> pathStream =
-                                Files.walk(Paths.get(arg)).filter(matcher::matches)) {
-                            pathStream.map(Path::toString).forEach(engine.classLoader::addClasspath);
+                        try (Stream<Path> pathStream = Files.walk(Paths.get(arg))) {
+                            pathStream
+                                    .filter(matcher::matches)
+                                    .map(Path::toString)
+                                    .forEach(engine.classLoader::addClasspath);
                         }
                     } else {
                         engine.classLoader.addClasspath(arg);

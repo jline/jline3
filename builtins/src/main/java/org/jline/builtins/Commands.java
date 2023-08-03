@@ -190,9 +190,8 @@ public class Commands {
             searchRoot = root;
         }
         PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + regex);
-        try (Stream<Path> pathStream =
-                Files.find(searchRoot, Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))) {
-            return pathStream.collect(Collectors.toList());
+        try (Stream<Path> pathStream = Files.walk(searchRoot)) {
+            return pathStream.filter(pathMatcher::matches).collect(Collectors.toList());
         }
     }
 
@@ -1679,11 +1678,8 @@ public class Commands {
                         String parameter = replaceFileName(currentTheme, "*" + TYPE_NANORCTHEME);
                         out.println(currentTheme.getParent() + ":");
                         PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parameter);
-                        try (Stream<Path> pathStream = Files.find(
-                                Paths.get(new File(parameter).getParent()),
-                                Integer.MAX_VALUE,
-                                (path, f) -> pathMatcher.matches(path))) {
-                            pathStream.forEach(p -> out.println(p.getFileName()));
+                        try (Stream<Path> pathStream = Files.walk(Paths.get(new File(parameter).getParent()))) {
+                            pathStream.filter(pathMatcher::matches).forEach(p -> out.println(p.getFileName()));
                         }
                     } else {
                         File themeFile;
