@@ -651,7 +651,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                 lock.unlock();
             }
 
-            while (true) {
+            while (!Thread.interrupted()) {
 
                 KeyMap<Binding> local = null;
                 if (isInViCmdMode() && regionActive != RegionType.NONE) {
