@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2022, the original author(s).
+ * Copyright (c) 2002-2023, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -1174,6 +1174,7 @@ public class Less {
         }
         if (lines == Integer.MAX_VALUE) {
             moveTo(Integer.MAX_VALUE);
+            firstLineToDisplay = height - 1;
             for (int l = 0; l < height - 1; l++) {
                 firstLineToDisplay =
                         prevLine2display(firstLineToDisplay, dpCompiled).getU();
