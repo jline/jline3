@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2022, the original author(s).
+ * Copyright (c) 2002-2023, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -402,7 +402,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 break;
             case METHOD:
             case SYNTAX:
-                if (!isCommandOrScript(cmd)) {
+                if (!isCommandOrScript(cmd) && scriptDescription != null) {
                     out = scriptDescription.apply(line);
                 }
                 break;
