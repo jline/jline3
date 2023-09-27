@@ -1173,7 +1173,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
     private boolean urlExists(String weburl) {
         try {
-            URL url = new URL(weburl);
+            URL url = URI.create(weburl).toURL();
             HttpURLConnection huc = (HttpURLConnection) url.openConnection();
             huc.setRequestMethod("HEAD");
             return huc.getResponseCode() == HttpURLConnection.HTTP_OK;

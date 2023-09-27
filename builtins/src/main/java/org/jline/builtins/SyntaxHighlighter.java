@@ -10,7 +10,8 @@ package org.jline.builtins;
 
 import java.io.*;
 import java.io.InputStreamReader;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
@@ -187,12 +188,12 @@ public class SyntaxHighlighter {
             if (nanorcUrl.startsWith("classpath:")) {
                 inputStream = new Source.ResourceSource(nanorcUrl.substring(10), null).read();
             } else {
-                inputStream = new Source.URLSource(new URL(nanorcUrl), null).read();
+                inputStream = new Source.URLSource(new URI(nanorcUrl).toURL(), null).read();
             }
             NanorcParser parser = new NanorcParser(inputStream, null, null);
             parser.parse();
             out.addRules(parser.getHighlightRules());
-        } catch (IOException e) {
+        } catch (IOException | URISyntaxException e) {
             // ignore
         }
         return out;

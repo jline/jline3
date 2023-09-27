@@ -118,14 +118,11 @@ public class OSInfo {
 
     public static boolean isAlpine() {
         try {
-            Process p = Runtime.getRuntime().exec("cat /etc/os-release | grep ^ID");
+            Process p = Runtime.getRuntime().exec(new String[] {"cat", "/etc/os-release", "|", "grep", "^ID"});
             p.waitFor();
 
-            InputStream in = p.getInputStream();
-            try {
+            try (InputStream in = p.getInputStream()) {
                 return readFully(in).toLowerCase().contains("alpine");
-            } finally {
-                in.close();
             }
 
         } catch (Throwable e) {
@@ -135,14 +132,11 @@ public class OSInfo {
 
     static String getHardwareName() {
         try {
-            Process p = Runtime.getRuntime().exec("uname -m");
+            Process p = Runtime.getRuntime().exec(new String[] {"uname", "-m"});
             p.waitFor();
 
-            InputStream in = p.getInputStream();
-            try {
+            try (InputStream in = p.getInputStream()) {
                 return readFully(in);
-            } finally {
-                in.close();
             }
         } catch (Throwable e) {
             System.err.println("Error while running uname -m: " + e.getMessage());

@@ -1907,7 +1907,7 @@ public class Posix {
         protected Double getDouble(String s, int start, int end) {
             Matcher m = fpPattern.matcher(s.substring(start, end));
             m.find();
-            return new Double(s.substring(0, m.end(1)));
+            return Double.valueOf(s.substring(0, m.end(1)));
         }
 
         protected int compareRegion(

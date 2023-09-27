@@ -187,15 +187,21 @@ public interface SystemRegistry extends CommandRegistry, ConsoleOptionGetter {
         }
 
         protected void addRegistry(SystemRegistry systemRegistry) {
-            systemRegisteries.put(Thread.currentThread().getId(), systemRegistry);
+            systemRegisteries.put(getThreadId(), systemRegistry);
         }
 
         protected SystemRegistry getSystemRegistry() {
-            return systemRegisteries.getOrDefault(Thread.currentThread().getId(), null);
+            return systemRegisteries.getOrDefault(getThreadId(), null);
         }
 
         protected void removeRegistry() {
-            systemRegisteries.remove(Thread.currentThread().getId());
+            systemRegisteries.remove(getThreadId());
+        }
+
+        // TODO: Thread.getId() should be replaced with Thread.threadId() when minimum is JDK >= 19
+        @SuppressWarnings("deprecation")
+        private static long getThreadId() {
+            return Thread.currentThread().getId();
         }
     }
 }

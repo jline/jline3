@@ -399,19 +399,19 @@ public class ConnectionData {
         try {
             country = country.substring(country.lastIndexOf(".") + 1);
             if (country.equals("at")) {
-                locale = new Locale("de", "AT");
+                locale = localeOf("de", "AT");
             } else if (country.equals("de")) {
-                locale = new Locale("de", "DE");
+                locale = localeOf("de", "DE");
             } else if (country.equals("mx")) {
-                locale = new Locale("es", "MX");
+                locale = localeOf("es", "MX");
             } else if (country.equals("es")) {
-                locale = new Locale("es", "ES");
+                locale = localeOf("es", "ES");
             } else if (country.equals("it")) {
                 locale = Locale.ITALY;
             } else if (country.equals("fr")) {
                 locale = Locale.FRANCE;
             } else if (country.equals("uk")) {
-                locale = new Locale("en", "GB");
+                locale = Locale.UK;
             } else if (country.equals("arpa")) {
                 locale = Locale.US;
             } else if (country.equals("com")) {
@@ -433,4 +433,11 @@ public class ConnectionData {
             locale = Locale.ENGLISH;
         }
     } // setLocale
+
+    // TODO: {@code new Locale(String, String)} should be replaced with {@code Locale.of(String, String)}
+    // TODO: when minimum JDK >= 19
+    @SuppressWarnings("deprecation")
+    private static Locale localeOf(String language, String country) {
+        return new Locale(language, country);
+    }
 } // class ConnectionData
