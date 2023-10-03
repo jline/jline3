@@ -80,6 +80,15 @@ public final class TerminalBuilder {
     public static final String PROP_FILE_DESCRIPTOR_CREATION_MODE_DEFAULT = "reflection,native";
 
     //
+    // System properties controlling how RedirectPipe are created.
+    // The value can be a comma separated list of defined mechanisms.
+    //
+    public static final String PROP_REDIRECT_PIPE_CREATION_MODE = "org.jline.terminal.exec.redirectPipeCreationMode";
+    public static final String PROP_REDIRECT_PIPE_CREATION_MODE_NATIVE = "native";
+    public static final String PROP_REDIRECT_PIPE_CREATION_MODE_REFLECTION = "reflection";
+    public static final String PROP_REDIRECT_PIPE_CREATION_MODE_DEFAULT = "reflection,native";
+
+    //
     // Terminal output control
     //
     public enum SystemOutput {

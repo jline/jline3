@@ -26,4 +26,16 @@ public class JLineLibraryTest {
         field.setAccessible(true);
         assertEquals(12, field.get(fd), fd.toString());
     }
+
+    @Test
+    void testNewRedirectPipeImpl() throws Exception {
+        ProcessBuilder.Redirect redirect = JLineLibrary.newRedirectPipe(FileDescriptor.out);
+        assertNotNull(redirect);
+        // This requires '--add-opens java.base/java.lang=ALL-UNNAMED', but adding this option
+        // defeats the very purpose of the method
+        //
+        // Method mth = redirect.getClass().getDeclaredMethod("getFd");
+        // mth.setAccessible(true);
+        // assertEquals(System.out, mth.invoke(redirect), redirect.toString());
+    }
 }

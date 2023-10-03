@@ -16,6 +16,8 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 
+import org.jline.nativ.JLineLibrary;
+import org.jline.nativ.JLineNativeLoader;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
@@ -27,6 +29,11 @@ import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.ExecHelper;
 import org.jline.utils.Log;
 import org.jline.utils.OSUtils;
+
+import static org.jline.terminal.TerminalBuilder.PROP_REDIRECT_PIPE_CREATION_MODE;
+import static org.jline.terminal.TerminalBuilder.PROP_REDIRECT_PIPE_CREATION_MODE_DEFAULT;
+import static org.jline.terminal.TerminalBuilder.PROP_REDIRECT_PIPE_CREATION_MODE_NATIVE;
+import static org.jline.terminal.TerminalBuilder.PROP_REDIRECT_PIPE_CREATION_MODE_REFLECTION;
 
 public class ExecTerminalProvider implements TerminalProvider {
 
@@ -137,7 +144,7 @@ public class ExecTerminalProvider implements TerminalProvider {
         try {
             ProcessBuilder.Redirect input = stream == Stream.Input
                     ? ProcessBuilder.Redirect.INHERIT
-                    : getRedirect(stream == Stream.Output ? FileDescriptor.out : FileDescriptor.err);
+                    : newDescriptor(stream == Stream.Output ? FileDescriptor.out : FileDescriptor.err);
             Process p =
                     new ProcessBuilder(OSUtils.TTY_COMMAND).redirectInput(input).start();
             String result = ExecHelper.waitAndCapture(p);
@@ -157,20 +164,82 @@ public class ExecTerminalProvider implements TerminalProvider {
         return null;
     }
 
+    private static RedirectPipeCreator redirectPipeCreator;
+
+    protected static ProcessBuilder.Redirect newDescriptor(FileDescriptor fd) {
+        if (redirectPipeCreator == null) {
+            String str = System.getProperty(PROP_REDIRECT_PIPE_CREATION_MODE, PROP_REDIRECT_PIPE_CREATION_MODE_DEFAULT);
+            String[] modes = str.split(",");
+            IllegalStateException ise = new IllegalStateException("Unable to create RedirectPipe");
+            for (String mode : modes) {
+                try {
+                    switch (mode) {
+                        case PROP_REDIRECT_PIPE_CREATION_MODE_NATIVE:
+                            redirectPipeCreator = new NativeRedirectPipeCreator();
+                            break;
+                        case PROP_REDIRECT_PIPE_CREATION_MODE_REFLECTION:
+                            redirectPipeCreator = new ReflectionRedirectPipeCreator();
+                            break;
+                    }
+                } catch (Throwable t) {
+                    // ignore
+                    ise.addSuppressed(t);
+                }
+                if (redirectPipeCreator != null) {
+                    break;
+                }
+            }
+            if (redirectPipeCreator == null) {
+                throw ise;
+            }
+        }
+        return redirectPipeCreator.newRedirectPipe(fd);
+    }
+
+    interface RedirectPipeCreator {
+        ProcessBuilder.Redirect newRedirectPipe(FileDescriptor fd);
+    }
+
     /**
-     * This requires --add-opens java.base/java.lang=ALL-UNNAMED
+     * Reflection based file descriptor creator.
+     * This requires the following option
+     *   --add-opens java.base/java.lang=ALL-UNNAMED
      */
-    private ProcessBuilder.Redirect getRedirect(FileDescriptor fd) throws ReflectiveOperationException {
-        // This is not really allowed, but this is the only way to redirect the output or error stream
-        // to the input.  This is definitely not something you'd usually want to do, but in the case of
-        // the `tty` utility, it provides a way to get
-        Class<?> rpi = Class.forName("java.lang.ProcessBuilder$RedirectPipeImpl");
-        Constructor<?> cns = rpi.getDeclaredConstructor();
-        cns.setAccessible(true);
-        ProcessBuilder.Redirect input = (ProcessBuilder.Redirect) cns.newInstance();
-        Field f = rpi.getDeclaredField("fd");
-        f.setAccessible(true);
-        f.set(input, fd);
-        return input;
+    static class ReflectionRedirectPipeCreator implements RedirectPipeCreator {
+        private final Constructor<ProcessBuilder.Redirect> constructor;
+        private final Field fdField;
+
+        @SuppressWarnings("unchecked")
+        ReflectionRedirectPipeCreator() throws Exception {
+            Class<?> rpi = Class.forName("java.lang.ProcessBuilder$RedirectPipeImpl");
+            constructor = (Constructor<ProcessBuilder.Redirect>) rpi.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            fdField = rpi.getDeclaredField("fd");
+            fdField.setAccessible(true);
+        }
+
+        @Override
+        public ProcessBuilder.Redirect newRedirectPipe(FileDescriptor fd) {
+            try {
+                ProcessBuilder.Redirect input = constructor.newInstance();
+                fdField.set(input, fd);
+                return input;
+            } catch (ReflectiveOperationException e) {
+                // This should not happen as the field has been set accessible
+                throw new IllegalStateException(e);
+            }
+        }
+    }
+
+    static class NativeRedirectPipeCreator implements RedirectPipeCreator {
+        public NativeRedirectPipeCreator() {
+            // Force load the library
+            JLineNativeLoader.initialize();
+        }
+
+        @Override
+        public ProcessBuilder.Redirect newRedirectPipe(FileDescriptor fd) {
+            return JLineLibrary.newRedirectPipe(fd);
+        }
     }
 }

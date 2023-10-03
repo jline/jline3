@@ -38,4 +38,26 @@ JNIEXPORT jobject JNICALL JLineLibrary_NATIVE(newFileDescriptor)(JNIEnv *env, jc
     return ret;
 }
 
+JNIEXPORT jobject JNICALL JLineLibrary_NATIVE(newRedirectPipe)(JNIEnv *env, jclass that, jobject fd)
+{
+    jfieldID field_fd;
+    jmethodID const_rpi;
+    jclass class_rpi;
+    jobject ret;
 
+    class_rpi = (*env)->FindClass(env, "java/lang/ProcessBuilder$RedirectPipeImpl");
+    if (class_rpi == NULL) return NULL;
+
+    // construct a new RedirectPipeImpl
+    const_rpi = (*env)->GetMethodID(env, class_rpi, "<init>", "()V");
+    if (const_rpi == NULL) return NULL;
+    ret = (*env)->NewObject(env, class_rpi, const_rpi);
+
+    // poke the "fd" field with the file descriptor
+    field_fd = (*env)->GetFieldID(env, class_rpi, "fd", "Ljava/io/FileDescriptor;");
+    if (field_fd == NULL) return NULL;
+    (*env)->SetObjectField(env, ret, field_fd, fd);
+
+    // and return it
+    return ret;
+}
