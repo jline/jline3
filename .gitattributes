@@ -1,1 +1,4 @@
 * text eol=lf
+*.dll binary
+*.so binary
+
