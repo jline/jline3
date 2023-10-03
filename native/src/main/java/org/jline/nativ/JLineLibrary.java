@@ -23,4 +23,6 @@ public class JLineLibrary {
     }
 
     public static native FileDescriptor newFileDescriptor(int fd);
+
+    public static native ProcessBuilder.Redirect newRedirectPipe(FileDescriptor fd);
 }
