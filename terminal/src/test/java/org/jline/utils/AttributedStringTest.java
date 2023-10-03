@@ -13,9 +13,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import org.jline.terminal.impl.DumbTerminal;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class AttributedStringTest {
 
@@ -27,9 +27,9 @@ public class AttributedStringTest {
 
         assertEquals("echo \033[1mfoo\033[0m", sb.toAnsi());
 
-        assertEquals("o f", sb.toString().substring(3, 6));
-        assertEquals("o f", sb.columnSubSequence(3, 6).toString());
-        assertEquals("o \033[1mf\033[0m", sb.columnSubSequence(3, 6).toAnsi());
+        assertEquals(sb.toString().substring(3, 6), "o f");
+        assertEquals(sb.columnSubSequence(3, 6).toString(), "o f");
+        assertEquals(sb.columnSubSequence(3, 6).toAnsi(), "o \033[1mf\033[0m");
 
         sb.append(" ");
         sb.style(AttributedStyle.DEFAULT.background(3));
@@ -126,8 +126,8 @@ public class AttributedStringTest {
         assertEquals(8, sb.columnLength());
 
         assertEquals("", sb.columnSubSequence(0, 1).toString());
-        assertEquals("\u2329", sb.columnSubSequence(1, 3).toString());
-        assertEquals("\u2329\u2329\u2329", sb.columnSubSequence(3, 8).toString());
+        assertEquals(sb.columnSubSequence(1, 3).toString(), "\u2329");
+        assertEquals(sb.columnSubSequence(3, 8).toString(), "\u2329\u2329\u2329");
     }
 
     @Test

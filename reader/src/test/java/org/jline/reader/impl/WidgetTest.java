@@ -13,7 +13,7 @@ import java.io.IOException;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.LineReader;
 import org.jline.reader.Reference;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class WidgetTest extends ReaderTestSupport {
 

@@ -19,9 +19,9 @@ import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class CommandsTest {
     @Test

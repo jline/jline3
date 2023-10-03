@@ -29,18 +29,18 @@ import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
 import org.jline.terminal.impl.DumbTerminal;
 import org.jline.utils.AttributedString;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import static org.jline.terminal.impl.AbstractWindowsTerminal.TYPE_WINDOWS_CONEMU;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class LineReaderTest {
 
-    @Test(expected = EndOfFileException.class)
-    @Ignore
+    @Test
+    @Disabled
     public void emptyStringGivesEOFWithJna() throws Exception {
         String inputString = "";
         InputStream inputStream = new ByteArrayInputStream(inputString.getBytes());
@@ -54,12 +54,11 @@ public class LineReaderTest {
         LineReader reader = builder.build();
 
         // this gets trapped in an infinite loop
-        reader.readLine();
-        fail("Should have thrown an EndOfFileException");
+        assertThrows(EndOfFileException.class, () -> reader.readLine());
     }
 
-    @Test(expected = EndOfFileException.class)
-    @Ignore
+    @Test
+    @Disabled
     public void emptyStringGivesEOFNoJna() throws Exception {
         String inputString = "";
         InputStream inputStream = new ByteArrayInputStream(inputString.getBytes());
@@ -73,8 +72,7 @@ public class LineReaderTest {
         LineReader reader = builder.build();
 
         // this gets trapped in an infinite loop
-        reader.readLine();
-        fail("Should have thrown an EndOfFileException");
+        assertThrows(EndOfFileException.class, () -> reader.readLine());
     }
 
     @Test
@@ -168,7 +166,7 @@ public class LineReaderTest {
                 TerminalBuilder.builder().name(expectedAppName).build();
         final LineReader lineReader = new LineReaderImpl(terminal);
 
-        assertEquals("Did not inherit appName from terminal", expectedAppName, lineReader.getAppName());
+        assertEquals(expectedAppName, lineReader.getAppName(), "Did not inherit appName from terminal");
     }
 
     @Test
@@ -178,7 +176,7 @@ public class LineReaderTest {
                 TerminalBuilder.builder().name(expectedAppName + "X").build();
         final LineReader lineReader = new LineReaderImpl(terminal, expectedAppName);
 
-        assertEquals("Did not prefer appName from builder", expectedAppName, lineReader.getAppName());
+        assertEquals(expectedAppName, lineReader.getAppName(), "Did not prefer appName from builder");
     }
 
     @Test

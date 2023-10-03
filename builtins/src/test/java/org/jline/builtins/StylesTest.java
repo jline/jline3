@@ -8,13 +8,14 @@
  */
 package org.jline.builtins;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class StylesTest {
-    private static final int TIMEOUT = 1000;
+    private static final int TIMEOUT = 1;
 
     private static final String STANDARD_COLORS = "di=1;91:ex=1;92:ln=1;96:fi=";
 
@@ -33,7 +34,8 @@ public class StylesTest {
         assertTrue(stylePattern);
     }
 
-    @Test(timeout = TIMEOUT)
+    @Test
+    @Timeout(TIMEOUT)
     public void testIsStylePatternRepeatedDirectory() {
         final StringBuilder builder = getRepeatedStyleBuilder();
 
@@ -43,7 +45,8 @@ public class StylesTest {
         assertTrue(stylePattern);
     }
 
-    @Test(timeout = TIMEOUT)
+    @Test
+    @Timeout(TIMEOUT)
     public void testIsStylePatternAsteriskTilde() {
         final StringBuilder builder = getRepeatedStyleBuilder();
         builder.append(ASTERISK_TILDE_STYLE_ELEMENT);

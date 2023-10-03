@@ -29,13 +29,13 @@ import org.jline.terminal.Attributes.OutputFlag;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class ExternalTerminalTest {
 
@@ -80,7 +80,7 @@ public class ExternalTerminalTest {
     }
 
     @Test
-    @Ignore("This test very often fails on Travis CI")
+    @Disabled("This test very often fails on Travis CI")
     public void testInterrupt() throws Exception {
         PipedInputStream in = new PipedInputStream();
         final PipedOutputStream outIn = new PipedOutputStream(in);

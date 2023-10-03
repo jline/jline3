@@ -22,11 +22,11 @@ import org.jline.reader.impl.ReaderTestSupport.EofPipedInputStream;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class BindingReaderTest {
 
@@ -34,7 +34,7 @@ public class BindingReaderTest {
     protected EofPipedInputStream in;
     protected ByteArrayOutputStream out;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         Handler ch = new ConsoleHandler();
         ch.setLevel(Level.FINEST);

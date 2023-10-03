@@ -9,7 +9,7 @@
 package org.jline.reader.impl;
 
 import org.jline.reader.Reference;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.jline.keymap.KeyMap.alt;
 import static org.jline.keymap.KeyMap.ctrl;

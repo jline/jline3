@@ -15,10 +15,11 @@ import org.jline.reader.EOFError;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.ReaderTestSupport;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Tests for {@link DefaultParser}.
@@ -30,7 +31,7 @@ public class DefaultParserTest extends ReaderTestSupport {
     ParsedLine delimited;
     DefaultParser parser;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         parser = new DefaultParser();
     }
@@ -90,29 +91,29 @@ public class DefaultParserTest extends ReaderTestSupport {
         assertEquals(Arrays.asList("1 2'", "3"), delimited.words());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testNullStartBlockCommentDelim() {
-        parser.setBlockCommentDelims(new DefaultParser.BlockCommentDelims(null, "*/"));
+        assertThrows(IllegalArgumentException.class, () -> new DefaultParser.BlockCommentDelims(null, "*/"));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testNullEndBlockCommentsDelim() {
-        parser.setBlockCommentDelims(new DefaultParser.BlockCommentDelims("/*", null));
+        assertThrows(IllegalArgumentException.class, () -> new DefaultParser.BlockCommentDelims("/*", null));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testEqualBlockCommentsDelims() {
-        parser.setBlockCommentDelims(new DefaultParser.BlockCommentDelims("/*", "/*"));
+        assertThrows(IllegalArgumentException.class, () -> new DefaultParser.BlockCommentDelims("/*", "/*"));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testEmptyStartBlockCommentsDelims() {
-        parser.setBlockCommentDelims(new DefaultParser.BlockCommentDelims("", "*/"));
+        assertThrows(IllegalArgumentException.class, () -> new DefaultParser.BlockCommentDelims("", "*/"));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testEmptyEndBlockCommentsDelims() {
-        parser.setBlockCommentDelims(new DefaultParser.BlockCommentDelims("/*", ""));
+        assertThrows(IllegalArgumentException.class, () -> new DefaultParser.BlockCommentDelims("/*", ""));
     }
 
     @Test
@@ -241,9 +242,9 @@ public class DefaultParserTest extends ReaderTestSupport {
         assertEquals(Arrays.asList("select", "1", "as", "'a'\ns'd\n\n", "from", "t;"), delimited.words());
     }
 
-    @Test(expected = EOFError.class)
+    @Test
     public void testMissingOpeningBlockComment() {
         parser.setBlockCommentDelims(new DefaultParser.BlockCommentDelims("/*", "*/"));
-        delimited = parser.parse("1, 2, 3 */", 0);
+        assertThrows(EOFError.class, () -> parser.parse("1, 2, 3 */", 0));
     }
 }

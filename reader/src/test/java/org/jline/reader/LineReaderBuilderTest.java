@@ -12,9 +12,9 @@ import java.io.IOException;
 
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class LineReaderBuilderTest {
 
@@ -26,7 +26,7 @@ public class LineReaderBuilderTest {
         final LineReader lineReader =
                 LineReaderBuilder.builder().terminal(terminal).build();
 
-        assertEquals("Did not inherit appName from terminal", expectedAppName, lineReader.getAppName());
+        assertEquals(expectedAppName, lineReader.getAppName(), "Did not inherit appName from terminal");
     }
 
     @Test
@@ -39,6 +39,6 @@ public class LineReaderBuilderTest {
                 .terminal(terminal)
                 .build();
 
-        assertEquals("Did not prefer appName from builder", expectedAppName, lineReader.getAppName());
+        assertEquals(expectedAppName, lineReader.getAppName(), "Did not prefer appName from builder");
     }
 }

@@ -13,11 +13,11 @@ import java.io.InterruptedIOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class NonBlockingTest {
 
@@ -155,7 +155,7 @@ public class NonBlockingTest {
         reader.getWriter().write(s);
         for (int i = 0; i < bytes.length; i++) {
             int b = is.read(100L);
-            assertEquals("Mismatch at " + i, bytes[i], b);
+            assertEquals(bytes[i], b, "Mismatch at " + i);
         }
         assertEquals(NonBlockingInputStream.READ_EXPIRED, is.read(100));
 
@@ -164,7 +164,7 @@ public class NonBlockingTest {
         reader.getWriter().write(s);
         for (int i = 0; i < bytes.length; i++) {
             int b = is.read(100L);
-            assertEquals("Mismatch at " + i, bytes[i], b);
+            assertEquals(bytes[i], b, "Mismatch at " + i);
         }
         assertEquals(NonBlockingInputStream.READ_EXPIRED, is.read(100));
 
@@ -173,7 +173,7 @@ public class NonBlockingTest {
         reader.getWriter().write(s);
         for (int i = 0; i < bytes.length; i++) {
             int b = is.read(100L);
-            assertEquals("Mismatch at " + i, bytes[i], b);
+            assertEquals(bytes[i], b, "Mismatch at " + i);
         }
         assertEquals(NonBlockingInputStream.READ_EXPIRED, is.read(100));
     }

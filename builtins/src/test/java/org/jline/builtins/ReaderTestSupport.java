@@ -31,7 +31,7 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 
 import static org.jline.reader.LineReader.ACCEPT_LINE;
 import static org.jline.reader.LineReader.BACKWARD_CHAR;
@@ -47,8 +47,8 @@ import static org.jline.reader.LineReader.KILL_WORD;
 import static org.jline.reader.LineReader.UP_HISTORY;
 import static org.jline.reader.LineReader.YANK;
 import static org.jline.reader.LineReader.YANK_POP;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Provides support for reader tests.
@@ -60,7 +60,7 @@ public abstract class ReaderTestSupport {
     protected ByteArrayOutputStream out;
     protected Character mask;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         Handler ch = new ConsoleHandler();
         ch.setLevel(Level.FINEST);

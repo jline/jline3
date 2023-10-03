@@ -12,7 +12,7 @@ import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
 import org.jline.reader.Reference;
 import org.jline.reader.impl.ReaderTestSupport;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.jline.reader.LineReader.ACCEPT_LINE;
 import static org.jline.reader.LineReader.BACKWARD_CHAR;

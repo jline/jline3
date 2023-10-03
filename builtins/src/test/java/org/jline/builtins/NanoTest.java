@@ -15,11 +15,13 @@ import java.nio.file.Paths;
 import org.jline.keymap.KeyMap;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.LineDisciplineTerminal;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class NanoTest {
 
-    @Test(timeout = 1000)
+    @Test
+    @Timeout(1)
     public void nanoBufferLineOverflow() throws Exception {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         LineDisciplineTerminal terminal = new LineDisciplineTerminal("nano", "xterm", output, StandardCharsets.UTF_8);
