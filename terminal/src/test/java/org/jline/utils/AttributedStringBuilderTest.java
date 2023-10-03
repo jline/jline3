@@ -10,9 +10,9 @@ package org.jline.utils;
 
 import java.util.Arrays;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class AttributedStringBuilderTest {
     private static String TAB_SIZE_ERR_MSG = "Incorrect tab size";
@@ -25,19 +25,19 @@ public class AttributedStringBuilderTest {
         AttributedStringBuilder sb;
         sb = new AttributedStringBuilder().tabs(4);
         sb.append("hello\tWorld");
-        assertEquals(TAB_SIZE_ERR_MSG, "hello   World", sb.toString());
+        assertEquals("hello   World", sb.toString(), TAB_SIZE_ERR_MSG);
 
         sb = new AttributedStringBuilder().tabs(5);
         sb.append("hello\tWorld");
-        assertEquals(TAB_SIZE_ERR_MSG, "hello     World", sb.toString());
+        assertEquals("hello     World", sb.toString(), TAB_SIZE_ERR_MSG);
 
         sb = new AttributedStringBuilder().tabs(Arrays.asList(5));
         sb.append("hello\tWorld");
-        assertEquals(TAB_SIZE_ERR_MSG, "hello     World", sb.toString());
+        assertEquals("hello     World", sb.toString(), TAB_SIZE_ERR_MSG);
 
         sb = new AttributedStringBuilder().tabs(Arrays.asList(6, 13));
         sb.append("one\ttwo\tthree\tfour");
-        assertEquals(TAB_SIZE_ERR_MSG, "one   two    three  four", sb.toString());
+        assertEquals("one   two    three  four", sb.toString(), TAB_SIZE_ERR_MSG);
     }
 
     /**
@@ -48,19 +48,19 @@ public class AttributedStringBuilderTest {
         AttributedStringBuilder sb;
         sb = new AttributedStringBuilder().tabs(4);
         sb.append("hello\n\tWorld");
-        assertEquals(TAB_SIZE_ERR_MSG, "hello\n    World", sb.toString());
+        assertEquals("hello\n    World", sb.toString(), TAB_SIZE_ERR_MSG);
 
         sb = new AttributedStringBuilder().tabs(4);
         sb.append("hello\tWorld\n\tfoo\tbar");
-        assertEquals(TAB_SIZE_ERR_MSG, "hello   World\n    foo bar", sb.toString());
+        assertEquals("hello   World\n    foo bar", sb.toString(), TAB_SIZE_ERR_MSG);
 
         sb = new AttributedStringBuilder().tabs(5);
         sb.append("hello\n\tWorld");
-        assertEquals(TAB_SIZE_ERR_MSG, "hello\n     World", sb.toString());
+        assertEquals("hello\n     World", sb.toString(), TAB_SIZE_ERR_MSG);
 
         sb = new AttributedStringBuilder().tabs(5);
         sb.append("hello\tWorld\n\tfoo\tbar");
-        assertEquals(TAB_SIZE_ERR_MSG, "hello     World\n     foo  bar", sb.toString());
+        assertEquals("hello     World\n     foo  bar", sb.toString(), TAB_SIZE_ERR_MSG);
     }
 
     @Test
@@ -73,15 +73,15 @@ public class AttributedStringBuilderTest {
         expected += "hello";
         sb.append("\tWorld");
         expected += "   World"; // append to first line
-        assertEquals(TAB_SIZE_ERR_MSG, expected, sb.toString());
+        assertEquals(expected, sb.toString(), TAB_SIZE_ERR_MSG);
 
         sb.append("\nfoo\tbar");
         expected += "\nfoo bar"; // append new line
-        assertEquals(TAB_SIZE_ERR_MSG, expected, sb.toString());
+        assertEquals(expected, sb.toString(), TAB_SIZE_ERR_MSG);
 
         sb.append("lorem\tipsum");
         expected += "lorem    ipsum"; // append to second line
-        assertEquals(TAB_SIZE_ERR_MSG, expected, sb.toString());
+        assertEquals(expected, sb.toString(), TAB_SIZE_ERR_MSG);
     }
 
     /**
@@ -114,14 +114,14 @@ public class AttributedStringBuilderTest {
 
         sb.appendAnsi("hello\tWorld");
         expected += "hello   World";
-        assertEquals(TAB_SIZE_ERR_MSG, expected, sb.toString());
+        assertEquals(expected, sb.toString(), TAB_SIZE_ERR_MSG);
 
         sb.appendAnsi("\033[38;5;120mgreen\tfoo\033[39m");
         expected += "green  foo";
-        assertEquals(TAB_SIZE_ERR_MSG, expected, sb.toString());
+        assertEquals(expected, sb.toString(), TAB_SIZE_ERR_MSG);
         sb.appendAnsi("\n\033[38;5;120mbar\tbaz\033[39m");
         expected += "\nbar baz";
-        assertEquals(TAB_SIZE_ERR_MSG, expected, sb.toString());
+        assertEquals(expected, sb.toString(), TAB_SIZE_ERR_MSG);
     }
 
     /**
@@ -135,19 +135,19 @@ public class AttributedStringBuilderTest {
 
         sb.append("hello\tWorld");
         expected += "hello\tWorld";
-        assertEquals(TAB_SIZE_ERR_MSG, expected, sb.toString());
+        assertEquals(expected, sb.toString(), TAB_SIZE_ERR_MSG);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testChangingExistingTabSize() throws Exception {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         sb.append("helloWorld");
-        sb.tabs(4);
+        assertThrows(IllegalStateException.class, () -> sb.tabs(4));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testNegativeTabSize() throws Exception {
-        @SuppressWarnings("unused")
-        AttributedStringBuilder sb = new AttributedStringBuilder().tabs(-1);
+        AttributedStringBuilder sb = new AttributedStringBuilder();
+        assertThrows(IllegalArgumentException.class, () -> sb.tabs(-1));
     }
 }

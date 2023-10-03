@@ -26,9 +26,8 @@ import org.jline.reader.impl.ReaderTestSupport.EofPipedInputStream;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.jline.keymap.KeyMap.alt;
 import static org.jline.keymap.KeyMap.display;
@@ -41,8 +40,8 @@ import static org.jline.reader.LineReader.DOWN_HISTORY;
 import static org.jline.reader.LineReader.KILL_WHOLE_LINE;
 import static org.jline.reader.LineReader.SEND_BREAK;
 import static org.jline.reader.LineReader.UP_HISTORY;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class KeyMapTest {
 
@@ -50,7 +49,7 @@ public class KeyMapTest {
     protected EofPipedInputStream in;
     protected ByteArrayOutputStream out;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         Handler ch = new ConsoleHandler();
         ch.setLevel(Level.FINEST);
@@ -69,7 +68,7 @@ public class KeyMapTest {
     public void testBound() throws Exception {
         KeyMap<Binding> map = new LineReaderImpl(terminal).emacs();
 
-        Assert.assertEquals(new Reference(COMPLETE_WORD), map.getBound("\u001B\u001B"));
+        assertEquals(new Reference(COMPLETE_WORD), map.getBound("\u001B\u001B"));
         assertEquals(new Reference(BACKWARD_WORD), map.getBound(alt("b")));
 
         map.bindIfNotBound(new Reference(UP_HISTORY), "\033[0A");

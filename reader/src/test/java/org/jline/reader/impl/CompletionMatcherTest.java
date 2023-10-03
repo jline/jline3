@@ -13,9 +13,9 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.jline.reader.*;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class CompletionMatcherTest {
 
@@ -31,9 +31,7 @@ public class CompletionMatcherTest {
     public void uniqueCandidates() {
         Candidate c = new Candidate("foo");
         assertEquals(
-                "Expected only one element",
-                1,
-                compileCompletionMatcher("").matches(Arrays.asList(c, c)).size());
+                1, compileCompletionMatcher("").matches(Arrays.asList(c, c)).size(), "Expected only one element");
     }
 
     @Test
@@ -41,9 +39,9 @@ public class CompletionMatcherTest {
         List<Candidate> candidates = Arrays.asList(new Candidate("foo"), new Candidate("foobar"), new Candidate("bar"));
         CompletionMatcher completionMatcher = compileCompletionMatcher("foo");
         List<Candidate> matches = completionMatcher.matches(candidates);
-        assertEquals("Number of matches", 2, matches.size());
+        assertEquals(2, matches.size(), "Number of matches");
         Candidate candidate = completionMatcher.exactMatch();
-        assertEquals("Exact match", "foo", (candidate != null ? candidate.value() : null));
-        assertEquals("Common prefix", "foo", completionMatcher.getCommonPrefix());
+        assertEquals("foo", (candidate != null ? candidate.value() : null), "Exact match");
+        assertEquals("foo", completionMatcher.getCommonPrefix(), "Common prefix");
     }
 }

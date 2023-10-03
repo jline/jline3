@@ -19,14 +19,14 @@ import java.util.List;
 import org.jline.reader.History;
 import org.jline.reader.LineReader;
 import org.jline.reader.impl.ReaderTestSupport;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Tests for {@link DefaultHistory}.
@@ -36,13 +36,13 @@ import static org.junit.Assert.fail;
 public class HistoryTest extends ReaderTestSupport {
     private DefaultHistory history;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
         history = new DefaultHistory(reader);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         history = null;
     }

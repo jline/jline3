@@ -22,20 +22,20 @@ import org.jline.reader.Widget;
 import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Tests for the {@link LineReaderImpl}.
  */
 public class TerminalReaderTest extends ReaderTestSupport {
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
         reader.setHistory(createSeededHistory());
@@ -76,14 +76,14 @@ public class TerminalReaderTest extends ReaderTestSupport {
         assertEquals("echo ! a", expander.expandHistory(history, "echo ! a"));
         assertEquals("echo !\ta", expander.expandHistory(history, "echo !\ta"));
 
-        assertEquals("mkdir barey", expander.expandHistory(history, "^monk^bar^"));
-        assertEquals("mkdir barey", expander.expandHistory(history, "^monk^bar"));
-        assertEquals("a^monk^bar", expander.expandHistory(history, "a^monk^bar"));
+        assertEquals(expander.expandHistory(history, "^monk^bar^"), "mkdir barey");
+        assertEquals(expander.expandHistory(history, "^monk^bar"), "mkdir barey");
+        assertEquals(expander.expandHistory(history, "a^monk^bar"), "a^monk^bar");
 
-        assertEquals("mkdir monkey", expander.expandHistory(history, "!!"));
+        assertEquals(expander.expandHistory(history, "!!"), "mkdir monkey");
         assertEquals("echo echo a", expander.expandHistory(history, "echo !#a"));
 
-        assertEquals("mkdir monkey", expander.expandHistory(history, "!mk"));
+        assertEquals(expander.expandHistory(history, "!mk"), "mkdir monkey");
         try {
             expander.expandHistory(history, "!mz");
             fail("expected IllegalArgumentException");
@@ -91,13 +91,13 @@ public class TerminalReaderTest extends ReaderTestSupport {
             assertEquals("!mz: event not found", e.getMessage());
         }
 
-        assertEquals("mkdir monkey", expander.expandHistory(history, "!?mo"));
-        assertEquals("mkdir monkey", expander.expandHistory(history, "!?mo?"));
+        assertEquals(expander.expandHistory(history, "!?mo"), "mkdir monkey");
+        assertEquals(expander.expandHistory(history, "!?mo?"), "mkdir monkey");
 
-        assertEquals("mkdir monkey", expander.expandHistory(history, "!-1"));
-        assertEquals("cd c:\\", expander.expandHistory(history, "!-2"));
-        assertEquals("cd c:\\", expander.expandHistory(history, "!3"));
-        assertEquals("mkdir monkey", expander.expandHistory(history, "!4"));
+        assertEquals(expander.expandHistory(history, "!-1"), "mkdir monkey");
+        assertEquals(expander.expandHistory(history, "!-2"), "cd c:\\");
+        assertEquals(expander.expandHistory(history, "!3"), "cd c:\\");
+        assertEquals(expander.expandHistory(history, "!4"), "mkdir monkey");
         try {
             expander.expandHistory(history, "!20");
             fail("expected IllegalArgumentException");
@@ -129,20 +129,20 @@ public class TerminalReaderTest extends ReaderTestSupport {
 
         // Validate !n
         assertExpansionIllegalArgumentException(expander, history, "!0");
-        assertEquals("history1", expander.expandHistory(history, "!1"));
-        assertEquals("history2", expander.expandHistory(history, "!2"));
-        assertEquals("history3", expander.expandHistory(history, "!3"));
+        assertEquals(expander.expandHistory(history, "!1"), "history1");
+        assertEquals(expander.expandHistory(history, "!2"), "history2");
+        assertEquals(expander.expandHistory(history, "!3"), "history3");
         assertExpansionIllegalArgumentException(expander, history, "!4");
 
         // Validate !-n
         assertExpansionIllegalArgumentException(expander, history, "!-0");
-        assertEquals("history3", expander.expandHistory(history, "!-1"));
-        assertEquals("history2", expander.expandHistory(history, "!-2"));
-        assertEquals("history1", expander.expandHistory(history, "!-3"));
+        assertEquals(expander.expandHistory(history, "!-1"), "history3");
+        assertEquals(expander.expandHistory(history, "!-2"), "history2");
+        assertEquals(expander.expandHistory(history, "!-3"), "history1");
         assertExpansionIllegalArgumentException(expander, history, "!-4");
 
         // Validate !!
-        assertEquals("history3", expander.expandHistory(history, "!!"));
+        assertEquals(expander.expandHistory(history, "!!"), "history3");
 
         // Add two new iterator. Because maxSize=3, history is:
         // 3 history3
@@ -155,20 +155,20 @@ public class TerminalReaderTest extends ReaderTestSupport {
         assertExpansionIllegalArgumentException(expander, history, "!0");
         assertExpansionIllegalArgumentException(expander, history, "!1");
         assertExpansionIllegalArgumentException(expander, history, "!2");
-        assertEquals("history3", expander.expandHistory(history, "!3"));
-        assertEquals("history4", expander.expandHistory(history, "!4"));
-        assertEquals("history5", expander.expandHistory(history, "!5"));
+        assertEquals(expander.expandHistory(history, "!3"), "history3");
+        assertEquals(expander.expandHistory(history, "!4"), "history4");
+        assertEquals(expander.expandHistory(history, "!5"), "history5");
         assertExpansionIllegalArgumentException(expander, history, "!6");
 
         // Validate !-n
         assertExpansionIllegalArgumentException(expander, history, "!-0");
-        assertEquals("history5", expander.expandHistory(history, "!-1"));
-        assertEquals("history4", expander.expandHistory(history, "!-2"));
-        assertEquals("history3", expander.expandHistory(history, "!-3"));
+        assertEquals(expander.expandHistory(history, "!-1"), "history5");
+        assertEquals(expander.expandHistory(history, "!-2"), "history4");
+        assertEquals(expander.expandHistory(history, "!-3"), "history3");
         assertExpansionIllegalArgumentException(expander, history, "!-4");
 
         // Validate !!
-        assertEquals("history5", expander.expandHistory(history, "!!"));
+        assertEquals(expander.expandHistory(history, "!!"), "history5");
     }
 
     @Test
@@ -188,19 +188,19 @@ public class TerminalReaderTest extends ReaderTestSupport {
 
         // if no arguments were given, it should expand to the command itself
         history.add("ls");
-        assertEquals("ls", expander.expandHistory(history, "!$"));
+        assertEquals(expander.expandHistory(history, "!$"), "ls");
 
         // now we can expand to the last argument
         history.add("ls /home");
-        assertEquals("/home", expander.expandHistory(history, "!$"));
+        assertEquals(expander.expandHistory(history, "!$"), "/home");
 
         // we always take the last argument
         history.add("ls /home /etc");
-        assertEquals("/etc", expander.expandHistory(history, "!$"));
+        assertEquals(expander.expandHistory(history, "!$"), "/etc");
 
         // make sure we don't add spaces accidentally
         history.add("ls /home  /foo ");
-        assertEquals("/foo", expander.expandHistory(history, "!$"));
+        assertEquals(expander.expandHistory(history, "!$"), "/foo");
     }
 
     @Test
@@ -280,12 +280,12 @@ public class TerminalReaderTest extends ReaderTestSupport {
     public void testBell() throws Exception {
         reader.setVariable(LineReader.BELL_STYLE, "off");
         reader.beep();
-        assertEquals("out should not have received bell", 0, out.size());
+        assertEquals(0, out.size(), "out should not have received bell");
 
         reader.setVariable(LineReader.BELL_STYLE, "audible");
         reader.beep();
         String bell = Curses.tputs(terminal.getStringCapability(Capability.bell));
-        assertEquals("out should have received bell", bell, out.toString());
+        assertEquals(bell, out.toString(), "out should have received bell");
     }
 
     @Test

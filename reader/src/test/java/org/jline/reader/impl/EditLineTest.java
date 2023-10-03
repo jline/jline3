@@ -11,7 +11,7 @@ package org.jline.reader.impl;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.LineReader;
 import org.jline.reader.Reference;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.jline.keymap.KeyMap.ctrl;
 import static org.jline.reader.LineReader.BACKWARD_KILL_LINE;

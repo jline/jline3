@@ -17,7 +17,7 @@ import org.jline.reader.Completer;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class OptionCompleterTest extends ReaderTestSupport {
 

@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.jline.reader.*;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CompletionWithCustomMatcherTest extends ReaderTestSupport {
 

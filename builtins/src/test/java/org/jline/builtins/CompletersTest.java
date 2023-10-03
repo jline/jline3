@@ -16,10 +16,10 @@ import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.impl.DefaultParser;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.jline.builtins.Completers.TreeCompleter.node;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class CompletersTest {
 

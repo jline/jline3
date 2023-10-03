@@ -10,7 +10,7 @@ package org.jline.reader.completer;
 
 import org.jline.reader.impl.ReaderTestSupport;
 import org.jline.reader.impl.completer.NullCompleter;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests for {@link NullCompleter}.

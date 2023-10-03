@@ -13,11 +13,11 @@ import java.io.ByteArrayInputStream;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
 import org.jline.reader.impl.history.DefaultHistory;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.jline.keymap.KeyMap.translate;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class HistorySearchTest extends ReaderTestSupport {
 

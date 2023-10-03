@@ -10,8 +10,8 @@ package org.jline.reader.impl;
 
 import org.jline.reader.History;
 import org.jline.reader.Reference;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.jline.keymap.KeyMap.ctrl;
 import static org.jline.reader.LineReader.BACKWARD_KILL_LINE;
@@ -30,7 +30,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     /**
      * For all tests we will start out in insert/edit mode.
      */
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
         reader.setVariable("WORDCHARS", "");

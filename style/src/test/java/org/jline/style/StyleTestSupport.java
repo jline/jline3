@@ -8,7 +8,7 @@
  */
 package org.jline.style;
 
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 
 /**
  * Support for style tests.
@@ -17,7 +17,7 @@ public abstract class StyleTestSupport {
 
     protected MemoryStyleSource source;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         this.source = new MemoryStyleSource();
     }

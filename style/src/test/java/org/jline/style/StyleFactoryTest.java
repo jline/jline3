@@ -9,8 +9,8 @@
 package org.jline.style;
 
 import org.jline.utils.AttributedString;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.jline.utils.AttributedStyle.BOLD;
 import static org.jline.utils.AttributedStyle.RED;
@@ -23,7 +23,7 @@ public class StyleFactoryTest extends StyleTestSupport {
 
     private StyleFactory underTest;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         super.setUp();
         this.underTest = new StyleFactory(new StyleResolver(source, "test"));

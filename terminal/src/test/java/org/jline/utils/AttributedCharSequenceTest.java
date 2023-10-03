@@ -14,16 +14,16 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 import org.jline.terminal.impl.ExternalTerminal;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class AttributedCharSequenceTest {
 
     @Test
     public void testUnderline() throws IOException {
         AttributedString as = AttributedString.fromAnsi("\33[38;5;0m\33[48;5;15mtest\33[0m");
-        assertEquals("\33[38;5;0;48;5;15mtest\33[0m", as.toAnsi(256, AttributedCharSequence.ForceMode.Force256Colors));
+        assertEquals(as.toAnsi(256, AttributedCharSequence.ForceMode.Force256Colors), "\33[38;5;0;48;5;15mtest\33[0m");
     }
 
     @Test

@@ -18,10 +18,9 @@ import org.jline.terminal.Attributes.InputFlag;
 import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Attributes.OutputFlag;
 import org.jline.terminal.Size;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ExecPtyTest {
 
@@ -115,7 +114,7 @@ public class ExecPtyTest {
 
     @Test
     public void testParseSize() throws IOException {
-        Assert.assertEquals(new Size(244, 85), ExecPty.doGetSize(linuxSttySample));
+        assertEquals(new Size(244, 85), ExecPty.doGetSize(linuxSttySample));
         assertEquals(new Size(244, 85), ExecPty.doGetSize(solarisSttySample));
         assertEquals(new Size(244, 85), ExecPty.doGetSize(aixSttySample));
         assertEquals(new Size(244, 85), ExecPty.doGetSize(macOsSttySample));

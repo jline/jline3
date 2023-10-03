@@ -10,8 +10,8 @@ package org.jline.style;
 
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.jline.utils.AttributedStyle.BOLD;
 import static org.jline.utils.AttributedStyle.CYAN;
@@ -25,7 +25,7 @@ public class StyleExpressionTest extends StyleTestSupport {
 
     private StyleExpression underTest;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         super.setUp();
         this.underTest = new StyleExpression(new StyleResolver(source, "test"));

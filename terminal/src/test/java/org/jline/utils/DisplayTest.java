@@ -26,11 +26,11 @@ import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.impl.LineDisciplineTerminal;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.jline.utils.InfoCmp.Capability.enter_ca_mode;
 import static org.jline.utils.InfoCmp.Capability.exit_ca_mode;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class DisplayTest {
 

@@ -12,7 +12,7 @@ import org.jline.reader.LineReader;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.ReaderTestSupport;
 import org.jline.reader.impl.completer.StringsCompleter;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests for {@link StringsCompleter}.

@@ -16,7 +16,7 @@ import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
 import org.jline.reader.ParsedLine;
 import org.jline.utils.AttributedString;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ColonCommandCompletionTest extends ReaderTestSupport {
 

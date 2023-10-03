@@ -15,9 +15,9 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 
 import org.jline.utils.InputStreamReader;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class MultiByteCharTest extends ReaderTestSupport {
 

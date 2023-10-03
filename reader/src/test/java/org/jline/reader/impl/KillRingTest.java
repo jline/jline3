@@ -8,7 +8,7 @@
  */
 package org.jline.reader.impl;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.jline.reader.LineReader.BACKWARD_KILL_WORD;
 import static org.jline.reader.LineReader.BACKWARD_WORD;
@@ -16,9 +16,9 @@ import static org.jline.reader.LineReader.KILL_WHOLE_LINE;
 import static org.jline.reader.LineReader.KILL_WORD;
 import static org.jline.reader.LineReader.YANK;
 import static org.jline.reader.LineReader.YANK_POP;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * Tests for the {@link KillRing}.

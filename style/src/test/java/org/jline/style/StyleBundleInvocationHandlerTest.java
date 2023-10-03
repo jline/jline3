@@ -9,7 +9,7 @@
 package org.jline.style;
 
 import org.jline.utils.AttributedString;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.jline.utils.AttributedStyle.*;
 
