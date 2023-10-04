@@ -11,6 +11,7 @@ package org.jline.script;
 import java.io.File;
 import java.nio.file.*;
 import java.util.*;
+import java.util.stream.Stream;
 
 import org.jline.builtins.Completers;
 import org.jline.builtins.Completers.OptDesc;
@@ -289,10 +290,12 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
                                 .getPathMatcher("regex:"
                                         + arg.replace("\\", "\\\\").replace(".", "\\.")
                                         + separator.replace("\\", "\\\\") + ".*\\.jar");
-                        Files.walk(Paths.get(arg))
-                                .filter(matcher::matches)
-                                .map(Path::toString)
-                                .forEach(engine.classLoader::addClasspath);
+                        try (Stream<Path> pathStream = Files.walk(Paths.get(arg))) {
+                            pathStream
+                                    .filter(matcher::matches)
+                                    .map(Path::toString)
+                                    .forEach(engine.classLoader::addClasspath);
+                        }
                     } else {
                         engine.classLoader.addClasspath(arg);
                     }

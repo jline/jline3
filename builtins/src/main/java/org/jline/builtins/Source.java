@@ -16,6 +16,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 public interface Source {
 
@@ -47,9 +48,9 @@ public interface Source {
         @Override
         public Long lines() {
             Long out = null;
-            try {
-                out = Files.lines(new File(url.toURI()).toPath()).count();
-            } catch (Exception e) {
+            try (Stream<String> lines = Files.lines(new File(url.toURI()).toPath())) {
+                out = lines.count();
+            } catch (Exception ignore) {
             }
             return out;
         }
@@ -81,9 +82,9 @@ public interface Source {
         @Override
         public Long lines() {
             Long out = null;
-            try {
-                out = Files.lines(path).count();
-            } catch (Exception e) {
+            try (Stream<String> lines = Files.lines(path)) {
+                out = lines.count();
+            } catch (Exception ignore) {
             }
             return out;
         }

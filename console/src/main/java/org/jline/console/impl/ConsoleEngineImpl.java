@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.jline.builtins.Completers.FilesCompleter;
 import org.jline.builtins.Completers.OptDesc;
@@ -237,11 +238,10 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                     for (String e : scriptExtensions()) {
                         String regex = pp + "/*." + e;
                         PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + regex);
-                        Files.find(
-                                        Paths.get(new File(regex).getParent()),
-                                        Integer.MAX_VALUE,
-                                        (path, f) -> pathMatcher.matches(path))
-                                .forEach(scripts::add);
+                        try (Stream<Path> pathStream =
+                                Files.walk(new File(regex).getParentFile().toPath())) {
+                            pathStream.filter(pathMatcher::matches).forEach(scripts::add);
+                        }
                     }
                 }
             }

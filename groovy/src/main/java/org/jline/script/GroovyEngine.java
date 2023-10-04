@@ -18,6 +18,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.groovy.ast.tools.ImmutablePropertyUtils;
 import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
@@ -809,39 +810,34 @@ public class GroovyEngine implements ScriptEngine {
             if (separator.equals("\\")) {
                 separator += separator;
             }
-            String dom;
             boolean onlyPackage = domain != null && domain.endsWith("*");
             if (onlyPackage) {
                 domain = domain.substring(0, domain.lastIndexOf("."));
             }
-            if (domain != null) {
-                dom = domain.isEmpty() ? ".*" + separator : separator + domain.replace(".", separator) + "(|.*)";
-            } else {
+            String pkg = domain;
+            String dom;
+            if (domain == null) {
                 dom = separator + "(|.*)";
+            } else if (domain.isEmpty()) {
+                dom = ".*" + separator;
+            } else {
+                dom = separator + domain.replace(".", separator) + "(|.*)";
             }
-            PathMatcher matcher =
-                    FileSystems.getDefault().getPathMatcher("regex:\\." + dom + "[A-Z]+[a-zA-Z]*\\.groovy");
+            dom = "regex:\\." + dom + "[A-Z]+[a-zA-Z]*\\.groovy";
+            PathMatcher matcher = FileSystems.getDefault().getPathMatcher(dom);
             Set<String> out = new HashSet<>();
-            try {
-                List<Path> paths =
-                        Files.walk(Paths.get(".")).filter(matcher::matches).collect(Collectors.toList());
-                for (Path p : paths) {
-                    if (!p.getFileName().toString().matches("[A-Z]+[a-zA-Z]*\\.groovy")) {
-                        continue;
-                    }
-                    String source = p.toString();
-                    String className = source.substring(2, source.lastIndexOf("."))
-                            .replace(FileSystems.getDefault().getSeparator(), ".");
-                    if (onlyPackage) {
-                        if (Character.isUpperCase(className.charAt(domain.length() + 1))) {
-                            out.add(className);
-                        }
-                    } else {
-                        out.add(className);
-                    }
+            try (Stream<Path> pathStream = Files.walk(Paths.get("."))) {
+                Stream<String> classes = pathStream
+                        .filter(matcher::matches)
+                        .filter(p -> p.getFileName().toString().matches("[A-Z]+[a-zA-Z]*\\.groovy"))
+                        .map(Path::toString)
+                        .map(source -> source.substring(2, source.lastIndexOf("."))
+                                .replace(FileSystems.getDefault().getSeparator(), "."));
+                if (onlyPackage) {
+                    classes = classes.filter(cl -> Character.isUpperCase(cl.charAt(pkg.length() + 1)));
                 }
+                classes.forEach(out::add);
             } catch (Exception ignore) {
-
             }
             return out;
         }

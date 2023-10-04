@@ -15,9 +15,11 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Stream;
 
 import org.jline.utils.*;
 
@@ -149,29 +151,21 @@ public class SyntaxHighlighter {
     }
 
     protected static void nanorcInclude(String parameter, List<Path> syntaxFiles) throws IOException {
-        if (parameter.contains("*") || parameter.contains("?")) {
-            PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parameter);
-            Files.find(
-                            Paths.get(new File(parameter).getParent()),
-                            Integer.MAX_VALUE,
-                            (path, f) -> pathMatcher.matches(path))
-                    .forEach(syntaxFiles::add);
-        } else {
-            syntaxFiles.add(Paths.get(parameter));
-        }
+        addFiles(parameter, s -> s.forEach(syntaxFiles::add));
     }
 
     protected static void nanorcTheme(String parameter, List<Path> syntaxFiles) throws IOException {
+        addFiles(parameter, s -> s.findFirst().ifPresent(p -> syntaxFiles.add(0, p)));
+    }
+
+    protected static void addFiles(String parameter, Consumer<Stream<Path>> consumer) throws IOException {
         if (parameter.contains("*") || parameter.contains("?")) {
             PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parameter);
-            Files.find(
-                            Paths.get(new File(parameter).getParent()),
-                            Integer.MAX_VALUE,
-                            (path, f) -> pathMatcher.matches(path))
-                    .findFirst()
-                    .ifPresent(path -> syntaxFiles.add(0, path));
+            try (Stream<Path> pathStream = Files.walk(Paths.get(new File(parameter).getParent()))) {
+                consumer.accept(pathStream.filter(pathMatcher::matches));
+            }
         } else {
-            syntaxFiles.add(0, Paths.get(parameter));
+            consumer.accept(Stream.of(Paths.get(parameter)));
         }
     }
 
