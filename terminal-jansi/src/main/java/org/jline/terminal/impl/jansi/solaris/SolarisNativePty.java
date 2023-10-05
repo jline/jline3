@@ -16,23 +16,35 @@ import java.util.EnumSet;
 import org.fusesource.jansi.internal.CLibrary;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.impl.jansi.JansiNativePty;
+import org.jline.terminal.spi.SystemStream;
+import org.jline.terminal.spi.TerminalProvider;
 
 public class SolarisNativePty extends JansiNativePty {
 
-    public static SolarisNativePty current() throws IOException {
+    public static SolarisNativePty current(TerminalProvider provider, SystemStream systemStream) throws IOException {
         try {
             String name = ttyname();
-            return new SolarisNativePty(-1, null, 0, FileDescriptor.in, 1, FileDescriptor.out, name);
+            return new SolarisNativePty(
+                    provider, systemStream, -1, null, 0, FileDescriptor.in, 1, FileDescriptor.out, name);
         } catch (IOException e) {
             throw new IOException("Not a tty", e);
         }
     }
 
-    public SolarisNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, String name) {
-        super(master, masterFD, slave, slaveFD, name);
+    public SolarisNativePty(
+            TerminalProvider provider,
+            SystemStream systemStream,
+            int master,
+            FileDescriptor masterFD,
+            int slave,
+            FileDescriptor slaveFD,
+            String name) {
+        super(provider, systemStream, master, masterFD, slave, slaveFD, name);
     }
 
     public SolarisNativePty(
+            TerminalProvider provider,
+            SystemStream systemStream,
             int master,
             FileDescriptor masterFD,
             int slave,
@@ -40,7 +52,7 @@ public class SolarisNativePty extends JansiNativePty {
             int slaveOut,
             FileDescriptor slaveOutFD,
             String name) {
-        super(master, masterFD, slave, slaveFD, slaveOut, slaveOutFD, name);
+        super(provider, systemStream, master, masterFD, slave, slaveFD, slaveOut, slaveOutFD, name);
     }
     // CONSTANTS
 

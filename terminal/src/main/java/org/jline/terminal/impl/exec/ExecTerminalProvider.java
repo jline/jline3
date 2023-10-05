@@ -21,10 +21,10 @@ import org.jline.nativ.JLineNativeLoader;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
-import org.jline.terminal.impl.ExecPty;
 import org.jline.terminal.impl.ExternalTerminal;
 import org.jline.terminal.impl.PosixSysTerminal;
 import org.jline.terminal.spi.Pty;
+import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.ExecHelper;
 import org.jline.utils.Log;
@@ -43,8 +43,8 @@ public class ExecTerminalProvider implements TerminalProvider {
         return "exec";
     }
 
-    public Pty current(Stream consoleStream) throws IOException {
-        return ExecPty.current(consoleStream);
+    public Pty current(SystemStream systemStream) throws IOException {
+        return ExecPty.current(this, systemStream);
     }
 
     @Override
@@ -56,14 +56,14 @@ public class ExecTerminalProvider implements TerminalProvider {
             boolean nativeSignals,
             Terminal.SignalHandler signalHandler,
             boolean paused,
-            Stream consoleStream)
+            SystemStream systemStream)
             throws IOException {
         if (OSUtils.IS_WINDOWS) {
             return winSysTerminal(
-                    name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused, consoleStream);
+                    name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused, systemStream);
         } else {
             return posixSysTerminal(
-                    name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused, consoleStream);
+                    name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused, systemStream);
         }
     }
 
@@ -75,10 +75,10 @@ public class ExecTerminalProvider implements TerminalProvider {
             boolean nativeSignals,
             Terminal.SignalHandler signalHandler,
             boolean paused,
-            Stream consoleStream)
+            SystemStream systemStream)
             throws IOException {
         if (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) {
-            Pty pty = current(consoleStream);
+            Pty pty = current(systemStream);
             return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
         } else {
             return null;
@@ -93,9 +93,9 @@ public class ExecTerminalProvider implements TerminalProvider {
             boolean nativeSignals,
             Terminal.SignalHandler signalHandler,
             boolean paused,
-            Stream consoleStream)
+            SystemStream systemStream)
             throws IOException {
-        Pty pty = current(consoleStream);
+        Pty pty = current(systemStream);
         return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
     }
 
@@ -115,7 +115,7 @@ public class ExecTerminalProvider implements TerminalProvider {
     }
 
     @Override
-    public boolean isSystemStream(Stream stream) {
+    public boolean isSystemStream(SystemStream stream) {
         try {
             return isWindowsSystemStream(stream) || isPosixSystemStream(stream);
         } catch (Throwable t) {
@@ -123,11 +123,11 @@ public class ExecTerminalProvider implements TerminalProvider {
         }
     }
 
-    public boolean isWindowsSystemStream(Stream stream) {
+    public boolean isWindowsSystemStream(SystemStream stream) {
         return systemStreamName(stream) != null;
     }
 
-    public boolean isPosixSystemStream(Stream stream) {
+    public boolean isPosixSystemStream(SystemStream stream) {
         try {
             Process p = new ProcessBuilder(OSUtils.TEST_COMMAND, "-t", Integer.toString(stream.ordinal()))
                     .inheritIO()
@@ -140,11 +140,11 @@ public class ExecTerminalProvider implements TerminalProvider {
     }
 
     @Override
-    public String systemStreamName(Stream stream) {
+    public String systemStreamName(SystemStream stream) {
         try {
-            ProcessBuilder.Redirect input = stream == Stream.Input
+            ProcessBuilder.Redirect input = stream == SystemStream.Input
                     ? ProcessBuilder.Redirect.INHERIT
-                    : newDescriptor(stream == Stream.Output ? FileDescriptor.out : FileDescriptor.err);
+                    : newDescriptor(stream == SystemStream.Output ? FileDescriptor.out : FileDescriptor.err);
             Process p =
                     new ProcessBuilder(OSUtils.TTY_COMMAND).redirectInput(input).start();
             String result = ExecHelper.waitAndCapture(p);
@@ -162,6 +162,15 @@ public class ExecTerminalProvider implements TerminalProvider {
             // ignore
         }
         return null;
+    }
+
+    @Override
+    public int systemStreamWidth(SystemStream stream) {
+        try (ExecPty pty = new ExecPty(this, stream, null)) {
+            return pty.getSize().getColumns();
+        } catch (Throwable t) {
+            return -1;
+        }
     }
 
     private static RedirectPipeCreator redirectPipeCreator;

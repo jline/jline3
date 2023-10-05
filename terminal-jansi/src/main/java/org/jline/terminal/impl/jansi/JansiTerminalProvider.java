@@ -27,6 +27,7 @@ import org.jline.terminal.impl.jansi.linux.LinuxNativePty;
 import org.jline.terminal.impl.jansi.osx.OsXNativePty;
 import org.jline.terminal.impl.jansi.win.JansiWinSysTerminal;
 import org.jline.terminal.spi.Pty;
+import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
 
@@ -82,18 +83,18 @@ public class JansiTerminalProvider implements TerminalProvider {
         return "jansi";
     }
 
-    public Pty current(Stream consoleStream) throws IOException {
+    public Pty current(SystemStream systemStream) throws IOException {
         String osName = System.getProperty("os.name");
         if (osName.startsWith("Linux")) {
-            return LinuxNativePty.current(consoleStream);
+            return LinuxNativePty.current(this, systemStream);
         } else if (osName.startsWith("Mac") || osName.startsWith("Darwin")) {
-            return OsXNativePty.current(consoleStream);
+            return OsXNativePty.current(this, systemStream);
         } else if (osName.startsWith("Solaris") || osName.startsWith("SunOS")) {
             // Solaris is not supported by jansi
             // return SolarisNativePty.current();
         } else if (osName.startsWith("FreeBSD")) {
             if (isAtLeast(1, 16)) {
-                return FreeBsdNativePty.current(consoleStream);
+                return FreeBsdNativePty.current(this, systemStream);
             }
         }
         throw new UnsupportedOperationException();
@@ -103,14 +104,14 @@ public class JansiTerminalProvider implements TerminalProvider {
         if (isAtLeast(1, 16)) {
             String osName = System.getProperty("os.name");
             if (osName.startsWith("Linux")) {
-                return LinuxNativePty.open(attributes, size);
+                return LinuxNativePty.open(this, attributes, size);
             } else if (osName.startsWith("Mac") || osName.startsWith("Darwin")) {
-                return OsXNativePty.open(attributes, size);
+                return OsXNativePty.open(this, attributes, size);
             } else if (osName.startsWith("Solaris") || osName.startsWith("SunOS")) {
                 // Solaris is not supported by jansi
                 // return SolarisNativePty.current();
             } else if (osName.startsWith("FreeBSD")) {
-                return FreeBsdNativePty.open(attributes, size);
+                return FreeBsdNativePty.open(this, attributes, size);
             }
         }
         throw new UnsupportedOperationException();
@@ -125,14 +126,14 @@ public class JansiTerminalProvider implements TerminalProvider {
             boolean nativeSignals,
             Terminal.SignalHandler signalHandler,
             boolean paused,
-            Stream consoleStream)
+            SystemStream systemStream)
             throws IOException {
         if (OSUtils.IS_WINDOWS) {
             return winSysTerminal(
-                    name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused, consoleStream);
+                    name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused, systemStream);
         } else {
             return posixSysTerminal(
-                    name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused, consoleStream);
+                    name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused, systemStream);
         }
     }
 
@@ -144,11 +145,11 @@ public class JansiTerminalProvider implements TerminalProvider {
             boolean nativeSignals,
             Terminal.SignalHandler signalHandler,
             boolean paused,
-            Stream consoleStream)
+            SystemStream systemStream)
             throws IOException {
         if (isAtLeast(1, 12)) {
             JansiWinSysTerminal terminal = JansiWinSysTerminal.createTerminal(
-                    name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused, consoleStream);
+                    this, systemStream, name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused);
             if (!isAtLeast(1, 16)) {
                 terminal.disableScrolling();
             }
@@ -165,9 +166,9 @@ public class JansiTerminalProvider implements TerminalProvider {
             boolean nativeSignals,
             Terminal.SignalHandler signalHandler,
             boolean paused,
-            Stream consoleStream)
+            SystemStream systemStream)
             throws IOException {
-        Pty pty = current(consoleStream);
+        Pty pty = current(systemStream);
         return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
     }
 
@@ -188,7 +189,7 @@ public class JansiTerminalProvider implements TerminalProvider {
     }
 
     @Override
-    public boolean isSystemStream(Stream stream) {
+    public boolean isSystemStream(SystemStream stream) {
         try {
             if (OSUtils.IS_WINDOWS) {
                 return isWindowsSystemStream(stream);
@@ -200,16 +201,21 @@ public class JansiTerminalProvider implements TerminalProvider {
         }
     }
 
-    public boolean isWindowsSystemStream(Stream stream) {
+    public boolean isWindowsSystemStream(SystemStream stream) {
         return JansiWinSysTerminal.isWindowsSystemStream(stream);
     }
 
-    public boolean isPosixSystemStream(Stream stream) {
+    public boolean isPosixSystemStream(SystemStream stream) {
         return JansiNativePty.isPosixSystemStream(stream);
     }
 
     @Override
-    public String systemStreamName(Stream stream) {
+    public String systemStreamName(SystemStream stream) {
         return JansiNativePty.posixSystemStreamName(stream);
+    }
+
+    @Override
+    public int systemStreamWidth(SystemStream stream) {
+        return JansiNativePty.systemStreamWidth(stream);
     }
 }

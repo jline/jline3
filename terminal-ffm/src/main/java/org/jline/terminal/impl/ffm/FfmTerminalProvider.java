@@ -20,6 +20,7 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.PosixPtyTerminal;
 import org.jline.terminal.impl.PosixSysTerminal;
 import org.jline.terminal.spi.Pty;
+import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
 
@@ -46,19 +47,21 @@ public class FfmTerminalProvider implements TerminalProvider {
             boolean nativeSignals,
             Terminal.SignalHandler signalHandler,
             boolean paused,
-            Stream consoleStream)
+            SystemStream systemStream)
             throws IOException {
         if (OSUtils.IS_WINDOWS) {
             return NativeWinSysTerminal.createTerminal(
-                    name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused, consoleStream);
+                    this, systemStream, name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused);
         } else {
             Pty pty = new FfmNativePty(
+                    this,
+                    systemStream,
                     -1,
                     null,
                     0,
                     FileDescriptor.in,
-                    consoleStream == Stream.Output ? 1 : 2,
-                    consoleStream == Stream.Output ? FileDescriptor.out : FileDescriptor.err,
+                    systemStream == SystemStream.Output ? 1 : 2,
+                    systemStream == SystemStream.Output ? FileDescriptor.out : FileDescriptor.err,
                     CLibrary.ttyName(0));
             return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
         }
@@ -76,12 +79,12 @@ public class FfmTerminalProvider implements TerminalProvider {
             Attributes attributes,
             Size size)
             throws IOException {
-        Pty pty = CLibrary.openpty(attributes, size);
+        Pty pty = CLibrary.openpty(this, attributes, size);
         return new PosixPtyTerminal(name, type, pty, in, out, encoding, signalHandler, paused);
     }
 
     @Override
-    public boolean isSystemStream(Stream stream) {
+    public boolean isSystemStream(SystemStream stream) {
         if (OSUtils.IS_WINDOWS) {
             return isWindowsSystemStream(stream);
         } else {
@@ -89,16 +92,21 @@ public class FfmTerminalProvider implements TerminalProvider {
         }
     }
 
-    public boolean isWindowsSystemStream(Stream stream) {
+    public boolean isWindowsSystemStream(SystemStream stream) {
         return NativeWinSysTerminal.isWindowsSystemStream(stream);
     }
 
-    public boolean isPosixSystemStream(Stream stream) {
+    public boolean isPosixSystemStream(SystemStream stream) {
         return FfmNativePty.isPosixSystemStream(stream);
     }
 
     @Override
-    public String systemStreamName(Stream stream) {
+    public String systemStreamName(SystemStream stream) {
         return FfmNativePty.posixSystemStreamName(stream);
+    }
+
+    @Override
+    public int systemStreamWidth(SystemStream stream) {
+        return FfmNativePty.systemStreamWidth(stream);
     }
 }

@@ -19,6 +19,8 @@ import java.util.Map;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
+import org.jline.terminal.spi.SystemStream;
+import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.Log;
@@ -73,6 +75,8 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
     protected final Console outConsole;
     protected final int originalInConsoleMode;
     protected final int originalOutConsoleMode;
+    private final TerminalProvider provider;
+    private final SystemStream systemStream;
 
     protected final Object lock = new Object();
     protected boolean paused = true;
@@ -84,6 +88,8 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
 
     @SuppressWarnings("this-escape")
     public AbstractWindowsTerminal(
+            TerminalProvider provider,
+            SystemStream systemStream,
             Writer writer,
             String name,
             String type,
@@ -96,6 +102,8 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
             int outConsoleMode)
             throws IOException {
         super(name, type, encoding, signalHandler);
+        this.provider = provider;
+        this.systemStream = systemStream;
         NonBlockingPumpReader reader = NonBlocking.nonBlockingPumpReader();
         this.slaveInputPipe = reader.getWriter();
         this.reader = reader;
@@ -523,4 +531,14 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
      * @throws IOException if anything wrong happens
      */
     protected abstract boolean processConsoleInput() throws IOException;
+
+    @Override
+    public TerminalProvider getProvider() {
+        return provider;
+    }
+
+    @Override
+    public SystemStream getSystemStream() {
+        return systemStream;
+    }
 }

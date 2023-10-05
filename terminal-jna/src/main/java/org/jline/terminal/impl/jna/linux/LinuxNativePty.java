@@ -14,6 +14,7 @@ import java.io.IOException;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.jna.JnaNativePty;
+import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 
 import com.sun.jna.LastErrorException;
@@ -38,18 +39,20 @@ public class LinuxNativePty extends JnaNativePty {
         UtilLibrary INSTANCE = Native.load("util", UtilLibrary.class);
     }
 
-    public static LinuxNativePty current(TerminalProvider.Stream consoleStream) throws IOException {
-        switch (consoleStream) {
+    public static LinuxNativePty current(TerminalProvider provider, SystemStream systemStream) throws IOException {
+        switch (systemStream) {
             case Output:
-                return new LinuxNativePty(-1, null, 0, FileDescriptor.in, 1, FileDescriptor.out, ttyname(0));
+                return new LinuxNativePty(
+                        provider, systemStream, -1, null, 0, FileDescriptor.in, 1, FileDescriptor.out, ttyname(0));
             case Error:
-                return new LinuxNativePty(-1, null, 0, FileDescriptor.in, 2, FileDescriptor.err, ttyname(0));
+                return new LinuxNativePty(
+                        provider, systemStream, -1, null, 0, FileDescriptor.in, 2, FileDescriptor.err, ttyname(0));
             default:
-                throw new IllegalArgumentException("Unsupport stream for console: " + consoleStream);
+                throw new IllegalArgumentException("Unsupport stream for console: " + systemStream);
         }
     }
 
-    public static LinuxNativePty open(Attributes attr, Size size) throws IOException {
+    public static LinuxNativePty open(TerminalProvider provider, Attributes attr, Size size) throws IOException {
         int[] master = new int[1];
         int[] slave = new int[1];
         byte[] buf = new byte[64];
@@ -60,14 +63,24 @@ public class LinuxNativePty extends JnaNativePty {
             len++;
         }
         String name = new String(buf, 0, len);
-        return new LinuxNativePty(master[0], newDescriptor(master[0]), slave[0], newDescriptor(slave[0]), name);
-    }
-
-    public LinuxNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, String name) {
-        super(master, masterFD, slave, slaveFD, name);
+        return new LinuxNativePty(
+                provider, null, master[0], newDescriptor(master[0]), slave[0], newDescriptor(slave[0]), name);
     }
 
     public LinuxNativePty(
+            TerminalProvider provider,
+            SystemStream systemStream,
+            int master,
+            FileDescriptor masterFD,
+            int slave,
+            FileDescriptor slaveFD,
+            String name) {
+        super(provider, systemStream, master, masterFD, slave, slaveFD, name);
+    }
+
+    public LinuxNativePty(
+            TerminalProvider provider,
+            SystemStream systemStream,
             int master,
             FileDescriptor masterFD,
             int slave,
@@ -75,7 +88,7 @@ public class LinuxNativePty extends JnaNativePty {
             int slaveOut,
             FileDescriptor slaveOutFD,
             String name) {
-        super(master, masterFD, slave, slaveFD, slaveOut, slaveOutFD, name);
+        super(provider, systemStream, master, masterFD, slave, slaveFD, slaveOut, slaveOutFD, name);
     }
 
     @Override

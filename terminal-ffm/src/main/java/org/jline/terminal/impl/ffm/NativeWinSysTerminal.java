@@ -18,6 +18,7 @@ import java.util.function.IntConsumer;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
+import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
 
@@ -41,14 +42,15 @@ import static org.jline.terminal.impl.ffm.Kernel32.readConsoleInputHelper;
 public class NativeWinSysTerminal extends AbstractWindowsTerminal<java.lang.foreign.MemorySegment> {
 
     public static NativeWinSysTerminal createTerminal(
+            TerminalProvider provider,
+            SystemStream systemStream,
             String name,
             String type,
             boolean ansiPassThrough,
             Charset encoding,
             boolean nativeSignals,
             SignalHandler signalHandler,
-            boolean paused,
-            TerminalProvider.Stream consoleStream)
+            boolean paused)
             throws IOException {
         try (java.lang.foreign.Arena arena = java.lang.foreign.Arena.ofConfined()) {
             // Get input console mode
@@ -59,7 +61,7 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<java.lang.fore
             }
             // Get output console and mode
             java.lang.foreign.MemorySegment console;
-            switch (consoleStream) {
+            switch (systemStream) {
                 case Output:
                     console = GetStdHandle(STD_OUTPUT_HANDLE);
                     break;
@@ -67,7 +69,7 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<java.lang.fore
                     console = GetStdHandle(STD_ERROR_HANDLE);
                     break;
                 default:
-                    throw new IllegalArgumentException("Unsupport stream for console: " + consoleStream);
+                    throw new IllegalArgumentException("Unsupport stream for console: " + systemStream);
             }
             java.lang.foreign.MemorySegment outMode = allocateInt(arena);
             if (GetConsoleMode(console, outMode) == 0) {
@@ -93,6 +95,8 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<java.lang.fore
             }
             // Create terminal
             NativeWinSysTerminal terminal = new NativeWinSysTerminal(
+                    provider,
+                    systemStream,
                     writer,
                     name,
                     type,
@@ -115,7 +119,7 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<java.lang.fore
         return SetConsoleMode(console, m | AbstractWindowsTerminal.ENABLE_VIRTUAL_TERMINAL_PROCESSING) != 0;
     }
 
-    public static boolean isWindowsSystemStream(TerminalProvider.Stream stream) {
+    public static boolean isWindowsSystemStream(SystemStream stream) {
         try (java.lang.foreign.Arena arena = java.lang.foreign.Arena.ofConfined()) {
             java.lang.foreign.MemorySegment console;
             java.lang.foreign.MemorySegment mode = allocateInt(arena);
@@ -141,6 +145,8 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<java.lang.fore
     }
 
     NativeWinSysTerminal(
+            TerminalProvider provider,
+            SystemStream systemStream,
             Writer writer,
             String name,
             String type,
@@ -153,6 +159,8 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<java.lang.fore
             int outConsoleMode)
             throws IOException {
         super(
+                provider,
+                systemStream,
                 writer,
                 name,
                 type,

@@ -20,6 +20,7 @@ import org.jline.terminal.impl.PosixPtyTerminal;
 import org.jline.terminal.impl.PosixSysTerminal;
 import org.jline.terminal.impl.jna.win.JnaWinSysTerminal;
 import org.jline.terminal.spi.Pty;
+import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
 
@@ -29,12 +30,12 @@ public class JnaTerminalProvider implements TerminalProvider {
         return "jna";
     }
 
-    public Pty current(TerminalProvider.Stream console) throws IOException {
-        return JnaNativePty.current(console);
+    public Pty current(SystemStream systemStream) throws IOException {
+        return JnaNativePty.current(this, systemStream);
     }
 
     public Pty open(Attributes attributes, Size size) throws IOException {
-        return JnaNativePty.open(attributes, size);
+        return JnaNativePty.open(this, attributes, size);
     }
 
     @Override
@@ -46,14 +47,14 @@ public class JnaTerminalProvider implements TerminalProvider {
             boolean nativeSignals,
             Terminal.SignalHandler signalHandler,
             boolean paused,
-            Stream consoleStream)
+            SystemStream systemStream)
             throws IOException {
         if (OSUtils.IS_WINDOWS) {
             return winSysTerminal(
-                    name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused, consoleStream);
+                    name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused, systemStream);
         } else {
             return posixSysTerminal(
-                    name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused, consoleStream);
+                    name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused, systemStream);
         }
     }
 
@@ -65,10 +66,10 @@ public class JnaTerminalProvider implements TerminalProvider {
             boolean nativeSignals,
             Terminal.SignalHandler signalHandler,
             boolean paused,
-            Stream console)
+            SystemStream systemStream)
             throws IOException {
         return JnaWinSysTerminal.createTerminal(
-                name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused, console);
+                this, systemStream, name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused);
     }
 
     public Terminal posixSysTerminal(
@@ -79,9 +80,9 @@ public class JnaTerminalProvider implements TerminalProvider {
             boolean nativeSignals,
             Terminal.SignalHandler signalHandler,
             boolean paused,
-            Stream consoleStream)
+            SystemStream systemStream)
             throws IOException {
-        Pty pty = current(consoleStream);
+        Pty pty = current(systemStream);
         return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
     }
 
@@ -102,7 +103,7 @@ public class JnaTerminalProvider implements TerminalProvider {
     }
 
     @Override
-    public boolean isSystemStream(Stream stream) {
+    public boolean isSystemStream(SystemStream stream) {
         try {
             if (OSUtils.IS_WINDOWS) {
                 return isWindowsSystemStream(stream);
@@ -114,20 +115,29 @@ public class JnaTerminalProvider implements TerminalProvider {
         }
     }
 
-    public boolean isWindowsSystemStream(Stream stream) {
+    public boolean isWindowsSystemStream(SystemStream stream) {
         return JnaWinSysTerminal.isWindowsSystemStream(stream);
     }
 
-    public boolean isPosixSystemStream(Stream stream) {
+    public boolean isPosixSystemStream(SystemStream stream) {
         return JnaNativePty.isPosixSystemStream(stream);
     }
 
     @Override
-    public String systemStreamName(Stream stream) {
+    public String systemStreamName(SystemStream stream) {
         if (OSUtils.IS_WINDOWS) {
             return null;
         } else {
             return JnaNativePty.posixSystemStreamName(stream);
+        }
+    }
+
+    @Override
+    public int systemStreamWidth(SystemStream stream) {
+        try (Pty pty = current(stream)) {
+            return pty.getSize().getColumns();
+        } catch (Throwable t) {
+            return -1;
         }
     }
 }

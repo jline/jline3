@@ -16,10 +16,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import org.fusesource.jansi.internal.CLibrary;
+import org.fusesource.jansi.internal.Kernel32;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractPty;
+import org.jline.terminal.impl.jansi.win.JansiWinSysTerminal;
 import org.jline.terminal.spi.Pty;
+import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
 
@@ -38,11 +41,20 @@ public abstract class JansiNativePty extends AbstractPty implements Pty {
     private final FileDescriptor slaveFD;
     private final FileDescriptor slaveOutFD;
 
-    public JansiNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, String name) {
-        this(master, masterFD, slave, slaveFD, slave, slaveFD, name);
+    public JansiNativePty(
+            TerminalProvider provider,
+            SystemStream systemStream,
+            int master,
+            FileDescriptor masterFD,
+            int slave,
+            FileDescriptor slaveFD,
+            String name) {
+        this(provider, systemStream, master, masterFD, slave, slaveFD, slave, slaveFD, name);
     }
 
     public JansiNativePty(
+            TerminalProvider provider,
+            SystemStream systemStream,
             int master,
             FileDescriptor masterFD,
             int slave,
@@ -50,6 +62,7 @@ public abstract class JansiNativePty extends AbstractPty implements Pty {
             int slaveOut,
             FileDescriptor slaveOutFD,
             String name) {
+        super(provider, systemStream);
         this.master = master;
         this.slave = slave;
         this.slaveOut = slaveOut;
@@ -174,29 +187,44 @@ public abstract class JansiNativePty extends AbstractPty implements Pty {
         return "JansiNativePty[" + getName() + "]";
     }
 
-    public static boolean isPosixSystemStream(TerminalProvider.Stream stream) {
-        switch (stream) {
-            case Input:
-                return CLibrary.isatty(0) == 1;
-            case Output:
-                return CLibrary.isatty(1) == 1;
-            case Error:
-                return CLibrary.isatty(2) == 1;
-            default:
-                return false;
+    public static boolean isPosixSystemStream(SystemStream stream) {
+        return CLibrary.isatty(fd(stream)) == 1;
+    }
+
+    public static String posixSystemStreamName(SystemStream systemStream) {
+        return CLibrary.ttyname(fd(systemStream));
+    }
+
+    public static int systemStreamWidth(SystemStream systemStream) {
+        try {
+            if (OSUtils.IS_WINDOWS) {
+                Kernel32.CONSOLE_SCREEN_BUFFER_INFO info = new Kernel32.CONSOLE_SCREEN_BUFFER_INFO();
+                long outConsole = JansiWinSysTerminal.getConsole(systemStream);
+                Kernel32.GetConsoleScreenBufferInfo(outConsole, info);
+                return info.windowWidth();
+            } else {
+                CLibrary.WinSize sz = new CLibrary.WinSize();
+                int res = CLibrary.ioctl(fd(systemStream), CLibrary.TIOCGWINSZ, sz);
+                if (res != 0) {
+                    throw new IOException("Error calling ioctl(TIOCGWINSZ): return code is " + res);
+                }
+                return sz.ws_col;
+            }
+        } catch (Throwable t) {
+            return -1;
         }
     }
 
-    public static String posixSystemStreamName(TerminalProvider.Stream stream) {
-        switch (stream) {
+    private static int fd(SystemStream systemStream) {
+        switch (systemStream) {
             case Input:
-                return CLibrary.ttyname(0);
+                return 0;
             case Output:
-                return CLibrary.ttyname(1);
+                return 1;
             case Error:
-                return CLibrary.ttyname(2);
+                return 2;
             default:
-                return null;
+                return -1;
         }
     }
 }

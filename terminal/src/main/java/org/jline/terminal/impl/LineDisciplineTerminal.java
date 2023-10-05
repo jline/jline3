@@ -24,6 +24,8 @@ import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Attributes.OutputFlag;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
+import org.jline.terminal.spi.SystemStream;
+import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.NonBlocking;
 import org.jline.utils.NonBlockingPumpInputStream;
 import org.jline.utils.NonBlockingReader;
@@ -308,6 +310,16 @@ public class LineDisciplineTerminal extends AbstractTerminal {
                 }
             }
         }
+    }
+
+    @Override
+    public TerminalProvider getProvider() {
+        return null;
+    }
+
+    @Override
+    public SystemStream getSystemStream() {
+        return null;
     }
 
     private class FilteringOutputStream extends OutputStream {

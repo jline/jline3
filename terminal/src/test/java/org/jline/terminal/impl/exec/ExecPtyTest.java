@@ -6,7 +6,7 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.terminal.impl;
+package org.jline.terminal.impl.exec;
 
 import java.io.IOException;
 import java.util.EnumSet;

@@ -14,6 +14,7 @@ import java.io.IOException;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.jna.JnaNativePty;
+import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 
 import com.sun.jna.Native;
@@ -29,18 +30,20 @@ public class SolarisNativePty extends JnaNativePty {
 
     private static final CLibrary C_LIBRARY = Native.load(Platform.C_LIBRARY_NAME, CLibrary.class);
 
-    public static SolarisNativePty current(TerminalProvider.Stream consoleStream) throws IOException {
-        switch (consoleStream) {
+    public static SolarisNativePty current(TerminalProvider provider, SystemStream systemStream) throws IOException {
+        switch (systemStream) {
             case Output:
-                return new SolarisNativePty(-1, null, 0, FileDescriptor.in, 1, FileDescriptor.out, ttyname(0));
+                return new SolarisNativePty(
+                        provider, systemStream, -1, null, 0, FileDescriptor.in, 1, FileDescriptor.out, ttyname(0));
             case Error:
-                return new SolarisNativePty(-1, null, 0, FileDescriptor.in, 2, FileDescriptor.err, ttyname(0));
+                return new SolarisNativePty(
+                        provider, systemStream, -1, null, 0, FileDescriptor.in, 2, FileDescriptor.err, ttyname(0));
             default:
-                throw new IllegalArgumentException("Unsupport stream for console: " + consoleStream);
+                throw new IllegalArgumentException("Unsupport stream for console: " + systemStream);
         }
     }
 
-    public static SolarisNativePty open(Attributes attr, Size size) throws IOException {
+    public static SolarisNativePty open(TerminalProvider provider, Attributes attr, Size size) throws IOException {
         int[] master = new int[1];
         int[] slave = new int[1];
         byte[] buf = new byte[64];
@@ -51,14 +54,24 @@ public class SolarisNativePty extends JnaNativePty {
             len++;
         }
         String name = new String(buf, 0, len);
-        return new SolarisNativePty(master[0], newDescriptor(master[0]), slave[0], newDescriptor(slave[0]), name);
-    }
-
-    public SolarisNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, String name) {
-        super(master, masterFD, slave, slaveFD, name);
+        return new SolarisNativePty(
+                provider, null, master[0], newDescriptor(master[0]), slave[0], newDescriptor(slave[0]), name);
     }
 
     public SolarisNativePty(
+            TerminalProvider provider,
+            SystemStream systemStream,
+            int master,
+            FileDescriptor masterFD,
+            int slave,
+            FileDescriptor slaveFD,
+            String name) {
+        super(provider, systemStream, master, masterFD, slave, slaveFD, name);
+    }
+
+    public SolarisNativePty(
+            TerminalProvider provider,
+            SystemStream systemStream,
             int master,
             FileDescriptor masterFD,
             int slave,
@@ -66,7 +79,7 @@ public class SolarisNativePty extends JnaNativePty {
             int slaveOut,
             FileDescriptor slaveOutFD,
             String name) {
-        super(master, masterFD, slave, slaveFD, slaveOut, slaveOutFD, name);
+        super(provider, systemStream, master, masterFD, slave, slaveFD, slaveOut, slaveOutFD, name);
     }
 
     @Override

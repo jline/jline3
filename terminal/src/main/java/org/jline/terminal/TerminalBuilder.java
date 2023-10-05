@@ -33,6 +33,7 @@ import java.util.stream.Stream;
 import org.jline.terminal.impl.AbstractPosixTerminal;
 import org.jline.terminal.impl.AbstractTerminal;
 import org.jline.terminal.impl.DumbTerminal;
+import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.Log;
 import org.jline.utils.OSUtils;
@@ -136,6 +137,7 @@ public final class TerminalBuilder {
     private int codepage;
     private Boolean system;
     private SystemOutput systemOutput;
+    private String providers;
     private Boolean jna;
     private Boolean jansi;
     private Boolean exec;
@@ -177,6 +179,11 @@ public final class TerminalBuilder {
      */
     public TerminalBuilder systemOutput(SystemOutput systemOutput) {
         this.systemOutput = systemOutput;
+        return this;
+    }
+
+    public TerminalBuilder providers(String providers) {
+        this.providers = providers;
         return this;
     }
 
@@ -397,7 +404,7 @@ public final class TerminalBuilder {
         if (ffm) {
             try {
                 TerminalProvider provider = TerminalProvider.load("ffm");
-                provider.isSystemStream(TerminalProvider.Stream.Output);
+                provider.isSystemStream(SystemStream.Output);
                 providers.add(provider);
             } catch (Throwable t) {
                 Log.debug("Unable to load FFM support: ", t);
@@ -407,7 +414,7 @@ public final class TerminalBuilder {
         if (jna) {
             try {
                 TerminalProvider provider = TerminalProvider.load("jna");
-                provider.isSystemStream(TerminalProvider.Stream.Output);
+                provider.isSystemStream(SystemStream.Output);
                 providers.add(provider);
             } catch (Throwable t) {
                 Log.debug("Unable to load JNA support: ", t);
@@ -417,7 +424,7 @@ public final class TerminalBuilder {
         if (jansi) {
             try {
                 TerminalProvider provider = TerminalProvider.load("jansi");
-                provider.isSystemStream(TerminalProvider.Stream.Output);
+                provider.isSystemStream(SystemStream.Output);
                 providers.add(provider);
             } catch (Throwable t) {
                 Log.debug("Unable to load JANSI support: ", t);
@@ -434,7 +441,8 @@ public final class TerminalBuilder {
             }
         }
         List<String> order = Arrays.asList(
-                System.getProperty(PROP_PROVIDERS, PROP_PROVIDERS_DEFAULT).split(","));
+                (this.providers != null ? this.providers : System.getProperty(PROP_PROVIDERS, PROP_PROVIDERS_DEFAULT))
+                        .split(","));
         providers.sort(Comparator.comparing(l -> {
             int idx = order.indexOf(l.name());
             return idx >= 0 ? idx : Integer.MAX_VALUE;
@@ -488,12 +496,12 @@ public final class TerminalBuilder {
             if (systemOutput == null) {
                 systemOutput = SystemOutput.SysOutOrSysErr;
             }
-            Map<TerminalProvider.Stream, Boolean> system = Stream.of(TerminalProvider.Stream.values())
+            Map<SystemStream, Boolean> system = Stream.of(SystemStream.values())
                     .collect(Collectors.toMap(
                             stream -> stream, stream -> providers.stream().anyMatch(p -> p.isSystemStream(stream))));
-            TerminalProvider.Stream console = select(system, systemOutput);
+            SystemStream systemStream = select(system, systemOutput);
 
-            if (system.get(TerminalProvider.Stream.Input) && console != null) {
+            if (system.get(SystemStream.Input) && systemStream != null) {
                 if (attributes != null || size != null) {
                     Log.warn("Attributes and size fields are ignored when creating a system terminal");
                 }
@@ -517,7 +525,7 @@ public final class TerminalBuilder {
                                     nativeSignals,
                                     signalHandler,
                                     paused,
-                                    console);
+                                    systemStream);
                         } catch (Throwable t) {
                             Log.debug("Error creating " + provider.name() + " based terminal: ", t.getMessage(), t);
                             exception.addSuppressed(t);
@@ -570,12 +578,12 @@ public final class TerminalBuilder {
                         }
                     }
                     if (color == null) {
-                        color = console != null && System.getenv("TERM") != null;
+                        color = systemStream != null && System.getenv("TERM") != null;
                     }
                     if (Log.isDebugEnabled()) {
-                        Log.warn("input is tty: {}", system.get(TerminalProvider.Stream.Input));
-                        Log.warn("output is tty: {}", system.get(TerminalProvider.Stream.Output));
-                        Log.warn("error is tty: {}", system.get(TerminalProvider.Stream.Error));
+                        Log.warn("input is tty: {}", system.get(SystemStream.Input));
+                        Log.warn("output is tty: {}", system.get(SystemStream.Output));
+                        Log.warn("error is tty: {}", system.get(SystemStream.Error));
                         Log.warn("Creating a dumb terminal", exception);
                     } else {
                         Log.warn(
@@ -591,9 +599,10 @@ public final class TerminalBuilder {
                         color ? Terminal.TYPE_DUMB_COLOR : Terminal.TYPE_DUMB,
                         new FileInputStream(FileDescriptor.in),
                         new FileOutputStream(
-                                console == TerminalProvider.Stream.Error ? FileDescriptor.err : FileDescriptor.out),
+                                systemStream == SystemStream.Error ? FileDescriptor.err : FileDescriptor.out),
                         encoding,
-                        signalHandler);
+                        signalHandler,
+                        systemStream);
             }
         } else {
             for (TerminalProvider provider : providers) {
@@ -614,23 +623,22 @@ public final class TerminalBuilder {
         return terminal;
     }
 
-    private TerminalProvider.Stream select(Map<TerminalProvider.Stream, Boolean> system, SystemOutput systemOutput) {
+    private SystemStream select(Map<SystemStream, Boolean> system, SystemOutput systemOutput) {
         switch (systemOutput) {
             case SysOut:
-                return select(system, TerminalProvider.Stream.Output);
+                return select(system, SystemStream.Output);
             case SysErr:
-                return select(system, TerminalProvider.Stream.Error);
+                return select(system, SystemStream.Error);
             case SysOutOrSysErr:
-                return select(system, TerminalProvider.Stream.Output, TerminalProvider.Stream.Error);
+                return select(system, SystemStream.Output, SystemStream.Error);
             case SysErrOrSysOut:
-                return select(system, TerminalProvider.Stream.Error, TerminalProvider.Stream.Output);
+                return select(system, SystemStream.Error, SystemStream.Output);
         }
         return null;
     }
 
-    private static TerminalProvider.Stream select(
-            Map<TerminalProvider.Stream, Boolean> system, TerminalProvider.Stream... streams) {
-        for (TerminalProvider.Stream s : streams) {
+    private static SystemStream select(Map<SystemStream, Boolean> system, SystemStream... streams) {
+        for (SystemStream s : streams) {
             if (system.get(s)) {
                 return s;
             }

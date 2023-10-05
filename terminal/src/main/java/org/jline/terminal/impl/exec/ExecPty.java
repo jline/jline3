@@ -6,7 +6,7 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.terminal.impl;
+package org.jline.terminal.impl.exec;
 
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
@@ -26,7 +26,9 @@ import org.jline.terminal.Attributes.InputFlag;
 import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Attributes.OutputFlag;
 import org.jline.terminal.Size;
+import org.jline.terminal.impl.AbstractPty;
 import org.jline.terminal.spi.Pty;
+import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
 
@@ -35,23 +37,22 @@ import static org.jline.utils.ExecHelper.exec;
 public class ExecPty extends AbstractPty implements Pty {
 
     private final String name;
-    private final TerminalProvider.Stream console;
 
-    public static Pty current(TerminalProvider.Stream console) throws IOException {
+    public static Pty current(TerminalProvider provider, SystemStream systemStream) throws IOException {
         try {
             String result = exec(true, OSUtils.TTY_COMMAND);
-            if (console != TerminalProvider.Stream.Output && console != TerminalProvider.Stream.Error) {
-                throw new IllegalArgumentException("console should be Output or Error: " + console);
+            if (systemStream != SystemStream.Output && systemStream != SystemStream.Error) {
+                throw new IllegalArgumentException("systemStream should be Output or Error: " + systemStream);
             }
-            return new ExecPty(result.trim(), console);
+            return new ExecPty(provider, systemStream, result.trim());
         } catch (IOException e) {
             throw new IOException("Not a tty", e);
         }
     }
 
-    protected ExecPty(String name, TerminalProvider.Stream console) {
+    protected ExecPty(TerminalProvider provider, SystemStream systemStream, String name) {
+        super(provider, systemStream);
         this.name = name;
-        this.console = console;
     }
 
     @Override
@@ -73,14 +74,14 @@ public class ExecPty extends AbstractPty implements Pty {
 
     @Override
     protected InputStream doGetSlaveInput() throws IOException {
-        return console != null ? new FileInputStream(FileDescriptor.in) : new FileInputStream(getName());
+        return systemStream != null ? new FileInputStream(FileDescriptor.in) : new FileInputStream(getName());
     }
 
     @Override
     public OutputStream getSlaveOutput() throws IOException {
-        return console == TerminalProvider.Stream.Output
+        return systemStream == SystemStream.Output
                 ? new FileOutputStream(FileDescriptor.out)
-                : console == TerminalProvider.Stream.Error
+                : systemStream == SystemStream.Error
                         ? new FileOutputStream(FileDescriptor.err)
                         : new FileOutputStream(getName());
     }
@@ -96,11 +97,11 @@ public class ExecPty extends AbstractPty implements Pty {
         List<String> commands = getFlagsToSet(attr, getAttr());
         if (!commands.isEmpty()) {
             commands.add(0, OSUtils.STTY_COMMAND);
-            if (console == null) {
+            if (systemStream == null) {
                 commands.add(1, OSUtils.STTY_F_OPTION);
                 commands.add(2, getName());
             }
-            exec(console != null, commands.toArray(new String[0]));
+            exec(systemStream != null, commands.toArray(new String[0]));
         }
     }
 
@@ -160,12 +161,12 @@ public class ExecPty extends AbstractPty implements Pty {
     }
 
     protected String doGetConfig() throws IOException {
-        return console != null
+        return systemStream != null
                 ? exec(true, OSUtils.STTY_COMMAND, "-a")
                 : exec(false, OSUtils.STTY_COMMAND, OSUtils.STTY_F_OPTION, getName(), "-a");
     }
 
-    static Attributes doGetAttr(String cfg) throws IOException {
+    public static Attributes doGetAttr(String cfg) throws IOException {
         Attributes attributes = new Attributes();
         for (InputFlag flag : InputFlag.values()) {
             Boolean value = doGetFlag(cfg, flag);
@@ -270,7 +271,7 @@ public class ExecPty extends AbstractPty implements Pty {
 
     @Override
     public void setSize(Size size) throws IOException {
-        if (console != null) {
+        if (systemStream != null) {
             exec(
                     true,
                     OSUtils.STTY_COMMAND,
@@ -293,6 +294,6 @@ public class ExecPty extends AbstractPty implements Pty {
 
     @Override
     public String toString() {
-        return "ExecPty[" + getName() + (console != null ? ", system]" : "]");
+        return "ExecPty[" + getName() + (systemStream != null ? ", system]" : "]");
     }
 }

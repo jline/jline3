@@ -17,6 +17,7 @@ import java.util.function.IntConsumer;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
+import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.OSUtils;
@@ -32,21 +33,22 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
     private static final Pointer consoleErr = Kernel32.INSTANCE.GetStdHandle(Kernel32.STD_ERROR_HANDLE);
 
     public static JnaWinSysTerminal createTerminal(
+            TerminalProvider provider,
+            SystemStream systemStream,
             String name,
             String type,
             boolean ansiPassThrough,
             Charset encoding,
             boolean nativeSignals,
             SignalHandler signalHandler,
-            boolean paused,
-            TerminalProvider.Stream consoleStream)
+            boolean paused)
             throws IOException {
         // Get input console mode
         IntByReference inMode = new IntByReference();
         Kernel32.INSTANCE.GetConsoleMode(JnaWinSysTerminal.consoleIn, inMode);
         // Get output console and mode
         Pointer console;
-        switch (consoleStream) {
+        switch (systemStream) {
             case Output:
                 console = JnaWinSysTerminal.consoleOut;
                 break;
@@ -54,7 +56,7 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
                 console = JnaWinSysTerminal.consoleErr;
                 break;
             default:
-                throw new IllegalArgumentException("Unsupported stream for console: " + consoleStream);
+                throw new IllegalArgumentException("Unsupported stream for console: " + systemStream);
         }
         IntByReference outMode = new IntByReference();
         Kernel32.INSTANCE.GetConsoleMode(console, outMode);
@@ -77,6 +79,8 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
         }
         // Create terminal
         JnaWinSysTerminal terminal = new JnaWinSysTerminal(
+                provider,
+                systemStream,
                 writer,
                 name,
                 type,
@@ -104,7 +108,7 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
         }
     }
 
-    public static boolean isWindowsSystemStream(TerminalProvider.Stream stream) {
+    public static boolean isWindowsSystemStream(SystemStream stream) {
         try {
             IntByReference mode = new IntByReference();
             Pointer console;
@@ -129,6 +133,8 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
     }
 
     JnaWinSysTerminal(
+            TerminalProvider provider,
+            SystemStream systemStream,
             Writer writer,
             String name,
             String type,
@@ -141,6 +147,8 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
             int outConsoleMode)
             throws IOException {
         super(
+                provider,
+                systemStream,
                 writer,
                 name,
                 type,

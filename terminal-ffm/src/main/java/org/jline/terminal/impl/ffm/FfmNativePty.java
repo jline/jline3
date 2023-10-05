@@ -18,6 +18,7 @@ import java.io.OutputStream;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractPty;
+import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 
 class FfmNativePty extends AbstractPty {
@@ -29,11 +30,22 @@ class FfmNativePty extends AbstractPty {
     private final FileDescriptor slaveFD;
     private final FileDescriptor slaveOutFD;
 
-    public FfmNativePty(int master, int slave, String name) {
-        this(master, newDescriptor(master), slave, newDescriptor(slave), slave, newDescriptor(slave), name);
+    public FfmNativePty(TerminalProvider provider, SystemStream systemStream, int master, int slave, String name) {
+        this(
+                provider,
+                systemStream,
+                master,
+                newDescriptor(master),
+                slave,
+                newDescriptor(slave),
+                slave,
+                newDescriptor(slave),
+                name);
     }
 
     public FfmNativePty(
+            TerminalProvider provider,
+            SystemStream systemStream,
             int master,
             FileDescriptor masterFD,
             int slave,
@@ -41,6 +53,7 @@ class FfmNativePty extends AbstractPty {
             int slaveOut,
             FileDescriptor slaveOutFD,
             String name) {
+        super(provider, systemStream);
         this.master = master;
         this.slave = slave;
         this.slaveOut = slaveOut;
@@ -129,7 +142,7 @@ class FfmNativePty extends AbstractPty {
         return "FfmNativePty[" + getName() + "]";
     }
 
-    public static boolean isPosixSystemStream(TerminalProvider.Stream stream) {
+    public static boolean isPosixSystemStream(SystemStream stream) {
         switch (stream) {
             case Input:
                 return CLibrary.isTty(0);
@@ -142,7 +155,7 @@ class FfmNativePty extends AbstractPty {
         }
     }
 
-    public static String posixSystemStreamName(TerminalProvider.Stream stream) {
+    public static String posixSystemStreamName(SystemStream stream) {
         switch (stream) {
             case Input:
                 return CLibrary.ttyName(0);
@@ -153,5 +166,10 @@ class FfmNativePty extends AbstractPty {
             default:
                 throw new IllegalArgumentException();
         }
+    }
+
+    public static int systemStreamWidth(SystemStream systemStream) {
+        int fd = systemStream == SystemStream.Output ? 1 : 2;
+        return CLibrary.getTerminalSize(fd).getColumns();
     }
 }

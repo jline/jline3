@@ -18,6 +18,8 @@ import org.jline.terminal.Attributes;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
 import org.jline.terminal.spi.Pty;
+import org.jline.terminal.spi.SystemStream;
+import org.jline.terminal.spi.TerminalProvider;
 
 public abstract class AbstractPosixTerminal extends AbstractTerminal {
 
@@ -81,5 +83,15 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
     @Override
     public Cursor getCursorPosition(IntConsumer discarded) {
         return CursorSupport.getCursorPosition(this, discarded);
+    }
+
+    @Override
+    public TerminalProvider getProvider() {
+        return getPty().getProvider();
+    }
+
+    @Override
+    public SystemStream getSystemStream() {
+        return getPty().getSystemStream();
     }
 }

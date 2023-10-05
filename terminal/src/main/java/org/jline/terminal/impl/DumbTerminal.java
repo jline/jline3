@@ -18,6 +18,8 @@ import java.nio.charset.Charset;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.ControlChar;
 import org.jline.terminal.Size;
+import org.jline.terminal.spi.SystemStream;
+import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.NonBlocking;
 import org.jline.utils.NonBlockingInputStream;
 import org.jline.utils.NonBlockingReader;
@@ -30,6 +32,7 @@ public class DumbTerminal extends AbstractTerminal {
     private final PrintWriter writer;
     private final Attributes attributes;
     private final Size size;
+    private final SystemStream systemStream;
 
     public DumbTerminal(InputStream in, OutputStream out) throws IOException {
         this(TYPE_DUMB, TYPE_DUMB, in, out, null);
@@ -37,12 +40,18 @@ public class DumbTerminal extends AbstractTerminal {
 
     public DumbTerminal(String name, String type, InputStream in, OutputStream out, Charset encoding)
             throws IOException {
-        this(name, type, in, out, encoding, SignalHandler.SIG_DFL);
+        this(name, type, in, out, encoding, SignalHandler.SIG_DFL, null);
     }
 
     @SuppressWarnings("this-escape")
     public DumbTerminal(
-            String name, String type, InputStream in, OutputStream out, Charset encoding, SignalHandler signalHandler)
+            String name,
+            String type,
+            InputStream in,
+            OutputStream out,
+            Charset encoding,
+            SignalHandler signalHandler,
+            SystemStream systemStream)
             throws IOException {
         super(name, type, encoding, signalHandler);
         NonBlockingInputStream nbis = NonBlocking.nonBlocking(getName(), in);
@@ -89,6 +98,7 @@ public class DumbTerminal extends AbstractTerminal {
         this.attributes.setControlChar(ControlChar.VKILL, (char) 21);
         this.attributes.setControlChar(ControlChar.VLNEXT, (char) 22);
         this.size = new Size();
+        this.systemStream = systemStream;
         parseInfoCmp();
     }
 
@@ -126,5 +136,15 @@ public class DumbTerminal extends AbstractTerminal {
 
     public void setSize(Size sz) {
         size.copy(sz);
+    }
+
+    @Override
+    public TerminalProvider getProvider() {
+        return null;
+    }
+
+    @Override
+    public SystemStream getSystemStream() {
+        return systemStream;
     }
 }

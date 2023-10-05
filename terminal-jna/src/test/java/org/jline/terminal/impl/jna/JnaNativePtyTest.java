@@ -27,7 +27,7 @@ public class JnaNativePtyTest {
         // currently disabled on Mac M1 silicon
         assumeFalse(Platform.isMac() && Platform.is64Bit() && Platform.isARM());
         assumeFalse(Platform.isWindows());
-        JnaNativePty pty = JnaNativePty.open(null, null);
+        JnaNativePty pty = JnaNativePty.open(null, null, null);
         assertNotNull(pty);
         Size sz = pty.getSize();
         assertNotNull(sz);
