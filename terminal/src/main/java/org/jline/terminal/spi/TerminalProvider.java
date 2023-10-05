@@ -68,7 +68,7 @@ public interface TerminalProvider {
                 Class<?> clazz = cl.loadClass(className);
                 return (TerminalProvider) clazz.getConstructor().newInstance();
             } catch (Exception e) {
-                throw new IOException("Unable to load terminal provider " + name, e);
+                throw new IOException("Unable to load terminal provider " + name + ": " + e.getMessage(), e);
             }
         } else {
             throw new IOException("Unable to find terminal provider " + name);

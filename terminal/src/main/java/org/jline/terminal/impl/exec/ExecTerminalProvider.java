@@ -112,7 +112,7 @@ public class ExecTerminalProvider implements TerminalProvider {
             Attributes attributes,
             Size size)
             throws IOException {
-        return new ExternalTerminal(name, type, in, out, encoding, signalHandler, paused, attributes, size);
+        return new ExternalTerminal(this, name, type, in, out, encoding, signalHandler, paused, attributes, size);
     }
 
     @Override

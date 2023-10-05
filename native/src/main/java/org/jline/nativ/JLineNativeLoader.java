@@ -74,7 +74,7 @@ public class JLineNativeLoader {
         try {
             loadJLineNativeLibrary();
         } catch (Exception e) {
-            throw new RuntimeException("Unable to load jline native library", e);
+            throw new RuntimeException("Unable to load jline native library: " + e.getMessage(), e);
         }
         return loaded;
     }
