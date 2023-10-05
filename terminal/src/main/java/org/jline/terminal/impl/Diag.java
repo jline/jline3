@@ -27,7 +27,7 @@ public class Diag {
         diag(System.out);
     }
 
-    static void diag(PrintStream out) {
+    public static void diag(PrintStream out) {
         out.println("System properties");
         out.println("=================");
         out.println("os.name =         " + System.getProperty("os.name"));
@@ -72,13 +72,13 @@ public class Diag {
         }
         out.println();
 
-        out.println("JansiSupport");
+        out.println("Jansi2Support");
         out.println("=================");
         try {
             TerminalProvider provider = TerminalProvider.load("jansi");
             testProvider(out, provider);
         } catch (Throwable t) {
-            out.println("Jansi support not available: " + t);
+            out.println("Jansi 2 support not available: " + t);
         }
         out.println();
 

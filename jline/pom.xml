@@ -216,6 +216,14 @@
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
                                 </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jansi-core</artifactId>
+                                    <classifier>sources</classifier>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                </artifactItem>
 
                                 <!-- resources -->
                                 <artifactItem>
@@ -293,6 +301,14 @@
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
                                     <artifactId>jline-style</artifactId>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+                                    <excludes>**/*.class</excludes>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jansi-core</artifactId>
                                     <type>jar</type>
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>

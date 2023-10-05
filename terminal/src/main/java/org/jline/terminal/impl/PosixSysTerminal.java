@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.jline.terminal.spi.Pty;
+import org.jline.utils.FastBufferedOutputStream;
 import org.jline.utils.NonBlocking;
 import org.jline.utils.NonBlockingInputStream;
 import org.jline.utils.NonBlockingReader;
@@ -40,7 +41,7 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
             throws IOException {
         super(name, type, pty, encoding, signalHandler);
         this.input = NonBlocking.nonBlocking(getName(), pty.getSlaveInput());
-        this.output = pty.getSlaveOutput();
+        this.output = new FastBufferedOutputStream(pty.getSlaveOutput());
         this.reader = NonBlocking.nonBlocking(getName(), input, encoding());
         this.writer = new PrintWriter(new OutputStreamWriter(output, encoding()));
         parseInfoCmp();

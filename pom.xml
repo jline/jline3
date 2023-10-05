@@ -71,6 +71,7 @@
         <module>style</module>
         <module>demo</module>
         <module>graal</module>
+        <module>jansi-core</module>
     </modules>
 
     <scm>
@@ -202,6 +203,18 @@
             <dependency>
                 <groupId>org.jline</groupId>
                 <artifactId>jline-console</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jansi-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jansi</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -726,6 +739,7 @@
             </activation>
             <modules>
                 <module>jline</module>
+                <module>jansi</module>
             </modules>
         </profile>
 
