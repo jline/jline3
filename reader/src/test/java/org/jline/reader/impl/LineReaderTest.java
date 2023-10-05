@@ -114,6 +114,8 @@ public class LineReaderTest {
         StringWriter sw = new StringWriter();
         AbstractWindowsTerminal<?> terminal =
                 new AbstractWindowsTerminal<Object>(
+                        null,
+                        null,
                         new BufferedWriter(sw),
                         "name",
                         TYPE_WINDOWS_CONEMU,

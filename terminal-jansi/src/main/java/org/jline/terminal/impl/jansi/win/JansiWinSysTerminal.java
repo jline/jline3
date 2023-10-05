@@ -23,6 +23,7 @@ import org.fusesource.jansi.internal.Kernel32.KEY_EVENT_RECORD;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
+import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.OSUtils;
@@ -46,14 +47,15 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
     private static final long consoleErr = GetStdHandle(STD_ERROR_HANDLE);
 
     public static JansiWinSysTerminal createTerminal(
+            TerminalProvider provider,
+            SystemStream systemStream,
             String name,
             String type,
             boolean ansiPassThrough,
             Charset encoding,
             boolean nativeSignals,
             SignalHandler signalHandler,
-            boolean paused,
-            TerminalProvider.Stream consoleStream)
+            boolean paused)
             throws IOException {
         // Get input console mode
         int[] inMode = new int[1];
@@ -61,17 +63,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
             throw new IOException("Failed to get console mode: " + getLastErrorMessage());
         }
         // Get output console and mode
-        long console;
-        switch (consoleStream) {
-            case Output:
-                console = consoleOut;
-                break;
-            case Error:
-                console = consoleErr;
-                break;
-            default:
-                throw new IllegalArgumentException("Unsupported stream for console: " + consoleStream);
-        }
+        long console = getConsole(systemStream);
         int[] outMode = new int[1];
         if (Kernel32.GetConsoleMode(console, outMode) == 0) {
             throw new IOException("Failed to get console mode: " + getLastErrorMessage());
@@ -95,12 +87,38 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
         }
         // Create terminal
         JansiWinSysTerminal terminal = new JansiWinSysTerminal(
-                writer, name, type, encoding, nativeSignals, signalHandler, consoleIn, inMode[0], console, outMode[0]);
+                provider,
+                systemStream,
+                writer,
+                name,
+                type,
+                encoding,
+                nativeSignals,
+                signalHandler,
+                consoleIn,
+                inMode[0],
+                console,
+                outMode[0]);
         // Start input pump thread
         if (!paused) {
             terminal.resume();
         }
         return terminal;
+    }
+
+    public static long getConsole(SystemStream systemStream) {
+        long console;
+        switch (systemStream) {
+            case Output:
+                console = consoleOut;
+                break;
+            case Error:
+                console = consoleErr;
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported stream for console: " + systemStream);
+        }
+        return console;
     }
 
     private static boolean enableVtp(long console, int outMode) {
@@ -112,7 +130,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
         return new JansiWinConsoleWriter(console);
     }
 
-    public static boolean isWindowsSystemStream(TerminalProvider.Stream stream) {
+    public static boolean isWindowsSystemStream(SystemStream stream) {
         int[] mode = new int[1];
         long console;
         switch (stream) {
@@ -132,6 +150,8 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
     }
 
     JansiWinSysTerminal(
+            TerminalProvider provider,
+            SystemStream systemStream,
             Writer writer,
             String name,
             String type,
@@ -143,7 +163,19 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
             long outConsole,
             int outMode)
             throws IOException {
-        super(writer, name, type, encoding, nativeSignals, signalHandler, inConsole, inMode, outConsole, outMode);
+        super(
+                provider,
+                systemStream,
+                writer,
+                name,
+                type,
+                encoding,
+                nativeSignals,
+                signalHandler,
+                inConsole,
+                inMode,
+                outConsole,
+                outMode);
     }
 
     @Override

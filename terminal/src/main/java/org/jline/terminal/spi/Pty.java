@@ -33,4 +33,8 @@ public interface Pty extends Closeable {
     Size getSize() throws IOException;
 
     void setSize(Size size) throws IOException;
+
+    SystemStream getSystemStream();
+
+    TerminalProvider getProvider();
 }

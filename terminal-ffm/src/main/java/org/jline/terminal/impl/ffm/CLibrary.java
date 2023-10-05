@@ -17,6 +17,7 @@ import java.util.EnumSet;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.spi.Pty;
+import org.jline.terminal.spi.TerminalProvider;
 
 @SuppressWarnings("preview")
 class CLibrary {
@@ -482,7 +483,7 @@ class CLibrary {
         }
     }
 
-    static Pty openpty(Attributes attr, Size size) {
+    static Pty openpty(TerminalProvider provider, Attributes attr, Size size) {
         try {
             java.lang.foreign.MemorySegment buf =
                     java.lang.foreign.Arena.ofAuto().allocate(64);
@@ -504,7 +505,8 @@ class CLibrary {
                 len++;
             }
             String device = new String(str, 0, len);
-            return new FfmNativePty(master.get(ValueLayout.JAVA_INT, 0), slave.get(ValueLayout.JAVA_INT, 0), device);
+            return new FfmNativePty(
+                    provider, null, master.get(ValueLayout.JAVA_INT, 0), slave.get(ValueLayout.JAVA_INT, 0), device);
         } catch (Throwable e) {
             throw new RuntimeException("Unable to call openpty()", e);
         }

@@ -83,6 +83,8 @@ public class AbstractWindowsTerminalTest {
     private static class TestTerminal extends AbstractWindowsTerminal<Object> {
         public TestTerminal(StringWriter sw) throws IOException {
             super(
+                    null,
+                    null,
                     new AnsiWriter(new BufferedWriter(sw)),
                     "name",
                     AbstractWindowsTerminal.TYPE_DUMB,

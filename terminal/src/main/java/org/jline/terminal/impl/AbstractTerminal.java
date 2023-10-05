@@ -27,7 +27,7 @@ import org.jline.terminal.Attributes.InputFlag;
 import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.MouseEvent;
-import org.jline.terminal.Terminal;
+import org.jline.terminal.spi.TerminalExt;
 import org.jline.utils.ColorPalette;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp;
@@ -35,7 +35,7 @@ import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Log;
 import org.jline.utils.Status;
 
-public abstract class AbstractTerminal implements Terminal {
+public abstract class AbstractTerminal implements TerminalExt {
 
     protected final String name;
     protected final String type;

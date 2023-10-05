@@ -19,6 +19,8 @@ import org.jline.nativ.JLineLibrary;
 import org.jline.nativ.JLineNativeLoader;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.spi.Pty;
+import org.jline.terminal.spi.SystemStream;
+import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.NonBlockingInputStream;
 
 import static org.jline.terminal.TerminalBuilder.PROP_FILE_DESCRIPTOR_CREATION_MODE;
@@ -29,7 +31,14 @@ import static org.jline.terminal.TerminalBuilder.PROP_NON_BLOCKING_READS;
 
 public abstract class AbstractPty implements Pty {
 
+    protected final TerminalProvider provider;
+    protected final SystemStream systemStream;
     private Attributes current;
+
+    public AbstractPty(TerminalProvider provider, SystemStream systemStream) {
+        this.provider = provider;
+        this.systemStream = systemStream;
+    }
 
     @Override
     public void setAttr(Attributes attr) throws IOException {
@@ -55,6 +64,16 @@ public abstract class AbstractPty implements Pty {
         if (Thread.interrupted()) {
             throw new InterruptedIOException();
         }
+    }
+
+    @Override
+    public TerminalProvider getProvider() {
+        return provider;
+    }
+
+    @Override
+    public SystemStream getSystemStream() {
+        return systemStream;
     }
 
     class PtyInputStream extends NonBlockingInputStream {

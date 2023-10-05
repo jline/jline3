@@ -17,26 +17,45 @@ import org.fusesource.jansi.internal.CLibrary;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.jansi.JansiNativePty;
+import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 
 public class OsXNativePty extends JansiNativePty {
 
-    public static OsXNativePty current(TerminalProvider.Stream consoleStream) throws IOException {
+    public static OsXNativePty current(TerminalProvider provider, SystemStream systemStream) throws IOException {
         try {
-            switch (consoleStream) {
+            switch (systemStream) {
                 case Output:
-                    return new OsXNativePty(-1, null, 0, FileDescriptor.in, 1, FileDescriptor.out, ttyname());
+                    return new OsXNativePty(
+                            provider,
+                            SystemStream.Output,
+                            -1,
+                            null,
+                            0,
+                            FileDescriptor.in,
+                            1,
+                            FileDescriptor.out,
+                            ttyname());
                 case Error:
-                    return new OsXNativePty(-1, null, 0, FileDescriptor.in, 2, FileDescriptor.err, ttyname());
+                    return new OsXNativePty(
+                            provider,
+                            SystemStream.Error,
+                            -1,
+                            null,
+                            0,
+                            FileDescriptor.in,
+                            2,
+                            FileDescriptor.err,
+                            ttyname());
                 default:
-                    throw new IllegalArgumentException("Unsupport stream for console: " + consoleStream);
+                    throw new IllegalArgumentException("Unsupport stream for console: " + systemStream);
             }
         } catch (IOException e) {
             throw new IOException("Not a tty", e);
         }
     }
 
-    public static OsXNativePty open(Attributes attr, Size size) throws IOException {
+    public static OsXNativePty open(TerminalProvider provider, Attributes attr, Size size) throws IOException {
         int[] master = new int[1];
         int[] slave = new int[1];
         byte[] buf = new byte[64];
@@ -51,14 +70,24 @@ public class OsXNativePty extends JansiNativePty {
             len++;
         }
         String name = new String(buf, 0, len);
-        return new OsXNativePty(master[0], newDescriptor(master[0]), slave[0], newDescriptor(slave[0]), name);
-    }
-
-    public OsXNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, String name) {
-        super(master, masterFD, slave, slaveFD, name);
+        return new OsXNativePty(
+                provider, null, master[0], newDescriptor(master[0]), slave[0], newDescriptor(slave[0]), name);
     }
 
     public OsXNativePty(
+            TerminalProvider provider,
+            SystemStream systemStream,
+            int master,
+            FileDescriptor masterFD,
+            int slave,
+            FileDescriptor slaveFD,
+            String name) {
+        super(provider, systemStream, master, masterFD, slave, slaveFD, name);
+    }
+
+    public OsXNativePty(
+            TerminalProvider provider,
+            SystemStream systemStream,
             int master,
             FileDescriptor masterFD,
             int slave,
@@ -66,8 +95,9 @@ public class OsXNativePty extends JansiNativePty {
             int slaveOut,
             FileDescriptor slaveOutFD,
             String name) {
-        super(master, masterFD, slave, slaveFD, slaveOut, slaveOutFD, name);
+        super(provider, systemStream, master, masterFD, slave, slaveFD, slaveOut, slaveOutFD, name);
     }
+
     // CONSTANTS
 
     private static final int VEOF = 0;

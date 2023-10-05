@@ -29,6 +29,8 @@ public class AbstractWindowsTerminalTest {
         StringWriter sw = new StringWriter();
         Terminal terminal =
                 new AbstractWindowsTerminal<Object>(
+                        null,
+                        null,
                         new AnsiWriter(new BufferedWriter(sw)),
                         "name",
                         TYPE_WINDOWS,

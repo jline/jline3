@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Terminal;
+import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
 
@@ -94,16 +95,16 @@ public class Diag {
 
     private static void testProvider(PrintStream out, TerminalProvider provider) {
         try {
-            out.println("StdIn stream =    " + provider.isSystemStream(TerminalProvider.Stream.Input));
-            out.println("StdOut stream =   " + provider.isSystemStream(TerminalProvider.Stream.Output));
-            out.println("StdErr stream =   " + provider.isSystemStream(TerminalProvider.Stream.Error));
+            out.println("StdIn stream =    " + provider.isSystemStream(SystemStream.Input));
+            out.println("StdOut stream =   " + provider.isSystemStream(SystemStream.Output));
+            out.println("StdErr stream =   " + provider.isSystemStream(SystemStream.Error));
         } catch (Throwable t2) {
             out.println("Unable to check stream: " + t2);
         }
         try {
-            out.println("StdIn stream name =     " + provider.systemStreamName(TerminalProvider.Stream.Input));
-            out.println("StdOut stream name =    " + provider.systemStreamName(TerminalProvider.Stream.Output));
-            out.println("StdErr stream name =    " + provider.systemStreamName(TerminalProvider.Stream.Error));
+            out.println("StdIn stream name =     " + provider.systemStreamName(SystemStream.Input));
+            out.println("StdOut stream name =    " + provider.systemStreamName(SystemStream.Output));
+            out.println("StdErr stream name =    " + provider.systemStreamName(SystemStream.Error));
         } catch (Throwable t2) {
             out.println("Unable to check stream names: " + t2);
         }
@@ -115,7 +116,7 @@ public class Diag {
                 false,
                 Terminal.SignalHandler.SIG_DFL,
                 false,
-                TerminalProvider.Stream.Output)) {
+                SystemStream.Output)) {
             if (terminal != null) {
                 Attributes attr = terminal.enterRawMode();
                 try {

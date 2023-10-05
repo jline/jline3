@@ -20,12 +20,6 @@ import org.jline.terminal.Terminal;
 
 public interface TerminalProvider {
 
-    enum Stream {
-        Input,
-        Output,
-        Error
-    }
-
     String name();
 
     Terminal sysTerminal(
@@ -36,7 +30,7 @@ public interface TerminalProvider {
             boolean nativeSignals,
             Terminal.SignalHandler signalHandler,
             boolean paused,
-            Stream consoleStream)
+            SystemStream systemStream)
             throws IOException;
 
     Terminal newTerminal(
@@ -51,9 +45,11 @@ public interface TerminalProvider {
             Size size)
             throws IOException;
 
-    boolean isSystemStream(Stream stream);
+    boolean isSystemStream(SystemStream stream);
 
-    String systemStreamName(Stream stream);
+    String systemStreamName(SystemStream stream);
+
+    int systemStreamWidth(SystemStream stream);
 
     static TerminalProvider load(String name) throws IOException {
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
