@@ -17,7 +17,7 @@
 
 # os=Default is meant to be generic unix/linux
 
-known_targets := Linux-x86 Linux-x86_64 Linux-arm Linux-armv6 Linux-armv7 Linux-android-arm Linux-ppc64 Mac-x86 Mac-x86_64 Mac-arm64 DragonFly-x86_64 FreeBSD-x86_64 OpenBSD-x86_64 Windows-x86 Windows-x86_64 SunOS-sparcv9 HPUX-ia64_32
+known_targets := Linux-x86 Linux-x86_64 Linux-arm Linux-armv6 Linux-armv7 Linux-android-arm Linux-arm64 Linux-ppc64 Linux-riscv64 Mac-x86 Mac-x86_64 Mac-arm64 DragonFly-x86_64 FreeBSD-x86_64 OpenBSD-x86_64 Windows-x86 Windows-x86_64 SunOS-sparcv9 HPUX-ia64_32
 target := $(OS_NAME)-$(OS_ARCH)
 
 ifeq (,$(findstring $(strip $(target)),$(known_targets)))
@@ -65,7 +65,7 @@ Linux-armv7_LIBNAME   := libjlinenative.so
 
 Linux-arm64_CC        := $(CROSS_PREFIX)gcc
 Linux-arm64_STRIP     := $(CROSS_PREFIX)strip
-Linux-arm64_CCFLAGS   := -I$(JAVA_HOME)/include -Itarget/inc -Itarget/inc/unix -Os -mfloat-abi=hard -mfpu=vfp -fPIC -fvisibility=hidden
+Linux-arm64_CCFLAGS   := -I$(JAVA_HOME)/include -Itarget/inc -Itarget/inc/unix -Os -march=armv8-a -fPIC -fvisibility=hidden
 Linux-arm64_LINKFLAGS := -shared -static-libgcc
 Linux-arm64_LIBNAME   := libjlinenative.so
 
@@ -74,6 +74,12 @@ Linux-ppc64_STRIP     := $(CROSS_PREFIX)strip
 Linux-ppc64_CCFLAGS   := -I$(JAVA_HOME)/include -Itarget/inc -Itarget/inc/unix -Os -fPIC -fvisibility=hidden
 Linux-ppc64_LINKFLAGS := -shared -static-libgcc
 Linux-ppc64_LIBNAME   := libjlinenative.so
+
+Linux-riscv64_CC        := $(CROSS_PREFIX)gcc
+Linux-riscv64_STRIP     := $(CROSS_PREFIX)strip
+Linux-riscv64_CCFLAGS   := -I$(JAVA_HOME)/include -Itarget/inc -Itarget/inc/unix -Os -march=rv64g -fPIC -fvisibility=hidden
+Linux-riscv64_LINKFLAGS := -shared -static-libgcc
+Linux-riscv64_LIBNAME   := libjlinenative.so
 
 DragonFly-x86_64_CC        := $(CROSS_PREFIX)cc
 DragonFly-x86_64_STRIP     := $(CROSS_PREFIX)strip
