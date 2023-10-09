@@ -24,6 +24,7 @@
 
     <properties>
         <automatic.module.name>org.jline</automatic.module.name>
+        <javadocOptions>--enable-preview --release 21</javadocOptions>
     </properties>
 
     <dependencies>
@@ -316,10 +317,9 @@
                     <execution>
                         <id>default-compile</id>
                         <configuration>
-                            <includes>
-                                <include>**/TTop.java</include>
-                                <include>**/ConsoleEngineImpl.java</include>
-                            </includes>
+                            <excludes>
+                                <exclude>**/ffm/*.java</exclude>
+                            </excludes>
                             <compilerArgs>
                                 <arg>-Xlint:all,-options</arg>
                                 <arg>-Werror</arg>
@@ -327,20 +327,19 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>compact</id>
+                        <id>jdk21</id>
                         <goals>
                             <goal>compile</goal>
                         </goals>
                         <configuration>
-                            <excludes>
-                                <exclude>**/TTop.java</exclude>
-                                <exclude>**/ConsoleEngineImpl.java</exclude>
-                            </excludes>
+                            <includes>
+                                <include>**/ffm/*.java</include>
+                            </includes>
+                            <release>21</release>
                             <compilerArgs>
                                 <arg>-Xlint:all,-options</arg>
                                 <arg>-Werror</arg>
-                                <arg>-profile</arg>
-                                <arg>compact1</arg>
+                                <arg>--enable-preview</arg>
                             </compilerArgs>
                         </configuration>
                     </execution>

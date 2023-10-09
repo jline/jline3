@@ -13,6 +13,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.io.StringWriter;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -181,7 +183,9 @@ public class LineReaderTest {
 
     @Test
     public void terminalLineInfiniteLoop() throws IOException {
-        ByteArrayInputStream in = new ByteArrayInputStream("hello\nworld\n".getBytes(StandardCharsets.UTF_8));
+        PipedInputStream in = new PipedInputStream();
+        PipedOutputStream outIn = new PipedOutputStream(in);
+        outIn.write("hello\nworld\n".getBytes(StandardCharsets.UTF_8));
         ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
 
         Terminal terminal = TerminalBuilder.builder().streams(in, out).build();

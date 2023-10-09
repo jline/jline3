@@ -65,6 +65,10 @@ while [ "${1}" != "" ]; do
             logconf="${DIRNAME}/etc/logging-verbose.properties"
             shift
             ;;
+        'ffm')
+            opts="${opts} --enable-preview --enable-native-access=ALL-UNNAMED"
+            shift
+            ;;
         *)
             opts="${opts} ${1}"
             shift
@@ -98,6 +102,7 @@ echo "Launching Gogo JLine..."
 echo "Classpath: $cp"
 set mouse=a
 java -cp $cp \
+    --enable-preview \
     $opts \
     -Dgosh.home="${DIRNAME}" \
     -Djava.util.logging.config.file="${logconf}" \

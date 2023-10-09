@@ -19,27 +19,18 @@
         <version>3.23.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>jline-builtins</artifactId>
-    <name>JLine Builtins</name>
+    <artifactId>jline-terminal-ffm</artifactId>
+    <name>JLine FFM Terminal</name>
 
     <properties>
-        <automatic.module.name>org.jline.builtins</automatic.module.name>
+        <java.target.version>21</java.target.version>
+        <automatic.module.name>org.jline.terminal.ffm</automatic.module.name>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.jline</groupId>
-            <artifactId>jline-reader</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jline</groupId>
-            <artifactId>jline-style</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.googlecode.juniversalchardet</groupId>
-            <artifactId>juniversalchardet</artifactId>
-            <optional>true</optional>
+            <artifactId>jline-terminal</artifactId>
         </dependency>
 
         <dependency>
@@ -52,24 +43,33 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <configuration>
+                    <instructions>
+                        <Export-Package>*;-noimport:=true</Export-Package>
+                        <Fragment-Host>org.jline.terminal</Fragment-Host>
+                    </instructions>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <showWarnings>true</showWarnings>
-                    <fork>true</fork>
+                    <release>21</release>
+                    <compilerArgs>
+                        <arg>--enable-preview</arg>
+                    </compilerArgs>
                 </configuration>
-                <executions>
-                    <execution>
-                        <id>default-compile</id>
-                        <configuration>
-                            <compilerArgs>
-                                <arg>-Xlint:all,-options</arg>
-                                <arg>-Werror</arg>
-                            </compilerArgs>
-                        </configuration>
-                    </execution>
-                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>--enable-preview --enable-native-access=ALL-UNNAMED</argLine>
+                </configuration>
             </plugin>
         </plugins>
     </build>
+
 </project>

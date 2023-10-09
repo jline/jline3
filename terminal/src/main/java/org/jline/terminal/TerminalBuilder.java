@@ -50,10 +50,11 @@ public final class TerminalBuilder {
     public static final String PROP_CODEPAGE = "org.jline.terminal.codepage";
     public static final String PROP_TYPE = "org.jline.terminal.type";
     public static final String PROP_PROVIDERS = "org.jline.terminal.providers";
-    public static final String PROP_PROVIDERS_DEFAULT = "jansi,jna,exec";
+    public static final String PROP_PROVIDERS_DEFAULT = "ffm,jansi,jna,exec";
     public static final String PROP_JNA = "org.jline.terminal.jna";
     public static final String PROP_JANSI = "org.jline.terminal.jansi";
     public static final String PROP_EXEC = "org.jline.terminal.exec";
+    public static final String PROP_FFM = "org.jline.terminal.ffm";
     public static final String PROP_DUMB = "org.jline.terminal.dumb";
     public static final String PROP_DUMB_COLOR = "org.jline.terminal.dumb.color";
     public static final String PROP_OUTPUT = "org.jline.terminal.output";
@@ -138,6 +139,7 @@ public final class TerminalBuilder {
     private Boolean jna;
     private Boolean jansi;
     private Boolean exec;
+    private Boolean ffm;
     private Boolean dumb;
     private Boolean color;
     private Attributes attributes;
@@ -190,6 +192,11 @@ public final class TerminalBuilder {
 
     public TerminalBuilder exec(boolean exec) {
         this.exec = exec;
+        return this;
+    }
+
+    public TerminalBuilder ffm(boolean ffm) {
+        this.ffm = ffm;
         return this;
     }
 
@@ -377,15 +384,30 @@ public final class TerminalBuilder {
         if (exec == null) {
             exec = getBoolean(PROP_EXEC, true);
         }
+        Boolean ffm = this.ffm;
+        if (ffm == null) {
+            ffm = getBoolean(PROP_FFM, true);
+        }
         Boolean dumb = this.dumb;
         if (dumb == null) {
             dumb = getBoolean(PROP_DUMB, null);
         }
         IllegalStateException exception = new IllegalStateException("Unable to create a terminal");
         List<TerminalProvider> providers = new ArrayList<>();
+        if (ffm) {
+            try {
+                TerminalProvider provider = TerminalProvider.load("ffm");
+                provider.isSystemStream(TerminalProvider.Stream.Output);
+                providers.add(provider);
+            } catch (Throwable t) {
+                Log.debug("Unable to load FFM support: ", t);
+                exception.addSuppressed(t);
+            }
+        }
         if (jna) {
             try {
                 TerminalProvider provider = TerminalProvider.load("jna");
+                provider.isSystemStream(TerminalProvider.Stream.Output);
                 providers.add(provider);
             } catch (Throwable t) {
                 Log.debug("Unable to load JNA support: ", t);
@@ -395,6 +417,7 @@ public final class TerminalBuilder {
         if (jansi) {
             try {
                 TerminalProvider provider = TerminalProvider.load("jansi");
+                provider.isSystemStream(TerminalProvider.Stream.Output);
                 providers.add(provider);
             } catch (Throwable t) {
                 Log.debug("Unable to load JANSI support: ", t);
