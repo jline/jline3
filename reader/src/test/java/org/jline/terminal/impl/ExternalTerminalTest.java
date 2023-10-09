@@ -29,6 +29,8 @@ import org.jline.terminal.Attributes.OutputFlag;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -38,6 +40,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class ExternalTerminalTest {
+
+    @BeforeEach
+    public void setup() {
+        System.setProperty(TerminalBuilder.PROP_PROVIDERS, "exec");
+    }
+
+    @AfterEach
+    public void tearDown() {
+        System.clearProperty(TerminalBuilder.PROP_PROVIDERS);
+    }
 
     @Test
     public void testInput() throws IOException, InterruptedException {

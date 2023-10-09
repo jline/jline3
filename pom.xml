@@ -58,6 +58,7 @@
     <modules>
         <module>native</module>
         <module>terminal</module>
+        <module>terminal-ffm</module>
         <module>terminal-jna</module>
         <module>terminal-jansi</module>
         <module>reader</module>
@@ -92,7 +93,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.outputTimestamp>2023-03-08T19:46:51Z</project.build.outputTimestamp>
 
-        <java.build.version>11</java.build.version>
+        <java.build.version>21</java.build.version>
         <java.target.version>1.8</java.target.version>
         <maven.version>3.5.0</maven.version>
 
@@ -128,6 +129,12 @@
             <dependency>
                 <groupId>org.jline</groupId>
                 <artifactId>jline-terminal</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-terminal-ffm</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -407,8 +414,6 @@
                         <compilerArgs>
                             <arg>-Xlint:all,-options,-processing</arg>
                             <arg>-Werror</arg>
-                            <arg>-profile</arg>
-                            <arg>compact1</arg>
                         </compilerArgs>
                         <fork>true</fork>
                     </configuration>

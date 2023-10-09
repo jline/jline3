@@ -48,7 +48,7 @@ public class OSInfo {
     public static final String PPC64 = "ppc64";
     public static final String ARM64 = "arm64";
 
-    private static final HashMap<String, String> archMapping = new HashMap<String, String>();
+    private static final HashMap<String, String> archMapping = new HashMap<>();
 
     static {
         // x86 mappings
@@ -116,6 +116,7 @@ public class OSInfo {
         return System.getProperty("java.runtime.name", "").toLowerCase().contains("android");
     }
 
+    @SuppressWarnings("unused")
     public static boolean isAlpine() {
         try {
             Process p = Runtime.getRuntime().exec(new String[] {"cat", "/etc/os-release", "|", "grep", "^ID"});

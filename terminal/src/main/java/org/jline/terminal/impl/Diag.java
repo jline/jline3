@@ -50,6 +50,17 @@ public class Diag {
         out.println("IS_OSX =     " + OSUtils.IS_OSX);
         out.println();
 
+        // FFM
+        out.println("FFM Support");
+        out.println("=================");
+        try {
+            TerminalProvider provider = TerminalProvider.load("ffm");
+            testProvider(out, provider);
+        } catch (Throwable t) {
+            out.println("FFM support not available: " + t);
+        }
+        out.println();
+
         out.println("JnaSupport");
         out.println("=================");
         try {

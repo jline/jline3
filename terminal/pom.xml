@@ -24,6 +24,7 @@
 
     <properties>
         <automatic.module.name>org.jline.terminal</automatic.module.name>
+        <javadocOptions>--enable-preview --release 21</javadocOptions>
     </properties>
 
     <dependencies>

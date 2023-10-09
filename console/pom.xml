@@ -62,31 +62,9 @@
                     <execution>
                         <id>default-compile</id>
                         <configuration>
-                            <includes>
-                                <include>**/ConsoleEngineImpl.java</include>
-                                <include>**/TTop.java</include>
-                            </includes>
                             <compilerArgs>
                                 <arg>-Xlint:all,-options</arg>
                                 <arg>-Werror</arg>
-                            </compilerArgs>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>compact</id>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                        <configuration>
-                            <excludes>
-                                <exclude>**/ConsoleEngineImpl.java</exclude>
-                                <exclude>**/TTop.java</exclude>
-                            </excludes>
-                            <compilerArgs>
-                                <arg>-Xlint:all,-options</arg>
-                                <arg>-Werror</arg>
-                                <arg>-profile</arg>
-                                <arg>compact1</arg>
                             </compilerArgs>
                         </configuration>
                     </execution>
