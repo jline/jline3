@@ -14,6 +14,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
+import java.util.EnumSet;
 import java.util.Objects;
 
 import org.jline.terminal.Attributes;
@@ -44,20 +45,6 @@ import org.jline.utils.NonBlockingReader;
  * the input.
  */
 public class LineDisciplineTerminal extends AbstractTerminal {
-
-    private static final String DEFAULT_TERMINAL_ATTRIBUTES = "speed 9600 baud; 24 rows; 80 columns;\n"
-            + "lflags: icanon isig iexten echo echoe -echok echoke -echonl echoctl\n"
-            + "\t-echoprt -altwerase -noflsh -tostop -flusho pendin -nokerninfo\n"
-            + "\t-extproc\n"
-            + "iflags: -istrip icrnl -inlcr -igncr ixon -ixoff ixany imaxbel iutf8\n"
-            + "\t-ignbrk brkint -inpck -ignpar -parmrk\n"
-            + "oflags: opost onlcr -oxtabs -onocr -onlret\n"
-            + "cflags: cread cs8 -parenb -parodd hupcl -clocal -cstopb -crtscts -dsrflow\n"
-            + "\t-dtrflow -mdmbuf\n"
-            + "cchars: discard = ^O; dsusp = ^Y; eof = ^D; eol = <undef>;\n"
-            + "\teol2 = <undef>; erase = ^?; intr = ^C; kill = ^U; lnext = ^V;\n"
-            + "\tmin = 1; quit = ^\\; reprint = ^R; start = ^Q; status = ^T;\n"
-            + "\tstop = ^S; susp = ^Z; time = 0; werase = ^W;\n";
 
     private static final int PIPE_SIZE = 1024;
 
@@ -103,9 +90,64 @@ public class LineDisciplineTerminal extends AbstractTerminal {
         this.slaveOutput = new FilteringOutputStream();
         this.slaveWriter = new PrintWriter(new OutputStreamWriter(slaveOutput, encoding()));
         this.masterOutput = masterOutput;
-        this.attributes = ExecPty.doGetAttr(DEFAULT_TERMINAL_ATTRIBUTES);
+        this.attributes = getDefaultTerminalAttributes();
         this.size = new Size(160, 50);
         parseInfoCmp();
+    }
+
+    private static Attributes getDefaultTerminalAttributes() {
+        // speed 9600 baud; 24 rows; 80 columns;
+        // lflags: icanon isig iexten echo echoe -echok echoke -echonl echoctl
+        //     -echoprt -altwerase -noflsh -tostop -flusho pendin -nokerninfo
+        //     -extproc
+        // iflags: -istrip icrnl -inlcr -igncr ixon -ixoff ixany imaxbel iutf8
+        //     -ignbrk brkint -inpck -ignpar -parmrk
+        // oflags: opost onlcr -oxtabs -onocr -onlret
+        // cflags: cread cs8 -parenb -parodd hupcl -clocal -cstopb -crtscts -dsrflow
+        //     -dtrflow -mdmbuf
+        // cchars: discard = ^O; dsusp = ^Y; eof = ^D; eol = <undef>;
+        //     eol2 = <undef>; erase = ^?; intr = ^C; kill = ^U; lnext = ^V;
+        //     min = 1; quit = ^\\; reprint = ^R; start = ^Q; status = ^T;
+        //     stop = ^S; susp = ^Z; time = 0; werase = ^W;
+        Attributes attr = new Attributes();
+        attr.setLocalFlags(EnumSet.of(
+                LocalFlag.ICANON,
+                LocalFlag.ISIG,
+                LocalFlag.IEXTEN,
+                LocalFlag.ECHO,
+                LocalFlag.ECHOE,
+                LocalFlag.ECHOKE,
+                LocalFlag.ECHOCTL,
+                LocalFlag.PENDIN));
+        attr.setInputFlags(EnumSet.of(
+                InputFlag.ICRNL,
+                InputFlag.IXON,
+                InputFlag.IXANY,
+                InputFlag.IMAXBEL,
+                InputFlag.IUTF8,
+                InputFlag.BRKINT));
+        attr.setOutputFlags(EnumSet.of(OutputFlag.OPOST, OutputFlag.ONLCR));
+        attr.setControlChar(ControlChar.VDISCARD, ctrl('O'));
+        attr.setControlChar(ControlChar.VDSUSP, ctrl('Y'));
+        attr.setControlChar(ControlChar.VEOF, ctrl('D'));
+        attr.setControlChar(ControlChar.VERASE, ctrl('?'));
+        attr.setControlChar(ControlChar.VINTR, ctrl('C'));
+        attr.setControlChar(ControlChar.VKILL, ctrl('U'));
+        attr.setControlChar(ControlChar.VLNEXT, ctrl('V'));
+        attr.setControlChar(ControlChar.VMIN, 1);
+        attr.setControlChar(ControlChar.VQUIT, ctrl('\\'));
+        attr.setControlChar(ControlChar.VREPRINT, ctrl('R'));
+        attr.setControlChar(ControlChar.VSTART, ctrl('Q'));
+        attr.setControlChar(ControlChar.VSTATUS, ctrl('T'));
+        attr.setControlChar(ControlChar.VSTOP, ctrl('S'));
+        attr.setControlChar(ControlChar.VSUSP, ctrl('Z'));
+        attr.setControlChar(ControlChar.VTIME, 0);
+        attr.setControlChar(ControlChar.VWERASE, ctrl('W'));
+        return attr;
+    }
+
+    private static int ctrl(char c) {
+        return c == '?' ? 177 : c - 64;
     }
 
     public NonBlockingReader reader() {
