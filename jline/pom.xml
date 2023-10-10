@@ -70,6 +70,11 @@
         </dependency>
         <dependency>
             <groupId>org.jline</groupId>
+            <artifactId>jline-terminal-jni</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
             <artifactId>jline-terminal-jansi</artifactId>
             <scope>test</scope>
         </dependency>
@@ -134,6 +139,14 @@
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
                                     <artifactId>jline-terminal</artifactId>
+                                    <classifier>sources</classifier>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-terminal-jni</artifactId>
                                     <classifier>sources</classifier>
                                     <type>jar</type>
                                     <overWrite>false</overWrite>
@@ -208,6 +221,14 @@
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
                                     <artifactId>jline-terminal</artifactId>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+                                    <excludes>**/*.class</excludes>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-terminal-jni</artifactId>
                                     <type>jar</type>
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>

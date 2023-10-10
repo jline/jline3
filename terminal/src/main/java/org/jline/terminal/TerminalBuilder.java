@@ -51,9 +51,10 @@ public final class TerminalBuilder {
     public static final String PROP_CODEPAGE = "org.jline.terminal.codepage";
     public static final String PROP_TYPE = "org.jline.terminal.type";
     public static final String PROP_PROVIDERS = "org.jline.terminal.providers";
-    public static final String PROP_PROVIDERS_DEFAULT = "ffm,jansi,jna,exec";
+    public static final String PROP_PROVIDERS_DEFAULT = "ffm,jni,jansi,jna,exec";
     public static final String PROP_JNA = "org.jline.terminal.jna";
     public static final String PROP_JANSI = "org.jline.terminal.jansi";
+    public static final String PROP_JNI = "org.jline.terminal.jni";
     public static final String PROP_EXEC = "org.jline.terminal.exec";
     public static final String PROP_FFM = "org.jline.terminal.ffm";
     public static final String PROP_DUMB = "org.jline.terminal.dumb";
@@ -140,6 +141,7 @@ public final class TerminalBuilder {
     private String providers;
     private Boolean jna;
     private Boolean jansi;
+    private Boolean jni;
     private Boolean exec;
     private Boolean ffm;
     private Boolean dumb;
@@ -193,7 +195,12 @@ public final class TerminalBuilder {
     }
 
     public TerminalBuilder jansi(boolean jansi) {
-        this.jansi = jansi;
+        this.jansi = this.jansi;
+        return this;
+    }
+
+    public TerminalBuilder jni(boolean jni) {
+        this.jni = this.jni;
         return this;
     }
 
@@ -387,6 +394,10 @@ public final class TerminalBuilder {
         if (jansi == null) {
             jansi = getBoolean(PROP_JANSI, true);
         }
+        Boolean nativ = this.jni;
+        if (nativ == null) {
+            nativ = getBoolean(PROP_JNI, true);
+        }
         Boolean exec = this.exec;
         if (exec == null) {
             exec = getBoolean(PROP_EXEC, true);
@@ -428,6 +439,16 @@ public final class TerminalBuilder {
                 providers.add(provider);
             } catch (Throwable t) {
                 Log.debug("Unable to load JANSI support: ", t);
+                exception.addSuppressed(t);
+            }
+        }
+        if (nativ) {
+            try {
+                TerminalProvider provider = TerminalProvider.load("nativ");
+                provider.isSystemStream(SystemStream.Output);
+                providers.add(provider);
+            } catch (Throwable t) {
+                Log.debug("Unable to load Native support: ", t);
                 exception.addSuppressed(t);
             }
         }
@@ -532,7 +553,7 @@ public final class TerminalBuilder {
                         }
                     }
                 }
-                if (terminal == null && OSUtils.IS_WINDOWS && !jna && !jansi && (dumb == null || !dumb)) {
+                if (terminal == null && OSUtils.IS_WINDOWS && !jna && !jansi && !nativ && (dumb == null || !dumb)) {
                     throw new IllegalStateException("Unable to create a system terminal. On windows, either "
                             + "JNA or JANSI library is required.  Make sure to add one of those in the classpath.");
                 }
