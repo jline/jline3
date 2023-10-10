@@ -61,6 +61,7 @@
         <module>terminal-ffm</module>
         <module>terminal-jna</module>
         <module>terminal-jansi</module>
+        <module>terminal-jni</module>
         <module>reader</module>
         <module>builtins</module>
         <module>console</module>
@@ -141,6 +142,12 @@
             <dependency>
                 <groupId>org.jline</groupId>
                 <artifactId>jline-terminal-jansi</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-terminal-jni</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

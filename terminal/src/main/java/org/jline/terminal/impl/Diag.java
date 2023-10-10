@@ -82,6 +82,16 @@ public class Diag {
         }
         out.println();
 
+        out.println("JniSupport");
+        out.println("=================");
+        try {
+            TerminalProvider provider = TerminalProvider.load("jni");
+            testProvider(out, provider);
+        } catch (Throwable t) {
+            out.println("JNI support not available: " + t);
+        }
+        out.println();
+
         // Exec
         out.println("Exec Support");
         out.println("=================");

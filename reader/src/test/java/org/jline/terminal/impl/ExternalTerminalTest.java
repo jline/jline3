@@ -61,19 +61,6 @@ public class ExternalTerminalTest {
         testConsole(outIn, out, console);
     }
 
-    /* SANDBOX JANSI
-    @Test
-    public void testPosix() throws IOException, InterruptedException {
-        PipedInputStream in = new PipedInputStream();
-        PipedOutputStream outIn = new PipedOutputStream(in);
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-        Console terminal = new PosixPtyConsole("ansi", new ConsoleReaderBuilder(), NativePty.open(null, null), in, out, "UTF-8");
-
-        testConsole(outIn, out, terminal);
-    }
-    */
-
     private void testConsole(PipedOutputStream outIn, ByteArrayOutputStream out, Terminal terminal)
             throws IOException, InterruptedException {
         Attributes attributes = terminal.getAttributes();
