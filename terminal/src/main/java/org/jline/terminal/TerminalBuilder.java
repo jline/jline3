@@ -49,13 +49,15 @@ public final class TerminalBuilder {
     public static final String PROP_TYPE = "org.jline.terminal.type";
     public static final String PROP_PROVIDERS = "org.jline.terminal.providers";
     public static final String PROP_PROVIDER_FFM = "ffm";
+    public static final String PROP_PROVIDER_JNI = "jni";
     public static final String PROP_PROVIDER_JANSI = "jansi";
     public static final String PROP_PROVIDER_JNA = "jna";
     public static final String PROP_PROVIDER_EXEC = "exec";
     public static final String PROP_PROVIDER_DUMB = "dumb";
-    public static final String PROP_PROVIDERS_DEFAULT =
-            String.join(",", PROP_PROVIDER_FFM, PROP_PROVIDER_JANSI, PROP_PROVIDER_JNA, PROP_PROVIDER_EXEC);
+    public static final String PROP_PROVIDERS_DEFAULT = String.join(
+            ",", PROP_PROVIDER_FFM, PROP_PROVIDER_JNI, PROP_PROVIDER_JANSI, PROP_PROVIDER_JNA, PROP_PROVIDER_EXEC);
     public static final String PROP_FFM = "org.jline.terminal." + PROP_PROVIDER_FFM;
+    public static final String PROP_JNI = "org.jline.terminal." + PROP_PROVIDER_JNI;
     public static final String PROP_JANSI = "org.jline.terminal." + PROP_PROVIDER_JANSI;
     public static final String PROP_JNA = "org.jline.terminal." + PROP_PROVIDER_JNA;
     public static final String PROP_EXEC = "org.jline.terminal." + PROP_PROVIDER_EXEC;
@@ -145,6 +147,7 @@ public final class TerminalBuilder {
     private String providers;
     private Boolean jna;
     private Boolean jansi;
+    private Boolean jni;
     private Boolean exec;
     private Boolean ffm;
     private Boolean dumb;
@@ -199,6 +202,11 @@ public final class TerminalBuilder {
 
     public TerminalBuilder jansi(boolean jansi) {
         this.jansi = jansi;
+        return this;
+    }
+
+    public TerminalBuilder jni(boolean jni) {
+        this.jni = jni;
         return this;
     }
 
@@ -412,7 +420,7 @@ public final class TerminalBuilder {
                         }
                     }
                 }
-                if (terminal == null && OSUtils.IS_WINDOWS && !jna && !jansi && (dumb == null || !dumb)) {
+                if (terminal == null && OSUtils.IS_WINDOWS && !jna && !jansi && !jni && (dumb == null || !dumb)) {
                     throw new IllegalStateException("Unable to create a system terminal. On windows, either "
                             + "JNA or JANSI library is required.  Make sure to add one of those in the classpath.");
                 }
@@ -589,6 +597,8 @@ public final class TerminalBuilder {
         List<TerminalProvider> providers = new ArrayList<>();
         // Check ffm provider
         checkProvider(exception, providers, ffm, PROP_FFM, PROP_PROVIDER_FFM);
+        // Check jni provider
+        checkProvider(exception, providers, jni, PROP_JNI, PROP_PROVIDER_JNI);
         // Check jansi provider
         checkProvider(exception, providers, jansi, PROP_JANSI, PROP_PROVIDER_JANSI);
         // Check jna provider

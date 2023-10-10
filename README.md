@@ -42,7 +42,10 @@ The dependencies are minimal: you may use JLine without any dependency on *nix s
 You can also use fine grained jars:
 * `jline-terminal`: the `Terminal` api and implementations
 * `jline-terminal-jansi`: terminal implementations leveraging the `Jansi` library
+* `jline-terminal-jni`: terminal implementations leveraging the JNI native library
 * `jline-terminal-jna`: terminal implementations leveraging the `JNA` library
+* `jline-terminal-ffm`: terminal implementations leveraging the Foreign Functions & Mapping layer
+* `jline-native`: the native library
 * `jline-reader`: the line reader (including completion, history, etc...)
 * `jline-style`: styling api
 * `jline-remote-ssh`: helpers for using jline with [Mina SSHD](http://mina.apache.org/sshd-project/)

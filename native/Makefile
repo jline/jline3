@@ -23,6 +23,7 @@ linux-armv6-digest:=@sha256:7bad6ab302af34bdf6634c8c2b02c8dc6ac932c67da9ecc199c5
 linux-x86-digest:=:latest
 windows-static-x86-digest:=@sha256:99d7069789560ef77a7504ead4a2b5e3c245cb45a45f964c74fecbf649398d3a
 windows-static-x64-digest:=@sha256:f159861bc80b29e5dafb223477167bec53ecec6cdacb051d31e90c5823542100
+windows-arm64-digest:=@sha256:f4b3c1a49ec8b53418cef1499dc3f9a54a5570b7a3ecdf42fc8c83eb94b01b7d
 cross-build-digest:=@sha256:8dbaa86462270db93ae1b1b319bdd88d89272faf3a68632daf4fa36b414a326e
 freebsd-crossbuild-digest:=@sha256:cda62697a15d8bdc0bc26e780b1771ee78f12c55e7d5813e62c478af5a747c43
 mcandre-snek-digest:=@sha256:9f84e9fcdf66daafc1f1c3fb772a6c97977714e17800aeac2e3bbe5dc5039dd0
@@ -68,9 +69,9 @@ $(JLINENATIVE_OUT)/%.o: src/main/native/%.c
 ifeq ($(OS_NAME), Windows)
 $(JLINENATIVE_OUT)/$(LIBNAME): ducible
 endif
-$(JLINENATIVE_OUT)/$(LIBNAME): $(JLINENATIVE_OUT)/jlinenative.o
+$(JLINENATIVE_OUT)/$(LIBNAME): $(JLINENATIVE_OUT)/jlinenative.o $(JLINENATIVE_OUT)/clibrary.o $(JLINENATIVE_OUT)/kernel32.o
 	@mkdir -p $(@D)
-	$(CC) $(CCFLAGS) -o $@ $(JLINENATIVE_OUT)/jlinenative.o $(LINKFLAGS)
+	$(CC) $(CCFLAGS) -o $@ $(JLINENATIVE_OUT)/jlinenative.o $(JLINENATIVE_OUT)/clibrary.o $(JLINENATIVE_OUT)/kernel32.o $(LINKFLAGS)
 ifeq ($(OS_NAME), Windows)
 	target/ducible/ducible $(JLINENATIVE_OUT)/$(LIBNAME)
 endif
@@ -82,7 +83,7 @@ NATIVE_DLL:=$(NATIVE_DIR)/$(LIBNAME)
 # For cross-compilation, install docker. See also https://github.com/dockcross/dockcross
 # Disabled linux-armv6 build because of this issue; https://github.com/dockcross/dockcross/issues/190
 native-all: linux-x86 linux-x86_64 linux-arm linux-armv6 linux-armv7 \
-	linux-arm64 linux-ppc64 win-x86 win-x86_64 mac-x86 mac-x86_64 mac-arm64 freebsd-x86 freebsd-x86_64
+	linux-arm64 linux-ppc64 win-x86 win-x86_64 win-arm64 mac-x86 mac-x86_64 mac-arm64 freebsd-x86 freebsd-x86_64
 
 native: $(NATIVE_DLL)
 
@@ -138,6 +139,12 @@ target/dockcross/dockcross-windows-static-x64: dockcross
 	chmod +x target/dockcross/dockcross-windows-static-x64
 win-x86_64: download-includes target/dockcross/dockcross-windows-static-x64
 	target/dockcross/dockcross-windows-static-x64 bash -c 'make clean-native native CROSS_PREFIX=x86_64-w64-mingw32.static- OS_NAME=Windows OS_ARCH=x86_64'
+
+target/dockcross/dockcross-windows-arm64: dockcross
+	docker run --rm dockcross/windows-arm64$(windows-arm64-digest) > target/dockcross/dockcross-windows-arm64
+	chmod +x target/dockcross/dockcross-windows-arm64
+win-arm64: download-includes target/dockcross/dockcross-windows-arm64
+	target/dockcross/dockcross-windows-arm64 bash -c 'make clean-native native CROSS_PREFIX=aarch64-w64-mingw32- OS_NAME=Windows OS_ARCH=arm64'
 
 mac-x86: download-includes
 	docker run -it --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
