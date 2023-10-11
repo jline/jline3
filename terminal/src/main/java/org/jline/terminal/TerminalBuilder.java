@@ -445,7 +445,7 @@ public final class TerminalBuilder {
                         .split(","));
         providers.sort(Comparator.comparing(l -> {
             int idx = order.indexOf(l.name());
-            return idx >= 0 ? -idx : Integer.MIN_VALUE;
+            return idx >= 0 ? idx : Integer.MAX_VALUE;
         }));
 
         Terminal terminal = null;
