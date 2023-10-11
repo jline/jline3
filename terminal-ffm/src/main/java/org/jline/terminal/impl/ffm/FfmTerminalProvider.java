@@ -17,6 +17,7 @@ import java.nio.charset.Charset;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.impl.PosixPtyTerminal;
 import org.jline.terminal.impl.PosixSysTerminal;
 import org.jline.terminal.spi.Pty;
@@ -35,7 +36,7 @@ public class FfmTerminalProvider implements TerminalProvider {
 
     @Override
     public String name() {
-        return "ffm";
+        return TerminalBuilder.PROP_PROVIDER_FFM;
     }
 
     @Override

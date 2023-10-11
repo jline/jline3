@@ -20,6 +20,7 @@ import org.fusesource.jansi.AnsiConsole;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.impl.PosixPtyTerminal;
 import org.jline.terminal.impl.PosixSysTerminal;
 import org.jline.terminal.impl.jansi.freebsd.FreeBsdNativePty;
@@ -80,7 +81,7 @@ public class JansiTerminalProvider implements TerminalProvider {
 
     @Override
     public String name() {
-        return "jansi";
+        return TerminalBuilder.PROP_PROVIDER_JANSI;
     }
 
     public Pty current(SystemStream systemStream) throws IOException {

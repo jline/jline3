@@ -26,13 +26,14 @@ import org.jline.utils.NonBlockingReader;
 
 public class DumbTerminal extends AbstractTerminal {
 
+    private final TerminalProvider provider;
+    private final SystemStream systemStream;
     private final NonBlockingInputStream input;
     private final OutputStream output;
     private final NonBlockingReader reader;
     private final PrintWriter writer;
     private final Attributes attributes;
     private final Size size;
-    private final SystemStream systemStream;
 
     public DumbTerminal(InputStream in, OutputStream out) throws IOException {
         this(TYPE_DUMB, TYPE_DUMB, in, out, null);
@@ -40,20 +41,23 @@ public class DumbTerminal extends AbstractTerminal {
 
     public DumbTerminal(String name, String type, InputStream in, OutputStream out, Charset encoding)
             throws IOException {
-        this(name, type, in, out, encoding, SignalHandler.SIG_DFL, null);
+        this(null, null, name, type, in, out, encoding, SignalHandler.SIG_DFL);
     }
 
     @SuppressWarnings("this-escape")
     public DumbTerminal(
+            TerminalProvider provider,
+            SystemStream systemStream,
             String name,
             String type,
             InputStream in,
             OutputStream out,
             Charset encoding,
-            SignalHandler signalHandler,
-            SystemStream systemStream)
+            SignalHandler signalHandler)
             throws IOException {
         super(name, type, encoding, signalHandler);
+        this.provider = provider;
+        this.systemStream = systemStream;
         NonBlockingInputStream nbis = NonBlocking.nonBlocking(getName(), in);
         this.input = new NonBlockingInputStream() {
             @Override
@@ -98,7 +102,6 @@ public class DumbTerminal extends AbstractTerminal {
         this.attributes.setControlChar(ControlChar.VKILL, (char) 21);
         this.attributes.setControlChar(ControlChar.VLNEXT, (char) 22);
         this.size = new Size();
-        this.systemStream = systemStream;
         parseInfoCmp();
     }
 
@@ -140,7 +143,7 @@ public class DumbTerminal extends AbstractTerminal {
 
     @Override
     public TerminalProvider getProvider() {
-        return null;
+        return provider;
     }
 
     @Override

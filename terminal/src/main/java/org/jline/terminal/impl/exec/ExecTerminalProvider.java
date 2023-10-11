@@ -21,6 +21,7 @@ import org.jline.nativ.JLineNativeLoader;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.impl.ExternalTerminal;
 import org.jline.terminal.impl.PosixSysTerminal;
 import org.jline.terminal.spi.Pty;
@@ -40,7 +41,7 @@ public class ExecTerminalProvider implements TerminalProvider {
     private static boolean warned;
 
     public String name() {
-        return "exec";
+        return TerminalBuilder.PROP_PROVIDER_EXEC;
     }
 
     public Pty current(SystemStream systemStream) throws IOException {

@@ -16,6 +16,7 @@ import java.nio.charset.Charset;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.impl.PosixPtyTerminal;
 import org.jline.terminal.impl.PosixSysTerminal;
 import org.jline.terminal.impl.jna.win.JnaWinSysTerminal;
@@ -27,7 +28,7 @@ import org.jline.utils.OSUtils;
 public class JnaTerminalProvider implements TerminalProvider {
     @Override
     public String name() {
-        return "jna";
+        return TerminalBuilder.PROP_PROVIDER_JNA;
     }
 
     public Pty current(SystemStream systemStream) throws IOException {
