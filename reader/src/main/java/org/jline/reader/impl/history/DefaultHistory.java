@@ -247,12 +247,16 @@ public class DefaultHistory implements History {
         Log.trace("Trimming history path: ", path);
         // Load all history entries
         LinkedList<Entry> allItems = new LinkedList<>();
-        try (BufferedReader reader = Files.newBufferedReader(path)) {
-            reader.lines().forEach(l -> {
-                int idx = l.indexOf(':');
-                Instant time = Instant.ofEpochMilli(Long.parseLong(l.substring(0, idx)));
-                String line = unescape(l.substring(idx + 1));
-                allItems.add(createEntry(allItems.size(), time, line));
+        try (BufferedReader historyFileReader = Files.newBufferedReader(path)) {
+            historyFileReader.lines().forEach(l -> {
+                if (reader.isSet(LineReader.Option.HISTORY_TIMESTAMPED)) {
+                    int idx = l.indexOf(':');
+                    Instant time = Instant.ofEpochMilli(Long.parseLong(l.substring(0, idx)));
+                    String line = unescape(l.substring(idx + 1));
+                    allItems.add(createEntry(allItems.size(), time, line));
+                } else {
+                    allItems.add(createEntry(allItems.size(), Instant.now(), unescape(l)));
+                }
             });
         }
         // Remove duplicates
