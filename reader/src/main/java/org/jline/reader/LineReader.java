@@ -283,6 +283,7 @@ public interface LineReader {
     String MAIN = "main";
     String EMACS = "emacs";
     String SAFE = ".safe";
+    String DUMB = "dumb";
     String MENU = "menu";
 
     //
