@@ -122,6 +122,10 @@ public class LineReaderImpl implements LineReader, Flushable {
          */
         DONE,
         /**
+         * readLine should ignore the next CR, if any
+         */
+        IGNORE_CR,
+        /**
          * readLine should exit and return empty String
          */
         IGNORE,
@@ -556,7 +560,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             AttributedStringBuilder sb = new AttributedStringBuilder();
             sb.styled(AttributedStyle::bold, cmd);
             sb.toAttributedString().println(terminal);
-            terminal.flush();
+            flush();
             return finish(cmd);
         }
 
@@ -569,7 +573,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         SignalHandler previousWinchHandler = null;
         SignalHandler previousContHandler = null;
         Attributes originalAttributes = null;
-        boolean dumb = isTerminalDumb();
+        boolean isDumb = isTerminalDumb();
         try {
 
             this.maskingCallback = maskingCallback;
@@ -586,7 +590,11 @@ public class LineReaderImpl implements LineReader, Flushable {
 
             smallTerminalOffset = 0;
 
-            state = State.NORMAL;
+            if (isDumb && "\n".equals(getLastBinding())) {
+                state = State.IGNORE_CR;
+            } else {
+                state = State.NORMAL;
+            }
 
             modifiedHistory.clear();
 
@@ -628,16 +636,11 @@ public class LineReaderImpl implements LineReader, Flushable {
                 doDisplay();
 
                 // Move into application mode
-                if (!dumb) {
+                if (!isDumb) {
                     terminal.puts(Capability.keypad_xmit);
                     if (isSet(Option.AUTO_FRESH_LINE)) callWidget(FRESH_LINE);
                     if (isSet(Option.MOUSE)) terminal.trackMouse(Terminal.MouseTracking.Normal);
                     if (isSet(Option.BRACKETED_PASTE)) terminal.writer().write(BRACKETED_PASTE_ON);
-                } else {
-                    // For dumb terminals, we need to make sure that CR are ignored
-                    Attributes attr = new Attributes(originalAttributes);
-                    attr.setInputFlag(Attributes.InputFlag.IGNCR, true);
-                    terminal.setAttributes(attr);
                 }
 
                 callWidget(CALLBACK_INIT);
@@ -719,7 +722,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                         mult = 1;
                     }
 
-                    if (!dumb) {
+                    if (!isDumb) {
                         redisplay();
                     }
                 } finally {
@@ -789,7 +792,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             if (reading) {
                 redisplay(false);
             }
-            terminal.flush();
+            flush();
         } finally {
             lock.unlock();
         }
@@ -981,6 +984,12 @@ public class LineReaderImpl implements LineReader, Flushable {
                     && !BACKWARD_KILL_WORD.equals(ref)
                     && !KILL_WORD.equals(ref)) {
                 killRing.resetLastKill();
+            }
+            if (state == State.IGNORE_CR
+                    && ACCEPT_LINE.equals(ref)
+                    && getLastBinding().equals("\r")) {
+                state = State.NORMAL;
+                o = readBinding(keys, local);
             }
         }
         return o;
