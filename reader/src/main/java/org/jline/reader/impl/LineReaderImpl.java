@@ -109,6 +109,9 @@ public class LineReaderImpl implements LineReader, Flushable {
     public static final String FOCUS_IN_SEQ = "\033[I";
     public static final String FOCUS_OUT_SEQ = "\033[O";
 
+    public static final String CR = "\r";
+    public static final String LF = "\n";
+
     /**
      * Possible states in which the current readline operation may be in.
      */
@@ -590,7 +593,8 @@ public class LineReaderImpl implements LineReader, Flushable {
 
             smallTerminalOffset = 0;
 
-            if (isDumb && "\n".equals(getLastBinding())) {
+            if (isDumb && LF.equals(getLastBinding())) {
+                // if the previous binding was LF, then ignore the next CR (if any)
                 state = State.IGNORE_CR;
             } else {
                 state = State.NORMAL;
@@ -985,9 +989,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                     && !KILL_WORD.equals(ref)) {
                 killRing.resetLastKill();
             }
-            if (state == State.IGNORE_CR
-                    && ACCEPT_LINE.equals(ref)
-                    && getLastBinding().equals("\r")) {
+            if (state == State.IGNORE_CR && ACCEPT_LINE.equals(ref) && CR.equals(getLastBinding())) {
                 state = State.NORMAL;
                 o = readBinding(keys, local);
             }
