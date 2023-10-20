@@ -11,6 +11,7 @@ package org.jline.reader.impl.history;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
@@ -19,6 +20,7 @@ import java.util.stream.IntStream;
 import org.jline.reader.LineReader;
 import org.jline.reader.impl.ReaderTestSupport;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -96,5 +98,33 @@ public class HistoryPersistenceTest extends ReaderTestSupport {
 
         lines = Files.readAllLines(Paths.get("test"));
         assertEquals(cmdsPerThread * (nbThreads + 1), lines.size());
+    }
+
+    private void testHistoryTrim(boolean timestamped) {
+        reader.unsetOpt(LineReader.Option.HISTORY_INCREMENTAL);
+        reader.option(LineReader.Option.HISTORY_TIMESTAMPED, timestamped);
+        reader.setVariable(LineReader.HISTORY_FILE_SIZE, 5);
+        reader.setVariable(LineReader.HISTORY_FILE, Paths.get("test"));
+
+        DefaultHistory history = new DefaultHistory(reader);
+        for (int i = 0; i < 50; i++) {
+            history.add(Instant.now(), "Hello " + i);
+            if (i % 5 == 0) {
+                Assertions.assertDoesNotThrow(history::save);
+            }
+        }
+
+        Assertions.assertDoesNotThrow(history::load);
+        Assertions.assertEquals(5, history.size());
+    }
+
+    @Test
+    public void testHistoryTrimNonTimestamped() {
+        testHistoryTrim(false);
+    }
+
+    @Test
+    public void testHistoryTrimTimestamped() {
+        testHistoryTrim(true);
     }
 }
