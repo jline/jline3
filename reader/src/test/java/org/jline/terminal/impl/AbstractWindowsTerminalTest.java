@@ -87,7 +87,7 @@ public class AbstractWindowsTerminalTest {
                     null,
                     new AnsiWriter(new BufferedWriter(sw)),
                     "name",
-                    AbstractWindowsTerminal.TYPE_DUMB,
+                    "windows",
                     Charset.defaultCharset(),
                     false,
                     SignalHandler.SIG_DFL,
