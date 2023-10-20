@@ -5997,6 +5997,8 @@ public class LineReaderImpl implements LineReader, Flushable {
         keyMaps.put(VIOPP, viOpp());
         keyMaps.put(VISUAL, visual());
         keyMaps.put(SAFE, safe());
+        keyMaps.put(DUMB, dumb());
+
         if (getBoolean(BIND_TTY_SPECIAL_CHARS, true)) {
             Attributes attr = terminal.getAttributes();
             bindConsoleChars(keyMaps.get(EMACS), attr);
@@ -6007,8 +6009,9 @@ public class LineReaderImpl implements LineReader, Flushable {
             keyMap.setUnicode(new Reference(SELF_INSERT));
             keyMap.setAmbiguousTimeout(getLong(AMBIGUOUS_BINDING, DEFAULT_AMBIGUOUS_BINDING));
         }
-        // By default, link main to emacs
-        keyMaps.put(MAIN, keyMaps.get(EMACS));
+        // By default, link main to emacs unless the temrinal is dumb
+        keyMaps.put(MAIN, keyMaps.get(isTerminalDumb() ? DUMB : EMACS));
+
         return keyMaps;
     }
 
@@ -6261,6 +6264,14 @@ public class LineReaderImpl implements LineReader, Flushable {
         bind(safe, ACCEPT_LINE, "\r", "\n");
         bind(safe, SEND_BREAK, ctrl('G'));
         return safe;
+    }
+
+    public KeyMap<Binding> dumb() {
+        KeyMap<Binding> dumb = new KeyMap<>();
+        bind(dumb, SELF_INSERT, range("^@-^?"));
+        bind(dumb, ACCEPT_LINE, "\r", "\n");
+        bind(dumb, BEEP, ctrl('G'));
+        return dumb;
     }
 
     public KeyMap<Binding> visual() {
