@@ -29,6 +29,7 @@ import java.util.stream.Stream;
 
 import org.jline.terminal.impl.AbstractPosixTerminal;
 import org.jline.terminal.impl.AbstractTerminal;
+import org.jline.terminal.impl.DumbTerminal;
 import org.jline.terminal.impl.DumbTerminalProvider;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
@@ -367,6 +368,8 @@ public final class TerminalBuilder {
         Charset encoding = computeEncoding();
         String type = computeType();
 
+        boolean forceDumb =
+                (DumbTerminal.TYPE_DUMB.equals(type) || type != null && type.startsWith(DumbTerminal.TYPE_DUMB_COLOR));
         Boolean dumb = this.dumb;
         if (dumb == null) {
             dumb = getBoolean(PROP_DUMB, null);
@@ -389,7 +392,7 @@ public final class TerminalBuilder {
                             stream -> stream, stream -> providers.stream().anyMatch(p -> p.isSystemStream(stream))));
             SystemStream systemStream = select(system, systemOutput);
 
-            if (system.get(SystemStream.Input) && systemStream != null) {
+            if (!forceDumb && system.get(SystemStream.Input) && systemStream != null) {
                 if (attributes != null || size != null) {
                     Log.warn("Attributes and size fields are ignored when creating a system terminal");
                 }
@@ -437,8 +440,8 @@ public final class TerminalBuilder {
                     terminal = null;
                 }
             }
-            if (terminal == null && (dumb == null || dumb)) {
-                if (dumb == null) {
+            if (terminal == null && (forceDumb || dumb == null || dumb)) {
+                if (!forceDumb && dumb == null) {
                     if (Log.isDebugEnabled()) {
                         Log.warn("input is tty: {}", system.get(SystemStream.Input));
                         Log.warn("output is tty: {}", system.get(SystemStream.Output));
