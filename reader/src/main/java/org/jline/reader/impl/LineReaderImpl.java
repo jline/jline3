@@ -75,6 +75,7 @@ public class LineReaderImpl implements LineReader, Flushable {
      */
     @Deprecated
     public static final int TAB_WIDTH = 4;
+
     public static final int DEFAULT_TAB_WIDTH = 4;
 
     public static final String DEFAULT_WORDCHARS = "*?_-.[]~=/&;!#$%^(){}<>";
