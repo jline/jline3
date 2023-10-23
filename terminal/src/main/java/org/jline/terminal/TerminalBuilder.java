@@ -452,6 +452,11 @@ public final class TerminalBuilder {
                 type = getDumbTerminalType(dumb, systemStream);
                 terminal = new DumbTerminalProvider()
                         .sysTerminal(name, type, false, encoding, nativeSignals, signalHandler, paused, systemStream);
+                if (OSUtils.IS_WINDOWS) {
+                    Attributes attr = terminal.getAttributes();
+                    attr.setInputFlag(Attributes.InputFlag.IGNCR, true);
+                    terminal.setAttributes(attr);
+                }
             }
         } else {
             for (TerminalProvider provider : providers) {
