@@ -110,4 +110,9 @@ public class FfmTerminalProvider implements TerminalProvider {
     public int systemStreamWidth(SystemStream stream) {
         return FfmNativePty.systemStreamWidth(stream);
     }
+
+    @Override
+    public String toString() {
+        return "TerminalProvider[" + name() + "]";
+    }
 }

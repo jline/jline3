@@ -219,4 +219,9 @@ public class JansiTerminalProvider implements TerminalProvider {
     public int systemStreamWidth(SystemStream stream) {
         return JansiNativePty.systemStreamWidth(stream);
     }
+
+    @Override
+    public String toString() {
+        return "TerminalProvider[" + name() + "]";
+    }
 }

@@ -141,4 +141,9 @@ public class JnaTerminalProvider implements TerminalProvider {
             return -1;
         }
     }
+
+    @Override
+    public String toString() {
+        return "TerminalProvider[" + name() + "]";
+    }
 }

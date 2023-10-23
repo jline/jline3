@@ -190,4 +190,9 @@ public class Status {
     public int size() {
         return oldLines.size() + border;
     }
+
+    @Override
+    public String toString() {
+        return "Status[" + "supported=" + supported + ']';
+    }
 }

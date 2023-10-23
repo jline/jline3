@@ -211,7 +211,7 @@ public class Colors {
         if (dist == null) {
             dist = System.getProperty(PROP_COLOR_DISTANCE, "cie76");
         }
-        return doGetDistance(dist);
+        return new NamedDistance(dist, doGetDistance(dist));
     }
 
     private static Distance doGetDistance(String dist) {
@@ -289,6 +289,26 @@ public class Colors {
 
     private static double scalar(double[] c1, double[] c2) {
         return sqr(c1[0] - c2[0]) + sqr(c1[1] - c2[1]) + sqr(c1[2] - c2[2]);
+    }
+
+    private static class NamedDistance implements Distance {
+        private final String name;
+        private final Distance delegate;
+
+        public NamedDistance(String name, Distance delegate) {
+            this.name = name;
+            this.delegate = delegate;
+        }
+
+        @Override
+        public double compute(int c1, int c2) {
+            return delegate.compute(c1, c2);
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
     }
 
     private static final int L = 0;

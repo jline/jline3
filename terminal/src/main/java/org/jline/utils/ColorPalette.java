@@ -265,4 +265,9 @@ public class ColorPalette {
             ;
         return Arrays.copyOfRange(palette, 0, max + 1);
     }
+
+    @Override
+    public String toString() {
+        return "ColorPalette[" + "length=" + getLength() + ", " + "distance='" + getDist() + "\']";
+    }
 }

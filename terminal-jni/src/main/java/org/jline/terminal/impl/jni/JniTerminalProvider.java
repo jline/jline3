@@ -158,4 +158,9 @@ public class JniTerminalProvider implements TerminalProvider {
     public int systemStreamWidth(SystemStream stream) {
         return JniNativePty.systemStreamWidth(stream);
     }
+
+    @Override
+    public String toString() {
+        return "TerminalProvider[" + name() + "]";
+    }
 }

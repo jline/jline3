@@ -252,4 +252,9 @@ public class ExecTerminalProvider implements TerminalProvider {
             return JLineLibrary.newRedirectPipe(fd);
         }
     }
+
+    @Override
+    public String toString() {
+        return "TerminalProvider[" + name() + "]";
+    }
 }

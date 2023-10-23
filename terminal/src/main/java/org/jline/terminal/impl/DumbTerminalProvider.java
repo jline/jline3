@@ -81,4 +81,9 @@ public class DumbTerminalProvider implements TerminalProvider {
     public int systemStreamWidth(SystemStream stream) {
         return 0;
     }
+
+    @Override
+    public String toString() {
+        return "TerminalProvider[" + name() + "]";
+    }
 }
