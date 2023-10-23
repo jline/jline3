@@ -396,6 +396,11 @@ public interface LineReader {
      */
     String SUGGESTIONS_MIN_BUFFER_SIZE = "suggestions-min-buffer-size";
 
+    /**
+     * Max number of times a command can be repeated.
+     */
+    String MAX_REPEAT_COUNT = "max-repeat-count";
+
     Map<String, KeyMap<Binding>> defaultKeyMaps();
 
     enum Option {
