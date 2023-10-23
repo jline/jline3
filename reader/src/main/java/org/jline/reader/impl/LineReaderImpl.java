@@ -70,7 +70,12 @@ import static org.jline.terminal.TerminalBuilder.PROP_DISABLE_ALTERNATE_CHARSET;
 public class LineReaderImpl implements LineReader, Flushable {
     public static final char NULL_MASK = 0;
 
+    /**
+     * @deprecated use {@link #DEFAULT_TAB_WIDTH} and {@link #getTabWidth()}
+     */
+    @Deprecated
     public static final int TAB_WIDTH = 4;
+    public static final int DEFAULT_TAB_WIDTH = 4;
 
     public static final String DEFAULT_WORDCHARS = "*?_-.[]~=/&;!#$%^(){}<>";
     public static final String DEFAULT_REMOVE_SUFFIX_CHARS = " \t\n;&|";
@@ -1108,6 +1113,10 @@ public class LineReaderImpl implements LineReader, Flushable {
                 commandsBuffer.add(line);
             }
         }
+    }
+
+    protected int getTabWidth() {
+        return getInt(LineReader.TAB_WIDTH, DEFAULT_TAB_WIDTH);
     }
 
     //
@@ -3839,7 +3848,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             }
 
             if (size.getRows() > 0 && size.getRows() < MIN_ROWS) {
-                AttributedStringBuilder sb = new AttributedStringBuilder().tabs(TAB_WIDTH);
+                AttributedStringBuilder sb = new AttributedStringBuilder().tabs(getTabWidth());
 
                 sb.append(prompt);
                 concat(getHighlightedBuffer(buf.toString()).columnSplitLength(Integer.MAX_VALUE), sb);
@@ -3912,7 +3921,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             int cursorNewLinesId = -1;
             int cursorColPos = -1;
             if (size.getColumns() > 0) {
-                AttributedStringBuilder sb = new AttributedStringBuilder().tabs(TAB_WIDTH);
+                AttributedStringBuilder sb = new AttributedStringBuilder().tabs(getTabWidth());
                 sb.append(prompt);
                 String buffer = buf.upToCursor();
                 if (maskingCallback != null) {
@@ -4019,7 +4028,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         AttributedString attBuf = getHighlightedBuffer(buf.toString());
 
         AttributedString tNewBuf = insertSecondaryPrompts(attBuf, secondaryPrompts);
-        AttributedStringBuilder full = new AttributedStringBuilder().tabs(TAB_WIDTH);
+        AttributedStringBuilder full = new AttributedStringBuilder().tabs(getTabWidth());
         full.append(prompt);
         full.append(tNewBuf);
         if (doAutosuggestion && !isTerminalDumb()) {
@@ -5830,7 +5839,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             List<AttributedString> secondaryPrompts = new ArrayList<>();
             getDisplayedBufferWithPrompts(secondaryPrompts);
 
-            AttributedStringBuilder sb = new AttributedStringBuilder().tabs(TAB_WIDTH);
+            AttributedStringBuilder sb = new AttributedStringBuilder().tabs(getTabWidth());
             sb.append(prompt);
             sb.append(insertSecondaryPrompts(new AttributedString(buf.upToCursor()), secondaryPrompts, false));
             List<AttributedString> promptLines =
