@@ -3022,9 +3022,7 @@ public class LineReaderImpl implements LineReader, Flushable {
     }
 
     protected boolean selfInsert() {
-        for (int count = this.count; count > 0; count--) {
-            putString(getLastBinding());
-        }
+        putString(getLastBinding());
         return true;
     }
 
@@ -3034,9 +3032,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             if ("\r".equals(s)) {
                 s = "\n";
             }
-            for (int count = this.count; count > 0; count--) {
-                putString(s);
-            }
+            putString(s);
             return true;
         } else {
             return false;
