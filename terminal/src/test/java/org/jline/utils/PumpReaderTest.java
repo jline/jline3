@@ -101,10 +101,10 @@ public class PumpReaderTest {
         InputStream inputStream = pump.createInputStream(StandardCharsets.UTF_8);
         byte[] expectedEncoded = "\uD83D\uDE0A".getBytes(StandardCharsets.UTF_8);
         assertEquals(4, expectedEncoded.length); // verify that test is correctly implemented
-        assertEquals(expectedEncoded[0], inputStream.read());
-        assertEquals(expectedEncoded[1], inputStream.read());
-        assertEquals(expectedEncoded[2], inputStream.read());
-        assertEquals(expectedEncoded[3], inputStream.read());
+        assertEquals(expectedEncoded[0] & 0xff, inputStream.read());
+        assertEquals(expectedEncoded[1] & 0xff, inputStream.read());
+        assertEquals(expectedEncoded[2] & 0xff, inputStream.read());
+        assertEquals(expectedEncoded[3] & 0xff, inputStream.read());
         assertEquals(-1, inputStream.read());
     }
 
