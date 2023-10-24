@@ -640,11 +640,6 @@ public class LineReaderImpl implements LineReader, Flushable {
                     if (isSet(Option.AUTO_FRESH_LINE)) callWidget(FRESH_LINE);
                     if (isSet(Option.MOUSE)) terminal.trackMouse(Terminal.MouseTracking.Normal);
                     if (isSet(Option.BRACKETED_PASTE)) terminal.writer().write(BRACKETED_PASTE_ON);
-                } else {
-                    // For dumb terminals, we need to make sure that CR are ignored
-                    Attributes attr = new Attributes(originalAttributes);
-                    attr.setInputFlag(Attributes.InputFlag.IGNCR, true);
-                    terminal.setAttributes(attr);
                 }
 
                 callWidget(CALLBACK_INIT);
