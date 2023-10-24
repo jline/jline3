@@ -406,6 +406,11 @@ public interface LineReader {
      */
     String TAB_WIDTH = "tab-width";
 
+    /**
+     * Name of inputrc to read at line reader creation time.
+     */
+    String INPUT_RC_FILE_NAME = "input-rc-file-name";
+
     Map<String, KeyMap<Binding>> defaultKeyMaps();
 
     enum Option {

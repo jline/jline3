@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2022, the original author(s).
+ * Copyright (c) 2002-2023, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -18,6 +18,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.lang.reflect.Constructor;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -321,6 +324,19 @@ public class LineReaderImpl implements LineReader, Flushable {
         builtinWidgets = builtinWidgets();
         widgets = new HashMap<>(builtinWidgets);
         bindingReader = new BindingReader(terminal.reader());
+
+        String inputRc = getString(INPUT_RC_FILE_NAME, null);
+        if (inputRc != null) {
+            Path inputRcPath = Paths.get(inputRc);
+            if (Files.exists(inputRcPath)) {
+                try (InputStream is = Files.newInputStream(inputRcPath)) {
+                    InputRC.configure(this, is);
+                } catch (Exception e) {
+                    Log.debug("Error reading inputRc config file: ", inputRc, e);
+                }
+            }
+        }
+
         doDisplay();
     }
 
