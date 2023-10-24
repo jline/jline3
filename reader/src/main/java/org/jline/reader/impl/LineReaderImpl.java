@@ -108,6 +108,7 @@ public class LineReaderImpl implements LineReader, Flushable {
 
     public static final String FOCUS_IN_SEQ = "\033[I";
     public static final String FOCUS_OUT_SEQ = "\033[O";
+    public static final int DEFAULT_MAX_REPEAT_COUNT = 9999;
 
     /**
      * Possible states in which the current readline operation may be in.
@@ -2392,6 +2393,10 @@ public class LineReaderImpl implements LineReader, Flushable {
     protected boolean digitArgument() {
         String s = getLastBinding();
         repeatCount = (repeatCount * 10) + s.charAt(s.length() - 1) - '0';
+        int maxRepeatCount = getInt(MAX_REPEAT_COUNT, DEFAULT_MAX_REPEAT_COUNT);
+        if (repeatCount > maxRepeatCount) {
+            throw new IllegalArgumentException("digit argument should be less than " + maxRepeatCount);
+        }
         isArgDigit = true;
         return true;
     }
