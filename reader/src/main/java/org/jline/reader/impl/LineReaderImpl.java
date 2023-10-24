@@ -763,6 +763,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                 throw e;
             }
         } finally {
+            boolean interrupted = Thread.interrupted();
             try {
                 lock.lock();
 
@@ -784,6 +785,9 @@ public class LineReaderImpl implements LineReader, Flushable {
             } finally {
                 lock.unlock();
                 startedReading.set(false);
+                if (interrupted) {
+                    Thread.currentThread().interrupt();
+                }
             }
         }
     }
