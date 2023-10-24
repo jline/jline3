@@ -397,6 +397,11 @@ public interface LineReader {
     String SUGGESTIONS_MIN_BUFFER_SIZE = "suggestions-min-buffer-size";
 
     /**
+     * Max number of times a command can be repeated.
+     */
+    String MAX_REPEAT_COUNT = "max-repeat-count";
+
+    /**
      * Number of spaces to display a tabulation, the default is 4.
      */
     String TAB_WIDTH = "tab-width";
