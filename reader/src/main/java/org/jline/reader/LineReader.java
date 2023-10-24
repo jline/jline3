@@ -401,6 +401,11 @@ public interface LineReader {
      */
     String MAX_REPEAT_COUNT = "max-repeat-count";
 
+    /**
+     * Number of spaces to display a tabulation, the default is 4.
+     */
+    String TAB_WIDTH = "tab-width";
+
     Map<String, KeyMap<Binding>> defaultKeyMaps();
 
     enum Option {
