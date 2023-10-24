@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author(s).
+ * Copyright (c) 2002-2023, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -410,6 +410,11 @@ public interface LineReader {
      * Name of inputrc to read at line reader creation time.
      */
     String INPUT_RC_FILE_NAME = "input-rc-file-name";
+
+    /**
+     * Prefix to automatically delegate variables to system properties
+     */
+    String SYSTEM_PROPERTY_PREFIX = "system-property-prefix";
 
     Map<String, KeyMap<Binding>> defaultKeyMaps();
 

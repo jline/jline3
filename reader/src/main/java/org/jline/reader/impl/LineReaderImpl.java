@@ -107,6 +107,7 @@ public class LineReaderImpl implements LineReader, Flushable {
     public static final int DEFAULT_INDENTATION = 0;
     public static final int DEFAULT_FEATURES_MAX_BUFFER_SIZE = 1000;
     public static final int DEFAULT_SUGGESTIONS_MIN_BUFFER_SIZE = 1;
+    public static final String DEFAULT_SYSTEM_PROPERTY_PREFIX = "org.jline.reader.props.";
 
     private static final int MIN_ROWS = 3;
 
@@ -314,6 +315,17 @@ public class LineReaderImpl implements LineReader, Flushable {
         } else {
             this.variables = new HashMap<>();
         }
+        String prefix = getString(SYSTEM_PROPERTY_PREFIX, DEFAULT_SYSTEM_PROPERTY_PREFIX);
+        if (prefix != null) {
+            Properties sysProps = System.getProperties();
+            for (String s : sysProps.stringPropertyNames()) {
+                if (s.startsWith(prefix)) {
+                    String key = s.substring(prefix.length());
+                    InputRC.setVar(this, key, sysProps.getProperty(s));
+                }
+            }
+        }
+
         this.keyMaps = defaultKeyMaps();
         if (!Boolean.getBoolean(PROP_DISABLE_ALTERNATE_CHARSET)) {
             this.alternateIn = Curses.tputs(terminal.getStringCapability(Capability.enter_alt_charset_mode));
