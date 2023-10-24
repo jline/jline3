@@ -30,7 +30,7 @@ public final class ExecHelper {
             Log.trace("Running: ", cmd);
             ProcessBuilder pb = new ProcessBuilder(cmd);
             if (OSUtils.IS_AIX) {
-                Map<String,String> env = pb.environment();
+                Map<String, String> env = pb.environment();
                 env.put("PATH", "/opt/freeware/bin:" + env.get("PATH"));
                 env.put("LANG", "C");
                 env.put("LC_ALL", "C");
