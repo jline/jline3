@@ -29,6 +29,7 @@ import java.util.stream.Stream;
 
 import org.jline.terminal.impl.AbstractPosixTerminal;
 import org.jline.terminal.impl.AbstractTerminal;
+import org.jline.terminal.impl.DumbTerminal;
 import org.jline.terminal.impl.DumbTerminalProvider;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
@@ -47,6 +48,7 @@ public final class TerminalBuilder {
     public static final String PROP_ENCODING = "org.jline.terminal.encoding";
     public static final String PROP_CODEPAGE = "org.jline.terminal.codepage";
     public static final String PROP_TYPE = "org.jline.terminal.type";
+    public static final String PROP_PROVIDER = "org.jline.terminal.provider";
     public static final String PROP_PROVIDERS = "org.jline.terminal.providers";
     public static final String PROP_PROVIDER_FFM = "ffm";
     public static final String PROP_PROVIDER_JNI = "jni";
@@ -367,12 +369,17 @@ public final class TerminalBuilder {
         Charset encoding = computeEncoding();
         String type = computeType();
 
+        String forcedProvider = System.getProperty(PROP_PROVIDER, null);
+
+        boolean forceDumb =
+                (DumbTerminal.TYPE_DUMB.equals(type) || type != null && type.startsWith(DumbTerminal.TYPE_DUMB_COLOR))
+                        || (forcedProvider != null && forcedProvider.equals(PROP_PROVIDER_DUMB));
         Boolean dumb = this.dumb;
         if (dumb == null) {
             dumb = getBoolean(PROP_DUMB, null);
         }
         IllegalStateException exception = new IllegalStateException("Unable to create a terminal");
-        List<TerminalProvider> providers = getProviders(exception);
+        List<TerminalProvider> providers = getProviders(forcedProvider, exception);
         Terminal terminal = null;
         if ((system != null && system) || (system == null && in == null && out == null)) {
             if (system != null
@@ -389,7 +396,7 @@ public final class TerminalBuilder {
                             stream -> stream, stream -> providers.stream().anyMatch(p -> p.isSystemStream(stream))));
             SystemStream systemStream = select(system, systemOutput);
 
-            if (system.get(SystemStream.Input) && systemStream != null) {
+            if (!forceDumb && system.get(SystemStream.Input) && systemStream != null) {
                 if (attributes != null || size != null) {
                     Log.warn("Attributes and size fields are ignored when creating a system terminal");
                 }
@@ -437,8 +444,8 @@ public final class TerminalBuilder {
                     terminal = null;
                 }
             }
-            if (terminal == null && (dumb == null || dumb)) {
-                if (dumb == null) {
+            if (terminal == null && (forceDumb || dumb == null || dumb)) {
+                if (!forceDumb && dumb == null) {
                     if (Log.isDebugEnabled()) {
                         Log.warn("input is tty: {}", system.get(SystemStream.Input));
                         Log.warn("output is tty: {}", system.get(SystemStream.Output));
@@ -593,18 +600,18 @@ public final class TerminalBuilder {
         return encoding;
     }
 
-    public List<TerminalProvider> getProviders(IllegalStateException exception) {
+    public List<TerminalProvider> getProviders(String forcedProvider, IllegalStateException exception) {
         List<TerminalProvider> providers = new ArrayList<>();
         // Check ffm provider
-        checkProvider(exception, providers, ffm, PROP_FFM, PROP_PROVIDER_FFM);
+        checkProvider(forcedProvider, exception, providers, ffm, PROP_FFM, PROP_PROVIDER_FFM);
         // Check jni provider
-        checkProvider(exception, providers, jni, PROP_JNI, PROP_PROVIDER_JNI);
+        checkProvider(forcedProvider, exception, providers, jni, PROP_JNI, PROP_PROVIDER_JNI);
         // Check jansi provider
-        checkProvider(exception, providers, jansi, PROP_JANSI, PROP_PROVIDER_JANSI);
+        checkProvider(forcedProvider, exception, providers, jansi, PROP_JANSI, PROP_PROVIDER_JANSI);
         // Check jna provider
-        checkProvider(exception, providers, jna, PROP_JNA, PROP_PROVIDER_JNA);
+        checkProvider(forcedProvider, exception, providers, jna, PROP_JNA, PROP_PROVIDER_JNA);
         // Check exec provider
-        checkProvider(exception, providers, exec, PROP_EXEC, PROP_PROVIDER_EXEC);
+        checkProvider(forcedProvider, exception, providers, exec, PROP_EXEC, PROP_PROVIDER_EXEC);
         // Order providers
         List<String> order = Arrays.asList(
                 (this.providers != null ? this.providers : System.getProperty(PROP_PROVIDERS, PROP_PROVIDERS_DEFAULT))
@@ -619,12 +626,13 @@ public final class TerminalBuilder {
     }
 
     private void checkProvider(
+            String forcedProvider,
             IllegalStateException exception,
             List<TerminalProvider> providers,
             Boolean load,
             String property,
             String name) {
-        Boolean doLoad = load;
+        Boolean doLoad = forcedProvider != null ? (Boolean) name.equals(forcedProvider) : load;
         if (doLoad == null) {
             doLoad = getBoolean(property, true);
         }
