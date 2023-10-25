@@ -4,6 +4,14 @@
 ## [JLine 3.24.0][3_24_0]
 [3_24_0] https://repo1.maven.org/maven2/org/jline/jline/3.24.0/
 
+* [`cb226ce3909`](https://github.com/jline/jline3/commit/cb226ce3909a0f8128b74b97ece7523468f3e5c7) Upgrade various plugins
+* [`0a8f369e2d8`](https://github.com/jline/jline3/commit/0a8f369e2d84100aa4ff5551f945aeb2901813b0) Upgrade ivy from 2.5.1 to 2.5.2
+* [`cfbbb7ee562`](https://github.com/jline/jline3/commit/cfbbb7ee562817a87b71c58ffccddc4799ce6a02) Upgrade graal from 22.3.0 to 23.1.1
+* [`bae5fb5f587`](https://github.com/jline/jline3/commit/bae5fb5f5872b9575564ac9715d76bdc9e469521) Upgrade slf4j from 2.0.6 to 2.0.9
+* [`77626a8013c`](https://github.com/jline/jline3/commit/77626a8013c4cc37ea7c6c17efbf90d870a5faa6) Upgrade easymock from 5.1.0 to 5.2.0
+* [`d0b6273668b`](https://github.com/jline/jline3/commit/d0b6273668bee667e96d8255fd7126172bea08e7) Upgrade sshd from 2.9.2 to 2.11.0
+* [`0f01e4ce2ec`](https://github.com/jline/jline3/commit/0f01e4ce2ecd12c883681f9c23000f2817217736) Upgrade jansi from 2.4.0 to 2.4.1
+* [`2e9e2232bd7`](https://github.com/jline/jline3/commit/2e9e2232bd76564f66caf0af9797ce8679382625) Update changelog for 3.24.0 release
 * [`d4bf37c7564`](https://github.com/jline/jline3/commit/d4bf37c75641b6a1d10135611b169d555e0b9e55) Add forced-out and forcer-err to force the system console to use the output / error stream (fixes #856) (#884)
 * [`b8084cf1b27`](https://github.com/jline/jline3/commit/b8084cf1b2776de98a362607877c8919513d245a) Add a field / setter for the forced provider
 * [`9a216cab00a`](https://github.com/jline/jline3/commit/9a216cab00a5c3f8458c1a4454236c1eb94b0182) Make sure the thread is not in an interrupted state when cleanup up (fixes #590) (#883)
