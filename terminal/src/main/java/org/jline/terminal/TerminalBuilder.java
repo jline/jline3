@@ -70,6 +70,8 @@ public final class TerminalBuilder {
     public static final String PROP_OUTPUT_ERR = "err";
     public static final String PROP_OUTPUT_OUT_ERR = "out-err";
     public static final String PROP_OUTPUT_ERR_OUT = "err-out";
+    public static final String PROP_OUTPUT_FORCED_OUT = "forced-out";
+    public static final String PROP_OUTPUT_FORCED_ERR = "forced-err";
 
     //
     // Other system properties controlling various jline parts
@@ -106,7 +108,9 @@ public final class TerminalBuilder {
         SysOut,
         SysErr,
         SysOutOrSysErr,
-        SysErrOrSysOut
+        SysErrOrSysOut,
+        ForcedSysOut,
+        ForcedSysErr
     }
 
     /**
@@ -560,6 +564,12 @@ public final class TerminalBuilder {
                     case PROP_OUTPUT_ERR_OUT:
                         systemOutput = SystemOutput.SysErrOrSysOut;
                         break;
+                    case PROP_OUTPUT_FORCED_OUT:
+                        systemOutput = SystemOutput.ForcedSysOut;
+                        break;
+                    case PROP_OUTPUT_FORCED_ERR:
+                        systemOutput = SystemOutput.ForcedSysErr;
+                        break;
                     default:
                         Log.debug("Unsupported value for " + PROP_OUTPUT + ": " + str + ". Supported values are: "
                                 + String.join(
@@ -672,6 +682,10 @@ public final class TerminalBuilder {
                 return select(system, SystemStream.Output, SystemStream.Error);
             case SysErrOrSysOut:
                 return select(system, SystemStream.Error, SystemStream.Output);
+            case ForcedSysOut:
+                return SystemStream.Output;
+            case ForcedSysErr:
+                return SystemStream.Error;
         }
         return null;
     }
