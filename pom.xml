@@ -21,7 +21,7 @@
 
     <groupId>org.jline</groupId>
     <artifactId>jline-parent</artifactId>
-    <version>3.24.0</version>
+    <version>3.24.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>JLine Parent</name>
     <description>JLine</description>
@@ -92,7 +92,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.build.outputTimestamp>2023-10-25T15:36:16Z</project.build.outputTimestamp>
+        <project.build.outputTimestamp>2023-10-25T15:49:27Z</project.build.outputTimestamp>
 
         <java.build.version>21</java.build.version>
         <java.target.version>1.8</java.target.version>
