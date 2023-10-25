@@ -1,6 +1,53 @@
 # [JLine3](https://github.com/jline/jline3)
 <!-- git log --pretty=format:'* [`%h`](https://github.com/jline/jline3/commit/%H) %s' -->
 
+## [JLine 3.24.0][3_24_0]
+[3_24_0] https://repo1.maven.org/maven2/org/jline/jline/3.24.0/
+
+* [`d4bf37c7564`](https://github.com/jline/jline3/commit/d4bf37c75641b6a1d10135611b169d555e0b9e55) Add forced-out and forcer-err to force the system console to use the output / error stream (fixes #856) (#884)
+* [`b8084cf1b27`](https://github.com/jline/jline3/commit/b8084cf1b2776de98a362607877c8919513d245a) Add a field / setter for the forced provider
+* [`9a216cab00a`](https://github.com/jline/jline3/commit/9a216cab00a5c3f8458c1a4454236c1eb94b0182) Make sure the thread is not in an interrupted state when cleanup up (fixes #590) (#883)
+* [`7cbba19b6ce`](https://github.com/jline/jline3/commit/7cbba19b6ced3ad49f9c718e900970b78814ac6e) Support providing default values for line reader variables using system properties (#821)
+* [`8da980b39d1`](https://github.com/jline/jline3/commit/8da980b39d140a1012c9deabf6b710f3faccdf6c) Support automatic parsing of an inputrc file in jline reader (#821)
+* [`421bf59653d`](https://github.com/jline/jline3/commit/421bf59653d4cde9ef54bbbfeb012fdd50cb9694) Fix cr/lf support in dumb terminals (#877)
+* [`2af16d8e4e0`](https://github.com/jline/jline3/commit/2af16d8e4e04b7cd5580755571a7f29463de4576) Add a property to customize the tab width (fixes #861) (#880)
+* [`77283f8c7d2`](https://github.com/jline/jline3/commit/77283f8c7d27ba54433d0f1c32c217df7c8389d9) AIX issue with non english locales (#881)
+* [`2c8891ab363`](https://github.com/jline/jline3/commit/2c8891ab36346efca382527cf63f45ef47d058f1) Add a property to force a given provider
+* [`a20ba4b5b13`](https://github.com/jline/jline3/commit/a20ba4b5b1326a6a4371f51ed0d4eb618848cb7d) Force creation of a dumb terminal if TERM starts with dumb
+* [`405f8fe0b47`](https://github.com/jline/jline3/commit/405f8fe0b47fcfafcdb4853c325a42feb0614ed5) org.jline.util.PumpReader signed byte problem (#879)
+* [`7aa9c5e17c7`](https://github.com/jline/jline3/commit/7aa9c5e17c7249d14483a5bb697eeb10e45e0df6) Fix possible OOM caused by huge repetitions of inserts (fixes #863) (#878)
+* [`8805647bc12`](https://github.com/jline/jline3/commit/8805647bc121ecdd6279253b6f261b27cf6362f0) Improve toString() terminal rendering
+* [`60c9297c161`](https://github.com/jline/jline3/commit/60c9297c161a3c4848282fd268644e1c9df8602b) Use simplified keymap for dumb terminal (#874)
+* [`58fd8f9701c`](https://github.com/jline/jline3/commit/58fd8f9701cf8aa1c9fd0329e36b9af0f0f23189) Improve robustness of initial cleanup (fixes jansi#255)
+* [`60de93175f2`](https://github.com/jline/jline3/commit/60de93175f2b77311e91d8916131d3b14eb468f0) Add missing space in SunOS-sparcv9_CCFLAGS (fixes jansi#249)
+* [`7ca9dc20e3c`](https://github.com/jline/jline3/commit/7ca9dc20e3cb1780156fba1d003d2bc6e903a599) Fix history trim for non-timestamped files (#873)
+* [`cde17f7fc15`](https://github.com/jline/jline3/commit/cde17f7fc157f72a3890f717aafbf3d7b0ad63ef) Fix build on linux arm64 and add riscv64
+* [`871706532ac`](https://github.com/jline/jline3/commit/871706532acd4d56ad7282675229f798d49eeda2) New JNI provider
+* [`60bfd792915`](https://github.com/jline/jline3/commit/60bfd792915d4c336097a4cd7a98efa3dbc64163) Fix eol
+* [`cb1762621fe`](https://github.com/jline/jline3/commit/cb1762621fe919744ada14c9a21ce4bf53c4dfff) Clean a bit TerminalBuilder
+* [`e4986756a81`](https://github.com/jline/jline3/commit/e4986756a812cbb9c7f9acc290bd6ac4709a2301) Revert "Fix providers ordering"
+* [`79905407f62`](https://github.com/jline/jline3/commit/79905407f623e0a71cd7ef8a52ca1ff7c950dc2f) Fix providers ordering
+* [`8685b2a6f2a`](https://github.com/jline/jline3/commit/8685b2a6f2a7a00e7b026e0cbdd7a01ca73929d2) Add TerminalExt interface
+* [`d0e1ce16e9c`](https://github.com/jline/jline3/commit/d0e1ce16e9c9631961e30047b2cbd8af2dd86deb) FFM support
+* [`3a51fd98705`](https://github.com/jline/jline3/commit/3a51fd9870544d94f95a1ea89a2aefe14f9528f8) Break dependency between org.jline.terminal.impl and org.jline.terminal.impl.exec package
+* [`2f0218340b9`](https://github.com/jline/jline3/commit/2f0218340b9008278fff29a50e6ec044511f3965) Close Files streams using try-with-resources (#840)
+* [`ceda3c4f765`](https://github.com/jline/jline3/commit/ceda3c4f7654894f96676c093834642b42c3537e) Fix illegal reflective access in exec provider (fixes #862) (#868)
+* [`a11001ab191`](https://github.com/jline/jline3/commit/a11001ab191cc53724da99379bcdea78576cf7b2) Make sure libraries are binaries
+* [`e3112b48b9c`](https://github.com/jline/jline3/commit/e3112b48b9c6166f1431b1bcc055235e1e30ae03) Switch to junit 5
+* [`97fca810df1`](https://github.com/jline/jline3/commit/97fca810df1d23e59e1ea13967cbd9b78f50b0fd) Simplify CI
+* [`a2ab0474a02`](https://github.com/jline/jline3/commit/a2ab0474a023e2ad062978177fc6f5b3c8e69501) Require JDK 11 and support JDK 21 at build time
+* [`bd9536644c5`](https://github.com/jline/jline3/commit/bd9536644c5a0ec8b268e5f12c92c3d33f9c8d00) Builtin Less has an IndexOutOfBoundsException when seeking to the end of the file, fixes #860
+* [`77e9da7b50b`](https://github.com/jline/jline3/commit/77e9da7b50b136dc79cc03181bb58cc6c6ff6f44) LineReader Bug (Open or Close Parenthesis), fixes #859
+* [`b85d2e5085a`](https://github.com/jline/jline3/commit/b85d2e5085aba6b6ae0931112ada4b1ba5030be9) Enable spotless on JDK 21
+* [`05ee05dbc7b`](https://github.com/jline/jline3/commit/05ee05dbc7b9c5ba9df8358d8a9fc58227101ed0) Support building on JDK 21
+* [`ffd0de4076a`](https://github.com/jline/jline3/commit/ffd0de4076aa8f7075f6979f8b673705b5c49d5c) Add a warning when using the ExecTerminalProvider on recent JDKs
+* [`1ac766fef65`](https://github.com/jline/jline3/commit/1ac766fef659f09d5aeb31becd802ceecd047ee5) Fix detection of utilities (fixes #839)
+* [`d138c9c136d`](https://github.com/jline/jline3/commit/d138c9c136d5386067c106e4240a18cd6439a841) Fix shell output going to stderr rather than stdout (fixes #845)
+* [`3c93ea7d7b0`](https://github.com/jline/jline3/commit/3c93ea7d7b0af10d9e0d3723529e753bfac9e89b) Fix TerminalProvider sorting
+* [`db731c2a601`](https://github.com/jline/jline3/commit/db731c2a601ed4edf7c29a3d5f1f7183ca3bd922) Use Objects.hashCode instead of Objects.hash to avoid vararg array creation (fixes #849)
+* [`ccfb8c54fd9`](https://github.com/jline/jline3/commit/ccfb8c54fd9658b85a3d659f3abe85b8b4dcea83) spotless: set the line endings to <lf>
+
+
 ## [JLine 3.23.0][3_23_0]
 [3_23_0]: https://repo1.maven.org/maven2/org/jline/jline/3.23.0/
 
