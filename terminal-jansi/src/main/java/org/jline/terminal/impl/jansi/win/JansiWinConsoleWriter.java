@@ -10,7 +10,7 @@ package org.jline.terminal.impl.jansi.win;
 
 import java.io.IOException;
 
-import org.fusesource.jansi.WindowsSupport;
+import org.fusesource.jansi.internal.Kernel32;
 import org.jline.terminal.impl.AbstractWindowsConsoleWriter;
 
 import static org.fusesource.jansi.internal.Kernel32.WriteConsoleW;
@@ -27,7 +27,7 @@ class JansiWinConsoleWriter extends AbstractWindowsConsoleWriter {
     @Override
     protected void writeConsole(char[] text, int len) throws IOException {
         if (WriteConsoleW(console, text, len, writtenChars, 0) == 0) {
-            throw new IOException("Failed to write to console: " + WindowsSupport.getLastErrorMessage());
+            throw new IOException("Failed to write to console: " + Kernel32.getLastErrorMessage());
         }
     }
 }
