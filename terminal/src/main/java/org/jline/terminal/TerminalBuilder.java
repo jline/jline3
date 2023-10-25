@@ -146,6 +146,7 @@ public final class TerminalBuilder {
     private int codepage;
     private Boolean system;
     private SystemOutput systemOutput;
+    private String provider;
     private String providers;
     private Boolean jna;
     private Boolean jansi;
@@ -189,6 +190,11 @@ public final class TerminalBuilder {
      */
     public TerminalBuilder systemOutput(SystemOutput systemOutput) {
         this.systemOutput = systemOutput;
+        return this;
+    }
+
+    public TerminalBuilder provider(String provider) {
+        this.provider = provider;
         return this;
     }
 
@@ -369,17 +375,20 @@ public final class TerminalBuilder {
         Charset encoding = computeEncoding();
         String type = computeType();
 
-        String forcedProvider = System.getProperty(PROP_PROVIDER, null);
+        String provider = this.provider;
+        if (provider == null) {
+            provider = System.getProperty(PROP_PROVIDER, null);
+        }
 
         boolean forceDumb =
                 (DumbTerminal.TYPE_DUMB.equals(type) || type != null && type.startsWith(DumbTerminal.TYPE_DUMB_COLOR))
-                        || (forcedProvider != null && forcedProvider.equals(PROP_PROVIDER_DUMB));
+                        || (provider != null && provider.equals(PROP_PROVIDER_DUMB));
         Boolean dumb = this.dumb;
         if (dumb == null) {
             dumb = getBoolean(PROP_DUMB, null);
         }
         IllegalStateException exception = new IllegalStateException("Unable to create a terminal");
-        List<TerminalProvider> providers = getProviders(forcedProvider, exception);
+        List<TerminalProvider> providers = getProviders(provider, exception);
         Terminal terminal = null;
         if ((system != null && system) || (system == null && in == null && out == null)) {
             if (system != null
@@ -409,10 +418,10 @@ public final class TerminalBuilder {
                         && System.getProperty(PROP_TYPE) == null) {
                     type = "xterm-256color";
                 }
-                for (TerminalProvider provider : providers) {
+                for (TerminalProvider prov : providers) {
                     if (terminal == null) {
                         try {
-                            terminal = provider.sysTerminal(
+                            terminal = prov.sysTerminal(
                                     name,
                                     type,
                                     ansiPassThrough,
@@ -422,7 +431,7 @@ public final class TerminalBuilder {
                                     paused,
                                     systemStream);
                         } catch (Throwable t) {
-                            Log.debug("Error creating " + provider.name() + " based terminal: ", t.getMessage(), t);
+                            Log.debug("Error creating " + prov.name() + " based terminal: ", t.getMessage(), t);
                             exception.addSuppressed(t);
                         }
                     }
@@ -466,13 +475,13 @@ public final class TerminalBuilder {
                 }
             }
         } else {
-            for (TerminalProvider provider : providers) {
+            for (TerminalProvider prov : providers) {
                 if (terminal == null) {
                     try {
-                        terminal = provider.newTerminal(
+                        terminal = prov.newTerminal(
                                 name, type, in, out, encoding, signalHandler, paused, attributes, size);
                     } catch (Throwable t) {
-                        Log.debug("Error creating " + provider.name() + " based terminal: ", t.getMessage(), t);
+                        Log.debug("Error creating " + prov.name() + " based terminal: ", t.getMessage(), t);
                         exception.addSuppressed(t);
                     }
                 }
@@ -605,18 +614,18 @@ public final class TerminalBuilder {
         return encoding;
     }
 
-    public List<TerminalProvider> getProviders(String forcedProvider, IllegalStateException exception) {
+    public List<TerminalProvider> getProviders(String provider, IllegalStateException exception) {
         List<TerminalProvider> providers = new ArrayList<>();
         // Check ffm provider
-        checkProvider(forcedProvider, exception, providers, ffm, PROP_FFM, PROP_PROVIDER_FFM);
+        checkProvider(provider, exception, providers, ffm, PROP_FFM, PROP_PROVIDER_FFM);
         // Check jni provider
-        checkProvider(forcedProvider, exception, providers, jni, PROP_JNI, PROP_PROVIDER_JNI);
+        checkProvider(provider, exception, providers, jni, PROP_JNI, PROP_PROVIDER_JNI);
         // Check jansi provider
-        checkProvider(forcedProvider, exception, providers, jansi, PROP_JANSI, PROP_PROVIDER_JANSI);
+        checkProvider(provider, exception, providers, jansi, PROP_JANSI, PROP_PROVIDER_JANSI);
         // Check jna provider
-        checkProvider(forcedProvider, exception, providers, jna, PROP_JNA, PROP_PROVIDER_JNA);
+        checkProvider(provider, exception, providers, jna, PROP_JNA, PROP_PROVIDER_JNA);
         // Check exec provider
-        checkProvider(forcedProvider, exception, providers, exec, PROP_EXEC, PROP_PROVIDER_EXEC);
+        checkProvider(provider, exception, providers, exec, PROP_EXEC, PROP_PROVIDER_EXEC);
         // Order providers
         List<String> order = Arrays.asList(
                 (this.providers != null ? this.providers : System.getProperty(PROP_PROVIDERS, PROP_PROVIDERS_DEFAULT))
@@ -631,21 +640,21 @@ public final class TerminalBuilder {
     }
 
     private void checkProvider(
-            String forcedProvider,
+            String provider,
             IllegalStateException exception,
             List<TerminalProvider> providers,
             Boolean load,
             String property,
             String name) {
-        Boolean doLoad = forcedProvider != null ? (Boolean) name.equals(forcedProvider) : load;
+        Boolean doLoad = provider != null ? (Boolean) name.equals(provider) : load;
         if (doLoad == null) {
             doLoad = getBoolean(property, true);
         }
         if (doLoad) {
             try {
-                TerminalProvider provider = TerminalProvider.load(name);
-                provider.isSystemStream(SystemStream.Output);
-                providers.add(provider);
+                TerminalProvider prov = TerminalProvider.load(name);
+                prov.isSystemStream(SystemStream.Output);
+                providers.add(prov);
             } catch (Throwable t) {
                 Log.debug("Unable to load " + name + " provider: ", t);
                 exception.addSuppressed(t);
