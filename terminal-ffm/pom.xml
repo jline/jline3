@@ -23,7 +23,7 @@
     <name>JLine FFM Terminal</name>
 
     <properties>
-        <java.target.version>21</java.target.version>
+        <java.release.version>21</java.release.version>
         <automatic.module.name>org.jline.terminal.ffm</automatic.module.name>
     </properties>
 
