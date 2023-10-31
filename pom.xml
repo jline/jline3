@@ -95,7 +95,7 @@
         <project.build.outputTimestamp>2023-10-25T15:49:27Z</project.build.outputTimestamp>
 
         <java.build.version>21</java.build.version>
-        <java.target.version>1.8</java.target.version>
+        <java.target.version>8</java.target.version>
         <maven.version>3.5.0</maven.version>
 
         <native.image.skip>true</native.image.skip>
@@ -417,7 +417,7 @@
                     <version>3.11.0</version>
                     <configuration>
                         <showWarnings>true</showWarnings>
-                        <target>${java.target.version}</target>
+                        <release>${java.target.version}</release>
                         <compilerArgs>
                             <arg>-Xlint:all,-options,-processing</arg>
                             <arg>-Werror</arg>
