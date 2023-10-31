@@ -244,4 +244,8 @@ public class NonBlocking {
     static void flip(Buffer buffer) {
         buffer.flip();
     }
+
+    static void rewind(Buffer buffer) {
+        buffer.rewind();
+    }
 }

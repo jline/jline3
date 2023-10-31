@@ -149,7 +149,7 @@ public class PumpReader extends Reader {
 
         // If we have reached the end of the buffer, rewind and set the new limit
         if (buffer.position() == buffer.capacity()) {
-            buffer.rewind();
+            NonBlocking.rewind(buffer);
             limit(buffer, other.position());
             return true;
         } else {

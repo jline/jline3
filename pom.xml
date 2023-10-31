@@ -117,6 +117,8 @@
         <graal.plugin.version>21.2.0</graal.plugin.version>
 
         <surefire.argLine>--add-opens java.base/java.io=ALL-UNNAMED</surefire.argLine>
+
+        <animal-sniffer.skip>false</animal-sniffer.skip>
     </properties>
 
     <dependencyManagement>
@@ -712,6 +714,36 @@
             <plugin>
                 <groupId>com.diffplug.spotless</groupId>
                 <artifactId>spotless-maven-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>animal-sniffer-maven-plugin</artifactId>
+                <version>1.23</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.ow2.asm</groupId>
+                        <artifactId>asm</artifactId>
+                        <version>9.6</version>
+                    </dependency>
+                </dependencies>
+                <executions>
+                    <execution>
+                        <id>check</id>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <signature>
+                                <groupId>org.codehaus.mojo.signature</groupId>
+                                <artifactId>java18</artifactId>
+                                <version>1.0</version>
+                            </signature>
+                            <skip>${animal-sniffer.skip}</skip>
+                            <ignoreDependencies>true</ignoreDependencies>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

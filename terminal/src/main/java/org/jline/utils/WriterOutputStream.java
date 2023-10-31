@@ -19,6 +19,7 @@ import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 
 import static org.jline.utils.NonBlocking.flip;
+import static org.jline.utils.NonBlocking.rewind;
 
 /**
  * Redirects an {@link OutputStream} to a {@link Writer} by decoding the data
@@ -118,7 +119,7 @@ public class WriterOutputStream extends OutputStream {
     private void flushOutput() throws IOException {
         if (decoderOut.position() > 0) {
             out.write(decoderOut.array(), 0, decoderOut.position());
-            decoderOut.rewind();
+            rewind(decoderOut);
         }
     }
 }
