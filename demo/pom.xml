@@ -24,6 +24,7 @@
 
     <properties>
         <automatic.module.name>org.jline.demo</automatic.module.name>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
     </properties>
 
     <dependencies>

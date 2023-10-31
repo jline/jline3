@@ -69,6 +69,13 @@
                     <argLine>--enable-preview --enable-native-access=ALL-UNNAMED</argLine>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <additionalOptions>--enable-preview --release ${java.release.version}</additionalOptions>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

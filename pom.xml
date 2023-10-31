@@ -747,6 +747,7 @@
                             <notimestamp>true</notimestamp>
                             <additionalOptions>${javadocOptions}</additionalOptions>
                             <failOnError>false</failOnError>
+                            <legacyMode>true</legacyMode>
                         </configuration>
                         <dependencies>
                             <dependency>
