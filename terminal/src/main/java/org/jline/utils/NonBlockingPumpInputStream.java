@@ -13,6 +13,8 @@ import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
+import static org.jline.utils.NonBlocking.limit;
+
 public class NonBlockingPumpInputStream extends NonBlockingInputStream {
 
     private static final int DEFAULT_BUFFER_SIZE = 4096;
@@ -37,7 +39,7 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
         this.writeBuffer = ByteBuffer.wrap(buf);
         this.output = new NbpOutputStream();
         // There are no bytes available to read after initialization
-        readBuffer.limit(0);
+        limit(readBuffer, 0);
     }
 
     public OutputStream getOutputStream() {
@@ -63,12 +65,12 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
     private static boolean rewind(ByteBuffer buffer, ByteBuffer other) {
         // Extend limit of other buffer if there is additional input/output available
         if (buffer.position() > other.position()) {
-            other.limit(buffer.position());
+            limit(other, buffer.position());
         }
         // If we have reached the end of the buffer, rewind and set the new limit
         if (buffer.position() == buffer.capacity()) {
             buffer.rewind();
-            buffer.limit(other.position());
+            limit(buffer, other.position());
             return true;
         } else {
             return false;

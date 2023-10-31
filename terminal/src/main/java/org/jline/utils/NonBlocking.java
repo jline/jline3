@@ -11,6 +11,7 @@ package org.jline.utils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
@@ -78,8 +79,8 @@ public class NonBlocking {
             this.bytes = ByteBuffer.allocate(4);
             this.chars = CharBuffer.allocate(2);
             // No input available after initialization
-            this.bytes.limit(0);
-            this.chars.limit(0);
+            limit(this.bytes, 0);
+            limit(this.chars, 0);
         }
 
         @Override
@@ -102,15 +103,15 @@ public class NonBlocking {
                 }
                 if (c >= 0) {
                     if (!chars.hasRemaining()) {
-                        chars.position(0);
-                        chars.limit(0);
+                        position(chars, 0);
+                        limit(chars, 0);
                     }
                     int l = chars.limit();
                     chars.array()[chars.arrayOffset() + l] = (char) c;
-                    chars.limit(l + 1);
-                    bytes.clear();
+                    limit(chars, l + 1);
+                    clear(bytes);
                     encoder.encode(chars, bytes, false);
-                    bytes.flip();
+                    flip(bytes);
                 }
             }
             if (bytes.hasRemaining()) {
@@ -146,8 +147,8 @@ public class NonBlocking {
             this.decoder = decoder;
             this.bytes = ByteBuffer.allocate(2048);
             this.chars = CharBuffer.allocate(1024);
-            this.bytes.limit(0);
-            this.chars.limit(0);
+            limit(this.bytes, 0);
+            limit(this.chars, 0);
         }
 
         @Override
@@ -160,15 +161,15 @@ public class NonBlocking {
                 }
                 if (b >= 0) {
                     if (!bytes.hasRemaining()) {
-                        bytes.position(0);
-                        bytes.limit(0);
+                        position(bytes, 0);
+                        limit(bytes, 0);
                     }
                     int l = bytes.limit();
                     bytes.array()[bytes.arrayOffset() + l] = (byte) b;
-                    bytes.limit(l + 1);
-                    chars.clear();
+                    limit(bytes, l + 1);
+                    clear(chars);
                     decoder.decode(bytes, chars, false);
-                    chars.flip();
+                    flip(chars);
                 }
             }
             if (chars.hasRemaining()) {
@@ -198,18 +199,18 @@ public class NonBlocking {
                 Timeout t = new Timeout(timeout);
                 while (!chars.hasRemaining() && !t.elapsed()) {
                     if (!bytes.hasRemaining()) {
-                        bytes.position(0);
-                        bytes.limit(0);
+                        position(bytes, 0);
+                        limit(bytes, 0);
                     }
                     int nb = input.readBuffered(
                             bytes.array(), bytes.limit(), bytes.capacity() - bytes.limit(), t.timeout());
                     if (nb < 0) {
                         return nb;
                     }
-                    bytes.limit(bytes.limit() + nb);
-                    chars.clear();
+                    limit(bytes, bytes.limit() + nb);
+                    clear(chars);
                     decoder.decode(bytes, chars, false);
-                    chars.flip();
+                    flip(chars);
                 }
                 int nb = Math.min(len, chars.remaining());
                 chars.get(b, off, nb);
@@ -226,5 +227,21 @@ public class NonBlocking {
         public void close() throws IOException {
             input.close();
         }
+    }
+
+    static void limit(Buffer buffer, int limit) {
+        buffer.limit(limit);
+    }
+
+    static void position(Buffer buffer, int pos) {
+        buffer.position(pos);
+    }
+
+    static void clear(Buffer buffer) {
+        buffer.clear();
+    }
+
+    static void flip(Buffer buffer) {
+        buffer.flip();
     }
 }

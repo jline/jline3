@@ -18,6 +18,8 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 
+import static org.jline.utils.NonBlocking.flip;
+
 /**
  * Redirects an {@link OutputStream} to a {@link Writer} by decoding the data
  * using the specified {@link Charset}.
@@ -90,7 +92,7 @@ public class WriterOutputStream extends OutputStream {
      */
     private void processInput(final boolean endOfInput) throws IOException {
         // Prepare decoderIn for reading
-        decoderIn.flip();
+        flip(decoderIn);
         CoderResult coderResult;
         while (true) {
             coderResult = decoder.decode(decoderIn, decoderOut, endOfInput);

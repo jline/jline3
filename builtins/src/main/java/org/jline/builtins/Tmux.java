@@ -13,6 +13,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
@@ -2077,7 +2078,7 @@ public class Tmux {
                         }
                     }
                     if (out.position() > 0) {
-                        out.flip();
+                        ((Buffer) out).clear();
                         terminal.write(out);
                         masterInputOutput.write(terminal.read().getBytes());
                     }

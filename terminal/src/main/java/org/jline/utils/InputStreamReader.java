@@ -22,6 +22,9 @@ import java.nio.charset.CodingErrorAction;
 import java.nio.charset.MalformedInputException;
 import java.nio.charset.UnmappableCharacterException;
 
+import static org.jline.utils.NonBlocking.limit;
+import static org.jline.utils.NonBlocking.position;
+
 /**
  *
  * NOTE for JLine: the default InputStreamReader that comes from the JRE
@@ -69,7 +72,9 @@ public class InputStreamReader extends Reader {
                 .newDecoder()
                 .onMalformedInput(CodingErrorAction.REPLACE)
                 .onUnmappableCharacter(CodingErrorAction.REPLACE);
-        bytes.limit(0);
+        int newLimit = 0;
+        ByteBuffer bytes1 = bytes;
+        limit(bytes1, newLimit);
     }
 
     /**
@@ -101,7 +106,7 @@ public class InputStreamReader extends Reader {
         } catch (IllegalArgumentException e) {
             throw (UnsupportedEncodingException) new UnsupportedEncodingException(enc).initCause(e);
         }
-        bytes.limit(0);
+        limit(bytes, 0);
     }
 
     /**
@@ -118,7 +123,7 @@ public class InputStreamReader extends Reader {
         dec.averageCharsPerByte();
         this.in = in;
         decoder = dec;
-        bytes.limit(0);
+        limit(bytes, 0);
     }
 
     /**
@@ -136,7 +141,7 @@ public class InputStreamReader extends Reader {
         decoder = charset.newDecoder()
                 .onMalformedInput(CodingErrorAction.REPLACE)
                 .onUnmappableCharacter(CodingErrorAction.REPLACE);
-        bytes.limit(0);
+        limit(bytes, 0);
     }
 
     /**
@@ -273,7 +278,7 @@ public class InputStreamReader extends Reader {
                     } else if (was_red == 0) {
                         break;
                     }
-                    bytes.limit(bytes.limit() + was_red);
+                    limit(bytes, bytes.limit() + was_red);
                 }
 
                 // decode bytes
@@ -283,8 +288,8 @@ public class InputStreamReader extends Reader {
                     // compact the buffer if no space left
                     if (bytes.limit() == bytes.capacity()) {
                         bytes.compact();
-                        bytes.limit(bytes.position());
-                        bytes.position(0);
+                        limit(bytes, bytes.position());
+                        position(bytes, 0);
                     }
                     needInput = true;
                 } else {

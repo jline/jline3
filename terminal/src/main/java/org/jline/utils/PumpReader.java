@@ -18,6 +18,11 @@ import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 
+import static org.jline.utils.NonBlocking.clear;
+import static org.jline.utils.NonBlocking.flip;
+import static org.jline.utils.NonBlocking.limit;
+import static org.jline.utils.NonBlocking.position;
+
 public class PumpReader extends Reader {
 
     private static final int EOF = -1;
@@ -42,7 +47,7 @@ public class PumpReader extends Reader {
         this.writer = new Writer(this);
 
         // There are no bytes available to read after initialization
-        readBuffer.limit(0);
+        limit(readBuffer, 0);
     }
 
     public java.io.Writer getWriter() {
@@ -139,13 +144,13 @@ public class PumpReader extends Reader {
     private static boolean rewind(CharBuffer buffer, CharBuffer other) {
         // Extend limit of other buffer if there is additional input/output available
         if (buffer.position() > other.position()) {
-            other.limit(buffer.position());
+            limit(other, buffer.position());
         }
 
         // If we have reached the end of the buffer, rewind and set the new limit
         if (buffer.position() == buffer.capacity()) {
             buffer.rewind();
-            buffer.limit(other.position());
+            limit(buffer, other.position());
             return true;
         } else {
             return false;
@@ -322,7 +327,7 @@ public class PumpReader extends Reader {
             int count = Math.min(len, writeBuffer.remaining());
             // CharBuffer.put(String) doesn't use getChars so do it manually
             str.getChars(off, off + count, buf, writeBuffer.position());
-            writeBuffer.position(writeBuffer.position() + count);
+            position(writeBuffer, writeBuffer.position() + count);
 
             off += count;
             len -= count;
@@ -399,7 +404,7 @@ public class PumpReader extends Reader {
             this.buffer = ByteBuffer.allocate((int) Math.ceil(encoder.maxBytesPerChar() * 2));
 
             // No input available after initialization
-            buffer.limit(0);
+            limit(buffer, 0);
         }
 
         @Override
@@ -417,9 +422,9 @@ public class PumpReader extends Reader {
         }
 
         private boolean readUsingBuffer() throws IOException {
-            buffer.clear(); // Reset buffer
+            clear(buffer); // Reset buffer
             reader.readBytes(encoder, buffer);
-            buffer.flip();
+            flip(buffer);
             return buffer.hasRemaining();
         }
 

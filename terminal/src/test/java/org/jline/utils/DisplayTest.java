@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.jline.utils.InfoCmp.Capability.enter_ca_mode;
 import static org.jline.utils.InfoCmp.Capability.exit_ca_mode;
+import static org.jline.utils.NonBlocking.flip;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class DisplayTest {
@@ -164,7 +165,7 @@ public class DisplayTest {
                         }
                     }
                     if (out.position() > 0) {
-                        out.flip();
+                        flip(out);
                         virtual.write(out);
                         masterInputOutput.write(virtual.read().getBytes());
                     }
