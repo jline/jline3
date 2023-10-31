@@ -102,7 +102,6 @@ echo "Launching Gogo JLine..."
 echo "Classpath: $cp"
 set mouse=a
 java -cp $cp \
-    --enable-preview \
     $opts \
     -Dgosh.home="${DIRNAME}" \
     -Djava.util.logging.config.file="${logconf}" \
