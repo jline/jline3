@@ -1,6 +1,14 @@
 # [JLine3](https://github.com/jline/jline3)
 <!-- git log --pretty=format:'* [`%h`](https://github.com/jline/jline3/commit/%H) %s' -->
 
+## [JLine 3.24.1][3_24_1]
+[3_24_1] https://repo1.maven.org/maven2/org/jline/jline/3.24.1/
+
+* [`b63acbcc29c`](https://github.com/jline/jline3/commit/b63acbcc29cdccd044ead63b1c1f02f2276f4ee7) Fix broken javadoc generation (#892)
+* [`4c4dbdc2ce3`](https://github.com/jline/jline3/commit/4c4dbdc2ce384258320146990f01ed9b010c836d) Restore JDK 8 runtime compatibility, fixes #888 (#893)
+* [`47f1ec914b2`](https://github.com/jline/jline3/commit/47f1ec914b29e04f45d776ada60c3a50a4fbac02) Restore partial failure handling with stty, fixes #889
+* [`ecbc73a58c6`](https://github.com/jline/jline3/commit/ecbc73a58c6df922f8dfcb1739b35803fc38ea3d) Fix git line endings
+
 ## [JLine 3.24.0][3_24_0]
 [3_24_0] https://repo1.maven.org/maven2/org/jline/jline/3.24.0/
 
