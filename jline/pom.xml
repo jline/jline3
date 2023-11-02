@@ -220,6 +220,14 @@
                                 <!-- resources -->
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
+                                    <artifactId>jline-native</artifactId>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+                                    <excludes>**/*.class</excludes>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
                                     <artifactId>jline-terminal</artifactId>
                                     <type>jar</type>
                                     <overWrite>false</overWrite>
