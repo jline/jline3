@@ -9,6 +9,7 @@
 package org.jline.terminal.impl;
 
 import java.io.FileDescriptor;
+import java.io.FilterInputStream;
 import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStream;
@@ -34,6 +35,7 @@ public abstract class AbstractPty implements Pty {
     protected final TerminalProvider provider;
     protected final SystemStream systemStream;
     private Attributes current;
+    private boolean skipNextLf;
 
     public AbstractPty(TerminalProvider provider, SystemStream systemStream) {
         this.provider = provider;
@@ -49,10 +51,32 @@ public abstract class AbstractPty implements Pty {
     @Override
     public InputStream getSlaveInput() throws IOException {
         InputStream si = doGetSlaveInput();
+        InputStream nsi = new FilterInputStream(si) {
+            @Override
+            public int read() throws IOException {
+                for (; ; ) {
+                    int c = super.read();
+                    if (current.getInputFlag(Attributes.InputFlag.INORMEOL)) {
+                        if (c == '\r') {
+                            skipNextLf = true;
+                            c = '\n';
+                        } else if (c == '\n') {
+                            if (skipNextLf) {
+                                skipNextLf = false;
+                                continue;
+                            }
+                        } else {
+                            skipNextLf = false;
+                        }
+                    }
+                    return c;
+                }
+            }
+        };
         if (Boolean.parseBoolean(System.getProperty(PROP_NON_BLOCKING_READS, "true"))) {
-            return new PtyInputStream(si);
+            return new PtyInputStream(nsi);
         } else {
-            return si;
+            return nsi;
         }
     }
 
