@@ -63,9 +63,43 @@ JLine supports the following platforms:
 * Solaris
 * Windows
 
-## Jansi vs JNA
+## JNI vs Jansi vs JNA vs FFM vs Exec
 
-To access the JVM's main terminal under a \*nix system, no additional dependency will be needed.  However, such usage will make use of child processes whenever the terminal is accessed (using `Terminal.getAttributes`, `Terminal.setAttributes`, `Terminal.getSize`, `Terminal.setSize`).  If one of the Jansi or JNA library is present, it will be used and JLine will use native calls instead of child processes.  This also allows the use of pseudo-terminals when dealing with non system terminals (for example when creating a terminal for an incoming connection).
+To perform the required operations, JLine needs to interoperate with the OS layer.  This is done through the JLine 
+`TerminalProvider` interface.  The terminal builder will automatically select a provider amongst the ones
+that are available.
+
+By default, the following order will be used.
+
+### FFM
+
+The [FFM](https://docs.oracle.com/en/java/javase/21/core/foreign-function-and-memory-api.html#GUID-FBE990DA-C356-46E8-9109-C75567849BA8) provider is available since JLine 3.24.0 and when running on JDK >= 21.
+Since FFM is still a preview in JDK 21, the `--enable-preview --enable-native-access=ALL-UNNAMED` switches must be 
+used when launching the JVM.
+
+### JNI
+
+Since JLine 3.24.0, JLine provides its own JNI based provider and native libraries.
+
+### JANSI
+
+The [Jansi](https://github.com/fusesource/jansi) library is a library specialized in supporting ANSI sequences in 
+terminals.  Historically, the JNI methods used by JLine were provided by Jansi.  In order to minimize the maintenance 
+cost, Jansi will be merged into JLine 3.25.
+
+### JNA
+
+The [JNA](https://github.com/java-native-access/jna) library aims to provide an alternative way to access native 
+methods without requiring writing a full JNI native library.  If JNA is in JLine's class loader, the provider may 
+be used.
+
+### Exec
+
+The exec provider is available on Posix systems and on Windows when running under [Cygwin](https://www.cygwin.com) 
+or [MSys2](https://www.msys2.org).  This provider launches child processes whenever the terminal is accessed 
+(using `Terminal.getAttributes`, `Terminal.setAttributes`, `Terminal.getSize`, `Terminal.setSize`).  
+This provider also does not support external terminals
+ This also allows the use of pseudo-terminals when dealing with non system terminals (for example when creating a terminal for an incoming connection).
 
 On the Windows platform, relying on native calls is mandatory, so you need to have either Jansi or JNA library in your classpath along with the `jline-terminal-jansi` or `jline-terminal-jna` jar.  Failing to do so will create a `dumb` terminal with no advanced capabilities.
 
