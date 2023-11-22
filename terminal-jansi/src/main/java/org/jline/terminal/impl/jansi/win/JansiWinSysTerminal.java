@@ -13,7 +13,6 @@ import java.io.IOError;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.function.IntConsumer;
 
 import org.fusesource.jansi.internal.Kernel32;
@@ -28,10 +27,7 @@ import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.OSUtils;
 
-import static org.fusesource.jansi.internal.Kernel32.FORMAT_MESSAGE_FROM_SYSTEM;
-import static org.fusesource.jansi.internal.Kernel32.FormatMessageW;
 import static org.fusesource.jansi.internal.Kernel32.GetConsoleScreenBufferInfo;
-import static org.fusesource.jansi.internal.Kernel32.GetLastError;
 import static org.fusesource.jansi.internal.Kernel32.GetStdHandle;
 import static org.fusesource.jansi.internal.Kernel32.INVALID_HANDLE_VALUE;
 import static org.fusesource.jansi.internal.Kernel32.STD_ERROR_HANDLE;
@@ -39,6 +35,7 @@ import static org.fusesource.jansi.internal.Kernel32.STD_INPUT_HANDLE;
 import static org.fusesource.jansi.internal.Kernel32.STD_OUTPUT_HANDLE;
 import static org.fusesource.jansi.internal.Kernel32.WaitForSingleObject;
 import static org.fusesource.jansi.internal.Kernel32.readConsoleInputHelper;
+import static org.jline.terminal.impl.jansi.win.WindowsSupport.getLastErrorMessage;
 
 public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
 
@@ -293,17 +290,5 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
         strings.remove(InfoCmp.Capability.parm_insert_line);
         strings.remove(InfoCmp.Capability.delete_line);
         strings.remove(InfoCmp.Capability.parm_delete_line);
-    }
-
-    static String getLastErrorMessage() {
-        int errorCode = GetLastError();
-        return getErrorMessage(errorCode);
-    }
-
-    static String getErrorMessage(int errorCode) {
-        int bufferSize = 160;
-        byte[] data = new byte[bufferSize];
-        FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, 0, errorCode, 0, data, bufferSize, null);
-        return new String(data, StandardCharsets.UTF_16LE).trim();
     }
 }

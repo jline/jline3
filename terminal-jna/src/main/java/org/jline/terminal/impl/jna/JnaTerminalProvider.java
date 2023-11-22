@@ -26,6 +26,11 @@ import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
 
 public class JnaTerminalProvider implements TerminalProvider {
+
+    public JnaTerminalProvider() {
+        checkSystemStream(SystemStream.Output);
+    }
+
     @Override
     public String name() {
         return TerminalBuilder.PROP_PROVIDER_JNA;
@@ -106,22 +111,18 @@ public class JnaTerminalProvider implements TerminalProvider {
     @Override
     public boolean isSystemStream(SystemStream stream) {
         try {
-            if (OSUtils.IS_WINDOWS) {
-                return isWindowsSystemStream(stream);
-            } else {
-                return isPosixSystemStream(stream);
-            }
+            return checkSystemStream(stream);
         } catch (Throwable t) {
             return false;
         }
     }
 
-    public boolean isWindowsSystemStream(SystemStream stream) {
-        return JnaWinSysTerminal.isWindowsSystemStream(stream);
-    }
-
-    public boolean isPosixSystemStream(SystemStream stream) {
-        return JnaNativePty.isPosixSystemStream(stream);
+    private boolean checkSystemStream(SystemStream stream) {
+        if (OSUtils.IS_WINDOWS) {
+            return JnaWinSysTerminal.isWindowsSystemStream(stream);
+        } else {
+            return JnaNativePty.isPosixSystemStream(stream);
+        }
     }
 
     @Override

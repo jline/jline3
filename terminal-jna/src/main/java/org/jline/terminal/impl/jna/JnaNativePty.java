@@ -190,6 +190,9 @@ public abstract class JnaNativePty extends AbstractPty implements Pty {
 
     private static boolean isatty(int fd) {
         if (Platform.isMac()) {
+            if (Platform.is64Bit() && Platform.isARM()) {
+                throw new UnsupportedOperationException("Unsupported platform mac-aarch64");
+            }
             return OsXNativePty.isatty(fd) == 1;
         } else if (Platform.isLinux()) {
             return LinuxNativePty.isatty(fd) == 1;
@@ -204,6 +207,9 @@ public abstract class JnaNativePty extends AbstractPty implements Pty {
 
     private static String ttyname(int fd) {
         if (Platform.isMac()) {
+            if (Platform.is64Bit() && Platform.isARM()) {
+                throw new UnsupportedOperationException("Unsupported platform mac-aarch64");
+            }
             return OsXNativePty.ttyname(fd);
         } else if (Platform.isLinux()) {
             return LinuxNativePty.ttyname(fd);
