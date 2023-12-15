@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author(s).
+ * Copyright (c) 2002-2023, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -322,25 +322,22 @@ public class TailTipWidgets extends Widgets {
             doDescription(compileMainDescription(cmdDesc, descriptionSize));
         }
         if (cmdDesc != null) {
-            if (lastArg.startsWith("-")) {
-                if (lastArg.matches("-[a-zA-Z][a-zA-Z0-9]+")) {
-                    if (cmdDesc.optionWithValue(lastArg.substring(0, 2))) {
-                        doDescription(compileOptionDescription(cmdDesc, lastArg.substring(0, 2), descriptionSize));
-                        setTipType(tipType);
-                    } else {
-                        doDescription(compileOptionDescription(
-                                cmdDesc, "-" + lastArg.substring(lastArg.length() - 1), descriptionSize));
-                        setSuggestionType(SuggestionType.TAIL_TIP);
-                        noCompleters = true;
-                    }
+            if (prevArg.startsWith("-")
+                    && !prevArg.contains("=")
+                    && !prevArg.matches("-[a-zA-Z][\\S]+")
+                    && cmdDesc.optionWithValue(prevArg)) {
+                doDescription(compileOptionDescription(cmdDesc, prevArg, descriptionSize));
+                setTipType(tipType);
+            } else if (lastArg.matches("-[a-zA-Z][\\S]+") && cmdDesc.optionWithValue(lastArg.substring(0, 2))) {
+                doDescription(compileOptionDescription(cmdDesc, lastArg.substring(0, 2), descriptionSize));
+                setTipType(tipType);
+            } else if (lastArg.startsWith("-")) {
+                doDescription(compileOptionDescription(cmdDesc, lastArg, descriptionSize));
+                if (!lastArg.contains("=")) {
+                    setSuggestionType(SuggestionType.TAIL_TIP);
+                    noCompleters = true;
                 } else {
-                    doDescription(compileOptionDescription(cmdDesc, lastArg, descriptionSize));
-                    if (!lastArg.contains("=")) {
-                        setSuggestionType(SuggestionType.TAIL_TIP);
-                        noCompleters = true;
-                    } else {
-                        setTipType(tipType);
-                    }
+                    setTipType(tipType);
                 }
             } else if (!widget.endsWith(LineReader.BACKWARD_DELETE_CHAR)) {
                 setTipType(tipType);
@@ -354,7 +351,7 @@ public class TailTipWidgets extends Widgets {
                 if (bpsize - 1 < params.size()) {
                     if (!lastArg.startsWith("-")) {
                         List<AttributedString> d;
-                        if (!prevArg.matches("-[a-zA-Z]") || !cmdDesc.optionWithValue(prevArg)) {
+                        if (!prevArg.startsWith("-") || !cmdDesc.optionWithValue(prevArg)) {
                             d = params.get(bpsize - 1).getDescription();
                         } else {
                             d = compileOptionDescription(cmdDesc, prevArg, descriptionSize);
