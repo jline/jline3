@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2022, the original author(s).
+ * Copyright (c) 2002-2023, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -337,14 +337,15 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         String style = (String) options.getOrDefault(Printer.STYLE, "");
         options.put(Printer.STYLE, valueHighlighter(style));
         int width = (int) options.get(Printer.WIDTH);
+        int maxrows = (int) options.get(Printer.MAXROWS);
         if (!style.isEmpty() && object instanceof String) {
-            highlightAndPrint(width, (SyntaxHighlighter) options.get(Printer.STYLE), (String) object, true);
+            highlightAndPrint(width, (SyntaxHighlighter) options.get(Printer.STYLE), (String) object, true, maxrows);
         } else if (style.equalsIgnoreCase("JSON")) {
             if (engine == null) {
                 throw new IllegalArgumentException("JSON style not supported!");
             }
             String json = engine.toJson(object);
-            highlightAndPrint(width, (SyntaxHighlighter) options.get(Printer.STYLE), json, true);
+            highlightAndPrint(width, (SyntaxHighlighter) options.get(Printer.STYLE), json, true, maxrows);
         } else if (options.containsKey(Printer.SKIP_DEFAULT_OPTIONS)) {
             highlightAndPrint(options, object);
         } else if (object instanceof Exception) {
@@ -354,7 +355,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         } else if (object instanceof String || object instanceof Number) {
             String str = object.toString();
             SyntaxHighlighter highlighter = (SyntaxHighlighter) options.getOrDefault(Printer.VALUE_STYLE, null);
-            highlightAndPrint(width, highlighter, str, doValueHighlight(options, str));
+            highlightAndPrint(width, highlighter, str, doValueHighlight(options, str), maxrows);
         } else {
             highlightAndPrint(options, object);
         }
@@ -464,13 +465,19 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         }
     }
 
-    private void highlightAndPrint(int width, SyntaxHighlighter highlighter, String object, boolean doValueHighlight) {
-        for (String s : object.split("\\r?\\n")) {
+    private void highlightAndPrint(
+            int width, SyntaxHighlighter highlighter, String object, boolean doValueHighlight, int maxrows) {
+        String[] rows = object.split("\\r?\\n", maxrows);
+        int lastRowIdx = rows.length == maxrows ? rows.length - 1 : rows.length;
+        for (int i = 0; i < lastRowIdx; i++) {
             AttributedStringBuilder asb = new AttributedStringBuilder();
-            List<AttributedString> sas = asb.append(s).columnSplitLength(width);
+            List<AttributedString> sas = asb.append(rows[i]).columnSplitLength(width);
             for (AttributedString as : sas) {
                 highlight(width, highlighter, as.toString(), doValueHighlight).println(terminal());
             }
+        }
+        if (rows.length == maxrows) {
+            throw new TruncatedOutputException("Truncated output: " + maxrows);
         }
     }
 
@@ -749,6 +756,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     @SuppressWarnings("unchecked")
     private void highlightAndPrint(Map<String, Object> options, Object obj) {
         int width = (int) options.get(Printer.WIDTH);
+        int maxrows = (int) options.get(Printer.MAXROWS);
         totLines = 0;
         String message = null;
         RuntimeException runtimeException = null;
@@ -758,10 +766,9 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
             highlightMap(options, keysToString((Map<Object, Object>) obj), width);
         } else if (collectionObject(obj)) {
             List<Object> collection = objectToList(obj);
-            if (collection.size() > (int) options.get(Printer.MAXROWS)) {
-                message = "Truncated output: " + options.get(Printer.MAXROWS) + "/" + collection.size();
-                collection =
-                        collection.subList(collection.size() - (int) options.get(Printer.MAXROWS), collection.size());
+            if (collection.size() > maxrows) {
+                message = "Truncated output: " + maxrows + "/" + collection.size();
+                collection = collection.subList(collection.size() - maxrows, collection.size());
             }
             if (!collection.isEmpty()) {
                 if (collection.size() == 1 && !options.containsKey(Printer.ONE_ROW_TABLE)) {
@@ -771,7 +778,8 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                     } else if (canConvert(elem) && !options.containsKey(Printer.TO_STRING)) {
                         highlightMap(options, objectToMap(options, elem), width);
                     } else if (elem instanceof String && options.get(Printer.STYLE) != null) {
-                        highlightAndPrint(width, (SyntaxHighlighter) options.get(Printer.STYLE), (String) elem, true);
+                        highlightAndPrint(
+                                width, (SyntaxHighlighter) options.get(Printer.STYLE), (String) elem, true, maxrows);
                     } else {
                         highlightValue(options, null, objectToString(options, obj))
                                 .println(terminal());
