@@ -203,49 +203,49 @@ public class Ssh {
                     try {
                         Map<PtyMode, Integer> modes = new HashMap<>();
                         // Control chars
-                        modes.put(PtyMode.VINTR, attributes.getControlChar(Attributes.ControlChar.VINTR));
-                        modes.put(PtyMode.VQUIT, attributes.getControlChar(Attributes.ControlChar.VQUIT));
-                        modes.put(PtyMode.VERASE, attributes.getControlChar(Attributes.ControlChar.VERASE));
-                        modes.put(PtyMode.VKILL, attributes.getControlChar(Attributes.ControlChar.VKILL));
-                        modes.put(PtyMode.VEOF, attributes.getControlChar(Attributes.ControlChar.VEOF));
-                        modes.put(PtyMode.VEOL, attributes.getControlChar(Attributes.ControlChar.VEOL));
-                        modes.put(PtyMode.VEOL2, attributes.getControlChar(Attributes.ControlChar.VEOL2));
-                        modes.put(PtyMode.VSTART, attributes.getControlChar(Attributes.ControlChar.VSTART));
-                        modes.put(PtyMode.VSTOP, attributes.getControlChar(Attributes.ControlChar.VSTOP));
-                        modes.put(PtyMode.VSUSP, attributes.getControlChar(Attributes.ControlChar.VSUSP));
-                        modes.put(PtyMode.VDSUSP, attributes.getControlChar(Attributes.ControlChar.VDSUSP));
-                        modes.put(PtyMode.VREPRINT, attributes.getControlChar(Attributes.ControlChar.VREPRINT));
-                        modes.put(PtyMode.VWERASE, attributes.getControlChar(Attributes.ControlChar.VWERASE));
-                        modes.put(PtyMode.VLNEXT, attributes.getControlChar(Attributes.ControlChar.VLNEXT));
-                        modes.put(PtyMode.VSTATUS, attributes.getControlChar(Attributes.ControlChar.VSTATUS));
-                        modes.put(PtyMode.VDISCARD, attributes.getControlChar(Attributes.ControlChar.VDISCARD));
+                        setMode(modes, PtyMode.VINTR, attributes.getControlChar(Attributes.ControlChar.VINTR));
+                        setMode(modes, PtyMode.VQUIT, attributes.getControlChar(Attributes.ControlChar.VQUIT));
+                        setMode(modes, PtyMode.VERASE, attributes.getControlChar(Attributes.ControlChar.VERASE));
+                        setMode(modes, PtyMode.VKILL, attributes.getControlChar(Attributes.ControlChar.VKILL));
+                        setMode(modes, PtyMode.VEOF, attributes.getControlChar(Attributes.ControlChar.VEOF));
+                        setMode(modes, PtyMode.VEOL, attributes.getControlChar(Attributes.ControlChar.VEOL));
+                        setMode(modes, PtyMode.VEOL2, attributes.getControlChar(Attributes.ControlChar.VEOL2));
+                        setMode(modes, PtyMode.VSTART, attributes.getControlChar(Attributes.ControlChar.VSTART));
+                        setMode(modes, PtyMode.VSTOP, attributes.getControlChar(Attributes.ControlChar.VSTOP));
+                        setMode(modes, PtyMode.VSUSP, attributes.getControlChar(Attributes.ControlChar.VSUSP));
+                        setMode(modes, PtyMode.VDSUSP, attributes.getControlChar(Attributes.ControlChar.VDSUSP));
+                        setMode(modes, PtyMode.VREPRINT, attributes.getControlChar(Attributes.ControlChar.VREPRINT));
+                        setMode(modes, PtyMode.VWERASE, attributes.getControlChar(Attributes.ControlChar.VWERASE));
+                        setMode(modes, PtyMode.VLNEXT, attributes.getControlChar(Attributes.ControlChar.VLNEXT));
+                        setMode(modes, PtyMode.VSTATUS, attributes.getControlChar(Attributes.ControlChar.VSTATUS));
+                        setMode(modes, PtyMode.VDISCARD, attributes.getControlChar(Attributes.ControlChar.VDISCARD));
                         // Input flags
-                        modes.put(PtyMode.IGNPAR, getFlag(attributes, Attributes.InputFlag.IGNPAR));
-                        modes.put(PtyMode.PARMRK, getFlag(attributes, Attributes.InputFlag.PARMRK));
-                        modes.put(PtyMode.INPCK, getFlag(attributes, Attributes.InputFlag.INPCK));
-                        modes.put(PtyMode.ISTRIP, getFlag(attributes, Attributes.InputFlag.ISTRIP));
-                        modes.put(PtyMode.INLCR, getFlag(attributes, Attributes.InputFlag.INLCR));
-                        modes.put(PtyMode.IGNCR, getFlag(attributes, Attributes.InputFlag.IGNCR));
-                        modes.put(PtyMode.ICRNL, getFlag(attributes, Attributes.InputFlag.ICRNL));
-                        modes.put(PtyMode.IXON, getFlag(attributes, Attributes.InputFlag.IXON));
-                        modes.put(PtyMode.IXANY, getFlag(attributes, Attributes.InputFlag.IXANY));
-                        modes.put(PtyMode.IXOFF, getFlag(attributes, Attributes.InputFlag.IXOFF));
+                        setMode(modes, PtyMode.IGNPAR, getFlag(attributes, Attributes.InputFlag.IGNPAR));
+                        setMode(modes, PtyMode.PARMRK, getFlag(attributes, Attributes.InputFlag.PARMRK));
+                        setMode(modes, PtyMode.INPCK, getFlag(attributes, Attributes.InputFlag.INPCK));
+                        setMode(modes, PtyMode.ISTRIP, getFlag(attributes, Attributes.InputFlag.ISTRIP));
+                        setMode(modes, PtyMode.INLCR, getFlag(attributes, Attributes.InputFlag.INLCR));
+                        setMode(modes, PtyMode.IGNCR, getFlag(attributes, Attributes.InputFlag.IGNCR));
+                        setMode(modes, PtyMode.ICRNL, getFlag(attributes, Attributes.InputFlag.ICRNL));
+                        setMode(modes, PtyMode.IXON, getFlag(attributes, Attributes.InputFlag.IXON));
+                        setMode(modes, PtyMode.IXANY, getFlag(attributes, Attributes.InputFlag.IXANY));
+                        setMode(modes, PtyMode.IXOFF, getFlag(attributes, Attributes.InputFlag.IXOFF));
                         // Local flags
-                        modes.put(PtyMode.ISIG, getFlag(attributes, Attributes.LocalFlag.ISIG));
-                        modes.put(PtyMode.ICANON, getFlag(attributes, Attributes.LocalFlag.ICANON));
-                        modes.put(PtyMode.ECHO, getFlag(attributes, Attributes.LocalFlag.ECHO));
-                        modes.put(PtyMode.ECHOE, getFlag(attributes, Attributes.LocalFlag.ECHOE));
-                        modes.put(PtyMode.ECHOK, getFlag(attributes, Attributes.LocalFlag.ECHOK));
-                        modes.put(PtyMode.ECHONL, getFlag(attributes, Attributes.LocalFlag.ECHONL));
-                        modes.put(PtyMode.NOFLSH, getFlag(attributes, Attributes.LocalFlag.NOFLSH));
-                        modes.put(PtyMode.TOSTOP, getFlag(attributes, Attributes.LocalFlag.TOSTOP));
-                        modes.put(PtyMode.IEXTEN, getFlag(attributes, Attributes.LocalFlag.IEXTEN));
+                        setMode(modes, PtyMode.ISIG, getFlag(attributes, Attributes.LocalFlag.ISIG));
+                        setMode(modes, PtyMode.ICANON, getFlag(attributes, Attributes.LocalFlag.ICANON));
+                        setMode(modes, PtyMode.ECHO, getFlag(attributes, Attributes.LocalFlag.ECHO));
+                        setMode(modes, PtyMode.ECHOE, getFlag(attributes, Attributes.LocalFlag.ECHOE));
+                        setMode(modes, PtyMode.ECHOK, getFlag(attributes, Attributes.LocalFlag.ECHOK));
+                        setMode(modes, PtyMode.ECHONL, getFlag(attributes, Attributes.LocalFlag.ECHONL));
+                        setMode(modes, PtyMode.NOFLSH, getFlag(attributes, Attributes.LocalFlag.NOFLSH));
+                        setMode(modes, PtyMode.TOSTOP, getFlag(attributes, Attributes.LocalFlag.TOSTOP));
+                        setMode(modes, PtyMode.IEXTEN, getFlag(attributes, Attributes.LocalFlag.IEXTEN));
                         // Output flags
-                        modes.put(PtyMode.OPOST, getFlag(attributes, Attributes.OutputFlag.OPOST));
-                        modes.put(PtyMode.ONLCR, getFlag(attributes, Attributes.OutputFlag.ONLCR));
-                        modes.put(PtyMode.OCRNL, getFlag(attributes, Attributes.OutputFlag.OCRNL));
-                        modes.put(PtyMode.ONOCR, getFlag(attributes, Attributes.OutputFlag.ONOCR));
-                        modes.put(PtyMode.ONLRET, getFlag(attributes, Attributes.OutputFlag.ONLRET));
+                        setMode(modes, PtyMode.OPOST, getFlag(attributes, Attributes.OutputFlag.OPOST));
+                        setMode(modes, PtyMode.ONLCR, getFlag(attributes, Attributes.OutputFlag.ONLCR));
+                        setMode(modes, PtyMode.OCRNL, getFlag(attributes, Attributes.OutputFlag.OCRNL));
+                        setMode(modes, PtyMode.ONOCR, getFlag(attributes, Attributes.OutputFlag.ONOCR));
+                        setMode(modes, PtyMode.ONLRET, getFlag(attributes, Attributes.OutputFlag.ONLRET));
                         channel.setPtyModes(modes);
                         channel.setPtyColumns(terminal.getWidth());
                         channel.setPtyLines(terminal.getHeight());
@@ -301,6 +301,12 @@ public class Ssh {
                     }
                 }
             }
+        }
+    }
+
+    private static void setMode(Map<PtyMode, Integer> modes, PtyMode vintr, int attributes) {
+        if (attributes >= 0) {
+            modes.put(vintr, attributes);
         }
     }
 
