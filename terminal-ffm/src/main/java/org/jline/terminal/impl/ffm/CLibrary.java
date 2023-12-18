@@ -8,19 +8,36 @@
  */
 package org.jline.terminal.impl.ffm;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.VarHandle;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.spi.Pty;
 import org.jline.terminal.spi.TerminalProvider;
+import org.jline.utils.OSUtils;
 
 @SuppressWarnings("preview")
 class CLibrary {
+
+    private static final Logger logger = Logger.getLogger("org.jline");
+
     // Window sizes.
     // @see <a href="http://man7.org/linux/man-pages/man4/tty_ioctl.4.html">IOCTL_TTY(2) man-page</a>
     static class winsize {
@@ -379,44 +396,126 @@ class CLibrary {
     static MethodHandle tcsetattr;
     static MethodHandle tcgetattr;
     static MethodHandle ttyname_r;
+    static LinkageError openptyError;
 
     static {
         // methods
         Linker linker = Linker.nativeLinker();
+        SymbolLookup lookup = SymbolLookup.loaderLookup().or(linker.defaultLookup());
         // https://man7.org/linux/man-pages/man2/ioctl.2.html
         ioctl = linker.downcallHandle(
-                linker.defaultLookup().find("ioctl").get(),
+                lookup.find("ioctl").get(),
                 FunctionDescriptor.of(
                         ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.JAVA_LONG, ValueLayout.ADDRESS),
                 Linker.Option.firstVariadicArg(2));
         // https://www.man7.org/linux/man-pages/man3/isatty.3.html
         isatty = linker.downcallHandle(
-                linker.defaultLookup().find("isatty").get(),
-                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT));
-        // https://man7.org/linux/man-pages/man3/openpty.3.html
-        openpty = linker.downcallHandle(
-                linker.defaultLookup().find("openpty").get(),
-                FunctionDescriptor.of(
-                        ValueLayout.JAVA_INT,
-                        ValueLayout.ADDRESS,
-                        ValueLayout.ADDRESS,
-                        ValueLayout.ADDRESS,
-                        ValueLayout.ADDRESS,
-                        ValueLayout.ADDRESS));
+                lookup.find("isatty").get(), FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT));
         // https://man7.org/linux/man-pages/man3/tcsetattr.3p.html
         tcsetattr = linker.downcallHandle(
-                linker.defaultLookup().find("tcsetattr").get(),
+                lookup.find("tcsetattr").get(),
                 FunctionDescriptor.of(
                         ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
         // https://man7.org/linux/man-pages/man3/tcgetattr.3p.html
         tcgetattr = linker.downcallHandle(
-                linker.defaultLookup().find("tcgetattr").get(),
+                lookup.find("tcgetattr").get(),
                 FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
         // https://man7.org/linux/man-pages/man3/ttyname.3.html
         ttyname_r = linker.downcallHandle(
-                linker.defaultLookup().find("ttyname_r").get(),
+                lookup.find("ttyname_r").get(),
                 FunctionDescriptor.of(
                         ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.JAVA_LONG));
+        // https://man7.org/linux/man-pages/man3/openpty.3.html
+        LinkageError error = null;
+        Optional<MemorySegment> openPtyAddr = lookup.find("openpty");
+        if (openPtyAddr.isEmpty()) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("Unable to find openpty native method in static libraries and unable to load the util library.");
+            List<Throwable> suppressed = new ArrayList<>();
+            try {
+                System.loadLibrary("util");
+                openPtyAddr = lookup.find("openpty");
+            } catch (Throwable t) {
+                suppressed.add(t);
+            }
+            if (openPtyAddr.isEmpty()) {
+                String libUtilPath = System.getProperty("org.jline.ffm.libutil");
+                if (libUtilPath != null && !libUtilPath.isEmpty()) {
+                    try {
+                        System.load(libUtilPath);
+                        openPtyAddr = lookup.find("openpty");
+                    } catch (Throwable t) {
+                        suppressed.add(t);
+                    }
+                }
+            }
+            if (openPtyAddr.isEmpty() && OSUtils.IS_LINUX) {
+                String hwName;
+                try {
+                    Process p = Runtime.getRuntime().exec(new String[] {"uname", "-m"});
+                    p.waitFor();
+                    try (InputStream in = p.getInputStream()) {
+                        hwName = readFully(in).trim();
+                        Path libDir = Paths.get("/usr/lib", hwName + "-linux-gnu");
+                        try (Stream<Path> stream = Files.list(libDir)) {
+                            List<Path> libs = stream.filter(
+                                            l -> l.getFileName().toString().startsWith("libutil.so."))
+                                    .collect(Collectors.toList());
+                            for (Path lib : libs) {
+                                try {
+                                    System.load(lib.toString());
+                                    openPtyAddr = lookup.find("openpty");
+                                    if (openPtyAddr.isPresent()) {
+                                        break;
+                                    }
+                                } catch (Throwable t) {
+                                    suppressed.add(t);
+                                }
+                            }
+                        }
+                    }
+                } catch (Throwable t) {
+                    suppressed.add(t);
+                }
+            }
+            if (openPtyAddr.isEmpty()) {
+                for (Throwable t : suppressed) {
+                    sb.append("\n\t- ").append(t.toString());
+                }
+                error = new LinkageError(sb.toString());
+                suppressed.forEach(error::addSuppressed);
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.log(Level.WARNING, error.getMessage(), error);
+                } else {
+                    logger.log(Level.WARNING, error.getMessage());
+                }
+            }
+        }
+        if (openPtyAddr.isPresent()) {
+            openpty = linker.downcallHandle(
+                    openPtyAddr.get(),
+                    FunctionDescriptor.of(
+                            ValueLayout.JAVA_INT,
+                            ValueLayout.ADDRESS,
+                            ValueLayout.ADDRESS,
+                            ValueLayout.ADDRESS,
+                            ValueLayout.ADDRESS,
+                            ValueLayout.ADDRESS));
+            openptyError = null;
+        } else {
+            openpty = null;
+            openptyError = error;
+        }
+    }
+
+    private static String readFully(InputStream in) throws IOException {
+        int readLen = 0;
+        ByteArrayOutputStream b = new ByteArrayOutputStream();
+        byte[] buf = new byte[32];
+        while ((readLen = in.read(buf, 0, buf.length)) >= 0) {
+            b.write(buf, 0, readLen);
+        }
+        return b.toString();
     }
 
     static Size getTerminalSize(int fd) {
@@ -484,6 +583,9 @@ class CLibrary {
     }
 
     static Pty openpty(TerminalProvider provider, Attributes attr, Size size) {
+        if (openptyError != null) {
+            throw openptyError;
+        }
         try {
             java.lang.foreign.MemorySegment buf =
                     java.lang.foreign.Arena.ofAuto().allocate(64);
