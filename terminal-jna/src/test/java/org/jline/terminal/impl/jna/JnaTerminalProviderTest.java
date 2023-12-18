@@ -6,7 +6,7 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.terminal.impl.jansi;
+package org.jline.terminal.impl.jna;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -19,20 +19,13 @@ import org.jline.terminal.spi.SystemStream;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class JansiTerminalProviderTest {
-
-    @Test
-    public void testJansiVersion() {
-        assertEquals(2, JansiTerminalProvider.JANSI_MAJOR_VERSION);
-        assertEquals(4, JansiTerminalProvider.JANSI_MINOR_VERSION);
-    }
+public class JnaTerminalProviderTest {
 
     @Test
     void testIsSystemStream() {
-        assertDoesNotThrow(() -> new JansiTerminalProvider().isSystemStream(SystemStream.Output));
+        assertDoesNotThrow(() -> new JnaTerminalProvider().isSystemStream(SystemStream.Output));
     }
 
     @Test
@@ -41,7 +34,7 @@ public class JansiTerminalProviderTest {
         PipedInputStream pis = new PipedInputStream(pos);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        Terminal terminal = new JansiTerminalProvider()
+        Terminal terminal = new JnaTerminalProvider()
                 .newTerminal(
                         "name",
                         "xterm",
