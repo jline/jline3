@@ -33,6 +33,7 @@ import org.jline.reader.impl.LineReaderImpl;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.terminal.*;
+import org.jline.terminal.spi.TerminalExt;
 import org.jline.utils.*;
 import org.jline.utils.InfoCmp.Capability;
 
@@ -381,7 +382,8 @@ public class Example {
             }
 
             Terminal terminal = builder.build();
-            System.out.println(terminal.getName() + ": " + terminal.getType());
+            System.out.println(terminal.getName() + ": " + terminal.getType() + ", provider="
+                    + ((TerminalExt) terminal).getProvider().name());
             System.out.println("\nhelp: list available commands");
             LineReader reader = LineReaderBuilder.builder()
                     .terminal(terminal)
