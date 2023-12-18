@@ -12,8 +12,17 @@ import java.io.File;
 
 public class OSUtils {
 
+    public static final boolean IS_LINUX =
+            System.getProperty("os.name").toLowerCase().contains("linux");
+
     public static final boolean IS_WINDOWS =
             System.getProperty("os.name").toLowerCase().contains("win");
+
+    public static final boolean IS_OSX =
+            System.getProperty("os.name").toLowerCase().contains("mac");
+
+    public static final boolean IS_AIX =
+            System.getProperty("os.name").toLowerCase().contains("aix");
 
     public static final boolean IS_CYGWIN =
             IS_WINDOWS && System.getenv("PWD") != null && System.getenv("PWD").startsWith("/");
@@ -35,11 +44,6 @@ public class OSUtils {
     public static final boolean IS_WSL2 = IS_WSL && !IS_WSL1;
 
     public static final boolean IS_CONEMU = IS_WINDOWS && System.getenv("ConEmuPID") != null;
-
-    public static final boolean IS_OSX =
-            System.getProperty("os.name").toLowerCase().contains("mac");
-
-    public static final boolean IS_AIX = System.getProperty("os.name").equals("AIX");
 
     public static String TTY_COMMAND;
     public static String STTY_COMMAND;
