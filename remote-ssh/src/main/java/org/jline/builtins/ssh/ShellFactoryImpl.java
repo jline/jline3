@@ -110,59 +110,50 @@ public class ShellFactoryImpl implements ShellFactory {
 
         public void run(ChannelSession session, Environment env) throws Exception {
             try {
-                Terminal terminal = TerminalBuilder.builder()
-                        .name("JLine SSH")
-                        .type(env.getEnv().get("TERM"))
-                        .system(false)
-                        .streams(in, out)
-                        .build();
-                terminal.setSize(new Size(
-                        Integer.parseInt(env.getEnv().get("COLUMNS")),
-                        Integer.parseInt(env.getEnv().get("LINES"))));
-                Attributes attr = terminal.getAttributes();
+                Attributes attributes = new Attributes();
                 for (Map.Entry<PtyMode, Integer> e : env.getPtyModes().entrySet()) {
                     switch (e.getKey()) {
                         case VINTR:
-                            attr.setControlChar(ControlChar.VINTR, e.getValue());
+                            attributes.setControlChar(ControlChar.VINTR, e.getValue());
                             break;
                         case VQUIT:
-                            attr.setControlChar(ControlChar.VQUIT, e.getValue());
+                            attributes.setControlChar(ControlChar.VQUIT, e.getValue());
                             break;
                         case VERASE:
-                            attr.setControlChar(ControlChar.VERASE, e.getValue());
+                            attributes.setControlChar(ControlChar.VERASE, e.getValue());
                             break;
                         case VKILL:
-                            attr.setControlChar(ControlChar.VKILL, e.getValue());
+                            attributes.setControlChar(ControlChar.VKILL, e.getValue());
                             break;
                         case VEOF:
-                            attr.setControlChar(ControlChar.VEOF, e.getValue());
+                            attributes.setControlChar(ControlChar.VEOF, e.getValue());
                             break;
                         case VEOL:
-                            attr.setControlChar(ControlChar.VEOL, e.getValue());
+                            attributes.setControlChar(ControlChar.VEOL, e.getValue());
                             break;
                         case VEOL2:
-                            attr.setControlChar(ControlChar.VEOL2, e.getValue());
+                            attributes.setControlChar(ControlChar.VEOL2, e.getValue());
                             break;
                         case VSTART:
-                            attr.setControlChar(ControlChar.VSTART, e.getValue());
+                            attributes.setControlChar(ControlChar.VSTART, e.getValue());
                             break;
                         case VSTOP:
-                            attr.setControlChar(ControlChar.VSTOP, e.getValue());
+                            attributes.setControlChar(ControlChar.VSTOP, e.getValue());
                             break;
                         case VSUSP:
-                            attr.setControlChar(ControlChar.VSUSP, e.getValue());
+                            attributes.setControlChar(ControlChar.VSUSP, e.getValue());
                             break;
                         case VDSUSP:
-                            attr.setControlChar(ControlChar.VDSUSP, e.getValue());
+                            attributes.setControlChar(ControlChar.VDSUSP, e.getValue());
                             break;
                         case VREPRINT:
-                            attr.setControlChar(ControlChar.VREPRINT, e.getValue());
+                            attributes.setControlChar(ControlChar.VREPRINT, e.getValue());
                             break;
                         case VWERASE:
-                            attr.setControlChar(ControlChar.VWERASE, e.getValue());
+                            attributes.setControlChar(ControlChar.VWERASE, e.getValue());
                             break;
                         case VLNEXT:
-                            attr.setControlChar(ControlChar.VLNEXT, e.getValue());
+                            attributes.setControlChar(ControlChar.VLNEXT, e.getValue());
                             break;
                             /*
                             case VFLUSH:
@@ -173,44 +164,53 @@ public class ShellFactoryImpl implements ShellFactory {
                                 break;
                             */
                         case VSTATUS:
-                            attr.setControlChar(ControlChar.VSTATUS, e.getValue());
+                            attributes.setControlChar(ControlChar.VSTATUS, e.getValue());
                             break;
                         case VDISCARD:
-                            attr.setControlChar(ControlChar.VDISCARD, e.getValue());
+                            attributes.setControlChar(ControlChar.VDISCARD, e.getValue());
                             break;
                         case ECHO:
-                            attr.setLocalFlag(LocalFlag.ECHO, e.getValue() != 0);
+                            attributes.setLocalFlag(LocalFlag.ECHO, e.getValue() != 0);
                             break;
                         case ICANON:
-                            attr.setLocalFlag(LocalFlag.ICANON, e.getValue() != 0);
+                            attributes.setLocalFlag(LocalFlag.ICANON, e.getValue() != 0);
                             break;
                         case ISIG:
-                            attr.setLocalFlag(LocalFlag.ISIG, e.getValue() != 0);
+                            attributes.setLocalFlag(LocalFlag.ISIG, e.getValue() != 0);
                             break;
                         case ICRNL:
-                            attr.setInputFlag(InputFlag.ICRNL, e.getValue() != 0);
+                            attributes.setInputFlag(InputFlag.ICRNL, e.getValue() != 0);
                             break;
                         case INLCR:
-                            attr.setInputFlag(InputFlag.INLCR, e.getValue() != 0);
+                            attributes.setInputFlag(InputFlag.INLCR, e.getValue() != 0);
                             break;
                         case IGNCR:
-                            attr.setInputFlag(InputFlag.IGNCR, e.getValue() != 0);
+                            attributes.setInputFlag(InputFlag.IGNCR, e.getValue() != 0);
                             break;
                         case OCRNL:
-                            attr.setOutputFlag(OutputFlag.OCRNL, e.getValue() != 0);
+                            attributes.setOutputFlag(OutputFlag.OCRNL, e.getValue() != 0);
                             break;
                         case ONLCR:
-                            attr.setOutputFlag(OutputFlag.ONLCR, e.getValue() != 0);
+                            attributes.setOutputFlag(OutputFlag.ONLCR, e.getValue() != 0);
                             break;
                         case ONLRET:
-                            attr.setOutputFlag(OutputFlag.ONLRET, e.getValue() != 0);
+                            attributes.setOutputFlag(OutputFlag.ONLRET, e.getValue() != 0);
                             break;
                         case OPOST:
-                            attr.setOutputFlag(OutputFlag.OPOST, e.getValue() != 0);
+                            attributes.setOutputFlag(OutputFlag.OPOST, e.getValue() != 0);
                             break;
                     }
                 }
-                terminal.setAttributes(attr);
+                Terminal terminal = TerminalBuilder.builder()
+                        .name("JLine SSH")
+                        .type(env.getEnv().get("TERM"))
+                        .system(false)
+                        .streams(in, out)
+                        .attributes(attributes)
+                        .size(new Size(
+                                Integer.parseInt(env.getEnv().get("COLUMNS")),
+                                Integer.parseInt(env.getEnv().get("LINES"))))
+                        .build();
                 env.addSignalListener(
                         (channel, signals) -> {
                             terminal.setSize(new Size(
