@@ -777,4 +777,9 @@ public interface LineReader {
     void setAutosuggestion(SuggestionType type);
 
     SuggestionType getAutosuggestion();
+
+    /**
+     * Clear any internal buffers.
+     */
+    void zeroOut();
 }

@@ -83,4 +83,9 @@ public interface Buffer {
     Buffer copy();
 
     void copyFrom(Buffer buffer);
+
+    /**
+     * Clear any internal buffer.
+     */
+    void zeroOut();
 }

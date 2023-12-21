@@ -8,6 +8,7 @@
  */
 package org.jline.reader.impl;
 
+import java.util.Arrays;
 import java.util.Objects;
 
 import org.jline.reader.Buffer;
@@ -366,5 +367,10 @@ public class BufferImpl implements Buffer {
             g0 += l;
             g1 += l;
         }
+    }
+
+    @Override
+    public void zeroOut() {
+        Arrays.fill(buffer, 0);
     }
 }
