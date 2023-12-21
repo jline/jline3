@@ -447,6 +447,11 @@
                         <deployAtEnd>true</deployAtEnd>
                     </configuration>
                 </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>3.5.1</version>
+                </plugin>
 
                 <plugin>
                     <groupId>com.mycila</groupId>
@@ -688,29 +693,6 @@
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <configuration>
-                    <archive>
-                        <manifestEntries>
-                            <Bundle-Name>JLine Sources Bundle</Bundle-Name>
-                            <Bundle-SymbolicName>${project.groupId}.source</Bundle-SymbolicName>
-                            <Bundle-Version>${project.version}</Bundle-Version>
-                            <Eclipse-SourceBundle>${project.groupId};version="${project.version}"</Eclipse-SourceBundle>
-                        </manifestEntries>
-                    </archive>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar-no-fork</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>
                 <configuration>
                     <autoVersionSubmodules>true</autoVersionSubmodules>
@@ -745,11 +727,6 @@
 
         <profile>
             <id>javadoc</id>
-            <activation>
-                <property>
-                    <name>!nojavadoc</name>
-                </property>
-            </activation>
             <build>
                 <plugins>
                     <plugin>
