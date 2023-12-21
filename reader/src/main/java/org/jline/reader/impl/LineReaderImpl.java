@@ -6396,4 +6396,10 @@ public class LineReaderImpl implements LineReader, Flushable {
             keyMap.bind(ref, Character.toString(newBinding));
         }
     }
+
+    @Override
+    public void zeroOut() {
+        buf.zeroOut();
+        parsedLine = null;
+    }
 }
