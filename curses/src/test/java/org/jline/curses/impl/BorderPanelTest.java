@@ -9,12 +9,9 @@
 package org.jline.curses.impl;
 
 import org.jline.curses.*;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class BorderPanelTest {
 
@@ -68,11 +65,12 @@ public class BorderPanelTest {
 
         Component component = panel.getComponents().stream()
                 .filter(c -> ((TestComponent) c).name.equals(name))
-                .findFirst().orElseThrow(IllegalStateException::new);
-        assertEquals("bad position: x", x, component.getPosition().x());
-        assertEquals("bad position: y", y, component.getPosition().y());
-        assertEquals("bad size: w", w, component.getSize().w());
-        assertEquals("bad size: h", h, component.getSize().h());
+                .findFirst()
+                .orElseThrow(IllegalStateException::new);
+        assertEquals(x, component.getPosition().x(), "bad position: x");
+        assertEquals(y, component.getPosition().y(), "bad position: y");
+        assertEquals(w, component.getSize().w(), "bad size: w");
+        assertEquals(h, component.getSize().h(), "bad size: h");
     }
 
     private static class TestComponent extends AbstractComponent {
