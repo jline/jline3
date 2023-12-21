@@ -16,7 +16,7 @@
     <parent>
         <groupId>org.jline</groupId>
         <artifactId>jline-parent</artifactId>
-        <version>3.21.1-SNAPSHOT</version>
+        <version>3.25.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>jline-graal</artifactId>
@@ -82,10 +82,10 @@
                 <executions>
                     <execution>
                         <id>copy-root</id>
-                        <phase>validate</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
+                        <phase>validate</phase>
                         <configuration>
                             <outputDirectory>${basedir}/target</outputDirectory>
                             <resources>
@@ -103,6 +103,15 @@
             <plugin>
                 <groupId>org.graalvm.nativeimage</groupId>
                 <artifactId>native-image-maven-plugin</artifactId>
+                <configuration>
+                    <skip>${native.image.skip}</skip>
+                    <imageName>graal</imageName>
+                    <mainClass>org.jline.demo.graal.Graal</mainClass>
+                    <buildArgs>--no-fallback
+                        --report-unsupported-elements-at-runtime
+                        --allow-incomplete-classpath
+                        -H:ReflectionConfigurationFiles=reflection-config.json</buildArgs>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>
@@ -111,17 +120,6 @@
                         <phase>package</phase>
                     </execution>
                 </executions>
-                <configuration>
-                    <skip>${native.image.skip}</skip>
-                    <imageName>graal</imageName>
-                    <mainClass>org.jline.demo.graal.Graal</mainClass>
-                    <buildArgs>
-                        --no-fallback
-                        --report-unsupported-elements-at-runtime
-                        --allow-incomplete-classpath
-                        -H:ReflectionConfigurationFiles=reflection-config.json
-                    </buildArgs>
-                </configuration>
             </plugin>
         </plugins>
     </build>

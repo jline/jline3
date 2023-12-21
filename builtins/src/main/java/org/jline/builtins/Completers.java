@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2021, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -30,9 +30,9 @@ import java.util.function.Supplier;
 import org.jline.reader.Candidate;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReader.Option;
+import org.jline.reader.ParsedLine;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
-import org.jline.reader.ParsedLine;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
@@ -43,9 +43,13 @@ public class Completers {
 
     public interface CompletionEnvironment {
         Map<String, List<CompletionData>> getCompletions();
+
         Set<String> getCommands();
+
         String resolveCommand(String command);
+
         String commandName(String command);
+
         Object evaluate(LineReader reader, ParsedLine line, String func) throws Exception;
     }
 
@@ -91,11 +95,14 @@ public class Completers {
             }
         }
 
-        protected void completeCommandArguments(LineReader reader, ParsedLine line, List<Candidate> candidates, List<CompletionData> completions) {
+        protected void completeCommandArguments(
+                LineReader reader, ParsedLine line, List<Candidate> candidates, List<CompletionData> completions) {
             for (CompletionData completion : completions) {
                 boolean isOption = line.word().startsWith("-");
-                String prevOption = line.wordIndex() >= 2 && line.words().get(line.wordIndex() - 1).startsWith("-")
-                        ? line.words().get(line.wordIndex() - 1) : null;
+                String prevOption = line.wordIndex() >= 2
+                                && line.words().get(line.wordIndex() - 1).startsWith("-")
+                        ? line.words().get(line.wordIndex() - 1)
+                        : null;
                 String key = UUID.randomUUID().toString();
                 boolean conditionValue = true;
                 if (completion.condition != null) {
@@ -111,7 +118,9 @@ public class Completers {
                     for (String opt : completion.options) {
                         candidates.add(new Candidate(opt, opt, "options", completion.description, null, key, true));
                     }
-                } else if (!isOption && prevOption != null && completion.argument != null
+                } else if (!isOption
+                        && prevOption != null
+                        && completion.argument != null
                         && (completion.options != null && completion.options.contains(prevOption))) {
                     Object res = null;
                     try {
@@ -151,13 +160,15 @@ public class Completers {
                     if (res instanceof Candidate) {
                         candidates.add((Candidate) res);
                     } else if (res instanceof String) {
-                        candidates.add(new Candidate((String) res, (String) res, null, completion.description, null, null, true));
+                        candidates.add(new Candidate(
+                                (String) res, (String) res, null, completion.description, null, null, true));
                     } else if (res instanceof Collection) {
                         for (Object s : (Collection<?>) res) {
                             if (s instanceof Candidate) {
                                 candidates.add((Candidate) s);
                             } else if (s instanceof String) {
-                                candidates.add(new Candidate((String) s, (String) s, null, completion.description, null, null, true));
+                                candidates.add(new Candidate(
+                                        (String) s, (String) s, null, completion.description, null, null, true));
                             }
                         }
                     }
@@ -203,17 +214,13 @@ public class Completers {
         }
 
         private boolean isTrue(Object result) {
-            if (result == null)
-                return false;
-            if (result instanceof Boolean)
-                return (Boolean) result;
+            if (result == null) return false;
+            if (result instanceof Boolean) return (Boolean) result;
             if (result instanceof Number && 0 == ((Number) result).intValue()) {
                 return false;
             }
             return !("".equals(result) || "0".equals(result));
-
         }
-
     }
 
     public static class DirectoriesCompleter extends FileNameCompleter {
@@ -328,9 +335,7 @@ public class Completers {
      * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
      * @since 2.3
      */
-    public static class FileNameCompleter implements org.jline.reader.Completer
-    {
-        protected static StyleResolver resolver = Styles.lsStyle();
+    public static class FileNameCompleter implements org.jline.reader.Completer {
 
         public void complete(LineReader reader, ParsedLine commandLine, final List<Candidate> candidates) {
             assert commandLine != null;
@@ -358,16 +363,27 @@ public class Completers {
                     curBuf = "";
                     current = getUserDir();
                 }
+                StyleResolver resolver = Styles.lsStyle();
                 try (DirectoryStream<Path> directory = Files.newDirectoryStream(current, this::accept)) {
                     directory.forEach(p -> {
                         String value = curBuf + p.getFileName().toString();
                         if (Files.isDirectory(p)) {
-                            candidates.add(
-                                    new Candidate(value + (reader.isSet(LineReader.Option.AUTO_PARAM_SLASH) ? sep : ""),
-                                            getDisplay(reader.getTerminal(), p, resolver, sep), null, null,
-                                            reader.isSet(LineReader.Option.AUTO_REMOVE_SLASH) ? sep : null, null, false));
+                            candidates.add(new Candidate(
+                                    value + (reader.isSet(LineReader.Option.AUTO_PARAM_SLASH) ? sep : ""),
+                                    getDisplay(reader.getTerminal(), p, resolver, sep),
+                                    null,
+                                    null,
+                                    reader.isSet(LineReader.Option.AUTO_REMOVE_SLASH) ? sep : null,
+                                    null,
+                                    false));
                         } else {
-                            candidates.add(new Candidate(value, getDisplay(reader.getTerminal(), p, resolver, sep), null, null, null, null,
+                            candidates.add(new Candidate(
+                                    value,
+                                    getDisplay(reader.getTerminal(), p, resolver, sep),
+                                    null,
+                                    null,
+                                    null,
+                                    null,
                                     true));
                         }
                     });
@@ -403,7 +419,7 @@ public class Completers {
             AttributedStringBuilder sb = new AttributedStringBuilder();
             String name = p.getFileName().toString();
             int idx = name.lastIndexOf(".");
-            String type = idx != -1 ? ".*" + name.substring(idx): null;
+            String type = idx != -1 ? ".*" + name.substring(idx) : null;
             if (Files.isSymbolicLink(p)) {
                 sb.styled(resolver.resolve(".ln"), name).append("@");
             } else if (Files.isDirectory(p)) {
@@ -419,7 +435,6 @@ public class Completers {
             }
             return sb.toAnsi(terminal);
         }
-
     }
 
     public static class TreeCompleter implements org.jline.reader.Completer {
@@ -431,6 +446,7 @@ public class Completers {
             this(Arrays.asList(nodes));
         }
 
+        @SuppressWarnings("this-escape")
         public TreeCompleter(List<Node> nodes) {
             StringBuilder sb = new StringBuilder();
             addRoots(sb, nodes);
@@ -528,7 +544,10 @@ public class Completers {
             LineReader r = reader.get();
             boolean caseInsensitive = r != null && r.isSet(Option.CASE_INSENSITIVE);
             completers.apply(name).complete(r, new ArgumentLine(arg, arg.length()), candidates);
-            return candidates.stream().anyMatch(c -> caseInsensitive ? c.value().equalsIgnoreCase(arg) : c.value().equals(arg));
+            return candidates.stream()
+                    .anyMatch(c -> caseInsensitive
+                            ? c.value().equalsIgnoreCase(arg)
+                            : c.value().equals(arg));
         }
 
         public static class ArgumentLine implements ParsedLine {
@@ -578,16 +597,16 @@ public class Completers {
         private String description;
         private org.jline.reader.Completer valueCompleter;
 
-        protected static List<OptDesc> compile(Map<String,List<String>> optionValues, Collection<String> options) {
+        protected static List<OptDesc> compile(Map<String, List<String>> optionValues, Collection<String> options) {
             List<OptDesc> out = new ArrayList<>();
-            for (Map.Entry<String, List<String>> entry: optionValues.entrySet()) {
+            for (Map.Entry<String, List<String>> entry : optionValues.entrySet()) {
                 if (entry.getKey().startsWith("--")) {
                     out.add(new OptDesc(null, entry.getKey(), new StringsCompleter(entry.getValue())));
                 } else if (entry.getKey().matches("-[a-zA-Z]")) {
                     out.add(new OptDesc(entry.getKey(), null, new StringsCompleter(entry.getValue())));
                 }
             }
-            for (String o: options) {
+            for (String o : options) {
                 if (o.startsWith("--")) {
                     out.add(new OptDesc(null, o));
                 } else if (o.matches("-[a-zA-Z]")) {
@@ -605,7 +624,8 @@ public class Completers {
          * @param description short option description
          * @param valueCompleter option value completer
          */
-        public OptDesc(String shortOption, String longOption, String description, org.jline.reader.Completer valueCompleter) {
+        public OptDesc(
+                String shortOption, String longOption, String description, org.jline.reader.Completer valueCompleter) {
             this.shortOption = shortOption;
             this.longOption = longOption;
             this.description = description;
@@ -642,8 +662,7 @@ public class Completers {
             this(shortOption, longOption, null, null);
         }
 
-        protected OptDesc() {
-        }
+        protected OptDesc() {}
 
         public void setValueCompleter(org.jline.reader.Completer valueCompleter) {
             this.valueCompleter = valueCompleter;
@@ -669,7 +688,8 @@ public class Completers {
             return valueCompleter;
         }
 
-        protected void completeOption(LineReader reader, final ParsedLine commandLine, List<Candidate> candidates, boolean longOpt) {
+        protected void completeOption(
+                LineReader reader, final ParsedLine commandLine, List<Candidate> candidates, boolean longOpt) {
             if (!longOpt) {
                 if (shortOption != null) {
                     candidates.add(new Candidate(shortOption, shortOption, null, description, null, null, false));
@@ -683,7 +703,12 @@ public class Completers {
             }
         }
 
-        protected boolean completeValue(LineReader reader, final ParsedLine commandLine, List<Candidate> candidates, String curBuf, String partialValue) {
+        protected boolean completeValue(
+                LineReader reader,
+                final ParsedLine commandLine,
+                List<Candidate> candidates,
+                String curBuf,
+                String partialValue) {
             boolean out = false;
             List<Candidate> temp = new ArrayList<>();
             ParsedLine pl = reader.getParser().parse(partialValue, partialValue.length());
@@ -694,9 +719,9 @@ public class Completers {
                     out = true;
                     String val = c.value();
                     if (valueCompleter instanceof FileNameCompleter) {
-                        FileNameCompleter cc = (FileNameCompleter)valueCompleter;
+                        FileNameCompleter cc = (FileNameCompleter) valueCompleter;
                         String sep = cc.getSeparator(reader.isSet(LineReader.Option.USE_FORWARD_SLASH));
-                        val = cc.getDisplay(reader.getTerminal(), Paths.get(c.value()), FileNameCompleter.resolver, sep);
+                        val = cc.getDisplay(reader.getTerminal(), Paths.get(c.value()), Styles.lsStyle(), sep);
                     }
                     candidates.add(new Candidate(curBuf + v, val, null, null, null, null, c.complete()));
                 }
@@ -705,7 +730,8 @@ public class Completers {
         }
 
         protected boolean match(String option) {
-            return (shortOption != null && shortOption.equals(option)) || (longOption != null && longOption.equals(option));
+            return (shortOption != null && shortOption.equals(option))
+                    || (longOption != null && longOption.equals(option));
         }
 
         protected boolean startsWith(String option) {
@@ -715,7 +741,7 @@ public class Completers {
     }
 
     public static class OptionCompleter implements org.jline.reader.Completer {
-        private Function<String,Collection<OptDesc>> commandOptions;
+        private Function<String, Collection<OptDesc>> commandOptions;
         private Collection<OptDesc> options;
         private List<org.jline.reader.Completer> argsCompleters = new ArrayList<>();
         private int startPos;
@@ -726,7 +752,10 @@ public class Completers {
          * @param commandOptions command options descriptions
          * @param startPos OptionCompleter position in ArgumentCompleter parameters
          */
-        public OptionCompleter(org.jline.reader.Completer completer, Function<String,Collection<OptDesc>> commandOptions, int startPos) {
+        public OptionCompleter(
+                org.jline.reader.Completer completer,
+                Function<String, Collection<OptDesc>> commandOptions,
+                int startPos) {
             this.startPos = startPos;
             this.commandOptions = commandOptions;
             this.argsCompleters.add(completer);
@@ -738,7 +767,10 @@ public class Completers {
          * @param commandOptions command options descriptions
          * @param startPos OptionCompleter position in ArgumentCompleter parameters
          */
-        public OptionCompleter(List<org.jline.reader.Completer> completers, Function<String,Collection<OptDesc>> commandOptions, int startPos) {
+        public OptionCompleter(
+                List<org.jline.reader.Completer> completers,
+                Function<String, Collection<OptDesc>> commandOptions,
+                int startPos) {
             this.startPos = startPos;
             this.commandOptions = commandOptions;
             this.argsCompleters = new ArrayList<>(completers);
@@ -751,7 +783,11 @@ public class Completers {
          * @param options command options that do not have value
          * @param startPos OptionCompleter position in ArgumentCompleter parameters
          */
-        public OptionCompleter(List<org.jline.reader.Completer> completers, Map<String,List<String>> optionValues, Collection<String> options, int startPos) {
+        public OptionCompleter(
+                List<org.jline.reader.Completer> completers,
+                Map<String, List<String>> optionValues,
+                Collection<String> options,
+                int startPos) {
             this(optionValues, options, startPos);
             this.argsCompleters = new ArrayList<>(completers);
         }
@@ -763,7 +799,11 @@ public class Completers {
          * @param options command options that do not have value
          * @param startPos OptionCompleter position in ArgumentCompleter parameters
          */
-        public OptionCompleter(org.jline.reader.Completer completer, Map<String,List<String>> optionValues, Collection<String> options, int startPos) {
+        public OptionCompleter(
+                org.jline.reader.Completer completer,
+                Map<String, List<String>> optionValues,
+                Collection<String> options,
+                int startPos) {
             this(optionValues, options, startPos);
             this.argsCompleters.add(completer);
         }
@@ -774,7 +814,7 @@ public class Completers {
          * @param options command options that do not have value
          * @param startPos OptionCompleter position in ArgumentCompleter parameters
          */
-        public OptionCompleter(Map<String,List<String>> optionValues, Collection<String> options, int startPos) {
+        public OptionCompleter(Map<String, List<String>> optionValues, Collection<String> options, int startPos) {
             this(OptDesc.compile(optionValues, options), startPos);
         }
 
@@ -839,7 +879,7 @@ public class Completers {
                             if (ind < 0) {
                                 usedOptions.add(w);
                             } else {
-                                usedOptions.add(w.substring(0,ind));
+                                usedOptions.add(w.substring(0, ind));
                             }
                         }
                     }
@@ -867,14 +907,17 @@ public class Completers {
                     candidates.add(new Candidate(buffer, buffer, null, null, null, null, true));
                 }
             } else if (words.size() > 1 && shortOptionValueCompleter(command, words.get(words.size() - 2)) != null) {
-                shortOptionValueCompleter(command, words.get(words.size() - 2)).complete(reader, commandLine, candidates);
+                shortOptionValueCompleter(command, words.get(words.size() - 2))
+                        .complete(reader, commandLine, candidates);
             } else if (words.size() > 1 && longOptionValueCompleter(command, words.get(words.size() - 2)) != null) {
-                longOptionValueCompleter(command, words.get(words.size() - 2)).complete(reader, commandLine, candidates);
+                longOptionValueCompleter(command, words.get(words.size() - 2))
+                        .complete(reader, commandLine, candidates);
             } else if (!argsCompleters.isEmpty()) {
                 int args = -1;
                 for (int i = startPos; i < words.size(); i++) {
                     if (!words.get(i).startsWith("-")) {
-                        if (i > 0 && shortOptionValueCompleter(command, words.get(i - 1)) == null
+                        if (i > 0
+                                && shortOptionValueCompleter(command, words.get(i - 1)) == null
                                 && longOptionValueCompleter(command, words.get(i - 1)) == null) {
                             args++;
                         }
@@ -942,9 +985,7 @@ public class Completers {
             assert commandLine != null;
             assert candidates != null;
             String buffer = commandLine.word().substring(0, commandLine.wordCursor());
-            candidates.add(new Candidate(AttributedString.stripAnsi(buffer)
-                           , buffer, null, null, null, null, true));
+            candidates.add(new Candidate(AttributedString.stripAnsi(buffer), buffer, null, null, null, null, true));
         }
     }
-
 }

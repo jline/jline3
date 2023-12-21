@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2023, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -22,8 +22,8 @@ import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
 import org.jline.reader.Buffer;
 import org.jline.reader.LineReader;
-import org.jline.reader.Reference;
 import org.jline.reader.LineReader.SuggestionType;
+import org.jline.reader.Reference;
 import org.jline.utils.*;
 
 import static org.jline.keymap.KeyMap.key;
@@ -50,6 +50,7 @@ public class TailTipWidgets extends Widgets {
          */
         COMBINED
     }
+
     private boolean enabled = false;
     private final CommandDescriptions cmdDescs;
     private TipType tipType;
@@ -67,7 +68,7 @@ public class TailTipWidgets extends Widgets {
      * @param tailTips    Commands options and positional argument descriptions.
      * @throws IllegalStateException     If widgets are already created.
      */
-    public TailTipWidgets(LineReader reader, Map<String,CmdDesc> tailTips) {
+    public TailTipWidgets(LineReader reader, Map<String, CmdDesc> tailTips) {
         this(reader, tailTips, 0, TipType.COMBINED);
     }
 
@@ -80,7 +81,7 @@ public class TailTipWidgets extends Widgets {
      * @param tipType     Defines which data will be used for suggestions.
      * @throws IllegalStateException     If widgets are already created.
      */
-    public TailTipWidgets(LineReader reader, Map<String,CmdDesc> tailTips, TipType tipType) {
+    public TailTipWidgets(LineReader reader, Map<String, CmdDesc> tailTips, TipType tipType) {
         this(reader, tailTips, 0, tipType);
     }
 
@@ -93,7 +94,7 @@ public class TailTipWidgets extends Widgets {
      * @param descriptionSize  Size of the status bar.
      * @throws IllegalStateException     If widgets are already created.
      */
-    public TailTipWidgets(LineReader reader, Map<String,CmdDesc> tailTips, int descriptionSize) {
+    public TailTipWidgets(LineReader reader, Map<String, CmdDesc> tailTips, int descriptionSize) {
         this(reader, tailTips, descriptionSize, TipType.COMBINED);
     }
 
@@ -106,7 +107,7 @@ public class TailTipWidgets extends Widgets {
      * @param tipType          Defines which data will be used for suggestions.
      * @throws IllegalStateException     If widgets are already created.
      */
-    public TailTipWidgets(LineReader reader, Map<String,CmdDesc> tailTips, int descriptionSize, TipType tipType) {
+    public TailTipWidgets(LineReader reader, Map<String, CmdDesc> tailTips, int descriptionSize, TipType tipType) {
         this(reader, tailTips, descriptionSize, tipType, null);
     }
 
@@ -119,13 +120,17 @@ public class TailTipWidgets extends Widgets {
      * @param tipType          Defines which data will be used for suggestions.
      * @throws IllegalStateException     If widgets are already created.
      */
-    public TailTipWidgets(LineReader reader, Function<CmdLine,CmdDesc> descFun, int descriptionSize, TipType tipType) {
+    public TailTipWidgets(LineReader reader, Function<CmdLine, CmdDesc> descFun, int descriptionSize, TipType tipType) {
         this(reader, null, descriptionSize, tipType, descFun);
     }
 
-    private TailTipWidgets(LineReader reader
-                         , Map<String,CmdDesc> tailTips
-                         , int descriptionSize, TipType tipType, Function<CmdLine,CmdDesc> descFun) {
+    @SuppressWarnings("this-escape")
+    private TailTipWidgets(
+            LineReader reader,
+            Map<String, CmdDesc> tailTips,
+            int descriptionSize,
+            TipType tipType,
+            Function<CmdLine, CmdDesc> descFun) {
         super(reader);
         if (existsWidget(TT_ACCEPT_LINE)) {
             throw new IllegalStateException("TailTipWidgets already created!");
@@ -145,7 +150,7 @@ public class TailTipWidgets extends Widgets {
         addWidget(TAILTIP_TOGGLE, this::toggleKeyBindings);
     }
 
-    public void setTailTips(Map<String,CmdDesc> tailTips) {
+    public void setTailTips(Map<String, CmdDesc> tailTips) {
         cmdDescs.setDescriptions(tailTips);
     }
 
@@ -252,7 +257,7 @@ public class TailTipWidgets extends Widgets {
     private boolean doTailTip(String widget) {
         Buffer buffer = buffer();
         callWidget(widget);
-        Pair<String,Boolean> cmdkey;
+        Pair<String, Boolean> cmdkey;
         List<String> args = args();
         if (buffer.length() == buffer.cursor()) {
             cmdkey = cmdDescs.evaluateCommandLine(buffer.toString(), args);
@@ -317,43 +322,43 @@ public class TailTipWidgets extends Widgets {
             doDescription(compileMainDescription(cmdDesc, descriptionSize));
         }
         if (cmdDesc != null) {
-            if (lastArg.startsWith("-")) {
-                if (lastArg.matches("-[a-zA-Z][a-zA-Z0-9]+")) {
-                    if (cmdDesc.optionWithValue(lastArg.substring(0,2))) {
-                        doDescription(compileOptionDescription(cmdDesc, lastArg.substring(0,2), descriptionSize));
-                        setTipType(tipType);
-                    } else {
-                        doDescription(compileOptionDescription(cmdDesc, "-" + lastArg.substring(lastArg.length() - 1), descriptionSize));
-                        setSuggestionType(SuggestionType.TAIL_TIP);
-                        noCompleters = true;
-                    }
+            if (prevArg.startsWith("-")
+                    && !prevArg.contains("=")
+                    && !prevArg.matches("-[a-zA-Z][\\S]+")
+                    && cmdDesc.optionWithValue(prevArg)) {
+                doDescription(compileOptionDescription(cmdDesc, prevArg, descriptionSize));
+                setTipType(tipType);
+            } else if (lastArg.matches("-[a-zA-Z][\\S]+") && cmdDesc.optionWithValue(lastArg.substring(0, 2))) {
+                doDescription(compileOptionDescription(cmdDesc, lastArg.substring(0, 2), descriptionSize));
+                setTipType(tipType);
+            } else if (lastArg.startsWith("-")) {
+                doDescription(compileOptionDescription(cmdDesc, lastArg, descriptionSize));
+                if (!lastArg.contains("=")) {
+                    setSuggestionType(SuggestionType.TAIL_TIP);
+                    noCompleters = true;
                 } else {
-                    doDescription(compileOptionDescription(cmdDesc, lastArg, descriptionSize));
-                    if (!lastArg.contains("=")) {
-                        setSuggestionType(SuggestionType.TAIL_TIP);
-                        noCompleters = true;
-                    } else {
-                        setTipType(tipType);
-                    }
+                    setTipType(tipType);
                 }
-            } else if (!widget.endsWith(LineReader.BACKWARD_DELETE_CHAR)){
+            } else if (!widget.endsWith(LineReader.BACKWARD_DELETE_CHAR)) {
                 setTipType(tipType);
             }
             if (bpsize > 0 && doTailTip) {
                 List<ArgDesc> params = cmdDesc.getArgsDesc();
                 if (!noCompleters) {
-                    setSuggestionType(tipType == TipType.COMPLETER ? SuggestionType.COMPLETER : SuggestionType.TAIL_TIP);
+                    setSuggestionType(
+                            tipType == TipType.COMPLETER ? SuggestionType.COMPLETER : SuggestionType.TAIL_TIP);
                 }
                 if (bpsize - 1 < params.size()) {
                     if (!lastArg.startsWith("-")) {
                         List<AttributedString> d;
-                        if (!prevArg.matches("-[a-zA-Z]") || !cmdDesc.optionWithValue(prevArg)) {
+                        if (!prevArg.startsWith("-") || !cmdDesc.optionWithValue(prevArg)) {
                             d = params.get(bpsize - 1).getDescription();
                         } else {
                             d = compileOptionDescription(cmdDesc, prevArg, descriptionSize);
                         }
                         if (d == null || d.isEmpty()) {
-                            d = compileMainDescription(cmdDesc, descriptionSize, cmdDesc.isSubcommand() ? lastArg : null);
+                            d = compileMainDescription(
+                                    cmdDesc, descriptionSize, cmdDesc.isSubcommand() ? lastArg : null);
                         }
                         doDescription(d);
                     }
@@ -363,7 +368,8 @@ public class TailTipWidgets extends Widgets {
                         tip.append(" ");
                     }
                     setTailTip(tip.toString());
-                } else if (!params.isEmpty() && params.get(params.size() - 1).getName().startsWith("[")) {
+                } else if (!params.isEmpty()
+                        && params.get(params.size() - 1).getName().startsWith("[")) {
                     setTailTip(params.get(params.size() - 1).getName());
                     doDescription(params.get(params.size() - 1).getDescription());
                 }
@@ -394,7 +400,7 @@ public class TailTipWidgets extends Widgets {
         } else if (desc.size() > descriptionSize) {
             AttributedStringBuilder asb = new AttributedStringBuilder();
             asb.append(desc.get(descriptionSize - 1)).append("...", new AttributedStyle(AttributedStyle.INVERSE));
-            List<AttributedString> mod = new ArrayList<>(desc.subList(0, descriptionSize-1));
+            List<AttributedString> mod = new ArrayList<>(desc.subList(0, descriptionSize - 1));
             mod.add(asb.toAttributedString());
             addDescription(mod);
         } else {
@@ -494,7 +500,7 @@ public class TailTipWidgets extends Widgets {
     }
 
     private List<AttributedString> compileMainDescription(CmdDesc cmdDesc, int descriptionSize) {
-        return  compileMainDescription(cmdDesc, descriptionSize, null);
+        return compileMainDescription(cmdDesc, descriptionSize, null);
     }
 
     private List<AttributedString> compileMainDescription(CmdDesc cmdDesc, int descriptionSize, String lastArg) {
@@ -517,7 +523,7 @@ public class TailTipWidgets extends Widgets {
             out.addAll(mainDesc);
         } else {
             int tabs = 0;
-            for (AttributedString as: mainDesc) {
+            for (AttributedString as : mainDesc) {
                 if (as.columnLength() >= tabs) {
                     tabs = as.columnLength() + 2;
                 }
@@ -528,7 +534,7 @@ public class TailTipWidgets extends Widgets {
             for (int i = 0; i < descriptionSize; i++) {
                 descList.add(new AttributedString(""));
             }
-            for (AttributedString as: mainDesc) {
+            for (AttributedString as : mainDesc) {
                 if (lastArg != null && !as.toString().startsWith(lastArg)) {
                     continue;
                 }
@@ -569,8 +575,8 @@ public class TailTipWidgets extends Widgets {
         }
         List<String> matched = new ArrayList<>();
         int tabs = 0;
-        for (String key: optsDesc.keySet()) {
-            for (String k: key.split("\\s+")) {
+        for (String key : optsDesc.keySet()) {
+            for (String k : key.split("\\s+")) {
                 if (k.trim().startsWith(opt)) {
                     matched.add(key);
                     if (key.length() >= tabs) {
@@ -582,28 +588,28 @@ public class TailTipWidgets extends Widgets {
         }
         if (matched.size() == 1) {
             out.add(HelpException.highlightSyntax(matched.get(0), resolver));
-            for (AttributedString as: optsDesc.get(matched.get(0))) {
+            for (AttributedString as : optsDesc.get(matched.get(0))) {
                 AttributedStringBuilder asb = new AttributedStringBuilder().tabs(8);
                 asb.append("\t");
                 asb.append(as);
                 out.add(asb.toAttributedString());
             }
         } else if (matched.size() <= descriptionSize) {
-            for (String key: matched) {
+            for (String key : matched) {
                 AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
                 asb.append(HelpException.highlightSyntax(key, resolver));
                 asb.append("\t");
                 asb.append(cmdDesc.optionDescription(key));
                 out.add(asb.toAttributedString());
             }
-        } else if (matched.size() <= 2*descriptionSize) {
+        } else if (matched.size() <= 2 * descriptionSize) {
             List<AttributedString> keyList = new ArrayList<>();
             int row = 0;
-            int columnWidth = 2*tabs;
+            int columnWidth = 2 * tabs;
             while (columnWidth < 50) {
                 columnWidth += tabs;
             }
-            for (String key: matched) {
+            for (String key : matched) {
                 AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
                 if (row < descriptionSize) {
                     asb.append(HelpException.highlightSyntax(key, resolver));
@@ -628,7 +634,6 @@ public class TailTipWidgets extends Widgets {
                     asb.append(cmdDesc.optionDescription(key));
                     keyList.remove(row - descriptionSize);
                     keyList.add(row - descriptionSize, asb.toAttributedString());
-
                 }
                 row++;
             }
@@ -639,7 +644,7 @@ public class TailTipWidgets extends Widgets {
                 keyList.add(new AttributedString(""));
             }
             int row = 0;
-            for (String key: matched) {
+            for (String key : matched) {
                 AttributedStringBuilder asb = new AttributedStringBuilder().tabs(tabs);
                 asb.append(keyList.get(row));
                 asb.append(HelpException.highlightSyntax(key, resolver));
@@ -657,32 +662,32 @@ public class TailTipWidgets extends Widgets {
     }
 
     private class CommandDescriptions {
-        Map<String,CmdDesc> descriptions = new HashMap<>();
-        Map<String,CmdDesc> temporaryDescs = new HashMap<>();
-        Map<String,CmdDesc> volatileDescs = new HashMap<>();
-        Function<CmdLine,CmdDesc> descFun;
+        Map<String, CmdDesc> descriptions = new HashMap<>();
+        Map<String, CmdDesc> temporaryDescs = new HashMap<>();
+        Map<String, CmdDesc> volatileDescs = new HashMap<>();
+        Function<CmdLine, CmdDesc> descFun;
 
-        public CommandDescriptions(Map<String,CmdDesc> descriptions) {
+        public CommandDescriptions(Map<String, CmdDesc> descriptions) {
             this.descriptions = new HashMap<>(descriptions);
         }
 
-        public CommandDescriptions(Function<CmdLine,CmdDesc> descFun) {
+        public CommandDescriptions(Function<CmdLine, CmdDesc> descFun) {
             this.descFun = descFun;
         }
 
-        public void setDescriptions(Map<String,CmdDesc> descriptions) {
+        public void setDescriptions(Map<String, CmdDesc> descriptions) {
             this.descriptions = new HashMap<>(descriptions);
         }
 
-        public Pair<String,Boolean> evaluateCommandLine(String line, int curPos) {
+        public Pair<String, Boolean> evaluateCommandLine(String line, int curPos) {
             return evaluateCommandLine(line, args(), curPos);
         }
 
-        public Pair<String,Boolean> evaluateCommandLine(String line, List<String> args) {
+        public Pair<String, Boolean> evaluateCommandLine(String line, List<String> args) {
             return evaluateCommandLine(line, args, line.length());
         }
 
-        private Pair<String,Boolean> evaluateCommandLine(String line, List<String> args, int curPos) {
+        private Pair<String, Boolean> evaluateCommandLine(String line, List<String> args, int curPos) {
             String cmd = null;
             CmdLine.DescriptionType descType = CmdLine.DescriptionType.METHOD;
             String head = line.substring(0, curPos);
@@ -692,8 +697,9 @@ public class TailTipWidgets extends Widgets {
                 cmd = head;
             } else {
                 if (line.length() == curPos) {
-                    cmd = args != null && (args.size() > 1 || (args.size() == 1
-                             && line.endsWith(" "))) ? parser().getCommand(args.get(0)) : null;
+                    cmd = args != null && (args.size() > 1 || (args.size() == 1 && line.endsWith(" ")))
+                            ? parser().getCommand(args.get(0))
+                            : null;
                     descType = CmdLine.DescriptionType.COMMAND;
                 }
                 int brackets = 0;
@@ -725,8 +731,7 @@ public class TailTipWidgets extends Widgets {
                     }
                 }
             }
-            if (cmd != null && descFun != null
-                    && !descriptions.containsKey(cmd) && !temporaryDescs.containsKey(cmd)) {
+            if (cmd != null && descFun != null && !descriptions.containsKey(cmd) && !temporaryDescs.containsKey(cmd)) {
                 CmdDesc c = descFun.apply(new CmdLine(line, head, tail, args, descType));
                 if (descType == CmdLine.DescriptionType.COMMAND) {
                     if (!descriptionCache) {
@@ -744,14 +749,13 @@ public class TailTipWidgets extends Widgets {
         }
 
         public CmdDesc getDescription(String command) {
-            CmdDesc out = null;
+            CmdDesc out;
             if (descriptions.containsKey(command)) {
                 out = descriptions.get(command);
             } else if (temporaryDescs.containsKey(command)) {
                 out = temporaryDescs.get(command);
-            } else if (volatileDescs.containsKey(command)) {
-                out = volatileDescs.get(command);
-                volatileDescs.remove(command);
+            } else {
+                out = volatileDescs.remove(command);
             }
             return out;
         }
@@ -759,22 +763,23 @@ public class TailTipWidgets extends Widgets {
         public void clearTemporaryDescs() {
             temporaryDescs.clear();
         }
-
     }
 
-    static class Pair<U,V> {
-        final U u; final V v;
+    static class Pair<U, V> {
+        final U u;
+        final V v;
+
         public Pair(U u, V v) {
             this.u = u;
             this.v = v;
         }
+
         public U getU() {
             return u;
         }
+
         public V getV() {
             return v;
         }
     }
-
 }
-

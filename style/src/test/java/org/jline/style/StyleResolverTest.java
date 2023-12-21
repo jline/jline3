@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -10,11 +10,11 @@ package org.jline.style;
 
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.Colors;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
 import static org.jline.utils.AttributedStyle.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests for {@link StyleResolver}.
@@ -23,7 +23,7 @@ public class StyleResolverTest extends StyleTestSupport {
 
     private StyleResolver underTest;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         super.setUp();
         this.underTest = new StyleResolver(source, "test");
@@ -161,5 +161,4 @@ public class StyleResolverTest extends StyleTestSupport {
     public void checkColorOrdinal() {
         assertEquals(86, Colors.rgbColor("aquamarine1").longValue());
     }
-
 }

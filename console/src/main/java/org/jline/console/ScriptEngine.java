@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2020, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -34,9 +34,9 @@ public interface ScriptEngine {
     Collection<String> getExtensions();
 
     /**
-    *
-    * @return script tab completer
-    */
+     *
+     * @return script tab completer
+     */
     Completer getScriptCompleter();
 
     /**
@@ -64,7 +64,7 @@ public interface ScriptEngine {
      * Gets all variables with values
      * @return map of the variables
      */
-    default Map<String,Object> find() {
+    default Map<String, Object> find() {
         return find(null);
     }
 
@@ -73,7 +73,7 @@ public interface ScriptEngine {
      * @param name variable name
      * @return map the variables
      */
-    Map<String,Object> find(String name);
+    Map<String, Object> find(String name);
 
     /**
      * Deletes variables. Variable name can contain * wild cards.
@@ -100,7 +100,7 @@ public interface ScriptEngine {
      * @param object the object
      * @return object fields map
      */
-    Map<String,Object> toMap(Object object);
+    Map<String, Object> toMap(Object object);
 
     /**
      * Deserialize value
@@ -126,9 +126,9 @@ public interface ScriptEngine {
     List<String> getSerializationFormats();
 
     /**
-    *
-    * @return Supported deserialization formats
-    */
+     *
+     * @return Supported deserialization formats
+     */
     List<String> getDeserializationFormats();
 
     /**
@@ -180,5 +180,4 @@ public interface ScriptEngine {
      * @return result
      */
     Object execute(Object closure, Object... args);
-
 }

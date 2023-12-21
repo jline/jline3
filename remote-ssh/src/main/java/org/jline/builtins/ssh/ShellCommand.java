@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2017, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -70,7 +70,7 @@ public class ShellCommand implements Command {
             exitStatus = 1;
             LOGGER.log(Level.SEVERE, "Unable to start shell", e);
             try {
-                Throwable t = (e.getCause() != null)  ? e.getCause() : e;
+                Throwable t = (e.getCause() != null) ? e.getCause() : e;
                 err.write(t.toString().getBytes());
                 err.flush();
             } catch (IOException e2) {
@@ -82,7 +82,5 @@ public class ShellCommand implements Command {
         }
     }
 
-    public void destroy(ChannelSession channel) {
-    }
-
+    public void destroy(ChannelSession channel) {}
 }

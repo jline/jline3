@@ -1,18 +1,23 @@
+/*
+ * Copyright (c) 2023, the original author(s).
+ *
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
+ *
+ * https://opensource.org/licenses/BSD-3-Clause
+ */
 package org.jline.utils;
-
-import org.jline.terminal.Terminal;
-import org.jline.terminal.impl.DumbTerminal;
-import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
 
-import static org.junit.Assert.assertEquals;
+import org.jline.terminal.impl.DumbTerminal;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class AttributedStringTest {
-
 
     @Test
     public void test() {
@@ -22,9 +27,9 @@ public class AttributedStringTest {
 
         assertEquals("echo \033[1mfoo\033[0m", sb.toAnsi());
 
-        assertEquals("o f", sb.toString().substring(3, 6));
-        assertEquals("o f", sb.columnSubSequence(3, 6).toString());
-        assertEquals("o \033[1mf\033[0m", sb.columnSubSequence(3, 6).toAnsi());
+        assertEquals(sb.toString().substring(3, 6), "o f");
+        assertEquals(sb.columnSubSequence(3, 6).toString(), "o f");
+        assertEquals(sb.columnSubSequence(3, 6).toAnsi(), "o \033[1mf\033[0m");
 
         sb.append(" ");
         sb.style(AttributedStyle.DEFAULT.background(3));
@@ -94,8 +99,7 @@ public class AttributedStringTest {
     @Test
     public void testBoldAndFaint() {
         AttributedStringBuilder sb = new AttributedStringBuilder();
-        sb.styled(AttributedStyle::bold,
-                s -> s.append("bold ").styled(AttributedStyle::faint, "faint"));
+        sb.styled(AttributedStyle::bold, s -> s.append("bold ").styled(AttributedStyle::faint, "faint"));
         assertEquals("\u001b[1mbold \u001b[2mfaint\u001b[0m", sb.toAnsi());
     }
 
@@ -104,22 +108,26 @@ public class AttributedStringTest {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         sb.style(sb.style().background(254));
         sb.append("Hello");
-        assertEquals("\033[48;5;254mHello\033[0m", sb.toAnsi(
-                new DumbTerminal("dumb", "xterm-256color",
-                        new ByteArrayInputStream(new byte[0]), new ByteArrayOutputStream(),
+        assertEquals(
+                "\033[48;5;254mHello\033[0m",
+                sb.toAnsi(new DumbTerminal(
+                        "dumb",
+                        "xterm-256color",
+                        new ByteArrayInputStream(new byte[0]),
+                        new ByteArrayOutputStream(),
                         null)));
     }
 
     @Test
     public void testCharWidth() {
         AttributedStringBuilder sb = new AttributedStringBuilder();
-        sb.append("\u2329\u2329\u2329\u2329");  // 〈〈〈
+        sb.append("\u2329\u2329\u2329\u2329"); // 〈〈〈
         assertEquals(4, sb.length());
         assertEquals(8, sb.columnLength());
 
         assertEquals("", sb.columnSubSequence(0, 1).toString());
-        assertEquals("\u2329", sb.columnSubSequence(1, 3).toString());
-        assertEquals("\u2329\u2329\u2329", sb.columnSubSequence(3, 8).toString());
+        assertEquals(sb.columnSubSequence(1, 3).toString(), "\u2329");
+        assertEquals(sb.columnSubSequence(3, 8).toString(), "\u2329\u2329\u2329");
     }
 
     @Test
@@ -144,15 +152,12 @@ public class AttributedStringTest {
         AttributedString messageAgain = message.columnSubSequence(0, messageLength);
         assertEquals("👍", messageAgain.toString());
 
-        message = new AttributedString(
-                "\uD83D\uDC46" +
-                "\uD83D\uDC46\uD83C\uDFFB" +
-                "\uD83D\uDC46\uD83C\uDFFC" +
-                "\uD83D\uDC46\uD83C\uDFFD" +
-                "\uD83D\uDC46\uD83C\uDFFE" +
-                "\uD83D\uDC46\uD83C\uDFFF");
+        message = new AttributedString("\uD83D\uDC46" + "\uD83D\uDC46\uD83C\uDFFB"
+                + "\uD83D\uDC46\uD83C\uDFFC"
+                + "\uD83D\uDC46\uD83C\uDFFD"
+                + "\uD83D\uDC46\uD83C\uDFFE"
+                + "\uD83D\uDC46\uD83C\uDFFF");
         messageLength = message.columnLength();
         assertEquals(12, messageLength);
     }
-
 }

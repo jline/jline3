@@ -1,4 +1,14 @@
 /*
+ * Copyright (c) 2023, the original author(s).
+ *
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
+ *
+ * https://opensource.org/licenses/BSD-3-Clause
+ */
+package org.apache.felix.gogo.jline;
+
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,7 +26,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.felix.gogo.jline;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -112,17 +121,13 @@ public class Posix {
             @SuppressWarnings("unused")
             Class<?> cl = TTop.class;
             func = new String[] {
-                    "cat", "echo", "grep", "sort", "sleep", "cd", "pwd", "ls",
-                    "less", "watch", "nano", "tmux",
-                    "head", "tail", "clear", "wc",
-                    "date", "ttop",
+                "cat", "echo", "grep", "sort", "sleep", "cd", "pwd", "ls", "less", "watch", "nano", "tmux", "head",
+                "tail", "clear", "wc", "date", "ttop",
             };
         } catch (Throwable t) {
             func = new String[] {
-                    "cat", "echo", "grep", "sort", "sleep", "cd", "pwd", "ls",
-                    "less", "watch", "nano", "tmux",
-                    "head", "tail", "clear", "wc",
-                    "date"
+                "cat", "echo", "grep", "sort", "sleep", "cd", "pwd", "ls", "less", "watch", "nano", "tmux", "head",
+                "tail", "clear", "wc", "date"
             };
         }
         functions = func;
@@ -131,8 +136,9 @@ public class Posix {
     public static final String DEFAULT_LS_COLORS = "dr=1;91:ex=1;92:sl=1;96:ot=34;43";
     public static final String DEFAULT_GREP_COLORS = "mt=1;31:fn=35:ln=32:se=36";
 
-    private static final LinkOption[] NO_FOLLOW_OPTIONS = new LinkOption[]{LinkOption.NOFOLLOW_LINKS};
-    private static final List<String> WINDOWS_EXECUTABLE_EXTENSIONS = Collections.unmodifiableList(Arrays.asList(".bat", ".exe", ".cmd"));
+    private static final LinkOption[] NO_FOLLOW_OPTIONS = new LinkOption[] {LinkOption.NOFOLLOW_LINKS};
+    private static final List<String> WINDOWS_EXECUTABLE_EXTENSIONS =
+            Collections.unmodifiableList(Arrays.asList(".bat", ".exe", ".cmd"));
     private static final LinkOption[] EMPTY_LINK_OPTIONS = new LinkOption[0];
 
     private final CommandProcessor processor;
@@ -152,7 +158,8 @@ public class Posix {
             process.err().println(e.getMessage());
             process.error(2);
         } catch (HelpException e) {
-            HelpException.highlight(e.getMessage(), HelpException.defaultStyle()).print(Shell.getTerminal(session));
+            HelpException.highlight(e.getMessage(), HelpException.defaultStyle())
+                    .print(Shell.getTerminal(session));
             process.error(0);
         } catch (Exception e) {
             process.err().println(argv[0] + ": " + e.toString());
@@ -235,45 +242,45 @@ public class Posix {
 
     protected void date(CommandSession session, Process process, String[] argv) throws Exception {
         String[] usage = {
-                "date -  display date",
-                "Usage: date [-r seconds] [-v[+|-]val[mwdHMS] ...] [-f input_fmt new_date] [+output_fmt]",
-                "  -? --help                    Show help",
-                "  -u                           Use UTC",
-                "  -r                           Print the date represented by 'seconds' since January 1, 1970",
-                "  -f                           Use 'input_fmt' to parse 'new_date'"
+            "date -  display date",
+            "Usage: date [-r seconds] [-v[+|-]val[mwdHMS] ...] [-f input_fmt new_date] [+output_fmt]",
+            "  -? --help                    Show help",
+            "  -u                           Use UTC",
+            "  -r                           Print the date represented by 'seconds' since January 1, 1970",
+            "  -f                           Use 'input_fmt' to parse 'new_date'"
         };
         Date input = new Date();
         String output = null;
         for (int i = 1; i < argv.length; i++) {
             if ("-?".equals(argv[i]) || "--help".equals(argv[i])) {
                 throw new HelpException(Options.compile(usage).usage());
-            }
-            else if ("-r".equals(argv[i])) {
+            } else if ("-r".equals(argv[i])) {
                 if (i + 1 < argv.length) {
                     input = new Date(Long.parseLong(argv[++i]) * 1000L);
                 } else {
-                    throw new IllegalArgumentException("usage: date [-u] [-r seconds] [-v[+|-]val[mwdHMS] ...] [-f input_fmt new_date] [+output_fmt]");
+                    throw new IllegalArgumentException(
+                            "usage: date [-u] [-r seconds] [-v[+|-]val[mwdHMS] ...] [-f input_fmt new_date] [+output_fmt]");
                 }
-            }
-            else if ("-f".equals(argv[i])) {
+            } else if ("-f".equals(argv[i])) {
                 if (i + 2 < argv.length) {
                     String fmt = argv[++i];
                     String inp = argv[++i];
                     String jfmt = toJavaDateFormat(fmt);
                     input = new SimpleDateFormat(jfmt).parse(inp);
                 } else {
-                    throw new IllegalArgumentException("usage: date [-u] [-r seconds] [-v[+|-]val[mwdHMS] ...] [-f input_fmt new_date] [+output_fmt]");
+                    throw new IllegalArgumentException(
+                            "usage: date [-u] [-r seconds] [-v[+|-]val[mwdHMS] ...] [-f input_fmt new_date] [+output_fmt]");
                 }
-            }
-            else if (argv[i].startsWith("+")) {
+            } else if (argv[i].startsWith("+")) {
                 if (output == null) {
                     output = argv[i].substring(1);
                 } else {
-                    throw new IllegalArgumentException("usage: date [-u] [-r seconds] [-v[+|-]val[mwdHMS] ...] [-f input_fmt new_date] [+output_fmt]");
+                    throw new IllegalArgumentException(
+                            "usage: date [-u] [-r seconds] [-v[+|-]val[mwdHMS] ...] [-f input_fmt new_date] [+output_fmt]");
                 }
-            }
-            else {
-                throw new IllegalArgumentException("usage: date [-u] [-r seconds] [-v[+|-]val[mwdHMS] ...] [-f input_fmt new_date] [+output_fmt]");
+            } else {
+                throw new IllegalArgumentException(
+                        "usage: date [-u] [-r seconds] [-v[+|-]val[mwdHMS] ...] [-f input_fmt new_date] [+output_fmt]");
             }
         }
         if (output == null) {
@@ -298,49 +305,135 @@ public class Posix {
                     c = format.charAt(++i);
                     switch (c) {
                         case '+':
-                        case 'A': sb.append("MMM EEE d HH:mm:ss yyyy"); break;
-                        case 'a': sb.append("EEE"); break;
-                        case 'B': sb.append("MMMMMMM"); break;
-                        case 'b': sb.append("MMM"); break;
-                        case 'C': sb.append("yy"); break;
-                        case 'c': sb.append("MMM EEE d HH:mm:ss yyyy"); break;
-                        case 'D': sb.append("MM/dd/yy"); break;
-                        case 'd': sb.append("dd"); break;
-                        case 'e': sb.append("dd"); break;
-                        case 'F': sb.append("yyyy-MM-dd"); break;
-                        case 'G': sb.append("YYYY"); break;
-                        case 'g': sb.append("YY"); break;
-                        case 'H': sb.append("HH"); break;
-                        case 'h': sb.append("MMM"); break;
-                        case 'I': sb.append("hh"); break;
-                        case 'j': sb.append("DDD"); break;
-                        case 'k': sb.append("HH"); break;
-                        case 'l': sb.append("hh"); break;
-                        case 'M': sb.append("mm"); break;
-                        case 'm': sb.append("MM"); break;
-                        case 'N': sb.append("S"); break;
-                        case 'n': sb.append("\n"); break;
-                        case 'P': sb.append("aa"); break;
-                        case 'p': sb.append("aa"); break;
-                        case 'r': sb.append("hh:mm:ss aa"); break;
-                        case 'R': sb.append("HH:mm"); break;
-                        case 'S': sb.append("ss"); break;
-                        case 's': sb.append("S"); break;
-                        case 'T': sb.append("HH:mm:ss"); break;
-                        case 't': sb.append("\t"); break;
-                        case 'U': sb.append("w"); break;
-                        case 'u': sb.append("u"); break;
-                        case 'V': sb.append("W"); break;
-                        case 'v': sb.append("dd-MMM-yyyy"); break;
-                        case 'W': sb.append("w"); break;
-                        case 'w': sb.append("u"); break;
-                        case 'X': sb.append("HH:mm:ss"); break;
-                        case 'x': sb.append("MM/dd/yy"); break;
-                        case 'Y': sb.append("yyyy"); break;
-                        case 'y': sb.append("yy"); break;
-                        case 'Z': sb.append("z"); break;
-                        case 'z': sb.append("X"); break;
-                        case '%': sb.append("%"); break;
+                        case 'A':
+                            sb.append("MMM EEE d HH:mm:ss yyyy");
+                            break;
+                        case 'a':
+                            sb.append("EEE");
+                            break;
+                        case 'B':
+                            sb.append("MMMMMMM");
+                            break;
+                        case 'b':
+                            sb.append("MMM");
+                            break;
+                        case 'C':
+                            sb.append("yy");
+                            break;
+                        case 'c':
+                            sb.append("MMM EEE d HH:mm:ss yyyy");
+                            break;
+                        case 'D':
+                            sb.append("MM/dd/yy");
+                            break;
+                        case 'd':
+                            sb.append("dd");
+                            break;
+                        case 'e':
+                            sb.append("dd");
+                            break;
+                        case 'F':
+                            sb.append("yyyy-MM-dd");
+                            break;
+                        case 'G':
+                            sb.append("YYYY");
+                            break;
+                        case 'g':
+                            sb.append("YY");
+                            break;
+                        case 'H':
+                            sb.append("HH");
+                            break;
+                        case 'h':
+                            sb.append("MMM");
+                            break;
+                        case 'I':
+                            sb.append("hh");
+                            break;
+                        case 'j':
+                            sb.append("DDD");
+                            break;
+                        case 'k':
+                            sb.append("HH");
+                            break;
+                        case 'l':
+                            sb.append("hh");
+                            break;
+                        case 'M':
+                            sb.append("mm");
+                            break;
+                        case 'm':
+                            sb.append("MM");
+                            break;
+                        case 'N':
+                            sb.append("S");
+                            break;
+                        case 'n':
+                            sb.append("\n");
+                            break;
+                        case 'P':
+                            sb.append("aa");
+                            break;
+                        case 'p':
+                            sb.append("aa");
+                            break;
+                        case 'r':
+                            sb.append("hh:mm:ss aa");
+                            break;
+                        case 'R':
+                            sb.append("HH:mm");
+                            break;
+                        case 'S':
+                            sb.append("ss");
+                            break;
+                        case 's':
+                            sb.append("S");
+                            break;
+                        case 'T':
+                            sb.append("HH:mm:ss");
+                            break;
+                        case 't':
+                            sb.append("\t");
+                            break;
+                        case 'U':
+                            sb.append("w");
+                            break;
+                        case 'u':
+                            sb.append("u");
+                            break;
+                        case 'V':
+                            sb.append("W");
+                            break;
+                        case 'v':
+                            sb.append("dd-MMM-yyyy");
+                            break;
+                        case 'W':
+                            sb.append("w");
+                            break;
+                        case 'w':
+                            sb.append("u");
+                            break;
+                        case 'X':
+                            sb.append("HH:mm:ss");
+                            break;
+                        case 'x':
+                            sb.append("MM/dd/yy");
+                            break;
+                        case 'Y':
+                            sb.append("yyyy");
+                            break;
+                        case 'y':
+                            sb.append("yy");
+                            break;
+                        case 'Z':
+                            sb.append("z");
+                            break;
+                        case 'z':
+                            sb.append("X");
+                            break;
+                        case '%':
+                            sb.append("%");
+                            break;
                     }
                 } else {
                     if (!quote) {
@@ -362,13 +455,13 @@ public class Posix {
 
     protected void wc(CommandSession session, Process process, String[] argv) throws Exception {
         String[] usage = {
-                "wc -  word, line, character, and byte count",
-                "Usage: wc [OPTIONS] [FILES]",
-                "  -? --help                    Show help",
-                "  -l --lines                   Print line counts",
-                "  -c --bytes                   Print byte counts",
-                "  -m --chars                   Print character counts",
-                "  -w --words                   Print word counts",
+            "wc -  word, line, character, and byte count",
+            "Usage: wc [OPTIONS] [FILES]",
+            "  -? --help                    Show help",
+            "  -l --lines                   Print line counts",
+            "  -c --bytes                   Print byte counts",
+            "  -m --chars                   Print character counts",
+            "  -w --words                   Print word counts",
         };
         Options opt = parseOptions(session, usage, argv);
         List<Source> sources = new ArrayList<>();
@@ -495,7 +588,9 @@ public class Posix {
                 if (!lastNl.get()) {
                     lines.incrementAndGet();
                 }
-                process.out().println(String.format(format, lines.get(), words.get(), chars.get(), bytes.get(), src.getName()));
+                process.out()
+                        .println(String.format(
+                                format, lines.get(), words.get(), chars.get(), bytes.get(), src.getName()));
                 totalBytes += bytes.get();
                 totalChars += chars.get();
                 totalWords += words.get();
@@ -509,11 +604,11 @@ public class Posix {
 
     protected void head(CommandSession session, Process process, String[] argv) throws Exception {
         String[] usage = {
-                "head -  displays first lines of file",
-                "Usage: head [-n lines | -c bytes] [file ...]",
-                "  -? --help                    Show help",
-                "  -n --lines=LINES             Print line counts",
-                "  -c --bytes=BYTES             Print byte counts",
+            "head -  displays first lines of file",
+            "Usage: head [-n lines | -c bytes] [file ...]",
+            "  -? --help                    Show help",
+            "  -n --lines=LINES             Print line counts",
+            "  -c --bytes=BYTES             Print byte counts",
         };
         Options opt = parseOptions(session, usage, argv);
         if (opt.isSet("lines") && opt.isSet("bytes")) {
@@ -571,14 +666,14 @@ public class Posix {
 
     protected void tail(CommandSession session, Process process, String[] argv) throws Exception {
         String[] usage = {
-                "tail -  displays last lines of file",
-                "Usage: tail [-f] [-q] [-c # | -n #] [file ...]",
-                "  -? --help                    Show help",
-                "  -q --quiet                   Suppress headers when printing multiple sources",
-                "  -f --follow                  Do not stop at end of file",
-                "  -F --FOLLOW                  Follow and check for file renaming or rotation",
-                "  -n --lines=LINES             Number of lines to print",
-                "  -c --bytes=BYTES             Number of bytes to print",
+            "tail -  displays last lines of file",
+            "Usage: tail [-f] [-q] [-c # | -n #] [file ...]",
+            "  -? --help                    Show help",
+            "  -q --quiet                   Suppress headers when printing multiple sources",
+            "  -f --follow                  Do not stop at end of file",
+            "  -F --FOLLOW                  Follow and check for file renaming or rotation",
+            "  -n --lines=LINES             Number of lines to print",
+            "  -c --bytes=BYTES             Number of bytes to print",
         };
         Options opt = parseOptions(session, usage, argv);
         if (opt.isSet("lines") && opt.isSet("bytes")) {
@@ -599,7 +694,8 @@ public class Posix {
         boolean follow = opt.isSet("follow") || opt.isSet("FOLLOW");
 
         AtomicReference<Object> lastPrinted = new AtomicReference<>();
-        WatchService watchService = follow ? session.currentDir().getFileSystem().newWatchService() : null;
+        WatchService watchService =
+                follow ? session.currentDir().getFileSystem().newWatchService() : null;
         Set<Path> watched = new HashSet<>();
 
         class Input implements Closeable {
@@ -683,7 +779,8 @@ public class Posix {
                         if (follow && path != null) {
                             Path parent = path.getParent();
                             if (!watched.contains(parent)) {
-                                parent.register(watchService,
+                                parent.register(
+                                        watchService,
                                         StandardWatchEventKinds.ENTRY_CREATE,
                                         StandardWatchEventKinds.ENTRY_DELETE,
                                         StandardWatchEventKinds.ENTRY_MODIFY);
@@ -691,8 +788,7 @@ public class Posix {
                             }
                         }
                         return follow;
-                    }
-                    else if (follow && path != null) {
+                    } else if (follow && path != null) {
                         while (true) {
                             long newSize = Files.size(path);
                             if (size != newSize) {
@@ -727,7 +823,8 @@ public class Posix {
                 } else {
                     Path parent = path.getParent();
                     if (!watched.contains(parent)) {
-                        parent.register(watchService,
+                        parent.register(
+                                watchService,
                                 StandardWatchEventKinds.ENTRY_CREATE,
                                 StandardWatchEventKinds.ENTRY_DELETE,
                                 StandardWatchEventKinds.ENTRY_MODIFY);
@@ -779,9 +876,7 @@ public class Posix {
 
     protected void clear(CommandSession session, Process process, String[] argv) throws Exception {
         final String[] usage = {
-                "clear -  clear screen",
-                "Usage: clear [OPTIONS]",
-                "  -? --help                    Show help",
+            "clear -  clear screen", "Usage: clear [OPTIONS]", "  -? --help                    Show help",
         };
         @SuppressWarnings("unused")
         Options opt = parseOptions(session, usage, argv);
@@ -792,8 +887,10 @@ public class Posix {
     }
 
     protected void tmux(final CommandSession session, Process process, String[] argv) throws Exception {
-        Commands.tmux(Shell.getTerminal(session),
-                process.out(), System.err,
+        Commands.tmux(
+                Shell.getTerminal(session),
+                process.out(),
+                System.err,
                 () -> session.get(".tmux"),
                 t -> session.put(".tmux", t),
                 c -> startShell(session, c),
@@ -814,12 +911,13 @@ public class Posix {
             public String getProperty(String name) {
                 return System.getProperty(name);
             }
+
             public void exit() throws Exception {
                 terminal.close();
             }
         };
         try {
-            new Shell(context, processor).gosh(newSession, new String[]{"--login"});
+            new Shell(context, processor).gosh(newSession, new String[] {"--login"});
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -833,14 +931,14 @@ public class Posix {
 
     protected void ttop(final CommandSession session, Process process, String[] argv) throws Exception {
         final String[] usage = {
-                "ttop -  display and update sorted information about threads",
-                "Usage: ttop [OPTIONS]",
-                "  -? --help                    Show help",
-                "  -o --order=ORDER             Comma separated list of sorting keys",
-                "  -t --stats=STATS             Comma separated list of stats to display",
-                "  -s --seconds=SECONDS         Delay between updates in seconds",
-                "  -m --millis=MILLIS           Delay between updates in milliseconds",
-                "  -n --nthreads=NTHREADS       Only display up to NTHREADS threads",
+            "ttop -  display and update sorted information about threads",
+            "Usage: ttop [OPTIONS]",
+            "  -? --help                    Show help",
+            "  -o --order=ORDER             Comma separated list of sorting keys",
+            "  -t --stats=STATS             Comma separated list of stats to display",
+            "  -s --seconds=SECONDS         Delay between updates in seconds",
+            "  -m --millis=MILLIS           Delay between updates in milliseconds",
+            "  -n --nthreads=NTHREADS       Only display up to NTHREADS threads",
         };
         Options opt = parseOptions(session, usage, argv);
         TTop ttop = new TTop(Shell.getTerminal(session));
@@ -861,11 +959,11 @@ public class Posix {
 
     protected void watch(final CommandSession session, Process process, String[] argv) throws Exception {
         final String[] usage = {
-                "watch - watches & refreshes the output of a command",
-                "Usage: watch [OPTIONS] COMMAND",
-                "  -? --help                    Show help",
-                "  -n --interval=SECONDS        Interval between executions of the command in seconds",
-                "  -a --append                  The output should be appended but not clear the console"
+            "watch - watches & refreshes the output of a command",
+            "Usage: watch [OPTIONS] COMMAND",
+            "  -? --help                    Show help",
+            "  -n --interval=SECONDS        Interval between executions of the command in seconds",
+            "  -a --append                  The output should be appended but not clear the console"
         };
 
         Options opt = parseOptions(session, usage, argv);
@@ -926,9 +1024,12 @@ public class Posix {
             if ("-".equals(arg)) {
                 sources.add(new StdInSource(process));
             } else if (arg.contains("*") || arg.contains("?")) {
-                PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:"+arg);
-                Files.find(session.currentDir(), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
-                     .forEach(p -> sources.add(doUrlSource(session.currentDir(), p)));
+                PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + arg);
+                try (Stream<Path> pathStream = Files.walk(session.currentDir())) {
+                    pathStream
+                            .filter(pathMatcher::matches)
+                            .forEach(p -> sources.add(doUrlSource(session.currentDir(), p)));
+                }
             } else {
                 sources.add(new PathSource(session.currentDir().resolve(arg), arg));
             }
@@ -959,16 +1060,17 @@ public class Posix {
 
     protected void sort(CommandSession session, Process process, String[] argv) throws Exception {
         final String[] usage = {
-                "sort -  writes sorted standard input to standard output.",
-                "Usage: sort [OPTIONS] [FILES]",
-                "  -? --help                    show help",
-                "  -f --ignore-case             fold lower case to upper case characters",
-                "  -r --reverse                 reverse the result of comparisons",
-                "  -u --unique                  output only the first of an equal run",
-                "  -t --field-separator=SEP     use SEP instead of non-blank to blank transition",
-                "  -b --ignore-leading-blanks   ignore leading blancks",
-                "     --numeric-sort            compare according to string numerical value",
-                "  -k --key=KEY                 fields to use for sorting separated by whitespaces"};
+            "sort -  writes sorted standard input to standard output.",
+            "Usage: sort [OPTIONS] [FILES]",
+            "  -? --help                    show help",
+            "  -f --ignore-case             fold lower case to upper case characters",
+            "  -r --reverse                 reverse the result of comparisons",
+            "  -u --unique                  output only the first of an equal run",
+            "  -t --field-separator=SEP     use SEP instead of non-blank to blank transition",
+            "  -b --ignore-leading-blanks   ignore leading blancks",
+            "     --numeric-sort            compare according to string numerical value",
+            "  -k --key=KEY                 fields to use for sorting separated by whitespaces"
+        };
 
         Options opt = parseOptions(session, usage, argv);
 
@@ -1008,9 +1110,7 @@ public class Posix {
 
     protected void pwd(CommandSession session, Process process, String[] argv) throws Exception {
         final String[] usage = {
-                "pwd - get current directory",
-                "Usage: pwd [OPTIONS]",
-                "  -? --help                show help"
+            "pwd - get current directory", "Usage: pwd [OPTIONS]", "  -? --help                show help"
         };
         Options opt = parseOptions(session, usage, argv);
         if (!opt.args().isEmpty()) {
@@ -1021,9 +1121,7 @@ public class Posix {
 
     protected void cd(CommandSession session, Process process, String[] argv) throws Exception {
         final String[] usage = {
-                "cd - get current directory",
-                "Usage: cd [OPTIONS] DIRECTORY",
-                "  -? --help                show help"
+            "cd - get current directory", "Usage: cd [OPTIONS] DIRECTORY", "  -? --help                show help"
         };
         Options opt = parseOptions(session, usage, argv);
         if (opt.args().size() != 1) {
@@ -1041,23 +1139,23 @@ public class Posix {
 
     protected void ls(CommandSession session, Process process, String[] argv) throws Exception {
         final String[] usage = {
-                "ls - list files",
-                "Usage: ls [OPTIONS] [PATTERNS...]",
-                "  -? --help                show help",
-                "  -1                       list one entry per line",
-                "  -C                       multi-column output",
-                "     --color=WHEN          colorize the output, may be `always', `never' or `auto'",
-                "  -a                       list entries starting with .",
-                "  -F                       append file type indicators",
-                "  -m                       comma separated",
-                "  -l                       long listing",
-                "  -S                       sort by size",
-                "  -f                       output is not sorted",
-                "  -r                       reverse sort order",
-                "  -t                       sort by modification time",
-                "  -x                       sort horizontally",
-                "  -L                       list referenced file for links",
-                "  -h                       print sizes in human readable form"
+            "ls - list files",
+            "Usage: ls [OPTIONS] [PATTERNS...]",
+            "  -? --help                show help",
+            "  -1                       list one entry per line",
+            "  -C                       multi-column output",
+            "     --color=WHEN          colorize the output, may be `always', `never' or `auto'",
+            "  -a                       list entries starting with .",
+            "  -F                       append file type indicators",
+            "  -m                       comma separated",
+            "  -l                       long listing",
+            "  -S                       sort by size",
+            "  -f                       output is not sorted",
+            "  -r                       reverse sort order",
+            "  -t                       sort by modification time",
+            "  -x                       sort horizontally",
+            "  -L                       list referenced file for links",
+            "  -h                       print sizes in human readable form"
         };
         Options opt = parseOptions(session, usage, argv);
         String color = opt.isSet("color") ? opt.get("color") : "auto";
@@ -1110,8 +1208,12 @@ public class Posix {
                     return s0 > s1 ? -1 : s0 < s1 ? 1 : path.toString().compareTo(o.path.toString());
                 }
                 if (opt.isSet("t")) {
-                    long t0 = attributes.get("lastModifiedTime") != null ? ((FileTime) attributes.get("lastModifiedTime")).toMillis() : 0L;
-                    long t1 = o.attributes.get("lastModifiedTime") != null ? ((FileTime) o.attributes.get("lastModifiedTime")).toMillis() : 0L;
+                    long t0 = attributes.get("lastModifiedTime") != null
+                            ? ((FileTime) attributes.get("lastModifiedTime")).toMillis()
+                            : 0L;
+                    long t1 = o.attributes.get("lastModifiedTime") != null
+                            ? ((FileTime) o.attributes.get("lastModifiedTime")).toMillis()
+                            : 0L;
                     return t0 > t1 ? -1 : t0 < t1 ? 1 : path.toString().compareTo(o.path.toString());
                 }
                 return path.toString().compareTo(o.path.toString());
@@ -1157,8 +1259,7 @@ public class Posix {
                     suffix = "";
                 }
                 boolean addSuffix = opt.isSet("F");
-                return applyStyle(path.toString(), colors, type)
-                        + (addSuffix ? suffix : "") + link;
+                return applyStyle(path.toString(), colors, type) + (addSuffix ? suffix : "") + link;
             }
 
             String longDisplay() {
@@ -1197,7 +1298,7 @@ public class Posix {
                     double l = length.longValue();
                     String unit = "B";
                     if (l >= 1000) {
-                         l /= 1024;
+                        l /= 1024;
                         unit = "K";
                         if (l >= 1000) {
                             l /= 1024;
@@ -1224,7 +1325,11 @@ public class Posix {
                 // TODO: all fields should be padded to align
                 return (is("isDirectory") ? "d" : (is("isSymbolicLink") ? "l" : (is("isOther") ? "o" : "-")))
                         + PosixFilePermissions.toString(perms) + " "
-                        + String.format("%3s", (attributes.containsKey("nlink") ? attributes.get("nlink").toString() : "1"))
+                        + String.format(
+                                "%3s",
+                                (attributes.containsKey("nlink")
+                                        ? attributes.get("nlink").toString()
+                                        : "1"))
                         + " " + username + " " + group + " " + lengthString + " "
                         + toString((FileTime) attributes.get("lastModifiedTime"))
                         + " " + display();
@@ -1247,11 +1352,11 @@ public class Posix {
             }
 
             protected Map<String, Object> readAttributes(Path path) {
-                Map<String, Object>  attrs = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+                Map<String, Object> attrs = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
                 for (String view : path.getFileSystem().supportedFileAttributeViews()) {
                     try {
-                        Map<String, Object> ta = Files.readAttributes(path, view + ":*",
-                                getLinkOptions(opt.isSet("L")));
+                        Map<String, Object> ta =
+                                Files.readAttributes(path, view + ":*", getLinkOptions(opt.isSet("L")));
                         ta.forEach(attrs::putIfAbsent);
                     } catch (IOException e) {
                         // Ignore
@@ -1272,28 +1377,27 @@ public class Posix {
             opt.args().forEach(s -> expanded.add(currentDir.resolve(s)));
         }
         boolean listAll = opt.isSet("a");
-        Predicate<Path> filter = p -> listAll || p.getFileName().toString().equals(".")
-                || p.getFileName().toString().equals("..") || !p.getFileName().toString().startsWith(".");
+        Predicate<Path> filter = p -> listAll
+                || p.getFileName().toString().equals(".")
+                || p.getFileName().toString().equals("..")
+                || !p.getFileName().toString().startsWith(".");
         List<PathEntry> all = expanded.stream()
                 .filter(filter)
                 .map(p -> new PathEntry(p, currentDir))
                 .sorted()
                 .collect(Collectors.toList());
         // Print files first
-        List<PathEntry> files = all.stream()
-                .filter(PathEntry::isNotDirectory)
-                .collect(Collectors.toList());
+        List<PathEntry> files = all.stream().filter(PathEntry::isNotDirectory).collect(Collectors.toList());
         PrintStream out = process.out();
         Consumer<Stream<PathEntry>> display = s -> {
-            boolean optLine  = opt.isSet("1");
+            boolean optLine = opt.isSet("1");
             boolean optComma = opt.isSet("m");
-            boolean optLong  = opt.isSet("l");
-            boolean optCol   = opt.isSet("C");
+            boolean optLong = opt.isSet("l");
+            boolean optCol = opt.isSet("C");
             if (!optLine && !optComma && !optLong && !optCol) {
                 if (process.isTty(1)) {
                     optCol = true;
-                }
-                else {
+                } else {
                     optLine = true;
                 }
             }
@@ -1320,9 +1424,8 @@ public class Posix {
             space = true;
         }
         // Print directories
-        List<PathEntry> directories = all.stream()
-                .filter(PathEntry::isDirectory)
-                .collect(Collectors.toList());
+        List<PathEntry> directories =
+                all.stream().filter(PathEntry::isDirectory).collect(Collectors.toList());
         for (PathEntry entry : directories) {
             if (space) {
                 out.println();
@@ -1332,20 +1435,25 @@ public class Posix {
             if (expanded.size() > 1) {
                 out.println(currentDir.relativize(path).toString() + ":");
             }
-            display.accept(Stream.concat(Stream.of(".", "..").map(path::resolve), Files.list(path))
-                            .filter(filter)
-                            .map(p -> new PathEntry(p, path))
-                            .sorted()
-            );
+            try (Stream<Path> pathStream = Files.list(path)) {
+                display.accept(Stream.concat(Stream.of(".", "..").map(path::resolve), pathStream)
+                        .filter(filter)
+                        .map(p -> new PathEntry(p, path))
+                        .sorted());
+            }
         }
     }
 
-    private void toColumn(CommandSession session, Process process, PrintStream out, Stream<String> ansi, boolean horizontal) {
+    private void toColumn(
+            CommandSession session, Process process, PrintStream out, Stream<String> ansi, boolean horizontal) {
         Terminal terminal = Shell.getTerminal(session);
         int width = process.isTty(1) ? terminal.getWidth() : 80;
         List<AttributedString> strings = ansi.map(AttributedString::fromAnsi).collect(Collectors.toList());
         if (!strings.isEmpty()) {
-            int max = strings.stream().mapToInt(AttributedString::columnLength).max().getAsInt();
+            int max = strings.stream()
+                    .mapToInt(AttributedString::columnLength)
+                    .max()
+                    .getAsInt();
             int c = Math.max(1, width / max);
             while (c > 1 && c * max + (c - 1) >= width) {
                 c--;
@@ -1381,10 +1489,10 @@ public class Posix {
 
     protected void cat(CommandSession session, Process process, String[] argv) throws Exception {
         final String[] usage = {
-                "cat - concatenate and print FILES",
-                "Usage: cat [OPTIONS] [FILES]",
-                "  -? --help                show help",
-                "  -n                       number the output lines, starting at 1"
+            "cat - concatenate and print FILES",
+            "Usage: cat [OPTIONS] [FILES]",
+            "  -? --help                show help",
+            "  -n                       number the output lines, starting at 1"
         };
         Options opt = parseOptions(session, usage, argv);
         List<String> args = opt.args();
@@ -1405,18 +1513,17 @@ public class Posix {
 
     protected void echo(CommandSession session, Process process, Object[] argv) throws Exception {
         final String[] usage = {
-                "echo - echoes or prints ARGUMENT to standard output",
-                "Usage: echo [OPTIONS] [ARGUMENTS]",
-                "  -? --help                show help",
-                "  -n                       no trailing new line"
+            "echo - echoes or prints ARGUMENT to standard output",
+            "Usage: echo [OPTIONS] [ARGUMENTS]",
+            "  -? --help                show help",
+            "  -n                       no trailing new line"
         };
         Options opt = parseOptions(session, usage, argv);
         List<String> args = opt.args();
         StringBuilder buf = new StringBuilder();
         if (args != null) {
             for (String arg : args) {
-                if (buf.length() > 0)
-                    buf.append(' ');
+                if (buf.length() > 0) buf.append(' ');
                 for (int i = 0; i < arg.length(); i++) {
                     int c = arg.charAt(i);
                     int ch;
@@ -1494,21 +1601,21 @@ public class Posix {
 
     protected void grep(CommandSession session, Process process, String[] argv) throws Exception {
         final String[] usage = {
-                "grep -  search for PATTERN in each FILE or standard input.",
-                "Usage: grep [OPTIONS] PATTERN [FILES]",
-                "  -? --help                Show help",
-                "  -i --ignore-case         Ignore case distinctions",
-                "  -n --line-number         Prefix each line with line number within its input file",
-                "  -q --quiet, --silent     Suppress all normal output",
-                "  -v --invert-match        Select non-matching lines",
-                "  -w --word-regexp         Select only whole words",
-                "  -x --line-regexp         Select only whole lines",
-                "  -c --count               Only print a count of matching lines per file",
-                "     --color=WHEN          Use markers to distinguish the matching string, may be `always', `never' or `auto'",
-                "  -B --before-context=NUM  Print NUM lines of leading context before matching lines",
-                "  -A --after-context=NUM   Print NUM lines of trailing context after matching lines",
-                "  -C --context=NUM         Print NUM lines of output context",
-                "     --pad-lines           Pad line numbers"
+            "grep -  search for PATTERN in each FILE or standard input.",
+            "Usage: grep [OPTIONS] PATTERN [FILES]",
+            "  -? --help                Show help",
+            "  -i --ignore-case         Ignore case distinctions",
+            "  -n --line-number         Prefix each line with line number within its input file",
+            "  -q --quiet, --silent     Suppress all normal output",
+            "  -v --invert-match        Select non-matching lines",
+            "  -w --word-regexp         Select only whole words",
+            "  -x --line-regexp         Select only whole lines",
+            "  -c --count               Only print a count of matching lines per file",
+            "     --color=WHEN          Use markers to distinguish the matching string, may be `always', `never' or `auto'",
+            "  -B --before-context=NUM  Print NUM lines of leading context before matching lines",
+            "  -A --after-context=NUM   Print NUM lines of trailing context after matching lines",
+            "  -C --context=NUM         Print NUM lines of output context",
+            "     --pad-lines           Pad line numbers"
         };
         Options opt = parseOptions(session, usage, argv);
         List<String> args = opt.args();
@@ -1570,7 +1677,8 @@ public class Posix {
             default:
                 throw new IllegalArgumentException("invalid argument ‘" + color + "’ for ‘--color’");
         }
-        Map<String, String> colors = colored ? getColorMap(session, "GREP", DEFAULT_GREP_COLORS) : Collections.emptyMap();
+        Map<String, String> colors =
+                colored ? getColorMap(session, "GREP", DEFAULT_GREP_COLORS) : Collections.emptyMap();
 
         List<Source> sources = new ArrayList<>();
         if (opt.args().isEmpty()) {
@@ -1618,8 +1726,7 @@ public class Posix {
                             }
                             sbl.append((matches ^ invertMatch) ? ":" : "-");
                         }
-                        String style = matches ^ invertMatch ^ (invertMatch && colors.containsKey("rv"))
-                                ? "sl" : "cx";
+                        String style = matches ^ invertMatch ^ (invertMatch && colors.containsKey("rv")) ? "sl" : "cx";
                         if (colored) {
                             applyStyle(sbl, colors, style);
                         }
@@ -1700,9 +1807,10 @@ public class Posix {
 
     protected void sleep(CommandSession session, Process process, String[] argv) throws Exception {
         final String[] usage = {
-                "sleep -  suspend execution for an interval of time",
-                "Usage: sleep seconds",
-                "  -? --help                    show help"};
+            "sleep -  suspend execution for an interval of time",
+            "Usage: sleep seconds",
+            "  -? --help                    show help"
+        };
 
         Options opt = parseOptions(session, usage, argv);
         List<String> args = opt.args();
@@ -1720,7 +1828,8 @@ public class Posix {
         }
     }
 
-    private static void cat(Process process, final BufferedReader reader, boolean displayLineNumbers) throws IOException {
+    private static void cat(Process process, final BufferedReader reader, boolean displayLineNumbers)
+            throws IOException {
         String line;
         int lineno = 1;
         try {
@@ -1743,7 +1852,9 @@ public class Posix {
             final String Digits = "(\\p{Digit}+)";
             final String HexDigits = "(\\p{XDigit}+)";
             final String Exp = "[eE][+-]?" + Digits;
-            final String fpRegex = "([\\x00-\\x20]*[+-]?(NaN|Infinity|(((" + Digits + "(\\.)?(" + Digits + "?)(" + Exp + ")?)|(\\.(" + Digits + ")(" + Exp + ")?)|(((0[xX]" + HexDigits + "(\\.)?)|(0[xX]" + HexDigits + "?(\\.)" + HexDigits + "))[pP][+-]?" + Digits + "))" + "[fFdD]?))[\\x00-\\x20]*)(.*)";
+            final String fpRegex = "([\\x00-\\x20]*[+-]?(NaN|Infinity|(((" + Digits + "(\\.)?(" + Digits + "?)(" + Exp
+                    + ")?)|(\\.(" + Digits + ")(" + Exp + ")?)|(((0[xX]" + HexDigits + "(\\.)?)|(0[xX]" + HexDigits
+                    + "?(\\.)" + HexDigits + "))[pP][+-]?" + Digits + "))" + "[fFdD]?))[\\x00-\\x20]*)(.*)";
             fpPattern = Pattern.compile(fpRegex);
         }
 
@@ -1754,12 +1865,13 @@ public class Posix {
         private char separator;
         private List<Key> sortKeys;
 
-        public SortComparator(boolean caseInsensitive,
-                              boolean reverse,
-                              boolean ignoreBlanks,
-                              boolean numeric,
-                              char separator,
-                              List<String> sortFields) {
+        public SortComparator(
+                boolean caseInsensitive,
+                boolean reverse,
+                boolean ignoreBlanks,
+                boolean numeric,
+                char separator,
+                List<String> sortFields) {
             this.caseInsensitive = caseInsensitive;
             this.reverse = reverse;
             this.separator = separator;
@@ -1800,10 +1912,11 @@ public class Posix {
         protected Double getDouble(String s, int start, int end) {
             Matcher m = fpPattern.matcher(s.substring(start, end));
             m.find();
-            return new Double(s.substring(0, m.end(1)));
+            return Double.valueOf(s.substring(0, m.end(1)));
         }
 
-        protected int compareRegion(String s1, int start1, int end1, String s2, int start2, int end2, boolean caseInsensitive) {
+        protected int compareRegion(
+                String s1, int start1, int end1, String s2, int start2, int end2, boolean caseInsensitive) {
             for (int i1 = start1, i2 = start2; i1 < end1 && i2 < end2; i1++, i2++) {
                 char c1 = s1.charAt(i1);
                 char c2 = s2.charAt(i2);
@@ -1832,7 +1945,8 @@ public class Posix {
             if (key.startField * 2 <= fields.size()) {
                 start = fields.get((key.startField - 1) * 2);
                 if (key.ignoreBlanksStart) {
-                    while (start < fields.get((key.startField - 1) * 2 + 1) && Character.isWhitespace(str.charAt(start))) {
+                    while (start < fields.get((key.startField - 1) * 2 + 1)
+                            && Character.isWhitespace(str.charAt(start))) {
                         start++;
                     }
                 }
@@ -1855,7 +1969,7 @@ public class Posix {
             } else {
                 end = str.length();
             }
-            return new int[]{start, end};
+            return new int[] {start, end};
         }
 
         protected List<Integer> getFieldIndexes(String o) {
@@ -1996,7 +2110,7 @@ public class Posix {
     private static LinkOption[] getLinkOptions(boolean followLinks) {
         if (followLinks) {
             return EMPTY_LINK_OPTIONS;
-        } else {    // return a clone that modifications to the array will not affect others
+        } else { // return a clone that modifications to the array will not affect others
             return NO_FOLLOW_OPTIONS.clone();
         }
     }
@@ -2058,8 +2172,7 @@ public class Posix {
         }
         String sep = str.matches("[a-z]{2}=[0-9]*(;[0-9]+)*(:[a-z]{2}=[0-9]*(;[0-9]+)*)*") ? ":" : " ";
         return Arrays.stream(str.split(sep))
-                .collect(Collectors.toMap(s -> s.substring(0, s.indexOf('=')),
-                                          s -> s.substring(s.indexOf('=') + 1)));
+                .collect(Collectors.toMap(s -> s.substring(0, s.indexOf('=')), s -> s.substring(s.indexOf('=') + 1)));
     }
 
     static String applyStyle(String text, Map<String, String> colors, String... types) {
@@ -2070,8 +2183,7 @@ public class Posix {
                 break;
             }
         }
-        return new AttributedString(text, new StyleResolver(colors::get).resolve("." + t))
-                .toAnsi();
+        return new AttributedString(text, new StyleResolver(colors::get).resolve("." + t)).toAnsi();
     }
 
     static void applyStyle(AttributedStringBuilder sb, Map<String, String> colors, String... types) {

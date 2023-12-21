@@ -1,11 +1,12 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2016, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
+package org.jline.builtins;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -33,8 +34,6 @@
  * See http://www.ecma-international.org/publications/standards/Ecma-048.htm
  *       and http://vt100.net/docs/vt510-rm/
  */
-package org.jline.builtins;
-
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -87,15 +86,15 @@ public class ScreenTerminal {
     private boolean vt100_mode_backspace;
     private boolean vt100_mode_column_switch;
     private boolean vt100_keyfilter_escape;
-    private int[] vt100_charset_graph = new int[]{
-            0x25ca, 0x2026, 0x2022, 0x3f,
-            0xb6, 0x3f, 0xb0, 0xb1,
-            0x3f, 0x3f, 0x2b, 0x2b,
-            0x2b, 0x2b, 0x2b, 0xaf,
-            0x2014, 0x2014, 0x2014, 0x5f,
-            0x2b, 0x2b, 0x2b, 0x2b,
-            0x7c, 0x2264, 0x2265, 0xb6,
-            0x2260, 0xa3, 0xb7, 0x7f
+    private int[] vt100_charset_graph = new int[] {
+        0x25ca, 0x2026, 0x2022, 0x3f,
+        0xb6, 0x3f, 0xb0, 0xb1,
+        0x3f, 0x3f, 0x2b, 0x2b,
+        0x2b, 0x2b, 0x2b, 0xaf,
+        0x2014, 0x2014, 0x2014, 0x5f,
+        0x2b, 0x2b, 0x2b, 0x2b,
+        0x7c, 0x2264, 0x2265, 0xb6,
+        0x2260, 0xa3, 0xb7, 0x7f
     };
     private int vt100_charset_g_sel;
     private int[] vt100_charset_g = {0, 0};
@@ -171,7 +170,7 @@ public class ScreenTerminal {
         vt100_charset_is_single_shift = false;
         vt100_charset_is_graphical = false;
         vt100_charset_g_sel = 0;
-        vt100_charset_g = new int[]{0, 0};
+        vt100_charset_g = new int[] {0, 0};
         // Modes
         vt100_mode_insert = false;
         vt100_mode_lfnewline = false;
@@ -226,8 +225,7 @@ public class ScreenTerminal {
         int from = width * y0 + x0;
         int to = width * (y1 - 1) + x1;
         int newLength = to - from;
-        if (newLength < 0)
-            throw new IllegalArgumentException(from + " > " + to);
+        if (newLength < 0) throw new IllegalArgumentException(from + " > " + to);
         long[] copy = new long[newLength];
         int cur = from;
         while (cur < to) {
@@ -352,7 +350,7 @@ public class ScreenTerminal {
             wx += utf8_charwidth(c);
             lx += 1;
         }
-        return new int[]{wx, lx};
+        return new int[] {wx, lx};
     }
 
     private void cursor_up() {
@@ -491,7 +489,7 @@ public class ScreenTerminal {
         } else if (vt100_charset_is_graphical && ((c & 0xffe0) == 0x0060)) {
             c = vt100_charset_graph[c - 0x60];
         }
-        poke(cy, cx, new long[]{attr | c});
+        poke(cy, cx, new long[] {attr | c});
         cursor_right();
     }
 
@@ -527,18 +525,18 @@ public class ScreenTerminal {
                     // Insertion replacement mode
                     vt100_mode_insert = state;
                     break;
-                // 5 : SRTM: Status reporting transfer
-                // 7 : VEM: Vertical editing
-                // 10 : HEM: Horizontal editing
-                // 11 : PUM: Positioning nit
-                // 12 : SRM: Send/receive
-                // 13 : FEAM: Format effector action
-                // 14 : FETM: Format effector transfer
-                // 15 : MATM: Multiple area transfer
-                // 16 : TTM: Transfer termination
-                // 17 : SATM: Selected area transfer
-                // 18 : TSM: Tabulation stop
-                // 19 : EBM: Editing boundary
+                    // 5 : SRTM: Status reporting transfer
+                    // 7 : VEM: Vertical editing
+                    // 10 : HEM: Horizontal editing
+                    // 11 : PUM: Positioning nit
+                    // 12 : SRM: Send/receive
+                    // 13 : FEAM: Format effector action
+                    // 14 : FETM: Format effector transfer
+                    // 15 : MATM: Multiple area transfer
+                    // 16 : TTM: Transfer termination
+                    // 17 : SATM: Selected area transfer
+                    // 18 : TSM: Tabulation stop
+                    // 19 : EBM: Editing boundary
                 case "20":
                     // LNM: Line feed/new line
                     vt100_mode_lfnewline = state;
@@ -547,7 +545,7 @@ public class ScreenTerminal {
                     // DECCKM: Cursor keys
                     vt100_mode_cursorkey = state;
                     break;
-                // ?2 : DECANM: ANSI
+                    // ?2 : DECANM: ANSI
                 case "?3":
                     // DECCOLM: Column
                     if (vt100_mode_column_switch) {
@@ -559,7 +557,7 @@ public class ScreenTerminal {
                         reset_screen();
                     }
                     break;
-                // ?4 : DECSCLM: Scrolling
+                    // ?4 : DECSCLM: Scrolling
                 case "?5":
                     // DECSCNM: Screen
                     vt100_mode_inverse = state;
@@ -577,22 +575,22 @@ public class ScreenTerminal {
                     // DECAWM: Autowrap
                     vt100_mode_autowrap = state;
                     break;
-                // ?8 : DECARM: Autorepeat
-                // ?9 : Interlacing
-                // ?18 : DECPFF: Print form feed
-                // ?19 : DECPEX: Printer extent
+                    // ?8 : DECARM: Autorepeat
+                    // ?9 : Interlacing
+                    // ?18 : DECPFF: Print form feed
+                    // ?19 : DECPEX: Printer extent
                 case "?25":
                     // DECTCEM: Text cursor enable
                     vt100_mode_cursor = state;
                     break;
-                // ?34 : DECRLM: Cursor direction, right to left
-                // ?35 : DECHEBM: Hebrew keyboard mapping
-                // ?36 : DECHEM: Hebrew encoding mode
+                    // ?34 : DECRLM: Cursor direction, right to left
+                    // ?35 : DECHEBM: Hebrew keyboard mapping
+                    // ?36 : DECHEM: Hebrew encoding mode
                 case "?40":
                     // Column switch control
                     vt100_mode_column_switch = state;
                     break;
-                // ?42 : DECNRCM: National replacement character set
+                    // ?42 : DECNRCM: National replacement character set
                 case "?1049":
                     // Alternate screen mode
                     if ((state && !vt100_mode_alt_screen) || (!state && vt100_mode_alt_screen)) {
@@ -612,14 +610,14 @@ public class ScreenTerminal {
                     }
                     vt100_mode_alt_screen = state;
                     break;
-                // ?57 : DECNAKB: Greek keyboard mapping
+                    // ?57 : DECNAKB: Greek keyboard mapping
                 case "?67":
                     // DECBKM: Backarrow key
                     vt100_mode_backspace = state;
                     break;
-                // ?98 : DECARSM: auto-resize
-                // ?101 : DECCANSM: Conceal answerback message
-                // ?109 : DECCAPSLK: caps lock
+                    // ?98 : DECARSM: auto-resize
+                    // ?101 : DECCANSM: Conceal answerback message
+                    // ?109 : DECCAPSLK: caps lock
             }
         }
     }
@@ -743,8 +741,7 @@ public class ScreenTerminal {
         csi_DA("0");
     }
 
-    private void esc_ST() {
-    }
+    private void esc_ST() {}
 
     private void esc_OSC() {
         vt100_parse_reset(State.Str);
@@ -763,27 +760,27 @@ public class ScreenTerminal {
     }
 
     private void csi_ICH(String p) {
-        int[] ps = vt100_parse_params(p, new int[]{1});
+        int[] ps = vt100_parse_params(p, new int[] {1});
         scroll_line_right(cy, cx, ps[0]);
     }
 
     private void csi_CUU(String p) {
-        int[] ps = vt100_parse_params(p, new int[]{1});
+        int[] ps = vt100_parse_params(p, new int[] {1});
         cursor_up(Math.max(1, ps[0]));
     }
 
     private void csi_CUD(String p) {
-        int[] ps = vt100_parse_params(p, new int[]{1});
+        int[] ps = vt100_parse_params(p, new int[] {1});
         cursor_down(Math.max(1, ps[0]));
     }
 
     private void csi_CUF(String p) {
-        int[] ps = vt100_parse_params(p, new int[]{1});
+        int[] ps = vt100_parse_params(p, new int[] {1});
         cursor_right(Math.max(1, ps[0]));
     }
 
     private void csi_CUB(String p) {
-        int[] ps = vt100_parse_params(p, new int[]{1});
+        int[] ps = vt100_parse_params(p, new int[] {1});
         cursor_left(Math.max(1, ps[0]));
     }
 
@@ -798,12 +795,12 @@ public class ScreenTerminal {
     }
 
     private void csi_CHA(String p) {
-        int[] ps = vt100_parse_params(p, new int[]{1});
+        int[] ps = vt100_parse_params(p, new int[] {1});
         cursor_set_x(ps[0] - 1);
     }
 
     private void csi_CUP(String p) {
-        int[] ps = vt100_parse_params(p, new int[]{1, 1});
+        int[] ps = vt100_parse_params(p, new int[] {1, 1});
         if (vt100_mode_origin) {
             cursor_set(scroll_area_y0 + ps[0] - 1, ps[1] - 1);
         } else {
@@ -812,12 +809,12 @@ public class ScreenTerminal {
     }
 
     private void csi_CHT(String p) {
-        int[] ps = vt100_parse_params(p, new int[]{1});
+        int[] ps = vt100_parse_params(p, new int[] {1});
         ctrl_HT(Math.max(1, ps[0]));
     }
 
     private void csi_ED(String p) {
-        String[] ps = vt100_parse_params(p, new String[]{"0"});
+        String[] ps = vt100_parse_params(p, new String[] {"0"});
         if ("0".equals(ps[0])) {
             clear(cy, cx, height, width);
         } else if ("1".equals(ps[0])) {
@@ -828,7 +825,7 @@ public class ScreenTerminal {
     }
 
     private void csi_EL(String p) {
-        String[] ps = vt100_parse_params(p, new String[]{"0"});
+        String[] ps = vt100_parse_params(p, new String[] {"0"});
         if ("0".equals(ps[0])) {
             clear(cy, cx, cy + 1, width);
         } else if ("1".equals(ps[0])) {
@@ -839,36 +836,36 @@ public class ScreenTerminal {
     }
 
     private void csi_IL(String p) {
-        int[] ps = vt100_parse_params(p, new int[]{1});
+        int[] ps = vt100_parse_params(p, new int[] {1});
         if (cy >= scroll_area_y0 && cy < scroll_area_y1) {
             scroll_area_down(cy, scroll_area_y1, Math.max(1, ps[0]));
         }
     }
 
     private void csi_DL(String p) {
-        int[] ps = vt100_parse_params(p, new int[]{1});
+        int[] ps = vt100_parse_params(p, new int[] {1});
         if (cy >= scroll_area_y0 && cy < scroll_area_y1) {
             scroll_area_up(cy, scroll_area_y1, Math.max(1, ps[0]));
         }
     }
 
     private void csi_DCH(String p) {
-        int[] ps = vt100_parse_params(p, new int[]{1});
+        int[] ps = vt100_parse_params(p, new int[] {1});
         scroll_line_left(cy, cx, Math.max(1, ps[0]));
     }
 
     private void csi_SU(String p) {
-        int[] ps = vt100_parse_params(p, new int[]{1});
+        int[] ps = vt100_parse_params(p, new int[] {1});
         scroll_area_up(scroll_area_y0, scroll_area_y1, Math.max(1, ps[0]));
     }
 
     private void csi_SD(String p) {
-        int[] ps = vt100_parse_params(p, new int[]{1});
+        int[] ps = vt100_parse_params(p, new int[] {1});
         scroll_area_down(scroll_area_y0, scroll_area_y1, Math.max(1, ps[0]));
     }
 
     private void csi_CTC(String p) {
-        String[] ps = vt100_parse_params(p, new String[]{"0"});
+        String[] ps = vt100_parse_params(p, new String[] {"0"});
         for (String m : ps) {
             if ("0".equals(m)) {
                 if (tab_stops.indexOf(cx) < 0) {
@@ -884,18 +881,18 @@ public class ScreenTerminal {
     }
 
     private void csi_ECH(String p) {
-        int[] ps = vt100_parse_params(p, new int[]{1});
+        int[] ps = vt100_parse_params(p, new int[] {1});
         int n = Math.min(width - cx, Math.max(1, ps[0]));
         clear(cy, cx, cy + 1, cx + n);
     }
 
     private void csi_CBT(String p) {
-        int[] ps = vt100_parse_params(p, new int[]{1});
+        int[] ps = vt100_parse_params(p, new int[] {1});
         ctrl_HT(1 - Math.max(1, ps[0]));
     }
 
     private void csi_HPA(String p) {
-        int[] ps = vt100_parse_params(p, new int[]{1});
+        int[] ps = vt100_parse_params(p, new int[] {1});
         cursor_set_x(ps[0] - 1);
     }
 
@@ -904,7 +901,7 @@ public class ScreenTerminal {
     }
 
     private void csi_REP(String p) {
-        int[] ps = vt100_parse_params(p, new int[]{1});
+        int[] ps = vt100_parse_params(p, new int[] {1});
         if (vt100_lastchar < 32) {
             return;
         }
@@ -916,7 +913,7 @@ public class ScreenTerminal {
     }
 
     private void csi_DA(String p) {
-        String[] ps = vt100_parse_params(p, new String[]{"0"});
+        String[] ps = vt100_parse_params(p, new String[] {"0"});
         if ("0".equals(ps[0])) {
             vt100_out = "\u001b[?1;2c";
         } else if (">0".equals(ps[0]) || ">".equals(ps[0])) {
@@ -925,7 +922,7 @@ public class ScreenTerminal {
     }
 
     private void csi_VPA(String p) {
-        int[] ps = vt100_parse_params(p, new int[]{1});
+        int[] ps = vt100_parse_params(p, new int[] {1});
         cursor_set_y(ps[0] - 1);
     }
 
@@ -938,7 +935,7 @@ public class ScreenTerminal {
     }
 
     private void csi_TBC(String p) {
-        String[] ps = vt100_parse_params(p, new String[]{"0"});
+        String[] ps = vt100_parse_params(p, new String[] {"0"});
         if ("0".equals(ps[0])) {
             csi_CTC("2");
         } else if ("3".equals(ps[0])) {
@@ -964,7 +961,7 @@ public class ScreenTerminal {
         //      Bit 1 - Background set
         //	F:	Foreground r-g-b
         //	B:	Background r-g-b
-        int[] ps = vt100_parse_params(p, new int[]{0});
+        int[] ps = vt100_parse_params(p, new int[] {0});
         for (int i = 0; i < ps.length; i++) {
             int m = ps[i];
             if (m == 0) {
@@ -1022,7 +1019,7 @@ public class ScreenTerminal {
     }
 
     private void csi_DSR(String p) {
-        String[] ps = vt100_parse_params(p, new String[]{"0"});
+        String[] ps = vt100_parse_params(p, new String[] {"0"});
         if ("5".equals(ps[0])) {
             vt100_out = "\u001b[0n";
         } else if ("6".equals(ps[0])) {
@@ -1048,7 +1045,7 @@ public class ScreenTerminal {
     }
 
     private void csi_DECSTBM(String p) {
-        int[] ps = vt100_parse_params(p, new int[]{1, height});
+        int[] ps = vt100_parse_params(p, new int[] {1, height});
         scroll_area_set(ps[0] - 1, ps[1]);
         if (vt100_mode_origin) {
             cursor_set(scroll_area_y0, 0);
@@ -1575,7 +1572,7 @@ public class ScreenTerminal {
                             vt100_parse_func <<= 8;
                             vt100_parse_func += (char) c;
                         } else if (msb == 0x30 && vt100_parse_state == State.Csi) {
-                            vt100_parse_param += new String(new char[]{(char) c});
+                            vt100_parse_param += String.valueOf((char) c);
                         } else {
                             vt100_parse_func <<= 8;
                             vt100_parse_func += (char) c;
@@ -1649,8 +1646,7 @@ public class ScreenTerminal {
             }
             screen = Arrays.copyOfRange(screen, needed, screen.length);
             cy -= needed;
-        }
-        else if (h > height) {
+        } else if (h > height) {
             int needed = h - height;
             // Pull lines from history
             int avail = history.size();
@@ -1933,7 +1929,13 @@ public class ScreenTerminal {
                         } else {
                             b = "";
                         }
-                        sb.append("<span class='f").append(fg).append(" b").append(bg).append(ul).append(b).append("'>");
+                        sb.append("<span class='f")
+                                .append(fg)
+                                .append(" b")
+                                .append(bg)
+                                .append(ul)
+                                .append(b)
+                                .append("'>");
                         prev_attr = a;
                     }
                     switch (c) {

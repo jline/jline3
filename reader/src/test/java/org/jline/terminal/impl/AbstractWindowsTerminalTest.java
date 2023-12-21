@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2016, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -17,9 +17,9 @@ import java.nio.charset.Charset;
 import org.jline.reader.impl.LineReaderImpl;
 import org.jline.terminal.Size;
 import org.jline.utils.AnsiWriter;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class AbstractWindowsTerminalTest {
 
@@ -30,14 +30,15 @@ public class AbstractWindowsTerminalTest {
         String str = LineReaderImpl.BRACKETED_PASTE_BEGIN + "abcd";
         str.chars().forEachOrdered(c -> process(terminal, c));
         new Thread(() -> {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                // ignore
-            }
-            LineReaderImpl.BRACKETED_PASTE_END.chars().forEachOrdered(c -> process(terminal, c));
-            "\n".chars().forEachOrdered(c -> process(terminal, c));
-        }).start();
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        // ignore
+                    }
+                    LineReaderImpl.BRACKETED_PASTE_END.chars().forEachOrdered(c -> process(terminal, c));
+                    "\n".chars().forEachOrdered(c -> process(terminal, c));
+                })
+                .start();
         LineReaderImpl reader = new LineReaderImpl(terminal);
         String res = reader.readLine();
         assertEquals("abcd", res);
@@ -48,14 +49,25 @@ public class AbstractWindowsTerminalTest {
         StringWriter sw = new StringWriter();
         TestTerminal terminal = new TestTerminal(sw);
         new Thread(() -> {
-            StringBuilder str = new StringBuilder(LineReaderImpl.BRACKETED_PASTE_BEGIN);
-            for (int i = 0; i < 100000; i++) {
-                str.append("0123456789");
-            }
-            str.append(LineReaderImpl.BRACKETED_PASTE_END);
-            str.append("\n");
-            str.toString().chars().forEachOrdered(c -> process(terminal, c));
-        }).start();
+                    StringBuilder str = new StringBuilder(LineReaderImpl.BRACKETED_PASTE_BEGIN);
+                    for (int i = 0; i < 100000; i++) {
+                        str.append("0123456789");
+                    }
+                    str.toString().chars().forEachOrdered(c -> process(terminal, c));
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    str.setLength(0);
+                    for (int i = 0; i < 100000; i++) {
+                        str.append("0123456789");
+                    }
+                    str.append(LineReaderImpl.BRACKETED_PASTE_END);
+                    str.append("\n");
+                    str.toString().chars().forEachOrdered(c -> process(terminal, c));
+                })
+                .start();
         LineReaderImpl reader = new LineReaderImpl(terminal);
         String res = reader.readLine();
     }
@@ -68,22 +80,30 @@ public class AbstractWindowsTerminalTest {
         }
     }
 
-    private static class TestTerminal extends AbstractWindowsTerminal {
+    private static class TestTerminal extends AbstractWindowsTerminal<Object> {
         public TestTerminal(StringWriter sw) throws IOException {
-            super(new AnsiWriter(new BufferedWriter(sw)), "name",
-                    AbstractWindowsTerminal.TYPE_DUMB,
-                    Charset.defaultCharset(), 0,
-                    false, SignalHandler.SIG_DFL);
+            super(
+                    null,
+                    null,
+                    new AnsiWriter(new BufferedWriter(sw)),
+                    "name",
+                    "windows",
+                    Charset.defaultCharset(),
+                    false,
+                    SignalHandler.SIG_DFL,
+                    null,
+                    0,
+                    null,
+                    0);
         }
 
         @Override
-        protected int getConsoleMode() {
+        protected int getConsoleMode(Object console) {
             return 0;
         }
 
         @Override
-        protected void setConsoleMode(int mode) {
-        }
+        protected void setConsoleMode(Object console, int mode) {}
 
         @Override
         protected boolean processConsoleInput() throws IOException {

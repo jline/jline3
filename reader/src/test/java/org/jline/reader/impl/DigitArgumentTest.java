@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2016, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -9,7 +9,7 @@
 package org.jline.reader.impl;
 
 import org.jline.reader.Reference;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.jline.keymap.KeyMap.alt;
 import static org.jline.keymap.KeyMap.ctrl;
@@ -30,7 +30,6 @@ public class DigitArgumentTest extends ReaderTestSupport {
                 .enter();
         assertLine("0123", b, true);
     }
-
 
     @Test
     public void testSelfInsert() throws Exception {

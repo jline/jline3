@@ -16,7 +16,7 @@
     <parent>
         <groupId>org.jline</groupId>
         <artifactId>jline-parent</artifactId>
-        <version>3.21.1-SNAPSHOT</version>
+        <version>3.25.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>jline-terminal</artifactId>
@@ -24,9 +24,15 @@
 
     <properties>
         <automatic.module.name>org.jline.terminal</automatic.module.name>
+        <javadocOptions>--enable-preview --release 21</javadocOptions>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-native</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.easymock</groupId>
             <artifactId>easymock</artifactId>
@@ -34,8 +40,8 @@
         </dependency>
 
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -48,10 +54,8 @@
                 <configuration>
                     <instructions>
                         <Export-Package>*;-noimport:=true</Export-Package>
-                        <Import-Package>
-                            sun.misc;resolution:=optional,
-                            *
-                        </Import-Package>
+                        <Import-Package>sun.misc;resolution:=optional,
+                            *</Import-Package>
                     </instructions>
                 </configuration>
             </plugin>

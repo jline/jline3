@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2020, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -9,12 +9,11 @@
 package org.jline.reader.impl;
 
 import org.jline.reader.CompletingParsedLine;
-import org.jline.reader.ParsedLine;
 import org.jline.reader.Parser.ParseContext;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class DefaultParserTest {
 
@@ -70,7 +69,8 @@ public class DefaultParserTest {
     @Test
     public void testSplitLine() {
         DefaultParser parser = new DefaultParser();
-        CompletingParsedLine line = (CompletingParsedLine) parser.parse("foo second\\ param \"quoted param\"", 0, ParseContext.SPLIT_LINE);
+        CompletingParsedLine line =
+                (CompletingParsedLine) parser.parse("foo second\\ param \"quoted param\"", 0, ParseContext.SPLIT_LINE);
         assertNotNull(line);
         assertNotNull(line.words());
         assertEquals("foo", line.words().get(0));

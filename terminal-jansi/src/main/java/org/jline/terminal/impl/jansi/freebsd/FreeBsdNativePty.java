@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2017, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,32 +8,45 @@
  */
 package org.jline.terminal.impl.jansi.freebsd;
 
-import org.fusesource.jansi.internal.CLibrary;
-import org.jline.terminal.Attributes;
-import org.jline.terminal.Size;
-import org.jline.terminal.impl.jansi.JansiNativePty;
-
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.util.EnumMap;
 import java.util.EnumSet;
 
+import org.fusesource.jansi.internal.CLibrary;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Size;
+import org.jline.terminal.impl.jansi.JansiNativePty;
+import org.jline.terminal.spi.SystemStream;
+import org.jline.terminal.spi.TerminalProvider;
+
 public class FreeBsdNativePty extends JansiNativePty {
 
-    public static FreeBsdNativePty current() throws IOException {
+    public static FreeBsdNativePty current(TerminalProvider provider, SystemStream systemStream) throws IOException {
         try {
-            String name = ttyname();
-            return new FreeBsdNativePty(-1, null, 0, FileDescriptor.in, 1, FileDescriptor.out, name);
+            switch (systemStream) {
+                case Output:
+                    return new FreeBsdNativePty(
+                            provider, systemStream, -1, null, 0, FileDescriptor.in, 1, FileDescriptor.out, ttyname());
+                case Error:
+                    return new FreeBsdNativePty(
+                            provider, systemStream, -1, null, 0, FileDescriptor.in, 2, FileDescriptor.err, ttyname());
+                default:
+                    throw new IllegalArgumentException("Unsupport stream for console: " + systemStream);
+            }
         } catch (IOException e) {
             throw new IOException("Not a tty", e);
         }
     }
 
-    public static FreeBsdNativePty open(Attributes attr, Size size) throws IOException {
+    public static FreeBsdNativePty open(TerminalProvider provider, Attributes attr, Size size) throws IOException {
         int[] master = new int[1];
         int[] slave = new int[1];
         byte[] buf = new byte[64];
-        CLibrary.openpty(master, slave, buf,
+        CLibrary.openpty(
+                master,
+                slave,
+                buf,
                 attr != null ? termios(attr) : null,
                 size != null ? new CLibrary.WinSize((short) size.getRows(), (short) size.getColumns()) : null);
         int len = 0;
@@ -41,90 +54,107 @@ public class FreeBsdNativePty extends JansiNativePty {
             len++;
         }
         String name = new String(buf, 0, len);
-        return new FreeBsdNativePty(master[0], newDescriptor(master[0]), slave[0], newDescriptor(slave[0]), name);
+        return new FreeBsdNativePty(
+                provider, null, master[0], newDescriptor(master[0]), slave[0], newDescriptor(slave[0]), name);
     }
 
-    public FreeBsdNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, String name) {
-        super(master, masterFD, slave, slaveFD, name);
+    public FreeBsdNativePty(
+            TerminalProvider provider,
+            SystemStream systemStream,
+            int master,
+            FileDescriptor masterFD,
+            int slave,
+            FileDescriptor slaveFD,
+            String name) {
+        super(provider, systemStream, master, masterFD, slave, slaveFD, name);
     }
 
-    public FreeBsdNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, int slaveOut, FileDescriptor slaveOutFD, String name) {
-        super(master, masterFD, slave, slaveFD, slaveOut, slaveOutFD, name);
+    public FreeBsdNativePty(
+            TerminalProvider provider,
+            SystemStream systemStream,
+            int master,
+            FileDescriptor masterFD,
+            int slave,
+            FileDescriptor slaveFD,
+            int slaveOut,
+            FileDescriptor slaveOutFD,
+            String name) {
+        super(provider, systemStream, master, masterFD, slave, slaveFD, slaveOut, slaveOutFD, name);
     }
     // CONSTANTS
 
-    private static final int VEOF        = 0;
-    private static final int VEOL        = 1;
-    private static final int VEOL2       = 2;
-    private static final int VERASE      = 3;
-    private static final int VWERASE     = 4;
-    private static final int VKILL       = 5;
-    private static final int VREPRINT    = 6;
-    private static final int VERASE2     = 7;
-    private static final int VINTR       = 8;
-    private static final int VQUIT       = 9;
-    private static final int VSUSP       = 10;
-    private static final int VDSUSP      = 11;
-    private static final int VSTART      = 12;
-    private static final int VSTOP       = 13;
-    private static final int VLNEXT      = 14;
-    private static final int VDISCARD    = 15;
-    private static final int VMIN        = 16;
-    private static final int VTIME       = 17;
-    private static final int VSTATUS     = 18;
+    private static final int VEOF = 0;
+    private static final int VEOL = 1;
+    private static final int VEOL2 = 2;
+    private static final int VERASE = 3;
+    private static final int VWERASE = 4;
+    private static final int VKILL = 5;
+    private static final int VREPRINT = 6;
+    private static final int VERASE2 = 7;
+    private static final int VINTR = 8;
+    private static final int VQUIT = 9;
+    private static final int VSUSP = 10;
+    private static final int VDSUSP = 11;
+    private static final int VSTART = 12;
+    private static final int VSTOP = 13;
+    private static final int VLNEXT = 14;
+    private static final int VDISCARD = 15;
+    private static final int VMIN = 16;
+    private static final int VTIME = 17;
+    private static final int VSTATUS = 18;
 
-    private static final int IGNBRK =   0x0000001;
-    private static final int BRKINT =   0x0000002;
-    private static final int IGNPAR =   0x0000004;
-    private static final int PARMRK =   0x0000008;
-    private static final int INPCK =    0x0000010;
-    private static final int ISTRIP =   0x0000020;
-    private static final int INLCR =    0x0000040;
-    private static final int IGNCR =    0x0000080;
-    private static final int ICRNL =    0x0000100;
-    private static final int IXON =     0x0000200;
-    private static final int IXOFF =    0x0000400;
-    private static final int IXANY =    0x0000800;
-    private static final int IMAXBEL =  0x0002000;
+    private static final int IGNBRK = 0x0000001;
+    private static final int BRKINT = 0x0000002;
+    private static final int IGNPAR = 0x0000004;
+    private static final int PARMRK = 0x0000008;
+    private static final int INPCK = 0x0000010;
+    private static final int ISTRIP = 0x0000020;
+    private static final int INLCR = 0x0000040;
+    private static final int IGNCR = 0x0000080;
+    private static final int ICRNL = 0x0000100;
+    private static final int IXON = 0x0000200;
+    private static final int IXOFF = 0x0000400;
+    private static final int IXANY = 0x0000800;
+    private static final int IMAXBEL = 0x0002000;
 
-    private static final int OPOST =    0x0000001;
-    private static final int ONLCR =    0x0000002;
-    private static final int TABDLY =   0x0000004;
-    private static final int TAB0 =   0x0000000;
-    private static final int TAB3 =   0x0000004;
-    private static final int ONOEOT =   0x0000008;
-    private static final int OCRNL =    0x0000010;
-    private static final int ONLRET =   0x0000040;
+    private static final int OPOST = 0x0000001;
+    private static final int ONLCR = 0x0000002;
+    private static final int TABDLY = 0x0000004;
+    private static final int TAB0 = 0x0000000;
+    private static final int TAB3 = 0x0000004;
+    private static final int ONOEOT = 0x0000008;
+    private static final int OCRNL = 0x0000010;
+    private static final int ONLRET = 0x0000040;
 
-    private static final int CIGNORE =  0x0000001;
-    private static final int CSIZE =    0x0000300;
-    private static final int CS5 =    0x0000000;
-    private static final int CS6 =    0x0000100;
-    private static final int CS7 =    0x0000200;
-    private static final int CS8 =    0x0000300;
-    private static final int CSTOPB =   0x0000400;
-    private static final int CREAD =    0x0000800;
-    private static final int PARENB =   0x0001000;
-    private static final int PARODD =   0x0002000;
-    private static final int HUPCL =    0x0004000;
-    private static final int CLOCAL =   0x0008000;
+    private static final int CIGNORE = 0x0000001;
+    private static final int CSIZE = 0x0000300;
+    private static final int CS5 = 0x0000000;
+    private static final int CS6 = 0x0000100;
+    private static final int CS7 = 0x0000200;
+    private static final int CS8 = 0x0000300;
+    private static final int CSTOPB = 0x0000400;
+    private static final int CREAD = 0x0000800;
+    private static final int PARENB = 0x0001000;
+    private static final int PARODD = 0x0002000;
+    private static final int HUPCL = 0x0004000;
+    private static final int CLOCAL = 0x0008000;
 
-    private static final int ECHOKE =   0x0000001;
-    private static final int ECHOE =    0x0000002;
-    private static final int ECHOK =    0x0000004;
-    private static final int ECHO =     0x0000008;
-    private static final int ECHONL =   0x0000010;
-    private static final int ECHOPRT =  0x0000020;
-    private static final int ECHOCTL =  0x0000040;
-    private static final int ISIG =     0x0000080;
-    private static final int ICANON =   0x0000100;
+    private static final int ECHOKE = 0x0000001;
+    private static final int ECHOE = 0x0000002;
+    private static final int ECHOK = 0x0000004;
+    private static final int ECHO = 0x0000008;
+    private static final int ECHONL = 0x0000010;
+    private static final int ECHOPRT = 0x0000020;
+    private static final int ECHOCTL = 0x0000040;
+    private static final int ISIG = 0x0000080;
+    private static final int ICANON = 0x0000100;
     private static final int ALTWERASE = 0x000200;
-    private static final int IEXTEN =   0x0000400;
-    private static final int EXTPROC =  0x0000800;
-    private static final int TOSTOP =   0x0400000;
-    private static final int FLUSHO =   0x0800000;
-    private static final int PENDIN =   0x2000000;
-    private static final int NOFLSH =   0x8000000;
+    private static final int IEXTEN = 0x0000400;
+    private static final int EXTPROC = 0x0000800;
+    private static final int TOSTOP = 0x0400000;
+    private static final int FLUSHO = 0x0800000;
+    private static final int PENDIN = 0x2000000;
+    private static final int NOFLSH = 0x8000000;
 
     protected CLibrary.Termios toTermios(Attributes t) {
         return termios(t);
@@ -145,23 +175,23 @@ public class FreeBsdNativePty extends JansiNativePty {
         tio.c_iflag = setFlag(t.getInputFlag(Attributes.InputFlag.IXOFF), IXOFF, tio.c_iflag);
         tio.c_iflag = setFlag(t.getInputFlag(Attributes.InputFlag.IXANY), IXANY, tio.c_iflag);
         tio.c_iflag = setFlag(t.getInputFlag(Attributes.InputFlag.IMAXBEL), IMAXBEL, tio.c_iflag);
-//        tio.c_iflag = setFlag(t.getInputFlag(Attributes.InputFlag.IUTF8), IUTF8, tio.c_iflag);
+        //        tio.c_iflag = setFlag(t.getInputFlag(Attributes.InputFlag.IUTF8), IUTF8, tio.c_iflag);
         // Output flags
         tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.OPOST), OPOST, tio.c_oflag);
         tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.ONLCR), ONLCR, tio.c_oflag);
-//        tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.OXTABS), OXTABS, tio.c_oflag);
+        //        tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.OXTABS), OXTABS, tio.c_oflag);
         tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.ONOEOT), ONOEOT, tio.c_oflag);
         tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.OCRNL), OCRNL, tio.c_oflag);
-//        tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.ONOCR), ONOCR, tio.c_oflag);
+        //        tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.ONOCR), ONOCR, tio.c_oflag);
         tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.ONLRET), ONLRET, tio.c_oflag);
-//        tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.OFILL), OFILL, tio.c_oflag);
-//        tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.NLDLY), NLDLY, tio.c_oflag);
+        //        tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.OFILL), OFILL, tio.c_oflag);
+        //        tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.NLDLY), NLDLY, tio.c_oflag);
         tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.TABDLY), TABDLY, tio.c_oflag);
-//        tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.CRDLY), CRDLY, tio.c_oflag);
-//        tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.FFDLY), FFDLY, tio.c_oflag);
-//        tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.BSDLY), BSDLY, tio.c_oflag);
-//        tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.VTDLY), VTDLY, tio.c_oflag);
-//        tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.OFDEL), OFDEL, tio.c_oflag);
+        //        tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.CRDLY), CRDLY, tio.c_oflag);
+        //        tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.FFDLY), FFDLY, tio.c_oflag);
+        //        tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.BSDLY), BSDLY, tio.c_oflag);
+        //        tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.VTDLY), VTDLY, tio.c_oflag);
+        //        tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.OFDEL), OFDEL, tio.c_oflag);
         // Control flags
         tio.c_cflag = setFlag(t.getControlFlag(Attributes.ControlFlag.CIGNORE), CIGNORE, tio.c_cflag);
         tio.c_cflag = setFlag(t.getControlFlag(Attributes.ControlFlag.CS5), CS5, tio.c_cflag);
@@ -174,11 +204,11 @@ public class FreeBsdNativePty extends JansiNativePty {
         tio.c_cflag = setFlag(t.getControlFlag(Attributes.ControlFlag.PARODD), PARODD, tio.c_cflag);
         tio.c_cflag = setFlag(t.getControlFlag(Attributes.ControlFlag.HUPCL), HUPCL, tio.c_cflag);
         tio.c_cflag = setFlag(t.getControlFlag(Attributes.ControlFlag.CLOCAL), CLOCAL, tio.c_cflag);
-//        tio.c_cflag = setFlag(t.getControlFlag(Attributes.ControlFlag.CCTS_OFLOW), CCTS_OFLOW, tio.c_cflag);
-//        tio.c_cflag = setFlag(t.getControlFlag(Attributes.ControlFlag.CRTS_IFLOW), CRTS_IFLOW, tio.c_cflag);
-//        tio.c_cflag = setFlag(t.getControlFlag(Attributes.ControlFlag.CDTR_IFLOW), CDTR_IFLOW, tio.c_cflag);
-//        tio.c_cflag = setFlag(t.getControlFlag(Attributes.ControlFlag.CDSR_OFLOW), CDSR_OFLOW, tio.c_cflag);
-//        tio.c_cflag = setFlag(t.getControlFlag(Attributes.ControlFlag.CCAR_OFLOW), CCAR_OFLOW, tio.c_cflag);
+        //        tio.c_cflag = setFlag(t.getControlFlag(Attributes.ControlFlag.CCTS_OFLOW), CCTS_OFLOW, tio.c_cflag);
+        //        tio.c_cflag = setFlag(t.getControlFlag(Attributes.ControlFlag.CRTS_IFLOW), CRTS_IFLOW, tio.c_cflag);
+        //        tio.c_cflag = setFlag(t.getControlFlag(Attributes.ControlFlag.CDTR_IFLOW), CDTR_IFLOW, tio.c_cflag);
+        //        tio.c_cflag = setFlag(t.getControlFlag(Attributes.ControlFlag.CDSR_OFLOW), CDSR_OFLOW, tio.c_cflag);
+        //        tio.c_cflag = setFlag(t.getControlFlag(Attributes.ControlFlag.CCAR_OFLOW), CCAR_OFLOW, tio.c_cflag);
         // Local flags
         tio.c_lflag = setFlag(t.getLocalFlag(Attributes.LocalFlag.ECHOKE), ECHOKE, tio.c_lflag);
         tio.c_lflag = setFlag(t.getLocalFlag(Attributes.LocalFlag.ECHOE), ECHOE, tio.c_lflag);
@@ -194,7 +224,7 @@ public class FreeBsdNativePty extends JansiNativePty {
         tio.c_lflag = setFlag(t.getLocalFlag(Attributes.LocalFlag.EXTPROC), EXTPROC, tio.c_lflag);
         tio.c_lflag = setFlag(t.getLocalFlag(Attributes.LocalFlag.TOSTOP), TOSTOP, tio.c_lflag);
         tio.c_lflag = setFlag(t.getLocalFlag(Attributes.LocalFlag.FLUSHO), FLUSHO, tio.c_lflag);
-//        tio.c_lflag = setFlag(t.getLocalFlag(Attributes.LocalFlag.NOKERNINFO), NOKERNINFO, tio.c_lflag);
+        //        tio.c_lflag = setFlag(t.getLocalFlag(Attributes.LocalFlag.NOKERNINFO), NOKERNINFO, tio.c_lflag);
         tio.c_lflag = setFlag(t.getLocalFlag(Attributes.LocalFlag.PENDIN), PENDIN, tio.c_lflag);
         tio.c_lflag = setFlag(t.getLocalFlag(Attributes.LocalFlag.NOFLSH), NOFLSH, tio.c_lflag);
         // Control chars
@@ -208,17 +238,17 @@ public class FreeBsdNativePty extends JansiNativePty {
         tio.c_cc[VINTR] = (byte) t.getControlChar(Attributes.ControlChar.VINTR);
         tio.c_cc[VQUIT] = (byte) t.getControlChar(Attributes.ControlChar.VQUIT);
         tio.c_cc[VSUSP] = (byte) t.getControlChar(Attributes.ControlChar.VSUSP);
-//        tio.c_cc[VDSUSP] = (byte) t.getControlChar(Attributes.ControlChar.VDSUSP);
+        //        tio.c_cc[VDSUSP] = (byte) t.getControlChar(Attributes.ControlChar.VDSUSP);
         tio.c_cc[VSTART] = (byte) t.getControlChar(Attributes.ControlChar.VSTART);
         tio.c_cc[VSTOP] = (byte) t.getControlChar(Attributes.ControlChar.VSTOP);
         tio.c_cc[VLNEXT] = (byte) t.getControlChar(Attributes.ControlChar.VLNEXT);
         tio.c_cc[VDISCARD] = (byte) t.getControlChar(Attributes.ControlChar.VDISCARD);
         tio.c_cc[VMIN] = (byte) t.getControlChar(Attributes.ControlChar.VMIN);
         tio.c_cc[VTIME] = (byte) t.getControlChar(Attributes.ControlChar.VTIME);
-//        tio.c_cc[VSTATUS] = (byte) t.getControlChar(Attributes.ControlChar.VSTATUS);
+        //        tio.c_cc[VSTATUS] = (byte) t.getControlChar(Attributes.ControlChar.VSTATUS);
         return tio;
     }
-    
+
     protected Attributes toAttributes(CLibrary.Termios tio) {
         Attributes attr = new Attributes();
         // Input flags
@@ -237,24 +267,24 @@ public class FreeBsdNativePty extends JansiNativePty {
         addFlag(tio.c_iflag, iflag, Attributes.InputFlag.IXOFF, IXOFF);
         addFlag(tio.c_iflag, iflag, Attributes.InputFlag.IXANY, IXANY);
         addFlag(tio.c_iflag, iflag, Attributes.InputFlag.IMAXBEL, IMAXBEL);
-//        addFlag(tio.c_iflag, iflag, Attributes.InputFlag.IUTF8, IUTF8);
+        //        addFlag(tio.c_iflag, iflag, Attributes.InputFlag.IUTF8, IUTF8);
         // Output flags
         EnumSet<Attributes.OutputFlag> oflag = attr.getOutputFlags();
         addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.OPOST, OPOST);
         addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.ONLCR, ONLCR);
-//        addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.OXTABS, OXTABS);
+        //        addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.OXTABS, OXTABS);
         addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.ONOEOT, ONOEOT);
         addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.OCRNL, OCRNL);
-//        addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.ONOCR, ONOCR);
+        //        addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.ONOCR, ONOCR);
         addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.ONLRET, ONLRET);
-//        addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.OFILL, OFILL);
-//        addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.NLDLY, NLDLY);
+        //        addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.OFILL, OFILL);
+        //        addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.NLDLY, NLDLY);
         addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.TABDLY, TABDLY);
-//        addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.CRDLY, CRDLY);
-//        addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.FFDLY, FFDLY);
-//        addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.BSDLY, BSDLY);
-//        addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.VTDLY, VTDLY);
-//        addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.OFDEL, OFDEL);
+        //        addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.CRDLY, CRDLY);
+        //        addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.FFDLY, FFDLY);
+        //        addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.BSDLY, BSDLY);
+        //        addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.VTDLY, VTDLY);
+        //        addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.OFDEL, OFDEL);
         // Control flags
         EnumSet<Attributes.ControlFlag> cflag = attr.getControlFlags();
         addFlag(tio.c_cflag, cflag, Attributes.ControlFlag.CIGNORE, CIGNORE);
@@ -268,10 +298,10 @@ public class FreeBsdNativePty extends JansiNativePty {
         addFlag(tio.c_cflag, cflag, Attributes.ControlFlag.PARODD, PARODD);
         addFlag(tio.c_cflag, cflag, Attributes.ControlFlag.HUPCL, HUPCL);
         addFlag(tio.c_cflag, cflag, Attributes.ControlFlag.CLOCAL, CLOCAL);
-//        addFlag(tio.c_cflag, cflag, Attributes.ControlFlag.CCTS_OFLOW, CCTS_OFLOW);
-//        addFlag(tio.c_cflag, cflag, Attributes.ControlFlag.CRTS_IFLOW, CRTS_IFLOW);
-//        addFlag(tio.c_cflag, cflag, Attributes.ControlFlag.CDSR_OFLOW, CDSR_OFLOW);
-//        addFlag(tio.c_cflag, cflag, Attributes.ControlFlag.CCAR_OFLOW, CCAR_OFLOW);
+        //        addFlag(tio.c_cflag, cflag, Attributes.ControlFlag.CCTS_OFLOW, CCTS_OFLOW);
+        //        addFlag(tio.c_cflag, cflag, Attributes.ControlFlag.CRTS_IFLOW, CRTS_IFLOW);
+        //        addFlag(tio.c_cflag, cflag, Attributes.ControlFlag.CDSR_OFLOW, CDSR_OFLOW);
+        //        addFlag(tio.c_cflag, cflag, Attributes.ControlFlag.CCAR_OFLOW, CCAR_OFLOW);
         // Local flags
         EnumSet<Attributes.LocalFlag> lflag = attr.getLocalFlags();
         addFlag(tio.c_lflag, lflag, Attributes.LocalFlag.ECHOKE, ECHOKE);
@@ -288,7 +318,7 @@ public class FreeBsdNativePty extends JansiNativePty {
         addFlag(tio.c_lflag, lflag, Attributes.LocalFlag.EXTPROC, EXTPROC);
         addFlag(tio.c_lflag, lflag, Attributes.LocalFlag.TOSTOP, TOSTOP);
         addFlag(tio.c_lflag, lflag, Attributes.LocalFlag.FLUSHO, FLUSHO);
-//        addFlag(tio.c_lflag, lflag, Attributes.LocalFlag.NOKERNINFO, NOKERNINFO);
+        //        addFlag(tio.c_lflag, lflag, Attributes.LocalFlag.NOKERNINFO, NOKERNINFO);
         addFlag(tio.c_lflag, lflag, Attributes.LocalFlag.PENDIN, PENDIN);
         addFlag(tio.c_lflag, lflag, Attributes.LocalFlag.NOFLSH, NOFLSH);
         // Control chars
@@ -303,14 +333,14 @@ public class FreeBsdNativePty extends JansiNativePty {
         cc.put(Attributes.ControlChar.VINTR, (int) tio.c_cc[VINTR]);
         cc.put(Attributes.ControlChar.VQUIT, (int) tio.c_cc[VQUIT]);
         cc.put(Attributes.ControlChar.VSUSP, (int) tio.c_cc[VSUSP]);
-//        cc.put(Attributes.ControlChar.VDSUSP, (int) tio.c_cc[VDSUSP]);
+        //        cc.put(Attributes.ControlChar.VDSUSP, (int) tio.c_cc[VDSUSP]);
         cc.put(Attributes.ControlChar.VSTART, (int) tio.c_cc[VSTART]);
         cc.put(Attributes.ControlChar.VSTOP, (int) tio.c_cc[VSTOP]);
         cc.put(Attributes.ControlChar.VLNEXT, (int) tio.c_cc[VLNEXT]);
         cc.put(Attributes.ControlChar.VDISCARD, (int) tio.c_cc[VDISCARD]);
         cc.put(Attributes.ControlChar.VMIN, (int) tio.c_cc[VMIN]);
         cc.put(Attributes.ControlChar.VTIME, (int) tio.c_cc[VTIME]);
-//        cc.put(Attributes.ControlChar.VSTATUS, (int) tio.c_cc[VSTATUS]);
+        //        cc.put(Attributes.ControlChar.VSTATUS, (int) tio.c_cc[VSTATUS]);
         // Return
         return attr;
     }

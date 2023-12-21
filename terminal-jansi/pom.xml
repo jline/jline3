@@ -16,7 +16,7 @@
     <parent>
         <groupId>org.jline</groupId>
         <artifactId>jline-parent</artifactId>
-        <version>3.21.1-SNAPSHOT</version>
+        <version>3.25.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>jline-terminal-jansi</artifactId>
@@ -38,8 +38,8 @@
         </dependency>
 
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -52,10 +52,8 @@
                 <configuration>
                     <instructions>
                         <Export-Package>*;-noimport:=true</Export-Package>
-                        <Import-Package>
-                            org.fusesource.jansi;version="[1.12,3)",
-                            org.fusesource.jansi.internal;version="[1.6,3)"
-                        </Import-Package>
+                        <Import-Package>org.fusesource.jansi;version="[1.12,3)",
+                            org.fusesource.jansi.internal;version="[1.6,3)"</Import-Package>
                         <Fragment-Host>org.jline.terminal</Fragment-Host>
                     </instructions>
                 </configuration>

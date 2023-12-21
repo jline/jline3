@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (c) 2002-2020, the original author or authors.
+    Copyright (c) 2002-2022, the original author or authors.
 
     This software is distributable under the BSD license. See the terms of the
     BSD license in the documentation provided with this software.
@@ -16,7 +16,7 @@
     <parent>
         <groupId>org.jline</groupId>
         <artifactId>jline-parent</artifactId>
-        <version>3.21.1-SNAPSHOT</version>
+        <version>3.25.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>jline-demo</artifactId>
@@ -27,6 +27,14 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-terminal-ffm</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-terminal-jni</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.jline</groupId>
             <artifactId>jline-terminal-jansi</artifactId>
@@ -111,24 +119,24 @@
         </dependency>
 
         <dependency>
-             <groupId>org.codehaus.groovy</groupId>
-             <artifactId>groovy</artifactId>
+            <groupId>org.apache.groovy</groupId>
+            <artifactId>groovy</artifactId>
         </dependency>
 
         <dependency>
-             <groupId>org.codehaus.groovy</groupId>
-             <artifactId>groovy-json</artifactId>
+            <groupId>org.apache.groovy</groupId>
+            <artifactId>groovy-json</artifactId>
         </dependency>
 
         <dependency>
-             <groupId>org.codehaus.groovy</groupId>
-             <artifactId>groovy-console</artifactId>
+            <groupId>org.apache.groovy</groupId>
+            <artifactId>groovy-console</artifactId>
         </dependency>
 
         <dependency>
             <groupId>org.apache.ivy</groupId>
             <artifactId>ivy</artifactId>
-        </dependency>        
+        </dependency>
 
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -161,10 +169,10 @@
                 <executions>
                     <execution>
                         <id>copy-scripts</id>
-                        <phase>validate</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
+                        <phase>validate</phase>
                         <configuration>
                             <outputDirectory>${basedir}/target/scripts</outputDirectory>
                             <resources>
@@ -183,10 +191,10 @@
                     </execution>
                     <execution>
                         <id>copy-nanorc</id>
-                        <phase>validate</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
+                        <phase>validate</phase>
                         <configuration>
                             <outputDirectory>${basedir}/target/nanorc</outputDirectory>
                             <resources>
@@ -201,10 +209,10 @@
                     </execution>
                     <execution>
                         <id>copy-root</id>
-                        <phase>validate</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
+                        <phase>validate</phase>
                         <configuration>
                             <outputDirectory>${basedir}/target</outputDirectory>
                             <resources>

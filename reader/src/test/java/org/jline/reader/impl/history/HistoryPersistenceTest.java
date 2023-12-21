@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2016, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -11,6 +11,7 @@ package org.jline.reader.impl.history;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
@@ -18,12 +19,13 @@ import java.util.stream.IntStream;
 
 import org.jline.reader.LineReader;
 import org.jline.reader.impl.ReaderTestSupport;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static java.util.stream.Collectors.toList;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests file history.
@@ -32,18 +34,16 @@ import static org.junit.Assert.assertEquals;
  */
 public class HistoryPersistenceTest extends ReaderTestSupport {
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
         Files.deleteIfExists(Paths.get("test"));
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws IOException {
         Files.deleteIfExists(Paths.get("test"));
     }
-
-
 
     private void doTestFileHistory(int count, CyclicBarrier barrier) {
         DefaultHistory history = new DefaultHistory(reader);
@@ -53,8 +53,7 @@ public class HistoryPersistenceTest extends ReaderTestSupport {
             throw new RuntimeException(e);
         }
         assertEquals(count, history.size());
-        IntStream.range(0, count)
-                .forEach(i -> history.add("cmd" + i));
+        IntStream.range(0, count).forEach(i -> history.add("cmd" + i));
         // we need to synchronize here
         // if we don't, multiple writes can occur at the same time and some
         // history items may be lost, we'd have to use a file lock to fix that
@@ -65,8 +64,7 @@ public class HistoryPersistenceTest extends ReaderTestSupport {
         synchronized (reader) {
             try {
                 history.save();
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }
@@ -81,8 +79,7 @@ public class HistoryPersistenceTest extends ReaderTestSupport {
         int nbThreads = 3;
 
         DefaultHistory history = new DefaultHistory(reader);
-        IntStream.range(0, cmdsPerThread)
-                .forEach(i -> history.add("cmd" + i));
+        IntStream.range(0, cmdsPerThread).forEach(i -> history.add("cmd" + i));
         history.save();
 
         List<String> lines = Files.readAllLines(Paths.get("test"));
@@ -101,5 +98,33 @@ public class HistoryPersistenceTest extends ReaderTestSupport {
 
         lines = Files.readAllLines(Paths.get("test"));
         assertEquals(cmdsPerThread * (nbThreads + 1), lines.size());
+    }
+
+    private void testHistoryTrim(boolean timestamped) {
+        reader.unsetOpt(LineReader.Option.HISTORY_INCREMENTAL);
+        reader.option(LineReader.Option.HISTORY_TIMESTAMPED, timestamped);
+        reader.setVariable(LineReader.HISTORY_FILE_SIZE, 5);
+        reader.setVariable(LineReader.HISTORY_FILE, Paths.get("test"));
+
+        DefaultHistory history = new DefaultHistory(reader);
+        for (int i = 0; i < 50; i++) {
+            history.add(Instant.now(), "Hello " + i);
+            if (i % 5 == 0) {
+                Assertions.assertDoesNotThrow(history::save);
+            }
+        }
+
+        Assertions.assertDoesNotThrow(history::load);
+        Assertions.assertEquals(5, history.size());
+    }
+
+    @Test
+    public void testHistoryTrimNonTimestamped() {
+        testHistoryTrim(false);
+    }
+
+    @Test
+    public void testHistoryTrimTimestamped() {
+        testHistoryTrim(true);
     }
 }

@@ -1,20 +1,20 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
- * http://www.opensource.org/licenses/bsd-license.php
+ * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.curses.impl;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import org.jline.curses.Screen;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class VirtualScreen implements Screen {
 
@@ -66,5 +66,4 @@ public class VirtualScreen implements Screen {
         }
         return lines;
     }
-
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2016, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -21,14 +22,19 @@ import java.util.Objects;
  */
 public final class ExecHelper {
 
-    private ExecHelper() {
-    }
+    private ExecHelper() {}
 
     public static String exec(boolean redirectInput, final String... cmd) throws IOException {
         Objects.requireNonNull(cmd);
         try {
             Log.trace("Running: ", cmd);
             ProcessBuilder pb = new ProcessBuilder(cmd);
+            if (OSUtils.IS_AIX) {
+                Map<String, String> env = pb.environment();
+                env.put("PATH", "/opt/freeware/bin:" + env.get("PATH"));
+                env.put("LANG", "C");
+                env.put("LC_ALL", "C");
+            }
             if (redirectInput) {
                 pb.redirectInput(ProcessBuilder.Redirect.INHERIT);
             }
@@ -83,4 +89,3 @@ public final class ExecHelper {
         }
     }
 }
-

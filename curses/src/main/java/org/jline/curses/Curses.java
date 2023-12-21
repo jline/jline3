@@ -1,23 +1,26 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
- * http://www.opensource.org/licenses/bsd-license.php
+ * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.curses;
-
-import org.jline.curses.impl.*;
-import org.jline.terminal.Terminal;
 
 import java.util.*;
 import java.util.function.Supplier;
 
+import org.jline.curses.impl.*;
+import org.jline.terminal.Terminal;
+
 public class Curses {
 
     public enum Border {
-        Single, SingleBevel, Double, DoubleBevel
+        Single,
+        SingleBevel,
+        Double,
+        DoubleBevel
     }
 
     public enum Alignment {
@@ -35,10 +38,7 @@ public class Curses {
         Right
     }
 
-    public static class GridConstraint implements Constraint {
-
-    }
-
+    public static class GridConstraint implements Constraint {}
 
     public static GUI gui(Terminal terminal) {
         return new GUIImpl(terminal);
@@ -97,7 +97,6 @@ public class Curses {
     public interface ComponentBuilder<C extends Component> {
 
         C build();
-
     }
 
     public static class ContainerBuilder<C extends Constraint> implements ComponentBuilder<Container> {
@@ -224,9 +223,7 @@ public class Curses {
         public Menu build() {
             return new Menu(contents);
         }
-
     }
-
 
     public static class WindowBuilder {
 
@@ -262,5 +259,4 @@ public class Curses {
             return w;
         }
     }
-
 }

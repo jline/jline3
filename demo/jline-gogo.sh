@@ -37,11 +37,11 @@ logconf="${DIRNAME}/etc/logging.properties"
 while [ "${1}" != "" ]; do
     case ${1} in
         'debug')
-            opts="${opts} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
+            opts="${opts} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
             shift
             ;;
         'debugs')
-            opts="${opts} -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
+            opts="${opts} -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005"
             shift
             ;;
         'jansi')
@@ -63,6 +63,10 @@ while [ "${1}" != "" ]; do
             ;;
         'verbose')
             logconf="${DIRNAME}/etc/logging-verbose.properties"
+            shift
+            ;;
+        'ffm')
+            opts="${opts} --enable-preview --enable-native-access=ALL-UNNAMED"
             shift
             ;;
         *)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2020, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -11,12 +11,15 @@ package org.jline.terminal.impl.jna.freebsd;
 import java.io.FileDescriptor;
 import java.io.IOException;
 
-import com.sun.jna.LastErrorException;
-import com.sun.jna.Native;
-import com.sun.jna.Platform;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.jna.JnaNativePty;
+import org.jline.terminal.spi.SystemStream;
+import org.jline.terminal.spi.TerminalProvider;
+
+import com.sun.jna.LastErrorException;
+import com.sun.jna.Native;
+import com.sun.jna.Platform;
 
 import static org.jline.terminal.impl.jna.freebsd.CLibrary.TCSANOW;
 import static org.jline.terminal.impl.jna.freebsd.CLibrary.TIOCGWINSZ;
@@ -30,44 +33,62 @@ public class FreeBsdNativePty extends JnaNativePty {
 
     public interface UtilLibrary extends com.sun.jna.Library {
 
-        void openpty(int[] master, int[] slave, byte[] name, CLibrary.termios t, CLibrary.winsize s) throws LastErrorException;
+        void openpty(int[] master, int[] slave, byte[] name, CLibrary.termios t, CLibrary.winsize s)
+                throws LastErrorException;
 
         UtilLibrary INSTANCE = Native.load("util", UtilLibrary.class);
     }
 
-    public static FreeBsdNativePty current() throws IOException {
-        int slave = 0;
-        byte[] buf = new byte[64];
-        C_LIBRARY.ttyname_r(slave, buf, buf.length);
-        int len = 0;
-        while (buf[len] != 0) {
-            len++;
+    public static FreeBsdNativePty current(TerminalProvider provider, SystemStream systemStream) throws IOException {
+        switch (systemStream) {
+            case Output:
+                return new FreeBsdNativePty(
+                        provider, systemStream, -1, null, 0, FileDescriptor.in, 1, FileDescriptor.out, ttyname(0));
+            case Error:
+                return new FreeBsdNativePty(
+                        provider, systemStream, -1, null, 0, FileDescriptor.in, 2, FileDescriptor.err, ttyname(0));
+            default:
+                throw new IllegalArgumentException("Unsupport stream for console: " + systemStream);
         }
-        String name = new String(buf, 0, len);
-        return new FreeBsdNativePty(-1, null, slave, FileDescriptor.in, 1, FileDescriptor.out, name);
     }
 
-    public static FreeBsdNativePty open(Attributes attr, Size size) throws IOException {
+    public static FreeBsdNativePty open(TerminalProvider provider, Attributes attr, Size size) throws IOException {
         int[] master = new int[1];
         int[] slave = new int[1];
         byte[] buf = new byte[64];
-        UtilLibrary.INSTANCE.openpty(master, slave, buf,
-                attr != null ? new termios(attr) : null,
-                size != null ? new winsize(size) : null);
+        UtilLibrary.INSTANCE.openpty(
+                master, slave, buf, attr != null ? new termios(attr) : null, size != null ? new winsize(size) : null);
         int len = 0;
         while (buf[len] != 0) {
             len++;
         }
         String name = new String(buf, 0, len);
-        return new FreeBsdNativePty(master[0], newDescriptor(master[0]), slave[0], newDescriptor(slave[0]), name);
+        return new FreeBsdNativePty(
+                provider, null, master[0], newDescriptor(master[0]), slave[0], newDescriptor(slave[0]), name);
     }
 
-    public FreeBsdNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, String name) {
-        super(master, masterFD, slave, slaveFD, name);
+    public FreeBsdNativePty(
+            TerminalProvider provider,
+            SystemStream systemStream,
+            int master,
+            FileDescriptor masterFD,
+            int slave,
+            FileDescriptor slaveFD,
+            String name) {
+        super(provider, systemStream, master, masterFD, slave, slaveFD, name);
     }
 
-    public FreeBsdNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, int slaveOut, FileDescriptor slaveOutFD, String name) {
-        super(master, masterFD, slave, slaveFD, slaveOut, slaveOutFD, name);
+    public FreeBsdNativePty(
+            TerminalProvider provider,
+            SystemStream systemStream,
+            int master,
+            FileDescriptor masterFD,
+            int slave,
+            FileDescriptor slaveFD,
+            int slaveOut,
+            FileDescriptor slaveOutFD,
+            String name) {
+        super(provider, systemStream, master, masterFD, slave, slaveFD, slaveOut, slaveOutFD, name);
     }
 
     @Override
@@ -100,4 +121,13 @@ public class FreeBsdNativePty extends JnaNativePty {
         return C_LIBRARY.isatty(fd);
     }
 
+    public static String ttyname(int slave) {
+        byte[] buf = new byte[64];
+        C_LIBRARY.ttyname_r(slave, buf, buf.length);
+        int len = 0;
+        while (buf[len] != 0) {
+            len++;
+        }
+        return new String(buf, 0, len);
+    }
 }

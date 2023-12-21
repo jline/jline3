@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2020, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,17 +8,16 @@
  */
 package org.jline.builtins;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
-import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.Completers.OptDesc;
+import org.jline.builtins.Completers.OptionCompleter;
+import org.jline.reader.Completer;
+import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
-import org.jline.reader.impl.completer.ArgumentCompleter;
-import org.jline.reader.Completer;
-import org.junit.Test;
-
+import org.junit.jupiter.api.Test;
 
 public class OptionCompleterTest extends ReaderTestSupport {
 
@@ -32,9 +31,8 @@ public class OptionCompleterTest extends ReaderTestSupport {
         options.add(new OptDesc("-s", "--sopt", new StringsCompleter("val", "lav")));
         options.add(new OptDesc(null, "--option", NullCompleter.INSTANCE));
 
-        reader.setCompleter(new ArgumentCompleter(new StringsCompleter("command"),
-                                                  new OptionCompleter(argsCompleters, options, 1))
-        );
+        reader.setCompleter(new ArgumentCompleter(
+                new StringsCompleter("command"), new OptionCompleter(argsCompleters, options, 1)));
 
         assertBuffer("command ", new TestBuffer("c").tab());
         assertBuffer("command -s", new TestBuffer("command -").tab());
@@ -47,7 +45,5 @@ public class OptionCompleterTest extends ReaderTestSupport {
         assertBuffer("command -s val bar ", new TestBuffer("command -s val b").tab());
         assertBuffer("command -s val bar --option ", new TestBuffer("command -s val bar --o").tab());
         assertBuffer("command -s val bar --option foo ", new TestBuffer("command -s val bar --option f").tab());
-
     }
-
 }

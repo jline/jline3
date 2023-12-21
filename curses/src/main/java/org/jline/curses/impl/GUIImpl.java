@@ -1,12 +1,15 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
- * http://www.opensource.org/licenses/bsd-license.php
+ * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.curses.impl;
+
+import java.io.IOException;
+import java.util.*;
 
 import org.jline.curses.*;
 import org.jline.keymap.BindingReader;
@@ -17,9 +20,6 @@ import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.Display;
 import org.jline.utils.InfoCmp;
-
-import java.io.IOException;
-import java.util.*;
 
 public class GUIImpl implements GUI {
 
@@ -38,12 +38,16 @@ public class GUIImpl implements GUI {
             @Override
             protected void doDraw(Screen screen) {
                 AttributedStyle st = getTheme().getStyle(".background");
-                screen.fill(getPosition().x(), getPosition().y(), getSize().w(), getSize().h(), st);
+                screen.fill(
+                        getPosition().x(),
+                        getPosition().y(),
+                        getSize().w(),
+                        getSize().h(),
+                        st);
             }
         };
         this.background.setGUI(this);
         this.background.setBehaviors(EnumSet.of(Component.Behavior.NoDecoration, Component.Behavior.FullScreen));
-
     }
 
     public Terminal getTerminal() {
@@ -107,8 +111,10 @@ public class GUIImpl implements GUI {
 
         Attributes attributes = terminal.getAttributes();
         Attributes newAttr = new Attributes(attributes);
-        newAttr.setLocalFlags(EnumSet.of(Attributes.LocalFlag.ICANON, Attributes.LocalFlag.ECHO, Attributes.LocalFlag.IEXTEN), false);
-        newAttr.setInputFlags(EnumSet.of(Attributes.InputFlag.IXON, Attributes.InputFlag.ICRNL, Attributes.InputFlag.INLCR), false);
+        newAttr.setLocalFlags(
+                EnumSet.of(Attributes.LocalFlag.ICANON, Attributes.LocalFlag.ECHO, Attributes.LocalFlag.IEXTEN), false);
+        newAttr.setInputFlags(
+                EnumSet.of(Attributes.InputFlag.IXON, Attributes.InputFlag.ICRNL, Attributes.InputFlag.INLCR), false);
         newAttr.setControlChar(Attributes.ControlChar.VMIN, 0);
         newAttr.setControlChar(Attributes.ControlChar.VTIME, 1);
         newAttr.setControlChar(Attributes.ControlChar.VINTR, 0);
@@ -135,7 +141,8 @@ public class GUIImpl implements GUI {
                 redraw();
             }
             try {
-                while (terminal.reader().read(1) > 0) ;
+                while (terminal.reader().read(1) > 0)
+                    ;
             } catch (IOException e) {
                 // ignore
             }
@@ -172,7 +179,8 @@ public class GUIImpl implements GUI {
     }
 
     enum Event {
-        Key, Mouse
+        Key,
+        Mouse
     }
 
     protected void handleInput(String input) {
@@ -210,5 +218,4 @@ public class GUIImpl implements GUI {
         windows.forEach(w -> AbstractWindow.class.cast(w).draw(screen));
         display.update(screen.lines(), -1, true);
     }
-
 }

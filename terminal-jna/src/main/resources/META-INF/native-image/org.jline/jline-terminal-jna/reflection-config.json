@@ -1,0 +1,11 @@
+[
+  {
+    "name" : "org.jline.terminal.impl.jna.JnaTerminalProvider",
+    "allDeclaredConstructors" : true,
+    "allPublicConstructors" : true,
+    "allDeclaredMethods" : false,
+    "allPublicMethods" : false,
+    "allDeclaredFields" : false,
+    "allPublicFields" : false
+  }
+]

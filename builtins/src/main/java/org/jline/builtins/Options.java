@@ -1,11 +1,13 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2020, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
+package org.jline.builtins;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -24,7 +26,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.jline.builtins;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -54,9 +55,12 @@ public class Options {
 
     // Note: need to double \ within ""
     private static final String regex = "(?x)\\s*" + "(?:-([^-]))?" + // 1: short-opt-1
-            "(?:,?\\s*-(\\w))?" + // 2: short-opt-2
-            "(?:,?\\s*--(\\w[\\w-]*)(=\\w+)?)?" + // 3: long-opt-1 and 4:arg-1
-            "(?:,?\\s*--(\\w[\\w-]*))?" + // 5: long-opt-2
+            "(?:,?\\s*-(\\w))?"
+            + // 2: short-opt-2
+            "(?:,?\\s*--(\\w[\\w-]*)(=\\w+)?)?"
+            + // 3: long-opt-1 and 4:arg-1
+            "(?:,?\\s*--(\\w[\\w-]*))?"
+            + // 5: long-opt-2
             ".*?(?:\\(default=(.*)\\))?\\s*"; // 6: default
 
     private static final int GROUP_SHORT_OPT_1 = 1;
@@ -127,15 +131,15 @@ public class Options {
     }
 
     public boolean isSet(String name) {
-        if (!optSet.containsKey(name))
+        Boolean isSet = optSet.get(name);
+        if (isSet == null) {
             throw new IllegalArgumentException("option not defined in spec: " + name);
-
-        return optSet.get(name);
+        }
+        return isSet;
     }
 
     public Object getObject(String name) {
-        if (!optArg.containsKey(name))
-            throw new IllegalArgumentException("option not defined with argument: " + name);
+        if (!optArg.containsKey(name)) throw new IllegalArgumentException("option not defined with argument: " + name);
 
         List<Object> list = getObjectList(name);
 
@@ -147,16 +151,14 @@ public class Options {
         List<Object> list;
         Object arg = optArg.get(name);
 
-        if ( arg == null ) {
+        if (arg == null) {
             throw new IllegalArgumentException("option not defined with argument: " + name);
         }
 
         if (arg instanceof String) { // default value
             list = new ArrayList<>();
-            if (!"".equals(arg))
-                list.add(arg);
-        }
-        else {
+            if (!"".equals(arg)) list.add(arg);
+        } else {
             list = (List<Object>) arg;
         }
 
@@ -183,8 +185,7 @@ public class Options {
         if (arg instanceof String) { // default value
             list = new ArrayList<>();
             optArg.put(name, list);
-        }
-        else {
+        } else {
             list = (List<Object>) arg;
         }
 
@@ -202,8 +203,7 @@ public class Options {
     public int getNumber(String name) {
         String number = get(name);
         try {
-            if (number != null)
-                return Integer.parseInt(number);
+            if (number != null) return Integer.parseInt(number);
             return 0;
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("option '" + name + "' not Number: " + number);
@@ -264,8 +264,7 @@ public class Options {
 
         if (gspec == null && opt == null) {
             this.spec = spec;
-        }
-        else {
+        } else {
             ArrayList<String> list = new ArrayList<>();
             list.addAll(Arrays.asList(spec));
             list.addAll(Arrays.asList(gspec != null ? gspec : opt.gspec));
@@ -279,13 +278,11 @@ public class Options {
 
         if (opt != null) {
             for (Entry<String, Boolean> e : opt.optSet.entrySet()) {
-                if (e.getValue())
-                    myOptSet.put(e.getKey(), true);
+                if (e.getValue()) myOptSet.put(e.getKey(), true);
             }
 
             for (Entry<String, Object> e : opt.optArg.entrySet()) {
-                if (!e.getValue().equals(""))
-                    myOptArg.put(e.getKey(), e.getValue());
+                if (!e.getValue().equals("")) myOptArg.put(e.getKey(), e.getValue());
             }
 
             opt.reset();
@@ -311,29 +308,25 @@ public class Options {
                 final String name = (opt != null) ? opt : m.group(GROUP_SHORT_OPT_1);
 
                 if (name != null) {
-                    if (myOptSet.containsKey(name))
+                    if (myOptSet.putIfAbsent(name, false) != null)
                         throw new IllegalArgumentException("duplicate option in spec: --" + name);
-                    myOptSet.put(name, false);
                 }
 
                 String dflt = (m.group(GROUP_DEFAULT) != null) ? m.group(GROUP_DEFAULT) : "";
-                if (m.group(GROUP_ARG_1) != null)
-                    myOptArg.put(opt, dflt);
+                if (m.group(GROUP_ARG_1) != null) myOptArg.put(opt, dflt);
 
                 String opt2 = m.group(GROUP_LONG_OPT_2);
                 if (opt2 != null) {
                     optAlias.put(opt2, opt);
                     myOptSet.put(opt2, false);
-                    if (m.group(GROUP_ARG_1) != null)
-                        myOptArg.put(opt2, "");
+                    if (m.group(GROUP_ARG_1) != null) myOptArg.put(opt2, "");
                 }
 
                 for (int i = 0; i < 2; ++i) {
                     String sopt = m.group(i == 0 ? GROUP_SHORT_OPT_1 : GROUP_SHORT_OPT_2);
                     if (sopt != null) {
-                        if (optName.containsKey(sopt))
+                        if (optName.putIfAbsent(sopt, name) != null)
                             throw new IllegalArgumentException("duplicate option in spec: -" + sopt);
-                        optName.put(sopt, name);
                     }
                 }
             }
@@ -369,8 +362,7 @@ public class Options {
     }
 
     public Options parse(Object[] argv, boolean skipArg0) {
-        if (null == argv)
-            throw new IllegalArgumentException("argv is null");
+        if (null == argv) throw new IllegalArgumentException("argv is null");
 
         return parse(Arrays.asList(argv), skipArg0);
     }
@@ -384,8 +376,7 @@ public class Options {
             if (skipArg0) {
                 skipArg0 = false;
                 usageName = arg.toString();
-            }
-            else {
+            } else {
                 args.add(arg);
             }
         }
@@ -399,20 +390,17 @@ public class Options {
 
             if (endOpt) {
                 xargs.add(oarg);
-            }
-            else if (needArg != null) {
+            } else if (needArg != null) {
                 addArg(needArg, oarg);
                 needArg = null;
                 needOpt = null;
-            }
-            else if (!arg.startsWith("-") || (arg.length() > 1 && Character.isDigit(arg.charAt(1))) || "-".equals(oarg)) {
-                if (optionsFirst)
-                    endOpt = true;
+            } else if (!arg.startsWith("-")
+                    || (arg.length() > 1 && Character.isDigit(arg.charAt(1)))
+                    || "-".equals(oarg)) {
+                if (optionsFirst) endOpt = true;
                 xargs.add(oarg);
-            }
-            else {
-                if (arg.equals("--"))
-                    endOpt = true;
+            } else {
+                if (arg.equals("--")) endOpt = true;
                 else if (arg.startsWith("--")) {
                     int eq = arg.indexOf("=");
                     String value = (eq == -1) ? null : arg.substring(eq + 1);
@@ -421,43 +409,35 @@ public class Options {
 
                     if (optSet.containsKey(name)) {
                         names.add(name);
-                    }
-                    else {
+                    } else {
                         for (String k : optSet.keySet()) {
-                            if (k.startsWith(name))
-                                names.add(k);
+                            if (k.startsWith(name)) names.add(k);
                         }
                     }
 
                     switch (names.size()) {
-                    case 1:
-                        name = names.get(0);
-                        optSet.put(name, true);
-                        if (optArg.containsKey(name)) {
-                            if (value != null)
-                                addArg(name, value);
-                            else
-                                needArg = name;
-                        }
-                        else if (value != null) {
-                            throw usageError("option '--" + name + "' doesn't allow an argument");
-                        }
-                        break;
-
-                    case 0:
-                        if (stopOnBadOption) {
-                            endOpt = true;
-                            xargs.add(oarg);
+                        case 1:
+                            name = names.get(0);
+                            optSet.put(name, true);
+                            if (optArg.containsKey(name)) {
+                                if (value != null) addArg(name, value);
+                                else needArg = name;
+                            } else if (value != null) {
+                                throw usageError("option '--" + name + "' doesn't allow an argument");
+                            }
                             break;
-                        }
-                        else
-                            throw usageError("invalid option '--" + name + "'");
 
-                    default:
-                        throw usageError("option '--" + name + "' is ambiguous: " + names);
+                        case 0:
+                            if (stopOnBadOption) {
+                                endOpt = true;
+                                xargs.add(oarg);
+                                break;
+                            } else throw usageError("invalid option '--" + name + "'");
+
+                        default:
+                            throw usageError("option '--" + name + "' is ambiguous: " + names);
                     }
-                }
-                else {
+                } else {
                     for (int i = 1; i < arg.length(); i++) {
                         String c = String.valueOf(arg.charAt(i));
                         if (optName.containsKey(c)) {
@@ -467,21 +447,17 @@ public class Options {
                                 int k = i + 1;
                                 if (k < arg.length()) {
                                     addArg(name, arg.substring(k));
-                                }
-                                else {
+                                } else {
                                     needOpt = c;
                                     needArg = name;
                                 }
                                 break;
                             }
-                        }
-                        else {
+                        } else {
                             if (stopOnBadOption) {
                                 xargs.add("-" + c);
                                 endOpt = true;
-                            }
-                            else
-                                throw usageError("invalid option '" + c + "'");
+                            } else throw usageError("invalid option '" + c + "'");
                         }
                     }
                 }
@@ -497,8 +473,7 @@ public class Options {
         for (Entry<String, String> alias : optAlias.entrySet()) {
             if (optSet.get(alias.getKey())) {
                 optSet.put(alias.getValue(), true);
-                if (optArg.containsKey(alias.getKey()))
-                    optArg.put(alias.getValue(), optArg.get(alias.getKey()));
+                if (optArg.containsKey(alias.getKey())) optArg.put(alias.getValue(), optArg.get(alias.getKey()));
             }
             optSet.remove(alias.getKey());
             optArg.remove(alias.getKey());
@@ -528,7 +503,7 @@ public class Options {
             return Styles.helpStyle();
         }
 
-        public static AttributedString highlight(String msg, StyleResolver resolver) {            
+        public static AttributedString highlight(String msg, StyleResolver resolver) {
             Matcher tm = Pattern.compile("(^|\\n)(Usage|Summary)(:)").matcher(msg);
             if (tm.find()) {
                 boolean subcommand = tm.group(2).equals("Summary");
@@ -536,7 +511,8 @@ public class Options {
                 // Command
                 AttributedStringBuilder acommand = new AttributedStringBuilder()
                         .append(msg.substring(0, tm.start(2)))
-                        .styleMatches(Pattern.compile("(?:^\\s*)([a-z]+[a-zA-Z0-9-]*)\\b"),
+                        .styleMatches(
+                                Pattern.compile("(?:^\\s*)([a-z]+[a-zA-Z0-9-]*)\\b"),
                                 Collections.singletonList(resolver.resolve(".co")));
                 asb.append(acommand);
                 // Title
@@ -551,7 +527,6 @@ public class Options {
                     } else {
                         syntax = line;
                         comment = "";
-
                     }
                     asb.append(_highlightSyntax(syntax, resolver, subcommand));
                     asb.append(_highlightComment(comment, resolver));
@@ -575,7 +550,8 @@ public class Options {
             return _highlightComment(comment, resolver).toAttributedString();
         }
 
-        private static AttributedStringBuilder _highlightSyntax(String syntax, StyleResolver resolver, boolean subcommand) {
+        private static AttributedStringBuilder _highlightSyntax(
+                String syntax, StyleResolver resolver, boolean subcommand) {
             StringBuilder indent = new StringBuilder();
             for (char c : syntax.toCharArray()) {
                 if (c != ' ') {
@@ -585,14 +561,17 @@ public class Options {
             }
             AttributedStringBuilder asyntax = new AttributedStringBuilder().append(syntax.substring(indent.length()));
             // command
-            asyntax.styleMatches(Pattern.compile("(?:^)([a-z]+[a-zA-Z0-9-]*)\\b"),
+            asyntax.styleMatches(
+                    Pattern.compile("(?:^)([a-z]+[a-zA-Z0-9-]*)\\b"),
                     Collections.singletonList(resolver.resolve(".co")));
             if (!subcommand) {
                 // argument
-                asyntax.styleMatches(Pattern.compile("(?:<|\\[|\\s|=)([A-Za-z]+[A-Za-z_-]*)\\b"),
+                asyntax.styleMatches(
+                        Pattern.compile("(?:<|\\[|\\s|=)([A-Za-z]+[A-Za-z_-]*)\\b"),
                         Collections.singletonList(resolver.resolve(".ar")));
                 // option
-                asyntax.styleMatches(Pattern.compile("(?:^|\\s|\\[)(-\\$|-\\?|[-]{1,2}[A-Za-z-]+\\b)"),
+                asyntax.styleMatches(
+                        Pattern.compile("(?:^|\\s|\\[)(-\\$|-\\?|[-]{1,2}[A-Za-z-]+\\b)"),
                         Collections.singletonList(resolver.resolve(".op")));
             }
             return new AttributedStringBuilder().append(indent).append(asyntax);
@@ -601,14 +580,14 @@ public class Options {
         private static AttributedStringBuilder _highlightComment(String comment, StyleResolver resolver) {
             AttributedStringBuilder acomment = new AttributedStringBuilder().append(comment);
             // option
-            acomment.styleMatches(Pattern.compile("(?:\\s|\\[)(-\\$|-\\?|[-]{1,2}[A-Za-z-]+\\b)"),
+            acomment.styleMatches(
+                    Pattern.compile("(?:\\s|\\[)(-\\$|-\\?|[-]{1,2}[A-Za-z-]+\\b)"),
                     Collections.singletonList(resolver.resolve(".op")));
             // argument in comment
-            acomment.styleMatches(Pattern.compile("(?:\\s)([a-z]+[-]+[a-z]+|[A-Z_]{2,})(?:\\s)"),
+            acomment.styleMatches(
+                    Pattern.compile("(?:\\s)([a-z]+[-]+[a-z]+|[A-Z_]{2,})(?:\\s)"),
                     Collections.singletonList(resolver.resolve(".ar")));
             return acomment;
-
         }
     }
-
 }

@@ -1,6 +1,175 @@
 # [JLine3](https://github.com/jline/jline3)
 <!-- git log --pretty=format:'* [`%h`](https://github.com/jline/jline3/commit/%H) %s' -->
 
+## [JLine 3.24.1][3_24_1]
+[3_24_1] https://repo1.maven.org/maven2/org/jline/jline/3.24.1/
+
+* [`b63acbcc29c`](https://github.com/jline/jline3/commit/b63acbcc29cdccd044ead63b1c1f02f2276f4ee7) Fix broken javadoc generation (#892)
+* [`4c4dbdc2ce3`](https://github.com/jline/jline3/commit/4c4dbdc2ce384258320146990f01ed9b010c836d) Restore JDK 8 runtime compatibility, fixes #888 (#893)
+* [`47f1ec914b2`](https://github.com/jline/jline3/commit/47f1ec914b29e04f45d776ada60c3a50a4fbac02) Restore partial failure handling with stty, fixes #889
+* [`ecbc73a58c6`](https://github.com/jline/jline3/commit/ecbc73a58c6df922f8dfcb1739b35803fc38ea3d) Fix git line endings
+
+## [JLine 3.24.0][3_24_0]
+[3_24_0] https://repo1.maven.org/maven2/org/jline/jline/3.24.0/
+
+* [`cb226ce3909`](https://github.com/jline/jline3/commit/cb226ce3909a0f8128b74b97ece7523468f3e5c7) Upgrade various plugins
+* [`0a8f369e2d8`](https://github.com/jline/jline3/commit/0a8f369e2d84100aa4ff5551f945aeb2901813b0) Upgrade ivy from 2.5.1 to 2.5.2
+* [`cfbbb7ee562`](https://github.com/jline/jline3/commit/cfbbb7ee562817a87b71c58ffccddc4799ce6a02) Upgrade graal from 22.3.0 to 23.1.1
+* [`bae5fb5f587`](https://github.com/jline/jline3/commit/bae5fb5f5872b9575564ac9715d76bdc9e469521) Upgrade slf4j from 2.0.6 to 2.0.9
+* [`77626a8013c`](https://github.com/jline/jline3/commit/77626a8013c4cc37ea7c6c17efbf90d870a5faa6) Upgrade easymock from 5.1.0 to 5.2.0
+* [`d0b6273668b`](https://github.com/jline/jline3/commit/d0b6273668bee667e96d8255fd7126172bea08e7) Upgrade sshd from 2.9.2 to 2.11.0
+* [`0f01e4ce2ec`](https://github.com/jline/jline3/commit/0f01e4ce2ecd12c883681f9c23000f2817217736) Upgrade jansi from 2.4.0 to 2.4.1
+* [`2e9e2232bd7`](https://github.com/jline/jline3/commit/2e9e2232bd76564f66caf0af9797ce8679382625) Update changelog for 3.24.0 release
+* [`d4bf37c7564`](https://github.com/jline/jline3/commit/d4bf37c75641b6a1d10135611b169d555e0b9e55) Add forced-out and forcer-err to force the system console to use the output / error stream (fixes #856) (#884)
+* [`b8084cf1b27`](https://github.com/jline/jline3/commit/b8084cf1b2776de98a362607877c8919513d245a) Add a field / setter for the forced provider
+* [`9a216cab00a`](https://github.com/jline/jline3/commit/9a216cab00a5c3f8458c1a4454236c1eb94b0182) Make sure the thread is not in an interrupted state when cleanup up (fixes #590) (#883)
+* [`7cbba19b6ce`](https://github.com/jline/jline3/commit/7cbba19b6ced3ad49f9c718e900970b78814ac6e) Support providing default values for line reader variables using system properties (#821)
+* [`8da980b39d1`](https://github.com/jline/jline3/commit/8da980b39d140a1012c9deabf6b710f3faccdf6c) Support automatic parsing of an inputrc file in jline reader (#821)
+* [`421bf59653d`](https://github.com/jline/jline3/commit/421bf59653d4cde9ef54bbbfeb012fdd50cb9694) Fix cr/lf support in dumb terminals (#877)
+* [`2af16d8e4e0`](https://github.com/jline/jline3/commit/2af16d8e4e04b7cd5580755571a7f29463de4576) Add a property to customize the tab width (fixes #861) (#880)
+* [`77283f8c7d2`](https://github.com/jline/jline3/commit/77283f8c7d27ba54433d0f1c32c217df7c8389d9) AIX issue with non english locales (#881)
+* [`2c8891ab363`](https://github.com/jline/jline3/commit/2c8891ab36346efca382527cf63f45ef47d058f1) Add a property to force a given provider
+* [`a20ba4b5b13`](https://github.com/jline/jline3/commit/a20ba4b5b1326a6a4371f51ed0d4eb618848cb7d) Force creation of a dumb terminal if TERM starts with dumb
+* [`405f8fe0b47`](https://github.com/jline/jline3/commit/405f8fe0b47fcfafcdb4853c325a42feb0614ed5) org.jline.util.PumpReader signed byte problem (#879)
+* [`7aa9c5e17c7`](https://github.com/jline/jline3/commit/7aa9c5e17c7249d14483a5bb697eeb10e45e0df6) Fix possible OOM caused by huge repetitions of inserts (fixes #863) (#878)
+* [`8805647bc12`](https://github.com/jline/jline3/commit/8805647bc121ecdd6279253b6f261b27cf6362f0) Improve toString() terminal rendering
+* [`60c9297c161`](https://github.com/jline/jline3/commit/60c9297c161a3c4848282fd268644e1c9df8602b) Use simplified keymap for dumb terminal (#874)
+* [`58fd8f9701c`](https://github.com/jline/jline3/commit/58fd8f9701cf8aa1c9fd0329e36b9af0f0f23189) Improve robustness of initial cleanup (fixes jansi#255)
+* [`60de93175f2`](https://github.com/jline/jline3/commit/60de93175f2b77311e91d8916131d3b14eb468f0) Add missing space in SunOS-sparcv9_CCFLAGS (fixes jansi#249)
+* [`7ca9dc20e3c`](https://github.com/jline/jline3/commit/7ca9dc20e3cb1780156fba1d003d2bc6e903a599) Fix history trim for non-timestamped files (#873)
+* [`cde17f7fc15`](https://github.com/jline/jline3/commit/cde17f7fc157f72a3890f717aafbf3d7b0ad63ef) Fix build on linux arm64 and add riscv64
+* [`871706532ac`](https://github.com/jline/jline3/commit/871706532acd4d56ad7282675229f798d49eeda2) New JNI provider
+* [`60bfd792915`](https://github.com/jline/jline3/commit/60bfd792915d4c336097a4cd7a98efa3dbc64163) Fix eol
+* [`cb1762621fe`](https://github.com/jline/jline3/commit/cb1762621fe919744ada14c9a21ce4bf53c4dfff) Clean a bit TerminalBuilder
+* [`e4986756a81`](https://github.com/jline/jline3/commit/e4986756a812cbb9c7f9acc290bd6ac4709a2301) Revert "Fix providers ordering"
+* [`79905407f62`](https://github.com/jline/jline3/commit/79905407f623e0a71cd7ef8a52ca1ff7c950dc2f) Fix providers ordering
+* [`8685b2a6f2a`](https://github.com/jline/jline3/commit/8685b2a6f2a7a00e7b026e0cbdd7a01ca73929d2) Add TerminalExt interface
+* [`d0e1ce16e9c`](https://github.com/jline/jline3/commit/d0e1ce16e9c9631961e30047b2cbd8af2dd86deb) FFM support
+* [`3a51fd98705`](https://github.com/jline/jline3/commit/3a51fd9870544d94f95a1ea89a2aefe14f9528f8) Break dependency between org.jline.terminal.impl and org.jline.terminal.impl.exec package
+* [`2f0218340b9`](https://github.com/jline/jline3/commit/2f0218340b9008278fff29a50e6ec044511f3965) Close Files streams using try-with-resources (#840)
+* [`ceda3c4f765`](https://github.com/jline/jline3/commit/ceda3c4f7654894f96676c093834642b42c3537e) Fix illegal reflective access in exec provider (fixes #862) (#868)
+* [`a11001ab191`](https://github.com/jline/jline3/commit/a11001ab191cc53724da99379bcdea78576cf7b2) Make sure libraries are binaries
+* [`e3112b48b9c`](https://github.com/jline/jline3/commit/e3112b48b9c6166f1431b1bcc055235e1e30ae03) Switch to junit 5
+* [`97fca810df1`](https://github.com/jline/jline3/commit/97fca810df1d23e59e1ea13967cbd9b78f50b0fd) Simplify CI
+* [`a2ab0474a02`](https://github.com/jline/jline3/commit/a2ab0474a023e2ad062978177fc6f5b3c8e69501) Require JDK 11 and support JDK 21 at build time
+* [`bd9536644c5`](https://github.com/jline/jline3/commit/bd9536644c5a0ec8b268e5f12c92c3d33f9c8d00) Builtin Less has an IndexOutOfBoundsException when seeking to the end of the file, fixes #860
+* [`77e9da7b50b`](https://github.com/jline/jline3/commit/77e9da7b50b136dc79cc03181bb58cc6c6ff6f44) LineReader Bug (Open or Close Parenthesis), fixes #859
+* [`b85d2e5085a`](https://github.com/jline/jline3/commit/b85d2e5085aba6b6ae0931112ada4b1ba5030be9) Enable spotless on JDK 21
+* [`05ee05dbc7b`](https://github.com/jline/jline3/commit/05ee05dbc7b9c5ba9df8358d8a9fc58227101ed0) Support building on JDK 21
+* [`ffd0de4076a`](https://github.com/jline/jline3/commit/ffd0de4076aa8f7075f6979f8b673705b5c49d5c) Add a warning when using the ExecTerminalProvider on recent JDKs
+* [`1ac766fef65`](https://github.com/jline/jline3/commit/1ac766fef659f09d5aeb31becd802ceecd047ee5) Fix detection of utilities (fixes #839)
+* [`d138c9c136d`](https://github.com/jline/jline3/commit/d138c9c136d5386067c106e4240a18cd6439a841) Fix shell output going to stderr rather than stdout (fixes #845)
+* [`3c93ea7d7b0`](https://github.com/jline/jline3/commit/3c93ea7d7b0af10d9e0d3723529e753bfac9e89b) Fix TerminalProvider sorting
+* [`db731c2a601`](https://github.com/jline/jline3/commit/db731c2a601ed4edf7c29a3d5f1f7183ca3bd922) Use Objects.hashCode instead of Objects.hash to avoid vararg array creation (fixes #849)
+* [`ccfb8c54fd9`](https://github.com/jline/jline3/commit/ccfb8c54fd9658b85a3d659f3abe85b8b4dcea83) spotless: set the line endings to <lf>
+
+
+## [JLine 3.23.0][3_23_0]
+[3_23_0]: https://repo1.maven.org/maven2/org/jline/jline/3.23.0/
+
+* [`e82b526a`](https://github.com/jline/jline3/commit/e82b526acadaa037459fb7651588910c98c28873) Reformat
+* [`8951fc85`](https://github.com/jline/jline3/commit/8951fc8558846104b24fbb0f10549a51cfba1697) Add spotless
+* [`0eddc136`](https://github.com/jline/jline3/commit/0eddc136e955aa8284efe20b7ef7bc2ecaf71041) Fix javadoc
+* [`cc021a55`](https://github.com/jline/jline3/commit/cc021a55abd172bf81fe8f0dd51329341c21c293) Fix signal processing on windows, fixes #822
+* [`6fa8b785`](https://github.com/jline/jline3/commit/6fa8b7859015b7755247a6a5fbea59c6dfaad5ea) Clean up console mode4
+* [`c571b146`](https://github.com/jline/jline3/commit/c571b14604b11067448392688e35293c4e1f9e88) Refine color support in various environments, fixes #814 (#829)
+* [`f3fa7036`](https://github.com/jline/jline3/commit/f3fa70368f3c8873d31a02c09df3cbf4513da97f) Verify ioctl return value in jansi
+* [`362b233e`](https://github.com/jline/jline3/commit/362b233e6aefc7bf6e19606fc3c3829825331b2e) The JNA ioctl call is broken on Mac/aarch64
+* [`ca176daf`](https://github.com/jline/jline3/commit/ca176daf5d5f7c24ecb8e5641d5ceaf69c34c6e4) This is a demo, so allow remote connections for debugging VM
+* [`117782b0`](https://github.com/jline/jline3/commit/117782b017b23abcd71c6a615414e59ebcea1838) Fix calling commands in gogo under jdk 17
+* [`6c5a2759`](https://github.com/jline/jline3/commit/6c5a2759775b1dbf68e79dd3ce32692c1f447090) Add missing ConEmu capabilities, fixes #800
+* [`63618cc6`](https://github.com/jline/jline3/commit/63618cc6c02010a56f317c514cbcb96a47ca5977) Fix AltGr+Shift characters, fixes #747
+* [`4dbe26bc`](https://github.com/jline/jline3/commit/4dbe26bcb22ae119921189c7f3a405fdeb620288) Decode alternative charset in/out sequences, fixes #805
+* [`64fc2f20`](https://github.com/jline/jline3/commit/64fc2f208c675ba31109987ac5af532c7910b0d5) Add a test for #i805
+* [`caa2d14a`](https://github.com/jline/jline3/commit/caa2d14a513467ba015dfdd94f22768cbb9c6d8b) Fix restoration of Terminal at close, fixes #819
+* [`0b97167f`](https://github.com/jline/jline3/commit/0b97167f33a2f0060f3fcb613cc849d262d35ed5) Allow custom sort of providers, and prefer jansi by default
+* [`6fcf987d`](https://github.com/jline/jline3/commit/6fcf987d13107213811aaf2298a4933b2d74725e) Add some javadoc on Terminal getAttributes/setAttributes
+* [`b0b4f709`](https://github.com/jline/jline3/commit/b0b4f7097faabc643fae8de0be107a8abf704dae) Use Attributes copy constructor
+* [`3e872d86`](https://github.com/jline/jline3/commit/3e872d861c83f3865a4b0fe89709c69a7d62cc97) fix javadocs of classes ConsoleEngine, JrtJavaBasePackages and Widgets
+* [`c6a476e4`](https://github.com/jline/jline3/commit/c6a476e46f88ce9f80608cc3ad29204524223401) SyntaxHighlighter and Repl demo: use UTF-8 character encoding instead of JVM default
+* [`90e9e868`](https://github.com/jline/jline3/commit/90e9e8688553db728a0efe0b676b9fa0e3b1071a) builtins Commands: fix keymap help and remove redundant toString() calls
+* [`2c55e39b`](https://github.com/jline/jline3/commit/2c55e39b0380a1b6ce4696bb6068c0091568d336) Use a native library to create FileDescriptors if reflection does not allow access (fixes #575)
+* [`e893fb48`](https://github.com/jline/jline3/commit/e893fb48308aa584f75a853984e722e2d745d2a9) Optimized Styles.isStylePattern() to avoid StackOverflowError (#817)
+* [`8cb3793a`](https://github.com/jline/jline3/commit/8cb3793add3b2c46d86adcfd608ba7ea3de992de) Fix missing graalvm information for the exec provider (fixes #820)
+
+## [JLine 3.22.0][3_22_0]
+[3_22_0]: https://repo1.maven.org/maven2/org/jline/jline/3.22.0/
+
+* [`dd697ee0`](https://github.com/jline/jline3/commit/dd697ee0f7dbb3ed7198aeedbbd1983503f60785) Remove compilation warnings (#816)
+* [`e00a8370`](https://github.com/jline/jline3/commit/e00a837049f0038da6801c03d43e0f36f7195d60) Appveyor fix (#815)
+* [`87f7e576`](https://github.com/jline/jline3/commit/87f7e57614f58c7a25afbf87a3124d69a176e080) Upgrade all plugins to latest version (#740)
+* [`d6e84da4`](https://github.com/jline/jline3/commit/d6e84da4b7a55985fbf8b83b155da3811b0631d8) Support for out or err stream for the terminal (fixes #787) (#788)
+* [`c2a0c9e8`](https://github.com/jline/jline3/commit/c2a0c9e84938a86806f33dda41724b5441253f0a) Avoid redundant Map.containsKey call (#781)
+* [`77f1cea0`](https://github.com/jline/jline3/commit/77f1cea0d3438520000077575e2630247bc0ef84) Make readBuffered blocking and add more readBuffered methods, fixes #757 (#782)
+* [`4f57697f`](https://github.com/jline/jline3/commit/4f57697f4e04ac65f94be24a5dce7c42a2009d01) Replace AtomicBoolean with volatile boolean field. (#796)
+* [`6e94df5f`](https://github.com/jline/jline3/commit/6e94df5fb36f18e1e1b2e9f408ec385795e80469) Upgrade Groovy to 4.0.7
+* [`b82a347c`](https://github.com/jline/jline3/commit/b82a347c551d9646785a0f1f144588449293dc96) Scroll forward of the cli cause tailtips to collide with text, fixes #738
+* [`fcc8ce61`](https://github.com/jline/jline3/commit/fcc8ce6134e9ef7dba5b546184c2331f5d328e88) Bump ivy from 2.5.0 to 2.5.1
+* [`751a7d7c`](https://github.com/jline/jline3/commit/751a7d7c0acb8a11e30cb9b74c49e3e66d2b7a96) prnt command: add option --multiColumns
+* [`ade7806f`](https://github.com/jline/jline3/commit/ade7806fb0017d0ac2e6b1a9151e2a13897def5e) Less: eliminate a couple of source.lines() calls
+* [`239d6e04`](https://github.com/jline/jline3/commit/239d6e04b2494f9874065c95d02a1670319aa0b2) less pager does not work well when using InputStreamSource, fixes #812
+* [`181279c0`](https://github.com/jline/jline3/commit/181279c09642bc4f7639eb1197c8b3de80291aca)  Standard escape character (\) doesn't seem to be handled correctly, fixes #798
+* [`1579fc04`](https://github.com/jline/jline3/commit/1579fc044d2912769bd0689491df240e28e8875d) command less: manage object arguments, fixes #811
+* [`9243e6db`](https://github.com/jline/jline3/commit/9243e6db3cddceb923ede803946267a1e54f90fa) add CONSOLE_OPTIONS boolean variable redirectColor to switch on/off redirect colors
+* [`9711716b`](https://github.com/jline/jline3/commit/9711716bdf8232569abd36d8c932616fb51e6e82)  Less method run(Source... sources) throws UnsupportedOperationException, fixes #810
+* [`2c4a1923`](https://github.com/jline/jline3/commit/2c4a192397c8eeec5166dfecd6c91d3eb131c804) Upgrade maven-enforcer-plugin to 3.1.0
+* [`58dccf72`](https://github.com/jline/jline3/commit/58dccf727ddf35046d17693249ecf32aedf09429) Upgrade Graal to 22.1.0
+* [`396a39e1`](https://github.com/jline/jline3/commit/396a39e130ecf857918a42bde27a373e46c79320) Upgrade Groovy to 4.0.3
+* [`4dac9b0c`](https://github.com/jline/jline3/commit/4dac9b0ce78a0ac37f580e708267d95553a999eb) Infinite loop in TerminalLine constructor, fixes #751
+* [`8b89ff5f`](https://github.com/jline/jline3/commit/8b89ff5f305e9865214f6ff3b5545723a311fcd3) Console example fix NPE
+* [`9706eadf`](https://github.com/jline/jline3/commit/9706eadf152981ca9f5dfaac87aff2166e88e080) Builtins command registry: Add null check for  configpath parameter
+* [`1cf2cda9`](https://github.com/jline/jline3/commit/1cf2cda9ab1b5bf233a58770c763defe8d034cc4) Upgrade Groovy to 4.0.2
+* [`ed6cef30`](https://github.com/jline/jline3/commit/ed6cef30551cc165dae91ffc74b0aa01944fb23e) Add a simple example of printAbove
+* [`d75b4f18`](https://github.com/jline/jline3/commit/d75b4f18d3af10e4fafd225737d6fca494a1b975) Groovy REPL: add tab-completion for groovy array methods
+* [`0959a40b`](https://github.com/jline/jline3/commit/0959a40b0212d6f0a4f5040ac4911caf162cc9d5) Upgrade Groovy to 4.0.1
+* [`c8fcdda6`](https://github.com/jline/jline3/commit/c8fcdda668999857b8dac1822e20016b70167bf8) Simplify String operations (#776)
+* [`fe1a6ff4`](https://github.com/jline/jline3/commit/fe1a6ff49920e7510ee8bab91f557a17f3c1e1b4) Docs typo: `Columns separated` -> `Colon separated` (#775)
+* [`f9b267f6`](https://github.com/jline/jline3/commit/f9b267f6eb465ed811ab88c2855b4e16ddfe8227) Option to disable Undo in LineReader
+* [`0bb26e99`](https://github.com/jline/jline3/commit/0bb26e999f40f12d7564839df83f84235bf1a74b) SystemHighlighter: command line parsed twice
+* [`d3aa7dc6`](https://github.com/jline/jline3/commit/d3aa7dc66f9228d1963745c0c21ac26629a12e1b) nanorc parser: the reader is not closed if exception is thrown
+* [`f988d35f`](https://github.com/jline/jline3/commit/f988d35f4f8787461dbb68e0df1a804866b92b82) args.nanorc: improve options highlighting
+* [`4b743231`](https://github.com/jline/jline3/commit/4b7432316ab3b5f8b2068f7a79b6530679be6a50) SystemHighlighter: fix subcommand highlighting
+* [`ac26d10c`](https://github.com/jline/jline3/commit/ac26d10c163b960968e58bda95a3de179e01c12a) lsStyle resolver defined as static field, fixes #764
+* [`bfcc415b`](https://github.com/jline/jline3/commit/bfcc415b5b2dd77e99d62eadf11b6df27ef14592)  Candidates customized order lost when tabbing through candidates, fixes #763
+* [`cea9632b`](https://github.com/jline/jline3/commit/cea9632b6a1f1a06c27dcbff77488249f260283e) LineReader Candidate: tests for sorting and potential int overflow fix (#762)
+* [`aa11f6ee`](https://github.com/jline/jline3/commit/aa11f6eeb405eb88c2d569afaf3844a03c473a04) REPL demo: add nanorctheme.template (#761)
+* [`233a6cce`](https://github.com/jline/jline3/commit/233a6cceb7b3ff8037fc8d9797009c43693e053c) gron.nanorc: improve *_COLORS variable value highlight
+* [`c70d3272`](https://github.com/jline/jline3/commit/c70d327233c2f18c22fc44d02d31abeec050f45e) REPL demo refactoring: add nanorc directory
+* [`43127122`](https://github.com/jline/jline3/commit/431271228215fb9adf6dc0c8017d4e559766d065) REPL demo: add light.nanorctheme and rename default theme to dark
+* [`f72694f6`](https://github.com/jline/jline3/commit/f72694f60e7eaa8c99b154914187c4d60437f22f) DefaultPrinter: add @SuppressWarnings("serial") in highlighters cache map
+* [`51c0399d`](https://github.com/jline/jline3/commit/51c0399d9f5036e8816176acdbc6d51c47b44170) SystemHighlighter refresh() refresh also external syntaxHighlighters
+* [`652d7a19`](https://github.com/jline/jline3/commit/652d7a19350afece86df1cd02668900303b59fab) GroovyEngine & DefaultPrinter: add syntaxHighlighter cache
+* [`e9cbb19f`](https://github.com/jline/jline3/commit/e9cbb19fa9c4d70aaad0d12f2fabb1743d07f3bb) builtins.Styles: make public method style(name, defStyle)
+* [`1aae0ae8`](https://github.com/jline/jline3/commit/1aae0ae8f7676af90c9c245c5424d9971965a705) highlighter command: add option --switch=theme
+* [`7ae2b8b9`](https://github.com/jline/jline3/commit/7ae2b8b9436e98ed1f0b57755acb473b8260d5fb) ConsoleEngineImpl: fix potential NPE
+* [`771f2217`](https://github.com/jline/jline3/commit/771f2217e58fcb93525c71d5511944223941a9e2)  Mandatory import of sun.misc, fixes #758
+* [`afb067fe`](https://github.com/jline/jline3/commit/afb067fea64a4a932eab7b8e74d32fead1b83d3e)  Tab candidate menu list exceeds from visible terminal display, fixes #759
+* [`08d27d71`](https://github.com/jline/jline3/commit/08d27d71816dad36ebf8b5a9ec82e02e17a42f47) SyntaxHighlighter: added a few string constants
+* [`4ce93d9f`](https://github.com/jline/jline3/commit/4ce93d9face3784cac47cb06c89b3819d2a20ab6) align less config parsing with nanorc theme system
+* [`844ce0bb`](https://github.com/jline/jline3/commit/844ce0bb39753c707f33b99d02b89668c7cc0166)  nano editor fails to highlight block comments, fixes #753
+* [`f759ea68`](https://github.com/jline/jline3/commit/f759ea68224b5a6b5692d9c1d15859c2ce0994dc) SyntaxHighlighter: add parser to tokenize string literals and comments, fixes #746
+* [`bcc7f307`](https://github.com/jline/jline3/commit/bcc7f30792df9be1ecfc8c19090979cd900a509f) Refactoring: moved SyntaxHighlighter implementation in its own file
+* [`5cef3bab`](https://github.com/jline/jline3/commit/5cef3babf3a9db4b61b7dad770eb5916793e8a5b) Nano SystemHighlighter: add theme system (#752)
+* [`40109530`](https://github.com/jline/jline3/commit/401095301e53c8b837ec6ba24e9d9ac198e4693c) Groovy REPL: highlight shell commands
+* [`35379cf8`](https://github.com/jline/jline3/commit/35379cf864ee50995255f3680e79ebd0414d4d43) SystemHighlighter: add specificHighlighter to manage subcommand syntax highlighting
+* [`ec66af98`](https://github.com/jline/jline3/commit/ec66af989ac1e94131f56f0013939eaad463d77c) Groovy REPL: highlight triple-quoted strings
+* [`abf8d943`](https://github.com/jline/jline3/commit/abf8d94381ffe7c538ff588472525941f694377d) Groovy REPL: fix '# comment line' highlight (#750)
+* [`95f1e91c`](https://github.com/jline/jline3/commit/95f1e91c938de2bcc12942d4b3690e22be25520d) SystemHighlighter: fix commandIndex calculation
+* [`2cbc73ca`](https://github.com/jline/jline3/commit/2cbc73cad3b667c95bb3ee8d31429a28e58f87a5)  Groovy REPL: methods print and println appear twice in tab completion candidate list, fixes #749
+* [`d98f1648`](https://github.com/jline/jline3/commit/d98f164860ece38ee619d04dadff043c4f47cd48)  3.20.0 Regression - Groovy REPL highlight syntax errors while typing is broken, fixes #748
+  #745
+* [`789ac75b`](https://github.com/jline/jline3/commit/789ac75b0e94b83c5298088c6205c16c45a3e630)  Groovy REPL: prnt command parameter completion does not work well, fixes #744
+* [`9fb62296`](https://github.com/jline/jline3/commit/9fb622965fb4a1883fc20fa898f7a677776f28c2)  Nano SyntaxHighlighter fails to highlight the line after the block comment, fixes #743
+* [`4c4031d4`](https://github.com/jline/jline3/commit/4c4031d4133ae53e270e0d57a19ff0e170c1e1a1) Groovy REPL: highlight comments in command line
+* [`045b3c8f`](https://github.com/jline/jline3/commit/045b3c8f3a5d00fbb7cefac926c9a58eae6c2320)  Nano SyntaxHighlighter fails to highlight strings with line delimiters, fixes #742
+* [`fc22be31`](https://github.com/jline/jline3/commit/fc22be3139f176dde607cc9c3dd3a6bf86769ebd)  Error in custom command line highlighter let readLine() method in an unusable state, fixes #741
+* [`bd2c2188`](https://github.com/jline/jline3/commit/bd2c2188b0c35168a140e5667c9e12304148cbc8) Groovy REPL: configure parser comment delimiters
+* [`b8c26ce8`](https://github.com/jline/jline3/commit/b8c26ce881a641a5e25f96fbe58cb06a9a900b73) appveyor: fix download URL of maven
+* [`1315fc0b`](https://github.com/jline/jline3/commit/1315fc0bde9325baff8bc4035dbf29184b0b79f7) [JLINE-730] Support for comments in DefaultParser (#731)
+* [`f89e28ad`](https://github.com/jline/jline3/commit/f89e28adbbd0871d456e07df3a51b6be080c2507) Fix last line not displayed when scrolling using Display, fixes #737 (#739)
+* [`997496e6`](https://github.com/jline/jline3/commit/997496e6a6338ca5d82c7dec26f32cf089dd2838) Fix Parser javadoc of ParseContext.SPLIT_LINE, fixes #733
+* [`ae78e09c`](https://github.com/jline/jline3/commit/ae78e09c8bb5375ccee9bb31f0238c074fc5b83f) Parser interface: remove redundant variable initializer and field modifiers
+
 ## [JLine 3.21.0][3_21_0]
 [3_21_0]: https://repo1.maven.org/maven2/org/jline/jline/3.21.0/
 

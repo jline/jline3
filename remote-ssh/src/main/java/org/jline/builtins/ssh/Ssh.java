@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2017, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -24,8 +24,8 @@ import org.apache.sshd.common.NamedResource;
 import org.apache.sshd.common.channel.PtyMode;
 import org.apache.sshd.common.config.keys.FilePasswordProvider;
 import org.apache.sshd.common.session.SessionContext;
-import org.apache.sshd.common.util.io.NoCloseInputStream;
-import org.apache.sshd.common.util.io.NoCloseOutputStream;
+import org.apache.sshd.common.util.io.input.NoCloseInputStream;
+import org.apache.sshd.common.util.io.output.NoCloseOutputStream;
 import org.apache.sshd.scp.server.ScpCommandFactory;
 import org.apache.sshd.server.SshServer;
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
@@ -47,21 +47,26 @@ public class Ssh {
         private final Terminal terminal;
         private final Runnable closer;
         private final ServerSession session;
+
         public ShellParams(Map<String, String> env, ServerSession session, Terminal terminal, Runnable closer) {
             this.env = env;
             this.session = session;
             this.terminal = terminal;
             this.closer = closer;
         }
+
         public Map<String, String> getEnv() {
             return env;
         }
+
         public ServerSession getSession() {
             return session;
         }
+
         public Terminal getTerminal() {
             return terminal;
         }
+
         public Runnable getCloser() {
             return closer;
         }
@@ -74,7 +79,14 @@ public class Ssh {
         private final InputStream in;
         private final OutputStream out;
         private final OutputStream err;
-        public ExecuteParams(String command, Map<String, String> env, ServerSession session, InputStream in, OutputStream out, OutputStream err) {
+
+        public ExecuteParams(
+                String command,
+                Map<String, String> env,
+                ServerSession session,
+                InputStream in,
+                OutputStream out,
+                OutputStream err) {
             this.command = command;
             this.session = session;
             this.env = env;
@@ -82,21 +94,27 @@ public class Ssh {
             this.out = out;
             this.err = err;
         }
+
         public String getCommand() {
             return command;
         }
+
         public Map<String, String> getEnv() {
             return env;
         }
+
         public ServerSession getSession() {
             return session;
         }
+
         public InputStream getIn() {
             return in;
         }
+
         public OutputStream getOut() {
             return out;
         }
+
         public OutputStream getErr() {
             return err;
         }
@@ -112,27 +130,31 @@ public class Ssh {
     private int port;
     private String ip;
 
-    public Ssh(Consumer<ShellParams> shell,
-               Consumer<ExecuteParams> execute,
-               Supplier<SshServer> serverBuilder,
-               Supplier<SshClient> clientBuilder) {
+    public Ssh(
+            Consumer<ShellParams> shell,
+            Consumer<ExecuteParams> execute,
+            Supplier<SshServer> serverBuilder,
+            Supplier<SshClient> clientBuilder) {
         this.shell = shell;
         this.execute = execute;
         this.serverBuilder = serverBuilder;
         this.clientBuilder = clientBuilder;
     }
 
-    public void ssh(Terminal terminal,
-                    LineReader reader,
-                    String user,
-                    InputStream stdin,
-                    PrintStream stdout,
-                    PrintStream stderr,
-                    String[] argv) throws Exception {
-        final String[] usage = {"ssh - connect to a server using ssh",
-                "Usage: ssh [user@]hostname [command]",
-                "  -? --help                show help"};
-
+    public void ssh(
+            Terminal terminal,
+            LineReader reader,
+            String user,
+            InputStream stdin,
+            PrintStream stdout,
+            PrintStream stderr,
+            String[] argv)
+            throws Exception {
+        final String[] usage = {
+            "ssh - connect to a server using ssh",
+            "Usage: ssh [user@]hostname [command]",
+            "  -? --help                show help"
+        };
 
         Options opt = Options.compile(usage).parse(argv, true);
         List<String> args = opt.args();
@@ -165,7 +187,8 @@ public class Ssh {
             client.setUserInteraction(ui);
             client.start();
 
-            try (ClientSession sshSession = connectWithRetries(terminal.writer(), client, username, hostname, port, 3)) {
+            try (ClientSession sshSession =
+                    connectWithRetries(terminal.writer(), client, username, hostname, port, 3)) {
                 sshSession.auth().verify();
                 if (command != null) {
                     ClientChannel channel = sshSession.createChannel("exec", command + "\n");
@@ -293,7 +316,9 @@ public class Ssh {
         return attributes.getLocalFlag(flag) ? 1 : 0;
     }
 
-    private ClientSession connectWithRetries(PrintWriter stdout, SshClient client, String username, String host, int port, int maxAttempts) throws Exception {
+    private ClientSession connectWithRetries(
+            PrintWriter stdout, SshClient client, String username, String host, int port, int maxAttempts)
+            throws Exception {
         ClientSession session = null;
         int retries = 0;
         do {
@@ -314,11 +339,13 @@ public class Ssh {
     }
 
     public void sshd(PrintStream stdout, PrintStream stderr, String[] argv) throws Exception {
-        final String[] usage = {"sshd - start an ssh server",
-                "Usage: sshd [-i ip] [-p port] start | stop | status",
-                "  -i --ip=INTERFACE        listen interface (default=127.0.0.1)",
-                "  -p --port=PORT           listen port (default=" + defaultPort + ")",
-                "  -? --help                show help"};
+        final String[] usage = {
+            "sshd - start an ssh server",
+            "Usage: sshd [-i ip] [-p port] start | stop | status",
+            "  -i --ip=INTERFACE        listen interface (default=127.0.0.1)",
+            "  -p --port=PORT           listen port (default=" + defaultPort + ")",
+            "  -? --help                show help"
+        };
 
         Options opt = Options.compile(usage).parse(argv, true);
         List<String> args = opt.args();
@@ -347,7 +374,6 @@ public class Ssh {
         } else {
             throw opt.usageError("bad command: " + command);
         }
-
     }
 
     private void status(PrintStream stdout) {
@@ -364,10 +390,9 @@ public class Ssh {
         server.setHost(ip);
         server.setShellFactory(new ShellFactoryImpl(shell));
         server.setCommandFactory(new ScpCommandFactory.Builder()
-                .withDelegate((channel, command) -> new ShellCommand(execute, command)).build());
-        server.setSubsystemFactories(Collections.singletonList(
-                new SftpSubsystemFactory.Builder().build()
-        ));
+                .withDelegate((channel, command) -> new ShellCommand(execute, command))
+                .build());
+        server.setSubsystemFactories(Collections.singletonList(new SftpSubsystemFactory.Builder().build()));
         server.setKeyPairProvider(new SimpleGeneratorHostKeyProvider());
         server.start();
     }
@@ -392,7 +417,8 @@ public class Ssh {
         }
 
         @Override
-        public String getPassword(SessionContext session, NamedResource resourceKey, int retryIndex) throws IOException {
+        public String getPassword(SessionContext session, NamedResource resourceKey, int retryIndex)
+                throws IOException {
             return readLine("Enter password for " + resourceKey + ":", false);
         }
 
@@ -402,14 +428,17 @@ public class Ssh {
         }
 
         @Override
-        public String[] interactive(ClientSession s, String name, String instruction, String lang, String[] prompt, boolean[] echo) {
+        public String[] interactive(
+                ClientSession s, String name, String instruction, String lang, String[] prompt, boolean[] echo) {
             String[] answers = new String[prompt.length];
             try {
                 for (int i = 0; i < prompt.length; i++) {
                     answers[i] = readLine(prompt[i], echo[i]);
                 }
             } catch (Exception e) {
-                stderr.append(e.getClass().getSimpleName()).append(" while read prompts: ").println(e.getMessage());
+                stderr.append(e.getClass().getSimpleName())
+                        .append(" while read prompts: ")
+                        .println(e.getMessage());
             }
             return answers;
         }
@@ -431,7 +460,9 @@ public class Ssh {
             try {
                 return readLine(prompt, false);
             } catch (Exception e) {
-                stderr.append(e.getClass().getSimpleName()).append(" while reading password: ").println(e.getMessage());
+                stderr.append(e.getClass().getSimpleName())
+                        .append(" while reading password: ")
+                        .println(e.getMessage());
             }
             return null;
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2021, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -64,7 +64,7 @@ public interface SystemRegistry extends CommandRegistry, ConsoleOptionGetter {
      */
     CmdDesc commandDescription(CmdLine line);
 
-   /**
+    /**
      * Execute a command, script or evaluate scriptEngine statement
      * @param line command line to be executed
      * @return execution result
@@ -180,24 +180,28 @@ public interface SystemRegistry extends CommandRegistry, ConsoleOptionGetter {
         private static final Registeries instance = new Registeries();
         private final Map<Long, SystemRegistry> systemRegisteries = new HashMap<>();
 
-        private Registeries () {}
+        private Registeries() {}
 
         protected static Registeries getInstance() {
             return instance;
         }
 
         protected void addRegistry(SystemRegistry systemRegistry) {
-            systemRegisteries.put(Thread.currentThread().getId(), systemRegistry);
+            systemRegisteries.put(getThreadId(), systemRegistry);
         }
 
         protected SystemRegistry getSystemRegistry() {
-            return systemRegisteries.getOrDefault(Thread.currentThread().getId(), null);
+            return systemRegisteries.getOrDefault(getThreadId(), null);
         }
 
         protected void removeRegistry() {
-            systemRegisteries.remove(Thread.currentThread().getId());
+            systemRegisteries.remove(getThreadId());
         }
 
+        // TODO: Thread.getId() should be replaced with Thread.threadId() when minimum is JDK >= 19
+        @SuppressWarnings("deprecation")
+        private static long getThreadId() {
+            return Thread.currentThread().getId();
+        }
     }
-
 }

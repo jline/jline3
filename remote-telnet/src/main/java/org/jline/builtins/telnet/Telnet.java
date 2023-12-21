@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2017, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -15,8 +15,8 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 
-import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.Options;
+import org.jline.builtins.Options.HelpException;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.Terminal.Signal;
@@ -33,7 +33,6 @@ public class Telnet {
     public interface ShellProvider {
 
         void shell(Terminal terminal, Map<String, String> environment);
-
     }
 
     private static final int defaultPort = 2019;
@@ -51,11 +50,13 @@ public class Telnet {
     }
 
     public void telnetd(String[] argv) throws Exception {
-        final String[] usage = {"telnetd - start simple telnet server",
-                "Usage: telnetd [-i ip] [-p port] start | stop | status",
-                "  -i --ip=INTERFACE        listen interface (default=127.0.0.1)",
-                "  -p --port=PORT           listen port (default=" + defaultPort + ")",
-                "  -? --help                show help"};
+        final String[] usage = {
+            "telnetd - start simple telnet server",
+            "Usage: telnetd [-i ip] [-p port] start | stop | status",
+            "  -i --ip=INTERFACE        listen interface (default=127.0.0.1)",
+            "  -p --port=PORT           listen port (default=" + defaultPort + ")",
+            "  -? --help                show help"
+        };
 
         Options opt = Options.compile(usage).parse(argv, true);
         List<String> args = opt.args();
@@ -112,6 +113,7 @@ public class Telnet {
                             public int read() throws IOException {
                                 return telnetIO.read();
                             }
+
                             @Override
                             public int read(byte[] b, int off, int len) throws IOException {
                                 int r = read();
@@ -128,23 +130,30 @@ public class Telnet {
                             public void write(int b) throws IOException {
                                 telnetIO.write(b);
                             }
+
                             @Override
                             public void flush() throws IOException {
                                 telnetIO.flush();
                             }
                         });
                         Terminal terminal = TerminalBuilder.builder()
-                                .type(getConnectionData().getNegotiatedTerminalType().toLowerCase())
+                                .type(getConnectionData()
+                                        .getNegotiatedTerminalType()
+                                        .toLowerCase())
                                 .streams(in, out)
                                 .system(false)
                                 .name("telnet")
                                 .build();
-                        terminal.setSize(new Size(getConnectionData().getTerminalColumns(), getConnectionData().getTerminalRows()));
+                        terminal.setSize(new Size(
+                                getConnectionData().getTerminalColumns(),
+                                getConnectionData().getTerminalRows()));
                         terminal.setAttributes(Telnet.this.terminal.getAttributes());
                         addConnectionListener(new ConnectionListener() {
                             @Override
                             public void connectionTerminalGeometryChanged(ConnectionEvent ce) {
-                                terminal.setSize(new Size(getConnectionData().getTerminalColumns(), getConnectionData().getTerminalRows()));
+                                terminal.setSize(new Size(
+                                        getConnectionData().getTerminalColumns(),
+                                        getConnectionData().getTerminalRows()));
                                 terminal.raise(Signal.WINCH);
                             }
                         });
@@ -175,5 +184,4 @@ public class Telnet {
         connectionManager.stop();
         connectionManager = null;
     }
-
 }

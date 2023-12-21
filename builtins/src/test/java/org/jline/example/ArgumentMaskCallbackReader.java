@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2017, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -18,21 +18,19 @@ import org.jline.reader.MaskingCallback;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
-public class ArgumentMaskCallbackReader
-{
+public class ArgumentMaskCallbackReader {
     /**
      * Mask a certain argument for a given command in the console. So for example 'add-user 2', 'add-user username password'
      * will be displayed as 'add-user username ********'.
      */
     public static void usage() {
-        System.out.println("Usage: java "
-            + ArgumentMaskCallbackReader.class.getName() + " [command] [argument-pos-to-mask]");
+        System.out.println(
+                "Usage: java " + ArgumentMaskCallbackReader.class.getName() + " [command] [argument-pos-to-mask]");
     }
 
     public static void main(String[] args) throws IOException {
         Terminal terminal = TerminalBuilder.terminal();
-        LineReader reader = LineReaderBuilder.builder()
-            .terminal(terminal).build();
+        LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
 
         String command = args[0];
         int pos = Integer.parseInt(args[1]);
@@ -43,8 +41,7 @@ public class ArgumentMaskCallbackReader
         do {
             line = reader.readLine("prompt> ", null, maskingCallback, null);
             System.out.println("Got line: " + line);
-        }
-        while (line != null && line.length() > 0);
+        } while (line != null && line.length() > 0);
     }
 
     private static class CommandArgumentMask implements MaskingCallback {
@@ -69,21 +66,20 @@ public class ArgumentMaskCallbackReader
         }
 
         @Override
-        public String history(String line)
-        {
+        public String history(String line) {
             final String filter = filter(line);
             System.out.println();
-            System.out.print("Adding to history: " + filter );
+            System.out.print("Adding to history: " + filter);
             return filter;
         }
 
         public String filter(String line) {
             Matcher m = pattern.matcher(line);
 
-            if( m.find() ) {
+            if (m.find()) {
                 StringBuilder maskedLine = new StringBuilder(line);
-                for(int i = m.start(pos); i < m.end(pos); i++){
-                    maskedLine.replace(i,i+1, String.valueOf(mask));
+                for (int i = m.start(pos); i < m.end(pos); i++) {
+                    maskedLine.replace(i, i + 1, String.valueOf(mask));
                 }
                 return maskedLine.toString();
             } else {

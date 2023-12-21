@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2016, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -10,16 +10,14 @@ package org.jline.reader.completer;
 
 import org.jline.reader.impl.ReaderTestSupport;
 import org.jline.reader.impl.completer.NullCompleter;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests for {@link NullCompleter}.
  *
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  */
-public class NullCompleterTest
-    extends ReaderTestSupport
-{
+public class NullCompleterTest extends ReaderTestSupport {
     @Test
     public void test1() throws Exception {
         reader.setCompleter(NullCompleter.INSTANCE);

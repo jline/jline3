@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2020, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -13,7 +13,6 @@ import java.io.IOError;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.function.IntConsumer;
 
 import org.fusesource.jansi.internal.Kernel32;
@@ -23,57 +22,80 @@ import org.fusesource.jansi.internal.Kernel32.KEY_EVENT_RECORD;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
+import org.jline.terminal.spi.SystemStream;
+import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.OSUtils;
 
-import static org.fusesource.jansi.internal.Kernel32.FORMAT_MESSAGE_FROM_SYSTEM;
-import static org.fusesource.jansi.internal.Kernel32.FormatMessageW;
 import static org.fusesource.jansi.internal.Kernel32.GetConsoleScreenBufferInfo;
-import static org.fusesource.jansi.internal.Kernel32.GetLastError;
 import static org.fusesource.jansi.internal.Kernel32.GetStdHandle;
 import static org.fusesource.jansi.internal.Kernel32.INVALID_HANDLE_VALUE;
+import static org.fusesource.jansi.internal.Kernel32.STD_ERROR_HANDLE;
 import static org.fusesource.jansi.internal.Kernel32.STD_INPUT_HANDLE;
 import static org.fusesource.jansi.internal.Kernel32.STD_OUTPUT_HANDLE;
 import static org.fusesource.jansi.internal.Kernel32.WaitForSingleObject;
 import static org.fusesource.jansi.internal.Kernel32.readConsoleInputHelper;
+import static org.jline.terminal.impl.jansi.win.WindowsSupport.getLastErrorMessage;
 
-public class JansiWinSysTerminal extends AbstractWindowsTerminal {
-    private static final long consoleOut = GetStdHandle(STD_OUTPUT_HANDLE);
+public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
+
     private static final long consoleIn = GetStdHandle(STD_INPUT_HANDLE);
+    private static final long consoleOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    private static final long consoleErr = GetStdHandle(STD_ERROR_HANDLE);
 
-    public static JansiWinSysTerminal createTerminal(String name, String type, boolean ansiPassThrough, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler, boolean paused) throws IOException {
-        Writer writer;
-        int[] mode = new int[1];
-        if (ansiPassThrough) {
-            if (type == null) {
-                type = OSUtils.IS_CONEMU ? TYPE_WINDOWS_CONEMU : TYPE_WINDOWS;
-            }
-            writer = new JansiWinConsoleWriter();
-        } else {
-            if (Kernel32.GetConsoleMode(consoleOut, mode) == 0 ) {
-                throw new IOException("Failed to get console mode: " + getLastErrorMessage());
-            }
-            if (Kernel32.SetConsoleMode(consoleOut, mode[0] | AbstractWindowsTerminal.ENABLE_VIRTUAL_TERMINAL_PROCESSING) != 0) {
-                if (type == null) {
-                    type = TYPE_WINDOWS_VTP;
-                }
-                writer = new JansiWinConsoleWriter();
-            } else if (OSUtils.IS_CONEMU) {
-                if (type == null) {
-                    type = TYPE_WINDOWS_CONEMU;
-                }
-                writer = new JansiWinConsoleWriter();
-            } else {
-                if (type == null) {
-                    type = TYPE_WINDOWS;
-                }
-                writer = new WindowsAnsiWriter(new BufferedWriter(new JansiWinConsoleWriter()));
-            }
-        }
-        if (Kernel32.GetConsoleMode(consoleIn, mode) == 0) {
+    public static JansiWinSysTerminal createTerminal(
+            TerminalProvider provider,
+            SystemStream systemStream,
+            String name,
+            String type,
+            boolean ansiPassThrough,
+            Charset encoding,
+            boolean nativeSignals,
+            SignalHandler signalHandler,
+            boolean paused)
+            throws IOException {
+        // Get input console mode
+        int[] inMode = new int[1];
+        if (Kernel32.GetConsoleMode(consoleIn, inMode) == 0) {
             throw new IOException("Failed to get console mode: " + getLastErrorMessage());
         }
-        JansiWinSysTerminal terminal = new JansiWinSysTerminal(writer, name, type, encoding, codepage, nativeSignals, signalHandler);
+        // Get output console and mode
+        long console = getConsole(systemStream);
+        int[] outMode = new int[1];
+        if (Kernel32.GetConsoleMode(console, outMode) == 0) {
+            throw new IOException("Failed to get console mode: " + getLastErrorMessage());
+        }
+        // Create writer
+        Writer writer;
+        if (ansiPassThrough) {
+            type = type != null ? type : OSUtils.IS_CONEMU ? TYPE_WINDOWS_CONEMU : TYPE_WINDOWS;
+            writer = newConsoleWriter(console);
+        } else {
+            if (enableVtp(console, outMode[0])) {
+                type = type != null ? type : TYPE_WINDOWS_VTP;
+                writer = newConsoleWriter(console);
+            } else if (OSUtils.IS_CONEMU) {
+                type = type != null ? type : TYPE_WINDOWS_CONEMU;
+                writer = newConsoleWriter(console);
+            } else {
+                type = type != null ? type : TYPE_WINDOWS;
+                writer = new WindowsAnsiWriter(new BufferedWriter(newConsoleWriter(console)));
+            }
+        }
+        // Create terminal
+        JansiWinSysTerminal terminal = new JansiWinSysTerminal(
+                provider,
+                systemStream,
+                writer,
+                name,
+                type,
+                encoding,
+                nativeSignals,
+                signalHandler,
+                consoleIn,
+                inMode[0],
+                console,
+                outMode[0]);
         // Start input pump thread
         if (!paused) {
             terminal.resume();
@@ -81,28 +103,80 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
         return terminal;
     }
 
-    public static boolean isWindowsConsole() {
-        int[] mode = new int[1];
-        return Kernel32.GetConsoleMode(consoleOut, mode) != 0 && Kernel32.GetConsoleMode(consoleIn, mode) != 0;
+    public static long getConsole(SystemStream systemStream) {
+        long console;
+        switch (systemStream) {
+            case Output:
+                console = consoleOut;
+                break;
+            case Error:
+                console = consoleErr;
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported stream for console: " + systemStream);
+        }
+        return console;
     }
 
-    public static boolean isConsoleOutput() {
-        int[] mode = new int[1];
-        return Kernel32.GetConsoleMode(consoleOut, mode) != 0;
+    private static boolean enableVtp(long console, int outMode) {
+        return Kernel32.SetConsoleMode(console, outMode | AbstractWindowsTerminal.ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+                != 0;
     }
 
-    public static boolean isConsoleInput() {
-        int[] mode = new int[1];
-        return Kernel32.GetConsoleMode(consoleIn, mode) != 0;
+    private static Writer newConsoleWriter(long console) {
+        return new JansiWinConsoleWriter(console);
     }
 
-    JansiWinSysTerminal(Writer writer, String name, String type, Charset encoding, int codepage, boolean nativeSignals, SignalHandler signalHandler) throws IOException {
-        super(writer, name, type, encoding, codepage, nativeSignals, signalHandler);
+    public static boolean isWindowsSystemStream(SystemStream stream) {
+        int[] mode = new int[1];
+        long console;
+        switch (stream) {
+            case Input:
+                console = consoleIn;
+                break;
+            case Output:
+                console = consoleOut;
+                break;
+            case Error:
+                console = consoleErr;
+                break;
+            default:
+                return false;
+        }
+        return Kernel32.GetConsoleMode(console, mode) != 0;
+    }
+
+    JansiWinSysTerminal(
+            TerminalProvider provider,
+            SystemStream systemStream,
+            Writer writer,
+            String name,
+            String type,
+            Charset encoding,
+            boolean nativeSignals,
+            SignalHandler signalHandler,
+            long inConsole,
+            int inMode,
+            long outConsole,
+            int outMode)
+            throws IOException {
+        super(
+                provider,
+                systemStream,
+                writer,
+                name,
+                type,
+                encoding,
+                nativeSignals,
+                signalHandler,
+                inConsole,
+                inMode,
+                outConsole,
+                outMode);
     }
 
     @Override
-    protected int getConsoleMode() {
-        long console = GetStdHandle(STD_INPUT_HANDLE);
+    protected int getConsoleMode(Long console) {
         int[] mode = new int[1];
         if (Kernel32.GetConsoleMode(console, mode) == 0) {
             return -1;
@@ -111,32 +185,27 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
     }
 
     @Override
-    protected void setConsoleMode(int mode) {
-        long console = GetStdHandle (STD_INPUT_HANDLE);
+    protected void setConsoleMode(Long console, int mode) {
         Kernel32.SetConsoleMode(console, mode);
     }
 
     public Size getSize() {
-        long outputHandle = Kernel32.GetStdHandle(STD_OUTPUT_HANDLE);
         CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO();
-        Kernel32.GetConsoleScreenBufferInfo(outputHandle, info);
+        Kernel32.GetConsoleScreenBufferInfo(outConsole, info);
         return new Size(info.windowWidth(), info.windowHeight());
     }
 
     @Override
     public Size getBufferSize() {
-        long outputHandle = Kernel32.GetStdHandle(Kernel32.STD_OUTPUT_HANDLE);
         CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO();
-        Kernel32.GetConsoleScreenBufferInfo(outputHandle, info);
+        Kernel32.GetConsoleScreenBufferInfo(outConsole, info);
         return new Size(info.size.x, info.size.y);
     }
 
     protected boolean processConsoleInput() throws IOException {
         INPUT_RECORD[] events;
-        long console = GetStdHandle (STD_INPUT_HANDLE);
-        if (console != INVALID_HANDLE_VALUE
-                && WaitForSingleObject(console, 100) == 0) {
-            events = readConsoleInputHelper(console, 1, false);
+        if (inConsole != INVALID_HANDLE_VALUE && WaitForSingleObject(inConsole, 100) == 0) {
+            events = readConsoleInputHelper(inConsole, 1, false);
         } else {
             return false;
         }
@@ -145,7 +214,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
         for (INPUT_RECORD event : events) {
             if (event.eventType == INPUT_RECORD.KEY_EVENT) {
                 KEY_EVENT_RECORD keyEvent = event.keyEvent;
-                processKeyEvent(keyEvent.keyDown , keyEvent.keyCode, keyEvent.uchar, keyEvent.controlKeyState);
+                processKeyEvent(keyEvent.keyDown, keyEvent.keyCode, keyEvent.uchar, keyEvent.controlKeyState);
                 flush = true;
             } else if (event.eventType == INPUT_RECORD.WINDOW_BUFFER_SIZE_EVENT) {
                 raise(Signal.WINCH);
@@ -160,7 +229,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
         return flush;
     }
 
-    private char[] focus = new char[] { '\033', '[', ' ' };
+    private char[] focus = new char[] {'\033', '[', ' '};
 
     private void processFocusEvent(boolean hasFocus) throws IOException {
         if (focusTracking) {
@@ -169,18 +238,20 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
         }
     }
 
-    private char[] mouse = new char[] { '\033', '[', 'M', ' ', ' ', ' ' };
+    private char[] mouse = new char[] {'\033', '[', 'M', ' ', ' ', ' '};
 
     private void processMouseEvent(Kernel32.MOUSE_EVENT_RECORD mouseEvent) throws IOException {
         int dwEventFlags = mouseEvent.eventFlags;
         int dwButtonState = mouseEvent.buttonState;
         if (tracking == MouseTracking.Off
                 || tracking == MouseTracking.Normal && dwEventFlags == Kernel32.MOUSE_EVENT_RECORD.MOUSE_MOVED
-                || tracking == MouseTracking.Button && dwEventFlags == Kernel32.MOUSE_EVENT_RECORD.MOUSE_MOVED && dwButtonState == 0) {
+                || tracking == MouseTracking.Button
+                        && dwEventFlags == Kernel32.MOUSE_EVENT_RECORD.MOUSE_MOVED
+                        && dwButtonState == 0) {
             return;
         }
         int cb = 0;
-        dwEventFlags &= ~ Kernel32.MOUSE_EVENT_RECORD.DOUBLE_CLICK; // Treat double-clicks as normal
+        dwEventFlags &= ~Kernel32.MOUSE_EVENT_RECORD.DOUBLE_CLICK; // Treat double-clicks as normal
         if (dwEventFlags == Kernel32.MOUSE_EVENT_RECORD.MOUSE_WHEELED) {
             cb |= 64;
             if ((dwButtonState >> 16) < 0) {
@@ -208,8 +279,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
     @Override
     public Cursor getCursorPosition(IntConsumer discarded) {
         CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO();
-        long console = GetStdHandle(STD_OUTPUT_HANDLE);
-        if (GetConsoleScreenBufferInfo(console, info) == 0) {
+        if (GetConsoleScreenBufferInfo(outConsole, info) == 0) {
             throw new IOError(new IOException("Could not get the cursor position: " + getLastErrorMessage()));
         }
         return new Cursor(info.cursorPosition.x, info.cursorPosition.y);
@@ -221,17 +291,4 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal {
         strings.remove(InfoCmp.Capability.delete_line);
         strings.remove(InfoCmp.Capability.parm_delete_line);
     }
-
-    static String getLastErrorMessage() {
-        int errorCode = GetLastError();
-        return getErrorMessage(errorCode);
-    }
-
-    static String getErrorMessage(int errorCode) {
-        int bufferSize = 160;
-        byte[] data = new byte[bufferSize];
-        FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, 0, errorCode, 0, data, bufferSize, null);
-        return new String(data, StandardCharsets.UTF_16LE).trim();
-    }
-
 }

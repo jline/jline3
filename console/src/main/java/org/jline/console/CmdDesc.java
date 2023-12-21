@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2020, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -16,7 +16,7 @@ import org.jline.utils.AttributedString;
 public class CmdDesc {
     private List<AttributedString> mainDesc;
     private List<ArgDesc> argsDesc;
-    private TreeMap<String,List<AttributedString>> optsDesc;
+    private TreeMap<String, List<AttributedString>> optsDesc;
     private Pattern errorPattern;
     private int errorIndex = -1;
     private boolean valid = true;
@@ -36,11 +36,12 @@ public class CmdDesc {
         this(new ArrayList<>(), argsDesc, new HashMap<>());
     }
 
-    public CmdDesc(List<ArgDesc> argsDesc, Map<String,List<AttributedString>> optsDesc) {
+    public CmdDesc(List<ArgDesc> argsDesc, Map<String, List<AttributedString>> optsDesc) {
         this(new ArrayList<>(), argsDesc, optsDesc);
     }
 
-    public CmdDesc(List<AttributedString> mainDesc, List<ArgDesc> argsDesc, Map<String,List<AttributedString>> optsDesc) {
+    public CmdDesc(
+            List<AttributedString> mainDesc, List<ArgDesc> argsDesc, Map<String, List<AttributedString>> optsDesc) {
         this.argsDesc = new ArrayList<>(argsDesc);
         this.optsDesc = new TreeMap<>(optsDesc);
         if (mainDesc.isEmpty() && optsDesc.containsKey("main")) {
@@ -89,7 +90,7 @@ public class CmdDesc {
         return mainDesc;
     }
 
-    public TreeMap<String,List<AttributedString>> getOptsDesc() {
+    public TreeMap<String, List<AttributedString>> getOptsDesc() {
         return optsDesc;
     }
 
@@ -114,7 +115,7 @@ public class CmdDesc {
     }
 
     public boolean optionWithValue(String option) {
-        for (String key: optsDesc.keySet()) {
+        for (String key : optsDesc.keySet()) {
             if (key.matches("(^|.*\\s)" + option + "($|=.*|\\s.*)")) {
                 return key.contains("=");
             }
@@ -125,5 +126,4 @@ public class CmdDesc {
     public AttributedString optionDescription(String key) {
         return optsDesc.get(key).size() > 0 ? optsDesc.get(key).get(0) : new AttributedString("");
     }
-
 }

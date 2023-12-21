@@ -1,29 +1,21 @@
 /*
- * Copyright (C) 2009-2018 the original author(s).
+ * Copyright (c) 2009-2018, the original author(s).
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
  *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.terminal.impl.jansi.win;
-
-import org.fusesource.jansi.WindowsSupport;
-import org.fusesource.jansi.internal.Kernel32.*;
-import org.jline.utils.AnsiWriter;
-import org.jline.utils.Colors;
 
 import java.io.IOException;
 import java.io.Writer;
 
+import org.jline.utils.AnsiWriter;
+import org.jline.utils.Colors;
+
 import static org.fusesource.jansi.internal.Kernel32.*;
+import static org.jline.terminal.impl.jansi.win.WindowsSupport.getLastErrorMessage;
 
 /**
  * A Windows ANSI escape processor, that uses JNA to access native platform
@@ -50,25 +42,25 @@ public final class WindowsAnsiWriter extends AnsiWriter {
     private static final short BACKGROUND_WHITE = (short) (BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_BLUE);
 
     private static final short[] ANSI_FOREGROUND_COLOR_MAP = {
-            FOREGROUND_BLACK,
-            FOREGROUND_RED,
-            FOREGROUND_GREEN,
-            FOREGROUND_YELLOW,
-            FOREGROUND_BLUE,
-            FOREGROUND_MAGENTA,
-            FOREGROUND_CYAN,
-            FOREGROUND_WHITE,
+        FOREGROUND_BLACK,
+        FOREGROUND_RED,
+        FOREGROUND_GREEN,
+        FOREGROUND_YELLOW,
+        FOREGROUND_BLUE,
+        FOREGROUND_MAGENTA,
+        FOREGROUND_CYAN,
+        FOREGROUND_WHITE,
     };
 
     private static final short[] ANSI_BACKGROUND_COLOR_MAP = {
-            BACKGROUND_BLACK,
-            BACKGROUND_RED,
-            BACKGROUND_GREEN,
-            BACKGROUND_YELLOW,
-            BACKGROUND_BLUE,
-            BACKGROUND_MAGENTA,
-            BACKGROUND_CYAN,
-            BACKGROUND_WHITE,
+        BACKGROUND_BLACK,
+        BACKGROUND_RED,
+        BACKGROUND_GREEN,
+        BACKGROUND_YELLOW,
+        BACKGROUND_BLUE,
+        BACKGROUND_MAGENTA,
+        BACKGROUND_CYAN,
+        BACKGROUND_WHITE,
     };
 
     private final CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO();
@@ -89,7 +81,7 @@ public final class WindowsAnsiWriter extends AnsiWriter {
     private void getConsoleInfo() throws IOException {
         out.flush();
         if (GetConsoleScreenBufferInfo(console, info) == 0) {
-            throw new IOException("Could not get the screen info: " + WindowsSupport.getLastErrorMessage());
+            throw new IOException("Could not get the screen info: " + getLastErrorMessage());
         }
         if (negative) {
             info.attributes = invertAttributeColors(info.attributes);
@@ -111,7 +103,7 @@ public final class WindowsAnsiWriter extends AnsiWriter {
             attributes = invertAttributeColors(attributes);
         }
         if (SetConsoleTextAttribute(console, attributes) == 0) {
-            throw new IOException(WindowsSupport.getLastErrorMessage());
+            throw new IOException(getLastErrorMessage());
         }
     }
 
@@ -129,7 +121,7 @@ public final class WindowsAnsiWriter extends AnsiWriter {
         info.cursorPosition.x = (short) Math.max(0, Math.min(info.size.x - 1, info.cursorPosition.x));
         info.cursorPosition.y = (short) Math.max(0, Math.min(info.size.y - 1, info.cursorPosition.y));
         if (SetConsoleCursorPosition(console, info.cursorPosition.copy()) == 0) {
-            throw new IOException(WindowsSupport.getLastErrorMessage());
+            throw new IOException(getLastErrorMessage());
         }
     }
 
@@ -150,14 +142,13 @@ public final class WindowsAnsiWriter extends AnsiWriter {
                 COORD topLeft2 = new COORD();
                 topLeft2.x = 0;
                 topLeft2.y = info.window.top;
-                int lengthToCursor = (info.cursorPosition.y - info.window.top) * info.size.x
-                        + info.cursorPosition.x;
+                int lengthToCursor = (info.cursorPosition.y - info.window.top) * info.size.x + info.cursorPosition.x;
                 FillConsoleOutputAttribute(console, originalColors, lengthToCursor, topLeft2, written);
                 FillConsoleOutputCharacterW(console, ' ', lengthToCursor, topLeft2, written);
                 break;
             case ERASE_SCREEN_TO_END:
-                int lengthToEnd = (info.window.bottom - info.cursorPosition.y) * info.size.x +
-                        (info.size.x - info.cursorPosition.x);
+                int lengthToEnd = (info.window.bottom - info.cursorPosition.y) * info.size.x
+                        + (info.size.x - info.cursorPosition.x);
                 FillConsoleOutputAttribute(console, originalColors, lengthToEnd, info.cursorPosition.copy(), written);
                 FillConsoleOutputCharacterW(console, ' ', lengthToEnd, info.cursorPosition.copy(), written);
                 break;
@@ -185,7 +176,8 @@ public final class WindowsAnsiWriter extends AnsiWriter {
                 break;
             case ERASE_LINE_TO_END:
                 int lengthToLastCol = info.size.x - info.cursorPosition.x;
-                FillConsoleOutputAttribute(console, originalColors, lengthToLastCol, info.cursorPosition.copy(), written);
+                FillConsoleOutputAttribute(
+                        console, originalColors, lengthToLastCol, info.cursorPosition.copy(), written);
                 FillConsoleOutputCharacterW(console, ' ', lengthToLastCol, info.cursorPosition.copy(), written);
                 break;
             default:
@@ -196,28 +188,28 @@ public final class WindowsAnsiWriter extends AnsiWriter {
     protected void processCursorUpLine(int count) throws IOException {
         getConsoleInfo();
         info.cursorPosition.x = 0;
-        info.cursorPosition.y -= count;
+        info.cursorPosition.y -= (short) count;
         applyCursorPosition();
     }
 
     protected void processCursorDownLine(int count) throws IOException {
         getConsoleInfo();
         info.cursorPosition.x = 0;
-        info.cursorPosition.y += count;
+        info.cursorPosition.y += (short) count;
         applyCursorPosition();
     }
 
     @Override
     protected void processCursorLeft(int count) throws IOException {
         getConsoleInfo();
-        info.cursorPosition.x -= count;
+        info.cursorPosition.x -= (short) count;
         applyCursorPosition();
     }
 
     @Override
     protected void processCursorRight(int count) throws IOException {
         getConsoleInfo();
-        info.cursorPosition.x += count;
+        info.cursorPosition.x += (short) count;
         applyCursorPosition();
     }
 
@@ -226,7 +218,7 @@ public final class WindowsAnsiWriter extends AnsiWriter {
         getConsoleInfo();
         int nb = Math.max(0, info.cursorPosition.y + count - info.size.y + 1);
         if (nb != count) {
-            info.cursorPosition.y += count;
+            info.cursorPosition.y += (short) count;
             applyCursorPosition();
         }
         if (nb > 0) {
@@ -234,7 +226,7 @@ public final class WindowsAnsiWriter extends AnsiWriter {
             scroll.top = 0;
             COORD org = new COORD();
             org.x = 0;
-            org.y = (short)(- nb);
+            org.y = (short) (-nb);
             CHAR_INFO info = new CHAR_INFO();
             info.unicodeChar = ' ';
             info.attributes = originalColors;
@@ -245,7 +237,7 @@ public final class WindowsAnsiWriter extends AnsiWriter {
     @Override
     protected void processCursorUp(int count) throws IOException {
         getConsoleInfo();
-        info.cursorPosition.y -= count;
+        info.cursorPosition.y -= (short) count;
         applyCursorPosition();
     }
 
@@ -362,12 +354,12 @@ public final class WindowsAnsiWriter extends AnsiWriter {
         scroll.top = info.cursorPosition.y;
         COORD org = new COORD();
         org.x = 0;
-        org.y = (short)(info.cursorPosition.y + optionInt);
+        org.y = (short) (info.cursorPosition.y + optionInt);
         CHAR_INFO info = new CHAR_INFO();
         info.attributes = originalColors;
         info.unicodeChar = ' ';
         if (ScrollConsoleScreenBuffer(console, scroll, scroll, org, info) == 0) {
-            throw new IOException(WindowsSupport.getLastErrorMessage());
+            throw new IOException(getLastErrorMessage());
         }
     }
 
@@ -378,12 +370,12 @@ public final class WindowsAnsiWriter extends AnsiWriter {
         scroll.top = info.cursorPosition.y;
         COORD org = new COORD();
         org.x = 0;
-        org.y = (short)(info.cursorPosition.y - optionInt);
+        org.y = (short) (info.cursorPosition.y - optionInt);
         CHAR_INFO info = new CHAR_INFO();
         info.attributes = originalColors;
         info.unicodeChar = ' ';
         if (ScrollConsoleScreenBuffer(console, scroll, scroll, org, info) == 0) {
-            throw new IOException(WindowsSupport.getLastErrorMessage());
+            throw new IOException(getLastErrorMessage());
         }
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -46,8 +46,7 @@ public class NfaMatcher<T> {
                     .forEach(s -> addState(nlist, s.out));
             clist = nlist;
         }
-        return clist.stream()
-                .anyMatch(s -> Objects.equals(State.Match, s.c));
+        return clist.stream().anyMatch(s -> Objects.equals(State.Match, s.c));
     }
 
     /**
@@ -243,37 +242,44 @@ public class NfaMatcher<T> {
             this.out = out;
             this.out1 = out1;
         }
+
         public void setOut(State out) {
             this.out = out;
         }
+
         public void setOut1(State out1) {
             this.out1 = out1;
         }
     }
+
     private static class Frag {
         final State start;
         final List<Consumer<State>> out = new ArrayList<>();
+
         public Frag(State start, Collection<Consumer<State>> l) {
             this.start = start;
             this.out.addAll(l);
         }
+
         public Frag(State start, Collection<Consumer<State>> l1, Collection<Consumer<State>> l2) {
             this.start = start;
             this.out.addAll(l1);
             this.out.addAll(l2);
         }
+
         public Frag(State start, Consumer<State> c) {
             this.start = start;
             this.out.add(c);
         }
+
         public Frag(State start, Collection<Consumer<State>> l, Consumer<State> c) {
             this.start = start;
             this.out.addAll(l);
             this.out.add(c);
         }
+
         public void patch(State s) {
             out.forEach(c -> c.accept(s));
         }
     }
-
 }

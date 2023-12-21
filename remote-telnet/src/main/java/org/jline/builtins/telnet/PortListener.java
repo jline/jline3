@@ -1,11 +1,12 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
+package org.jline.builtins.telnet;
 
 /*
  * Java TelnetD library (embeddable telnet daemon)
@@ -38,8 +39,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ***/
 
-package org.jline.builtins.telnet;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -50,29 +49,28 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Class that implements a <tt>PortListener</tt>.<br>
+ * Class that implements a {@code PortListener}.<br>
  * If available, it accepts incoming connections and passes them
- * to an associated <tt>ConnectionManager</tt>.
+ * to an associated {@code ConnectionManager}.
  *
  * @author Dieter Wimberger
  * @version 2.0 (16/07/2006)
  * @see ConnectionManager
  */
-public class PortListener
-        implements Runnable {
+public class PortListener implements Runnable {
 
     private static final Logger LOG = Logger.getLogger(PortListener.class.getName());
     private static final String logmsg =
             "Listening to Port {0,number,integer} with a connectivity queue size of {1,number,integer}.";
     private String name;
-    private String ip;                                  // ip address
-    private int port;                                   // port number running on
-    private int floodProtection;                        // flooding protection
-    private ServerSocket serverSocket = null;           // server socket
+    private String ip; // ip address
+    private int port; // port number running on
+    private int floodProtection; // flooding protection
+    private ServerSocket serverSocket = null; // server socket
     private Thread thread;
-    private ConnectionManager connectionManager;        // connection management thread
+    private ConnectionManager connectionManager; // connection management thread
     private boolean stopping = false;
-    private boolean available;                          // Flag for availability
+    private boolean available; // Flag for availability
 
     /**
      * Constructs a PortListener instance.<br>
@@ -88,65 +86,65 @@ public class PortListener
         this.ip = ip;
         this.port = port;
         floodProtection = floodprot;
-    }//constructor
+    } // constructor
 
     /**
-     * Returns the name of this <tt>PortListener</tt>.
+     * Returns the name of this {@code PortListener}.
      *
-     * @return the name as <tt>String</tt>.
+     * @return the name as {@code String}.
      */
     public String getName() {
         return name;
-    }//getName
+    } // getName
 
     /**
-     * Tests if this <tt>PortListener</tt> is available.
+     * Tests if this {@code PortListener} is available.
      *
      * @return true if available, false otherwise.
      */
     public boolean isAvailable() {
         return available;
-    }//isAvailable
+    } // isAvailable
 
     /**
-     * Sets the availability flag of this <tt>PortListener</tt>.
+     * Sets the availability flag of this {@code PortListener}.
      *
      * @param b true if to be available, false otherwise.
      */
     public void setAvailable(boolean b) {
         available = b;
-    }//setAvailable
+    } // setAvailable
 
     /**
-     * Starts this <tt>PortListener</tt>.
+     * Starts this {@code PortListener}.
      */
     public void start() {
         LOG.log(Level.FINE, "start()");
         thread = new Thread(this);
         thread.start();
         available = true;
-    }//start
+    } // start
 
     /**
-     * Stops this <tt>PortListener</tt>, and returns
+     * Stops this {@code PortListener}, and returns
      * when everything was stopped successfully.
      */
     public void stop() {
         LOG.log(Level.FINE, "stop()::" + this.toString());
-        //flag stop
+        // flag stop
         stopping = true;
         available = false;
-        //take down all connections
+        // take down all connections
         connectionManager.stop();
 
-        //close server socket
+        // close server socket
         try {
             serverSocket.close();
         } catch (IOException ex) {
             LOG.log(Level.SEVERE, "stop()", ex);
         }
 
-        //wait for thread to die
+        // wait for thread to die
         try {
             thread.join();
         } catch (InterruptedException iex) {
@@ -154,7 +152,7 @@ public class PortListener
         }
 
         LOG.info("stop()::Stopped " + this.toString());
-    }//stop
+    } // stop
 
     /**
      * Listen constantly to a server socket and handles incoming connections
@@ -172,7 +170,7 @@ public class PortListener
             */
             serverSocket = new ServerSocket(port, floodProtection, ip != null ? InetAddress.getByName(ip) : null);
 
-            //log entry
+            // log entry
             LOG.info(MessageFormat.format(logmsg, port, floodProtection));
 
             do {
@@ -181,12 +179,12 @@ public class PortListener
                     if (available) {
                         connectionManager.makeConnection(s);
                     } else {
-                        //just shut down the socket
+                        // just shut down the socket
                         s.close();
                     }
                 } catch (SocketException ex) {
                     if (stopping) {
-                        //server socket was closed blocked in accept
+                        // server socket was closed blocked in accept
                         LOG.log(Level.FINE, "run(): ServerSocket closed by stop()");
                     } else {
                         LOG.log(Level.SEVERE, "run()", ex);
@@ -198,7 +196,7 @@ public class PortListener
             LOG.log(Level.SEVERE, "run()", e);
         }
         LOG.log(Level.FINE, "run(): returning.");
-    }//run
+    } // run
 
     /**
      * Returns reference to ConnectionManager instance associated
@@ -208,10 +206,9 @@ public class PortListener
      */
     public ConnectionManager getConnectionManager() {
         return connectionManager;
-    }//getConnectionManager
+    } // getConnectionManager
 
     public void setConnectionManager(ConnectionManager connectionManager) {
         this.connectionManager = connectionManager;
     }
-
-}//class PortListener
+} // class PortListener

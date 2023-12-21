@@ -1,11 +1,12 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
+package org.jline.builtins.telnet;
 
 /*
  * Java TelnetD library (embeddable telnet daemon)
@@ -38,8 +39,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ***/
 
-package org.jline.builtins.telnet;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -54,7 +53,7 @@ import java.util.logging.Logger;
 /**
  * Class that takes care for active and queued connection.
  * Housekeeping is done also for connections that were just broken
- * off, or exceeded their timeout. 
+ * off, or exceeded their timeout.
  *
  * @author Dieter Wimberger
  * @version 2.0 (16/07/2006)
@@ -64,24 +63,26 @@ public abstract class ConnectionManager implements Runnable {
     private static Logger LOG = Logger.getLogger(ConnectionManager.class.getName());
     private final List<Connection> openConnections;
     private Thread thread;
-    private ThreadGroup threadGroup; //ThreadGroup all connections run in
+    private ThreadGroup threadGroup; // ThreadGroup all connections run in
     private Stack<Connection> closedConnections;
-    private ConnectionFilter connectionFilter; //reference to the connection filter
-    private int maxConnections; //maximum allowed connections stored from the properties
-    private int warningTimeout; //time to idle warning
-    private int disconnectTimeout; //time to idle diconnection
-    private int housekeepingInterval; //interval for managing cleanups
+    private ConnectionFilter connectionFilter; // reference to the connection filter
+    private int maxConnections; // maximum allowed connections stored from the properties
+    private int warningTimeout; // time to idle warning
+    private int disconnectTimeout; // time to idle diconnection
+    private int housekeepingInterval; // interval for managing cleanups
     private String loginShell;
     private boolean lineMode = false;
     private boolean stopping = false;
 
+    @SuppressWarnings("this-escape")
     public ConnectionManager() {
         threadGroup = new ThreadGroup(toString() + "Connections");
         closedConnections = new Stack<Connection>();
         openConnections = Collections.synchronizedList(new ArrayList<Connection>(100));
     }
 
-    public ConnectionManager(int con, int timew, int timedis, int hoke, ConnectionFilter filter, String lsh, boolean lm) {
+    public ConnectionManager(
+            int con, int timew, int timedis, int hoke, ConnectionFilter filter, String lsh, boolean lm) {
         this();
         connectionFilter = filter;
         loginShell = lsh;
@@ -90,7 +91,7 @@ public abstract class ConnectionManager implements Runnable {
         warningTimeout = timew;
         disconnectTimeout = timedis;
         housekeepingInterval = hoke;
-    }//constructor
+    } // constructor
 
     /**
      * Gets the active ConnectionFilter instance or
@@ -100,7 +101,7 @@ public abstract class ConnectionManager implements Runnable {
      */
     public ConnectionFilter getConnectionFilter() {
         return connectionFilter;
-    }//getConnectionFilter
+    } // getConnectionFilter
 
     /**
      * Set a connection filter for this
@@ -111,15 +112,15 @@ public abstract class ConnectionManager implements Runnable {
      */
     public void setConnectionFilter(ConnectionFilter filter) {
         connectionFilter = filter;
-    }//setConnectionFilter
+    } // setConnectionFilter
 
     /**
      * Returns the number of open connections.
-     * @return the number of open connections as <tt>int</tt>.
+     * @return the number of open connections as {@code int}.
      */
     public int openConnectionCount() {
         return openConnections.size();
-    }//openConnectionCount
+    } // openConnectionCount
 
     /**
      * Returns the {@link Connection} at the given index.
@@ -130,15 +131,15 @@ public abstract class ConnectionManager implements Runnable {
         synchronized (openConnections) {
             return openConnections.get(idx);
         }
-    }//getConnection
+    } // getConnection
 
     /**
      * Get all {@link Connection} instances with the given
-     * <tt>InetAddress</tt>.
+     * {@code InetAddress}.
      *
      * @param addr the address
      * @return all {@link Connection} instances with the given
-     *         <tt>InetAddress</tt>.
+     *         {@code InetAddress}.
      */
     public Connection[] getConnectionsByAdddress(InetAddress addr) {
         ArrayList<Connection> l = new ArrayList<Connection>();
@@ -151,23 +152,23 @@ public abstract class ConnectionManager implements Runnable {
         }
         Connection[] conns = new Connection[l.size()];
         return l.toArray(conns);
-    }//getConnectionsByAddress
+    } // getConnectionsByAddress
 
     /**
-     * Starts this <tt>ConnectionManager</tt>.
+     * Starts this {@code ConnectionManager}.
      */
     public void start() {
         thread = new Thread(this);
         thread.start();
-    }//start
+    } // start
 
     /**
-     * Stops this <tt>ConnectionManager</tt>.
+     * Stops this {@code ConnectionManager}.
      */
     public void stop() {
         LOG.log(Level.FINE, "stop()::" + this.toString());
         stopping = true;
-        //wait for thread to die
+        // wait for thread to die
         try {
             if (thread != null) {
                 thread.join();
@@ -178,7 +179,7 @@ public abstract class ConnectionManager implements Runnable {
         synchronized (openConnections) {
             for (Connection tc : openConnections) {
                 try {
-                    //maybe write a disgrace to the socket?
+                    // maybe write a disgrace to the socket?
                     tc.close();
                 } catch (Exception exc) {
                     LOG.log(Level.SEVERE, "stop()", exc);
@@ -187,7 +188,7 @@ public abstract class ConnectionManager implements Runnable {
             openConnections.clear();
         }
         LOG.log(Level.FINE, "stop():: Stopped " + this.toString());
-    }//stop
+    } // stop
 
     /**
      * Method that that tries to connect an incoming request.
@@ -198,22 +199,22 @@ public abstract class ConnectionManager implements Runnable {
     public void makeConnection(Socket insock) {
         LOG.log(Level.FINE, "makeConnection()::" + insock.toString());
         if (connectionFilter == null || connectionFilter.isAllowed(insock.getInetAddress())) {
-            //we create the connection data object at this point to
-            //store certain information there.
+            // we create the connection data object at this point to
+            // store certain information there.
             ConnectionData newCD = new ConnectionData(insock, this);
             newCD.setLoginShell(loginShell);
             newCD.setLineMode(lineMode);
             if (openConnections.size() < maxConnections) {
-                //create a new Connection instance
+                // create a new Connection instance
                 Connection con = createConnection(threadGroup, newCD);
-                //log the newly created connection
+                // log the newly created connection
                 Object[] args = {openConnections.size() + 1};
                 LOG.info(MessageFormat.format("connection #{0,number,integer} made.", args));
-                //register it for being managed
+                // register it for being managed
                 synchronized (openConnections) {
                     openConnections.add(con);
                 }
-                //start it
+                // start it
                 con.start();
             }
         } else {
@@ -221,10 +222,10 @@ public abstract class ConnectionManager implements Runnable {
             try {
                 insock.close();
             } catch (IOException ex) {
-                //do nothing or log.
+                // do nothing or log.
             }
         }
-    }//makeConnection
+    } // makeConnection
 
     protected abstract Connection createConnection(ThreadGroup threadGroup, ConnectionData newCD);
 
@@ -237,14 +238,14 @@ public abstract class ConnectionManager implements Runnable {
      * </ul>
      */
     public void run() {
-        //housekeep connections
+        // housekeep connections
         try {
             do {
-                //clean up closed connections
+                // clean up closed connections
                 cleanupClosed();
-                //check all active connections
+                // check all active connections
                 checkOpenConnections();
-                //sleep interval
+                // sleep interval
                 Thread.sleep(housekeepingInterval);
             } while (!stopping);
 
@@ -252,13 +253,13 @@ public abstract class ConnectionManager implements Runnable {
             LOG.log(Level.SEVERE, "run()", e);
         }
         LOG.log(Level.FINE, "run():: Ran out " + this.toString());
-    }//run
+    } // run
 
     private void cleanupClosed() {
         if (stopping) {
             return;
         }
-        //cleanup loop
+        // cleanup loop
         while (!closedConnections.isEmpty()) {
             Connection nextOne = closedConnections.pop();
             LOG.info("cleanupClosed():: Removing closed connection " + nextOne.toString());
@@ -266,47 +267,51 @@ public abstract class ConnectionManager implements Runnable {
                 openConnections.remove(nextOne);
             }
         }
-    }//cleanupBroken
+    } // cleanupBroken
 
     private void checkOpenConnections() {
         if (stopping) {
             return;
         }
-        //do routine checks on active connections
+        // do routine checks on active connections
         synchronized (openConnections) {
             for (Connection conn : openConnections) {
                 ConnectionData cd = conn.getConnectionData();
-                //check if it is dead and remove it.
+                // check if it is dead and remove it.
                 if (!conn.isActive()) {
                     registerClosedConnection(conn);
                     continue;
                 }
                 /* Timeouts check */
-                //first we caculate the inactivity time
+                // first we caculate the inactivity time
                 long inactivity = System.currentTimeMillis() - cd.getLastActivity();
-                //now we check for warning and disconnection
+                // now we check for warning and disconnection
                 if (inactivity > warningTimeout) {
-                    //..and for disconnect
+                    // ..and for disconnect
                     if (inactivity > (disconnectTimeout + warningTimeout)) {
-                        //this connection needs to be disconnected :)
+                        // this connection needs to be disconnected :)
                         LOG.log(Level.FINE, "checkOpenConnections():" + conn.toString() + " exceeded total timeout.");
-                        //fire logoff event for shell site cleanup , beware could hog the daemon thread
-                        conn.processConnectionEvent(new ConnectionEvent(conn, ConnectionEvent.Type.CONNECTION_TIMEDOUT));
-                        //conn.close();
+                        // fire logoff event for shell site cleanup , beware could hog the daemon thread
+                        conn.processConnectionEvent(
+                                new ConnectionEvent(conn, ConnectionEvent.Type.CONNECTION_TIMEDOUT));
+                        // conn.close();
                     } else {
-                        //this connection needs to be warned :)
+                        // this connection needs to be warned :)
                         if (!cd.isWarned()) {
-                            LOG.log(Level.FINE, "checkOpenConnections():" + conn.toString() + " exceeded warning timeout.");
+                            LOG.log(
+                                    Level.FINE,
+                                    "checkOpenConnections():" + conn.toString() + " exceeded warning timeout.");
                             cd.setWarned(true);
-                            //warning event is fired but beware this could hog the daemon thread!!
-                            conn.processConnectionEvent(new ConnectionEvent(conn, ConnectionEvent.Type.CONNECTION_IDLE));
+                            // warning event is fired but beware this could hog the daemon thread!!
+                            conn.processConnectionEvent(
+                                    new ConnectionEvent(conn, ConnectionEvent.Type.CONNECTION_IDLE));
                         }
                     }
                 }
             }
             /* end Timeouts check */
         }
-    }//checkConnections
+    } // checkConnections
 
     public void registerClosedConnection(Connection con) {
         if (stopping) {
@@ -316,7 +321,7 @@ public abstract class ConnectionManager implements Runnable {
             LOG.log(Level.FINE, "registerClosedConnection()::" + con.toString());
             closedConnections.push(con);
         }
-    }//unregister
+    } // unregister
 
     public int getDisconnectTimeout() {
         return disconnectTimeout;
@@ -365,5 +370,4 @@ public abstract class ConnectionManager implements Runnable {
     public void setWarningTimeout(int warningTimeout) {
         this.warningTimeout = warningTimeout;
     }
-
-}//class ConnectionManager
+} // class ConnectionManager

@@ -1,12 +1,15 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
- * http://www.opensource.org/licenses/bsd-license.php
+ * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.curses.impl;
+
+import java.io.IOException;
+import java.util.*;
 
 import org.jline.curses.Curses;
 import org.jline.curses.Position;
@@ -18,13 +21,15 @@ import org.jline.terminal.MouseEvent;
 import org.jline.terminal.Terminal;
 import org.jline.utils.*;
 
-import java.io.IOException;
-import java.util.*;
-
 public class Menu extends AbstractComponent {
 
     enum Action {
-        Left, Right, Up, Down, Execute, Close
+        Left,
+        Right,
+        Up,
+        Down,
+        Execute,
+        Close
     }
 
     private List<SubMenu> contents;
@@ -43,8 +48,12 @@ public class Menu extends AbstractComponent {
         }
 
         @Override
-        public void close() {
+        public int readBuffered(char[] b, int off, int len, long timeout) throws IOException {
+            return -1;
         }
+
+        @Override
+        public void close() {}
     });
     private final Map<SubMenu, MenuWindow> windows = new HashMap<>();
 
@@ -225,7 +234,10 @@ public class Menu extends AbstractComponent {
 
         public MenuWindow(SubMenu subMenu) {
             this.subMenu = subMenu;
-            this.selected = subMenu.getContents().stream().filter(c -> c != MenuItem.SEPARATOR).findFirst().orElse(null);
+            this.selected = subMenu.getContents().stream()
+                    .filter(c -> c != MenuItem.SEPARATOR)
+                    .findFirst()
+                    .orElse(null);
             setBehaviors(EnumSet.of(Behavior.NoDecoration, Behavior.Popup, Behavior.ManualLayout));
             this.keyMap = new KeyMap<>();
             for (MenuItem item : subMenu.getContents()) {
@@ -256,7 +268,15 @@ public class Menu extends AbstractComponent {
             }
             for (MenuItem c : subMenu.getContents()) {
                 if (c == MenuItem.SEPARATOR) {
-                    getTheme().separatorH(screen, p.x(), y++, s.w(), Curses.Border.Single, Curses.Border.Single, getTheme().getStyle(".menu.border"));
+                    getTheme()
+                            .separatorH(
+                                    screen,
+                                    p.x(),
+                                    y++,
+                                    s.w(),
+                                    Curses.Border.Single,
+                                    Curses.Border.Single,
+                                    getTheme().getStyle(".menu.border"));
                     continue;
                 }
                 boolean selected = c == this.selected;
@@ -303,6 +323,7 @@ public class Menu extends AbstractComponent {
         void up() {
             move(-1);
         }
+
         void down() {
             move(+1);
         }
@@ -310,7 +331,7 @@ public class Menu extends AbstractComponent {
         void move(int dir) {
             List<MenuItem> contents = subMenu.getContents();
             int idx = contents.indexOf(selected);
-            for (;;) {
+            for (; ; ) {
                 idx = (idx + contents.size() + dir) % contents.size();
                 if (contents.get(idx) != MenuItem.SEPARATOR) {
                     break;

@@ -1,0 +1,5 @@
+{
+  "resources": [
+    {"pattern": "META-INF/services/org/jline/terminal/provider/.*"}
+  ]
+}

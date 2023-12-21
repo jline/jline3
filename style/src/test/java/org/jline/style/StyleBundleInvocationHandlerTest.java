@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -9,7 +9,7 @@
 package org.jline.style;
 
 import org.jline.utils.AttributedString;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.jline.utils.AttributedStyle.*;
 
@@ -26,7 +26,6 @@ public class StyleBundleInvocationHandlerTest extends StyleTestSupport {
         } catch (StyleBundleInvocationHandler.InvalidStyleGroupException e) {
             // expected
         }
-
     }
 
     @Test
@@ -52,7 +51,6 @@ public class StyleBundleInvocationHandlerTest extends StyleTestSupport {
         } catch (StyleBundleInvocationHandler.StyleBundleMethodMissingDefaultStyleException e) {
             // expected
         }
-
     }
 
     @Test
@@ -101,7 +99,6 @@ public class StyleBundleInvocationHandlerTest extends StyleTestSupport {
             // expected
         }
 
-
         try {
             styles.notEnoughArguments();
             assert false;
@@ -109,14 +106,12 @@ public class StyleBundleInvocationHandlerTest extends StyleTestSupport {
             // expected
         }
 
-
         try {
             styles.tooManyArguments(1, 2);
             assert false;
         } catch (StyleBundleInvocationHandler.InvalidStyleBundleMethodException e) {
             // expected
         }
-
     }
 
     @StyleBundle.StyleGroup("test")

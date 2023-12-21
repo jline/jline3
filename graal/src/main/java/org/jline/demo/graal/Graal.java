@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2020, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -14,17 +14,17 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.Supplier;
 
+import org.jline.builtins.ConfigurationPath;
 import org.jline.console.impl.Builtins;
 import org.jline.console.impl.Builtins.Command;
 import org.jline.console.impl.SystemRegistryImpl;
-import org.jline.builtins.ConfigurationPath;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.LineReader.Option;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.Terminal.Signal;
+import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.OSUtils;
 import org.jline.widget.TailTipWidgets;
 import org.jline.widget.TailTipWidgets.TipType;
@@ -41,19 +41,24 @@ public class Graal {
             DefaultParser parser = new DefaultParser();
             parser.setEofOnUnclosedQuote(true);
             parser.setEscapeChars(null);
-            parser.setRegexVariable(null);                          // we do not have console variables!
+            parser.setRegexVariable(null); // we do not have console variables!
             Terminal terminal = TerminalBuilder.builder().build();
             Thread executeThread = Thread.currentThread();
             terminal.handle(Signal.INT, signal -> executeThread.interrupt());
             //
             // Command registries
             //
-            File file = new File(Graal.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
+            File file = new File(Graal.class
+                    .getProtectionDomain()
+                    .getCodeSource()
+                    .getLocation()
+                    .toURI()
+                    .getPath());
             String root = file.getCanonicalPath();
             root = root.substring(0, root.length() - 6);
             ConfigurationPath configPath = new ConfigurationPath(Paths.get(root), Paths.get(root));
             Set<Builtins.Command> commands = new HashSet<>(Arrays.asList(Builtins.Command.values()));
-            commands.remove(Command.TTOP);                          // ttop command is not supported in GraalVM
+            commands.remove(Command.TTOP); // ttop command is not supported in GraalVM
             Builtins builtins = new Builtins(commands, workDir, configPath, null);
             SystemRegistryImpl systemRegistry = new SystemRegistryImpl(parser, terminal, workDir, configPath);
             systemRegistry.setCommandRegistries(builtins);
@@ -70,11 +75,12 @@ public class Graal {
                     .variable(LineReader.HISTORY_FILE, Paths.get(root, "history"))
                     .option(Option.INSERT_BRACKET, true)
                     .option(Option.EMPTY_WORD_OPTIONS, false)
-                    .option(Option.USE_FORWARD_SLASH, true)             // use forward slash in directory separator
+                    .option(Option.USE_FORWARD_SLASH, true) // use forward slash in directory separator
                     .option(Option.DISABLE_EVENT_EXPANSION, true)
                     .build();
             if (OSUtils.IS_WINDOWS) {
-                reader.setVariable(LineReader.BLINK_MATCHING_PAREN, 0); // if enabled cursor remains in begin parenthesis (gitbash)
+                reader.setVariable(
+                        LineReader.BLINK_MATCHING_PAREN, 0); // if enabled cursor remains in begin parenthesis (gitbash)
             }
             //
             // complete command registries
@@ -92,28 +98,23 @@ public class Graal {
             System.out.println(terminal.getName() + ": " + terminal.getType());
             while (true) {
                 try {
-                    systemRegistry.cleanUp();            // reset output streams
+                    systemRegistry.cleanUp(); // reset output streams
                     String line = reader.readLine("graal> ");
                     Object result = systemRegistry.execute(line);
                     if (result != null) {
                         System.out.println(result);
                     }
-                }
-                catch (UserInterruptException e) {
+                } catch (UserInterruptException e) {
                     // Ignore
-                }
-                catch (EndOfFileException e) {
+                } catch (EndOfFileException e) {
                     break;
-                }
-                catch (Exception e) {
-                    systemRegistry.trace(true, e);    // print exception
+                } catch (Exception e) {
+                    systemRegistry.trace(true, e); // print exception
                 }
             }
             systemRegistry.close();
-        }
-        catch (Throwable t) {
+        } catch (Throwable t) {
             t.printStackTrace();
         }
     }
-
 }

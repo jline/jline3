@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2020, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -22,6 +22,7 @@ import org.jline.reader.impl.BufferImpl;
 public class AutosuggestionWidgets extends Widgets {
     private boolean enabled = false;
 
+    @SuppressWarnings("this-escape")
     public AutosuggestionWidgets(LineReader reader) {
         super(reader);
         if (existsWidget("_autosuggest-forward-char")) {
@@ -76,7 +77,6 @@ public class AutosuggestionWidgets extends Widgets {
         }
         return enabled;
     }
-
 
     private boolean accept(String widget) {
         Buffer buffer = buffer();

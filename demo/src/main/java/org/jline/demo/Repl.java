@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2023, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -9,6 +9,7 @@
 package org.jline.demo;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -21,20 +22,20 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.jline.builtins.*;
-import org.jline.builtins.SyntaxHighlighter;
 import org.jline.builtins.Completers.OptionCompleter;
-import org.jline.console.impl.*;
+import org.jline.builtins.SyntaxHighlighter;
 import org.jline.console.CommandInput;
 import org.jline.console.CommandMethods;
 import org.jline.console.CommandRegistry;
 import org.jline.console.ConsoleEngine;
 import org.jline.console.Printer;
+import org.jline.console.impl.*;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.LineReader.Option;
 import org.jline.reader.impl.DefaultParser;
-import org.jline.reader.impl.LineReaderImpl;
 import org.jline.reader.impl.DefaultParser.Bracket;
+import org.jline.reader.impl.LineReaderImpl;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
@@ -42,8 +43,8 @@ import org.jline.script.GroovyCommand;
 import org.jline.script.GroovyEngine;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.Terminal.Signal;
+import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.OSUtils;
@@ -53,6 +54,7 @@ import org.jline.widget.Widgets;
 
 import static org.jline.builtins.SyntaxHighlighter.DEFAULT_NANORC_FILE;
 import static org.jline.console.ConsoleEngine.VAR_NANORC;
+
 /**
  * Demo how to create REPL app with JLine.
  *
@@ -67,10 +69,11 @@ public class Repl {
         public MyCommands(Supplier<Path> workDir) {
             super();
             this.workDir = workDir;
-            Map<String,CommandMethods> commandExecute = new HashMap<>();
+            Map<String, CommandMethods> commandExecute = new HashMap<>();
             commandExecute.put("tput", new CommandMethods(this::tput, this::tputCompleter));
             commandExecute.put("testkey", new CommandMethods(this::testkey, this::defaultCompleter));
             commandExecute.put("clear", new CommandMethods(this::clear, this::defaultCompleter));
+            commandExecute.put("echo", new CommandMethods(this::echo, this::defaultCompleter));
             commandExecute.put("!", new CommandMethods(this::shell, this::defaultCompleter));
             registerCommands(commandExecute);
         }
@@ -85,9 +88,9 @@ public class Repl {
 
         private void tput(CommandInput input) {
             final String[] usage = {
-                    "tput -  put terminal capability",
-                    "Usage: tput [CAPABILITY]",
-                    "  -? --help                       Displays command help"
+                "tput -  put terminal capability",
+                "Usage: tput [CAPABILITY]",
+                "  -? --help                       Displays command help"
             };
             try {
                 Options opt = parseOptions(usage, input.xargs());
@@ -95,7 +98,10 @@ public class Repl {
                 if (argv.size() > 0) {
                     Capability vcap = Capability.byName(argv.get(0));
                     if (vcap != null) {
-                        terminal().puts(vcap, opt.argObjects().subList(1, argv.size()).toArray(new Object[0]));
+                        terminal()
+                                .puts(
+                                        vcap,
+                                        opt.argObjects().subList(1, argv.size()).toArray(new Object[0]));
                     } else {
                         terminal().writer().println("Unknown capability");
                     }
@@ -109,9 +115,9 @@ public class Repl {
 
         private void testkey(CommandInput input) {
             final String[] usage = {
-                    "testkey -  display the key events",
-                    "Usage: testkey",
-                    "  -? --help                       Displays command help"
+                "testkey -  display the key events",
+                "Usage: testkey",
+                "  -? --help                       Displays command help"
             };
             try {
                 parseOptions(usage, input.args());
@@ -132,14 +138,32 @@ public class Repl {
 
         private void clear(CommandInput input) {
             final String[] usage = {
-                    "clear -  clear terminal",
-                    "Usage: clear",
-                    "  -? --help                       Displays command help"
+                "clear -  clear terminal", "Usage: clear", "  -? --help                       Displays command help"
             };
             try {
                 parseOptions(usage, input.args());
                 terminal().puts(Capability.clear_screen);
                 terminal().flush();
+            } catch (Exception e) {
+                saveException(e);
+            }
+        }
+
+        private void echo(CommandInput input) {
+            final String[] usage = {
+                "echo - echos a value",
+                "Usage:  echo [-hV] <args>",
+                "-? --help                        Displays command help",
+                "-v --version                     Print version"
+            };
+            try {
+                Options opt = parseOptions(usage, input.args());
+                List<String> argv = opt.args();
+                if (opt.isSet("version")) {
+                    terminal().writer().println("echo version: v0.1");
+                } else if (opt.args().size() >= 1) {
+                    terminal().writer().println(String.join(" ", opt.args()));
+                }
             } catch (Exception e) {
                 saveException(e);
             }
@@ -174,9 +198,11 @@ public class Repl {
         }
 
         private void shell(CommandInput input) {
-            final String[] usage = { "!<command> -  execute shell command"
-                                   , "Usage: !<command>"
-                                   , "  -? --help                       Displays command help" };
+            final String[] usage = {
+                "!<command> -  execute shell command",
+                "Usage: !<command>",
+                "  -? --help                       Displays command help"
+            };
             if (input.args().length == 1 && (input.args()[0].equals("-?") || input.args()[0].equals("--help"))) {
                 try {
                     parseOptions(usage, input.args());
@@ -201,14 +227,11 @@ public class Repl {
 
         private List<Completer> tputCompleter(String command) {
             List<Completer> completers = new ArrayList<>();
-            completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                                               , new OptionCompleter(new StringsCompleter(this::capabilities)
-                                                                   , this::commandOptions
-                                                                   , 1)
-                                                ));
+            completers.add(new ArgumentCompleter(
+                    NullCompleter.INSTANCE,
+                    new OptionCompleter(new StringsCompleter(this::capabilities), this::commandOptions, 1)));
             return completers;
         }
-
     }
 
     private static class StreamGobbler implements Runnable {
@@ -222,13 +245,15 @@ public class Repl {
 
         @Override
         public void run() {
-            new BufferedReader(new InputStreamReader(inputStream)).lines()
-              .forEach(consumer);
+            new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))
+                    .lines()
+                    .forEach(consumer);
         }
     }
 
     private static class ReplSystemRegistry extends SystemRegistryImpl {
-        public ReplSystemRegistry(Parser parser, Terminal terminal, Supplier<Path> workDir, ConfigurationPath configPath) {
+        public ReplSystemRegistry(
+                Parser parser, Terminal terminal, Supplier<Path> workDir, ConfigurationPath configPath) {
             super(parser, terminal, workDir, configPath);
         }
 
@@ -247,21 +272,27 @@ public class Repl {
             DefaultParser parser = new DefaultParser();
             parser.setEofOnUnclosedBracket(Bracket.CURLY, Bracket.ROUND, Bracket.SQUARE);
             parser.setEofOnUnclosedQuote(true);
-            parser.setEscapeChars(null);
-            parser.setRegexCommand("[:]{0,1}[a-zA-Z!]{1,}\\S*");    // change default regex to support shell commands
+            parser.setRegexCommand("[:]{0,1}[a-zA-Z!]{1,}\\S*"); // change default regex to support shell commands
             parser.blockCommentDelims(new DefaultParser.BlockCommentDelims("/*", "*/"))
-                    .lineCommentDelims(new String[]{"//"});
+                    .lineCommentDelims(new String[] {"//"});
             Terminal terminal = TerminalBuilder.builder().build();
             if (terminal.getWidth() == 0 || terminal.getHeight() == 0) {
-                terminal.setSize(new Size(120, 40));   // hard coded terminal size when redirecting
+                terminal.setSize(new Size(120, 40)); // hard coded terminal size when redirecting
             }
             Thread executeThread = Thread.currentThread();
             terminal.handle(Signal.INT, signal -> executeThread.interrupt());
             //
             // Create jnanorc config file for demo
             //
-            File file = new File(Repl.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
-            String root = file.getCanonicalPath().replace("classes", "").replaceAll("\\\\", "/"); // forward slashes works better also in windows!
+            File file = new File(Repl.class
+                    .getProtectionDomain()
+                    .getCodeSource()
+                    .getLocation()
+                    .toURI()
+                    .getPath());
+            String root = file.getCanonicalPath()
+                    .replace("classes", "")
+                    .replaceAll("\\\\", "/"); // forward slashes works better also in windows!
             File jnanorcFile = Paths.get(root, DEFAULT_NANORC_FILE).toFile();
             if (!jnanorcFile.exists()) {
                 try (FileWriter fw = new FileWriter(jnanorcFile)) {
@@ -276,10 +307,9 @@ public class Repl {
             scriptEngine.put("ROOT", root);
             ConfigurationPath configPath = new ConfigurationPath(Paths.get(root), Paths.get(root));
             Printer printer = new DefaultPrinter(scriptEngine, configPath);
-            ConsoleEngineImpl consoleEngine = new ConsoleEngineImpl(scriptEngine
-                                                                  , printer
-                                                                  , workDir, configPath);
-            Builtins builtins = new Builtins(workDir, configPath,  (String fun)-> new ConsoleEngine.WidgetCreator(consoleEngine, fun));
+            ConsoleEngineImpl consoleEngine = new ConsoleEngineImpl(scriptEngine, printer, workDir, configPath);
+            Builtins builtins = new Builtins(
+                    workDir, configPath, (String fun) -> new ConsoleEngine.WidgetCreator(consoleEngine, fun));
             MyCommands myCommands = new MyCommands(workDir);
             ReplSystemRegistry systemRegistry = new ReplSystemRegistry(parser, terminal, workDir, configPath);
             systemRegistry.register("groovy", new GroovyCommand(scriptEngine, printer));
@@ -291,10 +321,11 @@ public class Repl {
             //
             Path jnanorc = configPath.getConfig(DEFAULT_NANORC_FILE);
             scriptEngine.put(VAR_NANORC, jnanorc.toString());
-            SyntaxHighlighter commandHighlighter = SyntaxHighlighter.build(jnanorc,"COMMAND");
-            SyntaxHighlighter argsHighlighter = SyntaxHighlighter.build(jnanorc,"ARGS");
-            SyntaxHighlighter groovyHighlighter = SyntaxHighlighter.build(jnanorc,"Groovy");
-            SystemHighlighter highlighter = new SystemHighlighter(commandHighlighter, argsHighlighter, groovyHighlighter);
+            SyntaxHighlighter commandHighlighter = SyntaxHighlighter.build(jnanorc, "COMMAND");
+            SyntaxHighlighter argsHighlighter = SyntaxHighlighter.build(jnanorc, "ARGS");
+            SyntaxHighlighter groovyHighlighter = SyntaxHighlighter.build(jnanorc, "Groovy");
+            SystemHighlighter highlighter =
+                    new SystemHighlighter(commandHighlighter, argsHighlighter, groovyHighlighter);
             if (!OSUtils.IS_WINDOWS) {
                 highlighter.setSpecificHighlighter("!", SyntaxHighlighter.build(jnanorc, "SH-REPL"));
             }
@@ -316,11 +347,12 @@ public class Repl {
                     .variable(LineReader.HISTORY_FILE, Paths.get(root, "history"))
                     .option(Option.INSERT_BRACKET, true)
                     .option(Option.EMPTY_WORD_OPTIONS, false)
-                    .option(Option.USE_FORWARD_SLASH, true)             // use forward slash in directory separator
+                    .option(Option.USE_FORWARD_SLASH, true) // use forward slash in directory separator
                     .option(Option.DISABLE_EVENT_EXPANSION, true)
                     .build();
             if (OSUtils.IS_WINDOWS) {
-                reader.setVariable(LineReader.BLINK_MATCHING_PAREN, 0); // if enabled cursor remains in begin parenthesis (gitbash)
+                reader.setVariable(
+                        LineReader.BLINK_MATCHING_PAREN, 0); // if enabled cursor remains in begin parenthesis (gitbash)
             }
             //
             // complete command registries
@@ -341,18 +373,16 @@ public class Repl {
             System.out.println(terminal.getName() + ": " + terminal.getType());
             while (true) {
                 try {
-                    systemRegistry.cleanUp();         // delete temporary variables and reset output streams
+                    systemRegistry.cleanUp(); // delete temporary variables and reset output streams
                     String line = reader.readLine("groovy-repl> ");
                     line = parser.getCommand(line).startsWith("!") ? line.replaceFirst("!", "! ") : line;
                     Object result = systemRegistry.execute(line);
                     consoleEngine.println(result);
-                }
-                catch (UserInterruptException e) {
+                } catch (UserInterruptException e) {
                     // Ignore
-                }
-                catch (EndOfFileException e) {
+                } catch (EndOfFileException e) {
                     String pl = e.getPartialLine();
-                    if (pl != null) {                 // execute last line from redirected file (required for Windows)
+                    if (pl != null) { // execute last line from redirected file (required for Windows)
                         try {
                             consoleEngine.println(systemRegistry.execute(pl));
                         } catch (Exception e2) {
@@ -360,15 +390,14 @@ public class Repl {
                         }
                     }
                     break;
-                }
-                catch (Exception|Error e) {
-                    systemRegistry.trace(e);          // print exception and save it to console variable
+                } catch (Exception | Error e) {
+                    systemRegistry.trace(e); // print exception and save it to console variable
                 }
             }
-            systemRegistry.close();                   // persist pipeline completer names etc
+            systemRegistry.close(); // persist pipeline completer names etc
 
             Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
-            boolean groovyRunning=false;              // check Groovy GUI apps
+            boolean groovyRunning = false; // check Groovy GUI apps
             for (Thread t : threadSet) {
                 if (t.getName().startsWith("AWT-Shut")) {
                     groovyRunning = true;
@@ -378,8 +407,7 @@ public class Repl {
             if (groovyRunning) {
                 consoleEngine.println("Please, close Groovy Consoles/Object Browsers!");
             }
-        }
-        catch (Throwable t) {
+        } catch (Throwable t) {
             t.printStackTrace();
         }
     }

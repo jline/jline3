@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author or authors.
+ * Copyright (c) 2002-2022, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -16,6 +16,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 public interface Source {
 
@@ -47,9 +48,9 @@ public interface Source {
         @Override
         public Long lines() {
             Long out = null;
-            try {
-                out = Files.lines(new File(url.toURI()).toPath()).count();
-            } catch (Exception e) {                
+            try (Stream<String> lines = Files.lines(new File(url.toURI()).toPath())) {
+                out = lines.count();
+            } catch (Exception ignore) {
             }
             return out;
         }
@@ -81,9 +82,9 @@ public interface Source {
         @Override
         public Long lines() {
             Long out = null;
-            try {
-                out = Files.lines(path).count();
-            } catch (Exception e) {                
+            try (Stream<String> lines = Files.lines(path)) {
+                out = lines.count();
+            } catch (Exception ignore) {
             }
             return out;
         }
@@ -100,9 +101,11 @@ public interface Source {
             } else {
                 this.in = new FilterInputStream(in) {
                     @Override
-                    public void close() throws IOException {
-                    }
+                    public void close() throws IOException {}
                 };
+            }
+            if (this.in.markSupported()) {
+                this.in.mark(Integer.MAX_VALUE);
             }
             this.name = name;
         }
@@ -114,6 +117,9 @@ public interface Source {
 
         @Override
         public InputStream read() throws IOException {
+            if (in.markSupported()) {
+                in.reset();
+            }
             return in;
         }
 
@@ -132,7 +138,6 @@ public interface Source {
         public StdInSource(InputStream in) {
             super(in, false, null);
         }
-
     }
 
     class ResourceSource implements Source {

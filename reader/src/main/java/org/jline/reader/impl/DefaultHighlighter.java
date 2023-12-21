@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2021, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -10,9 +10,9 @@ package org.jline.reader.impl;
 
 import java.util.regex.Pattern;
 
+import org.jline.reader.Highlighter;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReader.RegionType;
-import org.jline.reader.Highlighter;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
@@ -57,7 +57,8 @@ public class DefaultHighlighter implements Highlighter {
                 while (negativeStart > 0 && reader.getBuffer().atChar(negativeStart - 1) != '\n') {
                     negativeStart--;
                 }
-                while (negativeEnd < reader.getBuffer().length() - 1 && reader.getBuffer().atChar(negativeEnd + 1) != '\n') {
+                while (negativeEnd < reader.getBuffer().length() - 1
+                        && reader.getBuffer().atChar(negativeEnd + 1) != '\n') {
                     negativeEnd++;
                 }
             }
@@ -104,5 +105,4 @@ public class DefaultHighlighter implements Highlighter {
         }
         return sb.toAttributedString();
     }
-
 }

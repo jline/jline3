@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (c) 2002-2021, the original author or authors.
+    Copyright (c) 2002-2022, the original author or authors.
 
     This software is distributable under the BSD license. See the terms of the
     BSD license in the documentation provided with this software.
@@ -21,10 +21,10 @@
 
     <groupId>org.jline</groupId>
     <artifactId>jline-parent</artifactId>
+    <version>3.25.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
     <name>JLine Parent</name>
     <description>JLine</description>
-    <version>3.21.1-SNAPSHOT</version>
-    <packaging>pom</packaging>
 
     <licenses>
         <license>
@@ -33,33 +33,6 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
-
-    <scm>
-        <connection>scm:git:git://github.com/jline/jline3.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/jline/jline3.git</developerConnection>
-        <url>http://github.com/jline/jline3</url>
-    <tag>jline-parent-3.21.0</tag>
-  </scm>
-
-    <issueManagement>
-        <system>github</system>
-        <url>https://github.com/jline/jline3/issues</url>
-    </issueManagement>
-
-    <ciManagement>
-        <system>travis</system>
-        <url>https://travis-ci.org/jline/jline3</url>
-    </ciManagement>
-
-    <mailingLists>
-        <mailingList>
-            <name>jline-users</name>
-            <post>mailto:jline-users@googlegroups.com</post>
-            <unsubscribe>mailto:jline-users+unsubscribe@googlegroups.com</unsubscribe>
-            <subscribe>https://groups.google.com/group/jline-users</subscribe>
-            <archive>https://groups.google.com/group/jline-users</archive>
-        </mailingList>
-    </mailingLists>
 
     <developers>
         <developer>
@@ -72,53 +45,90 @@
         </developer>
     </developers>
 
+    <mailingLists>
+        <mailingList>
+            <name>jline-users</name>
+            <subscribe>https://groups.google.com/group/jline-users</subscribe>
+            <unsubscribe>mailto:jline-users+unsubscribe@googlegroups.com</unsubscribe>
+            <post>mailto:jline-users@googlegroups.com</post>
+            <archive>https://groups.google.com/group/jline-users</archive>
+        </mailingList>
+    </mailingLists>
+
+    <modules>
+        <module>native</module>
+        <module>terminal</module>
+        <module>terminal-ffm</module>
+        <module>terminal-jna</module>
+        <module>terminal-jansi</module>
+        <module>terminal-jni</module>
+        <module>curses</module>
+        <module>reader</module>
+        <module>builtins</module>
+        <module>console</module>
+        <module>groovy</module>
+        <module>remote-ssh</module>
+        <module>remote-telnet</module>
+        <module>style</module>
+        <module>demo</module>
+        <module>graal</module>
+        <module>jansi-core</module>
+    </modules>
+
+    <scm>
+        <connection>scm:git:https://github.com/jline/jline3.git</connection>
+        <developerConnection>scm:git:https://github.com/jline/jline3.git</developerConnection>
+        <tag>jline-parent-3.24.0</tag>
+        <url>http://github.com/jline/jline3</url>
+    </scm>
+
+    <issueManagement>
+        <system>github</system>
+        <url>https://github.com/jline/jline3/issues</url>
+    </issueManagement>
+
+    <ciManagement>
+        <system>travis</system>
+        <url>https://travis-ci.org/jline/jline3</url>
+    </ciManagement>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.build.outputTimestamp>2021-10-19T06:22:24Z</project.build.outputTimestamp>
+        <project.build.outputTimestamp>2023-11-01T09:32:26Z</project.build.outputTimestamp>
 
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <java.build.version>21</java.build.version>
+        <java.release.version>8</java.release.version>
+        <maven.version>3.5.0</maven.version>
 
         <native.image.skip>true</native.image.skip>
         <automatic.module.name />
 
-        <jna.version>5.9.0</jna.version>
-        <jansi.version>2.4.0</jansi.version>
+        <jna.version>5.13.0</jna.version>
+        <jansi.version>2.4.1</jansi.version>
         <juniversalchardet.version>1.0.3</juniversalchardet.version>
-        <sshd.version>2.7.0</sshd.version>
-        <easymock.version>3.3.1</easymock.version>
-        <junit.version>4.13.1</junit.version>
-        <gogo.runtime.version>1.1.4</gogo.runtime.version>
+        <sshd.version>2.11.0</sshd.version>
+        <easymock.version>5.2.0</easymock.version>
+        <junit.version>5.10.0</junit.version>
+        <gogo.runtime.version>1.1.6</gogo.runtime.version>
         <gogo.jline.version>1.1.8</gogo.jline.version>
-        <slf4j.version>1.7.21</slf4j.version>
+        <slf4j.version>2.0.9</slf4j.version>
         <findbugs.version>3.0.2</findbugs.version>
-        <groovy.version>3.0.8</groovy.version>
-        <ivy.version>2.5.0</ivy.version>
-        <graal.version>19.3.1</graal.version>
+        <groovy.version>4.0.13</groovy.version>
+        <ivy.version>2.5.2</ivy.version>
+        <graal.version>23.1.1</graal.version>
+        <graal.plugin.version>21.2.0</graal.plugin.version>
 
-        <surefire.argLine />
+        <surefire.argLine>--add-opens java.base/java.io=ALL-UNNAMED</surefire.argLine>
     </properties>
-
-    <prerequisites>
-        <maven>3.5.0</maven>
-    </prerequisites>
-
-    <repositories>
-        <repository>
-            <id>apache-snapshots</id>
-            <name>Apache Snapshots</name>
-            <url>https://repository.apache.org/content/groups/snapshots</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-native</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>org.jline</groupId>
                 <artifactId>jline-terminal</artifactId>
@@ -127,7 +137,19 @@
 
             <dependency>
                 <groupId>org.jline</groupId>
+                <artifactId>jline-terminal-ffm</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jline</groupId>
                 <artifactId>jline-terminal-jansi</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-terminal-jni</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -192,6 +214,18 @@
             </dependency>
 
             <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jansi-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jansi</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>org.fusesource.jansi</groupId>
                 <artifactId>jansi</artifactId>
                 <version>${jansi.version}</version>
@@ -246,19 +280,19 @@
             </dependency>
 
             <dependency>
-                <groupId>org.codehaus.groovy</groupId>
+                <groupId>org.apache.groovy</groupId>
                 <artifactId>groovy</artifactId>
                 <version>${groovy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>org.codehaus.groovy</groupId>
+                <groupId>org.apache.groovy</groupId>
                 <artifactId>groovy-json</artifactId>
                 <version>${groovy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>org.codehaus.groovy</groupId>
+                <groupId>org.apache.groovy</groupId>
                 <artifactId>groovy-console</artifactId>
                 <version>${groovy.version}</version>
             </dependency>
@@ -272,7 +306,7 @@
             <dependency>
                 <groupId>org.apache.ivy</groupId>
                 <artifactId>ivy</artifactId>
-                 <version>${ivy.version}</version>
+                <version>${ivy.version}</version>
             </dependency>
 
             <dependency>
@@ -294,9 +328,15 @@
             </dependency>
 
             <dependency>
-                <groupId>junit</groupId>
-                <artifactId>junit</artifactId>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-api</artifactId>
                 <version>${junit.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-params</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
             </dependency>
 
             <dependency>
@@ -307,6 +347,20 @@
         </dependencies>
     </dependencyManagement>
 
+    <repositories>
+        <repository>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <id>apache-snapshots</id>
+            <name>Apache Snapshots</name>
+            <url>https://repository.apache.org/content/groups/snapshots</url>
+        </repository>
+    </repositories>
+
     <build>
         <defaultGoal>install</defaultGoal>
 
@@ -314,15 +368,79 @@
             <plugins>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>3.3.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>3.6.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-install-plugin</artifactId>
+                    <version>3.1.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>3.3.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-release-plugin</artifactId>
+                    <version>3.0.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <version>3.3.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <version>3.3.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-site-plugin</artifactId>
+                    <version>4.0.0-M9</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.2.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.felix</groupId>
+                    <artifactId>maven-bundle-plugin</artifactId>
+                    <version>5.1.9</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>build-helper-maven-plugin</artifactId>
+                    <version>3.4.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.graalvm.nativeimage</groupId>
+                    <artifactId>native-image-maven-plugin</artifactId>
+                    <version>${graal.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-enforcer-plugin</artifactId>
+                    <version>3.4.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.8.1</version>
+                    <version>3.11.0</version>
                     <configuration>
                         <showWarnings>true</showWarnings>
+                        <release>${java.release.version}</release>
                         <compilerArgs>
-                            <arg>-Xlint:all,-options</arg>
+                            <arg>-Xlint:all,-options,-processing</arg>
                             <arg>-Werror</arg>
-                            <arg>-profile</arg>
-                            <arg>compact1</arg>
                         </compilerArgs>
                         <fork>true</fork>
                     </configuration>
@@ -331,16 +449,21 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-deploy-plugin</artifactId>
-                    <version>3.0.0-M1</version>
+                    <version>3.1.1</version>
                     <configuration>
                         <deployAtEnd>true</deployAtEnd>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>3.5.1</version>
                 </plugin>
 
                 <plugin>
                     <groupId>com.mycila</groupId>
                     <artifactId>license-maven-plugin</artifactId>
-                    <version>3.0</version>
+                    <version>4.3</version>
                     <configuration>
                         <encoding>UTF-8</encoding>
                         <strictCheck>true</strictCheck>
@@ -401,14 +524,14 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-gpg-plugin</artifactId>
-                    <version>1.6</version>
+                    <version>3.1.0</version>
                     <executions>
                         <execution>
                             <id>sign-artifacts</id>
-                            <phase>verify</phase>
                             <goals>
                                 <goal>sign</goal>
                             </goals>
+                            <phase>verify</phase>
                             <configuration>
                                 <executable>gpg</executable>
                                 <gpgArguments>
@@ -421,14 +544,110 @@
                         </execution>
                     </executions>
                 </plugin>
+
+                <plugin>
+                    <groupId>org.codehaus.gmavenplus</groupId>
+                    <artifactId>gmavenplus-plugin</artifactId>
+                    <version>1.13.1</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>3.6.0</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-wrapper-plugin</artifactId>
+                    <version>3.2.0</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>com.diffplug.spotless</groupId>
+                    <artifactId>spotless-maven-plugin</artifactId>
+                    <version>2.40.0</version>
+                    <configuration>
+                        <java>
+                            <toggleOffOn />
+                            <palantirJavaFormat>
+                                <version>2.38.0</version>
+                            </palantirJavaFormat>
+                            <importOrder>
+                                <order>java|javax,org,,\#</order>
+                            </importOrder>
+                            <removeUnusedImports />
+                            <licenseHeader>
+                                <content>/*
+ * Copyright (c) $YEAR, the original author(s).
+ *
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
+ *
+ * https://opensource.org/licenses/BSD-3-Clause
+ */</content>
+                            </licenseHeader>
+                        </java>
+                        <pom>
+                            <sortPom>
+                                <expandEmptyElements>false</expandEmptyElements>
+                                <nrOfIndentSpace>4</nrOfIndentSpace>
+                                <spaceBeforeCloseEmptyElement>true</spaceBeforeCloseEmptyElement>
+                            </sortPom>
+                        </pom>
+                        <upToDateChecking>
+                            <enabled>true</enabled>
+                        </upToDateChecking>
+                    </configuration>
+                    <dependencies>
+                        <!--
+                        <dependency>
+                            <groupId>org.apache.maven.shared</groupId>
+                            <artifactId>maven-shared-resources</artifactId>
+                            <version>5</version>
+                        </dependency>
+                        -->
+                    </dependencies>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>${spotless.action}</goal>
+                            </goals>
+                            <phase>process-sources</phase>
+                        </execution>
+                    </executions>
+                </plugin>
             </plugins>
         </pluginManagement>
 
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.4.1</version>
+                <executions>
+                    <execution>
+                        <id>enforce-maven</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireMavenVersion>
+                                    <version>${maven.version}</version>
+                                </requireMavenVersion>
+                                <requireJavaVersion>
+                                    <version>${java.build.version}</version>
+                                </requireJavaVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
-                <version>5.1.1</version>
                 <configuration>
                     <instructions>
                         <Export-Package>*;-noimport:=true</Export-Package>
@@ -438,10 +657,10 @@
                 </configuration>
                 <executions>
                     <execution>
-                        <phase>process-classes</phase>
                         <goals>
                             <goal>manifest</goal>
                         </goals>
+                        <phase>process-classes</phase>
                     </execution>
                 </executions>
             </plugin>
@@ -449,25 +668,16 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
-            </plugin>
-
-            <plugin>
-                <groupId>org.codehaus.gmavenplus</groupId>
-                <artifactId>gmavenplus-plugin</artifactId>
-                <version>1.8.1</version>
             </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
-                <version>3.2.0</version>
             </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.2.0</version>
                 <configuration>
                     <archive>
                         <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
@@ -481,7 +691,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.0.0-M5</version>
                 <configuration>
                     <redirectTestOutputToFile>true</redirectTestOutputToFile>
                     <argLine>${surefire.argLine}</argLine>
@@ -491,40 +700,20 @@
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>3.2.1</version>
-                <configuration>
-                    <archive>
-                        <manifestEntries>
-                            <Bundle-Name>JLine Sources Bundle</Bundle-Name>
-                            <Bundle-SymbolicName>${project.groupId}.source</Bundle-SymbolicName>
-                            <Bundle-Version>${project.version}</Bundle-Version>
-                            <Eclipse-SourceBundle>${project.groupId};version="${project.version}"</Eclipse-SourceBundle>
-                        </manifestEntries>
-                    </archive>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar-no-fork</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>
-                <version>3.0.0-M1</version>
                 <configuration>
                     <autoVersionSubmodules>true</autoVersionSubmodules>
                 </configuration>
             </plugin>
+
             <plugin>
                 <groupId>org.graalvm.nativeimage</groupId>
                 <artifactId>native-image-maven-plugin</artifactId>
-                <version>${graal.version}</version>
+            </plugin>
+
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>
@@ -539,28 +728,32 @@
             </activation>
             <modules>
                 <module>jline</module>
+                <module>jansi</module>
             </modules>
         </profile>
 
         <profile>
             <id>javadoc</id>
-            <activation>
-                <property>
-                    <name>!nojavadoc</name>
-                </property>
-            </activation>
             <build>
                 <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>3.2.0</version>
+                        <version>3.6.0</version>
                         <configuration>
                             <doclint>none</doclint>
                             <notimestamp>true</notimestamp>
                             <additionalOptions>${javadocOptions}</additionalOptions>
                             <failOnError>false</failOnError>
+                            <legacyMode>true</legacyMode>
                         </configuration>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.apache.commons</groupId>
+                                <artifactId>commons-lang3</artifactId>
+                                <version>3.13.0</version>
+                            </dependency>
+                        </dependencies>
                         <executions>
                             <execution>
                                 <id>javadoc</id>
@@ -569,35 +762,6 @@
                                 </goals>
                             </execution>
                         </executions>
-                        <dependencies>
-                            <dependency>
-                                <groupId>org.apache.commons</groupId>
-                                <artifactId>commons-lang3</artifactId>
-                                <version>3.7</version>
-                            </dependency>
-                        </dependencies>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-
-        <profile>
-            <id>java9</id>
-            <properties>
-                <surefire.argLine>--add-opens java.base/java.io=ALL-UNNAMED</surefire.argLine>
-            </properties>
-            <activation>
-                <jdk>[9,)</jdk>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <version>3.6.0</version>
-                        <configuration>
-                            <release>8</release>
-                        </configuration>
                     </plugin>
                 </plugins>
             </build>
@@ -623,22 +787,52 @@
                 <native.image.skip>false</native.image.skip>
             </properties>
         </profile>
+
+        <profile>
+            <id>format-check</id>
+            <activation>
+                <property>
+                    <name>!format</name>
+                </property>
+            </activation>
+            <properties>
+                <spotless.action>check</spotless.action>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>format</id>
+            <activation>
+                <property>
+                    <name>format</name>
+                </property>
+            </activation>
+            <properties>
+                <spotless.action>apply</spotless.action>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>sonatype-oss-release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>3.3.0</version>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>3.6.0</version>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.1.0</version>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
-
-    <modules>
-        <module>terminal</module>
-        <module>terminal-jna</module>
-        <module>terminal-jansi</module>
-        <module>curses</module>
-        <module>reader</module>
-        <module>builtins</module>
-        <module>console</module>
-        <module>groovy</module>
-        <module>remote-ssh</module>
-        <module>remote-telnet</module>
-        <module>style</module>
-        <module>demo</module>
-        <module>graal</module>
-    </modules>
-
 </project>

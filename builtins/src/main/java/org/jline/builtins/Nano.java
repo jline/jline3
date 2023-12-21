@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2021, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -32,6 +32,7 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
@@ -143,34 +144,34 @@ public class Nano implements Editor {
     }
 
     public static String[] usage() {
-        return new String[]{
-                "nano -  edit files",
-                "Usage: nano [OPTIONS] [FILES]",
-                "  -? --help                    Show help",
-                "  -B --backup                  When saving a file, back up the previous version of it, using the current filename",
-                "                               suffixed with a tilde (~)." ,
-                "  -I --ignorercfiles           Don't look at the system's nanorc nor at the user's nanorc." ,
-                "  -Q --quotestr=regex          Set the regular expression for matching the quoting part of a line.",
-                "  -T --tabsize=number          Set the size (width) of a tab to number columns.",
-                "  -U --quickblank              Do quick status-bar blanking: status-bar messages will disappear after 1 keystroke.",
-                "  -c --constantshow            Constantly show the cursor position on the status bar.",
-                "  -e --emptyline               Do not use the line below the title bar, leaving it entirely blank.",
-                "  -j --jumpyscrolling          Scroll the buffer contents per half-screen instead of per line.",
-                "  -l --linenumbers             Display line numbers to the left of the text area.",
-                "  -m --mouse                   Enable mouse support, if available for your system.",
-                "  -$ --softwrap                Enable 'soft wrapping'. ",
-                "  -a --atblanks                Wrap lines at whitespace instead of always at the edge of the screen.",
-                "  -R --restricted              Restricted mode: don't allow suspending; don't allow a file to be appended to,",
-                "                               prepended to, or saved under a different name if it already has one;",
-                "                               and don't use backup files.",
-                "  -Y --syntax=name             The name of the syntax highlighting to use.",
-                "  -z --suspend                 Enable the ability to suspend nano using the system's suspend keystroke (usually ^Z).",
-                "  -v --view                    Don't allow the contents of the file to be altered: read-only mode.",
-                "  -k --cutfromcursor           Make the 'Cut Text' command cut from the current cursor position to the end of the line",
-                "  -t --tempfile                Save a changed buffer without prompting (when exiting with ^X).",
-                "  -H --historylog=name         Log search strings to file, so they can be retrieved in later sessions",
-                "  -E --tabstospaces            Convert typed tabs to spaces.",
-                "  -i --autoindent              Indent new lines to the previous line's indentation."
+        return new String[] {
+            "nano -  edit files",
+            "Usage: nano [OPTIONS] [FILES]",
+            "  -? --help                    Show help",
+            "  -B --backup                  When saving a file, back up the previous version of it, using the current filename",
+            "                               suffixed with a tilde (~).",
+            "  -I --ignorercfiles           Don't look at the system's nanorc nor at the user's nanorc.",
+            "  -Q --quotestr=regex          Set the regular expression for matching the quoting part of a line.",
+            "  -T --tabsize=number          Set the size (width) of a tab to number columns.",
+            "  -U --quickblank              Do quick status-bar blanking: status-bar messages will disappear after 1 keystroke.",
+            "  -c --constantshow            Constantly show the cursor position on the status bar.",
+            "  -e --emptyline               Do not use the line below the title bar, leaving it entirely blank.",
+            "  -j --jumpyscrolling          Scroll the buffer contents per half-screen instead of per line.",
+            "  -l --linenumbers             Display line numbers to the left of the text area.",
+            "  -m --mouse                   Enable mouse support, if available for your system.",
+            "  -$ --softwrap                Enable 'soft wrapping'. ",
+            "  -a --atblanks                Wrap lines at whitespace instead of always at the edge of the screen.",
+            "  -R --restricted              Restricted mode: don't allow suspending; don't allow a file to be appended to,",
+            "                               prepended to, or saved under a different name if it already has one;",
+            "                               and don't use backup files.",
+            "  -Y --syntax=name             The name of the syntax highlighting to use.",
+            "  -z --suspend                 Enable the ability to suspend nano using the system's suspend keystroke (usually ^Z).",
+            "  -v --view                    Don't allow the contents of the file to be altered: read-only mode.",
+            "  -k --cutfromcursor           Make the 'Cut Text' command cut from the current cursor position to the end of the line",
+            "  -t --tempfile                Save a changed buffer without prompting (when exiting with ^X).",
+            "  -H --historylog=name         Log search strings to file, so they can be retrieved in later sessions",
+            "  -E --tabstospaces            Convert typed tabs to spaces.",
+            "  -i --autoindent              Indent new lines to the previous line's indentation."
         };
     }
 
@@ -220,8 +221,7 @@ public class Nano implements Editor {
                 return;
             }
 
-            try (InputStream fis = Files.newInputStream(path))
-            {
+            try (InputStream fis = Files.newInputStream(path)) {
                 read(fis);
             } catch (IOException e) {
                 setMessage("Error reading " + file + ": " + e.getMessage());
@@ -262,8 +262,8 @@ public class Nano implements Editor {
             }
 
             // TODO: detect format, do not eat last newline
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(new ByteArrayInputStream(bytes), charset))) {
+            try (BufferedReader reader =
+                    new BufferedReader(new InputStreamReader(new ByteArrayInputStream(bytes), charset))) {
                 String line;
                 lines.clear();
                 while ((line = reader.readLine()) != null) {
@@ -448,7 +448,8 @@ public class Nano implements Editor {
         }
 
         void delete(int count) {
-            while (--count >= 0 && moveRight(1) && backspace(1));
+            while (--count >= 0 && moveRight(1) && backspace(1))
+                ;
         }
 
         boolean backspace(int count) {
@@ -506,7 +507,10 @@ public class Nano implements Editor {
         }
 
         int width() {
-            return size.getColumns() - (printLineNumbers ? 8 : 0) - (wrapping ? 0 : 1) - (firstColumnToDisplay > 0 ? 1 : 0);
+            return size.getColumns()
+                    - (printLineNumbers ? 8 : 0)
+                    - (wrapping ? 0 : 1)
+                    - (firstColumnToDisplay > 0 ? 1 : 0);
         }
 
         boolean moveRight(int chars, boolean fromBeginning) {
@@ -518,7 +522,7 @@ public class Nano implements Editor {
             }
             boolean ret = true;
             while (--chars >= 0) {
-                int len =  length(getLine(line));
+                int len = length(getLine(line));
                 if (offsetInLine + column + 1 <= len) {
                     moveToChar(offsetInLine + column + 1, CursorMovement.RIGHT);
                 } else if (getLine(line + 1) != null) {
@@ -565,13 +569,12 @@ public class Nano implements Editor {
             if (line >= offsets.size()) {
                 return Optional.empty();
             }
-            return offsets.get(line).stream()
-                    .filter(o -> o > offsetInLine)
-                    .findFirst();
+            return offsets.get(line).stream().filter(o -> o > offsetInLine).findFirst();
         }
 
         void moveDisplayDown(int lines) {
-            int height = size.getRows() - computeHeader().size() - computeFooter().size();
+            int height =
+                    size.getRows() - computeHeader().size() - computeFooter().size();
             // Adjust cursor
             while (--lines >= 0) {
                 int lastLineToDisplay = firstLineToDisplay;
@@ -610,7 +613,8 @@ public class Nano implements Editor {
                     offsetInLineToDisplay = Math.max(0, offsetInLineToDisplay - (width - 1));
                 } else if (firstLineToDisplay > 0) {
                     firstLineToDisplay--;
-                    offsetInLineToDisplay = prevLineOffset(firstLineToDisplay, Integer.MAX_VALUE).get();
+                    offsetInLineToDisplay = prevLineOffset(firstLineToDisplay, Integer.MAX_VALUE)
+                            .get();
                 } else {
                     bof();
                     return;
@@ -685,13 +689,13 @@ public class Nano implements Editor {
             int rwidth = size.getColumns();
             int height = size.getRows() - header.size() - computeFooter().size();
 
-            while (line < firstLineToDisplay
-                    || line == firstLineToDisplay && offsetInLine < offsetInLineToDisplay) {
+            while (line < firstLineToDisplay || line == firstLineToDisplay && offsetInLine < offsetInLineToDisplay) {
                 moveDisplayUp(smoothScrolling ? 1 : height / 2);
             }
 
             while (true) {
-                int cursor = computeCursorPosition(header.size() * size.getColumns() + (printLineNumbers ? 8 : 0), rwidth);
+                int cursor =
+                        computeCursorPosition(header.size() * size.getColumns() + (printLineNumbers ? 8 : 0), rwidth);
                 if (cursor >= (height + header.size()) * rwidth) {
                     moveDisplayDown(smoothScrolling ? 1 : height / 2);
                 } else {
@@ -700,11 +704,9 @@ public class Nano implements Editor {
             }
         }
 
-        void eof() {
-        }
+        void eof() {}
 
-        void bof() {
-        }
+        void bof() {}
 
         void resetDisplay() {
             column = offsetInLine + column;
@@ -793,8 +795,13 @@ public class Nano implements Editor {
         }
 
         void highlightDisplayedLine(int curLine, int curOffset, int nextOffset, AttributedStringBuilder line) {
-            AttributedString disp = highlight ? syntaxHighlighter.highlight(new AttributedStringBuilder().tabs(tabs).append(getLine(curLine)))
-                                              : new AttributedStringBuilder().tabs(tabs).append(getLine(curLine)).toAttributedString();
+            AttributedString disp = highlight
+                    ? syntaxHighlighter.highlight(
+                            new AttributedStringBuilder().tabs(tabs).append(getLine(curLine)))
+                    : new AttributedStringBuilder()
+                            .tabs(tabs)
+                            .append(getLine(curLine))
+                            .toAttributedString();
             int[] hls = highlightStart();
             int[] hle = highlightEnd();
             if (hls[0] == -1 || hle[0] == -1) {
@@ -803,7 +810,7 @@ public class Nano implements Editor {
                 if (curLine == hls[0]) {
                     if (hls[1] > nextOffset) {
                         line.append(disp.columnSubSequence(curOffset, nextOffset));
-                    } else if (hls[1] <  curOffset) {
+                    } else if (hls[1] < curOffset) {
                         if (hle[1] > nextOffset) {
                             line.append(disp.columnSubSequence(curOffset, nextOffset), AttributedStyle.INVERSE);
                         } else if (hle[1] > curOffset) {
@@ -883,16 +890,22 @@ public class Nano implements Editor {
                 if (curLine >= lines.size()) {
                     // Nothing to do
                 } else if (!wrapping) {
-                    AttributedString disp = new AttributedStringBuilder().tabs(tabs).append(getLine(curLine)).toAttributedString();
+                    AttributedString disp = new AttributedStringBuilder()
+                            .tabs(tabs)
+                            .append(getLine(curLine))
+                            .toAttributedString();
                     if (this.line == curLine) {
                         int cutCount = 1;
                         if (firstColumnToDisplay > 0) {
                             line.append(cut);
                             cutCount = 2;
                         }
-                        if (disp.columnLength() - firstColumnToDisplay >= width - (cutCount - 1)*cut.columnLength()) {
-                            highlightDisplayedLine(curLine, firstColumnToDisplay
-                                , firstColumnToDisplay + width - cutCount*cut.columnLength(), line);
+                        if (disp.columnLength() - firstColumnToDisplay >= width - (cutCount - 1) * cut.columnLength()) {
+                            highlightDisplayedLine(
+                                    curLine,
+                                    firstColumnToDisplay,
+                                    firstColumnToDisplay + width - cutCount * cut.columnLength(),
+                                    line);
                             line.append(cut);
                         } else {
                             highlightDisplayedLine(curLine, firstColumnToDisplay, disp.columnLength(), line);
@@ -994,21 +1007,21 @@ public class Nano implements Editor {
 
         @SuppressWarnings("StatementWithEmptyBody")
         public void prevWord() {
-            while (Character.isAlphabetic(getCurrentChar())
-                    && moveLeft(1));
-            while (!Character.isAlphabetic(getCurrentChar())
-                    && moveLeft(1));
-            while (Character.isAlphabetic(getCurrentChar())
-                    && moveLeft(1));
+            while (Character.isAlphabetic(getCurrentChar()) && moveLeft(1))
+                ;
+            while (!Character.isAlphabetic(getCurrentChar()) && moveLeft(1))
+                ;
+            while (Character.isAlphabetic(getCurrentChar()) && moveLeft(1))
+                ;
             moveRight(1);
         }
 
         @SuppressWarnings("StatementWithEmptyBody")
         public void nextWord() {
-            while (Character.isAlphabetic(getCurrentChar())
-                    && moveRight(1));
-            while (!Character.isAlphabetic(getCurrentChar())
-                    && moveRight(1));
+            while (Character.isAlphabetic(getCurrentChar()) && moveRight(1))
+                ;
+            while (!Character.isAlphabetic(getCurrentChar()) && moveRight(1))
+                ;
         }
 
         public void beginningOfLine() {
@@ -1023,7 +1036,8 @@ public class Nano implements Editor {
         }
 
         public void prevPage() {
-            int height = size.getRows() - computeHeader().size() - computeFooter().size();
+            int height =
+                    size.getRows() - computeHeader().size() - computeFooter().size();
             scrollUp(height - 2);
             column = 0;
             firstLineToDisplay = line;
@@ -1031,7 +1045,8 @@ public class Nano implements Editor {
         }
 
         public void nextPage() {
-            int height = size.getRows() - computeHeader().size() - computeFooter().size();
+            int height =
+                    size.getRows() - computeHeader().size() - computeFooter().size();
             scrollDown(height - 2);
             column = 0;
             firstLineToDisplay = line;
@@ -1110,7 +1125,8 @@ public class Nano implements Editor {
                     return false;
                 }
                 if ((searchBackwards && (newLine > line || (newLine == line && newPos > offsetInLine + column)))
-                    || (!searchBackwards && (newLine < line || (newLine == line && newPos < offsetInLine + column)))) {
+                        || (!searchBackwards
+                                && (newLine < line || (newLine == line && newPos < offsetInLine + column)))) {
                     setMessage("Search Wrapped");
                 }
                 line = newLine;
@@ -1123,7 +1139,8 @@ public class Nano implements Editor {
         }
 
         private List<Integer> doSearch(String text) {
-            Pattern pat = Pattern.compile(searchTerm,
+            Pattern pat = Pattern.compile(
+                    searchTerm,
                     (searchCaseSensitive ? 0 : Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE)
                             | (searchRegexp ? 0 : Pattern.LITERAL));
             Matcher m = pat.matcher(text);
@@ -1159,7 +1176,7 @@ public class Nano implements Editor {
                     out[1] = length(lines.get(line));
                 }
             }
-             return out;
+            return out;
         }
 
         public void matching() {
@@ -1215,17 +1232,17 @@ public class Nano implements Editor {
                 int[] s = getMarkStart();
                 int[] e = getMarkEnd();
                 if (s[0] == e[0]) {
-                    cutbuffer.add(lines.get(s[0]).substring(charPosition(s[0],s[1]), charPosition(e[0],e[1])));
+                    cutbuffer.add(lines.get(s[0]).substring(charPosition(s[0], s[1]), charPosition(e[0], e[1])));
                 } else {
                     if (s[1] != 0) {
-                        cutbuffer.add(lines.get(s[0]).substring(charPosition(s[0],s[1])));
+                        cutbuffer.add(lines.get(s[0]).substring(charPosition(s[0], s[1])));
                         s[0] = s[0] + 1;
                     }
                     for (int i = s[0]; i < e[0]; i++) {
                         cutbuffer.add(lines.get(i));
                     }
                     if (e[1] != 0) {
-                        cutbuffer.add(lines.get(e[0]).substring(0, charPosition(e[0],e[1])));
+                        cutbuffer.add(lines.get(e[0]).substring(0, charPosition(e[0], e[1])));
                     }
                 }
                 mark = false;
@@ -1343,7 +1360,7 @@ public class Nano implements Editor {
                     lines.set(line++, l.substring(0, col) + cutbuffer.get(0));
                     gotol = line;
                     lines.add(line, cutbuffer.get(cutbuffer.size() - 1) + l.substring(col));
-                    for (int i = cutbuffer.size() - 2; i > 0 ; i--) {
+                    for (int i = cutbuffer.size() - 2; i > 0; i--) {
                         gotol++;
                         lines.add(line, cutbuffer.get(i));
                     }
@@ -1375,7 +1392,7 @@ public class Nano implements Editor {
             if (!mark) {
                 return out;
             }
-            if (markPos[0] > line || (markPos[0] == line && markPos[1] > offsetInLine + column) ) {
+            if (markPos[0] > line || (markPos[0] == line && markPos[1] > offsetInLine + column)) {
                 out[0] = line;
                 out[1] = offsetInLine + column;
             } else {
@@ -1389,7 +1406,7 @@ public class Nano implements Editor {
             if (!mark) {
                 return out;
             }
-            if (markPos[0] > line || (markPos[0] == line && markPos[1] > offsetInLine + column) ) {
+            if (markPos[0] > line || (markPos[0] == line && markPos[1] > offsetInLine + column)) {
                 out = markPos;
             } else {
                 out[0] = line;
@@ -1433,8 +1450,7 @@ public class Nano implements Editor {
                 }
                 boolean found = false;
                 for (int pid = patternId; pid < patterns.size(); pid++) {
-                    if (hint.length() == 0
-                            || patterns.get(pid).startsWith(hint)) {
+                    if (hint.length() == 0 || patterns.get(pid).startsWith(hint)) {
                         patternId = pid + 1;
                         out = patterns.get(pid);
                         found = true;
@@ -1459,7 +1475,7 @@ public class Nano implements Editor {
                     patternId = -1;
                 } else {
                     boolean found = false;
-                    for (int pid = patternId;  pid >= 0; pid--) {
+                    for (int pid = patternId; pid >= 0; pid--) {
                         if (hint.length() == 0 || patterns.get(pid).startsWith(hint)) {
                             patternId = pid - 1;
                             out = patterns.get(pid);
@@ -1514,8 +1530,7 @@ public class Nano implements Editor {
             try {
                 if (Files.exists(historyFile)) {
                     patterns = new ArrayList<>();
-                    try (BufferedReader reader = Files
-                            .newBufferedReader(historyFile)) {
+                    try (BufferedReader reader = Files.newBufferedReader(historyFile)) {
                         reader.lines().forEach(line -> patterns.add(line));
                     }
                 }
@@ -1523,7 +1538,6 @@ public class Nano implements Editor {
                 // ignore
             }
         }
-
     }
 
     public Nano(Terminal terminal, File root) {
@@ -1538,6 +1552,7 @@ public class Nano implements Editor {
         this(terminal, root, opts, null);
     }
 
+    @SuppressWarnings("this-escape")
     public Nano(Terminal terminal, Path root, Options opts, ConfigurationPath configPath) {
         this.terminal = terminal;
         this.windowsTerminal = terminal.getClass().getSimpleName().endsWith("WinSysTerminal");
@@ -1561,9 +1576,8 @@ public class Nano implements Editor {
             }
         } else if (new File("/usr/share/nano").exists() && !ignorercfiles) {
             PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:/usr/share/nano/*.nanorc");
-            try {
-                Files.find(Paths.get("/usr/share/nano"), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
-                     .forEach(syntaxFiles::add);
+            try (Stream<Path> pathStream = Files.walk(Paths.get("/usr/share/nano"))) {
+                pathStream.filter(pathMatcher::matches).forEach(syntaxFiles::add);
                 nanorcIgnoreErrors = true;
             } catch (IOException e) {
                 errorMessage = "Encountered error while reading nanorc files";
@@ -1650,7 +1664,7 @@ public class Nano implements Editor {
                     List<String> parts = SyntaxHighlighter.RuleSplitter.split(line);
                     if (parts.get(0).equals(COMMAND_INCLUDE)) {
                         SyntaxHighlighter.nanorcInclude(parts.get(1), syntaxFiles);
-                    } else if(parts.get(0).equals(COMMAND_THEME)) {
+                    } else if (parts.get(0).equals(COMMAND_THEME)) {
                         SyntaxHighlighter.nanorcTheme(parts.get(1), syntaxFiles);
                     } else if (parts.size() == 2
                             && (parts.get(0).equals("set") || parts.get(0).equals("unset"))) {
@@ -1729,7 +1743,7 @@ public class Nano implements Editor {
         for (String file : files) {
             file = file.startsWith("~") ? file.replace("~", System.getProperty("user.home")) : file;
             if (file.contains("*") || file.contains("?")) {
-                for (Path p: Commands.findFiles(root, file)) {
+                for (Path p : Commands.findFiles(root, file)) {
                     buffers.add(new Buffer(p.toString()));
                 }
             } else {
@@ -1964,29 +1978,29 @@ public class Nano implements Editor {
                 status.restore();
             }
             patternHistory.persist();
-       }
+        }
     }
 
     private int editInputBuffer(Operation operation, int curPos) {
         switch (operation) {
-        case INSERT:
-            editBuffer.insert(curPos++, bindingReader.getLastBinding());
-            break;
-        case BACKSPACE:
-            if (curPos > 0) {
-                editBuffer.deleteCharAt(--curPos);
-            }
-            break;
-        case LEFT:
-            if (curPos > 0) {
-                curPos--;
-            }
-            break;
-        case RIGHT:
-            if (curPos < editBuffer.length()) {
-                curPos++;
-            }
-            break;
+            case INSERT:
+                editBuffer.insert(curPos++, bindingReader.getLastBinding());
+                break;
+            case BACKSPACE:
+                if (curPos > 0) {
+                    editBuffer.deleteCharAt(--curPos);
+                }
+                break;
+            case LEFT:
+                if (curPos > 0) {
+                    curPos--;
+                }
+                break;
+            case RIGHT:
+                if (curPos < editBuffer.length()) {
+                    curPos++;
+                }
+                break;
         }
         return curPos;
     }
@@ -2084,7 +2098,8 @@ public class Nano implements Editor {
     private boolean save(String name) throws IOException {
         Path orgPath = buffer.file != null ? root.resolve(buffer.file) : null;
         Path newPath = root.resolve(name);
-        boolean isSame = orgPath != null && Files.exists(orgPath) && Files.exists(newPath) && Files.isSameFile(orgPath, newPath);
+        boolean isSame =
+                orgPath != null && Files.exists(orgPath) && Files.exists(newPath) && Files.isSameFile(orgPath, newPath);
         if (!isSame && Files.exists(Paths.get(name)) && writeMode == WriteMode.WRITE) {
             Operation op = getYNC("File exists, OVERWRITE ? ");
             if (op != Operation.YES) {
@@ -2094,9 +2109,8 @@ public class Nano implements Editor {
             newPath.toFile().createNewFile();
         }
         Path t = Files.createTempFile("jline-", ".temp");
-        try (OutputStream os = Files.newOutputStream(t, StandardOpenOption.WRITE,
-                                                        StandardOpenOption.TRUNCATE_EXISTING,
-                                                        StandardOpenOption.CREATE)) {
+        try (OutputStream os = Files.newOutputStream(
+                t, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)) {
             if (writeMode == WriteMode.APPEND) {
                 if (Files.isReadable(newPath)) {
                     Files.copy(newPath, os);
@@ -2124,7 +2138,10 @@ public class Nano implements Editor {
                 }
             }
             if (writeBackup) {
-                Files.move(newPath, newPath.resolveSibling(newPath.getFileName().toString() + "~"), StandardCopyOption.REPLACE_EXISTING);
+                Files.move(
+                        newPath,
+                        newPath.resolveSibling(newPath.getFileName().toString() + "~"),
+                        StandardCopyOption.REPLACE_EXISTING);
             }
             Files.move(t, newPath, StandardCopyOption.REPLACE_EXISTING);
             if (writeMode == WriteMode.WRITE) {
@@ -2340,7 +2357,7 @@ public class Nano implements Editor {
                 case ACCEPT:
                     editMessage = null;
                     String[] pos = editBuffer.toString().split(",", 2);
-                    int[] args = { 0, 0 };
+                    int[] args = {0, 0};
                     try {
                         for (int i = 0; i < pos.length; i++) {
                             if (pos[i].trim().length() > 0) {
@@ -2538,7 +2555,7 @@ public class Nano implements Editor {
                     case TOGGLE_SUSPENSION:
                         toggleSuspension();
                         break;
-               }
+                }
                 display();
             }
         } finally {
@@ -2574,7 +2591,7 @@ public class Nano implements Editor {
                 if (found) {
                     int[] re = buffer.highlightStart();
                     int col = searchBackwards ? buffer.length(buffer.getLine(re[0])) - re[1] : re[1];
-                    int match = re[0]*10000 + col;
+                    int match = re[0] * 10000 + col;
                     if (matches.contains(match)) {
                         break;
                     } else {
@@ -2587,22 +2604,22 @@ public class Nano implements Editor {
                     op = Operation.NO;
                 }
                 switch (op) {
-                case ALL:
-                    all = true;
-                    buffer.replaceFromCursor(matchedLength, replaceTerm);
-                    replaced++;
-                    break;
-                case YES:
-                    buffer.replaceFromCursor(matchedLength, replaceTerm);
-                    replaced++;
-                    break;
-                case NO:
-                    break;
-                case CANCEL:
-                    found = false;
-                    break;
-                default:
-                    break;
+                    case ALL:
+                        all = true;
+                        buffer.replaceFromCursor(matchedLength, replaceTerm);
+                        replaced++;
+                        break;
+                    case YES:
+                        buffer.replaceFromCursor(matchedLength, replaceTerm);
+                        replaced++;
+                        break;
+                    case NO:
+                        break;
+                    case CANCEL:
+                        found = false;
+                        break;
+                    default:
+                        break;
                 }
             }
             message = "Replaced " + replaced + " occurrences";
@@ -2610,7 +2627,7 @@ public class Nano implements Editor {
             // ignore
         } finally {
             searchToReplace = false;
-            matchedLength =  -1;
+            matchedLength = -1;
             this.shortcuts = standardShortcuts();
             editMessage = null;
         }
@@ -2619,7 +2636,7 @@ public class Nano implements Editor {
     void search() throws IOException {
         KeyMap<Operation> searchKeyMap = new KeyMap<>();
         searchKeyMap.setUnicode(Operation.INSERT);
-//        searchKeyMap.setNomatch(Operation.INSERT);
+        //        searchKeyMap.setNomatch(Operation.INSERT);
         for (char i = 32; i < 256; i++) {
             searchKeyMap.bind(Operation.INSERT, Character.toString(i));
         }
@@ -2711,7 +2728,7 @@ public class Nano implements Editor {
                         curPos = editInputBuffer(op, curPos);
                         currentBuffer = editBuffer.toString();
                         break;
-               }
+                }
                 editMessage = getSearchMessage();
                 display(curPos);
             }
@@ -2724,7 +2741,7 @@ public class Nano implements Editor {
     String replace() throws IOException {
         KeyMap<Operation> keyMap = new KeyMap<>();
         keyMap.setUnicode(Operation.INSERT);
-//        keyMap.setNomatch(Operation.INSERT);
+        //        keyMap.setNomatch(Operation.INSERT);
         for (char i = 32; i < 256; i++) {
             keyMap.bind(Operation.INSERT, Character.toString(i));
         }
@@ -2852,8 +2869,8 @@ public class Nano implements Editor {
         sb.append(buffer.length(buffer.lines.get(buffer.line)) + 1);
         sb.append(" (");
         if (buffer.lines.get(buffer.line).length() > 0) {
-            sb.append(Math.round((100.0 * (buffer.offsetInLine + buffer.column))
-                    / (buffer.length(buffer.lines.get(buffer.line)))));
+            sb.append(Math.round(
+                    (100.0 * (buffer.offsetInLine + buffer.column)) / (buffer.length(buffer.lines.get(buffer.line)))));
         } else {
             sb.append("100");
         }
@@ -2977,7 +2994,8 @@ public class Nano implements Editor {
 
     void mouseEvent() {
         MouseEvent event = terminal.readMouseEvent();
-        if (event.getModifiers().isEmpty() && event.getType() == MouseEvent.Type.Released
+        if (event.getModifiers().isEmpty()
+                && event.getType() == MouseEvent.Type.Released
                 && event.getButton() == MouseEvent.Button.Button1) {
             int x = event.getX();
             int y = event.getY();
@@ -2991,18 +3009,19 @@ public class Nano implements Editor {
                 int cols = (shortcuts.size() + 1) / 2;
                 int cw = size.getColumns() / cols;
                 int l = y - (size.getRows() - ftr) - 1;
-                int si = l * cols +  x / cw;
+                int si = l * cols + x / cw;
                 String shortcut = null;
                 Iterator<String> it = shortcuts.keySet().iterator();
-                while (si-- >= 0 && it.hasNext()) { shortcut = it.next(); }
+                while (si-- >= 0 && it.hasNext()) {
+                    shortcut = it.next();
+                }
                 if (shortcut != null) {
                     shortcut = shortcut.replaceAll("M-", "\\\\E");
                     String seq = KeyMap.translate(shortcut);
                     bindingReader.runMacro(seq);
                 }
             }
-        }
-        else if (event.getType() == MouseEvent.Type.Wheel) {
+        } else if (event.getType() == MouseEvent.Type.Wheel) {
             if (event.getButton() == MouseEvent.Button.WheelDown) {
                 buffer.moveDown(1);
             } else if (event.getButton() == MouseEvent.Button.WheelUp) {
@@ -3076,8 +3095,7 @@ public class Nano implements Editor {
             cursor = editMessage.length() + crsr;
             cursor = size.cursorPos(size.getRows() - footer.size(), cursor);
         } else {
-            cursor = size.cursorPos(header.size(),
-                                    buffer.getDisplayedCursor());
+            cursor = size.cursorPos(header.size(), buffer.getDisplayedCursor());
         }
         display.update(newLines, cursor);
         if (windowsTerminal) {
@@ -3098,7 +3116,7 @@ public class Nano implements Editor {
             }
             sb.append('\n');
             footer.add(sb.toAttributedString());
-        } else if (message!= null || constantCursor) {
+        } else if (message != null || constantCursor) {
             int rwidth = size.getColumns();
             String text = "[ " + (message == null ? computeCurPos() : message) + " ]";
             int len = text.length();
@@ -3346,5 +3364,4 @@ public class Nano implements Editor {
 
         TOGGLE_SUSPENSION
     }
-
 }

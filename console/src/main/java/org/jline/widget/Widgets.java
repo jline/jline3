@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2023, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -7,9 +7,6 @@
  * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.widget;
-
-import static org.jline.keymap.KeyMap.alt;
-import static org.jline.keymap.KeyMap.ctrl;
 
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
@@ -20,13 +17,16 @@ import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
 import org.jline.reader.Buffer;
 import org.jline.reader.LineReader;
+import org.jline.reader.LineReader.SuggestionType;
 import org.jline.reader.Parser;
+import org.jline.reader.Parser.ParseContext;
 import org.jline.reader.Reference;
 import org.jline.reader.Widget;
-import org.jline.reader.LineReader.SuggestionType;
-import org.jline.reader.Parser.ParseContext;
 import org.jline.utils.AttributedString;
 import org.jline.utils.Status;
+
+import static org.jline.keymap.KeyMap.alt;
+import static org.jline.keymap.KeyMap.ctrl;
 
 /**
  * Create custom widgets by extending Widgets class
@@ -63,6 +63,7 @@ public abstract class Widgets {
             public String toString() {
                 return name;
             }
+
             @Override
             public boolean apply() {
                 return widget.apply();
@@ -105,7 +106,8 @@ public abstract class Widgets {
     }
 
     /**
-     *
+     * Resolve widget name if its alias is given as method parameter.
+     * i.e. both method calls getWidget("yank") and getWidget(".yank") will return string ".yank"
      * @param name widget name or alias
      * @return widget name
      */
@@ -114,15 +116,15 @@ public abstract class Widgets {
     }
 
     /**
-     *
-     * @param name widget name or alias
+     * Test if widget exists
+     * @param name widget name or its alias
      * @return true if widget exists
      */
     public boolean existsWidget(String name) {
         try {
             widget(name);
             return true;
-        } catch(Exception e) {
+        } catch (Exception e) {
             // ignore
         }
         return false;
@@ -142,31 +144,31 @@ public abstract class Widgets {
     }
 
     /**
-     *
-     * @return The LineRearer Parser
+     * Get lineReader's parser
+     * @return The parser
      */
     public Parser parser() {
         return reader.getParser();
     }
 
     /**
-     *
-     * @return The LineReader Main KeyMap
+     * Get lineReader's Main KeyMap
+     * @return The KeyMap
      */
     public KeyMap<Binding> getKeyMap() {
         return reader.getKeyMaps().get(LineReader.MAIN);
     }
 
     /**
-     *
-     * @return The LineReader Buffer
+     * Get lineReader's buffer
+     * @return The buffer
      */
     public Buffer buffer() {
         return reader.getBuffer();
     }
 
     /**
-     *
+     * Replace lineReader buffer
      * @param buffer buffer that will be copied to the LineReader Buffer
      */
     public void replaceBuffer(Buffer buffer) {
@@ -174,95 +176,97 @@ public abstract class Widgets {
     }
 
     /**
-     *
+     * Parse lineReader buffer and returns its arguments
      * @return command line arguments
      */
     public List<String> args() {
-        return reader.getParser().parse(buffer().toString(), 0, ParseContext.COMPLETE).words();
+        return reader.getParser()
+                .parse(buffer().toString(), 0, ParseContext.COMPLETE)
+                .words();
     }
 
     /**
-     *
-     * @return Buffer's previous character
+     * Access lineReader buffer and return its previous character
+     * @return previous character
      */
     public String prevChar() {
-        return String.valueOf((char)reader.getBuffer().prevChar());
+        return String.valueOf((char) reader.getBuffer().prevChar());
     }
 
     /**
-     *
-     * @return Buffer's current character
+     * Access lineReader's buffer and return its current character
+     * @return current character
      */
     public String currChar() {
-        return String.valueOf((char)reader.getBuffer().currChar());
+        return String.valueOf((char) reader.getBuffer().currChar());
     }
 
     /**
-     *
-     * @return LineReader's last binding
+     * Get lineReader's last binding
+     * @return last binding
      */
     public String lastBinding() {
         return reader.getLastBinding();
     }
 
     /**
-     *
-     * @param string string to be written into LineReader Buffer
+     * Write the string parameter to the lineReader's buffer
+     * @param string string to be written
      */
     public void putString(String string) {
         reader.getBuffer().write(string);
     }
 
     /**
-     *
-     * @return Command line tail tip.
+     * Get lineReader's command hint
+     * @return Command hint.
      */
     public String tailTip() {
         return reader.getTailTip();
     }
 
     /**
-     *
-     * @param tailTip tail tip to be added to the command line
+     * Set lineReader's command hint to be added in the command line
+     * @param tailTip command hint
      */
     public void setTailTip(String tailTip) {
         reader.setTailTip(tailTip);
     }
 
     /**
-     *
-     * @param errorPattern error pattern to be set LineReader Highlighter
+     * Set errorPattern to the lineReader's highlighter
+     * @param errorPattern error pattern
      */
     public void setErrorPattern(Pattern errorPattern) {
         reader.getHighlighter().setErrorPattern(errorPattern);
     }
 
     /**
-     *
-     * @param errorIndex error index to be set LineReader Highlighter
+     * Set errorIndex to the lineReader's highlighter
+     * @param errorIndex error index
      */
     public void setErrorIndex(int errorIndex) {
         reader.getHighlighter().setErrorIndex(errorIndex);
     }
 
     /**
-     *  Clears command line tail tip
+     *  Clears command line command hint
      */
     public void clearTailTip() {
         reader.setTailTip("");
     }
 
     /**
-     *
-     * @param type type to be set to the LineReader autosuggestion
+     * Set lineReader's autosuggestion type
+     * @param type autosuggestion type
      */
     public void setSuggestionType(SuggestionType type) {
         reader.setAutosuggestion(type);
     }
 
     /**
-     *
-     * @param desc Text to be displayed on terminal status bar
+     * Add description text to the terminal status bar
+     * @param desc description text
      */
     public void addDescription(List<AttributedString> desc) {
         Status.getStatus(reader.getTerminal()).update(desc);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2023, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -25,6 +25,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Stream;
 
 import org.jline.builtins.Nano.PatternHistory;
 import org.jline.builtins.Source.ResourceSource;
@@ -110,25 +111,25 @@ public class Less {
     private boolean nanorcIgnoreErrors;
 
     public static String[] usage() {
-        return new String[]{
-                "less -  file pager",
-                "Usage: less [OPTIONS] [FILES]",
-                "  -? --help                    Show help",
-                "  -e --quit-at-eof             Exit on second EOF",
-                "  -E --QUIT-AT-EOF             Exit on EOF",
-                "  -F --quit-if-one-screen      Exit if entire file fits on first screen",
-                "  -q --quiet --silent          Silent mode",
-                "  -Q --QUIET --SILENT          Completely silent",
-                "  -S --chop-long-lines         Do not fold long lines",
-                "  -i --ignore-case             Search ignores lowercase case",
-                "  -I --IGNORE-CASE             Search ignores all case",
-                "  -x --tabs=N[,...]            Set tab stops",
-                "  -N --LINE-NUMBERS            Display line number for each line",
-                "  -Y --syntax=name             The name of the syntax highlighting to use.",
-                "     --no-init                 Disable terminal initialization",
-                "     --no-keypad               Disable keypad handling",
-                "     --ignorercfiles           Don't look at the system's lessrc nor at the user's lessrc.",
-                "  -H --historylog=name         Log search strings to file, so they can be retrieved in later sessions"
+        return new String[] {
+            "less -  file pager",
+            "Usage: less [OPTIONS] [FILES]",
+            "  -? --help                    Show help",
+            "  -e --quit-at-eof             Exit on second EOF",
+            "  -E --QUIT-AT-EOF             Exit on EOF",
+            "  -F --quit-if-one-screen      Exit if entire file fits on first screen",
+            "  -q --quiet --silent          Silent mode",
+            "  -Q --QUIET --SILENT          Completely silent",
+            "  -S --chop-long-lines         Do not fold long lines",
+            "  -i --ignore-case             Search ignores lowercase case",
+            "  -I --IGNORE-CASE             Search ignores all case",
+            "  -x --tabs=N[,...]            Set tab stops",
+            "  -N --LINE-NUMBERS            Display line number for each line",
+            "  -Y --syntax=name             The name of the syntax highlighting to use.",
+            "     --no-init                 Disable terminal initialization",
+            "     --no-keypad               Disable keypad handling",
+            "     --ignorercfiles           Don't look at the system's lessrc nor at the user's lessrc.",
+            "  -H --historylog=name         Log search strings to file, so they can be retrieved in later sessions"
         };
     }
 
@@ -146,7 +147,7 @@ public class Less {
         this.bindingReader = new BindingReader(terminal.reader());
         this.currentDir = currentDir;
         Path lessrc = configPath != null ? configPath.getConfig(DEFAULT_LESSRC_FILE) : null;
-        boolean ignorercfiles = opts!=null && opts.isSet("ignorercfiles");
+        boolean ignorercfiles = opts != null && opts.isSet("ignorercfiles");
         if (lessrc != null && !ignorercfiles) {
             try {
                 parseConfig(lessrc);
@@ -155,40 +156,39 @@ public class Less {
             }
         } else if (new File("/usr/share/nano").exists() && !ignorercfiles) {
             PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:/usr/share/nano/*.nanorc");
-            try {
-                Files.find(Paths.get("/usr/share/nano"), Integer.MAX_VALUE, (path, f) -> pathMatcher.matches(path))
-                     .forEach(syntaxFiles::add);
+            try (Stream<Path> pathStream = Files.walk(Paths.get("/usr/share/nano"))) {
+                pathStream.filter(pathMatcher::matches).forEach(syntaxFiles::add);
                 nanorcIgnoreErrors = true;
             } catch (IOException e) {
                 errorMessage = "Encountered error while reading nanorc files";
             }
         }
         if (opts != null) {
-            if (opts.isSet("QUIT-AT-EOF")){
+            if (opts.isSet("QUIT-AT-EOF")) {
                 quitAtFirstEof = true;
             }
-            if (opts.isSet("quit-at-eof")){
+            if (opts.isSet("quit-at-eof")) {
                 quitAtSecondEof = true;
             }
             if (opts.isSet("quit-if-one-screen")) {
                 quitIfOneScreen = true;
             }
-            if (opts.isSet("quiet")){
+            if (opts.isSet("quiet")) {
                 quiet = true;
             }
-            if (opts.isSet("QUIET")){
+            if (opts.isSet("QUIET")) {
                 veryQuiet = true;
             }
-            if (opts.isSet("chop-long-lines")){
+            if (opts.isSet("chop-long-lines")) {
                 chopLongLines = true;
             }
-            if (opts.isSet("IGNORE-CASE")){
+            if (opts.isSet("IGNORE-CASE")) {
                 ignoreCaseAlways = true;
             }
-            if (opts.isSet("ignore-case")){
+            if (opts.isSet("ignore-case")) {
                 ignoreCaseCond = true;
             }
-            if (opts.isSet("LINE-NUMBERS")){
+            if (opts.isSet("LINE-NUMBERS")) {
                 printLineNumbers = true;
             }
             if (opts.isSet("tabs")) {
@@ -226,7 +226,7 @@ public class Less {
                     List<String> parts = SyntaxHighlighter.RuleSplitter.split(line);
                     if (parts.get(0).equals(COMMAND_INCLUDE)) {
                         SyntaxHighlighter.nanorcInclude(parts.get(1), syntaxFiles);
-                    } else if(parts.get(0).equals(COMMAND_THEME)) {
+                    } else if (parts.get(0).equals(COMMAND_THEME)) {
                         SyntaxHighlighter.nanorcTheme(parts.get(1), syntaxFiles);
                     } else if (parts.size() == 2
                             && (parts.get(0).equals("set") || parts.get(0).equals("unset"))) {
@@ -276,7 +276,7 @@ public class Less {
 
     private void doTabs(String val) {
         tabs = new ArrayList<>();
-        for (String s: val.split(",")) {
+        for (String s : val.split(",")) {
             try {
                 tabs.add(Integer.parseInt(s));
             } catch (Exception ex) {
@@ -302,7 +302,7 @@ public class Less {
     }
 
     public void run(Source... sources) throws IOException, InterruptedException {
-        run(Arrays.asList(sources));
+        run(new ArrayList<>(Arrays.asList(sources)));
     }
 
     public void run(List<Source> sources) throws IOException, InterruptedException {
@@ -423,7 +423,8 @@ public class Less {
                     //
                     // Pattern edition
                     //
-                    else if (buffer.length() > 0 && (buffer.charAt(0) == '/' || buffer.charAt(0) == '?' || buffer.charAt(0) == '&')) {
+                    else if (buffer.length() > 0
+                            && (buffer.charAt(0) == '/' || buffer.charAt(0) == '?' || buffer.charAt(0) == '&')) {
                         forward = search();
                     }
                     //
@@ -522,13 +523,16 @@ public class Less {
                             case OPT_PRINT_LINES:
                                 buffer.setLength(0);
                                 printLineNumbers = !printLineNumbers;
-                                message = printLineNumbers ? "Constantly display line numbers" : "Don't use line numbers";
+                                message =
+                                        printLineNumbers ? "Constantly display line numbers" : "Don't use line numbers";
                                 break;
                             case OPT_QUIET:
                                 buffer.setLength(0);
                                 quiet = !quiet;
                                 veryQuiet = false;
-                                message = quiet ? "Ring the bell for errors but not at eof/bof" : "Ring the bell for errors AND at eof/bof";
+                                message = quiet
+                                        ? "Ring the bell for errors but not at eof/bof"
+                                        : "Ring the bell for errors AND at eof/bof";
                                 break;
                             case OPT_VERY_QUIET:
                                 buffer.setLength(0);
@@ -546,12 +550,15 @@ public class Less {
                             case OPT_IGNORE_CASE_COND:
                                 ignoreCaseCond = !ignoreCaseCond;
                                 ignoreCaseAlways = false;
-                                message = ignoreCaseCond ? "Ignore case in searches" : "Case is significant in searches";
+                                message =
+                                        ignoreCaseCond ? "Ignore case in searches" : "Case is significant in searches";
                                 break;
                             case OPT_IGNORE_CASE_ALWAYS:
                                 ignoreCaseAlways = !ignoreCaseAlways;
                                 ignoreCaseCond = false;
-                                message = ignoreCaseAlways ? "Ignore case in searches and in patterns" : "Case is significant in searches";
+                                message = ignoreCaseAlways
+                                        ? "Ignore case in searches and in patterns"
+                                        : "Case is significant in searches";
                                 break;
                             case OPT_SYNTAX_HIGHLIGHT:
                                 highlight = !highlight;
@@ -686,80 +693,80 @@ public class Less {
 
         public int editBuffer(Operation op, int curPos) {
             switch (op) {
-            case INSERT:
-                buffer.insert(curPos++, bindingReader.getLastBinding());
-                break;
-            case BACKSPACE:
-                if (curPos > begPos - 1) {
-                    buffer.deleteCharAt(--curPos);
-                }
-                break;
-            case NEXT_WORD:
-                int newPos = buffer.length();
-                for (int i = curPos; i < buffer.length(); i++) {
-                    if (buffer.charAt(i) == ' ') {
-                        newPos = i + 1;
-                        break;
+                case INSERT:
+                    buffer.insert(curPos++, bindingReader.getLastBinding());
+                    break;
+                case BACKSPACE:
+                    if (curPos > begPos - 1) {
+                        buffer.deleteCharAt(--curPos);
                     }
-                }
-                curPos = newPos;
-                break;
-            case PREV_WORD:
-                newPos = begPos;
-                for (int i = curPos - 2; i > begPos; i--) {
-                    if (buffer.charAt(i) == ' ') {
-                        newPos = i + 1;
-                        break;
-                    }
-                }
-                curPos = newPos;
-                break;
-            case HOME:
-                curPos = begPos;
-                break;
-            case END:
-                curPos = buffer.length();
-                break;
-            case DELETE:
-                if (curPos >= begPos && curPos < buffer.length()) {
-                    buffer.deleteCharAt(curPos);
-                }
-                break;
-            case DELETE_WORD:
-                while (true) {
-                    if(curPos < buffer.length() && buffer.charAt(curPos) != ' '){
-                        buffer.deleteCharAt(curPos);
-                    } else {
-                        break;
-                    }
-                }
-                while (true) {
-                    if(curPos - 1 >= begPos) {
-                        if (buffer.charAt(curPos - 1) != ' ') {
-                            buffer.deleteCharAt(--curPos);
-                        } else {
-                            buffer.deleteCharAt(--curPos);
+                    break;
+                case NEXT_WORD:
+                    int newPos = buffer.length();
+                    for (int i = curPos; i < buffer.length(); i++) {
+                        if (buffer.charAt(i) == ' ') {
+                            newPos = i + 1;
                             break;
                         }
-                    } else {
-                        break;
                     }
-                }
-                break;
-            case DELETE_LINE:
-                buffer.setLength(begPos);
-                curPos = 1;
-                break;
-            case LEFT:
-                if (curPos > begPos) {
-                    curPos--;
-                }
-                break;
-            case RIGHT:
-                if (curPos < buffer.length()) {
-                    curPos++;
-                }
-                break;
+                    curPos = newPos;
+                    break;
+                case PREV_WORD:
+                    newPos = begPos;
+                    for (int i = curPos - 2; i > begPos; i--) {
+                        if (buffer.charAt(i) == ' ') {
+                            newPos = i + 1;
+                            break;
+                        }
+                    }
+                    curPos = newPos;
+                    break;
+                case HOME:
+                    curPos = begPos;
+                    break;
+                case END:
+                    curPos = buffer.length();
+                    break;
+                case DELETE:
+                    if (curPos >= begPos && curPos < buffer.length()) {
+                        buffer.deleteCharAt(curPos);
+                    }
+                    break;
+                case DELETE_WORD:
+                    while (true) {
+                        if (curPos < buffer.length() && buffer.charAt(curPos) != ' ') {
+                            buffer.deleteCharAt(curPos);
+                        } else {
+                            break;
+                        }
+                    }
+                    while (true) {
+                        if (curPos - 1 >= begPos) {
+                            if (buffer.charAt(curPos - 1) != ' ') {
+                                buffer.deleteCharAt(--curPos);
+                            } else {
+                                buffer.deleteCharAt(--curPos);
+                                break;
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+                    break;
+                case DELETE_LINE:
+                    buffer.setLength(begPos);
+                    curPos = 1;
+                    break;
+                case LEFT:
+                    if (curPos > begPos) {
+                        curPos--;
+                    }
+                    break;
+                case RIGHT:
+                    if (curPos < buffer.length()) {
+                        curPos++;
+                    }
+                    break;
             }
             return curPos;
         }
@@ -772,10 +779,11 @@ public class Less {
         int saveOffsetInLine;
         boolean savePrintLineNumbers;
 
-        public SavedSourcePositions (){
+        public SavedSourcePositions() {
             this(0);
         }
-        public SavedSourcePositions (int dec){
+
+        public SavedSourcePositions(int dec) {
             saveSourceIdx = sourceIdx + dec;
             saveFirstLineToDisplay = firstLineToDisplay;
             saveFirstColumnToDisplay = firstColumnToDisplay;
@@ -798,8 +806,8 @@ public class Less {
 
     private void addSource(String file) throws IOException {
         if (file.contains("*") || file.contains("?")) {
-            for (Path p: Commands.findFiles(currentDir, file)) {
-                 sources.add(new URLSource(p.toUri().toURL(), p.toString()));
+            for (Path p : Commands.findFiles(currentDir, file)) {
+                sources.add(new URLSource(p.toUri().toURL(), p.toString()));
             }
         } else {
             sources.add(new URLSource(currentDir.resolve(file).toUri().toURL(), file));
@@ -834,18 +842,18 @@ public class Less {
             checkInterrupted();
             Operation op;
             switch (op = bindingReader.readBinding(fileKeyMap)) {
-            case ACCEPT:
-                String name = buffer.substring(begPos);
-                addSource(name);
-                try {
-                    openSource();
-                } catch (Exception exp) {
-                    ssp.restore(name);
-                }
-                return;
-            default:
-                curPos = lineEditor.editBuffer(op, curPos);
-                break;
+                case ACCEPT:
+                    String name = buffer.substring(begPos);
+                    addSource(name);
+                    try {
+                        openSource();
+                    } catch (Exception exp) {
+                        ssp.restore(name);
+                    }
+                    return;
+                default:
+                    curPos = lineEditor.editBuffer(op, curPos);
+                    break;
             }
             if (curPos > begPos) {
                 display(false, curPos);
@@ -887,62 +895,62 @@ public class Less {
             checkInterrupted();
             Operation op;
             switch (op = bindingReader.readBinding(searchKeyMap)) {
-            case UP:
-                buffer.setLength(0);
-                buffer.append(type);
-                buffer.append(patternHistory.up(currentBuffer.substring(1)));
-                curPos = buffer.length();
-                break;
-            case DOWN:
-                buffer.setLength(0);
-                buffer.append(type);
-                buffer.append(patternHistory.down(currentBuffer.substring(1)));
-                curPos = buffer.length();
-                break;
-            case ACCEPT:
-                try {
-                    String _pattern = buffer.substring(1);
-                    if (type == '&') {
-                        displayPattern = _pattern.length() > 0 ? _pattern : null;
-                        getPattern(true);
-                    } else {
-                        pattern = _pattern;
-                        getPattern();
-                        if (type == '/') {
-                            moveToNextMatch();
+                case UP:
+                    buffer.setLength(0);
+                    buffer.append(type);
+                    buffer.append(patternHistory.up(currentBuffer.substring(1)));
+                    curPos = buffer.length();
+                    break;
+                case DOWN:
+                    buffer.setLength(0);
+                    buffer.append(type);
+                    buffer.append(patternHistory.down(currentBuffer.substring(1)));
+                    curPos = buffer.length();
+                    break;
+                case ACCEPT:
+                    try {
+                        String _pattern = buffer.substring(1);
+                        if (type == '&') {
+                            displayPattern = _pattern.length() > 0 ? _pattern : null;
+                            getPattern(true);
                         } else {
-                            if (lines.size() - firstLineToDisplay <= size.getRows() ) {
-                                firstLineToDisplay = lines.size();
+                            pattern = _pattern;
+                            getPattern();
+                            if (type == '/') {
+                                moveToNextMatch();
                             } else {
-                                moveForward(size.getRows() - 1);
+                                if (lines.size() - firstLineToDisplay <= size.getRows()) {
+                                    firstLineToDisplay = lines.size();
+                                } else {
+                                    moveForward(size.getRows() - 1);
+                                }
+                                moveToPreviousMatch();
+                                forward = false;
                             }
-                            moveToPreviousMatch();
-                            forward = false;
                         }
+                        patternHistory.add(_pattern);
+                        buffer.setLength(0);
+                    } catch (PatternSyntaxException e) {
+                        String str = e.getMessage();
+                        if (str.indexOf('\n') > 0) {
+                            str = str.substring(0, str.indexOf('\n'));
+                        }
+                        if (type == '&') {
+                            displayPattern = null;
+                        } else {
+                            pattern = null;
+                        }
+                        buffer.setLength(0);
+                        message = "Invalid pattern: " + str + " (Press a key)";
+                        display(false);
+                        terminal.reader().read();
+                        message = null;
                     }
-                    patternHistory.add(_pattern);
-                    buffer.setLength(0);
-                } catch (PatternSyntaxException e) {
-                    String str = e.getMessage();
-                    if (str.indexOf('\n') > 0) {
-                        str = str.substring(0, str.indexOf('\n'));
-                    }
-                    if (type == '&') {
-                        displayPattern = null;
-                    } else {
-                        pattern = null;
-                    }
-                    buffer.setLength(0);
-                    message = "Invalid pattern: " + str + " (Press a key)";
-                    display(false);
-                    terminal.reader().read();
-                    message = null;
-                }
-                return forward;
-            default:
-                curPos = lineEditor.editBuffer(op, curPos);
-                currentBuffer = buffer.toString();
-                break;
+                    return forward;
+                default:
+                    curPos = lineEditor.editBuffer(op, curPos);
+                    currentBuffer = buffer.toString();
+                    break;
             }
             if (curPos < begPos) {
                 buffer.setLength(0);
@@ -966,17 +974,17 @@ public class Less {
                 op = bindingReader.readBinding(keys, null, false);
                 if (op != null) {
                     switch (op) {
-                    case FORWARD_ONE_WINDOW_OR_LINES:
-                        moveForward(getStrictPositiveNumberInBuffer(window));
-                        break;
-                    case BACKWARD_ONE_WINDOW_OR_LINES:
-                        moveBackward(getStrictPositiveNumberInBuffer(window));
-                        break;
+                        case FORWARD_ONE_WINDOW_OR_LINES:
+                            moveForward(getStrictPositiveNumberInBuffer(window));
+                            break;
+                        case BACKWARD_ONE_WINDOW_OR_LINES:
+                            moveBackward(getStrictPositiveNumberInBuffer(window));
+                            break;
                     }
                 }
                 display(false);
             } while (op != Operation.EXIT);
-        } catch (IOException|InterruptedException exp) {
+        } catch (IOException | InterruptedException exp) {
             // Do nothing
         } finally {
             ssp.restore(null);
@@ -998,11 +1006,9 @@ public class Less {
                 if (sources.size() == 2 || sourceIdx == 0) {
                     message = source.getName();
                 } else {
-                    message = source.getName() + " (file " + sourceIdx + " of "
-                            + (sources.size() - 1) + ")";
+                    message = source.getName() + " (file " + sourceIdx + " of " + (sources.size() - 1) + ")";
                 }
-                reader = new BufferedReader(new InputStreamReader(
-                        new InterruptibleInputStream(in)));
+                reader = new BufferedReader(new InputStreamReader(new InterruptibleInputStream(in)));
                 firstLineInMemory = 0;
                 lines = new ArrayList<>();
                 firstLineToDisplay = 0;
@@ -1012,7 +1018,8 @@ public class Less {
                 if (sourceIdx == 0) {
                     syntaxHighlighter = SyntaxHighlighter.build(syntaxFiles, null, "none");
                 } else {
-                    syntaxHighlighter = SyntaxHighlighter.build(syntaxFiles, source.getName(), syntaxName, nanorcIgnoreErrors);
+                    syntaxHighlighter =
+                            SyntaxHighlighter.build(syntaxFiles, source.getName(), syntaxName, nanorcIgnoreErrors);
                 }
                 open = true;
                 if (displayMessage) {
@@ -1047,7 +1054,7 @@ public class Less {
 
     void moveTo(int lineNum) throws IOException {
         AttributedString line = getLine(lineNum);
-        if (line != null){
+        if (line != null) {
             display.clear();
             if (firstLineInMemory > lineNum) {
                 openSource();
@@ -1127,7 +1134,7 @@ public class Less {
                 String newSource = sources.get(--sourceIdx).getName();
                 try {
                     openSource();
-                    firstLineToDisplay = (int)(long)sources.get(sourceIdx).lines();
+                    moveTo(Integer.MAX_VALUE);
                     moveToPreviousMatch(true);
                 } catch (FileNotFoundException exp) {
                     ssp.restore(newSource);
@@ -1166,19 +1173,19 @@ public class Less {
             display.clear();
         }
         if (lines == Integer.MAX_VALUE) {
-            Long allLines = sources.get(sourceIdx).lines();
-            if (allLines != null) {
-                firstLineToDisplay = (int)(long)allLines;
-                for (int l = 0; l < height - 1; l++) {
-                    firstLineToDisplay = prevLine2display(firstLineToDisplay, dpCompiled).getU();
-                }
+            moveTo(Integer.MAX_VALUE);
+            firstLineToDisplay = height - 1;
+            for (int l = 0; l < height - 1; l++) {
+                firstLineToDisplay =
+                        prevLine2display(firstLineToDisplay, dpCompiled).getU();
             }
         }
         while (--lines >= 0) {
             int lastLineToDisplay = firstLineToDisplay;
             if (!doOffsets) {
                 for (int l = 0; l < height - 1; l++) {
-                    lastLineToDisplay = nextLine2display(lastLineToDisplay, dpCompiled).getU();
+                    lastLineToDisplay =
+                            nextLine2display(lastLineToDisplay, dpCompiled).getU();
                 }
             } else {
                 int off = offsetInLine;
@@ -1287,7 +1294,10 @@ public class Less {
     }
 
     private boolean toBeDisplayed(AttributedString curLine, Pattern dpCompiled) {
-        return curLine == null || dpCompiled == null || sourceIdx == 0 || dpCompiled.matcher(curLine).find();
+        return curLine == null
+                || dpCompiled == null
+                || sourceIdx == 0
+                || dpCompiled.matcher(curLine).find();
     }
 
     synchronized boolean display(boolean oneScreen) throws IOException {
@@ -1363,12 +1373,13 @@ public class Less {
             return fitOnOneScreen;
         }
         AttributedStringBuilder msg = new AttributedStringBuilder();
-        if (MESSAGE_FILE_INFO.equals(message)){
+        if (MESSAGE_FILE_INFO.equals(message)) {
             Source source = sources.get(sourceIdx);
             Long allLines = source.lines();
             message = source.getName()
                     + (sources.size() > 2 ? " (file " + sourceIdx + " of " + (sources.size() - 1) + ")" : "")
-                    + " lines " + (firstLineToDisplay + 1) + "-" + inputLine + "/" + (allLines != null ? allLines : lines.size())
+                    + " lines " + (firstLineToDisplay + 1) + "-" + inputLine + "/"
+                    + (allLines != null ? allLines : lines.size())
                     + (eof ? " (END)" : "");
         }
         if (buffer.length() > 0) {
@@ -1404,8 +1415,10 @@ public class Less {
         Pattern compiled = null;
         String _pattern = doDisplayPattern ? displayPattern : pattern;
         if (_pattern != null) {
-            boolean insensitive = ignoreCaseAlways || ignoreCaseCond && _pattern.toLowerCase().equals(_pattern);
-            compiled = Pattern.compile("(" + _pattern + ")", insensitive ? Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE : 0);
+            boolean insensitive =
+                    ignoreCaseAlways || ignoreCaseCond && _pattern.toLowerCase().equals(_pattern);
+            compiled = Pattern.compile(
+                    "(" + _pattern + ")", insensitive ? Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE : 0);
         }
         return compiled;
     }
@@ -1441,8 +1454,21 @@ public class Less {
         map.bind(Operation.HELP, "h", "H");
         map.bind(Operation.EXIT, "q", ":q", "Q", ":Q", "ZZ");
         map.bind(Operation.FORWARD_ONE_LINE, "e", ctrl('E'), "j", ctrl('N'), "\r", key(terminal, Capability.key_down));
-        map.bind(Operation.BACKWARD_ONE_LINE, "y", ctrl('Y'), "k", ctrl('K'), ctrl('P'), key(terminal, Capability.key_up));
-        map.bind(Operation.FORWARD_ONE_WINDOW_OR_LINES, "f", ctrl('F'), ctrl('V'), " ", key(terminal, Capability.key_npage));
+        map.bind(
+                Operation.BACKWARD_ONE_LINE,
+                "y",
+                ctrl('Y'),
+                "k",
+                ctrl('K'),
+                ctrl('P'),
+                key(terminal, Capability.key_up));
+        map.bind(
+                Operation.FORWARD_ONE_WINDOW_OR_LINES,
+                "f",
+                ctrl('F'),
+                ctrl('V'),
+                " ",
+                key(terminal, Capability.key_npage));
         map.bind(Operation.BACKWARD_ONE_WINDOW_OR_LINES, "b", ctrl('B'), alt('v'), key(terminal, Capability.key_ppage));
         map.bind(Operation.FORWARD_ONE_WINDOW_AND_SET, "z");
         map.bind(Operation.BACKWARD_ONE_WINDOW_AND_SET, "w");
@@ -1564,18 +1590,21 @@ public class Less {
         }
     }
 
-    static class Pair<U,V> {
-        final U u; final V v;
+    static class Pair<U, V> {
+        final U u;
+        final V v;
+
         public Pair(U u, V v) {
             this.u = u;
             this.v = v;
         }
+
         public U getU() {
             return u;
         }
+
         public V getV() {
             return v;
         }
     }
-
 }

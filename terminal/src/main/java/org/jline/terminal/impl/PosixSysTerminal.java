@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -17,8 +17,9 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.jline.utils.NonBlocking;
 import org.jline.terminal.spi.Pty;
+import org.jline.utils.FastBufferedOutputStream;
+import org.jline.utils.NonBlocking;
 import org.jline.utils.NonBlockingInputStream;
 import org.jline.utils.NonBlockingReader;
 import org.jline.utils.ShutdownHooks;
@@ -34,11 +35,13 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
     protected final Map<Signal, Object> nativeHandlers = new HashMap<>();
     protected final Task closer;
 
-    public PosixSysTerminal(String name, String type, Pty pty, Charset encoding,
-                            boolean nativeSignals, SignalHandler signalHandler) throws IOException {
+    @SuppressWarnings("this-escape")
+    public PosixSysTerminal(
+            String name, String type, Pty pty, Charset encoding, boolean nativeSignals, SignalHandler signalHandler)
+            throws IOException {
         super(name, type, pty, encoding, signalHandler);
         this.input = NonBlocking.nonBlocking(getName(), pty.getSlaveInput());
-        this.output = pty.getSlaveOutput();
+        this.output = new FastBufferedOutputStream(pty.getSlaveOutput());
         this.reader = NonBlocking.nonBlocking(getName(), input, encoding());
         this.writer = new PrintWriter(new OutputStreamWriter(output, encoding()));
         parseInfoCmp();
@@ -96,5 +99,4 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
         // Do not call reader.close()
         reader.shutdown();
     }
-
 }

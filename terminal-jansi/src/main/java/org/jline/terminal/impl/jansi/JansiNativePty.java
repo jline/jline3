@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2020, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,24 +8,27 @@
  */
 package org.jline.terminal.impl.jansi;
 
-import org.fusesource.jansi.internal.CLibrary;
-import org.jline.terminal.Attributes;
-import org.jline.terminal.Size;
-import org.jline.terminal.impl.AbstractPty;
-import org.jline.terminal.spi.Pty;
-import org.jline.utils.OSUtils;
-
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Constructor;
+
+import org.fusesource.jansi.internal.CLibrary;
+import org.fusesource.jansi.internal.Kernel32;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Size;
+import org.jline.terminal.impl.AbstractPty;
+import org.jline.terminal.impl.jansi.win.JansiWinSysTerminal;
+import org.jline.terminal.spi.Pty;
+import org.jline.terminal.spi.SystemStream;
+import org.jline.terminal.spi.TerminalProvider;
+import org.jline.utils.OSUtils;
 
 import static org.fusesource.jansi.internal.CLibrary.TCSANOW;
-import static org.jline.terminal.impl.jansi.JansiSupportImpl.JANSI_MAJOR_VERSION;
-import static org.jline.terminal.impl.jansi.JansiSupportImpl.JANSI_MINOR_VERSION;
+import static org.jline.terminal.impl.jansi.JansiTerminalProvider.JANSI_MAJOR_VERSION;
+import static org.jline.terminal.impl.jansi.JansiTerminalProvider.JANSI_MINOR_VERSION;
 import static org.jline.utils.ExecHelper.exec;
 
 public abstract class JansiNativePty extends AbstractPty implements Pty {
@@ -38,11 +41,28 @@ public abstract class JansiNativePty extends AbstractPty implements Pty {
     private final FileDescriptor slaveFD;
     private final FileDescriptor slaveOutFD;
 
-    public JansiNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, String name) {
-        this(master, masterFD, slave, slaveFD, slave, slaveFD, name);
+    public JansiNativePty(
+            TerminalProvider provider,
+            SystemStream systemStream,
+            int master,
+            FileDescriptor masterFD,
+            int slave,
+            FileDescriptor slaveFD,
+            String name) {
+        this(provider, systemStream, master, masterFD, slave, slaveFD, slave, slaveFD, name);
     }
 
-    public JansiNativePty(int master, FileDescriptor masterFD, int slave, FileDescriptor slaveFD, int slaveOut, FileDescriptor slaveOutFD, String name) {
+    public JansiNativePty(
+            TerminalProvider provider,
+            SystemStream systemStream,
+            int master,
+            FileDescriptor masterFD,
+            int slave,
+            FileDescriptor slaveFD,
+            int slaveOut,
+            FileDescriptor slaveOutFD,
+            String name) {
+        super(provider, systemStream);
         this.master = master;
         this.slave = slave;
         this.slaveOut = slaveOut;
@@ -126,7 +146,6 @@ public abstract class JansiNativePty extends AbstractPty implements Pty {
         return new FileOutputStream(getSlaveOutFD());
     }
 
-
     @Override
     public Attributes getAttr() throws IOException {
         CLibrary.Termios tios = new CLibrary.Termios();
@@ -143,14 +162,20 @@ public abstract class JansiNativePty extends AbstractPty implements Pty {
     @Override
     public Size getSize() throws IOException {
         CLibrary.WinSize sz = new CLibrary.WinSize();
-        CLibrary.ioctl(slave, CLibrary.TIOCGWINSZ, sz);
+        int res = CLibrary.ioctl(slave, CLibrary.TIOCGWINSZ, sz);
+        if (res != 0) {
+            throw new IOException("Error calling ioctl(TIOCGWINSZ): return code is " + res);
+        }
         return new Size(sz.ws_col, sz.ws_row);
     }
 
     @Override
     public void setSize(Size size) throws IOException {
         CLibrary.WinSize sz = new CLibrary.WinSize((short) size.getRows(), (short) size.getColumns());
-        CLibrary.ioctl(slave, CLibrary.TIOCSWINSZ, sz);
+        int res = CLibrary.ioctl(slave, CLibrary.TIOCSWINSZ, sz);
+        if (res != 0) {
+            throw new IOException("Error calling ioctl(TIOCSWINSZ): return code is " + res);
+        }
     }
 
     protected abstract CLibrary.Termios toTermios(Attributes t);
@@ -162,21 +187,44 @@ public abstract class JansiNativePty extends AbstractPty implements Pty {
         return "JansiNativePty[" + getName() + "]";
     }
 
-    protected static FileDescriptor newDescriptor(int fd) {
+    public static boolean isPosixSystemStream(SystemStream stream) {
+        return CLibrary.isatty(fd(stream)) == 1;
+    }
+
+    public static String posixSystemStreamName(SystemStream systemStream) {
+        return CLibrary.ttyname(fd(systemStream));
+    }
+
+    public static int systemStreamWidth(SystemStream systemStream) {
         try {
-            Constructor<FileDescriptor> cns = FileDescriptor.class.getDeclaredConstructor(int.class);
-            cns.setAccessible(true);
-            return cns.newInstance(fd);
-        } catch (Throwable e) {
-            throw new RuntimeException("Unable to create FileDescriptor", e);
+            if (OSUtils.IS_WINDOWS) {
+                Kernel32.CONSOLE_SCREEN_BUFFER_INFO info = new Kernel32.CONSOLE_SCREEN_BUFFER_INFO();
+                long outConsole = JansiWinSysTerminal.getConsole(systemStream);
+                Kernel32.GetConsoleScreenBufferInfo(outConsole, info);
+                return info.windowWidth();
+            } else {
+                CLibrary.WinSize sz = new CLibrary.WinSize();
+                int res = CLibrary.ioctl(fd(systemStream), CLibrary.TIOCGWINSZ, sz);
+                if (res != 0) {
+                    throw new IOException("Error calling ioctl(TIOCGWINSZ): return code is " + res);
+                }
+                return sz.ws_col;
+            }
+        } catch (Throwable t) {
+            return -1;
         }
     }
 
-    public static boolean isConsoleOutput() {
-        return CLibrary.isatty(1) == 1;
-    }
-
-    public static boolean isConsoleInput() {
-        return CLibrary.isatty(0) == 1;
+    private static int fd(SystemStream systemStream) {
+        switch (systemStream) {
+            case Input:
+                return 0;
+            case Output:
+                return 1;
+            case Error:
+                return 2;
+            default:
+                return -1;
+        }
     }
 }

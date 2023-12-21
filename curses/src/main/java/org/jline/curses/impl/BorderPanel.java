@@ -1,19 +1,19 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
- * http://www.opensource.org/licenses/bsd-license.php
+ * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.curses.impl;
-
-import org.jline.curses.*;
-import org.jline.curses.Curses.Location;
 
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.stream.Stream;
+
+import org.jline.curses.*;
+import org.jline.curses.Curses.Location;
 
 public class BorderPanel extends AbstractPanel {
 
@@ -34,13 +34,14 @@ public class BorderPanel extends AbstractPanel {
         // Compute preferred heights and widths of components
         preferred(w, h);
         // Width
-        int pw = max(w.get(Location.Top),
-                     w.get(Location.Left) + w.get(Location.Center) + w.get(Location.Right),
-                     w.get(Location.Bottom));
+        int pw = max(
+                w.get(Location.Top),
+                w.get(Location.Left) + w.get(Location.Center) + w.get(Location.Right),
+                w.get(Location.Bottom));
         // Height
         int ph = h.get(Location.Top)
-                    + max(h.get(Location.Left), h.get(Location.Center), h.get(Location.Right))
-                    + h.get(Location.Bottom);
+                + max(h.get(Location.Left), h.get(Location.Center), h.get(Location.Right))
+                + h.get(Location.Bottom);
         return new Size(pw, ph);
     }
 
@@ -55,18 +56,18 @@ public class BorderPanel extends AbstractPanel {
         // Compute preferred heights and widths
         preferred(w, h);
         // Arrange
-        fit(h, size.h(), Location.Center, Location.Top,  Location.Bottom);
+        fit(h, size.h(), Location.Center, Location.Top, Location.Bottom);
         fit(w, size.w(), Location.Center, Location.Left, Location.Right);
-        w.put(Location.Top,    size.w());
+        w.put(Location.Top, size.w());
         w.put(Location.Bottom, size.w());
-        h.put(Location.Left,   h.get(Location.Center));
-        h.put(Location.Right,  h.get(Location.Center));
+        h.put(Location.Left, h.get(Location.Center));
+        h.put(Location.Right, h.get(Location.Center));
         pos(x, w, Location.Left, Location.Center, Location.Right);
-        pos(y, h, Location.Top,  Location.Center, Location.Bottom);
-        x.put(Location.Top,    0);
+        pos(y, h, Location.Top, Location.Center, Location.Bottom);
+        x.put(Location.Top, 0);
         x.put(Location.Bottom, 0);
-        y.put(Location.Left,   y.get(Location.Center));
-        y.put(Location.Right,  y.get(Location.Center));
+        y.put(Location.Left, y.get(Location.Center));
+        y.put(Location.Right, y.get(Location.Center));
         // Assign
         for (Map.Entry<Component, Constraint> entry : components.entrySet()) {
             Component c = entry.getKey();
@@ -85,7 +86,11 @@ public class BorderPanel extends AbstractPanel {
     }
 
     private void fit(Map<Location, Integer> h, int max, Location... locs) {
-        int diff = Stream.of(locs).map(l -> h.getOrDefault(l, 0)).mapToInt(Integer::intValue).sum() - max;
+        int diff = Stream.of(locs)
+                        .map(l -> h.getOrDefault(l, 0))
+                        .mapToInt(Integer::intValue)
+                        .sum()
+                - max;
         if (diff < 0) {
             h.put(locs[0], h.get(locs[0]) - diff);
         } else {
@@ -114,5 +119,4 @@ public class BorderPanel extends AbstractPanel {
     private static int max(int i0, int i1, int i2) {
         return Math.max(i0, Math.max(i1, i2));
     }
-
 }

@@ -36,6 +36,7 @@ set "logconf=%DIRNAME%etc\logging.properties"
     if "%1" == "debug" goto :EXECUTE_DEBUG
     if "%1" == "debugs" goto :EXECUTE_DEBUGS
     if "%1" == "verbose" goto :EXECUTE_VERBOSE
+    if "%1" == "ffm" goto :EXECUTE_FFM
     if "%1" == "" goto :EXECUTE_MAIN
     set "opts=%opts% %~1"
     shift
@@ -62,17 +63,22 @@ set "logconf=%DIRNAME%etc\logging.properties"
     goto :RUN_LOOP
 
 :EXECUTE_DEBUG
-    set "opts=%opts% -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
+    set "opts=%opts% -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
     shift
     goto :RUN_LOOP
 
 :EXECUTE_DEBUGS
-    set "opts=%opts% -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
+    set "opts=%opts% -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005"
     shift
     goto :RUN_LOOP
 
 :EXECUTE_VERBOSE
     set "logconf=%DIRNAME%etc\logging-verbose.properties"
+    shift
+    goto :RUN_LOOP
+
+:EXECUTE_FFM
+    set "opts=%opts% --enable-preview --enable-native-access=ALL-UNNAMED"
     shift
     goto :RUN_LOOP
 

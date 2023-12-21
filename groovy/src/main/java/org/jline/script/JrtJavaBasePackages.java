@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2023, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -7,8 +7,6 @@
  * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.script;
-
-import org.jline.utils.Log;
 
 import java.io.IOException;
 import java.net.URI;
@@ -19,10 +17,12 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
+import org.jline.utils.Log;
+
 import static java.nio.file.FileVisitResult.CONTINUE;
 
 /**
- *
+ * Helper class to resolve java.base module classes
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public class JrtJavaBasePackages {
@@ -45,7 +45,7 @@ public class JrtJavaBasePackages {
         FileVisitor fv = new FileVisitor(pckgname, nestedClasses);
         try {
             if (onlyCurrent) {
-                Files.walkFileTree(path, new HashSet<>(),1, fv);
+                Files.walkFileTree(path, new HashSet<>(), 1, fv);
             } else {
                 Files.walkFileTree(path, fv);
             }
@@ -80,7 +80,7 @@ public class JrtJavaBasePackages {
                         classes.add(className);
                     }
                 }
-            } catch (Exception|Error e) {
+            } catch (Exception | Error e) {
                 if (Log.isDebugEnabled()) {
                     e.printStackTrace();
                 }

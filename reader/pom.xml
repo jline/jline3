@@ -16,7 +16,7 @@
     <parent>
         <groupId>org.jline</groupId>
         <artifactId>jline-parent</artifactId>
-        <version>3.21.1-SNAPSHOT</version>
+        <version>3.25.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>jline-reader</artifactId>
@@ -24,6 +24,7 @@
 
     <properties>
         <automatic.module.name>org.jline.reader</automatic.module.name>
+        <surefire.argLine>--add-opens java.base/java.io=ALL-UNNAMED --enable-preview</surefire.argLine>
     </properties>
 
     <dependencies>
@@ -33,8 +34,8 @@
         </dependency>
 
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

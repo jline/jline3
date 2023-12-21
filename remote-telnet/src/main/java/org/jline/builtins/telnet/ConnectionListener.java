@@ -1,11 +1,12 @@
 /*
- * Copyright (c) 2002-2017, the original author or authors.
+ * Copyright (c) 2002-2017, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
+package org.jline.builtins.telnet;
 
 /*
  * Java TelnetD library (embeddable telnet daemon)
@@ -38,9 +39,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ***/
 
-package org.jline.builtins.telnet;
-
-
 /**
  * Interface to be implemented if a class wants to
  * qualify as a ConnectionListener.<br>
@@ -59,8 +57,7 @@ public interface ConnectionListener {
      * @param ce ConnectionEvent instance.
      * @see ConnectionEvent.Type#CONNECTION_IDLE
      */
-    default void connectionIdle(ConnectionEvent ce) {
-    }
+    default void connectionIdle(ConnectionEvent ce) {}
 
     /**
      * Called when a CONNECTION_TIMEDOUT event occured.
@@ -68,8 +65,7 @@ public interface ConnectionListener {
      * @param ce ConnectionEvent instance.
      * @see ConnectionEvent.Type#CONNECTION_TIMEDOUT
      */
-    default void connectionTimedOut(ConnectionEvent ce) {
-    }
+    default void connectionTimedOut(ConnectionEvent ce) {}
 
     /**
      * Called when a CONNECTION_LOGOUTREQUEST occured.
@@ -77,8 +73,7 @@ public interface ConnectionListener {
      * @param ce ConnectionEvent instance.
      * @see ConnectionEvent.Type#CONNECTION_LOGOUTREQUEST
      */
-    default void connectionLogoutRequest(ConnectionEvent ce) {
-    }
+    default void connectionLogoutRequest(ConnectionEvent ce) {}
 
     /**
      * Called when a CONNECTION_BREAK event occured.
@@ -86,8 +81,7 @@ public interface ConnectionListener {
      * @param ce ConnectionEvent instance.
      * @see ConnectionEvent.Type#CONNECTION_BREAK
      */
-    default void connectionSentBreak(ConnectionEvent ce) {
-    }
+    default void connectionSentBreak(ConnectionEvent ce) {}
 
     /**
      * Called when a CONNECTION_TERMINAL_GEOMETRY_CHANGED event occured.
@@ -95,7 +89,5 @@ public interface ConnectionListener {
      * @param ce ConnectionEvent instance.
      * @see ConnectionEvent.Type#CONNECTION_TERMINAL_GEOMETRY_CHANGED
      */
-    default void connectionTerminalGeometryChanged(ConnectionEvent ce) {
-    }
-
-}//interface ConnectionListener
+    default void connectionTerminalGeometryChanged(ConnectionEvent ce) {}
+} // interface ConnectionListener

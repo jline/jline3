@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2021, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -7,14 +7,6 @@
  * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.builtins;
-
-import org.jline.builtins.Options.HelpException;
-import org.jline.keymap.BindingReader;
-import org.jline.keymap.KeyMap;
-import org.jline.terminal.Attributes;
-import org.jline.terminal.Size;
-import org.jline.terminal.Terminal;
-import org.jline.utils.*;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -24,6 +16,14 @@ import java.text.DecimalFormatSymbols;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import org.jline.builtins.Options.HelpException;
+import org.jline.keymap.BindingReader;
+import org.jline.keymap.KeyMap;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Size;
+import org.jline.terminal.Terminal;
+import org.jline.utils.*;
 
 import static org.jline.builtins.TTop.Align.Left;
 import static org.jline.builtins.TTop.Align.Right;
@@ -59,7 +59,8 @@ public class TTop {
     public int nthreads;
 
     public enum Align {
-        Left, Right
+        Left,
+        Right
     };
 
     public enum Operation {
@@ -71,17 +72,16 @@ public class TTop {
         REVERSE
     }
 
-    public static void ttop(Terminal terminal, PrintStream out, PrintStream err,
-                            String[] argv) throws Exception {
+    public static void ttop(Terminal terminal, PrintStream out, PrintStream err, String[] argv) throws Exception {
         final String[] usage = {
-                "ttop -  display and update sorted information about threads",
-                "Usage: ttop [OPTIONS]",
-                "  -? --help                    Show help",
-                "  -o --order=ORDER             Comma separated list of sorting keys",
-                "  -t --stats=STATS             Comma separated list of stats to display",
-                "  -s --seconds=SECONDS         Delay between updates in seconds",
-                "  -m --millis=MILLIS           Delay between updates in milliseconds",
-                "  -n --nthreads=NTHREADS       Only display up to NTHREADS threads",
+            "ttop -  display and update sorted information about threads",
+            "Usage: ttop [OPTIONS]",
+            "  -? --help                    Show help",
+            "  -o --order=ORDER             Comma separated list of sorting keys",
+            "  -t --stats=STATS             Comma separated list of stats to display",
+            "  -s --seconds=SECONDS         Delay between updates in seconds",
+            "  -m --millis=MILLIS           Delay between updates in milliseconds",
+            "  -n --nthreads=NTHREADS       Only display up to NTHREADS threads",
         };
         Options opt = Options.compile(usage).parse(argv);
         if (opt.isSet("help")) {
@@ -110,7 +110,6 @@ public class TTop {
     private Map<Long, Map<String, Long>> changes = new HashMap<>();
     private Map<String, Integer> widths = new HashMap<>();
 
-
     public TTop(Terminal terminal) {
         this.terminal = terminal;
         this.display = new Display(terminal, true);
@@ -120,20 +119,20 @@ public class TTop {
         dfs.setDecimalSeparator('.');
         DecimalFormat perc = new DecimalFormat("0.00%", dfs);
 
-        register(STAT_TID,             Right, "TID",             o -> String.format("%3d", (Long) o));
-        register(STAT_NAME,            Left,  "NAME",            padcut(40));
-        register(STAT_STATE,           Left,  "STATE",           o -> o.toString().toLowerCase());
-        register(STAT_BLOCKED_TIME,    Right, "T-BLOCKED",       o -> millis((Long) o));
-        register(STAT_BLOCKED_COUNT,   Right, "#-BLOCKED",       Object::toString);
-        register(STAT_WAITED_TIME,     Right, "T-WAITED",        o -> millis((Long) o));
-        register(STAT_WAITED_COUNT,    Right, "#-WAITED",        Object::toString);
-        register(STAT_LOCK_NAME,       Left,  "LOCK-NAME",       Object::toString);
-        register(STAT_LOCK_OWNER_ID,   Right, "LOCK-OWNER-ID",   id -> ((Long) id) >= 0 ? id.toString() : "");
-        register(STAT_LOCK_OWNER_NAME, Left,  "LOCK-OWNER-NAME", name -> name != null ? name.toString() : "");
-        register(STAT_USER_TIME,       Right, "T-USR",           o -> nanos((Long) o));
-        register(STAT_CPU_TIME,        Right, "T-CPU",           o -> nanos((Long) o));
-        register(STAT_USER_TIME_PERC,  Right, "%-USR",           perc::format);
-        register(STAT_CPU_TIME_PERC,   Right, "%-CPU",           perc::format);
+        register(STAT_TID, Right, "TID", o -> String.format("%3d", (Long) o));
+        register(STAT_NAME, Left, "NAME", padcut(40));
+        register(STAT_STATE, Left, "STATE", o -> o.toString().toLowerCase());
+        register(STAT_BLOCKED_TIME, Right, "T-BLOCKED", o -> millis((Long) o));
+        register(STAT_BLOCKED_COUNT, Right, "#-BLOCKED", Object::toString);
+        register(STAT_WAITED_TIME, Right, "T-WAITED", o -> millis((Long) o));
+        register(STAT_WAITED_COUNT, Right, "#-WAITED", Object::toString);
+        register(STAT_LOCK_NAME, Left, "LOCK-NAME", Object::toString);
+        register(STAT_LOCK_OWNER_ID, Right, "LOCK-OWNER-ID", id -> ((Long) id) >= 0 ? id.toString() : "");
+        register(STAT_LOCK_OWNER_NAME, Left, "LOCK-OWNER-NAME", name -> name != null ? name.toString() : "");
+        register(STAT_USER_TIME, Right, "T-USR", o -> nanos((Long) o));
+        register(STAT_CPU_TIME, Right, "T-CPU", o -> nanos((Long) o));
+        register(STAT_USER_TIME_PERC, Right, "%-USR", perc::format);
+        register(STAT_CPU_TIME_PERC, Right, "%-CPU", perc::format);
 
         keys = new KeyMap<>();
         bindKeys(keys);
@@ -162,7 +161,8 @@ public class TTop {
                     threadsBean.setThreadContentionMonitoringEnabled(true);
                 }
             } else {
-                stats.removeAll(Arrays.asList(STAT_BLOCKED_TIME, STAT_BLOCKED_COUNT, STAT_WAITED_TIME, STAT_WAITED_COUNT));
+                stats.removeAll(
+                        Arrays.asList(STAT_BLOCKED_TIME, STAT_BLOCKED_COUNT, STAT_WAITED_TIME, STAT_WAITED_COUNT));
             }
         }
         Boolean isThreadCpuTimeEnabled = null;
@@ -337,9 +337,9 @@ public class TTop {
         sb.append(String.format("%8tT", new Date()));
         sb.append(".");
 
-
         OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
-        String osinfo = "OS: " + os.getName() + " " + os.getVersion() + ", " + os.getArch() + ", " + os.getAvailableProcessors() + " cpus.";
+        String osinfo = "OS: " + os.getName() + " " + os.getVersion() + ", " + os.getArch() + ", "
+                + os.getAvailableProcessors() + " cpus.";
         if (sb.length() + 1 + osinfo.length() < size.getColumns()) {
             sb.append(" ");
         } else {
@@ -349,7 +349,8 @@ public class TTop {
         sb.append(osinfo);
 
         ClassLoadingMXBean cl = ManagementFactory.getClassLoadingMXBean();
-        String clsinfo = "Classes: " + cl.getLoadedClassCount() + " loaded, " + cl.getUnloadedClassCount() + " unloaded, " + cl.getTotalLoadedClassCount() + " loaded total.";
+        String clsinfo = "Classes: " + cl.getLoadedClassCount() + " loaded, " + cl.getUnloadedClassCount()
+                + " unloaded, " + cl.getTotalLoadedClassCount() + " loaded total.";
         if (sb.length() + 1 + clsinfo.length() < size.getColumns()) {
             sb.append(" ");
         } else {
@@ -359,7 +360,8 @@ public class TTop {
         sb.append(clsinfo);
 
         ThreadMXBean th = ManagementFactory.getThreadMXBean();
-        String thinfo = "Threads: " + th.getThreadCount() + ", peak: " + th.getPeakThreadCount() + ", started: " + th.getTotalStartedThreadCount() + ".";
+        String thinfo = "Threads: " + th.getThreadCount() + ", peak: " + th.getPeakThreadCount() + ", started: "
+                + th.getTotalStartedThreadCount() + ".";
         if (sb.length() + 1 + thinfo.length() < size.getColumns()) {
             sb.append(" ");
         } else {
@@ -369,8 +371,13 @@ public class TTop {
         sb.append(thinfo);
 
         MemoryMXBean me = ManagementFactory.getMemoryMXBean();
-        String meinfo = "Memory: " + "heap: " + memory(me.getHeapMemoryUsage().getUsed(), me.getHeapMemoryUsage().getMax())
-                  + ", non heap: " + memory(me.getNonHeapMemoryUsage().getUsed(), me.getNonHeapMemoryUsage().getMax()) + ".";
+        String meinfo = "Memory: " + "heap: "
+                + memory(
+                        me.getHeapMemoryUsage().getUsed(),
+                        me.getHeapMemoryUsage().getMax()) + ", non heap: "
+                + memory(
+                        me.getNonHeapMemoryUsage().getUsed(),
+                        me.getNonHeapMemoryUsage().getMax()) + ".";
         if (sb.length() + 1 + meinfo.length() < size.getColumns()) {
             sb.append(" ");
         } else {
@@ -390,12 +397,14 @@ public class TTop {
             }
             long count = gc.getCollectionCount();
             long time = gc.getCollectionTime();
-            sbc.append(gc.getName()).append(": ")
-                .append(Long.toString(count)).append(" col. / ")
-                .append(String.format("%d", time / 1000))
-                .append(".")
-                .append(String.format("%03d", time % 1000))
-                .append(" s");
+            sbc.append(gc.getName())
+                    .append(": ")
+                    .append(count)
+                    .append(" col. / ")
+                    .append(String.format("%d", time / 1000))
+                    .append(".")
+                    .append(String.format("%03d", time % 1000))
+                    .append(" s");
         }
         sbc.append(".");
         if (sb.length() + 1 + sbc.length() < size.getColumns()) {
@@ -416,13 +425,13 @@ public class TTop {
         int nb = Math.min(size.getRows() - lines.size() - 2, nthreads > 0 ? nthreads : threads.size());
         // Compute values
         List<Map<String, String>> values = threads.subList(0, nb).stream()
-                .map(thread -> stats.stream()
-                        .collect(Collectors.toMap(
-                                Function.identity(),
-                                key -> columns.get(key).format.apply(thread.get(key)))))
+                .map(thread -> stats.stream().collect(Collectors.toMap(Function.identity(), key -> columns.get(key)
+                        .format
+                        .apply(thread.get(key)))))
                 .collect(Collectors.toList());
         for (String key : stats) {
-            int width = values.stream().mapToInt(map -> map.get(key).length()).max().orElse(0);
+            int width =
+                    values.stream().mapToInt(map -> map.get(key).length()).max().orElse(0);
             widths.put(key, Math.max(columns.get(key).header.length(), Math.max(width, widths.getOrDefault(key, 0))));
         }
         List<String> cstats;
@@ -465,7 +474,8 @@ public class TTop {
                 }
                 long last;
                 Object cur = thread.get(key);
-                Object prv = previous.computeIfAbsent(tid, id -> new HashMap<>()).put(key, cur);
+                Object prv =
+                        previous.computeIfAbsent(tid, id -> new HashMap<>()).put(key, cur);
                 if (prv != null && !prv.equals(cur)) {
                     changes.computeIfAbsent(tid, id -> new HashMap<>()).put(key, now);
                     last = now;
@@ -545,9 +555,11 @@ public class TTop {
             return String.format("%d.%03d", secs, millis);
         }
     }
+
     private static Function<Object, String> padcut(int nb) {
         return o -> padcut(o.toString(), nb);
     }
+
     private static String padcut(String str, int nb) {
         if (str.length() <= nb) {
             StringBuilder sb = new StringBuilder(nb);
@@ -557,12 +569,10 @@ public class TTop {
             }
             return sb.toString();
         } else {
-            StringBuilder sb = new StringBuilder(nb);
-            sb.append(str, 0, nb - 3);
-            sb.append("...");
-            return sb.toString();
+            return str.substring(0, nb - 3) + "...";
         }
     }
+
     private static String memory(long cur, long max) {
         if (max > 0) {
             String smax = humanReadableByteCount(max, false);
@@ -582,7 +592,7 @@ public class TTop {
         int unit = si ? 1000 : 1024;
         if (bytes < 1024) return bytes + " B";
         int exp = (int) (Math.log(bytes) / Math.log(1024));
-        String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp-1) + (si ? "" : "i");
+        String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + (si ? "" : "i");
         return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 
@@ -618,5 +628,4 @@ public class TTop {
             this.format = format;
         }
     }
-
 }

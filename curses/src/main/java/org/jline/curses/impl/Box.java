@@ -1,17 +1,17 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
- * http://www.opensource.org/licenses/bsd-license.php
+ * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.curses.impl;
 
-import org.jline.curses.*;
-
 import java.util.Collection;
 import java.util.Collections;
+
+import org.jline.curses.*;
 
 public class Box extends AbstractComponent implements Container {
 
@@ -61,9 +61,7 @@ public class Box extends AbstractComponent implements Container {
     }
 
     @Override
-    protected void doDraw(Screen screen) {
-
-    }
+    protected void doDraw(Screen screen) {}
 
     @Override
     protected Size doGetPreferredSize() {
@@ -102,6 +100,7 @@ public class Box extends AbstractComponent implements Container {
 
     interface BoxRenderer extends Renderer {
         Position getComponentOffset();
+
         Size getComponentSize(Size box);
     }
 }

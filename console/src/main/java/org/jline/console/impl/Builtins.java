@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2022, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -15,12 +15,12 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.jline.builtins.Commands;
-import org.jline.builtins.SyntaxHighlighter;
-import org.jline.builtins.TTop;
 import org.jline.builtins.Completers.FilesCompleter;
 import org.jline.builtins.Completers.OptDesc;
 import org.jline.builtins.Completers.OptionCompleter;
 import org.jline.builtins.ConfigurationPath;
+import org.jline.builtins.SyntaxHighlighter;
+import org.jline.builtins.TTop;
 import org.jline.console.CommandInput;
 import org.jline.console.CommandMethods;
 import org.jline.console.CommandRegistry;
@@ -42,18 +42,19 @@ import static org.jline.builtins.SyntaxHighlighter.TYPE_NANORCTHEME;
  * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public class Builtins extends JlineCommandRegistry implements CommandRegistry {
-    public enum Command {NANO
-                       , LESS
-                       , HISTORY
-                       , WIDGET
-                       , KEYMAP
-                       , SETOPT
-                       , SETVAR
-                       , UNSETOPT
-                       , TTOP
-                       , COLORS
-                       , HIGHLIGHTER
-                       }
+    public enum Command {
+        NANO,
+        LESS,
+        HISTORY,
+        WIDGET,
+        KEYMAP,
+        SETOPT,
+        SETVAR,
+        UNSETOPT,
+        TTOP,
+        COLORS,
+        HIGHLIGHTER
+    }
 
     private final ConfigurationPath configPath;
     private final Function<String, Widget> widgetCreator;
@@ -64,7 +65,8 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
         this(null, () -> workDir, configPath, widgetCreator);
     }
 
-    public Builtins(Set<Command> commands, Path workDir, ConfigurationPath configpath, Function<String, Widget> widgetCreator) {
+    public Builtins(
+            Set<Command> commands, Path workDir, ConfigurationPath configpath, Function<String, Widget> widgetCreator) {
         this(commands, () -> workDir, configpath, widgetCreator);
     }
 
@@ -72,20 +74,26 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
         this(null, workDir, configPath, widgetCreator);
     }
 
-    public Builtins(Set<Command> commands, Supplier<Path> workDir, ConfigurationPath configpath, Function<String, Widget> widgetCreator) {
+    @SuppressWarnings("this-escape")
+    public Builtins(
+            Set<Command> commands,
+            Supplier<Path> workDir,
+            ConfigurationPath configpath,
+            Function<String, Widget> widgetCreator) {
         super();
+        Objects.requireNonNull(configpath);
         this.configPath = configpath;
         this.widgetCreator = widgetCreator;
         this.workDir = workDir;
         Set<Command> cmds;
-        Map<Command,String> commandName = new HashMap<>();
-        Map<Command,CommandMethods> commandExecute = new HashMap<>();
+        Map<Command, String> commandName = new HashMap<>();
+        Map<Command, CommandMethods> commandExecute = new HashMap<>();
         if (commands == null) {
             cmds = new HashSet<>(EnumSet.allOf(Command.class));
         } else {
             cmds = new HashSet<>(commands);
         }
-        for (Command c: cmds) {
+        for (Command c : cmds) {
             commandName.put(c, c.name().toLowerCase());
         }
         commandExecute.put(Command.NANO, new CommandMethods(this::nano, this::nanoCompleter));
@@ -108,7 +116,8 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
 
     private void less(CommandInput input) {
         try {
-            Commands.less(input.terminal(), input.in(), input.out(), input.err(), workDir.get(), input.args(), configPath);
+            Commands.less(
+                    input.terminal(), input.in(), input.out(), input.err(), workDir.get(), input.xargs(), configPath);
         } catch (Exception e) {
             saveException(e);
         }
@@ -198,7 +207,8 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
         List<String> out = new ArrayList<>();
         for (Option option : Option.values()) {
             if (set == (reader.isSet(option) == option.isDef())) {
-                out.add((option.isDef() ? "no-" : "") + option.toString().toLowerCase().replace('_', '-'));
+                out.add((option.isDef() ? "no-" : "")
+                        + option.toString().toLowerCase().replace('_', '-'));
             }
         }
         return out;
@@ -208,7 +218,8 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
         List<Completer> completers = new ArrayList<>();
         List<OptDesc> optDescs = commandOptions(name);
         for (OptDesc o : optDescs) {
-            if (o.shortOption() != null && (o.shortOption().equals("-v") || o.shortOption().equals("-s"))) {
+            if (o.shortOption() != null
+                    && (o.shortOption().equals("-v") || o.shortOption().equals("-s"))) {
                 Path userConfig = null;
                 if (o.shortOption().equals("-s")) {
                     try {
@@ -225,17 +236,14 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
                 }
             }
         }
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                , new OptionCompleter(NullCompleter.INSTANCE
-                , optDescs
-                , 1)
-        ));
+        completers.add(new ArgumentCompleter(
+                NullCompleter.INSTANCE, new OptionCompleter(NullCompleter.INSTANCE, optDescs, 1)));
         return completers;
     }
 
     private Set<String> allWidgets() {
         Set<String> out = new HashSet<>();
-        for (String s: reader.getWidgets().keySet()) {
+        for (String s : reader.getWidgets().keySet()) {
             out.add(s);
             out.add(reader.getWidgets().get(s).toString());
         }
@@ -244,21 +252,15 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
 
     private List<Completer> nanoCompleter(String name) {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                                           , new OptionCompleter(new FilesCompleter(workDir)
-                                                               , this::commandOptions
-                                                               , 1)
-                                            ));
+        completers.add(new ArgumentCompleter(
+                NullCompleter.INSTANCE, new OptionCompleter(new FilesCompleter(workDir), this::commandOptions, 1)));
         return completers;
     }
 
     private List<Completer> lessCompleter(String name) {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                                           , new OptionCompleter(new FilesCompleter(workDir)
-                                                               , this::commandOptions
-                                                               , 1)
-                                       ));
+        completers.add(new ArgumentCompleter(
+                NullCompleter.INSTANCE, new OptionCompleter(new FilesCompleter(workDir), this::commandOptions, 1)));
         return completers;
     }
 
@@ -266,16 +268,15 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
         List<Completer> completers = new ArrayList<>();
         List<OptDesc> optDescs = commandOptions(name);
         for (OptDesc o : optDescs) {
-            if (o.shortOption() != null && (o.shortOption().equals("-A") || o.shortOption().equals("-W")
-                                        || o.shortOption().equals("-R"))) {
+            if (o.shortOption() != null
+                    && (o.shortOption().equals("-A")
+                            || o.shortOption().equals("-W")
+                            || o.shortOption().equals("-R"))) {
                 o.setValueCompleter(new FilesCompleter(workDir));
             }
         }
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                                            , new OptionCompleter(NullCompleter.INSTANCE
-                                                                , optDescs
-                                                                , 1)
-                                       ));
+        completers.add(new ArgumentCompleter(
+                NullCompleter.INSTANCE, new OptionCompleter(NullCompleter.INSTANCE, optDescs, 1)));
         return completers;
     }
 
@@ -288,43 +289,44 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
             OptDesc o = i.next();
             if (o.shortOption() != null) {
                 if (o.shortOption().equals("-D")) {
-                    o.setValueCompleter(new StringsCompleter(() -> reader.getWidgets().keySet()));
+                    o.setValueCompleter(
+                            new StringsCompleter(() -> reader.getWidgets().keySet()));
                 } else if (o.shortOption().equals("-A")) {
-                    aliasOption = new Candidate(o.shortOption(), o.shortOption(), null, o.description(), null, null, true);
+                    aliasOption =
+                            new Candidate(o.shortOption(), o.shortOption(), null, o.description(), null, null, true);
                     i.remove();
                 }
             }
         }
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                                            , new OptionCompleter(NullCompleter.INSTANCE
-                                                                , optDescs
-                                                                , 1)
-                                       ));
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                     , new StringsCompleter(aliasOption), new StringsCompleter(this::allWidgets)
-                     , new StringsCompleter(() -> reader.getWidgets().keySet()), NullCompleter.INSTANCE));
+        completers.add(new ArgumentCompleter(
+                NullCompleter.INSTANCE, new OptionCompleter(NullCompleter.INSTANCE, optDescs, 1)));
+        completers.add(new ArgumentCompleter(
+                NullCompleter.INSTANCE,
+                new StringsCompleter(aliasOption),
+                new StringsCompleter(this::allWidgets),
+                new StringsCompleter(() -> reader.getWidgets().keySet()),
+                NullCompleter.INSTANCE));
         return completers;
     }
 
     private List<Completer> setvarCompleter(String name) {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                     , new StringsCompleter(() -> reader.getVariables().keySet()), NullCompleter.INSTANCE));
+        completers.add(new ArgumentCompleter(
+                NullCompleter.INSTANCE,
+                new StringsCompleter(() -> reader.getVariables().keySet()),
+                NullCompleter.INSTANCE));
         return completers;
     }
 
     private List<Completer> setoptCompleter(String name) {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                     , new StringsCompleter(() -> unsetOptions(true))));
+        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE, new StringsCompleter(() -> unsetOptions(true))));
         return completers;
     }
 
     private List<Completer> unsetoptCompleter(String name) {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                     , new StringsCompleter(() -> unsetOptions(false))));
+        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE, new StringsCompleter(() -> unsetOptions(false))));
         return completers;
     }
-
 }

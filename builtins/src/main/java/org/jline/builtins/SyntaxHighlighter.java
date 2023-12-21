@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2023, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,16 +8,20 @@
  */
 package org.jline.builtins;
 
-import org.jline.utils.*;
-
 import java.io.*;
 import java.io.InputStreamReader;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Stream;
+
+import org.jline.utils.*;
 
 /**
  *  Java implementation of nanorc highlighter
@@ -35,7 +39,7 @@ public class SyntaxHighlighter {
     private final Path nanorc;
     private final String syntaxName;
     private final String nanorcUrl;
-    private final Map<String,List<HighlightRule>> rules = new HashMap<>();
+    private final Map<String, List<HighlightRule>> rules = new HashMap<>();
     private Path currentTheme;
     private boolean startEndHighlight;
     private int ruleStartId = 0;
@@ -58,7 +62,7 @@ public class SyntaxHighlighter {
         this.nanorc = nanorc;
         this.syntaxName = syntaxName;
         this.nanorcUrl = nanorcUrl;
-        Map<String,List<HighlightRule>> defaultRules = new HashMap<>();
+        Map<String, List<HighlightRule>> defaultRules = new HashMap<>();
         defaultRules.put(TOKEN_NANORC, new ArrayList<>());
         rules.putAll(defaultRules);
     }
@@ -67,8 +71,8 @@ public class SyntaxHighlighter {
         return build(syntaxFiles, file, syntaxName, false);
     }
 
-    protected static SyntaxHighlighter build(List<Path> syntaxFiles, String file, String syntaxName
-            , boolean ignoreErrors) {
+    protected static SyntaxHighlighter build(
+            List<Path> syntaxFiles, String file, String syntaxName, boolean ignoreErrors) {
         SyntaxHighlighter out = new SyntaxHighlighter();
         Map<String, String> colorTheme = new HashMap<>();
         try {
@@ -147,24 +151,21 @@ public class SyntaxHighlighter {
     }
 
     protected static void nanorcInclude(String parameter, List<Path> syntaxFiles) throws IOException {
-        if (parameter.contains("*") || parameter.contains("?")) {
-            PathMatcher pathMatcher = FileSystems
-                    .getDefault().getPathMatcher("glob:" + parameter);
-            Files.find(Paths.get(new File(parameter).getParent()), Integer.MAX_VALUE
-                            , (path, f) -> pathMatcher.matches(path)).forEach(syntaxFiles::add);
-        } else {
-            syntaxFiles.add(Paths.get(parameter));
-        }
+        addFiles(parameter, s -> s.forEach(syntaxFiles::add));
     }
 
     protected static void nanorcTheme(String parameter, List<Path> syntaxFiles) throws IOException {
+        addFiles(parameter, s -> s.findFirst().ifPresent(p -> syntaxFiles.add(0, p)));
+    }
+
+    protected static void addFiles(String parameter, Consumer<Stream<Path>> consumer) throws IOException {
         if (parameter.contains("*") || parameter.contains("?")) {
             PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parameter);
-            Files.find(Paths.get(new File(parameter).getParent()), Integer.MAX_VALUE
-                            , (path, f) -> pathMatcher.matches(path)).findFirst()
-                    .ifPresent(path -> syntaxFiles.add(0, path));
+            try (Stream<Path> pathStream = Files.walk(Paths.get(new File(parameter).getParent()))) {
+                consumer.accept(pathStream.filter(pathMatcher::matches));
+            }
         } else {
-            syntaxFiles.add(0, Paths.get(parameter));
+            consumer.accept(Stream.of(Paths.get(parameter)));
         }
     }
 
@@ -181,18 +182,18 @@ public class SyntaxHighlighter {
             if (nanorcUrl.startsWith("classpath:")) {
                 inputStream = new Source.ResourceSource(nanorcUrl.substring(10), null).read();
             } else {
-                inputStream = new Source.URLSource(new URL(nanorcUrl), null).read();
+                inputStream = new Source.URLSource(new URI(nanorcUrl).toURL(), null).read();
             }
             NanorcParser parser = new NanorcParser(inputStream, null, null);
             parser.parse();
             out.addRules(parser.getHighlightRules());
-        } catch (IOException e) {
+        } catch (IOException | URISyntaxException e) {
             // ignore
         }
         return out;
     }
 
-    private void addRules(Map<String,List<HighlightRule>> rules) {
+    private void addRules(Map<String, List<HighlightRule>> rules) {
         this.rules.putAll(rules);
     }
 
@@ -262,12 +263,15 @@ public class SyntaxHighlighter {
                 int pos = 0;
                 for (ParsedToken t : tokens) {
                     if (t.getStart() > pos) {
-                        AttributedStringBuilder head = _highlight(line.columnSubSequence(pos, t.getStart() + 1)
-                                , rules.get(TOKEN_NANORC));
+                        AttributedStringBuilder head =
+                                _highlight(line.columnSubSequence(pos, t.getStart() + 1), rules.get(TOKEN_NANORC));
                         asb.append(head.columnSubSequence(0, head.length() - 1));
                     }
-                    asb.append(_highlight(line.columnSubSequence(t.getStart(), t.getEnd()), rules.get(t.getName())
-                            , t.getStartWith(), line.columnSubSequence(t.getEnd(), line.length())));
+                    asb.append(_highlight(
+                            line.columnSubSequence(t.getStart(), t.getEnd()),
+                            rules.get(t.getName()),
+                            t.getStartWith(),
+                            line.columnSubSequence(t.getEnd(), line.length())));
                     pos = t.getEnd();
                 }
                 if (pos < line.length()) {
@@ -283,8 +287,8 @@ public class SyntaxHighlighter {
         return _highlight(line, rules, null, null);
     }
 
-    private AttributedStringBuilder _highlight(AttributedString line, List<HighlightRule> rules, CharSequence startWith
-            , CharSequence continueAs) {
+    private AttributedStringBuilder _highlight(
+            AttributedString line, List<HighlightRule> rules, CharSequence startWith, CharSequence continueAs) {
         AttributedStringBuilder asb = new AttributedStringBuilder();
         asb.append(line);
         if (rules.isEmpty()) {
@@ -309,7 +313,10 @@ public class SyntaxHighlighter {
                                 ruleStartId = 0;
                                 startEndHighlight = false;
                                 a.append(asb.columnSubSequence(0, end.end()), rule.getStyle());
-                                a.append(_highlight(asb.columnSubSequence(end.end(), asb.length()).toAttributedString(), rules));
+                                a.append(_highlight(
+                                        asb.columnSubSequence(end.end(), asb.length())
+                                                .toAttributedString(),
+                                        rules));
                             } else {
                                 a.append(asb, rule.getStyle());
                                 done = true;
@@ -350,7 +357,13 @@ public class SyntaxHighlighter {
     }
 
     private static class HighlightRule {
-        public enum RuleType {PATTERN, START_END, PARSER_START_WITH, PARSER_CONTINUE_AS}
+        public enum RuleType {
+            PATTERN,
+            START_END,
+            PARSER_START_WITH,
+            PARSER_CONTINUE_AS
+        }
+
         private final RuleType type;
         private Pattern pattern;
         private final AttributedStyle style;
@@ -450,14 +463,13 @@ public class SyntaxHighlighter {
                     + ", pattern: " + pattern
                     + "}";
         }
-
     }
 
     private static class NanorcParser {
         private static final String DEFAULT_SYNTAX = "default";
         private final String name;
         private final String target;
-        private final Map<String,List<HighlightRule>> highlightRules = new HashMap<>();
+        private final Map<String, List<HighlightRule>> highlightRules = new HashMap<>();
         private final BufferedReader reader;
         private Map<String, String> colorTheme = new HashMap<>();
         private boolean matches = false;
@@ -471,7 +483,7 @@ public class SyntaxHighlighter {
         }
 
         public NanorcParser(InputStream in, String name, String target) {
-            this.reader = new BufferedReader(new InputStreamReader(in));
+            this.reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
             this.name = name;
             this.target = target;
             highlightRules.put(TOKEN_NANORC, new ArrayList<>());
@@ -480,80 +492,85 @@ public class SyntaxHighlighter {
         public void parse() throws IOException {
             String line;
             int idx = 0;
-            while ((line = reader.readLine()) != null) {
-                idx++;
-                line = line.trim();
-                if (line.length() > 0 && !line.startsWith("#")) {
-                    List<String> parts = RuleSplitter.split(fixRegexes(line));
-                    if (parts.get(0).equals("syntax")) {
-                        syntaxName = parts.get(1);
-                        List<Pattern> filePatterns = new ArrayList<>();
-                        if (name != null) {
-                            if (name.equals(syntaxName)) {
-                                matches = true;
-                            } else {
-                                break;
-                            }
-                        } else if (target != null) {
-                            for (int i = 2; i < parts.size(); i++) {
-                                filePatterns.add(Pattern.compile(parts.get(i)));
-                            }
-                            for (Pattern p : filePatterns) {
-                                if (p.matcher(target).find()) {
+            try {
+                while ((line = reader.readLine()) != null) {
+                    idx++;
+                    line = line.trim();
+                    if (line.length() > 0 && !line.startsWith("#")) {
+                        List<String> parts = RuleSplitter.split(fixRegexes(line));
+                        if (parts.get(0).equals("syntax")) {
+                            syntaxName = parts.get(1);
+                            List<Pattern> filePatterns = new ArrayList<>();
+                            if (name != null) {
+                                if (name.equals(syntaxName)) {
                                     matches = true;
+                                } else {
                                     break;
                                 }
+                            } else if (target != null) {
+                                for (int i = 2; i < parts.size(); i++) {
+                                    filePatterns.add(Pattern.compile(parts.get(i)));
+                                }
+                                for (Pattern p : filePatterns) {
+                                    if (p.matcher(target).find()) {
+                                        matches = true;
+                                        break;
+                                    }
+                                }
+                                if (!matches && !syntaxName.equals(DEFAULT_SYNTAX)) {
+                                    break;
+                                }
+                            } else {
+                                matches = true;
                             }
-                            if (!matches && !syntaxName.equals(DEFAULT_SYNTAX)) {
-                                break;
-                            }
-                        } else {
-                            matches = true;
-                        }
-                    } else if (parts.get(0).startsWith("$")) {
-                        String key = themeKey(parts.get(0));
-                        if (colorTheme.containsKey(key)) {
-                            if (parser == null) {
-                                parser = new Parser();
-                            }
-                            String[] args = parts.get(1).split(",\\s*");
-                            boolean validKey = true;
-                            if (key.startsWith("$BLOCK_COMMENT")) {
-                                parser.setBlockCommentDelimiters(key, args);
-                            } else if (key.startsWith("$LINE_COMMENT")) {
-                                parser.setLineCommentDelimiters(key, args);
-                            } else if (key.startsWith("$BALANCED_DELIMITERS")) {
-                                parser.setBalancedDelimiters(key, args);
+                        } else if (parts.get(0).startsWith("$")) {
+                            String key = themeKey(parts.get(0));
+                            if (colorTheme.containsKey(key)) {
+                                if (parser == null) {
+                                    parser = new Parser();
+                                }
+                                String[] args = parts.get(1).split(",\\s*");
+                                boolean validKey = true;
+                                if (key.startsWith("$BLOCK_COMMENT")) {
+                                    parser.setBlockCommentDelimiters(key, args);
+                                } else if (key.startsWith("$LINE_COMMENT")) {
+                                    parser.setLineCommentDelimiters(key, args);
+                                } else if (key.startsWith("$BALANCED_DELIMITERS")) {
+                                    parser.setBalancedDelimiters(key, args);
+                                } else {
+                                    Log.warn("Unknown token type: ", key);
+                                    validKey = false;
+                                }
+                                if (validKey) {
+                                    if (!highlightRules.containsKey(key)) {
+                                        highlightRules.put(key, new ArrayList<>());
+                                    }
+                                    for (String l : colorTheme.get(key).split("\\\\n")) {
+                                        idx++;
+                                        addHighlightRule(RuleSplitter.split(fixRegexes(l)), idx, key);
+                                    }
+                                }
                             } else {
                                 Log.warn("Unknown token type: ", key);
-                                validKey = false;
                             }
-                            if (validKey) {
-                                if (!highlightRules.containsKey(key)) {
-                                    highlightRules.put(key, new ArrayList<>());
-                                }
-                                for (String l : colorTheme.get(key).split("\\\\n")) {
+                        } else if (!addHighlightRule(parts, idx, TOKEN_NANORC)
+                                && parts.get(0).matches("\\+" + REGEX_TOKEN_NAME)) {
+                            String key = themeKey(parts.get(0));
+                            String theme = colorTheme.get(key);
+                            if (theme != null) {
+                                for (String l : theme.split("\\\\n")) {
                                     idx++;
-                                    addHighlightRule(RuleSplitter.split(fixRegexes(l)), idx, key);
+                                    addHighlightRule(RuleSplitter.split(fixRegexes(l)), idx, TOKEN_NANORC);
                                 }
+                            } else {
+                                Log.warn("Unknown token type: ", key);
                             }
-                        } else {
-                            Log.warn("Unknown token type: ", key);
-                        }
-                    } else if (!addHighlightRule(parts, idx, TOKEN_NANORC) && parts.get(0).matches("\\+" + REGEX_TOKEN_NAME)) {
-                        String key = themeKey(parts.get(0));
-                        if (colorTheme.containsKey(key)) {
-                            for (String l : colorTheme.get(key).split("\\\\n")) {
-                                idx++;
-                                addHighlightRule(RuleSplitter.split(fixRegexes(l)), idx, TOKEN_NANORC);
-                            }
-                        } else {
-                            Log.warn("Unknown token type: ", key);
                         }
                     }
                 }
+            } finally {
+                reader.close();
             }
-            reader.close();
         }
 
         private String fixRegexes(String line) {
@@ -581,18 +598,20 @@ public class SyntaxHighlighter {
                 addHighlightRule(syntaxName + idx, parts, true, tokenName);
             } else if (parts.get(0).matches(REGEX_TOKEN_NAME + "[:]?")) {
                 String key = themeKey(parts.get(0));
-                if (colorTheme.containsKey(key)) {
+                String theme = colorTheme.get(key);
+                if (theme != null) {
                     parts.set(0, "color");
-                    parts.add(1, colorTheme.get(key));
+                    parts.add(1, theme);
                     addHighlightRule(syntaxName + idx, parts, false, tokenName);
                 } else {
                     Log.warn("Unknown token type: ", key);
                 }
             } else if (parts.get(0).matches("~" + REGEX_TOKEN_NAME + "[:]?")) {
                 String key = themeKey(parts.get(0));
-                if (colorTheme.containsKey(key)) {
+                String theme = colorTheme.get(key);
+                if (theme != null) {
                     parts.set(0, "icolor");
-                    parts.add(1, colorTheme.get(key));
+                    parts.add(1, theme);
                     addHighlightRule(syntaxName + idx, parts, true, tokenName);
                 } else {
                     Log.warn("Unknown token type: ", key);
@@ -609,7 +628,7 @@ public class SyntaxHighlighter {
             } else {
                 int keyEnd = key.endsWith(":") ? key.length() - 1 : key.length();
                 if (key.startsWith("~")) {
-                    return  key.substring(1, keyEnd);
+                    return key.substring(1, keyEnd);
                 }
                 return key.substring(0, keyEnd);
             }
@@ -623,7 +642,7 @@ public class SyntaxHighlighter {
             return parser;
         }
 
-        public Map<String,List<HighlightRule>> getHighlightRules() {
+        public Map<String, List<HighlightRule>> getHighlightRules() {
             return highlightRules;
         }
 
@@ -632,7 +651,7 @@ public class SyntaxHighlighter {
         }
 
         private void addHighlightRule(String reference, List<String> parts, boolean caseInsensitive, String tokenName) {
-            Map<String,String> spec = new HashMap<>();
+            Map<String, String> spec = new HashMap<>();
             spec.put(reference, parts.get(1));
             Styles.StyleCompiler sh = new Styles.StyleCompiler(spec, true);
             AttributedStyle style = new StyleResolver(sh::getStyle).resolve("." + reference);
@@ -642,29 +661,40 @@ public class SyntaxHighlighter {
                     highlightRules.get(tokenName).add(new HighlightRule(style, doPattern(".*", caseInsensitive)));
                 } else {
                     for (int i = 2; i < parts.size(); i++) {
-                        highlightRules.get(tokenName).add(new HighlightRule(style, doPattern(parts.get(i), caseInsensitive)));
+                        highlightRules
+                                .get(tokenName)
+                                .add(new HighlightRule(style, doPattern(parts.get(i), caseInsensitive)));
                     }
                 }
             } else if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.START_END) {
                 String s = parts.get(2);
                 String e = parts.get(3);
-                highlightRules.get(tokenName).add(new HighlightRule(style
-                        , doPattern(s.substring(7, s.length() - 1), caseInsensitive)
-                        , doPattern(e.substring(5, e.length() - 1), caseInsensitive)));
+                highlightRules
+                        .get(tokenName)
+                        .add(new HighlightRule(
+                                style,
+                                doPattern(s.substring(7, s.length() - 1), caseInsensitive),
+                                doPattern(e.substring(5, e.length() - 1), caseInsensitive)));
             } else if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.PARSER_START_WITH) {
-                highlightRules.get(tokenName).add(new HighlightRule(HighlightRule.RuleType.PARSER_START_WITH, style
-                        , parts.get(2).substring(10)));
+                highlightRules
+                        .get(tokenName)
+                        .add(new HighlightRule(
+                                HighlightRule.RuleType.PARSER_START_WITH,
+                                style,
+                                parts.get(2).substring(10)));
             } else if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.PARSER_CONTINUE_AS) {
-                highlightRules.get(tokenName).add(new HighlightRule(HighlightRule.RuleType.PARSER_CONTINUE_AS, style
-                        , parts.get(2).substring(11)));
+                highlightRules
+                        .get(tokenName)
+                        .add(new HighlightRule(
+                                HighlightRule.RuleType.PARSER_CONTINUE_AS,
+                                style,
+                                parts.get(2).substring(11)));
             }
         }
 
         private Pattern doPattern(String regex, boolean caseInsensitive) {
-            return caseInsensitive ? Pattern.compile(regex, Pattern.CASE_INSENSITIVE)
-                    : Pattern.compile(regex);
+            return caseInsensitive ? Pattern.compile(regex, Pattern.CASE_INSENSITIVE) : Pattern.compile(regex);
         }
-
     }
 
     protected static class RuleSplitter {
@@ -715,7 +745,11 @@ public class SyntaxHighlighter {
         private final String end;
 
         public BlockCommentDelimiters(String[] args) {
-            if (args.length != 2 || args[0] == null || args[1] == null || args[0].isEmpty() || args[1].isEmpty()
+            if (args.length != 2
+                    || args[0] == null
+                    || args[1] == null
+                    || args[0].isEmpty()
+                    || args[1].isEmpty()
                     || args[0].equals(args[1])) {
                 throw new IllegalArgumentException("Bad block comment delimiters!");
             }
@@ -763,7 +797,7 @@ public class SyntaxHighlighter {
     }
 
     private static class Parser {
-        private final static char escapeChar = '\\';
+        private static final char escapeChar = '\\';
         private String blockCommentTokenName;
         private BlockCommentDelimiters blockCommentDelimiters;
         private String lineCommentTokenName;
@@ -778,7 +812,7 @@ public class SyntaxHighlighter {
         private boolean lineComment;
         private boolean balancedQuoted;
 
-        public Parser() { }
+        public Parser() {}
 
         public void setBlockCommentDelimiters(String tokenName, String[] args) {
             try {
@@ -846,11 +880,10 @@ public class SyntaxHighlighter {
                     if (isDelimiter(line, i, balancedDelimiter)) {
                         balancedQuoted = false;
                         i = i + balancedDelimiter.length() - 1;
-                        if (i - tokenStart + 1 > 2* balancedDelimiter.length()) {
+                        if (i - tokenStart + 1 > 2 * balancedDelimiter.length()) {
                             tokens.add(new ParsedToken(balancedDelimiterTokenName, startWith, tokenStart, i + 1));
                         }
                     }
-
                 }
             }
             if (blockComment) {
@@ -861,7 +894,6 @@ public class SyntaxHighlighter {
             } else if (balancedQuoted) {
                 tokens.add(new ParsedToken(balancedDelimiterTokenName, startWith, tokenStart, line.length()));
             }
-
         }
 
         private CharSequence startWithSubstring(CharSequence line, int pos) {
@@ -874,7 +906,7 @@ public class SyntaxHighlighter {
 
         private String balancedDelimiter(final CharSequence buffer, final int pos) {
             if (balancedDelimiters != null) {
-                for (String delimiter: balancedDelimiters) {
+                for (String delimiter : balancedDelimiters) {
                     if (isDelimiter(buffer, pos, delimiter)) {
                         return delimiter;
                     }
@@ -901,7 +933,7 @@ public class SyntaxHighlighter {
 
         private boolean isLineCommentDelimiter(final CharSequence buffer, final int pos) {
             if (lineCommentDelimiters != null) {
-                for (String delimiter: lineCommentDelimiters) {
+                for (String delimiter : lineCommentDelimiters) {
                     if (isDelimiter(buffer, pos, delimiter)) {
                         return true;
                     }
@@ -948,9 +980,5 @@ public class SyntaxHighlighter {
             }
             return isEscapeChar(buffer, pos - 1);
         }
-
-
     }
-
 }
-

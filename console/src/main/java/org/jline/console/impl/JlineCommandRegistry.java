@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author or authors.
+ * Copyright (c) 2002-2020, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -12,18 +12,18 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.jline.utils.AttributedString;
-import org.jline.utils.Log;
-import org.jline.builtins.Options;
 import org.jline.builtins.Completers.AnyCompleter;
 import org.jline.builtins.Completers.OptDesc;
 import org.jline.builtins.Completers.OptionCompleter;
+import org.jline.builtins.Options;
 import org.jline.builtins.Options.HelpException;
 import org.jline.console.ArgDesc;
 import org.jline.console.CmdDesc;
 import org.jline.reader.Completer;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
+import org.jline.utils.AttributedString;
+import org.jline.utils.Log;
 
 /**
  * CommandRegistry common methods for JLine commands that are using HelpException.
@@ -53,7 +53,7 @@ public abstract class JlineCommandRegistry extends AbstractCommandRegistry {
             return new ArrayList<>();
         }
         throw new IllegalArgumentException("JlineCommandRegistry.commandInfo() method must be overridden in class "
-                                          + this.getClass().getCanonicalName());
+                + this.getClass().getCanonicalName());
     }
 
     public CmdDesc commandDescription(List<String> args) {
@@ -65,8 +65,9 @@ public abstract class JlineCommandRegistry extends AbstractCommandRegistry {
         } catch (Exception e) {
             // ignore
         }
-        throw new IllegalArgumentException("JlineCommandRegistry.commandDescription() method must be overridden in class "
-                                          + this.getClass().getCanonicalName());
+        throw new IllegalArgumentException(
+                "JlineCommandRegistry.commandDescription() method must be overridden in class "
+                        + this.getClass().getCanonicalName());
     }
 
     public List<OptDesc> commandOptions(String command) {
@@ -82,11 +83,8 @@ public abstract class JlineCommandRegistry extends AbstractCommandRegistry {
 
     public List<Completer> defaultCompleter(String command) {
         List<Completer> completers = new ArrayList<>();
-        completers.add(new ArgumentCompleter(NullCompleter.INSTANCE
-                                           , new OptionCompleter(NullCompleter.INSTANCE
-                                                               , this::commandOptions
-                                                               , 1)
-                                            ));
+        completers.add(new ArgumentCompleter(
+                NullCompleter.INSTANCE, new OptionCompleter(NullCompleter.INSTANCE, this::commandOptions, 1)));
         return completers;
     }
 
@@ -127,7 +125,7 @@ public abstract class JlineCommandRegistry extends AbstractCommandRegistry {
                 if (body) {
                     out = helpMessage.substring(tm.end(3));
                 } else {
-                    out = helpMessage.substring(0,tm.start(1));
+                    out = helpMessage.substring(0, tm.start(1));
                 }
             } else if (!body) {
                 out = helpMessage;
@@ -208,7 +206,7 @@ public abstract class JlineCommandRegistry extends AbstractCommandRegistry {
     public static List<String> compileCommandInfo(String helpMessage) {
         List<String> out = new ArrayList<>();
         boolean first = true;
-        for (String s  : helpLines(helpMessage, false)) {
+        for (String s : helpLines(helpMessage, false)) {
             if (first && s.contains(" - ")) {
                 out.add(s.substring(s.indexOf(" - ") + 3).trim());
             } else {
@@ -218,5 +216,4 @@ public abstract class JlineCommandRegistry extends AbstractCommandRegistry {
         }
         return out;
     }
-
 }
