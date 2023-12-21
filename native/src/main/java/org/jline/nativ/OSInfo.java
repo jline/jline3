@@ -32,6 +32,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Locale;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Provides OS name and architecture name.
@@ -48,6 +50,7 @@ public class OSInfo {
     public static final String PPC64 = "ppc64";
     public static final String ARM64 = "arm64";
 
+    private static final Logger logger = Logger.getLogger("org.jline");
     private static final HashMap<String, String> archMapping = new HashMap<>();
 
     static {
@@ -140,7 +143,7 @@ public class OSInfo {
                 return readFully(in);
             }
         } catch (Throwable e) {
-            System.err.println("Error while running uname -m: " + e.getMessage());
+            log(Level.WARNING, "Error while running uname -m", e);
             return "unknown";
         }
     }
@@ -218,5 +221,15 @@ public class OSInfo {
 
     static String translateArchNameToFolderName(String archName) {
         return archName.replaceAll("\\W", "");
+    }
+
+    private static void log(Level level, String message, Throwable t) {
+        if (logger.isLoggable(level)) {
+            if (logger.isLoggable(Level.FINE)) {
+                logger.log(level, message, t);
+            } else {
+                logger.log(level, message + " (caused by: " + t + ", enable debug logging for stacktrace)");
+            }
+        }
     }
 }

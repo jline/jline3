@@ -40,6 +40,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Set the system properties, library.jline.path, library.jline.name,
@@ -53,6 +55,7 @@ import java.util.Random;
  */
 public class JLineNativeLoader {
 
+    private static final Logger logger = Logger.getLogger("org.jline");
     private static boolean loaded = false;
     private static String nativeLibraryPath;
     private static String nativeLibrarySourceUrl;
@@ -113,7 +116,7 @@ public class JLineNativeLoader {
                     try {
                         nativeLibFile.delete();
                     } catch (SecurityException e) {
-                        System.err.println("Failed to delete old native lib" + e.getMessage());
+                        logger.log(Level.INFO, "Failed to delete old native lib" + e.getMessage(), e);
                     }
                 }
             }
@@ -221,7 +224,7 @@ public class JLineNativeLoader {
                 return true;
             }
         } catch (IOException e) {
-            System.err.println(e.getMessage());
+            log(Level.WARNING, "Unable to load JLine's native library", e);
         }
         return false;
     }
@@ -253,9 +256,11 @@ public class JLineNativeLoader {
                 nativeLibraryPath = path;
                 return true;
             } catch (UnsatisfiedLinkError e) {
-                System.err.println("Failed to load native library:" + libPath.getName() + ". osinfo: "
-                        + OSInfo.getNativeLibFolderPathForCurrentOS());
-                System.err.println(e);
+                log(
+                        Level.WARNING,
+                        "Failed to load native library:" + libPath.getName() + ". osinfo: "
+                                + OSInfo.getNativeLibFolderPathForCurrentOS(),
+                        e);
                 return false;
             }
 
@@ -364,7 +369,6 @@ public class JLineNativeLoader {
      * @return The version of the jline library.
      */
     public static String getVersion() {
-
         URL versionFile = JLineNativeLoader.class.getResource("/META-INF/maven/org.jline/jline-native/pom.properties");
 
         String version = "unknown";
@@ -376,7 +380,7 @@ public class JLineNativeLoader {
                 version = version.trim().replaceAll("[^0-9.]", "");
             }
         } catch (IOException e) {
-            System.err.println(e);
+            log(Level.WARNING, "Unable to load jline-native version", e);
         }
         return version;
     }
@@ -391,5 +395,15 @@ public class JLineNativeLoader {
             sb.append(item);
         }
         return sb.toString();
+    }
+
+    private static void log(Level level, String message, Throwable t) {
+        if (logger.isLoggable(level)) {
+            if (logger.isLoggable(Level.FINE)) {
+                logger.log(level, message, t);
+            } else {
+                logger.log(level, message + " (caused by: " + t + ", enable debug logging for stacktrace)");
+            }
+        }
     }
 }
