@@ -11,11 +11,11 @@ package org.jline.terminal.impl.jansi.win;
 import java.io.IOException;
 import java.io.Writer;
 
-import org.fusesource.jansi.internal.Kernel32;
 import org.jline.utils.AnsiWriter;
 import org.jline.utils.Colors;
 
 import static org.fusesource.jansi.internal.Kernel32.*;
+import static org.jline.terminal.impl.jansi.win.WindowsSupport.getLastErrorMessage;
 
 /**
  * A Windows ANSI escape processor, that uses JNA to access native platform
@@ -81,7 +81,7 @@ public final class WindowsAnsiWriter extends AnsiWriter {
     private void getConsoleInfo() throws IOException {
         out.flush();
         if (GetConsoleScreenBufferInfo(console, info) == 0) {
-            throw new IOException("Could not get the screen info: " + Kernel32.getLastErrorMessage());
+            throw new IOException("Could not get the screen info: " + getLastErrorMessage());
         }
         if (negative) {
             info.attributes = invertAttributeColors(info.attributes);
@@ -103,7 +103,7 @@ public final class WindowsAnsiWriter extends AnsiWriter {
             attributes = invertAttributeColors(attributes);
         }
         if (SetConsoleTextAttribute(console, attributes) == 0) {
-            throw new IOException(Kernel32.getLastErrorMessage());
+            throw new IOException(getLastErrorMessage());
         }
     }
 
@@ -121,7 +121,7 @@ public final class WindowsAnsiWriter extends AnsiWriter {
         info.cursorPosition.x = (short) Math.max(0, Math.min(info.size.x - 1, info.cursorPosition.x));
         info.cursorPosition.y = (short) Math.max(0, Math.min(info.size.y - 1, info.cursorPosition.y));
         if (SetConsoleCursorPosition(console, info.cursorPosition.copy()) == 0) {
-            throw new IOException(Kernel32.getLastErrorMessage());
+            throw new IOException(getLastErrorMessage());
         }
     }
 
@@ -359,7 +359,7 @@ public final class WindowsAnsiWriter extends AnsiWriter {
         info.attributes = originalColors;
         info.unicodeChar = ' ';
         if (ScrollConsoleScreenBuffer(console, scroll, scroll, org, info) == 0) {
-            throw new IOException(Kernel32.getLastErrorMessage());
+            throw new IOException(getLastErrorMessage());
         }
     }
 
@@ -375,7 +375,7 @@ public final class WindowsAnsiWriter extends AnsiWriter {
         info.attributes = originalColors;
         info.unicodeChar = ' ';
         if (ScrollConsoleScreenBuffer(console, scroll, scroll, org, info) == 0) {
-            throw new IOException(Kernel32.getLastErrorMessage());
+            throw new IOException(getLastErrorMessage());
         }
     }
 
