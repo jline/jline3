@@ -120,7 +120,7 @@ public class ExecPty extends AbstractPty implements Pty {
     protected List<String> getFlagsToSet(Attributes attr, Attributes current) {
         List<String> commands = new ArrayList<>();
         for (InputFlag flag : InputFlag.values()) {
-            if (attr.getInputFlag(flag) != current.getInputFlag(flag)) {
+            if (attr.getInputFlag(flag) != current.getInputFlag(flag) && flag != InputFlag.INORMEOL) {
                 commands.add((attr.getInputFlag(flag) ? flag.name() : "-" + flag.name()).toLowerCase());
             }
         }

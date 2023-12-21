@@ -56,7 +56,9 @@ public class Attributes {
         IXOFF, /* enable input flow control */
         IXANY, /* any char will restart after stop */
         IMAXBEL, /* ring bell on input queue full */
-        IUTF8 /* maintain state for UTF-8 VERASE */
+        IUTF8, /* maintain state for UTF-8 VERASE */
+
+        INORMEOL /* normalize end-of-line */
     }
 
     /*

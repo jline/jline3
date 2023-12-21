@@ -8,11 +8,13 @@
  */
 package org.jline.terminal.impl;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.charset.StandardCharsets;
@@ -49,6 +51,43 @@ public class ExternalTerminalTest {
     @AfterEach
     public void tearDown() {
         System.clearProperty(TerminalBuilder.PROP_PROVIDERS);
+    }
+
+    @Test
+    void testEOL() throws IOException {
+        {
+            PipedInputStream in = new PipedInputStream();
+            PipedOutputStream outIn = new PipedOutputStream(in);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            outIn.write("abc\rdef\nghi\r\njkl\r".getBytes());
+
+            assertEquals("abc", reader.readLine());
+            assertEquals("def", reader.readLine());
+            assertEquals("ghi", reader.readLine());
+            assertEquals("jkl", reader.readLine());
+        }
+        {
+            PipedInputStream in = new PipedInputStream();
+            PipedOutputStream outIn = new PipedOutputStream(in);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            outIn.write("abc\rdef\nghi\r\njkl\n".getBytes());
+
+            Terminal terminal = TerminalBuilder.builder()
+                    .type("ansi")
+                    .streams(in, out)
+                    .paused(true)
+                    .build();
+            LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
+            Attributes attributes = terminal.getAttributes();
+            attributes.setInputFlag(InputFlag.INORMEOL, true);
+            terminal.setAttributes(attributes);
+            terminal.resume();
+
+            assertEquals("abc", reader.readLine());
+            assertEquals("def", reader.readLine());
+            assertEquals("ghi", reader.readLine());
+            assertEquals("jkl", reader.readLine());
+        }
     }
 
     @Test

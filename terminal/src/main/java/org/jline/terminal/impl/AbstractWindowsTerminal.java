@@ -85,6 +85,7 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
     protected MouseTracking tracking = MouseTracking.Off;
     protected boolean focusTracking = false;
     private volatile boolean closing;
+    protected boolean skipNextLf;
 
     @SuppressWarnings("this-escape")
     public AbstractWindowsTerminal(
@@ -496,7 +497,19 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
                 raise(Signal.INFO);
             }
         }
-        if (c == '\r') {
+        if (attributes.getInputFlag(Attributes.InputFlag.INORMEOL)) {
+            if (c == '\r') {
+                skipNextLf = true;
+                c = '\n';
+            } else if (c == '\n') {
+                if (skipNextLf) {
+                    skipNextLf = false;
+                    return;
+                }
+            } else {
+                skipNextLf = false;
+            }
+        } else if (c == '\r') {
             if (attributes.getInputFlag(Attributes.InputFlag.IGNCR)) {
                 return;
             }

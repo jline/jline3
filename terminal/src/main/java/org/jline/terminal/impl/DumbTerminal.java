@@ -34,6 +34,7 @@ public class DumbTerminal extends AbstractTerminal {
     private final PrintWriter writer;
     private final Attributes attributes;
     private final Size size;
+    private boolean skipNextLf;
 
     public DumbTerminal(InputStream in, OutputStream out) throws IOException {
         this(TYPE_DUMB, TYPE_DUMB, in, out, null);
@@ -79,7 +80,19 @@ public class DumbTerminal extends AbstractTerminal {
                             continue;
                         }
                     }
-                    if (c == '\r') {
+                    if (attributes.getInputFlag(Attributes.InputFlag.INORMEOL)) {
+                        if (c == '\r') {
+                            skipNextLf = true;
+                            c = '\n';
+                        } else if (c == '\n') {
+                            if (skipNextLf) {
+                                skipNextLf = false;
+                                continue;
+                            }
+                        } else {
+                            skipNextLf = false;
+                        }
+                    } else if (c == '\r') {
                         if (attributes.getInputFlag(Attributes.InputFlag.IGNCR)) {
                             continue;
                         }

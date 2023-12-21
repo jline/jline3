@@ -75,6 +75,8 @@ public class LineDisciplineTerminal extends AbstractTerminal {
 
     protected final Size size;
 
+    protected boolean skipNextLf;
+
     public LineDisciplineTerminal(String name, String type, OutputStream masterOutput, Charset encoding)
             throws IOException {
         this(name, type, masterOutput, encoding, SignalHandler.SIG_DFL);
@@ -253,7 +255,19 @@ public class LineDisciplineTerminal extends AbstractTerminal {
                 raise(Signal.INFO);
             }
         }
-        if (c == '\r') {
+        if (attributes.getInputFlag(InputFlag.INORMEOL)) {
+            if (c == '\r') {
+                skipNextLf = true;
+                c = '\n';
+            } else if (c == '\n') {
+                if (skipNextLf) {
+                    skipNextLf = false;
+                    return false;
+                }
+            } else {
+                skipNextLf = false;
+            }
+        } else if (c == '\r') {
             if (attributes.getInputFlag(InputFlag.IGNCR)) {
                 return false;
             }
