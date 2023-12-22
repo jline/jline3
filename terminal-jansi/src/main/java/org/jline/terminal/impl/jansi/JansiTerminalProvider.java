@@ -8,6 +8,7 @@
  */
 package org.jline.terminal.impl.jansi;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -17,11 +18,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.fusesource.jansi.AnsiConsole;
+import org.fusesource.jansi.internal.CLibrary;
 import org.fusesource.jansi.internal.Kernel32;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.impl.AbstractPty;
 import org.jline.terminal.impl.PosixPtyTerminal;
 import org.jline.terminal.impl.PosixSysTerminal;
 import org.jline.terminal.impl.jansi.freebsd.FreeBsdNativePty;
@@ -119,17 +122,39 @@ public class JansiTerminalProvider implements TerminalProvider {
     public Pty open(Attributes attributes, Size size) throws IOException {
         String osName = System.getProperty("os.name");
         if (osName.startsWith("Linux")) {
+            ensureOpenPtyLoaded();
             return LinuxNativePty.open(this, attributes, size);
         } else if (osName.startsWith("Mac") || osName.startsWith("Darwin")) {
+            ensureOpenPtyLoaded();
             return OsXNativePty.open(this, attributes, size);
         } else if (osName.startsWith("Solaris") || osName.startsWith("SunOS")) {
             // Solaris is not supported by jansi
             // return SolarisNativePty.current();
             throw new UnsupportedOperationException("Unsupported platform " + osName);
         } else if (osName.startsWith("FreeBSD")) {
+            ensureOpenPtyLoaded();
             return FreeBsdNativePty.open(this, attributes, size);
         } else {
             throw new UnsupportedOperationException("Unsupported platform " + osName);
+        }
+    }
+
+    static void ensureOpenPtyLoaded() {
+        try {
+            int[] master = new int[1];
+            int[] slave = new int[1];
+            byte[] name = new byte[64];
+            try {
+                CLibrary.openpty(master, slave, name, null, null);
+                new FileInputStream(AbstractPty.newDescriptor(master[0])).close();
+                new FileInputStream(AbstractPty.newDescriptor(slave[0])).close();
+            } catch (Throwable t) {
+                t.printStackTrace();
+                Class<?> cl = CLibrary.class;
+
+            }
+        } catch (Throwable t) {
+            throw new LinkageError("Unable to load CLibrary for openpty", t);
         }
     }
 

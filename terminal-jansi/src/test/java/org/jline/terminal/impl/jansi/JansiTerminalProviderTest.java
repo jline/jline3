@@ -26,17 +26,20 @@ public class JansiTerminalProviderTest {
 
     @Test
     public void testJansiVersion() {
+        System.err.println("testJansiVersion");
         assertEquals(2, JansiTerminalProvider.JANSI_MAJOR_VERSION);
         assertEquals(4, JansiTerminalProvider.JANSI_MINOR_VERSION);
     }
 
     @Test
     void testIsSystemStream() {
+        System.err.println("testIsSystemStream");
         assertDoesNotThrow(() -> new JansiTerminalProvider().isSystemStream(SystemStream.Output));
     }
 
     @Test
     void testNewTerminal() throws IOException {
+        System.err.println("testNewTerminal");
         PipedOutputStream pos = new PipedOutputStream();
         PipedInputStream pis = new PipedInputStream(pos);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();

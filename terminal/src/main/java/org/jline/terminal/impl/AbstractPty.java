@@ -155,7 +155,7 @@ public abstract class AbstractPty implements Pty {
 
     private static FileDescriptorCreator fileDescriptorCreator;
 
-    protected static FileDescriptor newDescriptor(int fd) {
+    public static FileDescriptor newDescriptor(int fd) {
         if (fileDescriptorCreator == null) {
             String str =
                     System.getProperty(PROP_FILE_DESCRIPTOR_CREATION_MODE, PROP_FILE_DESCRIPTOR_CREATION_MODE_DEFAULT);
