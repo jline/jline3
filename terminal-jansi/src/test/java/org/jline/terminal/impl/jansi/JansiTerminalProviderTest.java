@@ -9,13 +9,24 @@
 package org.jline.terminal.impl.jansi;
 
 import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.fusesource.jansi.internal.CLibrary;
 import org.jline.terminal.Terminal;
+import org.jline.terminal.impl.AbstractPty;
 import org.jline.terminal.spi.SystemStream;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -24,6 +35,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class JansiTerminalProviderTest {
+
+    @BeforeAll
+    void init() {
+        ensureOpenPtyLoaded();
+    }
 
     @BeforeEach
     void setup() {
@@ -67,4 +83,48 @@ public class JansiTerminalProviderTest {
                         null);
         assertNotNull(terminal);
     }
+
+    static void ensureOpenPtyLoaded() {
+        try {
+            Process p = Runtime.getRuntime().exec(new String[] {"uname", "-m"});
+            p.waitFor();
+            try (InputStream in = p.getInputStream()) {
+                String hwName = readFully(in).trim();
+                Path libDir = Paths.get("/usr/lib", hwName + "-linux-gnu");
+                try (Stream<Path> stream = Files.list(libDir)) {
+                    List<Path> libs = stream.filter(
+                            l -> l.getFileName().toString().startsWith("libutil.so."))
+                        .collect(Collectors.toList());
+                    String lib = libs.iterator().next().toString();
+                    System.err.println("Loading " + lib);
+                    System.load(lib);
+                }
+            }
+
+            int[] master = new int[1];
+            int[] slave = new int[1];
+            byte[] name = new byte[64];
+            try {
+                CLibrary.openpty(master, slave, name, null, null);
+                new FileInputStream(AbstractPty.newDescriptor(master[0])).close();
+                new FileInputStream(AbstractPty.newDescriptor(slave[0])).close();
+            } catch (Throwable t) {
+                t.printStackTrace();
+                Class<?> cl = CLibrary.class;
+            }
+        } catch (Throwable t) {
+            throw new LinkageError("Unable to load CLibrary for openpty", t);
+        }
+    }
+
+    private static String readFully(InputStream in) throws IOException {
+        int readLen = 0;
+        ByteArrayOutputStream b = new ByteArrayOutputStream();
+        byte[] buf = new byte[32];
+        while ((readLen = in.read(buf, 0, buf.length)) >= 0) {
+            b.write(buf, 0, readLen);
+        }
+        return b.toString();
+    }
+
 }

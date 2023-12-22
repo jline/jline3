@@ -148,7 +148,6 @@ public class JansiTerminalProvider implements TerminalProvider {
 
     static void ensureOpenPtyLoaded() {
         try {
-
             Process p = Runtime.getRuntime().exec(new String[] {"uname", "-m"});
             p.waitFor();
             try (InputStream in = p.getInputStream()) {
