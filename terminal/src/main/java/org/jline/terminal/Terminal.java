@@ -60,6 +60,16 @@ public interface Terminal extends Closeable, Flushable {
         void handle(Signal signal);
     }
 
+    /**
+     * Registers a handler for the given {@link Signal}.
+     * <p>
+     * Note that the JVM does not easily allow catching the {@link Signal#QUIT} signal, which causes a thread dump
+     * to be displayed.  This signal is mainly used when connecting through an SSH socket to a virtual terminal.
+     *
+     * @param signal the signal to register a handler for
+     * @param handler the handler
+     * @return the previous signal handler
+     */
     SignalHandler handle(Signal signal, SignalHandler handler);
 
     void raise(Signal signal);
