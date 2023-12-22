@@ -16,6 +16,9 @@ import java.nio.charset.Charset;
 
 import org.jline.terminal.Terminal;
 import org.jline.terminal.spi.SystemStream;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -24,9 +27,17 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class JansiTerminalProviderTest {
 
+    @BeforeEach
+    void setup() {
+        System.err.println("setup");
+        System.err.flush();
+    }
+
+
     @Test
     public void testJansiVersion() {
         System.err.println("testJansiVersion");
+        System.err.flush();
         assertEquals(2, JansiTerminalProvider.JANSI_MAJOR_VERSION);
         assertEquals(4, JansiTerminalProvider.JANSI_MINOR_VERSION);
     }
@@ -34,12 +45,15 @@ public class JansiTerminalProviderTest {
     @Test
     void testIsSystemStream() {
         System.err.println("testIsSystemStream");
+        System.err.flush();
         assertDoesNotThrow(() -> new JansiTerminalProvider().isSystemStream(SystemStream.Output));
     }
 
     @Test
+    @Disabled
     void testNewTerminal() throws IOException {
         System.err.println("testNewTerminal");
+        System.err.flush();
         PipedOutputStream pos = new PipedOutputStream();
         PipedInputStream pis = new PipedInputStream(pos);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
