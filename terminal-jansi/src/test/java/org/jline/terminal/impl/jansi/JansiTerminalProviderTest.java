@@ -26,7 +26,6 @@ import org.fusesource.jansi.internal.CLibrary;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.AbstractPty;
 import org.jline.terminal.spi.SystemStream;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -37,8 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class JansiTerminalProviderTest {
 
-    @BeforeAll
-    static void init() {
+    static {
         System.err.println("init");
         System.err.flush();
         ensureOpenPtyLoaded();
