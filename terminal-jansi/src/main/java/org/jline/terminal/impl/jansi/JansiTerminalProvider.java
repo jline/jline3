@@ -8,14 +8,21 @@
  */
 package org.jline.terminal.impl.jansi;
 
+import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.fusesource.jansi.AnsiConsole;
 import org.fusesource.jansi.internal.CLibrary;
@@ -141,6 +148,22 @@ public class JansiTerminalProvider implements TerminalProvider {
 
     static void ensureOpenPtyLoaded() {
         try {
+
+            Process p = Runtime.getRuntime().exec(new String[] {"uname", "-m"});
+            p.waitFor();
+            try (InputStream in = p.getInputStream()) {
+                String hwName = readFully(in).trim();
+                Path libDir = Paths.get("/usr/lib", hwName + "-linux-gnu");
+                try (Stream<Path> stream = Files.list(libDir)) {
+                    List<Path> libs = stream.filter(
+                                    l -> l.getFileName().toString().startsWith("libutil.so."))
+                            .collect(Collectors.toList());
+                    String lib = libs.iterator().next().toString();
+                    System.err.println("Loading " + lib);
+                    System.load(lib);
+                }
+            }
+
             int[] master = new int[1];
             int[] slave = new int[1];
             byte[] name = new byte[64];
@@ -151,11 +174,20 @@ public class JansiTerminalProvider implements TerminalProvider {
             } catch (Throwable t) {
                 t.printStackTrace();
                 Class<?> cl = CLibrary.class;
-
             }
         } catch (Throwable t) {
             throw new LinkageError("Unable to load CLibrary for openpty", t);
         }
+    }
+
+    private static String readFully(InputStream in) throws IOException {
+        int readLen = 0;
+        ByteArrayOutputStream b = new ByteArrayOutputStream();
+        byte[] buf = new byte[32];
+        while ((readLen = in.read(buf, 0, buf.length)) >= 0) {
+            b.write(buf, 0, readLen);
+        }
+        return b.toString();
     }
 
     @Override

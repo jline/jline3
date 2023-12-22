@@ -16,9 +16,7 @@ import java.nio.charset.Charset;
 
 import org.jline.terminal.Terminal;
 import org.jline.terminal.spi.SystemStream;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -32,7 +30,6 @@ public class JansiTerminalProviderTest {
         System.err.println("setup");
         System.err.flush();
     }
-
 
     @Test
     public void testJansiVersion() {
