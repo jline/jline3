@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public class JansiTerminalProviderTest {
 
     @BeforeAll
-    void init() {
+    static void init() {
         ensureOpenPtyLoaded();
     }
 
