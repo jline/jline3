@@ -81,6 +81,8 @@
                     </filters>
                     <createSourcesJar>true</createSourcesJar>
                     <createDependencyReducedPom>true</createDependencyReducedPom>
+                    <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
+                    <dependencyReducedPomLocation>${basedir}/.dependency-reduced-pom.xml</dependencyReducedPomLocation>
                 </configuration>
                 <executions>
                     <execution>
