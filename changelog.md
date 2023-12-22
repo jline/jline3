@@ -1,6 +1,29 @@
 # [JLine3](https://github.com/jline/jline3)
 <!-- git log --pretty=format:'* [`%h`](https://github.com/jline/jline3/commit/%H) %s' -->
 
+## [JLine 3.25.0][3_25_0]
+[3_25_0] https://repo1.maven.org/maven2/org/jline/jline/3.25.0/
+
+* [`687695ee87e`](https://github.com/jline/jline3/commit/687695ee87e738674204743a3bfc275e0ba6b3d7) Link with lib util (fixes #896)
+* [`8c9a4ab7d59`](https://github.com/jline/jline3/commit/8c9a4ab7d595d72721cf1530ab1f9e2f39f6a55e) Add some doc about Signal.QUIT which can not be caught by the JVM (fixes #912)
+* [`0365a9cb8ee`](https://github.com/jline/jline3/commit/0365a9cb8ee840aaf9f276c3ef10ac6cd6381425) Fix FFM provider loading of openpty on linux (fixes #911)
+* [`d41a8f7c72b`](https://github.com/jline/jline3/commit/d41a8f7c72b3c7842329e0c2506c112b571bb938) Ignore dependency reduced pom
+* [`4ccf282c91d`](https://github.com/jline/jline3/commit/4ccf282c91daa0fc96ed6030e053dd28a4aba342) Add the provider name in the example
+* [`32d2af1417d`](https://github.com/jline/jline3/commit/32d2af1417d0f96b1a7d588188f1c37a4fb979d7) Fix ssh attributes transfer
+* [`4cedcb90d4a`](https://github.com/jline/jline3/commit/4cedcb90d4a80ccd425fdadddf375a26319e06fa) Add ubuntu 20.04 build
+* [`b2749c4525e`](https://github.com/jline/jline3/commit/b2749c4525e658c326d9978d802ac8678c954e35) Use logger instead of writing to stderr (#916, fixes #907)
+* [`ada11ffde96`](https://github.com/jline/jline3/commit/ada11ffde966d529f8796cf1822a48febaf3d584) Add the ability to clear internal buffers for security (fixes #910)
+* [`fb35df175e6`](https://github.com/jline/jline3/commit/fb35df175e60ff92ac8a445a49a4b15c7bea422c) Use maven-shade-plugin instead of custom source-unpack/recompile
+* [`3a9ff8c75ea`](https://github.com/jline/jline3/commit/3a9ff8c75eaba0e1b6cebb4cf165d3a1cabf15bd) Jansi implementation
+* [`0bcba13e5fb`](https://github.com/jline/jline3/commit/0bcba13e5fb63935fdc17b1650b655530d0d9c76) Upgrade version to 3.25.0-SNAPSHOT
+* [`d73373975df`](https://github.com/jline/jline3/commit/d73373975dfc7a44c9a0fcda973f479a3174fe15) Provide a new Terminal InputFlag INORMEOL to normalize end of lines (#900, fixes #899)
+* [`af7777d611a`](https://github.com/jline/jline3/commit/af7777d611a7934967a1431e8ac6b6ee3dbd65a7) Improve the message when a provider cannot be used by doing an early check and restore compatibility with Jansi 1.17 (#906, fixes #904)
+* [`c275b40fc4e`](https://github.com/jline/jline3/commit/c275b40fc4ecb0e4ee2889d97683d7e5ed4956a8) TailTipWidgets option usage goes away when writing its argument, fixes #914
+* [`f3c60a3e625`](https://github.com/jline/jline3/commit/f3c60a3e6255e8e0c20d5043a4fe248446f292bb) GroovyEngine.execute cause an OOM exception, fixes #909
+* [`277dd8c34fd`](https://github.com/jline/jline3/commit/277dd8c34fd933b3c4ed8be3ab773342c14e3e43) Fix readme wrt providers
+* [`bf698ba5fe4`](https://github.com/jline/jline3/commit/bf698ba5fe46e190616dce9284c92e8e49079c15) Avoid JDK warning when checking the exec provider (#895)
+* [`2fd5c9d623a`](https://github.com/jline/jline3/commit/2fd5c9d623adbd8d0c0436e86ed00a0725771993) Fix missing native libraries in JLine bundle (#894)
+
 ## [JLine 3.24.1][3_24_1]
 [3_24_1] https://repo1.maven.org/maven2/org/jline/jline/3.24.1/
 
