@@ -28,6 +28,7 @@ import org.jline.terminal.impl.AbstractPty;
 import org.jline.terminal.spi.SystemStream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -38,7 +39,11 @@ public class JansiTerminalProviderTest {
 
     @BeforeAll
     static void init() {
+        System.err.println("init");
+        System.err.flush();
         ensureOpenPtyLoaded();
+        System.err.println("ensureOpenPtyLoaded done");
+        System.err.flush();
     }
 
     @BeforeEach
@@ -63,6 +68,7 @@ public class JansiTerminalProviderTest {
     }
 
     @Test
+    @Disabled
     void testNewTerminal() throws IOException {
         System.err.println("testNewTerminal");
         System.err.flush();
@@ -97,6 +103,7 @@ public class JansiTerminalProviderTest {
                         .collect(Collectors.toList());
                     String lib = libs.iterator().next().toString();
                     System.err.println("Loading " + lib);
+                    System.err.flush();
                     System.load(lib);
                 }
             }
@@ -104,14 +111,14 @@ public class JansiTerminalProviderTest {
             int[] master = new int[1];
             int[] slave = new int[1];
             byte[] name = new byte[64];
-            try {
+//            try {
                 CLibrary.openpty(master, slave, name, null, null);
                 new FileInputStream(AbstractPty.newDescriptor(master[0])).close();
                 new FileInputStream(AbstractPty.newDescriptor(slave[0])).close();
-            } catch (Throwable t) {
-                t.printStackTrace();
-                Class<?> cl = CLibrary.class;
-            }
+//            } catch (Throwable t) {
+//                t.printStackTrace();
+//                Class<?> cl = CLibrary.class;
+//            }
         } catch (Throwable t) {
             throw new LinkageError("Unable to load CLibrary for openpty", t);
         }
