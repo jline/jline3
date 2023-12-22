@@ -50,7 +50,6 @@ public class JansiTerminalProviderTest {
     }
 
     @Test
-    @Disabled
     void testNewTerminal() throws IOException {
         System.err.println("testNewTerminal");
         System.err.flush();
