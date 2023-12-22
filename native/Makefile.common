@@ -36,43 +36,43 @@ Default_LIBNAME   := libjlinenative.so
 Linux-x86_CC        := $(CROSS_PREFIX)gcc
 Linux-x86_STRIP     := $(CROSS_PREFIX)strip
 Linux-x86_CCFLAGS   := -I$(JAVA_HOME)/include -Itarget/inc -Itarget/inc/unix -Os -fPIC -m32 -fvisibility=hidden
-Linux-x86_LINKFLAGS := -shared -static-libgcc
+Linux-x86_LINKFLAGS := -shared -static-libgcc -lutil
 Linux-x86_LIBNAME   := libjlinenative.so
 
 Linux-x86_64_CC        := $(CROSS_PREFIX)gcc
 Linux-x86_64_STRIP     := $(CROSS_PREFIX)strip
 Linux-x86_64_CCFLAGS   := -I$(JAVA_HOME)/include -Itarget/inc -Itarget/inc/unix -Os -fPIC -m64 -fvisibility=hidden
-Linux-x86_64_LINKFLAGS := -shared -static-libgcc
+Linux-x86_64_LINKFLAGS := -shared -static-libgcc -lutil
 Linux-x86_64_LIBNAME   := libjlinenative.so
 
 Linux-arm_CC          := $(CROSS_PREFIX)gcc
 Linux-arm_STRIP       := $(CROSS_PREFIX)strip
 Linux-arm_CCFLAGS     := -I$(JAVA_HOME)/include -Itarget/inc -Itarget/inc/unix -Os -fPIC -mfloat-abi=softfp -mfpu=vfp -fvisibility=hidden
-Linux-arm_LINKFLAGS   := -shared -static-libgcc
+Linux-arm_LINKFLAGS   := -shared -static-libgcc -lutil
 Linux-arm_LIBNAME     := libjlinenative.so
 
 Linux-armv6_CC        := $(CROSS_PREFIX)gcc
 Linux-armv6_STRIP     := $(CROSS_PREFIX)strip
 Linux-armv6_CCFLAGS   := -I$(JAVA_HOME)/include -Itarget/inc -Itarget/inc/unix -Os -mfloat-abi=hard -mfpu=vfp -fPIC -fvisibility=hidden
-Linux-armv6_LINKFLAGS := -shared -static-libgcc
+Linux-armv6_LINKFLAGS := -shared -static-libgcc -lutil
 Linux-armv6_LIBNAME   := libjlinenative.so
 
 Linux-armv7_CC        := $(CROSS_PREFIX)gcc
 Linux-armv7_STRIP     := $(CROSS_PREFIX)strip
 Linux-armv7_CCFLAGS   := -I$(JAVA_HOME)/include -Itarget/inc -Itarget/inc/unix -Os -mfloat-abi=hard -mfpu=vfp -fPIC -fvisibility=hidden
-Linux-armv7_LINKFLAGS := -shared -static-libgcc
+Linux-armv7_LINKFLAGS := -shared -static-libgcc -lutil
 Linux-armv7_LIBNAME   := libjlinenative.so
 
 Linux-arm64_CC        := $(CROSS_PREFIX)gcc
 Linux-arm64_STRIP     := $(CROSS_PREFIX)strip
 Linux-arm64_CCFLAGS   := -I$(JAVA_HOME)/include -Itarget/inc -Itarget/inc/unix -Os -march=armv8-a -fPIC -fvisibility=hidden
-Linux-arm64_LINKFLAGS := -shared -static-libgcc
+Linux-arm64_LINKFLAGS := -shared -static-libgcc -lutil
 Linux-arm64_LIBNAME   := libjlinenative.so
 
 Linux-ppc64_CC        := $(CROSS_PREFIX)gcc
 Linux-ppc64_STRIP     := $(CROSS_PREFIX)strip
 Linux-ppc64_CCFLAGS   := -I$(JAVA_HOME)/include -Itarget/inc -Itarget/inc/unix -Os -fPIC -fvisibility=hidden
-Linux-ppc64_LINKFLAGS := -shared -static-libgcc
+Linux-ppc64_LINKFLAGS := -shared -static-libgcc -lutil
 Linux-ppc64_LIBNAME   := libjlinenative.so
 
 Linux-riscv64_CC        := $(CROSS_PREFIX)gcc
@@ -130,7 +130,7 @@ ifeq ($(wildcard MAC_SDK),)
 	MAC_SDK := /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk
 endif
 Mac-x86_64_CCFLAGS    := -I$(MAC_SDK)/System/Library/Frameworks/JavaVM.framework/Headers -Itarget/inc -Itarget/inc/unix -Os -fPIC -mmacosx-version-min=10.6 -fvisibility=hidden
-Mac-x86_64_LINKFLAGS := -dynamiclib 
+Mac-x86_64_LINKFLAGS := -dynamiclib
 Mac-x86_64_LIBNAME   := libjlinenative.jnilib
 
 Mac-arm64_CC        := $(CROSS_PREFIX)clang -v
