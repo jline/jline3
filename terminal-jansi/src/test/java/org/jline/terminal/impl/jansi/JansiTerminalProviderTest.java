@@ -9,7 +9,6 @@
 package org.jline.terminal.impl.jansi;
 
 import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
@@ -22,12 +21,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.fusesource.jansi.internal.CLibrary;
 import org.jline.terminal.Terminal;
-import org.jline.terminal.impl.AbstractPty;
 import org.jline.terminal.spi.SystemStream;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -66,7 +62,7 @@ public class JansiTerminalProviderTest {
     }
 
     @Test
-    @Disabled
+    // @Disabled
     void testNewTerminal() throws IOException {
         System.err.println("testNewTerminal");
         System.err.flush();
@@ -106,13 +102,13 @@ public class JansiTerminalProviderTest {
                 }
             }
 
-            int[] master = new int[1];
-            int[] slave = new int[1];
-            byte[] name = new byte[64];
+            //            int[] master = new int[1];
+            //            int[] slave = new int[1];
+            //            byte[] name = new byte[64];
             //            try {
-            CLibrary.openpty(master, slave, name, null, null);
-            new FileInputStream(AbstractPty.newDescriptor(master[0])).close();
-            new FileInputStream(AbstractPty.newDescriptor(slave[0])).close();
+            //            CLibrary.openpty(master, slave, name, null, null);
+            //            new FileInputStream(AbstractPty.newDescriptor(master[0])).close();
+            //            new FileInputStream(AbstractPty.newDescriptor(slave[0])).close();
             //            } catch (Throwable t) {
             //                t.printStackTrace();
             //                Class<?> cl = CLibrary.class;
