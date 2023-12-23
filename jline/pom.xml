@@ -28,58 +28,20 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.jline</groupId>
-            <artifactId>jline-native</artifactId>
+            <groupId>org.fusesource.jansi</groupId>
+            <artifactId>jansi</artifactId>
+            <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>org.jline</groupId>
-            <artifactId>jline-terminal</artifactId>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>org.jline</groupId>
-            <artifactId>jline-terminal-jni</artifactId>
+            <groupId>com.googlecode.juniversalchardet</groupId>
+            <artifactId>juniversalchardet</artifactId>
+            <optional>true</optional>
         </dependency>
-        <dependency>
-            <groupId>org.jline</groupId>
-            <artifactId>jline-terminal-jansi</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jline</groupId>
-            <artifactId>jline-terminal-jna</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jline</groupId>
-            <artifactId>jline-terminal-ffm</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jline</groupId>
-            <artifactId>jline-reader</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jline</groupId>
-            <artifactId>jline-builtins</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jline</groupId>
-            <artifactId>jline-console</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jline</groupId>
-            <artifactId>jline-remote-ssh</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jline</groupId>
-            <artifactId>jline-remote-telnet</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jline</groupId>
-            <artifactId>jline-style</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jline</groupId>
-            <artifactId>jansi-core</artifactId>
-        </dependency>
-
         <dependency>
             <groupId>org.apache.sshd</groupId>
             <artifactId>sshd-core</artifactId>
@@ -101,83 +63,358 @@
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>com.googlecode.juniversalchardet</groupId>
-            <artifactId>juniversalchardet</artifactId>
-            <optional>true</optional>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-terminal</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.fusesource.jansi</groupId>
-            <artifactId>jansi</artifactId>
-            <optional>true</optional>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-terminal-jni</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna</artifactId>
-            <optional>true</optional>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-terminal-jansi</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-terminal-jna</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-reader</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-builtins</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-console</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-remote-ssh</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-remote-telnet</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-style</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
             <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <phase>process-sources</phase>
+                        <configuration>
+                            <artifactItems>
+                                <!-- sources -->
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-native</artifactId>
+                                    <classifier>sources</classifier>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-terminal</artifactId>
+                                    <classifier>sources</classifier>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-terminal-ffm</artifactId>
+                                    <classifier>sources</classifier>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-terminal-jansi</artifactId>
+                                    <classifier>sources</classifier>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-terminal-jna</artifactId>
+                                    <classifier>sources</classifier>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-terminal-jni</artifactId>
+                                    <classifier>sources</classifier>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-reader</artifactId>
+                                    <classifier>sources</classifier>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-builtins</artifactId>
+                                    <classifier>sources</classifier>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-console</artifactId>
+                                    <classifier>sources</classifier>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-remote-ssh</artifactId>
+                                    <classifier>sources</classifier>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-remote-telnet</artifactId>
+                                    <classifier>sources</classifier>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-style</artifactId>
+                                    <classifier>sources</classifier>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jansi-core</artifactId>
+                                    <classifier>sources</classifier>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                </artifactItem>
+
+                                <!-- resources -->
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-terminal</artifactId>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+                                    <excludes>**/*.class</excludes>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-terminal-ffm</artifactId>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+                                    <excludes>**/*.class</excludes>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-terminal-jansi</artifactId>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+                                    <excludes>**/*.class</excludes>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-terminal-jna</artifactId>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+                                    <excludes>**/*.class</excludes>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-terminal-jni</artifactId>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+                                    <excludes>**/*.class</excludes>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-reader</artifactId>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+                                    <excludes>**/*.class</excludes>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-builtins</artifactId>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+                                    <excludes>**/*.class</excludes>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-remote-ssh</artifactId>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+                                    <excludes>**/*.class</excludes>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-remote-telnet</artifactId>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+                                    <excludes>**/*.class</excludes>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-style</artifactId>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+                                    <excludes>**/*.class</excludes>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jansi-core</artifactId>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+                                    <excludes>**/*.class</excludes>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>add-source</id>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <phase>generate-sources</phase>
+                        <configuration>
+                            <sources>
+                                <source>${project.build.directory}/generated-sources</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>add-resource</id>
+                        <goals>
+                            <goal>add-resource</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <resources>
+                                <resource>
+                                    <directory>${project.build.directory}/generated-resources</directory>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
+                <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <skipSource>true</skipSource>
+                    <showWarnings>true</showWarnings>
+                    <fork>true</fork>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>default-compile</id>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/ffm/*.java</exclude>
+                            </excludes>
+                            <compilerArgs>
+                                <arg>-Xlint:all,-options</arg>
+                                <arg>-Werror</arg>
+                            </compilerArgs>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>jdk21</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>**/ffm/*.java</include>
+                            </includes>
+                            <release>21</release>
+                            <compilerArgs>
+                                <arg>-Xlint:all,-options,-preview</arg>
+                                <arg>-Werror</arg>
+                                <arg>--enable-preview</arg>
+                            </compilerArgs>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
                     <instructions>
-                        <Multi-Release>true</Multi-Release>
                         <Automatic-Module-Name>${automatic.module.name}</Automatic-Module-Name>
-                        <Export-Package>org.jline*;-noimport:=true</Export-Package>
-                        <Import-Package>com.sun.jna;
-                            javax.annotation;
-                            org.fusesource.jansi.internal;
-                            org.apache.sshd.client;
-                            org.apache.sshd.server;
-                            org.apache.sshd.server.channel;
-                            org.apache.sshd.server.command;
-                            org.apache.sshd.server.session;
-                            org.apache.sshd.server.shell;
-                            *;
-                                resolution:=optional</Import-Package>
-                        <Embed-Dependency>*;scope=compile|runtime;inline=true</Embed-Dependency>
+                        <Export-Package>*;-noimport:=true</Export-Package>
+                        <Import-Package>*;resolution:=optional</Import-Package>
                     </instructions>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
+                <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
-                    <artifactSet>
-                        <includes>
-                            <include>org.jline:*</include>
-                        </includes>
-                    </artifactSet>
-                    <filters>
-                        <filter>
-                            <artifact>*:*</artifact>
-                            <excludes>
-                                <exclude>META-INF/MANIFEST.MF</exclude>
-                            </excludes>
-                        </filter>
-                    </filters>
-                    <createSourcesJar>true</createSourcesJar>
-                    <createDependencyReducedPom>true</createDependencyReducedPom>
-                    <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
-                    <dependencyReducedPomLocation>${basedir}/.dependency-reduced-pom.xml</dependencyReducedPomLocation>
+                    <legacyMode>true</legacyMode>
+                    <additionalOptions>--enable-preview --release 21 -Xdoclint:none</additionalOptions>
                 </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>
