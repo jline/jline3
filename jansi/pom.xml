@@ -69,6 +69,7 @@
                                     <type>jar</type>
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                    <includes>**/*.java</includes>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
@@ -77,6 +78,7 @@
                                     <type>jar</type>
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                    <includes>**/*.java</includes>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
@@ -85,6 +87,7 @@
                                     <type>jar</type>
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                    <includes>**/*.java</includes>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
@@ -93,6 +96,7 @@
                                     <type>jar</type>
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                    <includes>**/*.java</includes>
                                 </artifactItem>
 
                                 <!-- resources -->
