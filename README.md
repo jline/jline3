@@ -138,9 +138,10 @@ All the jars and releases are available from Maven Central, so you'll find every
 
 ## Requirements
 
-* Maven 3.3+
-* Java 8+
-* Graal 19.3+ (native-image)
+* Maven 3.5.4+
+* Java 8+ at runtime
+* Java 21+ at build time
+* Graal 21.2+ (native-image)
 
 Check out and build:
 
