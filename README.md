@@ -141,7 +141,7 @@ All the jars and releases are available from Maven Central, so you'll find every
 * Maven 3.5.4+
 * Java 8+ at runtime
 * Java 21+ at build time
-* Graal 21.2+ (native-image)
+* Graal 23.1+ (native-image)
 
 Check out and build:
 
