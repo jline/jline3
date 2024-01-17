@@ -82,7 +82,7 @@ public final class Log {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
         for (int i = 0; i < messages.length; i++) {
-            // Special handling for the last message if its a throwable, render its stack on the next line
+            // Special handling for the last message if it's a throwable, render its stack on the next line
             if (i + 1 == messages.length && messages[i] instanceof Throwable) {
                 cause = (Throwable) messages[i];
             } else {
