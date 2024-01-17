@@ -1,0 +1,38 @@
+[
+  {
+    "name": "org.jline.nativ.CLibrary",
+    "fields": [
+      { "name": "TCSANOW" },
+      { "name": "TCSADRAIN" },
+      { "name": "TCSAFLUSH" },
+      { "name": "TIOCGWINSZ" },
+      { "name": "TIOCSWINSZ" }
+    ]
+  },
+  {
+    "name": "org.jline.nativ.CLibrary$Termios",
+    "fields": [
+      { "name":  "SIZEOF" },
+      { "name":  "c_iflag" },
+      { "name":  "c_oflag" },
+      { "name":  "c_cflag" },
+      { "name":  "c_lflag" },
+      { "name":  "c_cc" },
+      { "name":  "c_ispeed" },
+      { "name":  "c_ospeed" }
+    ]
+  },
+  {
+    "name": "org.jline.nativ.CLibrary$WinSize",
+    "fields": [
+      { "name":  "SIZEOF" },
+      { "name":  "ws_row" },
+      { "name":  "ws_col" },
+      { "name":  "ws_xpixel" },
+      { "name":  "ws_ypixel" }
+    ]
+  },
+  {
+    "name": "org.jline.nativ.Kernel32"
+  }
+]

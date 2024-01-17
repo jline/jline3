@@ -29,21 +29,15 @@
     <dependencies>
         <dependency>
             <groupId>org.jline</groupId>
+            <artifactId>jline-terminal-jni</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
             <artifactId>jline-reader</artifactId>
         </dependency>
         <dependency>
             <groupId>org.jline</groupId>
             <artifactId>jline-console</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.fusesource.jansi</groupId>
-            <artifactId>jansi</artifactId>
         </dependency>
 
         <dependency>
@@ -110,6 +104,7 @@
                     <buildArgs>--no-fallback
                         --report-unsupported-elements-at-runtime
                         --allow-incomplete-classpath
+                        -H:+UnlockExperimentalVMOptions
                         -H:ReflectionConfigurationFiles=reflection-config.json</buildArgs>
                 </configuration>
                 <executions>
