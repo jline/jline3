@@ -441,8 +441,10 @@ public final class TerminalBuilder {
                     }
                 }
                 if (terminal == null && OSUtils.IS_WINDOWS && providers.isEmpty() && (dumb == null || !dumb)) {
-                    throw new IllegalStateException("Unable to create a system terminal. On windows, either "
-                            + "JNA or JANSI library is required.  Make sure to add one of those in the classpath.", exception);
+                    throw new IllegalStateException(
+                            "Unable to create a system terminal. On windows, either JLine's native libraries, JNA "
+                                    + "or JANSI library is required.  Make sure to add one of those in the classpath.",
+                            exception);
                 }
             }
             if (terminal instanceof AbstractTerminal) {
