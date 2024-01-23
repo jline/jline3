@@ -1,6 +1,16 @@
 # [JLine3](https://github.com/jline/jline3)
 <!-- git log --pretty=format:'* [`%h`](https://github.com/jline/jline3/commit/%H) %s' -->
 
+## [JLine 3.25.1][3_25_1]
+[3_25_1] https://repo1.maven.org/maven2/org/jline/jline/3.25.1/
+
+* [`3d96eac3`](https://github.com/jline/jline3/commit/3d96eac34cd0b187c114c2191a8a5d5c089328f4) Fix native image metadata (fixes #923) (#931)
+* [`7ad41da8`](https://github.com/jline/jline3/commit/7ad41da80c2526e60c129651ad45e62f95dac15a) Fix NPE on windows with missing jna/jansi (fixes #930) (#933)
+* [`ad35d1a6`](https://github.com/jline/jline3/commit/ad35d1a6f753e8d1a385afdf9465c2fd34092a3e) Upgrade Groovy from 4.0.13 to 4.0.17
+* [`7dddf76f`](https://github.com/jline/jline3/commit/7dddf76f5637f51003d816cfac57fdd08c695a9c) DefaultPrinter: improve printing string with line breaks, #909
+* [`7ff2fbc5`](https://github.com/jline/jline3/commit/7ff2fbc5430f3a96069f3352847c730ac15f5c79) Native libraries are not embedded in JLine bundle (fixes #927)
+* [`2870d03c`](https://github.com/jline/jline3/commit/2870d03c0d7fd1d96d1a350ad39d35977239dce4) Fix source jars required for bundles
+
 ## [JLine 3.25.0][3_25_0]
 [3_25_0] https://repo1.maven.org/maven2/org/jline/jline/3.25.0/
 
