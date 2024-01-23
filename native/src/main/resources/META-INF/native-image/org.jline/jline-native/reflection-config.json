@@ -1,0 +1,11 @@
+[
+  {
+    "name" : "org.jline.native.CLibrary",
+    "allDeclaredConstructors" : false,
+    "allPublicConstructors" : false,
+    "allDeclaredMethods" : false,
+    "allPublicMethods" : false,
+    "allDeclaredFields" : true,
+    "allPublicFields" : true
+  }
+]

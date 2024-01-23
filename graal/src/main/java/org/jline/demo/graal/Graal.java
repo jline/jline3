@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.Supplier;
+import java.util.logging.LogManager;
 
 import org.jline.builtins.ConfigurationPath;
 import org.jline.console.impl.Builtins;
@@ -25,6 +26,7 @@ import org.jline.reader.impl.DefaultParser;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.spi.TerminalExt;
 import org.jline.utils.OSUtils;
 import org.jline.widget.TailTipWidgets;
 import org.jline.widget.TailTipWidgets.TipType;
@@ -34,6 +36,11 @@ public class Graal {
 
     public static void main(String[] args) {
         try {
+            // Init log
+            String fname = System.getProperty("java.util.logging.config.file");
+            if (fname != null) {
+                LogManager.getLogManager().readConfiguration();
+            }
             Supplier<Path> workDir = () -> Paths.get(System.getProperty("user.dir"));
             //
             // Parser & Terminal
@@ -95,7 +102,8 @@ public class Graal {
             //
             // REPL-loop
             //
-            System.out.println(terminal.getName() + ": " + terminal.getType());
+            System.out.println(terminal.getName() + ": " + terminal.getType() + ", provider="
+                    + ((TerminalExt) terminal).getProvider().name());
             while (true) {
                 try {
                     systemRegistry.cleanUp(); // reset output streams

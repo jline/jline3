@@ -1,0 +1,184 @@
+[
+  {
+    "name": "org.jline.nativ.CLibrary",
+    "fields": [
+      { "name": "TCSANOW" },
+      { "name": "TCSADRAIN" },
+      { "name": "TCSAFLUSH" },
+      { "name": "TIOCGWINSZ" },
+      { "name": "TIOCSWINSZ" }
+    ]
+  },
+  {
+    "name": "org.jline.nativ.CLibrary$Termios",
+    "fields": [
+      { "name": "SIZEOF" },
+      { "name": "c_iflag" },
+      { "name": "c_oflag" },
+      { "name": "c_cflag" },
+      { "name": "c_lflag" },
+      { "name": "c_cc" },
+      { "name": "c_ispeed" },
+      { "name": "c_ospeed" }
+    ]
+  },
+  {
+    "name": "org.jline.nativ.CLibrary$WinSize",
+    "fields": [
+      { "name": "SIZEOF" },
+      { "name": "ws_row" },
+      { "name": "ws_col" },
+      { "name": "ws_xpixel" },
+      { "name": "ws_ypixel" }
+    ]
+  },
+  {
+    "name": "org.jline.nativ.Kernel32",
+    "fields": [
+      { "name": "FOREGROUND_BLUE" },
+      { "name": "FOREGROUND_GREEN" },
+      { "name": "FOREGROUND_RED" },
+      { "name": "FOREGROUND_INTENSITY" },
+      { "name": "BACKGROUND_BLUE" },
+      { "name": "BACKGROUND_GREEN" },
+      { "name": "BACKGROUND_RED" },
+      { "name": "BACKGROUND_INTENSITY" },
+      { "name": "COMMON_LVB_LEADING_BYTE" },
+      { "name": "COMMON_LVB_TRAILING_BYTE" },
+      { "name": "COMMON_LVB_GRID_HORIZONTAL" },
+      { "name": "COMMON_LVB_GRID_LVERTICAL" },
+      { "name": "COMMON_LVB_GRID_RVERTICAL" },
+      { "name": "COMMON_LVB_REVERSE_VIDEO" },
+      { "name": "COMMON_LVB_UNDERSCORE" },
+      { "name": "FORMAT_MESSAGE_FROM_SYSTEM" },
+      { "name": "STD_INPUT_HANDLE" },
+      { "name": "STD_OUTPUT_HANDLE" },
+      { "name": "STD_ERROR_HANDLE" },
+      { "name": "INVALID_HANDLE_VALUE," }
+    ]
+  },
+  {
+    "name": "org.jline.nativ.Kernel32$SMALL_RECT",
+    "fields": [
+      { "name": "SIZEOF" },
+      { "name": "left" },
+      { "name": "top" },
+      { "name": "right" },
+      { "name": "bottom" }
+    ]
+  },
+  {
+    "name": "org.jline.nativ.Kernel32$COORD",
+    "fields": [
+      { "name": "SIZEOF" },
+      { "name": "x" },
+      { "name": "y" }
+    ]
+  },
+  {
+    "name": "org.jline.nativ.Kernel32$CONSOLE_SCREEN_BUFFER_INFO",
+    "fields": [
+      { "name": "SIZEOF" },
+      { "name": "size" },
+      { "name": "cursorPosition" },
+      { "name": "attributes" },
+      { "name": "window" },
+      { "name": "maximumWindowSize" }
+    ]
+  },
+  {
+    "name": "org.jline.nativ.Kernel32$CHAR_INFO",
+    "fields": [
+      { "name": "SIZEOF" },
+      { "name": "attributes" },
+      { "name": "unicodeChar" }
+    ]
+  },
+  {
+    "name": "org.jline.nativ.Kernel32$KEY_EVENT_RECORD",
+    "fields": [
+      { "name": "SIZEOF" },
+      { "name": "CAPSLOCK_ON" },
+      { "name": "NUMLOCK_ON" },
+      { "name": "SCROLLLOCK_ON" },
+      { "name": "ENHANCED_KEY" },
+      { "name": "LEFT_ALT_PRESSED" },
+      { "name": "LEFT_CTRL_PRESSED" },
+      { "name": "RIGHT_ALT_PRESSED" },
+      { "name": "RIGHT_CTRL_PRESSED" },
+      { "name": "SHIFT_PRESSED" },
+      { "name": "keyDown" },
+      { "name": "repeatCount" },
+      { "name": "keyCode" },
+      { "name": "scanCode" },
+      { "name": "uchar" },
+      { "name": "controlKeyState" }
+    ]
+  },
+  {
+    "name": "org.jline.nativ.Kernel32$MOUSE_EVENT_RECORD",
+    "fields": [
+      { "name": "SIZEOF" },
+      { "name": "FROM_LEFT_1ST_BUTTON_PRESSED" },
+      { "name": "FROM_LEFT_2ND_BUTTON_PRESSED" },
+      { "name": "FROM_LEFT_3RD_BUTTON_PRESSED" },
+      { "name": "FROM_LEFT_4TH_BUTTON_PRESSED" },
+      { "name": "RIGHTMOST_BUTTON_PRESSED" },
+      { "name": "CAPSLOCK_ON" },
+      { "name": "NUMLOCK_ON" },
+      { "name": "SCROLLLOCK_ON" },
+      { "name": "ENHANCED_KEY" },
+      { "name": "LEFT_ALT_PRESSED" },
+      { "name": "LEFT_CTRL_PRESSED" },
+      { "name": "RIGHT_ALT_PRESSED" },
+      { "name": "RIGHT_CTRL_PRESSED" },
+      { "name": "SHIFT_PRESSED" },
+      { "name": "DOUBLE_CLICK" },
+      { "name": "MOUSE_HWHEELED" },
+      { "name": "MOUSE_MOVED" },
+      { "name": "MOUSE_WHEELED" },
+      { "name": "mousePosition" },
+      { "name": "buttonState" },
+      { "name": "controlKeyState" },
+      { "name": "eventFlags" }
+    ]
+  },
+  {
+    "name": "org.jline.nativ.Kernel32$WINDOW_BUFFER_SIZE_RECORD",
+    "fields": [
+      { "name": "SIZEOF" },
+      { "name": "size" }
+    ]
+  },
+  {
+    "name": "org.jline.nativ.Kernel32$FOCUS_EVENT_RECORD",
+    "fields": [
+      { "name": "SIZEOF" },
+      { "name": "setFocus" }
+    ]
+  },
+  {
+    "name": "org.jline.nativ.Kernel32$MENU_EVENT_RECORD",
+    "fields": [
+      { "name": "SIZEOF" },
+      { "name": "commandId" }
+    ]
+  },
+  {
+    "name": "org.jline.nativ.Kernel32$INPUT_RECORD",
+    "fields": [
+      { "name": "SIZEOF" },
+      { "name": "KEY_EVENT" },
+      { "name": "MOUSE_EVENT" },
+      { "name": "WINDOW_BUFFER_SIZE_EVENT" },
+      { "name": "FOCUS_EVENT" },
+      { "name": "MENU_EVENT" },
+      { "name": "eventType" },
+      { "name": "keyEvent" },
+      { "name": "mouseEvent" },
+      { "name": "windowBufferSizeEvent" },
+      { "name": "menuEvent" },
+      { "name": "focusEvent" }
+    ]
+  }
+]

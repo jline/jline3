@@ -462,9 +462,9 @@ public final class TerminalBuilder {
             if (terminal == null && (forceDumb || dumb == null || dumb)) {
                 if (!forceDumb && dumb == null) {
                     if (Log.isDebugEnabled()) {
-                        Log.warn("input is tty: {}", system.get(SystemStream.Input));
-                        Log.warn("output is tty: {}", system.get(SystemStream.Output));
-                        Log.warn("error is tty: {}", system.get(SystemStream.Error));
+                        Log.warn("input is tty: " + system.get(SystemStream.Input));
+                        Log.warn("output is tty: " + system.get(SystemStream.Output));
+                        Log.warn("error is tty: " + system.get(SystemStream.Error));
                         Log.warn("Creating a dumb terminal", exception);
                     } else {
                         Log.warn(

@@ -27,6 +27,7 @@ import org.jline.terminal.impl.jni.win.NativeWinSysTerminal;
 import org.jline.terminal.spi.Pty;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
+import org.jline.utils.Log;
 import org.jline.utils.OSUtils;
 
 public class JniTerminalProvider implements TerminalProvider {
@@ -137,6 +138,7 @@ public class JniTerminalProvider implements TerminalProvider {
                 return isPosixSystemStream(stream);
             }
         } catch (Throwable t) {
+            Log.debug("Exception while checking system stream (this may disable the JNI provider)", t);
             return false;
         }
     }

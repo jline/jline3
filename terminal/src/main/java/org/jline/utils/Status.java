@@ -20,7 +20,7 @@ import org.jline.utils.InfoCmp.Capability;
 
 public class Status {
 
-    protected final AbstractTerminal terminal;
+    protected final Terminal terminal;
     protected final boolean supported;
     protected List<AttributedString> oldLines = Collections.emptyList();
     protected List<AttributedString> linesToRestore = Collections.emptyList();
@@ -40,7 +40,7 @@ public class Status {
     }
 
     @SuppressWarnings("this-escape")
-    public Status(AbstractTerminal terminal) {
+    public Status(Terminal terminal) {
         this.terminal = Objects.requireNonNull(terminal, "terminal can not be null");
         this.supported = terminal.getStringCapability(Capability.change_scroll_region) != null
                 && terminal.getStringCapability(Capability.save_cursor) != null
@@ -127,8 +127,8 @@ public class Status {
         if (oldLines.equals(lines) && !force) {
             return;
         }
-        int statusSize = lines.size() + (lines.size() == 0 ? 0 : border);
-        int nb = statusSize - oldLines.size() - (oldLines.size() == 0 ? 0 : border);
+        int statusSize = lines.size() + (lines.isEmpty() ? 0 : border);
+        int nb = statusSize - oldLines.size() - (oldLines.isEmpty() ? 0 : border);
         if (nb > 0) {
             for (int i = 0; i < nb; i++) {
                 terminal.puts(Capability.cursor_down);
@@ -145,7 +145,7 @@ public class Status {
                 terminal.puts(Capability.clr_eol);
             }
         }
-        if (border == 1 && lines.size() > 0) {
+        if (border == 1 && !lines.isEmpty()) {
             terminal.puts(Capability.cursor_address, rows - statusSize, 0);
             borderString.columnSubSequence(0, columns).print(terminal);
         }
