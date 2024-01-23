@@ -18,71 +18,72 @@ Console UI currently supports:
 
 ## A small example
 
-The following code presents a simple, but complete code example to use CosoleUI for selecting an item from a list.
+The following code presents a simple, but complete code example to use ConsoleUI for selecting an item from a list.
 
 ```java
-package de.codeshelf.consoleui;
-
-import de.codeshelf.consoleui.prompt.ConsolePrompt;
-import de.codeshelf.consoleui.prompt.PromtResultItemIF;
-import de.codeshelf.consoleui.prompt.builder.PromptBuilder;
-import jline.TerminalFactory;
-import org.fusesource.jansi.AnsiConsole;
+package org.jline.consoleui.examples;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
-import static org.fusesource.jansi.Ansi.ansi;
+import org.jline.consoleui.prompt.ConsolePrompt;
+import org.jline.consoleui.prompt.PromptResultItemIF;
+import org.jline.consoleui.prompt.builder.PromptBuilder;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStringBuilder;
 
-/**
- * User: Andreas Wegmann
- * Date: 12.08.2020
- */
 public class SimpleExample {
 
-  public static void main(String[] args) throws InterruptedException {
-    AnsiConsole.systemInstall();                                      // #1
-    System.out.println(ansi().eraseScreen().render("Simple list example:"));  
+   public static void main(String[] args) {
+      List<AttributedString> header = new ArrayList<>();
+      header.add(new AttributedStringBuilder().append("Simple list example:").toAttributedString());
 
-    try {
-      ConsolePrompt prompt = new ConsolePrompt();                     // #2
-      PromptBuilder promptBuilder = prompt.getPromptBuilder();        // #3
+      try (Terminal terminal = TerminalBuilder.builder().build()) {
+         ConsolePrompt prompt = new ConsolePrompt(terminal);
+         PromptBuilder promptBuilder = prompt.getPromptBuilder();
 
-      promptBuilder.createListPrompt()                                // #4
-              .name("pizzatype")
-              .message("Which pizza do you want?")
-              .newItem().text("Margherita").add()  // without name (name defaults to text)
-              .newItem("veneziana").text("Veneziana").add()
-              .newItem("hawai").text("Hawai").add()
-              .newItem("quattro").text("Quattro Stagioni").add()
-              .addPrompt();                                         
-      
-      HashMap<String, ? extends PromtResultItemIF> result = prompt.prompt(promptBuilder.build()); // #5
-      System.out.println("result = " + result);
-    } catch (IOException e) {
-      e.printStackTrace();
-    } finally {
-      try {
-        TerminalFactory.get().restore();
-      } catch (Exception e) {
-        e.printStackTrace();
+         promptBuilder
+                 .createListPrompt()
+                 .name("pizzatype")
+                 .message("Which pizza do you want?")
+                 .newItem()
+                 .text("Margherita")
+                 .add() // without name (name defaults to text)
+                 .newItem("veneziana")
+                 .text("Veneziana")
+                 .add()
+                 .newItem("hawai")
+                 .text("Hawai")
+                 .add()
+                 .newItem("quattro")
+                 .text("Quattro Stagioni")
+                 .add()
+                 .addPrompt();
+
+         Map<String, PromptResultItemIF> result = prompt.prompt(header, promptBuilder.build());
+         System.out.println("result = " + result);
+      } catch (IOException e) {
+         e.printStackTrace();
       }
-    }
-  }}
+   }
+}
 
 ```
 
 Basic steps:
 
-1. ConsoleUI uses [jansi](https://github.com/fusesource/jansi), so you have to initialize it first
-2.  Create a new `ConsolePrompt` object.
-3. Create a `PromptBuilder`. All user interactions can be created with the prompt builder object.
-4. In this example, we create a `ListPrompt`
+1. Create a new `ConsolePrompt` object.
+2. Create a `PromptBuilder`. All user interactions can be created with the prompt builder object.
+3. In this example, we create a `ListPrompt`
    1. give it a name ('pizzatype')
    2. assign a prompt message ("Which pizza do you want?")
    3. create items with and name (optional) and a text and add them to the ListPrompt
    4. to finish call `addPrompt()` to create the ListPrompt and add it to the prompt builder object.
-5. calling `prompt.prompt(promptBuilder.build())` builds all the prompts (in this example only one) and enters the user interaction. After all prompts are processes, the `prompt()` method returns an object with the user input results.
+4. calling `prompt.prompt(promptBuilder.build())` builds all the prompts (in this example only one) and enters the user interaction. After all prompts are processes, the `prompt()` method returns an object with the user input results.
 
 # Prompting for user input
 
@@ -148,7 +149,7 @@ Description:
 4. Add items to the list. If you call `newItem()` without a name for the item, the text of the item is used in the result.
 5. Add items with `newItem(<item_name>)` to give the item a name which makes it possible to use a technical key or another value instead of the printed text as a result.
 6. (optional) For long lists, you can use `pageSize()` to set an absolute number of items to display (default is 10). Even if you choose a higher value than the terminal, the list will never exceed the terminal height. 
-7. (optional) Further you can use `relativePageSize()` to set a percentual size of the terminal as height. In this example, 66 is 66/100 or 2/3 of the terminal used for the list items. At least one line is displayed, even when you select a very low value. 
+7. (optional) Further you can use `relativePageSize()` to set a percentage size of the terminal as height. In this example, 66 is 66/100 or 2/3 of the terminal used for the list items. At least one line is displayed, even when you select a very low value. 
 
 #### Console
 
@@ -198,7 +199,7 @@ Description:
 8. Use the `check()` method to pre-check the corresponding item.
 9. For more flexibility, you can use `checked()` with a boolean value to select if the item is checked by default.
 10. (optional) For long lists, you can use `pageSize()` to set an absolute number of items to display (default is 10). Even if you choose a higher value than the terminal, the list will never exceed the terminal height. 
-11. (optional) Further you can use `relativePageSize()` to set a percentual size of the terminal as height. In this example, 66 is 66/100 or 2/3 of the terminal used for the list items. At least one line is displayed even when you select a very low value. 
+11. (optional) Further you can use `relativePageSize()` to set a percentage size of the terminal as height. In this example, 66 is 66/100 or 2/3 of the terminal used for the list items. At least one line is displayed even when you select a very low value. 
 
 #### Console
 

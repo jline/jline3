@@ -1,3 +1,11 @@
+/*
+ * Copyright (c) 2024, the original author(s).
+ *
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
+ *
+ * https://opensource.org/licenses/BSD-3-Clause
+ */
 package org.jline.consoleui.prompt;
 
 import java.util.Set;
@@ -10,33 +18,31 @@ import java.util.Set;
  * Date: 03.02.16
  */
 public class CheckboxResult implements PromptResultItemIF {
-  Set<String> selectedIds;
+    Set<String> selectedIds;
 
-  /**
-   * Default Constructor.
-   * @param selectedIds Selected IDs.
-   */
-  public CheckboxResult(Set<String> selectedIds) {
-    this.selectedIds = selectedIds;
-  }
+    /**
+     * Default Constructor.
+     * @param selectedIds Selected IDs.
+     */
+    public CheckboxResult(Set<String> selectedIds) {
+        this.selectedIds = selectedIds;
+    }
 
-  /**
-   * Returns the set with the IDs of selected checkbox items.
-   *
-   * @return set with IDs
-   */
-  public Set<String> getSelectedIds() {
-    return selectedIds;
-  }
+    /**
+     * Returns the set with the IDs of selected checkbox items.
+     *
+     * @return set with IDs
+     */
+    public Set<String> getSelectedIds() {
+        return selectedIds;
+    }
 
-  public String getResult() {
-    return selectedIds.toString();
-  }
+    public String getResult() {
+        return selectedIds.toString();
+    }
 
-  @Override
-  public String toString() {
-    return "CheckboxResult{" +
-            "selectedIds=" + selectedIds +
-            '}';
-  }
+    @Override
+    public String toString() {
+        return "CheckboxResult{" + "selectedIds=" + selectedIds + '}';
+    }
 }

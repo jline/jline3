@@ -1,13 +1,12 @@
 <img src="./doc/ConsoleUI-Logo.png" width="200"  align="right" alt="ConsoleUI logo">
 
-[![Build Status](https://travis-ci.org/awegmann/consoleui.svg?branch=master)](https://travis-ci.org/awegmann/consoleui)
-
 # ConsoleUI
-
-[![Join the chat at https://gitter.im/awegmann/consoleui](https://badges.gitter.im/awegmann/consoleui.svg)](https://gitter.im/awegmann/consoleui?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Tiny java library that provides simple UI elements on ANSI console based terminals. ConsoleUI is inspired by 
 [Inquirer.js](https://github.com/SBoudrias/Inquirer.js) which is written in JavaScript.
+
+ConsoleUI has been initially implemented using JLine2 by Andreas Wegmann. After ConsoleUI has been upgraded to use JLine3 
+it has been merged into JLine3.
 
 # Intention
 
@@ -15,7 +14,7 @@ I was impressed by JavaScript based Yeoman which leads the user through the proc
 by querying with a simple user interface on the console. An investigation how this is done, brought 
 me to Inquirer.js which implements a very simple and intuitive set of controls for checkbox, list and text input.
 
-Because I didn't found anything comparable to this in the Java eco system, I decided to write `Console UI`
+Because I didn't find anything comparable to this in the Java ecosystem, I decided to write `Console UI`
 as a library with the same easy 'look and feel'. Some parts of the API are also comparable, but Console UI is not
 a Java clone of Inquirer.js.
 
@@ -29,32 +28,27 @@ a Java clone of Inquirer.js.
  - Expandable Choices (multiple key based answers for a question with help and optional list navigation)
  - Yes/No-Questions
 
-A screen recording of the basic elements demo can be fund on Youtube [console UI demo](https://youtu.be/6dB3CyOX9rU).
+A screen recording of the basic elements demo can be fund on YouTube [console UI demo](https://youtu.be/6dB3CyOX9rU).
 
 # Dependencies
 
-Console UI uses jansi and jline for the dirty console things.
+Console UI uses JLine for the dirty console things.
 
 # Maven artefact
 
-ConsoleUI releases are available at Maven Central [de.codeshelf.consoleui » consoleui](https://search.maven.org/artifact/de.codeshelf.consoleui/consoleui)
+ConsoleUI releases are available at Maven Central [org.jline.console-ui » console-ui](https://search.maven.org/artifact/org.jline.console-ui/console-ui)
 
 # Test Run
 
-You can get an idea how the project works by looking at `de.codeshelf.consoleui.Basic`.  
+You can get an idea how the project works by looking at `org.jline.consoleui.examples.Basic`.  
 You can run this by executing the following from the project root:
 
-    gradlew fatJar 
-    java -jar build/libs/consoleui-all-0.0.10.jar     # <- replace with the latest version
+    ./jline-console-ui.sh
 
 # Usage
 
 *Hint: see the [how to](doc/howto.md) to get a more detailed documentation how to use ConsoleUI.*
 
-
-Before you can use ConsoleUI the AnsiConsole library has to be initialized.
-
-    AnsiConsole.systemInstall();
 
 Entry point to the builder classes is to create a new object of type `ConsolePrompt`.
     
@@ -72,28 +66,15 @@ From with this `PromptBuilder` you can access UI builder with the following meth
 - createChoicePrompt()
     * creates a choice prompt. This prompt lets the user choose one from a given number of possible answers.     
 - createConfirmPromp()
-    * creates a confirm prompt. This prompt lets the user answer with 'yes' or 'no' to a given question.
+    * creates a confirmation prompt. This prompt lets the user answer with 'yes' or 'no' to a given question.
 - createInputPrompt()
-    * creates a input prompt. This prompt is a classic entry line like a shell. Because of the underlying readline
+    * creates an input prompt. This prompt is a classic entry line like a shell. Because of the underlying readline
       implementation it offers you to provide completers (like file name completer or string completer). In addition
       to his, you can define a mask character which is printed on the screen instead of the typed keys like used
       for hidden password entry.
 - createListPrompt()
     * creates a list prompt. This prompt lets the user choose one item from a given list.
 
-
-# Changes
-
-### Version 0.0.13
-
-- Fixed bug #22: lists are not rendered correctly  
-
-### Version 0.0.12
-
-- Fixed Bug #20: Lists higher than the terminal height were not handled correctly. 
-  ConsoleUI now supports scrolling for checkbox promt and list prompt.
-  To configure the height of the view port, either an absolute number of lines or a fraction (percentage) of the 
-  screen height can be defined.
 
 
 
