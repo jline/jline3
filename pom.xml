@@ -65,6 +65,7 @@
         <module>reader</module>
         <module>builtins</module>
         <module>console</module>
+        <module>console-ui</module>
         <module>groovy</module>
         <module>remote-ssh</module>
         <module>remote-telnet</module>
