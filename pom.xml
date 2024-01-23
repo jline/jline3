@@ -13,18 +13,13 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>org.sonatype.oss</groupId>
-        <artifactId>oss-parent</artifactId>
-        <version>9</version>
-    </parent>
-
     <groupId>org.jline</groupId>
     <artifactId>jline-parent</artifactId>
     <version>3.25.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>JLine Parent</name>
     <description>JLine</description>
+    <url>https://github.com/jline/jline3</url>
 
     <licenses>
         <license>
@@ -548,6 +543,9 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
                     <version>3.6.3</version>
+                    <configuration>
+                        <notimestamp>true</notimestamp>
+                    </configuration>
                 </plugin>
 
                 <plugin>
@@ -696,6 +694,10 @@
                 <artifactId>maven-release-plugin</artifactId>
                 <configuration>
                     <autoVersionSubmodules>true</autoVersionSubmodules>
+                    <useReleaseProfile>false</useReleaseProfile>
+                    <goals>deploy</goals>
+                    <preparationProfiles>bundle,javadoc,format-check,sign</preparationProfiles>
+                    <releaseProfiles>bundle,javadoc,format-check,sign</releaseProfiles>
                 </configuration>
             </plugin>
 
@@ -821,17 +823,9 @@
         </profile>
 
         <profile>
-            <id>sonatype-oss-release</id>
+            <id>sign</id>
             <build>
                 <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-source-plugin</artifactId>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-javadoc-plugin</artifactId>
-                    </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
