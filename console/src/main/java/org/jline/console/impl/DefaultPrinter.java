@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2023, the original author(s).
+ * Copyright (c) 2002-2024, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -466,18 +466,41 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     }
 
     private void highlightAndPrint(
-            int width, SyntaxHighlighter highlighter, String object, boolean doValueHighlight, int maxrows) {
-        String[] rows = object.split("\\r?\\n", maxrows);
-        int lastRowIdx = rows.length == maxrows ? rows.length - 1 : rows.length;
-        for (int i = 0; i < lastRowIdx; i++) {
-            AttributedStringBuilder asb = new AttributedStringBuilder();
-            List<AttributedString> sas = asb.append(rows[i]).columnSplitLength(width);
-            for (AttributedString as : sas) {
-                highlight(width, highlighter, as.toString(), doValueHighlight).println(terminal());
+            int width, SyntaxHighlighter highlighter, String object, boolean doValueHighlight, int maxRows) {
+        String lineBreak = null;
+        if (object.indexOf("\r\n") >= 0) {
+            lineBreak = "\r\n";
+        } else if (object.indexOf("\n") >= 0) {
+            lineBreak = "\n";
+        } else if (object.indexOf("\r") >= 0) {
+            lineBreak = "\r";
+        }
+        if (lineBreak == null) {
+            highlightAndPrint(width, highlighter, object, doValueHighlight);
+        } else {
+            int rows = 0;
+            int i0 = 0;
+            while (rows < maxRows) {
+                rows++;
+                int i1 = object.indexOf(lineBreak, i0);
+                String line = i1 >= 0 ? object.substring(i0, i1) : object.substring(i0);
+                highlightAndPrint(width, highlighter, line, doValueHighlight);
+                if (i1 < 0) {
+                    break;
+                }
+                i0 = i1 + lineBreak.length();
+            }
+            if (rows == maxRows) {
+                throw new TruncatedOutputException("Truncated output: " + maxRows);
             }
         }
-        if (rows.length == maxrows) {
-            throw new TruncatedOutputException("Truncated output: " + maxrows);
+    }
+
+    private void highlightAndPrint(int width, SyntaxHighlighter highlighter, String object, boolean doValueHighlight) {
+        AttributedStringBuilder asb = new AttributedStringBuilder();
+        List<AttributedString> sas = asb.append(object).columnSplitLength(width);
+        for (AttributedString as : sas) {
+            highlight(width, highlighter, as.toString(), doValueHighlight).println(terminal());
         }
     }
 
