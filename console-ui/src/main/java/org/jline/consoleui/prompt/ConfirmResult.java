@@ -13,9 +13,6 @@ import org.jline.consoleui.elements.ConfirmChoice;
 /**
  * Result of a confirmation choice. Holds a single value of 'yes' or 'no'
  * from enum {@link ConfirmChoice.ConfirmationValue}.
- * <p>
- * User: Andreas Wegmann
- * Date: 03.02.16
  */
 public class ConfirmResult implements PromptResultItemIF {
     ConfirmChoice.ConfirmationValue confirmed;

@@ -11,9 +11,6 @@ package org.jline.consoleui.prompt.builder;
 import org.jline.consoleui.elements.InputValue;
 import org.jline.reader.Completer;
 
-/**
- * Created by andy on 22.01.16.
- */
 public class InputValueBuilder {
     private final PromptBuilder promptBuilder;
     private String name;

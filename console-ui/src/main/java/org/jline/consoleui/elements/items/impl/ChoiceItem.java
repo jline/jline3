@@ -10,10 +10,6 @@ package org.jline.consoleui.elements.items.impl;
 
 import org.jline.consoleui.elements.items.ChoiceItemIF;
 
-/**
- * User: Andreas Wegmann
- * Date: 07.01.16
- */
 public class ChoiceItem implements ChoiceItemIF {
     private final Character key;
     private final String name;

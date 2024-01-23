@@ -36,8 +36,6 @@ import static org.jline.keymap.KeyMap.*;
 
 /**
  * Classes for all prompt implementations.
- *
- * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
     protected final Terminal terminal;

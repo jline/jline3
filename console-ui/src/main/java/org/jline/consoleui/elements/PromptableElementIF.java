@@ -8,10 +8,6 @@
  */
 package org.jline.consoleui.elements;
 
-/**
- * User: Andreas Wegmann
- * Date: 04.01.16
- */
 public interface PromptableElementIF {
 
     String getName();

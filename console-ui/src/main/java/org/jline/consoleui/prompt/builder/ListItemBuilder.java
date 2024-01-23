@@ -10,9 +10,6 @@ package org.jline.consoleui.prompt.builder;
 
 import org.jline.consoleui.elements.items.impl.ListItem;
 
-/**
- * Created by andy on 22.01.16.
- */
 public class ListItemBuilder {
     private final ListPromptBuilder listPromptBuilder;
     private String text;

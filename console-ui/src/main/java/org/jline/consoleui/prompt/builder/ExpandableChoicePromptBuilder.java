@@ -14,9 +14,6 @@ import java.util.List;
 import org.jline.consoleui.elements.ExpandableChoice;
 import org.jline.consoleui.elements.items.ChoiceItemIF;
 
-/**
- * Created by andy on 22.01.16.
- */
 public class ExpandableChoicePromptBuilder {
     private final PromptBuilder promptBuilder;
     private String name;

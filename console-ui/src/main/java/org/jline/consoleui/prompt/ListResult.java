@@ -10,8 +10,6 @@ package org.jline.consoleui.prompt;
 
 /**
  * Result of a list choice. Holds the id of the selected item.
- * <p>
- * Created by Andreas Wegmann on 03.02.16.
  */
 public class ListResult implements PromptResultItemIF {
 

@@ -25,8 +25,6 @@ import org.jline.utils.*;
 
 /**
  * ConsolePrompt encapsulates the prompting of a list of input questions for the user.
- *
- * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public class ConsolePrompt {
     private final LineReader reader;

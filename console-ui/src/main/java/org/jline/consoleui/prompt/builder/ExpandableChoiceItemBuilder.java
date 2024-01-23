@@ -10,9 +10,6 @@ package org.jline.consoleui.prompt.builder;
 
 import org.jline.consoleui.elements.items.impl.ChoiceItem;
 
-/**
- * Created by andy on 22.01.16.
- */
 public class ExpandableChoiceItemBuilder {
     private final ExpandableChoicePromptBuilder choicePromptBuilder;
     private String name;

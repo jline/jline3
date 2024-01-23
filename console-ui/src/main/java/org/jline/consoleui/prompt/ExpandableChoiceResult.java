@@ -11,9 +11,6 @@ package org.jline.consoleui.prompt;
 /**
  * Result of an expandable choice. ExpandableChoiceResult contains a String with the
  * IDs of the selected item.
- * <p>
- * User: Andreas Wegmann<p>
- * Date: 03.02.16
  */
 public class ExpandableChoiceResult implements PromptResultItemIF {
     String selectedId;

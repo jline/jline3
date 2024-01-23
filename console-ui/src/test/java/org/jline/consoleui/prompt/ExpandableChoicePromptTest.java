@@ -10,10 +10,6 @@ package org.jline.consoleui.prompt;
 
 import org.junit.jupiter.api.Test;
 
-/**
- * User: Andreas Wegmann
- * Date: 08.01.16
- */
 public class ExpandableChoicePromptTest {
 
     @Test

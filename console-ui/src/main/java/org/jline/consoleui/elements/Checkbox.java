@@ -12,10 +12,6 @@ import java.util.List;
 
 import org.jline.consoleui.elements.items.CheckboxItemIF;
 
-/**
- * User: Andreas Wegmann
- * Date: 01.01.16
- */
 public class Checkbox extends AbstractPromptableElement {
 
     private final int pageSize;

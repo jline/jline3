@@ -8,11 +8,6 @@
  */
 package org.jline.consoleui.prompt;
 
-/**
- *
- * User: Andreas Wegmann
- * Date: 03.02.16
- */
 public class InputResult implements PromptResultItemIF {
     private final String input;
 

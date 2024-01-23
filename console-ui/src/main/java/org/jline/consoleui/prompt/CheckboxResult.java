@@ -13,9 +13,6 @@ import java.util.Set;
 /**
  * Result of a checkbox choice. CheckboxResult contains a {@link java.util.Set} with the
  * IDs of the selected checkbox items.
- * <p>
- * User: Andreas Wegmann
- * Date: 03.02.16
  */
 public class CheckboxResult implements PromptResultItemIF {
     Set<String> selectedIds;

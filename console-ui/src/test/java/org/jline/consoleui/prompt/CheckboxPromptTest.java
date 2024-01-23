@@ -16,10 +16,6 @@ import org.jline.consoleui.elements.items.impl.CheckboxItem;
 import org.jline.consoleui.elements.items.impl.Separator;
 import org.junit.jupiter.api.Test;
 
-/**
- * User: Andreas Wegmann
- * Date: 07.12.15
- */
 public class CheckboxPromptTest {
     @Test
     public void renderSimpleList() {

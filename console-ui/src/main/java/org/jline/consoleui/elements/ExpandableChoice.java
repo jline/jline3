@@ -12,10 +12,6 @@ import java.util.List;
 
 import org.jline.consoleui.elements.items.ChoiceItemIF;
 
-/**
- * User: Andreas Wegmann
- * Date: 07.01.16
- */
 public class ExpandableChoice extends AbstractPromptableElement {
 
     private final List<ChoiceItemIF> choiceItems;

@@ -11,9 +11,6 @@ package org.jline.consoleui.prompt.builder;
 import org.jline.consoleui.elements.items.CheckboxItemIF;
 import org.jline.consoleui.elements.items.impl.CheckboxItem;
 
-/**
- * Created by andy on 22.01.16.
- */
 public class CheckboxItemBuilder {
     private final CheckboxPromptBuilder checkboxPromptBuilder;
     private boolean checked;

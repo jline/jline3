@@ -15,9 +15,6 @@ import org.jline.consoleui.elements.Checkbox;
 import org.jline.consoleui.elements.PageSizeType;
 import org.jline.consoleui.elements.items.CheckboxItemIF;
 
-/**
- * Created by andy on 22.01.16.
- */
 public class CheckboxPromptBuilder {
     private final PromptBuilder promptBuilder;
     private String name;

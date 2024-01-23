@@ -10,10 +10,6 @@ package org.jline.consoleui.elements;
 
 import org.jline.reader.Completer;
 
-/**
- * User: Andreas Wegmann
- * Date: 06.01.16
- */
 public class InputValue extends AbstractPromptableElement {
     private String value;
     private final String defaultValue;

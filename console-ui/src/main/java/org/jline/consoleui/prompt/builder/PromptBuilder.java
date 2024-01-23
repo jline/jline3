@@ -15,9 +15,6 @@ import org.jline.consoleui.elements.PromptableElementIF;
 
 /**
  * PromptBuilder is the builder class which creates
- *
- * Created by Andreas Wegmann
- * on 20.01.16.
  */
 public class PromptBuilder {
     List<PromptableElementIF> promptList = new ArrayList<>();

@@ -8,10 +8,6 @@
  */
 package org.jline.consoleui.elements;
 
-/**
- * User: Andreas Wegmann
- * Date: 07.01.16
- */
 public class ConfirmChoice extends AbstractPromptableElement {
 
     public enum ConfirmationValue {

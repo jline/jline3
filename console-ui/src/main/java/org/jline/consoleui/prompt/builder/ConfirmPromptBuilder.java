@@ -10,10 +10,6 @@ package org.jline.consoleui.prompt.builder;
 
 import org.jline.consoleui.elements.ConfirmChoice;
 
-/**
- * User: Andreas Wegmann
- * Date: 24.01.16
- */
 public class ConfirmPromptBuilder {
     private final PromptBuilder promptBuilder;
     private String name;

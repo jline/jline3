@@ -10,10 +10,6 @@ package org.jline.consoleui.elements.items.impl;
 
 import org.jline.consoleui.elements.items.ListItemIF;
 
-/**
- * User: Andreas Wegmann
- * Date: 01.01.16
- */
 public class ListItem implements ListItemIF {
     String text;
     String name;

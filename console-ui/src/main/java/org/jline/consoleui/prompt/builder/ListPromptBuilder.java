@@ -16,9 +16,6 @@ import org.jline.consoleui.elements.PageSizeType;
 import org.jline.consoleui.elements.items.ListItemIF;
 import org.jline.consoleui.elements.items.impl.ListItem;
 
-/**
- * Created by andy on 22.01.16.
- */
 public class ListPromptBuilder {
     private final PromptBuilder promptBuilder;
     private String name;

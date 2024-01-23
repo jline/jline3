@@ -10,9 +10,6 @@ package org.jline.consoleui.prompt.builder;
 
 import org.jline.consoleui.elements.items.impl.Separator;
 
-/**
- * Created by andy on 22.01.16.
- */
 public class ExpandableChoiceSeparatorBuilder {
     private final ExpandableChoicePromptBuilder expandableChoicePromptBuilder;
     private String text;

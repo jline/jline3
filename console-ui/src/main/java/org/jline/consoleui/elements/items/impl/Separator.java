@@ -12,10 +12,6 @@ import org.jline.consoleui.elements.items.CheckboxItemIF;
 import org.jline.consoleui.elements.items.ChoiceItemIF;
 import org.jline.consoleui.elements.items.ListItemIF;
 
-/**
- * User: Andreas Wegmann
- * Date: 01.01.16
- */
 public class Separator implements CheckboxItemIF, ListItemIF, ChoiceItemIF {
     private String message;
 

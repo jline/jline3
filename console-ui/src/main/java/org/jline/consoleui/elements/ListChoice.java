@@ -12,10 +12,6 @@ import java.util.List;
 
 import org.jline.consoleui.elements.items.ListItemIF;
 
-/**
- * User: Andreas Wegmann
- * Date: 04.01.16
- */
 public class ListChoice extends AbstractPromptableElement {
 
     private final int pageSize;

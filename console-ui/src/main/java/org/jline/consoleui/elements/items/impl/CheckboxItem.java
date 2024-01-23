@@ -11,10 +11,6 @@ package org.jline.consoleui.elements.items.impl;
 import org.jline.consoleui.elements.items.CheckboxItemIF;
 import org.jline.consoleui.elements.items.ConsoleUIItemIF;
 
-/**
- * User: Andreas Wegmann
- * Date: 07.12.15
- */
 public class CheckboxItem implements CheckboxItemIF, ConsoleUIItemIF {
     boolean checked;
     String text;

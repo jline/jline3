@@ -27,10 +27,6 @@ import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.OSUtils;
 
-/**
- * User: Andreas Wegmann
- * Date: 29.11.15
- */
 public class Basic {
 
     private static void addInHeader(List<AttributedString> header, String text) {

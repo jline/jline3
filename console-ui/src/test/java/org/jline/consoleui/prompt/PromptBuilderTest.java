@@ -19,10 +19,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-/**
- * User: Andreas Wegmann
- * Date: 20.01.16
- */
 public class PromptBuilderTest {
 
     @Test

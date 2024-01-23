@@ -8,10 +8,6 @@
  */
 package org.jline.consoleui.elements;
 
-/**
- * User: Andreas Wegmann
- * Date: 06.01.16
- */
 public class AbstractPromptableElement implements PromptableElementIF {
 
     protected String message;
