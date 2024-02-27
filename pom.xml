@@ -59,6 +59,7 @@
         <module>terminal-jni</module>
         <module>reader</module>
         <module>builtins</module>
+        <module>console-ui</module>
         <module>console</module>
         <module>groovy</module>
         <module>remote-ssh</module>
