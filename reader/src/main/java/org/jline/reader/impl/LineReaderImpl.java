@@ -5006,10 +5006,13 @@ public class LineReaderImpl implements LineReader, Flushable {
         PostResult postResult = computePost(possible, null, null, completed);
         int lines = postResult.lines;
         int listMax = getInt(LIST_MAX, DEFAULT_LIST_MAX);
-        if (listMax > 0 && possible.size() >= listMax || lines >= size.getRows() - promptLines) {
+        int rows = size.getRows();
+        int possibleSize = possible.size();
+        if (possibleSize == 0 || rows == 0) return false;
+        if (listMax > 0 && possibleSize >= listMax || lines >= rows - promptLines) {
             if (!forSuggestion) {
                 // prompt
-                post = () -> new AttributedString(getAppName() + ": do you wish to see all " + possible.size()
+                post = () -> new AttributedString(getAppName() + ": do you wish to see all " + possibleSize
                         + " possibilities (" + lines + " lines)?");
                 redisplay(true);
                 int c = readCharacter();
