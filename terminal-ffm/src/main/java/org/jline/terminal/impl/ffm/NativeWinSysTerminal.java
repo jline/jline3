@@ -38,7 +38,6 @@ import static org.jline.terminal.impl.ffm.Kernel32.WaitForSingleObject;
 import static org.jline.terminal.impl.ffm.Kernel32.getLastErrorMessage;
 import static org.jline.terminal.impl.ffm.Kernel32.readConsoleInputHelper;
 
-@SuppressWarnings("preview")
 public class NativeWinSysTerminal extends AbstractWindowsTerminal<java.lang.foreign.MemorySegment> {
 
     public static NativeWinSysTerminal createTerminal(
