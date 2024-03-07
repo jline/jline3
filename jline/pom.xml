@@ -84,6 +84,11 @@
         </dependency>
         <dependency>
             <groupId>org.jline</groupId>
+            <artifactId>jline-terminal-ffm</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
             <artifactId>jline-reader</artifactId>
             <scope>test</scope>
         </dependency>
@@ -435,6 +440,26 @@
                     <legacyMode>true</legacyMode>
                     <additionalOptions>--enable-preview --release 21 -Xdoclint:none</additionalOptions>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default-jar</id>
+                    </execution>
+                    <execution>
+                        <id>jdk8</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <phase>package</phase>
+                        <configuration>
+                            <classifier>jdk8</classifier>
+                            <excludes>**/ffm/*.class</excludes>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
