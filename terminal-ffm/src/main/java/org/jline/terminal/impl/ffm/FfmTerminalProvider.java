@@ -124,7 +124,7 @@ public class FfmTerminalProvider implements TerminalProvider {
         VarHandle h = layout.varHandle(element);
 
         // the last parameter of the VarHandle is additional offset, hardcode zero:
-        h = MethodHandles.insertCoordinates(h, 1, 0L);
+        h = MethodHandles.insertCoordinates(h, h.coordinateTypes().size() - 1, 0L);
 
         return h;
     }
