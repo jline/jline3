@@ -14,7 +14,7 @@ import java.lang.invoke.VarHandle;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
-@SuppressWarnings({"unused", "preview"})
+@SuppressWarnings({"unused", "restricted"})
 final class Kernel32 {
 
     public static final int FORMAT_MESSAGE_FROM_SYSTEM = 0x00001000;
@@ -277,8 +277,8 @@ final class Kernel32 {
     public static INPUT_RECORD[] readConsoleInputHelper(
             java.lang.foreign.Arena arena, java.lang.foreign.MemorySegment handle, int count, boolean peek)
             throws IOException {
-        java.lang.foreign.MemorySegment inputRecordPtr = arena.allocateArray(INPUT_RECORD.LAYOUT, count);
-        java.lang.foreign.MemorySegment length = arena.allocate(java.lang.foreign.ValueLayout.JAVA_INT, 0);
+        java.lang.foreign.MemorySegment inputRecordPtr = arena.allocate(INPUT_RECORD.LAYOUT, count);
+        java.lang.foreign.MemorySegment length = arena.allocate(java.lang.foreign.ValueLayout.JAVA_INT, 1);
         int res = peek
                 ? PeekConsoleInputW(handle, inputRecordPtr, count, length)
                 : ReadConsoleInputW(handle, inputRecordPtr, count, length);
@@ -910,11 +910,13 @@ final class Kernel32 {
     }
 
     static VarHandle varHandle(java.lang.foreign.MemoryLayout layout, String name) {
-        return layout.varHandle(java.lang.foreign.MemoryLayout.PathElement.groupElement(name));
+        return FfmTerminalProvider.lookupVarHandle(
+                layout, java.lang.foreign.MemoryLayout.PathElement.groupElement(name));
     }
 
     static VarHandle varHandle(java.lang.foreign.MemoryLayout layout, String e1, String name) {
-        return layout.varHandle(
+        return FfmTerminalProvider.lookupVarHandle(
+                layout,
                 java.lang.foreign.MemoryLayout.PathElement.groupElement(e1),
                 java.lang.foreign.MemoryLayout.PathElement.groupElement(name));
     }

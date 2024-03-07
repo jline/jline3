@@ -37,7 +37,6 @@ import static org.jline.terminal.impl.ffm.Kernel32.SetConsoleTextAttribute;
 import static org.jline.terminal.impl.ffm.Kernel32.SetConsoleTitleW;
 import static org.jline.terminal.impl.ffm.Kernel32.getLastErrorMessage;
 
-@SuppressWarnings("preview")
 class WindowsAnsiWriter extends AnsiWriter {
 
     private static final java.lang.foreign.MemorySegment console = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -401,7 +400,7 @@ class WindowsAnsiWriter extends AnsiWriter {
     @Override
     protected void processChangeWindowTitle(String title) {
         try (java.lang.foreign.Arena session = java.lang.foreign.Arena.ofConfined()) {
-            java.lang.foreign.MemorySegment str = session.allocateUtf8String(title);
+            java.lang.foreign.MemorySegment str = session.allocateFrom(title);
             SetConsoleTitleW(str);
         }
     }

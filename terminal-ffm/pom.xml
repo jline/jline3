@@ -23,7 +23,7 @@
     <name>JLine FFM Terminal</name>
 
     <properties>
-        <java.release.version>21</java.release.version>
+        <java.release.version>22</java.release.version>
         <automatic.module.name>org.jline.terminal.ffm</automatic.module.name>
     </properties>
 
@@ -56,24 +56,21 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <release>21</release>
-                    <compilerArgs>
-                        <arg>--enable-preview</arg>
-                    </compilerArgs>
+                    <release>${java.release.version}</release>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <argLine>--enable-preview --enable-native-access=ALL-UNNAMED</argLine>
+                    <argLine>--enable-native-access=ALL-UNNAMED</argLine>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
-                    <additionalOptions>--enable-preview --release ${java.release.version}</additionalOptions>
+                    <additionalOptions>--release ${java.release.version}</additionalOptions>
                 </configuration>
             </plugin>
         </plugins>

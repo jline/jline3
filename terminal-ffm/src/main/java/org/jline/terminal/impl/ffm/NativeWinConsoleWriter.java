@@ -19,7 +19,6 @@ import static org.jline.terminal.impl.ffm.Kernel32.STD_OUTPUT_HANDLE;
 import static org.jline.terminal.impl.ffm.Kernel32.WriteConsoleW;
 import static org.jline.terminal.impl.ffm.Kernel32.getLastErrorMessage;
 
-@SuppressWarnings("preview")
 class NativeWinConsoleWriter extends AbstractWindowsConsoleWriter {
 
     private final java.lang.foreign.MemorySegment console = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -27,7 +26,7 @@ class NativeWinConsoleWriter extends AbstractWindowsConsoleWriter {
     @Override
     protected void writeConsole(char[] text, int len) throws IOException {
         try (java.lang.foreign.Arena arena = java.lang.foreign.Arena.ofConfined()) {
-            java.lang.foreign.MemorySegment txt = arena.allocateArray(ValueLayout.JAVA_CHAR, text);
+            java.lang.foreign.MemorySegment txt = arena.allocateFrom(ValueLayout.JAVA_CHAR, text);
             if (WriteConsoleW(console, txt, len, MemorySegment.NULL, MemorySegment.NULL) == 0) {
                 throw new IOException("Failed to write to console: " + getLastErrorMessage());
             }
