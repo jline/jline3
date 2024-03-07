@@ -189,7 +189,7 @@ public class CompletionTest extends ReaderTestSupport {
         reader.setCompleter(new StringsCompleter(
                 Arrays.asList("ae_helloWorld", "ad_helloWorld", "ac_helloWorld", "ab_helloWorld", "aa_helloWorld")));
 
-        assertLine("a", new TestBuffer("a\t\n\n"));
+        assertLine("a", new TestBuffer("a\t\n"));
     }
 
     @Test
