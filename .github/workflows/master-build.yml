@@ -41,4 +41,4 @@ jobs:
           cache: maven
 
       - name: Build with maven
-        run: mvn --no-transfer-progress verify
+        run: ./mvnw --no-transfer-progress verify
