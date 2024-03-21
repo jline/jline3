@@ -5200,17 +5200,16 @@ public class LineReaderImpl implements LineReader, Flushable {
             boolean groupName,
             boolean rowsFirst) {
         List<Object> strings = new ArrayList<>();
-        boolean customOrder = possible.stream().anyMatch(c -> c.sort() != 0);
         if (groupName) {
             Comparator<String> groupComparator = getGroupComparator();
-            Map<String, Map<Object, Candidate>> sorted;
+            Map<String, List<Candidate>> sorted;
             sorted = groupComparator != null ? new TreeMap<>(groupComparator) : new LinkedHashMap<>();
             for (Candidate cand : possible) {
                 String group = cand.group();
-                sorted.computeIfAbsent(group != null ? group : "", s -> new LinkedHashMap<>())
-                        .put((customOrder ? cand.sort() : cand.value()), cand);
+                sorted.computeIfAbsent(group != null ? group : "", s -> new ArrayList<>())
+                        .add(cand);
             }
-            for (Map.Entry<String, Map<Object, Candidate>> entry : sorted.entrySet()) {
+            for (Map.Entry<String, List<Candidate>> entry : sorted.entrySet()) {
                 String group = entry.getKey();
                 if (group.isEmpty() && sorted.size() > 1) {
                     group = getOthersGroupName();
@@ -5218,27 +5217,30 @@ public class LineReaderImpl implements LineReader, Flushable {
                 if (!group.isEmpty() && autoGroup) {
                     strings.add(group);
                 }
-                strings.add(new ArrayList<>(entry.getValue().values()));
+                List<Candidate> candidates = entry.getValue();
+                Collections.sort(candidates);
+                strings.add(candidates);
                 if (ordered != null) {
-                    ordered.addAll(entry.getValue().values());
+                    ordered.addAll(candidates);
                 }
             }
         } else {
             Set<String> groups = new LinkedHashSet<>();
-            TreeMap<Object, Candidate> sorted = new TreeMap<>();
+            List<Candidate> sorted = new ArrayList<>();
             for (Candidate cand : possible) {
                 String group = cand.group();
                 if (group != null) {
                     groups.add(group);
                 }
-                sorted.put((customOrder ? cand.sort() : cand.value()), cand);
+                sorted.add(cand);
             }
             if (autoGroup) {
                 strings.addAll(groups);
             }
-            strings.add(new ArrayList<>(sorted.values()));
+            Collections.sort(sorted);
+            strings.add(sorted);
             if (ordered != null) {
-                ordered.addAll(sorted.values());
+                ordered.addAll(sorted);
             }
         }
         return toColumns(strings, selection, completed, wcwidth, width, rowsFirst);
