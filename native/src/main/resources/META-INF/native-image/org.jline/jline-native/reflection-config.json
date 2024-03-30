@@ -1,6 +1,6 @@
 [
   {
-    "name" : "org.jline.native.CLibrary",
+    "name" : "org.jline.nativ.CLibrary",
     "allDeclaredConstructors" : false,
     "allPublicConstructors" : false,
     "allDeclaredMethods" : false,
