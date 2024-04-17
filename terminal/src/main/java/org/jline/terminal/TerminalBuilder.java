@@ -17,12 +17,15 @@ import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -32,6 +35,7 @@ import org.jline.terminal.impl.AbstractTerminal;
 import org.jline.terminal.impl.DumbTerminal;
 import org.jline.terminal.impl.DumbTerminalProvider;
 import org.jline.terminal.spi.SystemStream;
+import org.jline.terminal.spi.TerminalExt;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.Log;
 import org.jline.utils.OSUtils;
@@ -100,6 +104,12 @@ public final class TerminalBuilder {
     public static final String PROP_REDIRECT_PIPE_CREATION_MODE_REFLECTION = "reflection";
     public static final String PROP_REDIRECT_PIPE_CREATION_MODE_DEFAULT =
             String.join(",", PROP_REDIRECT_PIPE_CREATION_MODE_REFLECTION, PROP_REDIRECT_PIPE_CREATION_MODE_NATIVE);
+
+    public static final Set<String> DEPRECATED_PROVIDERS =
+            Collections.unmodifiableSet(new HashSet<>(Arrays.asList(PROP_PROVIDER_JNA, PROP_PROVIDER_JANSI)));
+
+    public static final String PROP_DISABLE_DEPRECATED_PROVIDER_WARNING =
+            "org.jline.terminal.disableDeprecatedProviderWarning";
 
     //
     // Terminal output control
@@ -495,6 +505,15 @@ public final class TerminalBuilder {
         }
         if (terminal == null) {
             throw exception;
+        }
+        if (terminal instanceof TerminalExt) {
+            TerminalExt te = (TerminalExt) terminal;
+            if (DEPRECATED_PROVIDERS.contains(te.getProvider().name())
+                    && !getBoolean(PROP_DISABLE_DEPRECATED_PROVIDER_WARNING, false)) {
+                Log.warn("The terminal provider " + te.getProvider().name()
+                        + " has been deprecated, check your configuration. This warning can be disabled by setting the system property "
+                        + PROP_DISABLE_DEPRECATED_PROVIDER_WARNING + " to true.");
+            }
         }
         return terminal;
     }

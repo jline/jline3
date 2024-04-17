@@ -63,23 +63,25 @@ JLine supports the following platforms:
 * Solaris
 * Windows
 
-## JNI vs Jansi vs JNA vs FFM vs Exec
+## FFM vs JNI vs Jansi vs JNA vs Exec
 
 To perform the required operations, JLine needs to interoperate with the OS layer.  This is done through the JLine 
 `TerminalProvider` interface.  The terminal builder will automatically select a provider amongst the ones
 that are available.
 
+On the Windows platform, relying on native calls is mandatory, so you need to have a real provider (`jline-terminal-xxx` jar) registered and its dependencies available (usually the Jansi or JNA library).  Failing to do so will create a `dumb` terminal with no advanced capabilities.
+
 By default, the following order will be used.
 
 ### FFM
 
-The [FFM](https://docs.oracle.com/en/java/javase/21/core/foreign-function-and-memory-api.html#GUID-FBE990DA-C356-46E8-9109-C75567849BA8) provider is available since JLine 3.24.0 and when running on JDK >= 21.
-Since FFM is still a preview in JDK 21, the `--enable-preview --enable-native-access=ALL-UNNAMED` switches must be 
-used when launching the JVM.
+The [FFM](https://docs.oracle.com/en/java/javase/21/core/foreign-function-and-memory-api.html#GUID-FBE990DA-C356-46E8-9109-C75567849BA8) provider is available since JLine 3.24 and when running on JDK >= 21.  It's very lightweight with no additional dependencies.
+With JLine 3.26, the FFM provider requires JDK 22 with the `--enable-native-access=ALL-UNNAMED` JVM option.
+Note that JLine 3.24 and 3.25 uses the preview version of FFM support shipped in JDK 21 which is incompatible with the final version in JDK 22.
 
 ### JNI
 
-Since JLine 3.24.0, JLine provides its own JNI based provider and native libraries.
+Since JLine 3.24.0, JLine provides its own JNI based provider and native libraries.  This is the best default choice, with no additional dependency, but it requires loading a native library.
 
 ### JANSI
 
@@ -87,23 +89,23 @@ The [Jansi](https://github.com/fusesource/jansi) library is a library specialize
 terminals.  Historically, the JNI methods used by JLine were provided by Jansi.  In order to minimize the maintenance 
 cost, Jansi will be merged into JLine 3.25.
 
+This provider has been deprecated in 3.26 in favor of the JNI provider.
+
 ### JNA
 
 The [JNA](https://github.com/java-native-access/jna) library aims to provide an alternative way to access native 
 methods without requiring writing a full JNI native library.  If JNA is in JLine's class loader, the provider may 
-be used.
+be used. JNA is not supported on Apple M2 architectures.
+
+This provider has been deprecated in 3.26 in favor of the FFM provider.
 
 ### Exec
 
 The exec provider is available on Posix systems and on Windows when running under [Cygwin](https://www.cygwin.com) 
 or [MSys2](https://www.msys2.org).  This provider launches child processes whenever the terminal is accessed 
 (using `Terminal.getAttributes`, `Terminal.setAttributes`, `Terminal.getSize`, `Terminal.setSize`).  
-This provider also does not support external terminals
- This also allows the use of pseudo-terminals when dealing with non system terminals (for example when creating a terminal for an incoming connection).
 
-On the Windows platform, relying on native calls is mandatory, so you need to have either Jansi or JNA library in your classpath along with the `jline-terminal-jansi` or `jline-terminal-jna` jar.  Failing to do so will create a `dumb` terminal with no advanced capabilities.
-
-There is no difference between JLine's support for Jansi and JNA.  Both will provide the exact same behaviors. So it's a matter of preference: Jansi is a smaller but more focused library while JNA is a bigger but more generic and versatile one.
+This provider also does not support external terminals (for example when creating a terminal for an incoming connection) and does not support the Windows native environment.
 
 # Maven Usage
 
