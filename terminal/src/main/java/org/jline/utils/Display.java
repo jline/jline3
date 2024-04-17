@@ -308,8 +308,10 @@ public class Display {
                 }
             } else if (atRight) {
                 if (this.wrapAtEol) {
-                    terminal.writer().write(" \b");
-                    cursorPos++;
+                    if (!fullScreen || (fullScreen && lineIndex < numLines)) {
+                        terminal.writer().write(" \b");
+                        cursorPos++;
+                    }
                 } else {
                     terminal.puts(Capability.carriage_return); // CR / not newline.
                     cursorPos = curCol;
