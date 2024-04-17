@@ -32,7 +32,7 @@ public class LinuxNativePty extends JniNativePty {
                     return new LinuxNativePty(
                             provider, systemStream, -1, null, 0, FileDescriptor.in, 2, FileDescriptor.err, ttyname(2));
                 default:
-                    throw new IllegalArgumentException("Unsupport stream for console: " + systemStream);
+                    throw new IllegalArgumentException("Unsupported stream for console: " + systemStream);
             }
         } catch (IOException e) {
             throw new IOException("Not a tty", e);
@@ -55,15 +55,18 @@ public class LinuxNativePty extends JniNativePty {
         }
         String name = new String(buf, 0, len);
         return new LinuxNativePty(
-                provider,
-                null,
-                master[0],
-                newDescriptor(master[0]),
-                slave[0],
-                newDescriptor(slave[0]),
-                2,
-                FileDescriptor.err,
-                name);
+                provider, null, master[0], newDescriptor(master[0]), slave[0], newDescriptor(slave[0]), name);
+    }
+
+    public LinuxNativePty(
+            TerminalProvider provider,
+            SystemStream systemStream,
+            int master,
+            FileDescriptor masterFD,
+            int slave,
+            FileDescriptor slaveFD,
+            String name) {
+        super(provider, systemStream, master, masterFD, slave, slaveFD, name);
     }
 
     public LinuxNativePty(

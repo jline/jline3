@@ -32,7 +32,7 @@ public class FreeBsdNativePty extends JniNativePty {
                     return new FreeBsdNativePty(
                             provider, systemStream, -1, null, 0, FileDescriptor.in, 2, FileDescriptor.err, ttyname(2));
                 default:
-                    throw new IllegalArgumentException("Unsupport stream for console: " + systemStream);
+                    throw new IllegalArgumentException("Unsupported stream for console: " + systemStream);
             }
         } catch (IOException e) {
             throw new IOException("Not a tty", e);
