@@ -92,7 +92,7 @@
 
         <java.build.version>21</java.build.version>
         <java.release.version>8</java.release.version>
-        <maven.version>3.6.3</maven.version>
+        <maven.version>3.9.6</maven.version>
 
         <native.image.skip>true</native.image.skip>
         <automatic.module.name />
