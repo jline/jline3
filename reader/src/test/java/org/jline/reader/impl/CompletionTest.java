@@ -193,6 +193,17 @@ public class CompletionTest extends ReaderTestSupport {
     }
 
     @Test
+    public void testTerminalNoSizeComplete() {
+        terminal.setSize(new Size());
+        reader.doAutosuggestion = true;
+        reader.autosuggestion = LineReader.SuggestionType.COMPLETER;
+        reader.setCompleter(new StringsCompleter(
+                Arrays.asList("ae_helloWorld", "ad_helloWorld", "ac_helloWorld", "ab_helloWorld", "aa_helloWorld")));
+
+        assertLine("a", new TestBuffer("a\t\n"));
+    }
+
+    @Test
     public void testParserEofOnEscapedNewLine() {
         DefaultParser parser = new DefaultParser();
         parser.setEofOnEscapedNewLine(true);
