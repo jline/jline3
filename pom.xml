@@ -90,7 +90,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.outputTimestamp>2024-01-23T12:21:59Z</project.build.outputTimestamp>
 
-        <java.build.version>21</java.build.version>
+        <java.build.version>22</java.build.version>
         <java.release.version>8</java.release.version>
         <maven.version>3.9.6</maven.version>
 

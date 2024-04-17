@@ -13,6 +13,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.invoke.VarHandle;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,7 +35,7 @@ import org.jline.terminal.spi.Pty;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
 
-@SuppressWarnings("preview")
+@SuppressWarnings("restricted")
 class CLibrary {
 
     private static final Logger logger = Logger.getLogger("org.jline");
@@ -51,8 +53,8 @@ class CLibrary {
                     ValueLayout.JAVA_SHORT.withName("ws_col"),
                     ValueLayout.JAVA_SHORT,
                     ValueLayout.JAVA_SHORT);
-            ws_row = LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("ws_row"));
-            ws_col = LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("ws_col"));
+            ws_row = FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("ws_row"));
+            ws_col = FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("ws_col"));
         }
 
         private final java.lang.foreign.MemorySegment seg;
@@ -97,24 +99,59 @@ class CLibrary {
         private static final VarHandle c_oflag;
         private static final VarHandle c_cflag;
         private static final VarHandle c_lflag;
+        private static final long c_cc_offset;
         private static final VarHandle c_ispeed;
         private static final VarHandle c_ospeed;
 
         static {
-            LAYOUT = MemoryLayout.structLayout(
-                    ValueLayout.JAVA_LONG.withName("c_iflag"),
-                    ValueLayout.JAVA_LONG.withName("c_oflag"),
-                    ValueLayout.JAVA_LONG.withName("c_cflag"),
-                    ValueLayout.JAVA_LONG.withName("c_lflag"),
-                    MemoryLayout.sequenceLayout(32, ValueLayout.JAVA_BYTE).withName("c_cc"),
-                    ValueLayout.JAVA_LONG.withName("c_ispeed"),
-                    ValueLayout.JAVA_LONG.withName("c_ospeed"));
-            c_iflag = LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("c_iflag"));
-            c_oflag = LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("c_oflag"));
-            c_cflag = LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("c_cflag"));
-            c_lflag = LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("c_lflag"));
-            c_ispeed = LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("c_ispeed"));
-            c_ospeed = LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("c_ospeed"));
+            if (OSUtils.IS_OSX) {
+                LAYOUT = MemoryLayout.structLayout(
+                        ValueLayout.JAVA_LONG.withName("c_iflag"),
+                        ValueLayout.JAVA_LONG.withName("c_oflag"),
+                        ValueLayout.JAVA_LONG.withName("c_cflag"),
+                        ValueLayout.JAVA_LONG.withName("c_lflag"),
+                        MemoryLayout.sequenceLayout(32, ValueLayout.JAVA_BYTE).withName("c_cc"),
+                        ValueLayout.JAVA_LONG.withName("c_ispeed"),
+                        ValueLayout.JAVA_LONG.withName("c_ospeed"));
+            } else if (OSUtils.IS_LINUX) {
+                LAYOUT = MemoryLayout.structLayout(
+                        ValueLayout.JAVA_INT.withName("c_iflag"),
+                        ValueLayout.JAVA_INT.withName("c_oflag"),
+                        ValueLayout.JAVA_INT.withName("c_cflag"),
+                        ValueLayout.JAVA_INT.withName("c_lflag"),
+                        ValueLayout.JAVA_BYTE.withName("c_line"),
+                        MemoryLayout.sequenceLayout(32, ValueLayout.JAVA_BYTE).withName("c_cc"),
+                        MemoryLayout.paddingLayout(3),
+                        ValueLayout.JAVA_INT.withName("c_ispeed"),
+                        ValueLayout.JAVA_INT.withName("c_ospeed"));
+            } else {
+                throw new IllegalStateException("Unsupported system!");
+            }
+            c_iflag = adjust2LinuxHandle(
+                    FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("c_iflag")));
+            c_oflag = adjust2LinuxHandle(
+                    FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("c_oflag")));
+            c_cflag = adjust2LinuxHandle(
+                    FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("c_cflag")));
+            c_lflag = adjust2LinuxHandle(
+                    FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("c_lflag")));
+            c_cc_offset = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("c_cc"));
+            c_ispeed = adjust2LinuxHandle(
+                    FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("c_ispeed")));
+            c_ospeed = adjust2LinuxHandle(
+                    FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("c_ospeed")));
+        }
+
+        private static VarHandle adjust2LinuxHandle(VarHandle v) {
+            if (OSUtils.IS_LINUX) {
+                MethodHandle id = MethodHandles.identity(int.class);
+                v = MethodHandles.filterValue(
+                        v,
+                        MethodHandles.explicitCastArguments(id, MethodType.methodType(int.class, long.class)),
+                        MethodHandles.explicitCastArguments(id, MethodType.methodType(long.class, int.class)));
+            }
+
+            return v;
         }
 
         private final java.lang.foreign.MemorySegment seg;
@@ -211,14 +248,18 @@ class CLibrary {
             c_cc[VINTR] = (byte) t.getControlChar(Attributes.ControlChar.VINTR);
             c_cc[VQUIT] = (byte) t.getControlChar(Attributes.ControlChar.VQUIT);
             c_cc[VSUSP] = (byte) t.getControlChar(Attributes.ControlChar.VSUSP);
-            c_cc[VDSUSP] = (byte) t.getControlChar(Attributes.ControlChar.VDSUSP);
+            if (VDSUSP != (-1)) {
+                c_cc[VDSUSP] = (byte) t.getControlChar(Attributes.ControlChar.VDSUSP);
+            }
             c_cc[VSTART] = (byte) t.getControlChar(Attributes.ControlChar.VSTART);
             c_cc[VSTOP] = (byte) t.getControlChar(Attributes.ControlChar.VSTOP);
             c_cc[VLNEXT] = (byte) t.getControlChar(Attributes.ControlChar.VLNEXT);
             c_cc[VDISCARD] = (byte) t.getControlChar(Attributes.ControlChar.VDISCARD);
             c_cc[VMIN] = (byte) t.getControlChar(Attributes.ControlChar.VMIN);
             c_cc[VTIME] = (byte) t.getControlChar(Attributes.ControlChar.VTIME);
-            c_cc[VSTATUS] = (byte) t.getControlChar(Attributes.ControlChar.VSTATUS);
+            if (VSTATUS != (-1)) {
+                c_cc[VSTATUS] = (byte) t.getControlChar(Attributes.ControlChar.VSTATUS);
+            }
             c_cc().copyFrom(java.lang.foreign.MemorySegment.ofArray(c_cc));
         }
 
@@ -259,7 +300,7 @@ class CLibrary {
         }
 
         java.lang.foreign.MemorySegment c_cc() {
-            return seg.asSlice(32, 20);
+            return seg.asSlice(c_cc_offset, 20);
         }
 
         long c_ispeed() {
@@ -377,14 +418,18 @@ class CLibrary {
             cc.put(Attributes.ControlChar.VINTR, (int) c_cc[VINTR]);
             cc.put(Attributes.ControlChar.VQUIT, (int) c_cc[VQUIT]);
             cc.put(Attributes.ControlChar.VSUSP, (int) c_cc[VSUSP]);
-            cc.put(Attributes.ControlChar.VDSUSP, (int) c_cc[VDSUSP]);
+            if (VDSUSP != (-1)) {
+                cc.put(Attributes.ControlChar.VDSUSP, (int) c_cc[VDSUSP]);
+            }
             cc.put(Attributes.ControlChar.VSTART, (int) c_cc[VSTART]);
             cc.put(Attributes.ControlChar.VSTOP, (int) c_cc[VSTOP]);
             cc.put(Attributes.ControlChar.VLNEXT, (int) c_cc[VLNEXT]);
             cc.put(Attributes.ControlChar.VDISCARD, (int) c_cc[VDISCARD]);
             cc.put(Attributes.ControlChar.VMIN, (int) c_cc[VMIN]);
             cc.put(Attributes.ControlChar.VTIME, (int) c_cc[VTIME]);
-            cc.put(Attributes.ControlChar.VSTATUS, (int) c_cc[VSTATUS]);
+            if (VSTATUS != (-1)) {
+                cc.put(Attributes.ControlChar.VSTATUS, (int) c_cc[VSTATUS]);
+            }
             // Return
             return attr;
         }
@@ -630,19 +675,19 @@ class CLibrary {
     private static final int VWERASE;
     private static final int VKILL;
     private static final int VREPRINT;
-    private static int VERASE2;
+    private static final int VERASE2;
     private static final int VINTR;
     private static final int VQUIT;
     private static final int VSUSP;
-    private static int VDSUSP;
+    private static final int VDSUSP;
     private static final int VSTART;
     private static final int VSTOP;
     private static final int VLNEXT;
     private static final int VDISCARD;
     private static final int VMIN;
-    private static int VSWTC;
+    private static final int VSWTC;
     private static final int VTIME;
-    private static int VSTATUS;
+    private static final int VSTATUS;
 
     private static final int IGNBRK;
     private static final int BRKINT;
@@ -784,6 +829,9 @@ class CLibrary {
             VWERASE = 14;
             VLNEXT = 15;
             VEOL2 = 16;
+            VERASE2 = -1;
+            VDSUSP = -1;
+            VSTATUS = -1;
 
             IGNBRK = 0x0000001;
             BRKINT = 0x0000002;
@@ -906,6 +954,9 @@ class CLibrary {
             VWERASE = 14;
             VLNEXT = 15;
             VEOL2 = 16;
+            VERASE2 = -1;
+            VDSUSP = -1;
+            VSTATUS = -1;
 
             IGNBRK = 0x0000001;
             BRKINT = 0x0000002;
@@ -1026,6 +1077,8 @@ class CLibrary {
             VMIN = 16;
             VTIME = 17;
             VSTATUS = 18;
+            VERASE2 = -1;
+            VSWTC = -1;
 
             IGNBRK = 0x00000001;
             BRKINT = 0x00000002;
@@ -1119,6 +1172,7 @@ class CLibrary {
             VMIN = 16;
             VTIME = 17;
             VSTATUS = 18;
+            VSWTC = -1;
 
             IGNBRK = 0x0000001;
             BRKINT = 0x0000002;
