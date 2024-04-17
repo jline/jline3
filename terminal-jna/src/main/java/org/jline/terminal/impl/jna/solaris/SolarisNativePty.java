@@ -39,7 +39,7 @@ public class SolarisNativePty extends JnaNativePty {
                 return new SolarisNativePty(
                         provider, systemStream, -1, null, 0, FileDescriptor.in, 2, FileDescriptor.err, ttyname(0));
             default:
-                throw new IllegalArgumentException("Unsupport stream for console: " + systemStream);
+                throw new IllegalArgumentException("Unsupported stream for console: " + systemStream);
         }
     }
 

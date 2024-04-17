@@ -48,7 +48,7 @@ public class OsXNativePty extends JniNativePty {
                             FileDescriptor.err,
                             ttyname(2));
                 default:
-                    throw new IllegalArgumentException("Unsupport stream for console: " + systemStream);
+                    throw new IllegalArgumentException("Unsupported stream for console: " + systemStream);
             }
         } catch (IOException e) {
             throw new IOException("Not a tty", e);
