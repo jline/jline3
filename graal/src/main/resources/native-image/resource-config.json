@@ -1,6 +1,0 @@
-{
-  "resources": [
-    {"pattern": "org/jline/utils/.*caps$"},
-    {"pattern": "org/jline/utils/capabilities\\.txt$"}
-  ]
-}
