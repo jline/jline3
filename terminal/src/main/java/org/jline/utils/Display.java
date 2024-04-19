@@ -29,8 +29,8 @@ public class Display {
     protected final boolean fullScreen;
     protected List<AttributedString> oldLines = Collections.emptyList();
     protected int cursorPos;
-    private int columns;
-    private int columns1; // columns+1
+    protected int columns;
+    protected int columns1; // columns+1
     protected int rows;
     protected boolean reset;
     protected boolean delayLineWrap;

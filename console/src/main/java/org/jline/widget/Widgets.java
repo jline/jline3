@@ -9,7 +9,7 @@
 package org.jline.widget;
 
 import java.security.InvalidParameterException;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -265,10 +265,10 @@ public abstract class Widgets {
     }
 
     /**
-     * Add description text to the terminal status bar
+     * Set description text to the terminal status bar
      * @param desc description text
      */
-    public void addDescription(List<AttributedString> desc) {
+    public void setDescription(List<AttributedString> desc) {
         Status.getStatus(reader.getTerminal()).update(desc);
     }
 
@@ -276,38 +276,13 @@ public abstract class Widgets {
      *  Clears terminal status bar
      */
     public void clearDescription() {
-        initDescription(0);
-    }
-
-    /**
-     * Initialize terminal status bar
-     * @param size Terminal status bar size in rows
-     */
-    public void initDescription(int size) {
-        Status status = Status.getStatus(reader.getTerminal(), false);
-        if (size > 0) {
-            if (status == null) {
-                status = Status.getStatus(reader.getTerminal());
-            }
-            status.setBorder(true);
-            List<AttributedString> as = new ArrayList<>();
-            for (int i = 0; i < size; i++) {
-                as.add(new AttributedString(""));
-            }
-            addDescription(as);
-        } else if (status != null) {
-            if (size < 0) {
-                status.update(null);
-            } else {
-                status.clear();
-            }
-        }
+        setDescription(Collections.emptyList());
     }
 
     /**
      *  Remove terminal status bar
      */
     public void destroyDescription() {
-        initDescription(-1);
+        Status.getExistingStatus(reader.getTerminal()).ifPresent(Status::hide);
     }
 }
