@@ -1194,7 +1194,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         return str;
     }
 
-    protected void handleSignal(Signal signal) {
+    protected synchronized void handleSignal(Signal signal) {
         doAutosuggestion = false;
         if (signal == Signal.WINCH) {
             size.copy(terminal.getBufferSize());
@@ -1203,6 +1203,8 @@ public class LineReaderImpl implements LineReader, Flushable {
             if (status != null) {
                 status.resize(size);
             }
+            terminal.puts(Capability.carriage_return);
+            terminal.puts(Capability.clr_eos);
             redrawLine();
             redisplay();
         } else if (signal == Signal.CONT) {
