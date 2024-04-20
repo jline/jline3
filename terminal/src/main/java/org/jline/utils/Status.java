@@ -59,7 +59,6 @@ public class Status {
 
     public void close() {
         terminal.puts(Capability.save_cursor);
-        clear();
         terminal.puts(Capability.change_scroll_region, 0, display.rows - 1);
         terminal.puts(Capability.restore_cursor);
         terminal.flush();
@@ -91,18 +90,6 @@ public class Status {
         }
         update(lines);
     }
-
-    /**
-     * Clear the status bar lines (but not the border).
-     */
-    public void clear() {
-        clear(false);
-    }
-
-    /**
-     * Clear the status bar lines eventually including the border.
-     */
-    private void clear(boolean clearBorder) {}
 
     public void hide() {
         update(Collections.emptyList());
@@ -215,7 +202,6 @@ public class Status {
     public void suspend() {
         if (!suspended) {
             suspended = true;
-            clear(true);
         }
     }
 
