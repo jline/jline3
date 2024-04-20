@@ -80,6 +80,8 @@ public class Status {
     public void reset() {
         if (supported) {
             display.reset();
+            scrollRegion = display.rows;
+            terminal.puts(Capability.change_scroll_region, 0, scrollRegion);
         }
     }
 
