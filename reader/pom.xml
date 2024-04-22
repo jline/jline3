@@ -24,7 +24,7 @@
 
     <properties>
         <automatic.module.name>org.jline.reader</automatic.module.name>
-        <surefire.argLine>--add-opens java.base/java.io=ALL-UNNAMED --enable-preview</surefire.argLine>
+        <surefire.argLine>--add-opens java.base/java.io=ALL-UNNAMED</surefire.argLine>
     </properties>
 
     <dependencies>

@@ -438,7 +438,6 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
                     <legacyMode>true</legacyMode>
-                    <additionalOptions>--enable-preview --release 21 -Xdoclint:none</additionalOptions>
                 </configuration>
             </plugin>
             <plugin>
