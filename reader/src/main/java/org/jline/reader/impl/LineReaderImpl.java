@@ -1194,17 +1194,19 @@ public class LineReaderImpl implements LineReader, Flushable {
         return str;
     }
 
-    protected void handleSignal(Signal signal) {
+    protected synchronized void handleSignal(Signal signal) {
         doAutosuggestion = false;
         if (signal == Signal.WINCH) {
-            Status status = Status.getStatus(terminal, false);
-            if (status != null) {
-                status.hardReset();
-            }
             size.copy(terminal.getBufferSize());
             display.resize(size.getRows(), size.getColumns());
-            // restores prompt but also prevents scrolling in consoleZ, see #492
-            // redrawLine();
+            Status status = Status.getStatus(terminal, false);
+            if (status != null) {
+                status.resize(size);
+                status.reset();
+            }
+            terminal.puts(Capability.carriage_return);
+            terminal.puts(Capability.clr_eos);
+            redrawLine();
             redisplay();
         } else if (signal == Signal.CONT) {
             terminal.enterRawMode();
@@ -3874,9 +3876,6 @@ public class LineReaderImpl implements LineReader, Flushable {
 
             Status status = Status.getStatus(terminal, false);
             if (status != null) {
-                if (terminal.getType().startsWith(AbstractWindowsTerminal.TYPE_WINDOWS)) {
-                    status.resize();
-                }
                 status.redraw();
             }
 

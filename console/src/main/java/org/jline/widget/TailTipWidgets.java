@@ -9,6 +9,7 @@
 package org.jline.widget;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -156,7 +157,7 @@ public class TailTipWidgets extends Widgets {
 
     public void setDescriptionSize(int descriptionSize) {
         this.descriptionSize = descriptionSize;
-        initDescription(descriptionSize);
+        initDescription();
     }
 
     public int getDescriptionSize() {
@@ -393,22 +394,33 @@ public class TailTipWidgets extends Widgets {
         if (descriptionSize == 0 || !descriptionEnabled) {
             return;
         }
-        if (desc.isEmpty()) {
-            clearDescription();
-        } else if (desc.size() == descriptionSize) {
-            addDescription(desc);
-        } else if (desc.size() > descriptionSize) {
+        List<AttributedString> list = desc;
+        if (list.size() > descriptionSize) {
             AttributedStringBuilder asb = new AttributedStringBuilder();
-            asb.append(desc.get(descriptionSize - 1)).append("...", new AttributedStyle(AttributedStyle.INVERSE));
-            List<AttributedString> mod = new ArrayList<>(desc.subList(0, descriptionSize - 1));
+            asb.append(list.get(descriptionSize - 1)).append("…", new AttributedStyle(AttributedStyle.INVERSE));
+            List<AttributedString> mod = new ArrayList<>(list.subList(0, descriptionSize - 1));
             mod.add(asb.toAttributedString());
-            addDescription(mod);
-        } else {
-            while (desc.size() != descriptionSize) {
-                desc.add(new AttributedString(""));
+            list = mod;
+        } else if (list.size() < descriptionSize) {
+            List<AttributedString> mod = new ArrayList<>(list);
+            while (mod.size() != descriptionSize) {
+                mod.add(new AttributedString(""));
             }
-            addDescription(desc);
+            list = mod;
         }
+        setDescription(list);
+    }
+
+    /**
+     * Initialize terminal status bar
+     */
+    public void initDescription() {
+        Status.getStatus(reader.getTerminal()).setBorder(true);
+        clearDescription();
+    }
+
+    public void clearDescription() {
+        doDescription(Collections.emptyList());
     }
 
     private boolean autopairEnabled() {
@@ -419,7 +431,7 @@ public class TailTipWidgets extends Widgets {
     public boolean toggleWindow() {
         descriptionEnabled = !descriptionEnabled;
         if (descriptionEnabled) {
-            initDescription(descriptionSize);
+            initDescription();
         } else {
             destroyDescription();
         }
@@ -435,7 +447,7 @@ public class TailTipWidgets extends Widgets {
         } else {
             customBindings();
             if (descriptionEnabled) {
-                initDescription(descriptionSize);
+                initDescription();
             }
             readerErrors = reader.getVariable(LineReader.ERRORS);
             reader.setVariable(LineReader.ERRORS, 0);
