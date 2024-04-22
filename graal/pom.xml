@@ -72,40 +72,13 @@
                 </executions>
             </plugin>
             <plugin>
-                <artifactId>maven-resources-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>copy-root</id>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <phase>validate</phase>
-                        <configuration>
-                            <outputDirectory>${basedir}/target</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>src/main/resources</directory>
-                                    <includes>
-                                        <include>reflection-config.json</include>
-                                    </includes>
-                                </resource>
-                            </resources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <groupId>org.graalvm.nativeimage</groupId>
                 <artifactId>native-image-maven-plugin</artifactId>
                 <configuration>
                     <skip>${native.image.skip}</skip>
                     <imageName>graal</imageName>
                     <mainClass>org.jline.demo.graal.Graal</mainClass>
-                    <buildArgs>--no-fallback
-                        --report-unsupported-elements-at-runtime
-                        --allow-incomplete-classpath
-                        -H:+UnlockExperimentalVMOptions
-                        -H:ReflectionConfigurationFiles=reflection-config.json</buildArgs>
+                    <buildArgs />
                 </configuration>
                 <executions>
                     <execution>
