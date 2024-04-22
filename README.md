@@ -53,6 +53,7 @@ You can also use fine grained jars:
 * `jline-builtins`: several high level tools: `less` pager, `nano` editor, `screen` multiplexer, etc...
 * `jline-console`: command registry, object printer and widget implementations
 * `jline-groovy`: `ScriptEngine` implementation using Groovy
+* `jline-console-ui`: provides simple UI elements on ANSI terminals
 
 ## Supported platforms
 
@@ -125,6 +126,11 @@ JLine can also be used with more low-level jars:
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-terminal</artifactId>
+    <version>${jline.version}</version>
+</dependency>
+<dependency>
+    <groupId>org.jline</groupId>
+    <artifactId>jline-terminal-jni</artifactId>
     <version>${jline.version}</version>
 </dependency>
 <dependency>
