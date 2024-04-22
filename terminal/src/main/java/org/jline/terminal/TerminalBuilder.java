@@ -171,7 +171,7 @@ public final class TerminalBuilder {
     private Boolean color;
     private Attributes attributes;
     private Size size;
-    private boolean nativeSignals = false;
+    private boolean nativeSignals = true;
     private Terminal.SignalHandler signalHandler = Terminal.SignalHandler.SIG_DFL;
     private boolean paused = false;
 
@@ -347,6 +347,12 @@ public final class TerminalBuilder {
         return this;
     }
 
+    /**
+     * Determines the default value for signal handlers.
+     * All signals will be mapped to the given handler.
+     * @param signalHandler the default signal handler
+     * @return The builder
+     */
     public TerminalBuilder signalHandler(Terminal.SignalHandler signalHandler) {
         this.signalHandler = signalHandler;
         return this;
@@ -367,6 +373,11 @@ public final class TerminalBuilder {
         return this;
     }
 
+    /**
+     * Builds the terminal.
+     * @return the newly created terminal, never {@code null}
+     * @throws IOException if an error occurs
+     */
     public Terminal build() throws IOException {
         Terminal override = TERMINAL_OVERRIDE.get();
         Terminal terminal = override != null ? override : doBuild();
@@ -645,6 +656,13 @@ public final class TerminalBuilder {
         return encoding;
     }
 
+    /**
+     * Get the list of available terminal providers.
+     * This list is sorted according to the {@link #PROP_PROVIDERS} system property.
+     * @param provider if not {@code null}, only this provider will be checked
+     * @param exception if a provider throws an exception, it will be added to this exception as a suppressed exception
+     * @return a list of terminal providers
+     */
     public List<TerminalProvider> getProviders(String provider, IllegalStateException exception) {
         List<TerminalProvider> providers = new ArrayList<>();
         // Check ffm provider
