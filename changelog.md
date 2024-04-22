@@ -1,6 +1,36 @@
 # [JLine3](https://github.com/jline/jline3)
 <!-- git log --pretty=format:'* [`%h`](https://github.com/jline/jline3/commit/%H) %s' -->
 
+## [JLine 3.26.0][3_26_0]
+[3_26_0] https://repo1.maven.org/maven2/org/jline/jline/3.26.0/
+
+* [`164a7510`](https://github.com/jline/jline3/commit/164a751079c75632762ed39c85a1c77d92250ea8) Remove --enable-preview flags
+* [`67106b62`](https://github.com/jline/jline3/commit/67106b622620a32b5c6896d6f0dacfbfd1abfd7f) Add jline-console-ui jar to the readme
+* [`f01e9efa`](https://github.com/jline/jline3/commit/f01e9efa2debabba3b355d323444f0d554d2ff3b) Simplify graal demo (#970)
+* [`f3702650`](https://github.com/jline/jline3/commit/f370265074cee9d81b1fcfac01adba3790324964) Switch the nativeSignals boolean to true by default (#971)
+* [`34d65ff0`](https://github.com/jline/jline3/commit/34d65ff0708023b9e057a601728e0bf9afa744c4) Upgrade maven wrapper (#972)
+* [`00285161`](https://github.com/jline/jline3/commit/002851615eb94a3ca6eb431b151138e314a829ee) Improve status bar drawing mechanism (fixes #939) (#969)
+* [`3865e5f6`](https://github.com/jline/jline3/commit/3865e5f621f1ca224e47833de569047e37056033) Warn when using a deprecated provider (#967)
+* [`ed527069`](https://github.com/jline/jline3/commit/ed5270693857938f07f8d4a4cb54473a3cec9f62) Fix remote terminal on linux/bsd (fixes #962) (#968)
+* [`4545ba7c`](https://github.com/jline/jline3/commit/4545ba7cae5f11b71f8a180e44dc4a7e86e86a6b) Don't attempt line break at last line (fixes #963) (#966)
+* [`9c53282b`](https://github.com/jline/jline3/commit/9c53282b573ceda1361818c42fc09cfea3d7c37d) Merge pull request #935 from gnodet/merge-consoleui
+* [`f0864317`](https://github.com/jline/jline3/commit/f0864317e53d5ff82c0eccc4b4604d51111d6519) Don't change keybindings to emacs for dumb terminals (fixes #864) (#953)
+* [`c8b3caa8`](https://github.com/jline/jline3/commit/c8b3caa84263acfc923fd9b3dda199029f719e41) Disable Quick Edit Mode with mouse support (fixes #964) (#965)
+* [`b982407c`](https://github.com/jline/jline3/commit/b982407c382795ec232c9ca77d1bc14e15504e69) Use default sort order when custom sort order is identical (fixes #956) (#957)
+* [`bef5cb14`](https://github.com/jline/jline3/commit/bef5cb14e414b56b49dfc96f90d4d229cf419699) Fix native image compilation (fixes #954) (#959)
+* [`643b8599`](https://github.com/jline/jline3/commit/643b859957d846937de6753f4ad4ccacb4ef7c72) Return early from LineReaderImpl.doList if no possibilities or rows (fixes #941) (#942)
+* [`cfee77c3`](https://github.com/jline/jline3/commit/cfee77c3e9c4f496a91d5f9abfd7c3ff44961166) Exclude directories when locating `tty`, `test` etc (#948)
+* [`6a620e70`](https://github.com/jline/jline3/commit/6a620e70d62178e8a551bfae1d52e892e857118f) Provide jdk8 jar by excluding the FFM support (fixes #937) (#949)
+* [`9393ed63`](https://github.com/jline/jline3/commit/9393ed634d631bf0f863542716232f38b32aa444) Fixing the FfmTerminal to run on JDK 22 and on Linux. (#945)
+* [`8775eb23`](https://github.com/jline/jline3/commit/8775eb2324e57b4ba6d9cc88f3f88a4f0f9cb176) Update maven to 3.9.6 (fixes #944) (#950)
+* [`c45a4a97`](https://github.com/jline/jline3/commit/c45a4a977bce46a991fb1ca3de767f452012282a) In maven-wrapper.properties, set maven version to the same value as pom.xml (#961)
+* [`902f9fab`](https://github.com/jline/jline3/commit/902f9fab8a6ece82bba96cbdb0f0bb569bf7bd14) Update GitHub Actions (#955)
+* [`dd4145bf`](https://github.com/jline/jline3/commit/dd4145bfdbe78939c190d0709d905fce2d169415) Remove useless javadoc, rely on git history instead
+* [`38d6adbb`](https://github.com/jline/jline3/commit/38d6adbb2e70caa50875f00811225c2f7f4da7f5) Merge remote-tracking branch 'consoleui/master' into merge-consoleui
+* [`e5a491a5`](https://github.com/jline/jline3/commit/e5a491a5f71d8ae443ce89150fd2487eb5b9ecde) Prepare merge
+* [`2f162bc4`](https://github.com/jline/jline3/commit/2f162bc429093ab28521d83bc0990030b98aa395) Rename package
+* [`df8945ed`](https://github.com/jline/jline3/commit/df8945ede9a5a9fe945f8a0d7db2cb6274e6dc44) move into subfolder
+
 ## [JLine 3.25.1][3_25_1]
 [3_25_1] https://repo1.maven.org/maven2/org/jline/jline/3.25.1/
 
