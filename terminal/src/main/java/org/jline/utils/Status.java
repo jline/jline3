@@ -117,8 +117,9 @@ public class Status {
 
         lines = new ArrayList<>(lines);
         // add border
+        int rows = display.rows;
         int columns = display.columns;
-        if (border == 1 && !lines.isEmpty()) {
+        if (border == 1 && !lines.isEmpty() && rows > 1) {
             lines.add(0, getBorderString(columns));
         }
         // trim or complete lines to the full width
