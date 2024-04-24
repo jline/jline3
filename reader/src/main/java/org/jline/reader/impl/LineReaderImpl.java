@@ -763,11 +763,16 @@ public class LineReaderImpl implements LineReader, Flushable {
                 throw e;
             }
         } finally {
-            boolean interrupted = Thread.interrupted();
+            AtomicBoolean interrupted = new AtomicBoolean(Thread.interrupted());
             try {
                 lock.lock();
 
                 this.reading = false;
+
+                Terminal.SignalHandler tmpHandler = terminal.handle(Signal.INT, s -> interrupted.set(true));
+                if (previousIntrHandler == null) {
+                    previousIntrHandler = tmpHandler;
+                }
 
                 cleanup();
                 if (originalAttributes != null) {
@@ -785,7 +790,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             } finally {
                 lock.unlock();
                 startedReading.set(false);
-                if (interrupted) {
+                if (interrupted.get()) {
                     Thread.currentThread().interrupt();
                 }
             }
