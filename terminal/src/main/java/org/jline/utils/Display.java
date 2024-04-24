@@ -68,7 +68,7 @@ public class Display {
 
     public void resize(int rows, int columns) {
         if (rows == 0 || columns == 0) {
-            columns = Integer.MAX_VALUE - 1;
+            columns = 1;
             rows = 1;
         }
         if (this.rows != rows || this.columns != columns) {
