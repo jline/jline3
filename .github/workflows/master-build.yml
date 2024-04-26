@@ -42,3 +42,11 @@ jobs:
 
       - name: Build with maven
         run: ./mvnw --no-transfer-progress verify
+        if: matrix.os != 'windows-latest'
+      
+      - name: Build with maven
+        run: |
+          set PATH=%JAVA_HOME%\bin;C:\Windows\System32\WindowsPowerShell\v1.0\
+          mvnw.cmd --no-transfer-progress verify
+        shell: cmd
+        if: matrix.os == 'windows-latest'
