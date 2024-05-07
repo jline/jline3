@@ -147,6 +147,7 @@ public class Status {
         if (newScrollRegion < scrollRegion) {
             // We need to scroll up to grow the status bar
             terminal.puts(Capability.save_cursor);
+            terminal.puts(Capability.cursor_address, scrollRegion, 0);
             for (int i = newScrollRegion; i < scrollRegion; i++) {
                 terminal.puts(Capability.cursor_down);
             }
