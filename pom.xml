@@ -106,7 +106,7 @@
         <junit.version>5.10.1</junit.version>
         <gogo.runtime.version>1.1.6</gogo.runtime.version>
         <gogo.jline.version>1.1.8</gogo.jline.version>
-        <slf4j.version>2.0.9</slf4j.version>
+        <slf4j.version>2.0.13</slf4j.version>
         <findbugs.version>3.0.2</findbugs.version>
         <groovy.version>4.0.18</groovy.version>
         <ivy.version>2.5.2</ivy.version>
