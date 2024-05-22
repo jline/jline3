@@ -110,7 +110,7 @@
         <findbugs.version>3.0.2</findbugs.version>
         <groovy.version>4.0.21</groovy.version>
         <ivy.version>2.5.2</ivy.version>
-        <graal.version>23.1.2</graal.version>
+        <graal.version>24.0.1</graal.version>
         <graal.plugin.version>21.2.0</graal.plugin.version>
 
         <surefire.argLine>--add-opens java.base/java.io=ALL-UNNAMED</surefire.argLine>
