@@ -1,19 +1,19 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
- * http://www.opensource.org/licenses/bsd-license.php
+ * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.curses.impl;
+
+import java.util.EnumSet;
 
 import org.jline.curses.*;
 import org.jline.terminal.MouseEvent;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStyle;
-
-import java.util.EnumSet;
 
 public abstract class AbstractWindow extends AbstractComponent implements Window {
 
@@ -41,6 +41,7 @@ public abstract class AbstractWindow extends AbstractComponent implements Window
         return title;
     }
 
+    @Override
     public void setTitle(String title) {
         this.title = title;
     }
@@ -52,7 +53,7 @@ public abstract class AbstractWindow extends AbstractComponent implements Window
 
     @Override
     public void setComponent(Component component) {
-        AbstractComponent.class.cast(component).setParent(this);
+        ((AbstractComponent) component).setParent(this);
         this.component = component;
     }
 
@@ -65,6 +66,7 @@ public abstract class AbstractWindow extends AbstractComponent implements Window
         this.gui = gui;
     }
 
+    @Override
     public void setSize(Size size) {
         super.setSize(size);
         if (component != null) {
@@ -80,7 +82,7 @@ public abstract class AbstractWindow extends AbstractComponent implements Window
 
     @Override
     public void focus(Component component) {
-        AbstractComponent c = AbstractComponent.class.cast(component);
+        AbstractComponent c = (AbstractComponent) component;
         if (c != null && c.getWindow() != this) {
             throw new IllegalStateException();
         }
@@ -97,12 +99,12 @@ public abstract class AbstractWindow extends AbstractComponent implements Window
 
     @Override
     public WindowRenderer getRenderer() {
-        return WindowRenderer.class.cast(super.getRenderer());
+        return (WindowRenderer) super.getRenderer();
     }
 
     @Override
     public void setRenderer(Renderer renderer) {
-        super.setRenderer(WindowRenderer.class.cast(renderer));
+        super.setRenderer((WindowRenderer) renderer);
     }
 
     @Override
@@ -110,12 +112,12 @@ public abstract class AbstractWindow extends AbstractComponent implements Window
         return new WindowRenderer() {
             @Override
             public void draw(Screen screen, Component window) {
-                AbstractWindow.class.cast(window).doDraw(screen);
+                ((AbstractWindow) window).doDraw(screen);
             }
 
             @Override
             public Size getPreferredSize(Component window) {
-                return AbstractWindow.class.cast(window).doGetPreferredSize();
+                return ((AbstractWindow) window).doGetPreferredSize();
             }
 
             @Override
@@ -130,25 +132,24 @@ public abstract class AbstractWindow extends AbstractComponent implements Window
         };
     }
 
+    @Override
     public void handleInput(String input) {
         if (input.contains("q")) {
             close();
         }
     }
 
+    @Override
     public void handleMouse(MouseEvent event) {
         if (component != null && component.isIn(event.getX(), event.getY())) {
             component.handleMouse(event);
             return;
         }
-        if (getBehaviors().contains(Behavior.CloseButton)
-                && !getBehaviors().contains(Behavior.NoDecoration)) {
+        if (getBehaviors().contains(Behavior.CloseButton) && !getBehaviors().contains(Behavior.NoDecoration)) {
             Position pos = getScreenPosition();
-            if (event.getX() == pos.x() + getSize().w() - 2
-                    && event.getY() == pos.y()) {
+            if (event.getX() == pos.x() + getSize().w() - 2 && event.getY() == pos.y()) {
                 close();
             }
-            return;
         }
     }
 
@@ -167,13 +168,32 @@ public abstract class AbstractWindow extends AbstractComponent implements Window
             AttributedStyle st = getTheme().getStyle(".window.border");
             screen.fill(pos.x(), pos.y(), getSize().w(), getSize().h(), st);
         } else {
-            screen.fill(pos.x() + 2, pos.y() + 1, getSize().w(), getSize().h(), getTheme().getStyle(".window.shadow"));
-            getTheme().box(screen, pos.x(), pos.y(), getSize().w(), getSize().h(), Curses.Border.Double, ".window.border");
+            screen.fill(
+                    pos.x() + 2,
+                    pos.y() + 1,
+                    getSize().w(),
+                    getSize().h(),
+                    getTheme().getStyle(".window.shadow"));
+            getTheme()
+                    .box(
+                            screen,
+                            pos.x(),
+                            pos.y(),
+                            getSize().w(),
+                            getSize().h(),
+                            Curses.Border.Double,
+                            ".window.border");
             if (getBehaviors().contains(Behavior.CloseButton)) {
-                screen.text(pos.x() + getSize().w() - 2, pos.y(), new AttributedString("x", getTheme().getStyle(".window.close")));
+                screen.text(
+                        pos.x() + getSize().w() - 2,
+                        pos.y(),
+                        new AttributedString("x", getTheme().getStyle(".window.close")));
             }
             if (title != null) {
-                screen.text(pos.x() + 3, pos.y(), new AttributedString(title, getTheme().getStyle(".window.title")));
+                screen.text(
+                        pos.x() + 3,
+                        pos.y(),
+                        new AttributedString(title, getTheme().getStyle(".window.title")));
             }
             if (component != null) {
                 component.draw(screen);
@@ -191,9 +211,9 @@ public abstract class AbstractWindow extends AbstractComponent implements Window
         }
     }
 
-    interface WindowRenderer extends Renderer {
+    public interface WindowRenderer extends Renderer {
         Position getComponentOffset();
+
         Size getComponentSize(Size box);
     }
-
 }

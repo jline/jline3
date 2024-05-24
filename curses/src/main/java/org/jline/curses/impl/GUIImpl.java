@@ -1,12 +1,15 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
- * http://www.opensource.org/licenses/bsd-license.php
+ * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.curses.impl;
+
+import java.io.IOException;
+import java.util.*;
 
 import org.jline.curses.*;
 import org.jline.keymap.BindingReader;
@@ -18,18 +21,15 @@ import org.jline.utils.AttributedStyle;
 import org.jline.utils.Display;
 import org.jline.utils.InfoCmp;
 
-import java.io.IOException;
-import java.util.*;
-
 public class GUIImpl implements GUI {
 
     private final Terminal terminal;
     private final Deque<Window> windows = new ArrayDeque<>();
     private Window activeWindow;
-    private AbstractWindow background;
+    private final AbstractWindow background;
     private Size size;
     private Display display;
-    private Map<Class<?>, Renderer> renderers = new HashMap<>();
+    private final Map<Class<?>, Renderer> renderers = new HashMap<>();
     private Theme theme = new DefaultTheme();
 
     public GUIImpl(Terminal terminal) {
@@ -38,24 +38,29 @@ public class GUIImpl implements GUI {
             @Override
             protected void doDraw(Screen screen) {
                 AttributedStyle st = getTheme().getStyle(".background");
-                screen.fill(getPosition().x(), getPosition().y(), getSize().w(), getSize().h(), st);
+                screen.fill(
+                        getPosition().x(),
+                        getPosition().y(),
+                        getSize().w(),
+                        getSize().h(),
+                        st);
             }
         };
         this.background.setGUI(this);
         this.background.setBehaviors(EnumSet.of(Component.Behavior.NoDecoration, Component.Behavior.FullScreen));
-
     }
 
+    @Override
     public Terminal getTerminal() {
         return terminal;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public <C extends Component> Renderer getRenderer(Class<C> clazz) {
         return renderers.get(clazz);
     }
 
+    @Override
     public <C extends Component> void setRenderer(Class<C> clazz, Renderer renderer) {
         this.renderers.put(clazz, renderer);
     }
@@ -65,6 +70,7 @@ public class GUIImpl implements GUI {
         return theme;
     }
 
+    @Override
     public void setTheme(Theme theme) {
         this.theme = theme;
     }
@@ -75,7 +81,7 @@ public class GUIImpl implements GUI {
             window.getGUI().removeWindow(window);
         }
         windows.add(window);
-        AbstractWindow.class.cast(window).setGUI(this);
+        ((AbstractWindow) window).setGUI(this);
         if (!window.getBehaviors().contains(Window.Behavior.NoFocus)) {
             activeWindow = window;
         }
@@ -85,7 +91,7 @@ public class GUIImpl implements GUI {
     @Override
     public void removeWindow(Window window) {
         if (windows.remove(window)) {
-            AbstractWindow.class.cast(window).setGUI(null);
+            ((AbstractWindow) window).setGUI(null);
             if (activeWindow == window) {
                 activeWindow = null;
                 for (Window w : windows) {
@@ -98,6 +104,7 @@ public class GUIImpl implements GUI {
         }
     }
 
+    @Override
     public void run() {
         BindingReader bindingReader = new BindingReader(terminal.reader());
         KeyMap<Event> map = new KeyMap<>();
@@ -107,8 +114,10 @@ public class GUIImpl implements GUI {
 
         Attributes attributes = terminal.getAttributes();
         Attributes newAttr = new Attributes(attributes);
-        newAttr.setLocalFlags(EnumSet.of(Attributes.LocalFlag.ICANON, Attributes.LocalFlag.ECHO, Attributes.LocalFlag.IEXTEN), false);
-        newAttr.setInputFlags(EnumSet.of(Attributes.InputFlag.IXON, Attributes.InputFlag.ICRNL, Attributes.InputFlag.INLCR), false);
+        newAttr.setLocalFlags(
+                EnumSet.of(Attributes.LocalFlag.ICANON, Attributes.LocalFlag.ECHO, Attributes.LocalFlag.IEXTEN), false);
+        newAttr.setInputFlags(
+                EnumSet.of(Attributes.InputFlag.IXON, Attributes.InputFlag.ICRNL, Attributes.InputFlag.INLCR), false);
         newAttr.setControlChar(Attributes.ControlChar.VMIN, 0);
         newAttr.setControlChar(Attributes.ControlChar.VTIME, 1);
         newAttr.setControlChar(Attributes.ControlChar.VINTR, 0);
@@ -135,7 +144,8 @@ public class GUIImpl implements GUI {
                 redraw();
             }
             try {
-                while (terminal.reader().read(1) > 0) ;
+                while (terminal.reader().read(1) > 0)
+                    ;
             } catch (IOException e) {
                 // ignore
             }
@@ -172,12 +182,13 @@ public class GUIImpl implements GUI {
     }
 
     enum Event {
-        Key, Mouse
+        Key,
+        Mouse
     }
 
     protected void handleInput(String input) {
         if (activeWindow != null) {
-            AbstractWindow.class.cast(activeWindow).handleInput(input);
+            activeWindow.handleInput(input);
         } else {
             background.handleInput(input);
         }
@@ -201,14 +212,13 @@ public class GUIImpl implements GUI {
         if (window == null) {
             window = background;
         }
-        AbstractWindow.class.cast(window).handleMouse(event);
+        window.handleMouse(event);
     }
 
     protected void redraw() {
         VirtualScreen screen = new VirtualScreen(size.w(), size.h());
         background.draw(screen);
-        windows.forEach(w -> AbstractWindow.class.cast(w).draw(screen));
+        windows.forEach(w -> w.draw(screen));
         display.update(screen.lines(), -1, true);
     }
-
 }

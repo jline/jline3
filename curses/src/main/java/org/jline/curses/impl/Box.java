@@ -1,39 +1,39 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
- * http://www.opensource.org/licenses/bsd-license.php
+ * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.curses.impl;
-
-import org.jline.curses.*;
 
 import java.util.Collection;
 import java.util.Collections;
 
+import org.jline.curses.*;
+
 public class Box extends AbstractComponent implements Container {
 
-    private String title;
-    private Curses.Border border;
-    private Component component;
+    private final String title;
+    private final Curses.Border border;
+    private final Component component;
 
     public Box(String title, Curses.Border border, Component component) {
         this.title = title;
         this.border = border;
         this.component = component;
-        AbstractComponent.class.cast(component).setParent(this);
+        ((AbstractComponent) component).setParent(this);
     }
 
     @Override
     public BoxRenderer getRenderer() {
-        return BoxRenderer.class.cast(super.getRenderer());
+        return (BoxRenderer) super.getRenderer();
     }
 
     @Override
     public void setRenderer(Renderer renderer) {
-        super.setRenderer(BoxRenderer.class.cast(renderer));
+        super.setRenderer((BoxRenderer) renderer);
     }
 
     public String getTitle() {
@@ -61,9 +61,7 @@ public class Box extends AbstractComponent implements Container {
     }
 
     @Override
-    protected void doDraw(Screen screen) {
-
-    }
+    protected void doDraw(Screen screen) {}
 
     @Override
     protected Size doGetPreferredSize() {
@@ -80,12 +78,12 @@ public class Box extends AbstractComponent implements Container {
         return new BoxRenderer() {
             @Override
             public void draw(Screen screen, Component box) {
-                Box.class.cast(box).doDraw(screen);
+                ((Box) box).doDraw(screen);
             }
 
             @Override
             public Size getPreferredSize(Component box) {
-                return Box.class.cast(box).doGetPreferredSize();
+                return ((Box) box).doGetPreferredSize();
             }
 
             @Override
@@ -100,8 +98,9 @@ public class Box extends AbstractComponent implements Container {
         };
     }
 
-    interface BoxRenderer extends Renderer {
+    public interface BoxRenderer extends Renderer {
         Position getComponentOffset();
+
         Size getComponentSize(Size box);
     }
 }

@@ -1,17 +1,17 @@
 /*
- * Copyright (c) 2002-2018, the original author or authors.
+ * Copyright (c) 2002-2018, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
  *
- * http://www.opensource.org/licenses/bsd-license.php
+ * https://opensource.org/licenses/BSD-3-Clause
  */
 package org.jline.curses.impl;
 
+import java.util.EnumSet;
+
 import org.jline.curses.*;
 import org.jline.terminal.MouseEvent;
-
-import java.util.EnumSet;
 
 public abstract class AbstractComponent implements Component {
 
@@ -25,6 +25,7 @@ public abstract class AbstractComponent implements Component {
     private Theme theme;
     private EnumSet<Behavior> behaviors = EnumSet.noneOf(Behavior.class);
 
+    @Override
     public Position getPosition() {
         return position;
     }
@@ -34,6 +35,7 @@ public abstract class AbstractComponent implements Component {
         this.position = position;
     }
 
+    @Override
     public Position getScreenPosition() {
         Position p = parent != null ? parent.getScreenPosition() : new Position(0, 0);
         return new Position(position.x() + p.x(), position.y() + p.y());
@@ -43,10 +45,10 @@ public abstract class AbstractComponent implements Component {
     public boolean isIn(int x, int y) {
         Position p = getScreenPosition();
         Size s = getSize();
-        return p.x() <= x && x <= p.x() + s.w()
-                && p.y() <= y && y <= p.y() + s.h();
+        return p.x() <= x && x <= p.x() + s.w() && p.y() <= y && y <= p.y() + s.h();
     }
 
+    @Override
     public Size getSize() {
         return size;
     }
@@ -56,6 +58,7 @@ public abstract class AbstractComponent implements Component {
         this.size = size;
     }
 
+    @Override
     public Size getPreferredSize() {
         if (preferredSize == null) {
             return computePreferredSize();
@@ -76,7 +79,6 @@ public abstract class AbstractComponent implements Component {
         this.behaviors = behaviors;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public void draw(Screen screen) {
         getRenderer().draw(screen, this);
@@ -156,18 +158,14 @@ public abstract class AbstractComponent implements Component {
         }
     }
 
-    public void onFocus() {
-    }
+    public void onFocus() {}
 
-    public void onUnfocus() {
-    }
+    public void onUnfocus() {}
 
-    @SuppressWarnings("unchecked")
     protected Size computePreferredSize() {
         return getRenderer().getPreferredSize(this);
     }
 
-    @SuppressWarnings("unchecked")
     protected Renderer computeRenderer() {
         Window window = getWindow();
         GUI gui = window != null ? window.getGUI() : null;
@@ -179,12 +177,12 @@ public abstract class AbstractComponent implements Component {
         return new Renderer() {
             @Override
             public void draw(Screen screen, Component component) {
-                AbstractComponent.class.cast(component).doDraw(screen);
+                ((AbstractComponent) component).doDraw(screen);
             }
 
             @Override
             public Size getPreferredSize(Component component) {
-                return AbstractComponent.class.cast(component).doGetPreferredSize();
+                return ((AbstractComponent) component).doGetPreferredSize();
             }
         };
     }
@@ -194,10 +192,8 @@ public abstract class AbstractComponent implements Component {
     protected abstract Size doGetPreferredSize();
 
     @Override
-    public void handleMouse(MouseEvent event) {
-    }
+    public void handleMouse(MouseEvent event) {}
 
     @Override
-    public void handleInput(String input) {
-    }
+    public void handleInput(String input) {}
 }
