@@ -393,7 +393,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-site-plugin</artifactId>
-                    <version>4.0.0-M14</version>
+                    <version>4.0.0-M15</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -762,7 +762,7 @@
                             <dependency>
                                 <groupId>org.apache.commons</groupId>
                                 <artifactId>commons-lang3</artifactId>
-                                <version>3.13.0</version>
+                                <version>3.14.0</version>
                             </dependency>
                         </dependencies>
                         <executions>
