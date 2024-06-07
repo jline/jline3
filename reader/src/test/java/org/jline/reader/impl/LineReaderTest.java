@@ -203,4 +203,16 @@ public class LineReaderTest {
         assertEquals("hello", read1);
         assertEquals("world", read2);
     }
+
+    @Test
+    public void testNoBackspaceInOutputOnDumbTerminal() throws IOException {
+        ByteArrayInputStream in = new ByteArrayInputStream(new byte[] {'\n'});
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (Terminal terminal = new DumbTerminal(in, out)) {
+            LineReader r = new LineReaderImpl(terminal);
+            r.readLine("123");
+            String written = out.toString();
+            assertEquals("123", written);
+        }
+    }
 }

@@ -14,6 +14,7 @@ import java.io.IOException;
 
 import org.jline.reader.LineReader;
 import org.jline.reader.impl.LineReaderImpl;
+import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
 import org.jline.utils.InfoCmp.Capability;
@@ -34,6 +35,7 @@ public final class TailTipWidgetsTest {
             strings.put(Capability.save_cursor, "");
             strings.put(Capability.restore_cursor, "");
             strings.put(Capability.cursor_address, "");
+            setSize(new Size(160, 50));
         }
     }
 
