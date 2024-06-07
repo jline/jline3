@@ -1,6 +1,6 @@
 <!--
 
-    Copyright (c) 2002-2020, the original author or authors.
+    Copyright (c) 2002-2024, the original author or authors.
 
     This software is distributable under the BSD license. See the terms of the
     BSD license in the documentation provided with this software.
@@ -32,7 +32,7 @@ JLine is distributed under the [BSD License](https://opensource.org/licenses/BSD
 
 # Artifacts
 
-JLine can be used with a single bundle or smaller fine grained jars. The bundle contains all jars except `jline-groovy` that must be included in classpath if you want to use scripting capabilities.
+JLine can be used with a single bundle or smaller fine-grained jars. The bundle contains all jars except `jline-groovy` that must be included in classpath if you want to use scripting capabilities.
 The big bundle is named:
 
     jline-${jline.version}.jar
@@ -55,6 +55,13 @@ You can also use fine grained jars:
 * `jline-groovy`: `ScriptEngine` implementation using Groovy
 * `jline-console-ui`: provides simple UI elements on ANSI terminals
 
+# JANSI
+
+The JANSI project has been merged into JLine.
+The following artifacts are available:
+* `jansi-core`: the fine-grained jar containing jansi
+* `jansi`: a jar bundle which contains `jansi-core` and the needed jline dependencies
+
 ## Supported platforms
 
 JLine supports the following platforms:
@@ -66,47 +73,57 @@ JLine supports the following platforms:
 
 ## FFM vs JNI vs Jansi vs JNA vs Exec
 
-To perform the required operations, JLine needs to interoperate with the OS layer.  This is done through the JLine 
-`TerminalProvider` interface.  The terminal builder will automatically select a provider amongst the ones
-that are available.
+To perform the required operations, JLine needs to interoperate with the OS layer.  
+This is done through the JLine `TerminalProvider` interface.  The terminal builder 
+will automatically select a provider amongst the ones that are available.
 
-On the Windows platform, relying on native calls is mandatory, so you need to have a real provider (`jline-terminal-xxx` jar) registered and its dependencies available (usually the Jansi or JNA library).  Failing to do so will create a `dumb` terminal with no advanced capabilities.
+On the Windows platform, relying on native calls is mandatory, so you need to have 
+a real provider (`jline-terminal-xxx` jar) registered and its dependencies available 
+(usually the Jansi or JNA library).  Failing to do so will create a `dumb` terminal 
+with no advanced capabilities.
 
 By default, the following order will be used.
 
 ### FFM
 
-The [FFM](https://docs.oracle.com/en/java/javase/21/core/foreign-function-and-memory-api.html#GUID-FBE990DA-C356-46E8-9109-C75567849BA8) provider is available since JLine 3.24 and when running on JDK >= 21.  It's very lightweight with no additional dependencies.
-With JLine 3.26, the FFM provider requires JDK 22 with the `--enable-native-access=ALL-UNNAMED` JVM option.
-Note that JLine 3.24 and 3.25 uses the preview version of FFM support shipped in JDK 21 which is incompatible with the final version in JDK 22.
+The [FFM](https://docs.oracle.com/en/java/javase/21/core/foreign-function-and-memory-api.html#GUID-FBE990DA-C356-46E8-9109-C75567849BA8) provider is available since JLine 3.24 and when running on JDK >= 22.  
+It's very lightweight with no additional dependencies. With JLine 3.26, the FFM 
+provider requires JDK 22 with the `--enable-native-access=ALL-UNNAMED` JVM option.  
+Note that JLine 3.24 and 3.25 uses the preview version of FFM support shipped in JDK 
+21 which is incompatible with the final version in JDK 22.
 
 ### JNI
 
-Since JLine 3.24.0, JLine provides its own JNI based provider and native libraries.  This is the best default choice, with no additional dependency, but it requires loading a native library.
+Since JLine 3.24.0, JLine provides its own JNI based provider and native libraries. 
+This is the best default choice, with no additional dependency. One requirement is 
+that JLine will load a native library: this is usually not a problem, but it could 
+be a limitation in certain environments.
 
 ### JANSI
 
 The [Jansi](https://github.com/fusesource/jansi) library is a library specialized in supporting ANSI sequences in 
-terminals.  Historically, the JNI methods used by JLine were provided by Jansi.  In order to minimize the maintenance 
-cost, Jansi will be merged into JLine 3.25.
+terminals.  Historically, the JNI methods used by JLine were provided by Jansi. In 
+order to minimize the maintenance cost, Jansi has been merged into JLine 3.25.
 
 This provider has been deprecated in 3.26 in favor of the JNI provider.
 
 ### JNA
 
-The [JNA](https://github.com/java-native-access/jna) library aims to provide an alternative way to access native 
-methods without requiring writing a full JNI native library.  If JNA is in JLine's class loader, the provider may 
-be used. JNA is not supported on Apple M2 architectures.
+The [JNA](https://github.com/java-native-access/jna) library aims to provide an alternative way to access native methods 
+without requiring writing a full JNI native library.  If JNA is in JLine's class 
+loader, the provider may be used. JNA is not supported on Apple M2 architectures.
 
 This provider has been deprecated in 3.26 in favor of the FFM provider.
 
 ### Exec
 
-The exec provider is available on Posix systems and on Windows when running under [Cygwin](https://www.cygwin.com) 
-or [MSys2](https://www.msys2.org).  This provider launches child processes whenever the terminal is accessed 
-(using `Terminal.getAttributes`, `Terminal.setAttributes`, `Terminal.getSize`, `Terminal.setSize`).  
+The exec provider is available on Posix systems and on Windows when running under 
+[Cygwin](https://www.cygwin.com) or [MSys2](https://www.msys2.org).  This provider launches child processes whenever the 
+terminal is accessed (using `Terminal.getAttributes`, `Terminal.setAttributes`, 
+`Terminal.getSize`, `Terminal.setSize`).  
 
-This provider also does not support external terminals (for example when creating a terminal for an incoming connection) and does not support the Windows native environment.
+This provider also does not support external terminals (for example when creating a 
+terminal for an incoming connection) and does not support the Windows native environment.
 
 # Maven Usage
 
@@ -140,13 +157,14 @@ JLine can also be used with more low-level jars:
 </dependency>
 ```
 
-All the jars and releases are available from Maven Central, so you'll find everything at the following location <https://repo1.maven.org/maven2/org/jline/>.
+All the jars and releases are available from Maven Central, so you'll find everything at 
+the following location <https://repo1.maven.org/maven2/org/jline/>.
 
 # Building
 
 ## Requirements
 
-* Maven 3.9.6+
+* Maven 3.9.7+
 * Java 8+ at runtime
 * Java 22+ at build time
 * Graal 23.1+ (native-image)
@@ -173,6 +191,10 @@ The big bundle includes everything (except `jline-groovy`) and is located at:
 
     jline/target/jline-${jline.version}.jar
 
+The jansi bundle is located at:
+
+    jansi/target/jansi-${jline.version}.jar
+
 The fine grained bundles are located at:
 
     terminal/target/jline-terminal-${jline.version}.jar
@@ -185,10 +207,13 @@ The fine grained bundles are located at:
     builtins/target/jline-builtins-${jline.version}.jar
     console/target/jline-console-${jline.version}.jar
     groovy/target/jline-groovy-${jline.version}.jar
+    jansi-core/target/jansi-core-${jline.version}.jar
 
-Maven has a concept of `SNAPSHOT`. During development, the jline version will always ends with `-SNAPSHOT`, which means that the version is in development and not a release.
+Maven has a concept of `SNAPSHOT`. During development, the jline version will always end 
+with `-SNAPSHOT`, which means that the version is in development and not a release.
 
-Note that all those artifacts are also installed in the local maven repository, so you will usually find them in the following folder: `~/.m2/repository/org/jline/`.
+Note that all those artifacts are also installed in the local maven repository, so you 
+will usually find them in the following folder: `~/.m2/repository/org/jline/`.
 
 ## Running the demo
 
