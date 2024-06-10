@@ -102,7 +102,7 @@
         <jansi.version>2.4.1</jansi.version>
         <juniversalchardet.version>1.0.3</juniversalchardet.version>
         <sshd.version>2.12.1</sshd.version>
-        <easymock.version>5.2.0</easymock.version>
+        <easymock.version>5.3.0</easymock.version>
         <junit.version>5.10.2</junit.version>
         <gogo.runtime.version>1.1.6</gogo.runtime.version>
         <gogo.jline.version>1.1.8</gogo.jline.version>
