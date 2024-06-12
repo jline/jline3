@@ -762,7 +762,7 @@ JNIEXPORT void JNICALL Kernel32_NATIVE(init)(JNIEnv *env, jclass that)
 	(*env)->SetStaticIntField(env, that, (*env)->GetStaticFieldID(env, that, "STD_INPUT_HANDLE", "I"), (jint)STD_INPUT_HANDLE);
 	(*env)->SetStaticIntField(env, that, (*env)->GetStaticFieldID(env, that, "STD_OUTPUT_HANDLE", "I"), (jint)STD_OUTPUT_HANDLE);
 	(*env)->SetStaticIntField(env, that, (*env)->GetStaticFieldID(env, that, "STD_ERROR_HANDLE", "I"), (jint)STD_ERROR_HANDLE);
-	(*env)->SetStaticLongField(env, that, (*env)->GetStaticFieldID(env, that, "INVALID_HANDLE_VALUE", "L"), (jlong)INVALID_HANDLE_VALUE);
+	(*env)->SetStaticLongField(env, that, (*env)->GetStaticFieldID(env, that, "INVALID_HANDLE_VALUE", "J"), (jlong)INVALID_HANDLE_VALUE);
    return;
 }
 
