@@ -44,7 +44,7 @@ public class Kernel32 {
     public static int STD_INPUT_HANDLE;
     public static int STD_OUTPUT_HANDLE;
     public static int STD_ERROR_HANDLE;
-    public static int INVALID_HANDLE_VALUE;
+    public static long INVALID_HANDLE_VALUE;
 
     public static native long malloc(long size);
 
