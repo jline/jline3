@@ -54,7 +54,7 @@
       { "name": "STD_INPUT_HANDLE" },
       { "name": "STD_OUTPUT_HANDLE" },
       { "name": "STD_ERROR_HANDLE" },
-      { "name": "INVALID_HANDLE_VALUE," }
+      { "name": "INVALID_HANDLE_VALUE" }
     ]
   },
   {
