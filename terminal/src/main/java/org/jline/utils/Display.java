@@ -68,7 +68,7 @@ public class Display {
 
     public void resize(int rows, int columns) {
         if (rows == 0 || columns == 0) {
-            columns = 1;
+            columns = Integer.MAX_VALUE - 1;
             rows = 1;
         }
         if (this.rows != rows || this.columns != columns) {
@@ -209,7 +209,8 @@ public class Display {
                 cursorPos++;
                 if (newLength == 0 || newLine.isHidden(0)) {
                     // go to next line column zero
-                    rawPrint(new AttributedString(" \b"));
+                    rawPrint(' ');
+                    terminal.puts(Capability.key_backspace);
                 } else {
                     AttributedString firstChar = newLine.substring(0, 1);
                     // go to next line column one
@@ -309,7 +310,8 @@ public class Display {
             } else if (atRight) {
                 if (this.wrapAtEol) {
                     if (!fullScreen || (fullScreen && lineIndex < numLines)) {
-                        terminal.writer().write(" \b");
+                        rawPrint(' ');
+                        terminal.puts(Capability.key_backspace);
                         cursorPos++;
                     }
                 } else {
