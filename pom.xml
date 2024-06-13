@@ -15,7 +15,7 @@
 
     <groupId>org.jline</groupId>
     <artifactId>jline-parent</artifactId>
-    <version>3.26.2-SNAPSHOT</version>
+    <version>3.26.2</version>
     <packaging>pom</packaging>
     <name>JLine Parent</name>
     <description>JLine</description>
@@ -73,7 +73,7 @@
     <scm>
         <connection>scm:git:https://github.com/jline/jline3.git</connection>
         <developerConnection>scm:git:https://github.com/jline/jline3.git</developerConnection>
-        <tag>jline-parent-3.26.1</tag>
+        <tag>jline-parent-3.26.2</tag>
         <url>http://github.com/jline/jline3</url>
     </scm>
 
@@ -89,7 +89,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.build.outputTimestamp>2024-04-24T06:09:55Z</project.build.outputTimestamp>
+        <project.build.outputTimestamp>2024-06-13T06:11:25Z</project.build.outputTimestamp>
 
         <java.build.version>22</java.build.version>
         <java.release.version>8</java.release.version>
