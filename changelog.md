@@ -1,6 +1,49 @@
 # [JLine3](https://github.com/jline/jline3)
 <!-- git log --pretty=format:'* [`%h`](https://github.com/jline/jline3/commit/%H) %s' -->
 
+## [JLine 3.26.2][3_26_2]
+[3_26_2] https://repo1.maven.org/maven2/org/jline/jline/3.26.2/
+
+* [`f712b516`](https://github.com/jline/jline3/commit/f712b51605c67bd1ab5be5ddbc2b5bccb195340d) Revert the use of Integer.MAX_VALUE for display colums when size is zero (fixes #982, see #975) (#1011)
+* [`0de32abf`](https://github.com/jline/jline3/commit/0de32abfdeb70782701b9eb8cb186d5ddff067b1) INVALID_HANDLE_VALUE is a long (#1015)
+* [`5e876a65`](https://github.com/jline/jline3/commit/5e876a6546e20b02c6a5dd655400b464a4ca59f5) Bump org.easymock:easymock from 5.2.0 to 5.3.0 (#1013)
+* [`b754ac47`](https://github.com/jline/jline3/commit/b754ac476633dd821be7b3617e76670cf31db3d3) Bump org.apache.maven.plugins:maven-dependency-plugin (#1014)
+* [`46710c0d`](https://github.com/jline/jline3/commit/46710c0d8658e6135e1560a12a049af2903b33bc) Update and reflow readme
+* [`50fe7658`](https://github.com/jline/jline3/commit/50fe76582291204b46e31e8e99d09710bf2c9489) Bump org.graalvm.sdk:graal-sdk from 23.1.2 to 24.0.1 (#996)
+* [`dce7443f`](https://github.com/jline/jline3/commit/dce7443f6e1b4dfdd60e75660625e7e2a7f1a31d) Cursor badly positioned after creating Status bar, fixes #977 (#978)
+* [`219dadad`](https://github.com/jline/jline3/commit/219dadad265c6d21d2169d97c9f438034e2d25ff) Build with cmd.exe on Windows (#976)
+* [`879d79ad`](https://github.com/jline/jline3/commit/879d79add09a773d22a22a7f9d6b24efb00cac06) Bump org.codehaus.mojo:exec-maven-plugin from 3.2.0 to 3.3.0 (#1010)
+* [`d7f4ebc3`](https://github.com/jline/jline3/commit/d7f4ebc365ee13911fe9ef47c461e9c691c98dd0) Bump com.mycila:license-maven-plugin from 4.3 to 4.5 (#1005)
+* [`cb36972a`](https://github.com/jline/jline3/commit/cb36972a4b0a5104481c39b29edc9585eb26b67f) Bump org.apache.maven.plugins:maven-shade-plugin from 3.5.3 to 3.6.0 (#1008)
+* [`6a002704`](https://github.com/jline/jline3/commit/6a0027046670d98c202269edb77a1aa24a61477a) Bump org.apache.maven.plugins:maven-javadoc-plugin from 3.6.3 to 3.7.0 (#1007)
+* [`15c91397`](https://github.com/jline/jline3/commit/15c9139792e9965f526882322e1de83cbbace601) Bump org.codehaus.mojo:build-helper-maven-plugin from 3.5.0 to 3.6.0 (#1006)
+* [`97d52ef7`](https://github.com/jline/jline3/commit/97d52ef7efa8d1ba982262b0025a2d5fdd912a39) Bump org.apache.maven.plugins:maven-wrapper-plugin from 3.3.1 to 3.3.2 (#1003)
+* [`f49a65ed`](https://github.com/jline/jline3/commit/f49a65ed5435dc4c89e1a4a10cd47ffab0ebe9d0) Bump org.apache.maven.plugins:maven-jar-plugin from 3.3.0 to 3.4.1 (#1004)
+* [`d14f0e4b`](https://github.com/jline/jline3/commit/d14f0e4b2745154497e3cb2bbc7cf2b4c2a3ca8a) Bump org.apache.maven.plugins:maven-enforcer-plugin from 3.4.1 to 3.5.0 (#1002)
+* [`fa17c780`](https://github.com/jline/jline3/commit/fa17c78037945712382add955fb8f090c9a032ff) Bump org.apache.maven.plugins:maven-compiler-plugin (#1001)
+* [`b6dc84e9`](https://github.com/jline/jline3/commit/b6dc84e9c687da33b80e43e505c6c1bbc4753270) Bump org.apache.maven.plugins:maven-site-plugin (#1000)
+* [`343d14f9`](https://github.com/jline/jline3/commit/343d14f9f4c2dd151d15f1000ffa00b0e367b087) Bump org.apache.commons:commons-lang3 from 3.13.0 to 3.14.0 (#995)
+* [`606c98de`](https://github.com/jline/jline3/commit/606c98def8a92a57e9a9a37debfc244784ab1764) Bump org.apache.maven.plugins:maven-gpg-plugin from 3.1.0 to 3.2.4 (#993)
+* [`640633c2`](https://github.com/jline/jline3/commit/640633c2758f0e7f1ab2d4e14e2a46dc2787b76e) Bump org.apache.maven.plugins:maven-deploy-plugin from 3.1.1 to 3.1.2 (#997)
+* [`fd011a1e`](https://github.com/jline/jline3/commit/fd011a1e6a74e04f45e510e59c69551511f1ed3a) Bump org.apache.maven.plugins:maven-source-plugin from 3.3.0 to 3.3.1 (#989)
+* [`5d719f99`](https://github.com/jline/jline3/commit/5d719f997579b2a49d579c6c1789af0c75b062ed) Bump org.apache.maven.plugins:maven-install-plugin from 3.1.1 to 3.1.2 (#988)
+* [`1abac07b`](https://github.com/jline/jline3/commit/1abac07bbe7eab153eb397b8ce09e6efb535d664) Bump org.apache.maven.plugins:maven-shade-plugin from 3.5.1 to 3.5.3 (#990)
+* [`daa72ae0`](https://github.com/jline/jline3/commit/daa72ae0341f81718dddb92cbd59d1e8f1a8dcfe) Bump sshd.version from 2.12.0 to 2.12.1 (#991)
+* [`d84c9389`](https://github.com/jline/jline3/commit/d84c9389010600d9ddaa400c9f57e7114c1c2544) Bump junit.version from 5.10.1 to 5.10.2 (#992)
+* [`49b0aa8f`](https://github.com/jline/jline3/commit/49b0aa8f8d4769fd20e49f8613a71bc16e4cbf7a) Add some doc for boolean provider methods in TerminalBuider (fixes #979) (#981)
+* [`1f9dfb76`](https://github.com/jline/jline3/commit/1f9dfb765ecb8e68d8af9b770d1bcf67aeef8283) Bump org.apache.maven.plugins:maven-wrapper-plugin from 3.3.0 to 3.3.1 (#985)
+* [`499e3b0f`](https://github.com/jline/jline3/commit/499e3b0f51362777aa309978f96c4f1dd3223dbd) Bump slf4j.version from 2.0.9 to 2.0.13 (#986)
+* [`3b380929`](https://github.com/jline/jline3/commit/3b380929f5217fdb7b68b862635cc3104718dc9f) Bump groovy.version from 4.0.18 to 4.0.21 (#983)
+* [`3119791c`](https://github.com/jline/jline3/commit/3119791c7abbf7814ffe7e667bc12dba4f7b39e2) Bump info.picocli:picocli-codegen from 4.5.2 to 4.7.6 (#987)
+* [`9346f12c`](https://github.com/jline/jline3/commit/9346f12cdd958c163523a2d735ab35231d32a864) Bump org.codehaus.mojo:exec-maven-plugin from 3.0.0 to 3.2.0 (#984)
+* [`a91f4c8f`](https://github.com/jline/jline3/commit/a91f4c8f6a85fe5a10c1ceb1cacce77d5af527d6) Setup dependabot
+
+## [JLine 3.26.1][3_26_1]
+[3_26_1] https://repo1.maven.org/maven2/org/jline/jline/3.26.1/
+
+* [`1ab69e38`](https://github.com/jline/jline3/commit/1ab69e385098ab9188b801021ef99055826c0956) Fix OutOfMemoryError when using TailTipWidget  (fix #974) (#975)
+* [`98d3d08d`](https://github.com/jline/jline3/commit/98d3d08d5a3153a1ea03955a528bdf7e5848f928) Fix interrupt signal killing application (#958) (#973)
+
 ## [JLine 3.26.0][3_26_0]
 [3_26_0] https://repo1.maven.org/maven2/org/jline/jline/3.26.0/
 
