@@ -19,7 +19,7 @@ final class Kernel32 {
 
     public static final int FORMAT_MESSAGE_FROM_SYSTEM = 0x00001000;
 
-    public static final int INVALID_HANDLE_VALUE = -1;
+    public static final long INVALID_HANDLE_VALUE = -1;
     public static final int STD_INPUT_HANDLE = -10;
     public static final int STD_OUTPUT_HANDLE = -11;
     public static final int STD_ERROR_HANDLE = -12;
