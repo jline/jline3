@@ -101,7 +101,7 @@
         <jna.version>5.14.0</jna.version>
         <jansi.version>2.4.1</jansi.version>
         <juniversalchardet.version>1.0.3</juniversalchardet.version>
-        <sshd.version>2.12.1</sshd.version>
+        <sshd.version>2.13.0</sshd.version>
         <easymock.version>5.3.0</easymock.version>
         <junit.version>5.10.2</junit.version>
         <gogo.runtime.version>1.1.6</gogo.runtime.version>
