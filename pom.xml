@@ -108,7 +108,7 @@
         <gogo.jline.version>1.1.8</gogo.jline.version>
         <slf4j.version>2.0.13</slf4j.version>
         <findbugs.version>3.0.2</findbugs.version>
-        <groovy.version>4.0.21</groovy.version>
+        <groovy.version>4.0.22</groovy.version>
         <ivy.version>2.5.2</ivy.version>
         <graal.version>24.0.1</graal.version>
         <graal.plugin.version>21.2.0</graal.plugin.version>
