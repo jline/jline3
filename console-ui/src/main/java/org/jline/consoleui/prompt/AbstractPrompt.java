@@ -62,10 +62,14 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             ConsolePrompt.UiConfig cfg) {
         this.terminal = terminal;
         this.bindingReader = new BindingReader(terminal.reader());
-        this.header = header;
+        this.size.copy(terminal.getSize());
+        int listSpace = Math.min(size.getRows(), 10);
+        this.header = header.size() > size.getRows() - listSpace
+                ? header.subList(header.size() - size.getRows() + listSpace, header.size())
+                : header;
         this.message = message;
         this.items = items;
-        this.firstItemRow = header.size() + 1;
+        this.firstItemRow = this.header.size() + 1;
         this.config = cfg;
     }
 
@@ -148,7 +152,7 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
         asb.append(buffer);
         out.add(asb.toAttributedString());
         int listStart;
-        if (cursorRow - firstItemRow >= 0) {
+        if (cursorRow - firstItemRow >= 0 && !candidates.isEmpty() && cursorRow - firstItemRow < candidates.size()) {
             String dc = candidates.get(cursorRow - firstItemRow).displ();
             listStart = candidatesColumn
                     + buffer.columnLength()
@@ -165,6 +169,9 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
                         .orElse(20),
                 20);
         for (int i = range.first; i < range.last - 1; i++) {
+            if (candidates.isEmpty() || i > candidates.size() - 1) {
+                break;
+            }
             Candidate c = candidates.get(i);
             asb = new AttributedStringBuilder();
             AttributedStringBuilder tmp = new AttributedStringBuilder();
@@ -199,6 +206,9 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
         asb.append(message);
         out.add(asb.toAttributedString());
         for (int i = range.first; i < range.last - 1; i++) {
+            if (items.isEmpty() || i > items.size() - 1) {
+                break;
+            }
             ConsoleUIItemIF s = items.get(i);
             asb = new AttributedStringBuilder();
             if (s.isSelectable()) {
