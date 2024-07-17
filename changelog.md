@@ -1,6 +1,25 @@
 # [JLine3](https://github.com/jline/jline3)
 <!-- git log --pretty=format:'* [`%h`](https://github.com/jline/jline3/commit/%H) %s' -->
 
+## [JLine 3.26.3][3_26_3]
+[3_26_3] https://repo1.maven.org/maven2/org/jline/jline/3.26.3/
+
+* [`89db5577`](https://github.com/jline/jline3/commit/89db55779810970dde3ff7b7880fa2a3b78c8e6b) IndexOutOfBoundsException in console-ui when header exceeds size of the terminal, fixes #1025 (#1026)
+* [`89a99fc6`](https://github.com/jline/jline3/commit/89a99fc65e78156a52b5690f20cea1bbf165bc8b) Fix windows-arm64 DLL name (#1031)
+* [`dad7818b`](https://github.com/jline/jline3/commit/dad7818b31fa09f488c80f01fc8582b460432e20) Correcting invocation of ScrollConsoleScreenBufferW - using pointers instead of values. (#1038)
+* [`9489e1b1`](https://github.com/jline/jline3/commit/9489e1b15bd1ee9dd87393aeec7fc5489fbc8a09) The Diag tool should display the full stack trace (fixes #1020) (#1024)
+* [`76243b25`](https://github.com/jline/jline3/commit/76243b25729726f386d9c8f067486969a5260306) Bump org.apache.maven.plugins:maven-surefire-plugin from 3.3.0 to 3.3.1 (#1032)
+* [`90d283f8`](https://github.com/jline/jline3/commit/90d283f82562e6822bfc895458391f71b3ce14ff) Bump org.apache.maven.plugins:maven-release-plugin from 3.1.0 to 3.1.1 (#1037)
+* [`68df8157`](https://github.com/jline/jline3/commit/68df8157eac6209fb6c435718e12f8f85bbf4e12) Bump org.graalvm.sdk:graal-sdk from 24.0.1 to 24.0.2 (#1039)
+* [`43c5426b`](https://github.com/jline/jline3/commit/43c5426b3e42a8b0fa7b112c5608e00be6c705e1) Bump org.apache.maven.plugins:maven-dependency-plugin (#1028)
+* [`e1cda58e`](https://github.com/jline/jline3/commit/e1cda58e40d68bdf21294dba500a232231f70fc8) Bump junit.version from 5.10.2 to 5.10.3 (#1029)
+* [`bbe7c99e`](https://github.com/jline/jline3/commit/bbe7c99ef0298fb8d3e8188ad018fddff9807c8d) Bump groovy.version from 4.0.21 to 4.0.22 (#1030)
+* [`3670d045`](https://github.com/jline/jline3/commit/3670d045a8ccd004cf04d681e72503492317d52e) Bump sshd.version from 2.12.1 to 2.13.1 (#1027)
+* [`425646da`](https://github.com/jline/jline3/commit/425646da90b31e5a2eb2e5fc1115cc4a1ff9bfe8) Bump org.apache.maven.plugins:maven-surefire-plugin from 3.2.5 to 3.3.0 (#1017)
+* [`16dadb3e`](https://github.com/jline/jline3/commit/16dadb3e39fa8309698afe7a4e5ea990c906c348) Bump org.apache.maven.plugins:maven-release-plugin from 3.0.1 to 3.1.0 (#1019)
+* [`691f4c4b`](https://github.com/jline/jline3/commit/691f4c4b5b884ca9cbe40eb44fb0997f74c54968) Bump org.apache.maven.plugins:maven-jar-plugin from 3.4.1 to 3.4.2 (#1022)
+* [`195c96f5`](https://github.com/jline/jline3/commit/195c96f5ecce1809f4158c5e3f08f2ffb94c3462) Bump org.apache.maven.plugins:maven-clean-plugin from 3.3.2 to 3.4.0 (#1023)
+
 ## [JLine 3.26.2][3_26_2]
 [3_26_2] https://repo1.maven.org/maven2/org/jline/jline/3.26.2/
 
