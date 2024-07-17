@@ -19,14 +19,14 @@ include Makefile.common
 
 .PHONY: all package native native-all deploy crossbuild ducible clean-native
 
-linux-armv6-digest:=@sha256:7bad6ab302af34bdf6634c8c2b02c8dc6ac932c67da9ecc199c549ab405e971e
-linux-x86-digest:=:latest
-windows-static-x86-digest:=@sha256:99d7069789560ef77a7504ead4a2b5e3c245cb45a45f964c74fecbf649398d3a
+linux-armv6-digest:=@sha256:a90a7deda7f561932d9ad658f8d661d17eeb44f4e7f7024ac087db1d0b95c6f5
+linux-x86-digest:=@sha256:fbe45fcb0c2ce82f84a998a1d37d67b3906502723ed89f8191c3243d9d835d17
+windows-static-x86-digest:=@sha256:b205eeeafaef4f44482d16254670da815d5679b03cf8e51e4adc3539d1c4a9c0
 windows-static-x64-digest:=@sha256:f159861bc80b29e5dafb223477167bec53ecec6cdacb051d31e90c5823542100
-windows-arm64-digest:=@sha256:f4b3c1a49ec8b53418cef1499dc3f9a54a5570b7a3ecdf42fc8c83eb94b01b7d
+windows-arm64-digest:=@sha256:5a8e872064c5f600386e4124f9425d3e2ce2e168cadb6626655b2d69ed748849
 cross-build-digest:=@sha256:8dbaa86462270db93ae1b1b319bdd88d89272faf3a68632daf4fa36b414a326e
 freebsd-crossbuild-digest:=@sha256:cda62697a15d8bdc0bc26e780b1771ee78f12c55e7d5813e62c478af5a747c43
-mcandre-snek-digest:=@sha256:9f84e9fcdf66daafc1f1c3fb772a6c97977714e17800aeac2e3bbe5dc5039dd0
+mcandre-snek-digest:=@sha256:e5aaf20daece19796dcd0553feb971143b71cc67d13d79d73649cc689fb87287
 
 all: package
 

@@ -17,7 +17,7 @@
 
 # os=Default is meant to be generic unix/linux
 
-known_targets := Linux-x86 Linux-x86_64 Linux-arm Linux-armv6 Linux-armv7 Linux-android-arm Linux-arm64 Linux-ppc64 Linux-riscv64 Mac-x86 Mac-x86_64 Mac-arm64 DragonFly-x86_64 FreeBSD-x86_64 OpenBSD-x86_64 Windows-x86 Windows-x86_64 SunOS-sparcv9 HPUX-ia64_32
+known_targets := Linux-x86 Linux-x86_64 Linux-arm Linux-armv6 Linux-armv7 Linux-android-arm Linux-arm64 Linux-ppc64 Linux-riscv64 Mac-x86 Mac-x86_64 Mac-arm64 DragonFly-x86_64 FreeBSD-x86_64 OpenBSD-x86_64 Windows-x86 Windows-x86_64 Windows-arm64 SunOS-sparcv9 HPUX-ia64_32
 target := $(OS_NAME)-$(OS_ARCH)
 
 ifeq (,$(findstring $(strip $(target)),$(known_targets)))
@@ -152,6 +152,11 @@ Windows-x86_64_CCFLAGS      := -D_JNI_IMPLEMENTATION_ -Itarget/inc -Itarget/inc/
 Windows-x86_64_LINKFLAGS    := -Wl,--kill-at -shared -static-libgcc
 Windows-x86_64_LIBNAME      := jlinenative.dll
 
+Windows-arm64_CC           := $(CROSS_PREFIX)gcc
+Windows-arm64_STRIP        := $(CROSS_PREFIX)strip
+Windows-arm64_CCFLAGS      := -D_JNI_IMPLEMENTATION_ -Itarget/inc -Itarget/inc/windows -Os
+Windows-arm64_LINKFLAGS    := -Wl,--kill-at -shared -static-libgcc
+Windows-arm64_LIBNAME      := jlinenative.dll
 
 CC        := $($(target)_CC)
 STRIP     := $($(target)_STRIP)
