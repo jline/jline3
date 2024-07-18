@@ -110,7 +110,12 @@ public class ConsolePrompt {
                 if (pe instanceof ListChoice) {
                     ListChoice lc = (ListChoice) pe;
                     result = ListChoicePrompt.getPrompt(
-                                    terminal, header, asb.toAttributedString(), lc.getListItemList(), config)
+                                    terminal,
+                                    header,
+                                    asb.toAttributedString(),
+                                    lc.getListItemList(),
+                                    computePageSize(terminal, lc.getPageSize(), lc.getPageSizeType()),
+                                    config)
                             .execute();
                 } else if (pe instanceof InputValue) {
                     InputValue ip = (InputValue) pe;
@@ -137,12 +142,18 @@ public class ConsolePrompt {
                                 .execute();
                     } catch (ExpandableChoiceException e) {
                         result = ListChoicePrompt.getPrompt(
-                                        terminal, header, message.toAttributedString(), ec.getChoiceItems(), config)
+                                        terminal, header, message.toAttributedString(), ec.getChoiceItems(), 10, config)
                                 .execute();
                     }
                 } else if (pe instanceof Checkbox) {
                     Checkbox cb = (Checkbox) pe;
-                    result = CheckboxPrompt.getPrompt(terminal, header, message.toAttributedString(), cb, config)
+                    result = CheckboxPrompt.getPrompt(
+                                    terminal,
+                                    header,
+                                    message.toAttributedString(),
+                                    cb.getCheckboxItemList(),
+                                    computePageSize(terminal, cb.getPageSize(), cb.getPageSizeType()),
+                                    config)
                             .execute();
                 } else if (pe instanceof ConfirmChoice) {
                     ConfirmChoice cc = (ConfirmChoice) pe;
@@ -183,6 +194,11 @@ public class ConsolePrompt {
             }
             terminal.writer().flush();
         }
+    }
+
+    private int computePageSize(Terminal terminal, int pageSize, PageSizeType sizeType) {
+        int rows = terminal.getHeight();
+        return sizeType == PageSizeType.ABSOLUTE ? Math.min(rows, pageSize) : (rows * pageSize) / 100;
     }
 
     /**

@@ -12,7 +12,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.jline.consoleui.elements.Checkbox;
 import org.jline.consoleui.elements.ConfirmChoice;
 import org.jline.consoleui.elements.ExpandableChoice;
 import org.jline.consoleui.elements.InputValue;
@@ -51,7 +50,7 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
 
     public AbstractPrompt(
             Terminal terminal, List<AttributedString> header, AttributedString message, ConsolePrompt.UiConfig cfg) {
-        this(terminal, header, message, new ArrayList<>(), cfg);
+        this(terminal, header, message, new ArrayList<>(), 0, cfg);
     }
 
     public AbstractPrompt(
@@ -59,11 +58,12 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             List<AttributedString> header,
             AttributedString message,
             List<T> items,
+            int pageSize,
             ConsolePrompt.UiConfig cfg) {
         this.terminal = terminal;
         this.bindingReader = new BindingReader(terminal.reader());
         this.size.copy(terminal.getSize());
-        int listSpace = Math.min(size.getRows(), 10);
+        int listSpace = Math.min(size.getRows(), Math.max(pageSize, 3));
         this.header = header.size() > size.getRows() - listSpace
                 ? header.subList(header.size() - size.getRows() + listSpace, header.size())
                 : header;
@@ -143,10 +143,7 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
     private List<AttributedString> displayLines(
             int cursorRow, int candidatesColumn, AttributedString buffer, List<Candidate> candidates) {
         computeListRange(cursorRow, candidates.size());
-        List<AttributedString> out = new ArrayList<>();
-        for (int i = range.headerStart; i < header.size(); i++) {
-            out.add(header.get(i));
-        }
+        List<AttributedString> out = new ArrayList<>(header);
         AttributedStringBuilder asb = new AttributedStringBuilder();
         asb.append(message);
         asb.append(buffer);
@@ -192,16 +189,12 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             asb2.append(asb).append(" ");
             out.add(asb2.toAttributedString());
         }
-        addFooter(out, candidates.size());
         return out;
     }
 
     private List<AttributedString> displayLines(int cursorRow, Set<String> selected) {
         computeListRange(cursorRow, items.size());
-        List<AttributedString> out = new ArrayList<>();
-        for (int i = range.headerStart; i < header.size(); i++) {
-            out.add(header.get(i));
-        }
+        List<AttributedString> out = new ArrayList<>(header);
         AttributedStringBuilder asb = new AttributedStringBuilder();
         asb.append(message);
         out.add(asb.toAttributedString());
@@ -233,9 +226,12 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             if (s.isDisabled()) {
                 asb.append(" (").append(s.getDisabledText()).append(")");
             }
+            int textLength = asb.length();
+            for (int j = 0; j < size.getColumns() - textLength; j++) {
+                asb.append(' ');
+            }
             out.add(asb.toAttributedString());
         }
-        addFooter(out, items.size()); // footer is necessary for making the long item list scroll correctly
         return out;
     }
 
@@ -255,10 +251,8 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
     private static class ListRange {
         final int first;
         final int last;
-        final int headerStart;
 
-        public ListRange(int headerStart, int first, int last) {
-            this.headerStart = headerStart;
+        public ListRange(int first, int last) {
             this.first = first;
             this.last = last;
         }
@@ -268,33 +262,21 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
         if (range != null && range.first <= cursorRow - firstItemRow && range.last - 1 > cursorRow - firstItemRow) {
             return;
         }
-        range = new ListRange(0, 0, itemsSize + 1);
+        range = new ListRange(0, itemsSize + 1);
         if (size.getRows() < header.size() + itemsSize + 1) {
             int itemId = cursorRow - firstItemRow;
-            int headerStart = header.size() + 1 > 10 ? header.size() - 9 : 0;
-            firstItemRow = firstItemRow - headerStart;
-            int forList = size.getRows() - header.size() + headerStart - 1;
+            int forList = size.getRows() - header.size();
             if (itemId < forList - 1) {
-                range = new ListRange(headerStart, 0, forList);
+                range = new ListRange(0, forList);
             } else {
-                range = new ListRange(headerStart, itemId - forList + 2, itemId + 2);
+                range = new ListRange(itemId - forList + 2, itemId + 2);
             }
-        }
-    }
-
-    private void addFooter(List<AttributedString> lines, int itemsSize) {
-        if (size.getRows() < header.size() + itemsSize + 1) {
-            AttributedStringBuilder asb = new AttributedStringBuilder();
-            lines.add(asb.append(".").toAttributedString());
         }
     }
 
     private List<AttributedString> displayLines(int cursorRow, AttributedString buffer, boolean newline) {
         computeListRange(cursorRow, items.size());
-        List<AttributedString> out = new ArrayList<>();
-        for (int i = range.headerStart; i < header.size(); i++) {
-            out.add(header.get(i));
-        }
+        List<AttributedString> out = new ArrayList<>(header);
         AttributedStringBuilder asb = new AttributedStringBuilder();
         asb.append(message);
         if (buffer != null && !newline) {
@@ -324,7 +306,6 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
                 out.add(asb.append(s.getText()).toAttributedString());
             }
         }
-        addFooter(out, items.size());
         return out;
     }
 
@@ -785,8 +766,9 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
                 List<AttributedString> header,
                 AttributedString message,
                 List<T> listItems,
+                int pageSize,
                 ConsolePrompt.UiConfig cfg) {
-            super(terminal, header, message, listItems, cfg);
+            super(terminal, header, message, listItems, pageSize, cfg);
             items = listItems;
         }
 
@@ -795,8 +777,9 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
                 List<AttributedString> header,
                 AttributedString message,
                 List<T> listItems,
+                int pageSize,
                 ConsolePrompt.UiConfig cfg) {
-            return new ListChoicePrompt<>(terminal, header, message, listItems, cfg);
+            return new ListChoicePrompt<>(terminal, header, message, listItems, pageSize, cfg);
         }
 
         private void bindKeys(KeyMap<Operation> map) {
@@ -859,19 +842,21 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
                 Terminal terminal,
                 List<AttributedString> header,
                 AttributedString message,
-                Checkbox checkbox,
+                List<CheckboxItemIF> checkboxItemList,
+                int pageSize,
                 ConsolePrompt.UiConfig cfg) {
-            super(terminal, header, message, checkbox.getCheckboxItemList(), cfg);
-            items = checkbox.getCheckboxItemList();
+            super(terminal, header, message, checkboxItemList, pageSize, cfg);
+            items = checkboxItemList;
         }
 
         public static CheckboxPrompt getPrompt(
                 Terminal terminal,
                 List<AttributedString> header,
                 AttributedString message,
-                Checkbox checkbox,
+                List<CheckboxItemIF> checkboxItemList,
+                int pageSize,
                 ConsolePrompt.UiConfig cfg) {
-            return new CheckboxPrompt(terminal, header, message, checkbox, cfg);
+            return new CheckboxPrompt(terminal, header, message, checkboxItemList, pageSize, cfg);
         }
 
         private void bindKeys(KeyMap<Operation> map) {
