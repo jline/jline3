@@ -766,13 +766,6 @@
                             <failOnError>false</failOnError>
                             <legacyMode>true</legacyMode>
                         </configuration>
-                        <dependencies>
-                            <dependency>
-                                <groupId>org.apache.commons</groupId>
-                                <artifactId>commons-lang3</artifactId>
-                                <version>3.14.0</version>
-                            </dependency>
-                        </dependencies>
                         <executions>
                             <execution>
                                 <id>javadoc</id>
