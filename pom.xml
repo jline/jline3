@@ -17,7 +17,7 @@
     <artifactId>jline-parent</artifactId>
     <version>3.27.0-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>JLine Parent</name>
+    <name>JLine</name>
     <description>JLine</description>
     <url>https://github.com/jline/jline3</url>
 
@@ -82,11 +82,6 @@
         <system>github</system>
         <url>https://github.com/jline/jline3/issues</url>
     </issueManagement>
-
-    <ciManagement>
-        <system>travis</system>
-        <url>https://travis-ci.org/jline/jline3</url>
-    </ciManagement>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -443,12 +438,9 @@
                 </plugin>
 
                 <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-deploy-plugin</artifactId>
-                    <version>3.1.2</version>
-                    <configuration>
-                        <deployAtEnd>true</deployAtEnd>
-                    </configuration>
+                    <groupId>org.sonatype.central</groupId>
+                    <artifactId>central-publishing-maven-plugin</artifactId>
+                    <version>0.5.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -534,7 +526,7 @@
                                     <arg>--pinentry-mode</arg>
                                     <arg>loopback</arg>
                                 </gpgArguments>
-                                <passphrase>${gpg.passphrase}</passphrase>
+                                <bestPractices>true</bestPractices>
                                 <useAgent>true</useAgent>
                             </configuration>
                         </execution>
@@ -707,6 +699,15 @@
                     <preparationProfiles>bundle,javadoc,format-check,sign</preparationProfiles>
                     <releaseProfiles>bundle,javadoc,format-check,sign</releaseProfiles>
                     <tagNameFormat>jline-@{project.version}</tagNameFormat>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <extensions>true</extensions>
+                <configuration>
+                    <publishingServerId>central</publishingServerId>
                 </configuration>
             </plugin>
 
