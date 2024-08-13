@@ -28,8 +28,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.fusesource.jansi</groupId>
-            <artifactId>jansi</artifactId>
+            <groupId>org.jline</groupId>
+            <artifactId>jansi-core</artifactId>
             <optional>true</optional>
         </dependency>
         <dependency>
@@ -400,7 +400,8 @@
                             </excludes>
                             <compilerArgs>
                                 <arg>-Xlint:all,-options</arg>
-                                <arg>-Werror</arg>
+                                <!-- As long we retain org.fusesource.jansi packages -->
+                                <!--arg>-Werror</arg-->
                             </compilerArgs>
                         </configuration>
                     </execution>

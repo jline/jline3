@@ -15,10 +15,10 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.function.IntConsumer;
 
-import org.fusesource.jansi.internal.Kernel32;
-import org.fusesource.jansi.internal.Kernel32.CONSOLE_SCREEN_BUFFER_INFO;
-import org.fusesource.jansi.internal.Kernel32.INPUT_RECORD;
-import org.fusesource.jansi.internal.Kernel32.KEY_EVENT_RECORD;
+import org.jline.nativ.Kernel32;
+import org.jline.nativ.Kernel32.CONSOLE_SCREEN_BUFFER_INFO;
+import org.jline.nativ.Kernel32.INPUT_RECORD;
+import org.jline.nativ.Kernel32.KEY_EVENT_RECORD;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
@@ -27,14 +27,14 @@ import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.OSUtils;
 
-import static org.fusesource.jansi.internal.Kernel32.GetConsoleScreenBufferInfo;
-import static org.fusesource.jansi.internal.Kernel32.GetStdHandle;
-import static org.fusesource.jansi.internal.Kernel32.INVALID_HANDLE_VALUE;
-import static org.fusesource.jansi.internal.Kernel32.STD_ERROR_HANDLE;
-import static org.fusesource.jansi.internal.Kernel32.STD_INPUT_HANDLE;
-import static org.fusesource.jansi.internal.Kernel32.STD_OUTPUT_HANDLE;
-import static org.fusesource.jansi.internal.Kernel32.WaitForSingleObject;
-import static org.fusesource.jansi.internal.Kernel32.readConsoleInputHelper;
+import static org.jline.nativ.Kernel32.GetConsoleScreenBufferInfo;
+import static org.jline.nativ.Kernel32.GetStdHandle;
+import static org.jline.nativ.Kernel32.INVALID_HANDLE_VALUE;
+import static org.jline.nativ.Kernel32.STD_ERROR_HANDLE;
+import static org.jline.nativ.Kernel32.STD_INPUT_HANDLE;
+import static org.jline.nativ.Kernel32.STD_OUTPUT_HANDLE;
+import static org.jline.nativ.Kernel32.WaitForSingleObject;
+import static org.jline.nativ.Kernel32.readConsoleInputHelper;
 import static org.jline.terminal.impl.jansi.win.WindowsSupport.getLastErrorMessage;
 
 public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {

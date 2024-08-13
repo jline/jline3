@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.util.EnumMap;
 import java.util.EnumSet;
 
-import org.fusesource.jansi.internal.CLibrary;
+import org.jline.nativ.CLibrary;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.jansi.JansiNativePty;

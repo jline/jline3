@@ -94,8 +94,8 @@
         </dependency>
 
         <dependency>
-            <groupId>org.fusesource.jansi</groupId>
-            <artifactId>jansi</artifactId>
+            <groupId>org.jline</groupId>
+            <artifactId>jansi-core</artifactId>
         </dependency>
 
         <dependency>

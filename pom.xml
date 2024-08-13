@@ -95,7 +95,6 @@
         <automatic.module.name />
 
         <jna.version>5.14.0</jna.version>
-        <jansi.version>2.4.1</jansi.version>
         <juniversalchardet.version>1.0.3</juniversalchardet.version>
         <sshd.version>2.13.1</sshd.version>
         <easymock.version>5.3.0</easymock.version>
@@ -214,12 +213,6 @@
                 <groupId>org.jline</groupId>
                 <artifactId>jansi</artifactId>
                 <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.fusesource.jansi</groupId>
-                <artifactId>jansi</artifactId>
-                <version>${jansi.version}</version>
             </dependency>
 
             <dependency>

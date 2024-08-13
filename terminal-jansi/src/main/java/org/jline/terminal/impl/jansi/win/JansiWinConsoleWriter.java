@@ -12,7 +12,7 @@ import java.io.IOException;
 
 import org.jline.terminal.impl.AbstractWindowsConsoleWriter;
 
-import static org.fusesource.jansi.internal.Kernel32.WriteConsoleW;
+import static org.jline.nativ.Kernel32.WriteConsoleW;
 import static org.jline.terminal.impl.jansi.win.WindowsSupport.getLastErrorMessage;
 
 class JansiWinConsoleWriter extends AbstractWindowsConsoleWriter {

@@ -15,8 +15,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import org.fusesource.jansi.internal.CLibrary;
-import org.fusesource.jansi.internal.Kernel32;
+import org.jline.nativ.CLibrary;
+import org.jline.nativ.Kernel32;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractPty;
@@ -26,7 +26,7 @@ import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
 
-import static org.fusesource.jansi.internal.CLibrary.TCSANOW;
+import static org.jline.nativ.CLibrary.TCSANOW;
 import static org.jline.terminal.impl.jansi.JansiTerminalProvider.JANSI_MAJOR_VERSION;
 import static org.jline.terminal.impl.jansi.JansiTerminalProvider.JANSI_MINOR_VERSION;
 import static org.jline.utils.ExecHelper.exec;

@@ -16,8 +16,8 @@ import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.fusesource.jansi.AnsiConsole;
-import org.fusesource.jansi.internal.Kernel32;
+import org.jline.jansi.AnsiConsole;
+import org.jline.nativ.Kernel32;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;

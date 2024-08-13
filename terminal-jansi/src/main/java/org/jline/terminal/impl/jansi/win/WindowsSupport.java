@@ -10,9 +10,9 @@ package org.jline.terminal.impl.jansi.win;
 
 import java.nio.charset.StandardCharsets;
 
-import static org.fusesource.jansi.internal.Kernel32.FORMAT_MESSAGE_FROM_SYSTEM;
-import static org.fusesource.jansi.internal.Kernel32.FormatMessageW;
-import static org.fusesource.jansi.internal.Kernel32.GetLastError;
+import static org.jline.nativ.Kernel32.FORMAT_MESSAGE_FROM_SYSTEM;
+import static org.jline.nativ.Kernel32.FormatMessageW;
+import static org.jline.nativ.Kernel32.GetLastError;
 
 class WindowsSupport {
 

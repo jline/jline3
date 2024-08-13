@@ -14,7 +14,7 @@ import java.io.Writer;
 import org.jline.utils.AnsiWriter;
 import org.jline.utils.Colors;
 
-import static org.fusesource.jansi.internal.Kernel32.*;
+import static org.jline.nativ.Kernel32.*;
 import static org.jline.terminal.impl.jansi.win.WindowsSupport.getLastErrorMessage;
 
 /**
