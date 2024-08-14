@@ -48,6 +48,8 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
     private Display display;
     private ListRange range = null;
 
+    public static final long DEFAULT_TIMEOUT_WITH_ESC = 150L;
+
     public AbstractPrompt(
             Terminal terminal, List<AttributedString> header, AttributedString message, ConsolePrompt.UiConfig cfg) {
         this(terminal, header, message, new ArrayList<>(), 0, cfg);
@@ -312,7 +314,8 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
     protected static class ExpandableChoicePrompt extends AbstractPrompt<ListItemIF> {
         private enum Operation {
             INSERT,
-            EXIT
+            EXIT,
+            CANCEL
         }
 
         private final int startColumn;
@@ -345,6 +348,8 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
                 map.bind(Operation.INSERT, Character.toString(i));
             }
             map.bind(Operation.EXIT, "\r");
+            map.bind(Operation.CANCEL, KeyMap.esc());
+            map.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
         }
 
         public ExpandableChoiceResult execute() {
@@ -396,6 +401,8 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
                             break;
                         }
                         return new ExpandableChoiceResult(selectedId);
+                    case CANCEL:
+                        return null;
                 }
             }
         }
@@ -408,7 +415,8 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
         private enum Operation {
             NO,
             YES,
-            EXIT
+            EXIT,
+            CANCEL
         }
 
         private final int startColumn;
@@ -442,6 +450,8 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             map.bind(Operation.YES, yes, yes.toUpperCase());
             map.bind(Operation.NO, no, no.toUpperCase());
             map.bind(Operation.EXIT, "\r");
+            map.bind(Operation.CANCEL, KeyMap.esc());
+            map.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
         }
 
         public ConfirmResult execute() {
@@ -472,6 +482,8 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
                             break;
                         }
                         return new ConfirmResult(confirm);
+                    case CANCEL:
+                        return null;
                 }
             }
         }
@@ -487,13 +499,15 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             BEGINNING_OF_LINE,
             END_OF_LINE,
             SELECT_CANDIDATE,
-            EXIT
+            EXIT,
+            CANCEL
         }
 
         private enum SelectOp {
             FORWARD_ONE_LINE,
             BACKWARD_ONE_LINE,
-            EXIT
+            EXIT,
+            CANCEL
         }
 
         private final int startColumn;
@@ -543,12 +557,16 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             map.bind(Operation.RIGHT, ctrl('F'));
             map.bind(Operation.LEFT, ctrl('B'));
             map.bind(Operation.SELECT_CANDIDATE, "\t");
+            map.bind(Operation.CANCEL, KeyMap.esc());
+            map.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
         }
 
         private void bindSelectKeys(KeyMap<SelectOp> map) {
             map.bind(SelectOp.FORWARD_ONE_LINE, "\t", "e", ctrl('E'), key(terminal, InfoCmp.Capability.key_down));
             map.bind(SelectOp.BACKWARD_ONE_LINE, "y", ctrl('Y'), key(terminal, InfoCmp.Capability.key_up));
             map.bind(SelectOp.EXIT, "\r");
+            map.bind(SelectOp.CANCEL, KeyMap.esc());
+            map.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
         }
 
         public InputResult execute() {
@@ -620,9 +638,11 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
                             String selected =
                                     selectCandidate(firstItemRow - 1, buffer.toString(), row + 1, startColumn, matches);
                             resetHeader();
-                            buffer.delete(0, buffer.length());
-                            buffer.append(selected);
-                            column = startColumn + buffer.length();
+                            if (selected != null) {
+                                buffer.delete(0, buffer.length());
+                                buffer.append(selected);
+                                column = startColumn + buffer.length();
+                            }
                         }
                         break;
                     case EXIT:
@@ -630,6 +650,8 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
                             buffer.append(defaultValue);
                         }
                         return new InputResult(buffer.toString());
+                    case CANCEL:
+                        return null;
                 }
             }
         }
@@ -663,6 +685,8 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
                         break;
                     case EXIT:
                         return selected;
+                    case CANCEL:
+                        return null;
                 }
             }
         }
@@ -756,7 +780,8 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             FORWARD_ONE_LINE,
             BACKWARD_ONE_LINE,
             INSERT,
-            EXIT
+            EXIT,
+            CANCEL
         }
 
         private final List<T> items;
@@ -789,6 +814,8 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             map.bind(Operation.FORWARD_ONE_LINE, "e", ctrl('E'), key(terminal, InfoCmp.Capability.key_down));
             map.bind(Operation.BACKWARD_ONE_LINE, "y", ctrl('Y'), key(terminal, InfoCmp.Capability.key_up));
             map.bind(Operation.EXIT, "\r");
+            map.bind(Operation.CANCEL, KeyMap.esc());
+            map.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
         }
 
         public ListResult execute() {
@@ -823,6 +850,8 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
                     case EXIT:
                         T listItem = items.get(selectRow - firstItemRow);
                         return new ListResult(listItem.getName());
+                    case CANCEL:
+                        return null;
                 }
             }
         }
@@ -833,7 +862,8 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             FORWARD_ONE_LINE,
             BACKWARD_ONE_LINE,
             TOGGLE,
-            EXIT
+            EXIT,
+            CANCEL
         }
 
         private final List<CheckboxItemIF> items;
@@ -864,6 +894,8 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             map.bind(Operation.BACKWARD_ONE_LINE, "y", ctrl('Y'), key(terminal, InfoCmp.Capability.key_up));
             map.bind(Operation.TOGGLE, " ");
             map.bind(Operation.EXIT, "\r");
+            map.bind(Operation.CANCEL, KeyMap.esc());
+            map.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
         }
 
         public CheckboxResult execute() {
@@ -895,6 +927,8 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
                         break;
                     case EXIT:
                         return new CheckboxResult(selected);
+                    case CANCEL:
+                        return null;
                 }
             }
         }

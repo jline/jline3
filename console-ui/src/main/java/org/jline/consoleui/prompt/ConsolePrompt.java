@@ -92,6 +92,7 @@ public class ConsolePrompt {
     public Map<String, PromptResultItemIF> prompt(
             List<AttributedString> header, List<PromptableElementIF> promptableElementList) throws IOException {
         Attributes attributes = terminal.enterRawMode();
+        boolean cancelled = false;
         try {
             terminal.puts(InfoCmp.Capability.enter_ca_mode);
             terminal.puts(InfoCmp.Capability.keypad_xmit);
@@ -99,7 +100,8 @@ public class ConsolePrompt {
 
             Map<String, PromptResultItemIF> resultMap = new HashMap<>();
 
-            for (PromptableElementIF pe : promptableElementList) {
+            for (int i = 0; i < promptableElementList.size(); i++) {
+                PromptableElementIF pe = promptableElementList.get(i);
                 AttributedStringBuilder message = new AttributedStringBuilder();
                 message.style(config.style(".pr")).append("? ");
                 message.style(config.style(".me")).append(pe.getMessage()).append(" ");
@@ -170,6 +172,25 @@ public class ConsolePrompt {
                 } else {
                     throw new IllegalArgumentException("wrong type of promptable element");
                 }
+                if (result == null) {
+                    // Prompt was cancelled by the user
+                    if (i > 0) {
+                        // Remove last result
+                        header.remove(header.size() - 1);
+                        // Go back to previous prompt
+                        i -= 2;
+                        continue;
+                    } else {
+                        if (config.cancellableFirstPrompt()) {
+                            cancelled = true;
+                            return null;
+                        } else {
+                            // Repeat current prompt
+                            i -= 1;
+                            continue;
+                        }
+                    }
+                }
                 String resp = result.getResult();
                 if (result instanceof ConfirmResult) {
                     ConfirmResult cr = (ConfirmResult) result;
@@ -189,10 +210,12 @@ public class ConsolePrompt {
             terminal.puts(InfoCmp.Capability.exit_ca_mode);
             terminal.puts(InfoCmp.Capability.keypad_local);
             terminal.writer().flush();
-            for (AttributedString as : header) {
-                as.println(terminal);
+            if (!cancelled) {
+                for (AttributedString as : header) {
+                    as.println(terminal);
+                }
+                terminal.writer().flush();
             }
-            terminal.writer().flush();
         }
     }
 
@@ -224,6 +247,7 @@ public class ConsolePrompt {
         private final StyleResolver resolver;
         private final ResourceBundle resourceBundle;
         private Map<LineReader.Option, Boolean> readerOptions = new HashMap<>();
+        private boolean cancellableFirstPrompt;
 
         public UiConfig() {
             this(null, null, null, null);
@@ -269,6 +293,14 @@ public class ConsolePrompt {
 
         public ResourceBundle resourceBundle() {
             return resourceBundle;
+        }
+
+        public boolean cancellableFirstPrompt() {
+            return cancellableFirstPrompt;
+        }
+
+        public void setCancellableFirstPrompt(boolean cancellableFirstPrompt) {
+            this.cancellableFirstPrompt = cancellableFirstPrompt;
         }
 
         protected void setReaderOptions(Map<LineReader.Option, Boolean> readerOptions) {
