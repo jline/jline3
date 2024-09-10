@@ -27,9 +27,9 @@ import org.jline.utils.*;
  * ConsolePrompt encapsulates the prompting of a list of input questions for the user.
  */
 public class ConsolePrompt {
-    private final LineReader reader;
-    private final Terminal terminal;
-    private final UiConfig config;
+    protected final LineReader reader;
+    protected final Terminal terminal;
+    protected final UiConfig config;
 
     /**
      *
@@ -78,6 +78,7 @@ public class ConsolePrompt {
     public Map<String, PromptResultItemIF> prompt(List<PromptableElementIF> promptableElementList) throws IOException {
         return prompt(new ArrayList<>(), promptableElementList);
     }
+
     /**
      * Prompt a list of choices (questions). This method takes a list of promptable elements, typically
      * created with {@link PromptBuilder}. Each of the elements is processed and the user entries and
@@ -219,7 +220,7 @@ public class ConsolePrompt {
         }
     }
 
-    private int computePageSize(Terminal terminal, int pageSize, PageSizeType sizeType) {
+    public static int computePageSize(Terminal terminal, int pageSize, PageSizeType sizeType) {
         int rows = terminal.getHeight();
         return sizeType == PageSizeType.ABSOLUTE ? Math.min(rows, pageSize) : (rows * pageSize) / 100;
     }
@@ -311,7 +312,7 @@ public class ConsolePrompt {
             return readerOptions;
         }
 
-        private static StyleResolver resolver(String style) {
+        public static StyleResolver resolver(String style) {
             Map<String, String> colors = Arrays.stream(style.split(":"))
                     .collect(Collectors.toMap(
                             s -> s.substring(0, s.indexOf('=')), s -> s.substring(s.indexOf('=') + 1)));
