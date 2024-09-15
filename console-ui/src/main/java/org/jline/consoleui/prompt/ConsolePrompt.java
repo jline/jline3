@@ -27,9 +27,9 @@ import org.jline.utils.*;
  * ConsolePrompt encapsulates the prompting of a list of input questions for the user.
  */
 public class ConsolePrompt {
-    private final LineReader reader;
-    private final Terminal terminal;
-    private final UiConfig config;
+    protected final LineReader reader;
+    protected final Terminal terminal;
+    protected final UiConfig config;
 
     /**
      *
@@ -78,6 +78,7 @@ public class ConsolePrompt {
     public Map<String, PromptResultItemIF> prompt(List<PromptableElementIF> promptableElementList) throws IOException {
         return prompt(new ArrayList<>(), promptableElementList);
     }
+
     /**
      * Prompt a list of choices (questions). This method takes a list of promptable elements, typically
      * created with {@link PromptBuilder}. Each of the elements is processed and the user entries and
@@ -102,76 +103,7 @@ public class ConsolePrompt {
 
             for (int i = 0; i < promptableElementList.size(); i++) {
                 PromptableElementIF pe = promptableElementList.get(i);
-                AttributedStringBuilder message = new AttributedStringBuilder();
-                message.style(config.style(".pr")).append("? ");
-                message.style(config.style(".me")).append(pe.getMessage()).append(" ");
-                AttributedStringBuilder asb = new AttributedStringBuilder();
-                asb.append(message);
-                asb.style(AttributedStyle.DEFAULT);
-                PromptResultItemIF result;
-                if (pe instanceof ListChoice) {
-                    ListChoice lc = (ListChoice) pe;
-                    result = ListChoicePrompt.getPrompt(
-                                    terminal,
-                                    header,
-                                    asb.toAttributedString(),
-                                    lc.getListItemList(),
-                                    computePageSize(terminal, lc.getPageSize(), lc.getPageSizeType()),
-                                    config)
-                            .execute();
-                } else if (pe instanceof InputValue) {
-                    InputValue ip = (InputValue) pe;
-                    if (ip.getDefaultValue() != null) {
-                        asb.append("(").append(ip.getDefaultValue()).append(") ");
-                    }
-                    result = InputValuePrompt.getPrompt(reader, terminal, header, asb.toAttributedString(), ip, config)
-                            .execute();
-                } else if (pe instanceof ExpandableChoice) {
-                    ExpandableChoice ec = (ExpandableChoice) pe;
-                    asb.append("(");
-                    for (ConsoleUIItemIF item : ec.getChoiceItems()) {
-                        if (item instanceof ChoiceItem) {
-                            ChoiceItem ci = (ChoiceItem) item;
-                            if (ci.isSelectable()) {
-                                asb.append(ci.isDefaultChoice() ? Character.toUpperCase(ci.getKey()) : ci.getKey());
-                            }
-                        }
-                    }
-                    asb.append("h) ");
-                    try {
-                        result = ExpandableChoicePrompt.getPrompt(
-                                        terminal, header, asb.toAttributedString(), ec, config)
-                                .execute();
-                    } catch (ExpandableChoiceException e) {
-                        result = ListChoicePrompt.getPrompt(
-                                        terminal, header, message.toAttributedString(), ec.getChoiceItems(), 10, config)
-                                .execute();
-                    }
-                } else if (pe instanceof Checkbox) {
-                    Checkbox cb = (Checkbox) pe;
-                    result = CheckboxPrompt.getPrompt(
-                                    terminal,
-                                    header,
-                                    message.toAttributedString(),
-                                    cb.getCheckboxItemList(),
-                                    computePageSize(terminal, cb.getPageSize(), cb.getPageSizeType()),
-                                    config)
-                            .execute();
-                } else if (pe instanceof ConfirmChoice) {
-                    ConfirmChoice cc = (ConfirmChoice) pe;
-                    if (cc.getDefaultConfirmation() == null) {
-                        asb.append(config.resourceBundle().getString("confirmation_without_default"));
-                    } else if (cc.getDefaultConfirmation() == ConfirmChoice.ConfirmationValue.YES) {
-                        asb.append(config.resourceBundle().getString("confirmation_yes_default"));
-                    } else {
-                        asb.append(config.resourceBundle().getString("confirmation_no_default"));
-                    }
-                    asb.append(" ");
-                    result = ConfirmPrompt.getPrompt(terminal, header, asb.toAttributedString(), cc, config)
-                            .execute();
-                } else {
-                    throw new IllegalArgumentException("wrong type of promptable element");
-                }
+                PromptResultItemIF result = promptElement(header, pe);
                 if (result == null) {
                     // Prompt was cancelled by the user
                     if (i > 0) {
@@ -200,7 +132,7 @@ public class ConsolePrompt {
                         resp = config.resourceBundle().getString("confirmation_no_answer");
                     }
                 }
-                message.style(config.style(".an")).append(resp);
+                AttributedStringBuilder message = createMessage(pe.getMessage(), resp);
                 header.add(message.toAttributedString());
                 resultMap.put(pe.getName(), result);
             }
@@ -219,7 +151,88 @@ public class ConsolePrompt {
         }
     }
 
-    private int computePageSize(Terminal terminal, int pageSize, PageSizeType sizeType) {
+    protected PromptResultItemIF promptElement(List<AttributedString> header, PromptableElementIF pe) {
+        AttributedStringBuilder message = createMessage(pe.getMessage(), null);
+        AttributedStringBuilder asb = new AttributedStringBuilder();
+        asb.append(message);
+        asb.style(AttributedStyle.DEFAULT);
+        PromptResultItemIF result;
+        if (pe instanceof ListChoice) {
+            ListChoice lc = (ListChoice) pe;
+            result = ListChoicePrompt.getPrompt(
+                            terminal,
+                            header,
+                            asb.toAttributedString(),
+                            lc.getListItemList(),
+                            computePageSize(terminal, lc.getPageSize(), lc.getPageSizeType()),
+                            config)
+                    .execute();
+        } else if (pe instanceof InputValue) {
+            InputValue ip = (InputValue) pe;
+            if (ip.getDefaultValue() != null) {
+                asb.append("(").append(ip.getDefaultValue()).append(") ");
+            }
+            result = InputValuePrompt.getPrompt(reader, terminal, header, asb.toAttributedString(), ip, config)
+                    .execute();
+        } else if (pe instanceof ExpandableChoice) {
+            ExpandableChoice ec = (ExpandableChoice) pe;
+            asb.append("(");
+            for (ConsoleUIItemIF item : ec.getChoiceItems()) {
+                if (item instanceof ChoiceItem) {
+                    ChoiceItem ci = (ChoiceItem) item;
+                    if (ci.isSelectable()) {
+                        asb.append(ci.isDefaultChoice() ? Character.toUpperCase(ci.getKey()) : ci.getKey());
+                    }
+                }
+            }
+            asb.append("h) ");
+            try {
+                result = ExpandableChoicePrompt.getPrompt(terminal, header, asb.toAttributedString(), ec, config)
+                        .execute();
+            } catch (ExpandableChoiceException e) {
+                result = ListChoicePrompt.getPrompt(
+                                terminal, header, message.toAttributedString(), ec.getChoiceItems(), 10, config)
+                        .execute();
+            }
+        } else if (pe instanceof Checkbox) {
+            Checkbox cb = (Checkbox) pe;
+            result = CheckboxPrompt.getPrompt(
+                            terminal,
+                            header,
+                            message.toAttributedString(),
+                            cb.getCheckboxItemList(),
+                            computePageSize(terminal, cb.getPageSize(), cb.getPageSizeType()),
+                            config)
+                    .execute();
+        } else if (pe instanceof ConfirmChoice) {
+            ConfirmChoice cc = (ConfirmChoice) pe;
+            if (cc.getDefaultConfirmation() == null) {
+                asb.append(config.resourceBundle().getString("confirmation_without_default"));
+            } else if (cc.getDefaultConfirmation() == ConfirmChoice.ConfirmationValue.YES) {
+                asb.append(config.resourceBundle().getString("confirmation_yes_default"));
+            } else {
+                asb.append(config.resourceBundle().getString("confirmation_no_default"));
+            }
+            asb.append(" ");
+            result = ConfirmPrompt.getPrompt(terminal, header, asb.toAttributedString(), cc, config)
+                    .execute();
+        } else {
+            throw new IllegalArgumentException("wrong type of promptable element");
+        }
+        return result;
+    }
+
+    protected AttributedStringBuilder createMessage(String message, String response) {
+        AttributedStringBuilder asb = new AttributedStringBuilder();
+        asb.style(config.style(".pr")).append("? ");
+        asb.style(config.style(".me")).append(message).append(" ");
+        if (response != null) {
+            asb.style(config.style(".an")).append(response);
+        }
+        return asb;
+    }
+
+    public static int computePageSize(Terminal terminal, int pageSize, PageSizeType sizeType) {
         int rows = terminal.getHeight();
         return sizeType == PageSizeType.ABSOLUTE ? Math.min(rows, pageSize) : (rows * pageSize) / 100;
     }
@@ -311,7 +324,7 @@ public class ConsolePrompt {
             return readerOptions;
         }
 
-        private static StyleResolver resolver(String style) {
+        public static StyleResolver resolver(String style) {
             Map<String, String> colors = Arrays.stream(style.split(":"))
                     .collect(Collectors.toMap(
                             s -> s.substring(0, s.indexOf('=')), s -> s.substring(s.indexOf('=') + 1)));
