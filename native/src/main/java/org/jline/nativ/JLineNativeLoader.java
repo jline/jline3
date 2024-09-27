@@ -200,10 +200,8 @@ public class JLineNativeLoader {
                 extractedLckFile.deleteOnExit();
             }
 
-            // Set executable (x) flag to enable Java to load the native library
             extractedLibFile.setReadable(true);
             extractedLibFile.setWritable(true);
-            extractedLibFile.setExecutable(true);
 
             // Check whether the contents are properly copied from the resource folder
             try (InputStream nativeIn = JLineNativeLoader.class.getResourceAsStream(nativeLibraryFilePath)) {
