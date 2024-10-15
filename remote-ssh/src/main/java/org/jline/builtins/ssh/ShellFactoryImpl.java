@@ -30,36 +30,21 @@ import org.jline.terminal.Attributes.OutputFlag;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * SSHD {@link org.apache.sshd.server.command.Command} factory which provides access to
  * Shell.
  */
 public class ShellFactoryImpl implements ShellFactory {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ShellFactoryImpl.class);
+
     private final Consumer<Ssh.ShellParams> shell;
 
     public ShellFactoryImpl(Consumer<Ssh.ShellParams> shell) {
         this.shell = shell;
-    }
-
-    private static void flush(OutputStream... streams) {
-        for (OutputStream s : streams) {
-            try {
-                s.flush();
-            } catch (IOException e) {
-                // Ignore
-            }
-        }
-    }
-
-    static void close(Closeable... closeables) {
-        for (Closeable c : closeables) {
-            try {
-                c.close();
-            } catch (IOException e) {
-                // Ignore
-            }
-        }
     }
 
     public Command createShell(ChannelSession session) {
@@ -95,20 +80,13 @@ public class ShellFactoryImpl implements ShellFactory {
 
         public void start(final ChannelSession session, final Environment env) throws IOException {
             try {
-                new Thread(() -> {
-                            try {
-                                ShellImpl.this.run(session, env);
-                            } catch (Throwable t) {
-                                t.printStackTrace();
-                            }
-                        })
-                        .start();
+                new Thread(() -> ShellImpl.this.run(session, env)).start();
             } catch (Exception e) {
                 throw new IOException("Unable to start shell", e);
             }
         }
 
-        public void run(ChannelSession session, Environment env) throws Exception {
+        public void run(ChannelSession session, Environment env) {
             try {
                 Attributes attributes = new Attributes();
                 for (Map.Entry<PtyMode, Integer> e : env.getPtyModes().entrySet()) {
@@ -222,7 +200,9 @@ public class ShellFactoryImpl implements ShellFactory {
 
                 shell.accept(new Ssh.ShellParams(env.getEnv(), session.getSession(), terminal, () -> destroy(session)));
             } catch (Throwable t) {
-                t.printStackTrace();
+                if (!closed) {
+                    LOGGER.error("Error occured while executing shell", t);
+                }
             }
         }
 
@@ -232,6 +212,26 @@ public class ShellFactoryImpl implements ShellFactory {
                 flush(out, err);
                 close(in, out, err);
                 callback.onExit(0);
+            }
+        }
+    }
+
+    static void flush(OutputStream... streams) {
+        for (OutputStream s : streams) {
+            try {
+                s.flush();
+            } catch (IOException e) {
+                LOGGER.debug("Error flushing " + s, e);
+            }
+        }
+    }
+
+    static void close(Closeable... closeables) {
+        for (Closeable c : closeables) {
+            try {
+                c.close();
+            } catch (IOException e) {
+                LOGGER.debug("Error closing " + c, e);
             }
         }
     }
