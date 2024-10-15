@@ -112,6 +112,17 @@ public class ExecPtyTest {
             + "-echoctl -echoprt -echoke -flusho -pendin\n"
             + "opost -olcuc onlcr -ocrnl -onocr -onlret -ofill -ofdel -tostop";
 
+    private final String alpineSample = "speed 38400 baud;stty: standard input\n" + " line = 0;\n"
+            + "intr = ^C; quit = ^\\; erase = ^?; kill = ^U; eof = ^D; eol = <undef>;\n"
+            + "eol2 = <undef>; swtch = <undef>; start = ^Q; stop = ^S; susp = ^Z; rprnt = ^R;\n"
+            + "werase = ^W; lnext = ^V; flush = ^O; min = 1; time = 0;\n"
+            + "-parenb -parodd -cmspar cs8 -hupcl -cstopb cread -clocal -crtscts\n"
+            + "-ignbrk -brkint -ignpar -parmrk -inpck -istrip -inlcr -igncr icrnl ixon -ixoff\n"
+            + "-iuclc -ixany -imaxbel -iutf8\n"
+            + "opost -olcuc -ocrnl onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0 ff0\n"
+            + "isig icanon iexten echo echoe echok -echonl -noflsh -xcase -tostop -echoprt\n"
+            + "echoctl echoke -flusho -extproc";
+
     @Test
     public void testParseSize() throws IOException {
         assertEquals(new Size(244, 85), ExecPty.doGetSize(linuxSttySample));
@@ -121,6 +132,7 @@ public class ExecPtyTest {
         assertEquals(new Size(244, 85), ExecPty.doGetSize(netBsdSttySample));
         assertEquals(new Size(244, 85), ExecPty.doGetSize(freeBsdSttySample));
         assertEquals(new Size(244, 85), ExecPty.doGetSize(hpuxSttySample));
+        assertEquals(new Size(0, 0), ExecPty.doGetSize(alpineSample));
     }
 
     @Test
