@@ -70,6 +70,9 @@
             <plugin>
                 <groupId>org.codehaus.gmavenplus</groupId>
                 <artifactId>gmavenplus-plugin</artifactId>
+                <configuration>
+                    <targetBytecode>${java.release.version}</targetBytecode>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>

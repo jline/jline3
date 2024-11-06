@@ -900,9 +900,9 @@ public class Ansi implements Appendable {
         return builder.toString();
     }
 
-    ///////////////////////////////////////////////////////////////////
+    // =================================================================
     // Private Helper Methods
-    ///////////////////////////////////////////////////////////////////
+    // =================================================================
 
     private Ansi appendEscapeSequence(char command) {
         flushAttributes();

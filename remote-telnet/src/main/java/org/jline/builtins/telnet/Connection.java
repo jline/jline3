@@ -189,7 +189,7 @@ public abstract class Connection extends Thread {
         return !dead;
     } // isClosed
 
-    /****** Event handling ****************/
+    // ============= Event handling =============
 
     /**
      * Method that registers a ConnectionListener with the
