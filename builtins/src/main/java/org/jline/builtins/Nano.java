@@ -1450,7 +1450,7 @@ public class Nano implements Editor {
                 }
                 boolean found = false;
                 for (int pid = patternId; pid < patterns.size(); pid++) {
-                    if (hint.length() == 0 || patterns.get(pid).startsWith(hint)) {
+                    if (hint.isEmpty() || patterns.get(pid).startsWith(hint)) {
                         patternId = pid + 1;
                         out = patterns.get(pid);
                         found = true;
@@ -1467,7 +1467,7 @@ public class Nano implements Editor {
 
         public String down(String hint) {
             String out = hint;
-            if (patterns.size() > 0) {
+            if (!patterns.isEmpty()) {
                 if (lastMoveUp) {
                     patternId--;
                 }
@@ -1493,7 +1493,7 @@ public class Nano implements Editor {
         }
 
         public void add(String pattern) {
-            if (pattern.trim().length() == 0) {
+            if (pattern.trim().isEmpty()) {
                 return;
             }
             patterns.remove(pattern);
@@ -1512,7 +1512,7 @@ public class Nano implements Editor {
                 try (BufferedWriter writer = Files.newBufferedWriter(
                         historyFile.toAbsolutePath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE)) {
                     for (String s : patterns) {
-                        if (s.trim().length() > 0) {
+                        if (!s.trim().isEmpty()) {
                             writer.append(s);
                             writer.newLine();
                         }
@@ -2151,7 +2151,7 @@ public class Nano implements Editor {
             setMessage("Wrote " + buffer.lines.size() + " lines");
             return true;
         } catch (IOException e) {
-            setMessage("Error writing " + name + ": " + e.toString());
+            setMessage("Error writing " + name + ": " + e);
             return false;
         } finally {
             Files.deleteIfExists(t);
@@ -2312,7 +2312,7 @@ public class Nano implements Editor {
         return sb.toString();
     }
 
-    void gotoLine() throws IOException {
+    void gotoLine() {
         KeyMap<Operation> readKeyMap = new KeyMap<>();
         readKeyMap.setUnicode(Operation.INSERT);
         for (char i = 32; i < 256; i++) {
@@ -2786,12 +2786,7 @@ public class Nano implements Editor {
                         if (editBuffer.length() > 0) {
                             replaceTerm = editBuffer.toString();
                         }
-                        if (replaceTerm == null) {
-                            setMessage("Cancelled");
-                            throw new IllegalArgumentException();
-                        } else {
-                            patternHistory.add(replaceTerm);
-                        }
+                        patternHistory.add(replaceTerm);
                         return replaceTerm;
                     case HELP:
                         help("nano-replace-help.txt");
@@ -2965,7 +2960,7 @@ public class Nano implements Editor {
         setMessage("Smooth scrolling " + (smoothScrolling ? "enabled" : "disabled"));
     }
 
-    void mouseSupport() throws IOException {
+    void mouseSupport() {
         mouseSupport = !mouseSupport;
         setMessage("Mouse support " + (mouseSupport ? "enabled" : "disabled"));
         terminal.trackMouse(mouseSupport ? Terminal.MouseTracking.Normal : Terminal.MouseTracking.Off);
