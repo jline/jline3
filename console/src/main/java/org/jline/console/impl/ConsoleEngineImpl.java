@@ -1021,7 +1021,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                     alias = alias.replaceAll("%\\{" + j + ":-", "\\$\\{" + j + ":-");
                 }
                 alias = alias.replaceAll("%@", "\\$@");
-                alias = alias.replaceAll("%\\{@}", "\\$\\{@\\}");
+                alias = alias.replaceAll("%\\{@}", "\\${@}");
                 aliases.put(args.get(0), alias);
                 persist(aliasFile, aliases);
             }
@@ -1070,7 +1070,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                         pipes.remove(p.trim());
                     }
                 }
-            } else if (opt.isSet("list") || opt.args().size() == 0) {
+            } else if (opt.isSet("list") || opt.args().isEmpty()) {
                 options.put(Printer.MAX_DEPTH, 0);
                 printer.println(options, pipes);
             } else if (opt.args().size() != 3) {
@@ -1305,7 +1305,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             List<String> words = commandLine.words();
             if (words.size() > 1) {
                 String h = words.get(words.size() - 2);
-                if (h != null && h.length() > 0) {
+                if (h != null && !h.isEmpty()) {
                     String v = aliases.get(h);
                     if (v != null) {
                         candidates.add(new Candidate(AttributedString.stripAnsi(v), v, null, null, null, null, true));

@@ -157,7 +157,7 @@ public class SystemHighlighter extends DefaultHighlighter {
         AttributedString out;
         Parser parser = reader.getParser();
         ParsedLine pl = parser.parse(buffer, 0, Parser.ParseContext.SPLIT_LINE);
-        String command = pl.words().size() > 0 ? parser.getCommand(pl.words().get(0)) : "";
+        String command = !pl.words().isEmpty() ? parser.getCommand(pl.words().get(0)) : "";
         command = command.startsWith("!") ? "!" : command;
         commandIndex = buffer.indexOf(command) + command.length();
         if (buffer.trim().isEmpty()) {
