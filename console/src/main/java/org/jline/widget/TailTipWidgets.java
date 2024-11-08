@@ -202,7 +202,7 @@ public class TailTipWidgets extends Widgets {
      */
     public boolean tailtipComplete() {
         if (doTailTip(LineReader.EXPAND_OR_COMPLETE)) {
-            if (lastBinding().equals("\t")) {
+            if ("\t".equals(lastBinding())) {
                 callWidget(LineReader.BACKWARD_CHAR);
                 reader.runMacro(key(reader.getTerminal(), InfoCmp.Capability.key_right));
             }
