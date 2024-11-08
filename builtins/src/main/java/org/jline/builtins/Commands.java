@@ -1682,21 +1682,21 @@ public class Commands {
                             pathStream.filter(pathMatcher::matches).forEach(p -> out.println(p.getFileName()));
                         }
                     } else {
-                        File themeFile;
+                        Path themeFile;
                         if (opt.isSet("view")) {
-                            themeFile = new File(replaceFileName(currentTheme, opt.get("view")));
+                            themeFile = Paths.get(replaceFileName(currentTheme, opt.get("view")));
                         } else {
-                            themeFile = currentTheme.toFile();
+                            themeFile = currentTheme;
                         }
-                        out.println(themeFile.getAbsolutePath());
-                        try (BufferedReader reader = new BufferedReader(new FileReader(themeFile))) {
+                        out.println(themeFile.toAbsolutePath());
+                        try (BufferedReader reader = Files.newBufferedReader(themeFile)) {
                             String line;
                             List<List<String>> tokens = new ArrayList<>();
                             int maxKeyLen = 0;
                             int maxValueLen = 0;
                             while ((line = reader.readLine()) != null) {
                                 line = line.trim();
-                                if (line.length() > 0 && !line.startsWith("#")) {
+                                if (!line.isEmpty() && !line.startsWith("#")) {
                                     List<String> parts = Arrays.asList(line.split("\\s+", 2));
                                     if (parts.get(0).matches(REGEX_TOKEN_NAME)) {
                                         if (parts.get(0).length() > maxKeyLen) {

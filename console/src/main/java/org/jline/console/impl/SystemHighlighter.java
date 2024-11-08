@@ -10,7 +10,6 @@ package org.jline.console.impl;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -82,7 +81,7 @@ public class SystemHighlighter extends DefaultHighlighter {
             currentTheme = compareThemes(sh, currentTheme);
         }
         if (currentTheme != null) {
-            try (BufferedReader reader = new BufferedReader(new FileReader(currentTheme.toFile()))) {
+            try (BufferedReader reader = Files.newBufferedReader(currentTheme)) {
                 String line;
                 Map<String, String> tokens = new HashMap<>();
                 while ((line = reader.readLine()) != null) {
@@ -147,7 +146,7 @@ public class SystemHighlighter extends DefaultHighlighter {
 
     private boolean doDefaultHighlight(LineReader reader) {
         String search = reader.getSearchTerm();
-        return ((search != null && search.length() > 0)
+        return ((search != null && !search.isEmpty())
                 || reader.getRegionActive() != LineReader.RegionType.NONE
                 || errorIndex > -1
                 || errorPattern != null);

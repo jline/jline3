@@ -13,7 +13,6 @@ import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -1656,11 +1655,11 @@ public class Nano implements Editor {
     }
 
     private void parseConfig(Path file) throws IOException {
-        try (BufferedReader reader = new BufferedReader(new FileReader(file.toFile()))) {
+        try (BufferedReader reader = Files.newBufferedReader(file)) {
             String line;
             while ((line = reader.readLine()) != null) {
                 line = line.trim();
-                if (line.length() > 0 && !line.startsWith("#")) {
+                if (!line.isEmpty() && !line.startsWith("#")) {
                     List<String> parts = SyntaxHighlighter.RuleSplitter.split(line);
                     if (parts.get(0).equals(COMMAND_INCLUDE)) {
                         SyntaxHighlighter.nanorcInclude(parts.get(1), syntaxFiles);
@@ -2360,7 +2359,7 @@ public class Nano implements Editor {
                     int[] args = {0, 0};
                     try {
                         for (int i = 0; i < pos.length; i++) {
-                            if (pos[i].trim().length() > 0) {
+                            if (!pos[i].trim().isEmpty()) {
                                 args[i] = Integer.parseInt(pos[i]) - 1;
                                 if (args[i] < 0) {
                                     throw new NumberFormatException();
@@ -2863,7 +2862,7 @@ public class Nano implements Editor {
         sb.append("/");
         sb.append(buffer.length(buffer.lines.get(buffer.line)) + 1);
         sb.append(" (");
-        if (buffer.lines.get(buffer.line).length() > 0) {
+        if (!buffer.lines.get(buffer.line).isEmpty()) {
             sb.append(Math.round(
                     (100.0 * (buffer.offsetInLine + buffer.column)) / (buffer.length(buffer.lines.get(buffer.line)))));
         } else {

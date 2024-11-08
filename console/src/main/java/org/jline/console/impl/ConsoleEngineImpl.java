@@ -11,7 +11,6 @@ package org.jline.console.impl;
 import java.awt.Desktop;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
@@ -373,7 +372,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     }
 
     private class ScriptFile {
-        private File script;
+        private Path script;
         private String extension = "";
         private String cmdLine;
         private String[] args;
@@ -386,9 +385,9 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 return;
             }
             try {
-                this.script = new File(command);
+                this.script = Paths.get(command);
                 this.cmdLine = cmdLine;
-                if (script.exists()) {
+                if (Files.exists(script)) {
                     scriptExtension(command);
                 } else if (engine.hasVariable(VAR_PATH)) {
                     boolean found = false;
@@ -397,7 +396,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                             String file = command + "." + e;
                             Path path = Paths.get(p, file);
                             if (path.toFile().exists()) {
-                                script = path.toFile();
+                                script = path;
                                 scriptExtension(command);
                                 found = true;
                                 break;
@@ -414,18 +413,18 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             }
         }
 
-        public ScriptFile(File script, String cmdLine, String[] args) {
-            if (!script.exists()) {
+        public ScriptFile(Path script, String cmdLine, String[] args) {
+            if (!Files.exists(script)) {
                 throw new IllegalArgumentException("Script file not found!");
             }
             this.script = script;
             this.cmdLine = cmdLine;
-            scriptExtension(script.getName());
+            scriptExtension(script.getFileName().toString());
             doArgs(args);
         }
 
         private void scriptExtension(String command) {
-            String name = script.getName();
+            String name = script.getFileName().toString();
             this.extension = name.contains(".") ? name.substring(name.lastIndexOf(".") + 1) : "";
             if (!isEngineScript() && !isConsoleScript()) {
                 throw new IllegalArgumentException("Command not found: " + command);
@@ -435,7 +434,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         private void doArgs(String[] args) {
             List<String> _args = new ArrayList<>();
             if (isConsoleScript()) {
-                _args.add(script.getAbsolutePath());
+                _args.add(script.toAbsolutePath().toString());
             }
             for (String a : args) {
                 if (isConsoleScript()) {
@@ -470,7 +469,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             result = null;
             if (Arrays.asList(args).contains(OPTION_HELP[0])
                     || Arrays.asList(args).contains(OPTION_HELP[1])) {
-                try (BufferedReader br = new BufferedReader(new FileReader(script))) {
+                try (BufferedReader br = Files.newBufferedReader(script)) {
                     int size = 0;
                     StringBuilder usage = new StringBuilder();
                     boolean helpEnd = false;
@@ -527,7 +526,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 executing = true;
                 boolean done = true;
                 String line = "";
-                try (BufferedReader br = new BufferedReader(new FileReader(script))) {
+                try (BufferedReader br = Files.newBufferedReader(script)) {
                     for (String l; (l = br.readLine()) != null; ) {
                         if (l.trim().isEmpty() || l.trim().startsWith("#")) {
                             done = true;
@@ -591,7 +590,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             StringBuilder sb = new StringBuilder();
             sb.append("[");
             try {
-                sb.append("script:").append(script.getCanonicalPath());
+                sb.append("script:").append(script.normalize());
             } catch (Exception e) {
                 sb.append(e.getMessage());
             }
@@ -611,7 +610,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     }
 
     @Override
-    public Object execute(File script, String cmdLine, String[] args) throws Exception {
+    public Object execute(Path script, String cmdLine, String[] args) throws Exception {
         ScriptFile file = new ScriptFile(script, cmdLine, args);
         file.execute();
         return file.getResult();
@@ -670,8 +669,8 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         if (parser().validCommandName(cmd)) {
             file = new ScriptFile(cmd, line, args);
         } else {
-            File f = new File(line.split("\\s+")[0]);
-            if (f.exists()) {
+            Path f = Paths.get(line.split("\\s+")[0]);
+            if (Files.exists(f)) {
                 file = new ScriptFile(f, line, args);
             }
         }
