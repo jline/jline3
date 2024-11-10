@@ -64,7 +64,7 @@ public class Status {
 
     public void close() {
         terminal.puts(Capability.save_cursor);
-        terminal.puts(Capability.change_scroll_region, 0, display.rows - 1);
+        if (display != null) terminal.puts(Capability.change_scroll_region, 0, display.rows - 1);
         terminal.puts(Capability.restore_cursor);
         terminal.flush();
     }

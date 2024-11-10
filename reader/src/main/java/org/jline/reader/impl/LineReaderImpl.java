@@ -42,16 +42,8 @@ import org.jline.terminal.Attributes.ControlChar;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.Terminal.SignalHandler;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
-import org.jline.utils.AttributedString;
-import org.jline.utils.AttributedStringBuilder;
-import org.jline.utils.AttributedStyle;
-import org.jline.utils.Curses;
-import org.jline.utils.Display;
+import org.jline.utils.*;
 import org.jline.utils.InfoCmp.Capability;
-import org.jline.utils.Log;
-import org.jline.utils.Status;
-import org.jline.utils.StyleResolver;
-import org.jline.utils.WCWidth;
 
 import static org.jline.keymap.KeyMap.alt;
 import static org.jline.keymap.KeyMap.ctrl;
@@ -1200,26 +1192,31 @@ public class LineReaderImpl implements LineReader, Flushable {
     }
 
     protected synchronized void handleSignal(Signal signal) {
-        doAutosuggestion = false;
-        if (signal == Signal.WINCH) {
-            size.copy(terminal.getBufferSize());
-            display.resize(size.getRows(), size.getColumns());
-            Status status = Status.getStatus(terminal, false);
-            if (status != null) {
-                status.resize(size);
-                status.reset();
+        try {
+            lock.lock();
+            doAutosuggestion = false;
+            if (signal == Signal.WINCH) {
+                size.copy(terminal.getBufferSize());
+                display.resize(size.getRows(), size.getColumns());
+                Status status = Status.getStatus(terminal, false);
+                if (status != null) {
+                    status.resize(size);
+                    status.reset();
+                }
+                terminal.puts(Capability.carriage_return);
+                terminal.puts(Capability.clr_eos);
+                redrawLine();
+                redisplay();
+            } else if (signal == Signal.CONT) {
+                terminal.enterRawMode();
+                size.copy(terminal.getBufferSize());
+                display.resize(size.getRows(), size.getColumns());
+                terminal.puts(Capability.keypad_xmit);
+                redrawLine();
+                redisplay();
             }
-            terminal.puts(Capability.carriage_return);
-            terminal.puts(Capability.clr_eos);
-            redrawLine();
-            redisplay();
-        } else if (signal == Signal.CONT) {
-            terminal.enterRawMode();
-            size.copy(terminal.getBufferSize());
-            display.resize(size.getRows(), size.getColumns());
-            terminal.puts(Capability.keypad_xmit);
-            redrawLine();
-            redisplay();
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -3871,6 +3868,10 @@ public class LineReaderImpl implements LineReader, Flushable {
     }
 
     protected void redisplay(boolean flush) {
+        redisplay(flush, false);
+    }
+
+    protected void redisplay(boolean flush, boolean complete) {
         try {
             lock.lock();
 
@@ -3925,7 +3926,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                     full = sb.toAttributedString();
                 }
 
-                display.update(Collections.singletonList(full), cursor - smallTerminalOffset, flush);
+                display.update(Collections.singletonList(full), cursor - smallTerminalOffset, flush, complete);
                 return;
             }
 
@@ -4007,7 +4008,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             } else {
                 newLinesToDisplay = newLines;
             }
-            display.update(newLinesToDisplay, cursorPos, flush);
+            display.update(newLinesToDisplay, cursorPos, flush, complete);
         } finally {
             lock.unlock();
         }
@@ -4033,7 +4034,9 @@ public class LineReaderImpl implements LineReader, Flushable {
         StringBuilder sb = new StringBuilder();
         for (char c : buffer.replace("\\", "\\\\").toCharArray()) {
             if (c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}' || c == '^' || c == '*' || c == '$'
-                    || c == '.' || c == '?' || c == '+' || c == '|' || c == '<' || c == '>' || c == '!' || c == '-') {
+                    || c == '.' || c == '?'
+                    || c == '+') // BMGFIXX        || c == '|' || c == '<' || c == '>' || c == '!' || c == '-')
+            {
                 sb.append('\\');
             }
             sb.append(c);
@@ -4130,6 +4133,11 @@ public class LineReaderImpl implements LineReader, Flushable {
     }
 
     private AttributedString expandPromptPattern(String pattern, int padToWidth, String message, int line) {
+        return expandPromptPattern(pattern, padToWidth, message, line, false);
+    }
+
+    private AttributedString expandPromptPattern(
+            String pattern, int padToWidth, String message, int line, boolean currentLine) {
         ArrayList<AttributedString> parts = new ArrayList<>();
         boolean isHidden = false;
         int padPartIndex = -1;
@@ -4177,6 +4185,9 @@ public class LineReaderImpl implements LineReader, Flushable {
                         case 'N':
                             sb.append(getInt(LINE_OFFSET, 0) + line);
                             break decode;
+                        case 'C':
+                            sb.append(getInt(LINE_OFFSET, 0) + line + 1);
+                            break decode;
                         case 'M':
                             if (message != null) sb.append(message);
                             break decode;
@@ -4188,6 +4199,13 @@ public class LineReaderImpl implements LineReader, Flushable {
                             }
                             padPos = sb.length();
                             padPartIndex = parts.size();
+                            break decode;
+                        case '*':
+                            if (currentLine) {
+                                sb.append("*");
+                            } else {
+                                sb.append(" ");
+                            }
                             break decode;
                         case '-':
                         case '0':
@@ -4246,6 +4264,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         List<AttributedString> lines = strAtt.columnSplitLength(Integer.MAX_VALUE);
         AttributedStringBuilder sb = new AttributedStringBuilder();
         String secondaryPromptPattern = getString(SECONDARY_PROMPT_PATTERN, DEFAULT_SECONDARY_PROMPT_PATTERN);
+        int secondaryLineNo = secondaryPromptPattern.contains("%*") ? getCurrentLineNo(lines) - 1 : -1;
         boolean needsMessage = secondaryPromptPattern.contains("%M")
                 && strAtt.length() < getInt(FEATURES_MAX_BUFFER_SIZE, DEFAULT_FEATURES_MAX_BUFFER_SIZE);
         AttributedStringBuilder buf = new AttributedStringBuilder();
@@ -4272,7 +4291,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                     }
                 }
                 missings.add(missing);
-                prompt = expandPromptPattern(secondaryPromptPattern, 0, missing, line + 1);
+                prompt = expandPromptPattern(secondaryPromptPattern, 0, missing, line + 1, line == secondaryLineNo);
                 width = Math.max(width, prompt.columnLength());
             }
             buf.setLength(0);
@@ -4297,7 +4316,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                         missing = missings.get(line);
                     }
                 }
-                prompt = expandPromptPattern(secondaryPromptPattern, width, missing, line + 1);
+                prompt = expandPromptPattern(secondaryPromptPattern, width, missing, line + 1, line == secondaryLineNo);
             } else {
                 prompt = prompts.get(line);
             }
@@ -4308,6 +4327,21 @@ public class LineReaderImpl implements LineReader, Flushable {
         sb.append(lines.get(line));
         buf.append(lines.get(line));
         return sb.toAttributedString();
+    }
+
+    private int getCurrentLineNo(List<AttributedString> lines) {
+        int currentLine = -1;
+        int cursor = buf.cursor();
+        int start = 0;
+        for (int l = 0; l < lines.size(); l++) {
+            int end = start + lines.get(l).length();
+            if (cursor >= start && cursor <= end) {
+                currentLine = l;
+                break;
+            }
+            start = end + 1;
+        }
+        return currentLine;
     }
 
     private AttributedString addRightPrompt(AttributedString prompt, AttributedString line) {
@@ -4335,6 +4369,9 @@ public class LineReaderImpl implements LineReader, Flushable {
     //
 
     protected boolean insertTab() {
+        if (bindingReader.peekCharacter(10) != NonBlockingReader.READ_EXPIRED) {
+            return true;
+        }
         return isSet(Option.INSERT_TAB)
                 && getLastBinding().equals("\t")
                 && buf.toString().matches("(^|[\\s\\S]*\n)[\r\n\t ]*");
@@ -4608,8 +4645,8 @@ public class LineReaderImpl implements LineReader, Flushable {
             size.copy(terminal.getBufferSize());
         }
     }
-
-    protected static CompletingParsedLine wrap(ParsedLine line) {
+    // BMG protected static CompletingParsedLine  wrap(ParsedLine line) {
+    protected CompletingParsedLine wrap(ParsedLine line) {
         if (line instanceof CompletingParsedLine) {
             return (CompletingParsedLine) line;
         } else {
@@ -5622,6 +5659,9 @@ public class LineReaderImpl implements LineReader, Flushable {
      * @return <code>true</code> if successful, <code>false</code> otherwise
      */
     protected boolean moveHistory(final boolean next) {
+        if (maskingCallback != null) {
+            return false;
+        }
         if (!buf.toString().equals(history.current())) {
             modifiedHistory.put(history.index(), buf.toString());
         }
@@ -5979,6 +6019,11 @@ public class LineReaderImpl implements LineReader, Flushable {
                 flush();
             }
         }
+        return true;
+    }
+
+    public boolean redrawDisplay() {
+        redisplay(true, true);
         return true;
     }
 

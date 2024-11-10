@@ -114,6 +114,17 @@ public class Display {
      * @param flush whether the output should be flushed or not
      */
     public void update(List<AttributedString> newLines, int targetCursorPos, boolean flush) {
+        update(newLines, targetCursorPos, flush, false);
+    }
+
+    /**
+     * Update the display according to the new lines.
+     * @param newLines the lines to display
+     * @param targetCursorPos desired cursor position - see Size.cursorPos.
+     * @param flush whether the output should be flushed or not
+     * @param complete whether the display should be fully redrawn
+     */
+    public void update(List<AttributedString> newLines, int targetCursorPos, boolean flush, boolean complete) {
         if (reset) {
             terminal.puts(Capability.clear_screen);
             oldLines.clear();
@@ -231,7 +242,10 @@ public class Display {
             for (int i = 0; i < diffs.size(); i++) {
                 DiffHelper.Diff diff = diffs.get(i);
                 int width = diff.text.columnLength();
-                switch (diff.operation) {
+                DiffHelper.Operation op = (complete && diff.operation == DiffHelper.Operation.EQUAL
+                        ? DiffHelper.Operation.INSERT
+                        : diff.operation);
+                switch (op) {
                     case EQUAL:
                         if (!ident) {
                             cursorPos = moveVisualCursorTo(currentPos);
@@ -296,6 +310,10 @@ public class Display {
                 }
             }
             lineIndex++;
+            if (complete) {
+                moveVisualCursorTo(currentPos);
+                terminal.puts(Capability.clr_eol);
+            }
             boolean newWrap = !newNL && lineIndex < newLines.size();
             if (targetCursorPos + 1 == lineIndex * columns1 && (newWrap || !delayLineWrap)) targetCursorPos++;
             boolean atRight = (cursorPos - curCol) % columns1 == columns;
