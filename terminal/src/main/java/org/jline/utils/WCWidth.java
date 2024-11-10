@@ -52,6 +52,9 @@ public final class WCWidth {
         /* binary search in table of non-spacing characters */
         if (bisearch(ucs, combining, combining.length - 1)) return 0;
 
+        /* emojis characters */
+        if (ucs >= 0x1f000 && ucs <= 0x1feee) return 2;
+
         /* if we arrive here, ucs is not a combining or C0/C1 control character */
         return 1
                 + ((ucs >= 0x1100
@@ -65,7 +68,6 @@ public final class WCWidth {
                                         || /* Vertical forms */ (ucs >= 0xfe30 && ucs <= 0xfe6f)
                                         || /* CJK Compatibility Forms */ (ucs >= 0xff00 && ucs <= 0xff60)
                                         || /* Fullwidth Forms */ (ucs >= 0xffe0 && ucs <= 0xffe6)
-                                        || (ucs >= 0x1f000 && ucs <= 0x1feee)
                                         || (ucs >= 0x20000 && ucs <= 0x2fffd)
                                         || (ucs >= 0x30000 && ucs <= 0x3fffd)))
                         ? 1
