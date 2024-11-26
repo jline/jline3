@@ -10,4 +10,8 @@ package org.jline.consoleui.prompt;
 
 public interface PromptResultItemIF {
     String getResult();
+
+    default String getDisplayResult() {
+        return getResult();
+    }
 }
