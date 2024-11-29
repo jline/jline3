@@ -1083,7 +1083,7 @@ public class ScreenTerminal {
 
     private String[] vt100_parse_params(String p, String[] defaults) {
         String prefix = "";
-        if (p.length() > 0) {
+        if (!p.isEmpty()) {
             if (p.charAt(0) >= '<' && p.charAt(0) <= '?') {
                 prefix = "" + p.charAt(0);
                 p = p.substring(1);
@@ -1094,7 +1094,7 @@ public class ScreenTerminal {
         String[] values = new String[n];
         for (int i = 0; i < n; i++) {
             String value = null;
-            if (i < ps.length && ps[i].length() > 0) {
+            if (i < ps.length && !ps[i].isEmpty()) {
                 value = prefix + ps[i];
             }
             if (value == null && i < defaults.length) {
@@ -1111,7 +1111,7 @@ public class ScreenTerminal {
     private int[] vt100_parse_params(String p, int[] defaults) {
         String prefix = "";
         p = p == null ? "" : p;
-        if (p.length() > 0) {
+        if (!p.isEmpty()) {
             if (p.charAt(0) >= '<' && p.charAt(0) <= '?') {
                 prefix = p.substring(0, 1);
                 p = p.substring(1);

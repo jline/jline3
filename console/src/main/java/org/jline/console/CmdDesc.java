@@ -124,6 +124,6 @@ public class CmdDesc {
     }
 
     public AttributedString optionDescription(String key) {
-        return optsDesc.get(key).size() > 0 ? optsDesc.get(key).get(0) : new AttributedString("");
+        return !optsDesc.get(key).isEmpty() ? optsDesc.get(key).get(0) : new AttributedString("");
     }
 }

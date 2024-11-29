@@ -30,6 +30,6 @@ public class PasswordReader {
         do {
             line = reader.readLine("Enter password> ", mask);
             System.out.println("Got password: " + line);
-        } while (line != null && line.length() > 0);
+        } while (line != null && !line.isEmpty());
     }
 }

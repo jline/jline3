@@ -240,13 +240,13 @@ public class Commands {
         } else if (opt.isSet("save")) {
             history.save();
         } else if (opt.isSet("A")) {
-            Path file = opt.args().size() > 0 ? currentDir.resolve(opt.args().get(0)) : null;
+            Path file = !opt.args().isEmpty() ? currentDir.resolve(opt.args().get(0)) : null;
             history.append(file, increment);
         } else if (opt.isSet("R")) {
-            Path file = opt.args().size() > 0 ? currentDir.resolve(opt.args().get(0)) : null;
+            Path file = !opt.args().isEmpty() ? currentDir.resolve(opt.args().get(0)) : null;
             history.read(file, increment);
         } else if (opt.isSet("W")) {
-            Path file = opt.args().size() > 0 ? currentDir.resolve(opt.args().get(0)) : null;
+            Path file = !opt.args().isEmpty() ? currentDir.resolve(opt.args().get(0)) : null;
             history.write(file, increment);
         } else {
             done = false;
@@ -361,7 +361,7 @@ public class Commands {
                 if (edit) {
                     cmdFile = File.createTempFile("jline-history-", null);
                     cmdWriter = new FileWriter(cmdFile);
-                } else if (opt.args().size() > 0) {
+                } else if (!opt.args().isEmpty()) {
                     String[] s = opt.args().get(argId).split("=");
                     if (s.length == 2) {
                         argId = argId + 1;
@@ -640,7 +640,7 @@ public class Commands {
         if (opt.isSet("l")) {
             boolean commands = opt.isSet("L");
             // TODO: handle commands
-            if (opt.args().size() > 0) {
+            if (!opt.args().isEmpty()) {
                 for (String arg : opt.args()) {
                     KeyMap<Binding> map = keyMaps.get(arg);
                     if (map == null) {
@@ -704,7 +704,7 @@ public class Commands {
                 err.println("keymap: keymap can not be selected with -N");
                 return;
             }
-            if (opt.args().size() > 0) {
+            if (!opt.args().isEmpty()) {
                 err.println("keymap: too many arguments for -d");
                 return;
             }
@@ -869,9 +869,9 @@ public class Commands {
                 err.println("keymap: option -p requires a prefix string");
                 return;
             }
-            if (opt.args().size() > 0 || !opt.isSet("e") && !opt.isSet("v")) {
+            if (!opt.args().isEmpty() || !opt.isSet("e") && !opt.isSet("v")) {
                 Map<String, Binding> bound = map.getBoundKeys();
-                String seq = opt.args().size() > 0 ? KeyMap.translate(opt.args().get(0)) : null;
+                String seq = !opt.args().isEmpty() ? KeyMap.translate(opt.args().get(0)) : null;
                 Map.Entry<String, Binding> begin = null;
                 String last = null;
                 Iterator<Entry<String, Binding>> iterator = bound.entrySet().iterator();
@@ -1682,21 +1682,21 @@ public class Commands {
                             pathStream.filter(pathMatcher::matches).forEach(p -> out.println(p.getFileName()));
                         }
                     } else {
-                        File themeFile;
+                        Path themeFile;
                         if (opt.isSet("view")) {
-                            themeFile = new File(replaceFileName(currentTheme, opt.get("view")));
+                            themeFile = Paths.get(replaceFileName(currentTheme, opt.get("view")));
                         } else {
-                            themeFile = currentTheme.toFile();
+                            themeFile = currentTheme;
                         }
-                        out.println(themeFile.getAbsolutePath());
-                        try (BufferedReader reader = new BufferedReader(new FileReader(themeFile))) {
+                        out.println(themeFile.toAbsolutePath());
+                        try (BufferedReader reader = Files.newBufferedReader(themeFile)) {
                             String line;
                             List<List<String>> tokens = new ArrayList<>();
                             int maxKeyLen = 0;
                             int maxValueLen = 0;
                             while ((line = reader.readLine()) != null) {
                                 line = line.trim();
-                                if (line.length() > 0 && !line.startsWith("#")) {
+                                if (!line.isEmpty() && !line.startsWith("#")) {
                                     List<String> parts = Arrays.asList(line.split("\\s+", 2));
                                     if (parts.get(0).matches(REGEX_TOKEN_NAME)) {
                                         if (parts.get(0).length() > maxKeyLen) {

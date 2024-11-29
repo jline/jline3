@@ -151,7 +151,7 @@ public abstract class JlineCommandRegistry extends AbstractCommandRegistry {
                 if (ind > 0) {
                     String o = s.substring(0, ind);
                     String d = s.substring(ind);
-                    if (o.trim().length() > 0) {
+                    if (!o.trim().isEmpty()) {
                         prevOpt = o.trim();
                         options.put(prevOpt, new ArrayList<>(Collections.singletonList(highlightComment(d.trim()))));
                     }

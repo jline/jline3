@@ -81,11 +81,11 @@ public class SyntaxHighlighter {
                     try {
                         if (colorTheme.isEmpty() && p.getFileName().toString().endsWith(TYPE_NANORCTHEME)) {
                             out.setCurrentTheme(p);
-                            try (BufferedReader reader = new BufferedReader(new FileReader(p.toFile()))) {
+                            try (BufferedReader reader = Files.newBufferedReader(p)) {
                                 String line;
                                 while ((line = reader.readLine()) != null) {
                                     line = line.trim();
-                                    if (line.length() > 0 && !line.startsWith("#")) {
+                                    if (!line.isEmpty() && !line.startsWith("#")) {
                                         List<String> parts = Arrays.asList(line.split("\\s+", 2));
                                         colorTheme.put(parts.get(0), parts.get(1));
                                     }
@@ -126,11 +126,11 @@ public class SyntaxHighlighter {
         SyntaxHighlighter out = new SyntaxHighlighter(nanorc, syntaxName);
         List<Path> syntaxFiles = new ArrayList<>();
         try {
-            try (BufferedReader reader = new BufferedReader(new FileReader(nanorc.toFile()))) {
+            try (BufferedReader reader = Files.newBufferedReader(nanorc)) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     line = line.trim();
-                    if (line.length() > 0 && !line.startsWith("#")) {
+                    if (!line.isEmpty() && !line.startsWith("#")) {
                         List<String> parts = RuleSplitter.split(line);
                         if (parts.get(0).equals(COMMAND_INCLUDE)) {
                             nanorcInclude(parts.get(1), syntaxFiles);
@@ -496,7 +496,7 @@ public class SyntaxHighlighter {
                 while ((line = reader.readLine()) != null) {
                     idx++;
                     line = line.trim();
-                    if (line.length() > 0 && !line.startsWith("#")) {
+                    if (!line.isEmpty() && !line.startsWith("#")) {
                         List<String> parts = RuleSplitter.split(fixRegexes(line));
                         if (parts.get(0).equals("syntax")) {
                             syntaxName = parts.get(1);
