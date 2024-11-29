@@ -59,6 +59,6 @@ popd
 
 echo Launching ConsoleUI...
 echo Classpath: %cp%
-java -cp %cp% %opts% org.jline.consoleui.examples.Basic
+java -cp %cp% %opts% org.jline.consoleui.examples.BasicDynamic
 
 :END

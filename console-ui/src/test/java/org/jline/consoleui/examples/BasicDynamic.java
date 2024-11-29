@@ -8,7 +8,7 @@
  */
 package org.jline.consoleui.examples;
 
-import java.io.InterruptedIOException;
+import java.io.IOError;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -71,31 +71,31 @@ public class BasicDynamic {
             // If you are not using Completers you do not need to create LineReader.
             //
             LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
-            ConsolePrompt prompt = new ConsolePrompt(reader, terminal, config);
+            Map<String, PromptResultItemIF> result1 = new HashMap<>(),
+                    result2 = new HashMap<>(),
+                    result3 = new HashMap<>();
 
-            Map<String, ? extends PromptResultItemIF> result1 = null, result2 = null, result3 = null;
-            while (result2 == null) {
-                List<AttributedString> header1 = new ArrayList<>(header);
-                result1 = prompt.prompt(header1, pizzaOrHamburgerPrompt(prompt).build());
-                if (result1 == null) {
-                    System.out.println("User cancelled order.");
-                    return;
-                }
-                while (result3 == null) {
-                    if ("Pizza".equals(result1.get("product").getResult())) {
-                        result2 = prompt.prompt(pizzaPrompt(prompt).build());
-                    } else {
-                        result2 = prompt.prompt(hamburgerPrompt(prompt).build());
+            try (ConsolePrompt prompt = new ConsolePrompt(reader, terminal, config)) {
+                while (result2.isEmpty()) {
+                    prompt.prompt(header, pizzaOrHamburgerPrompt(prompt).build(), result1);
+                    if (result1.isEmpty()) {
+                        throw new Exception("User cancelled order.");
                     }
-                    if (result2 == null) {
-                        break;
+                    while (result3.isEmpty()) {
+                        if ("Pizza".equals(result1.get("product").getResult())) {
+                            prompt.prompt(header, pizzaPrompt(prompt).build(), result2);
+                        } else {
+                            prompt.prompt(header, hamburgerPrompt(prompt).build(), result2);
+                        }
+                        if (result2.isEmpty()) {
+                            break;
+                        }
+                        prompt.prompt(header, finalPrompt(prompt).build(), result3);
                     }
-                    result3 = prompt.prompt(finalPrompt(prompt).build());
                 }
             }
 
-            Map<String, PromptResultItemIF> result = new HashMap<>();
-            result.putAll(result1);
+            Map<String, PromptResultItemIF> result = new HashMap<>(result1);
             result.putAll(result2);
             result.putAll(result3);
             System.out.println("result = " + result);
@@ -105,10 +105,10 @@ public class BasicDynamic {
                 System.out.println("We will deliver the order in 5 minutes");
             }
 
-        } catch (InterruptedIOException e) {
-            System.out.println("Exiting application.");
+        } catch (IOError e) {
+            System.out.println("<ctrl>-c pressed");
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println(e.getMessage());
         }
     }
 
@@ -124,7 +124,7 @@ public class BasicDynamic {
         promptBuilder
                 .createListPrompt()
                 .name("product")
-                .message("Which do you want to order?")
+                .message("What do you want to order?")
                 .newItem()
                 .text("Pizza")
                 .add() // without name (name defaults to text)
