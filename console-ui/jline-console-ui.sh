@@ -80,5 +80,5 @@ echo "Classpath: $cp"
 set mouse=a
 java -cp $cp \
     $opts \
-    org.jline.consoleui.examples.Basic
+    org.jline.consoleui.examples.BasicDynamic
 

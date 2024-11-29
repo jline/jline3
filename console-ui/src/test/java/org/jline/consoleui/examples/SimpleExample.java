@@ -10,6 +10,7 @@ package org.jline.consoleui.examples;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -28,28 +29,30 @@ public class SimpleExample {
         header.add(new AttributedStringBuilder().append("Simple list example:").toAttributedString());
 
         try (Terminal terminal = TerminalBuilder.builder().build()) {
-            ConsolePrompt prompt = new ConsolePrompt(terminal);
-            PromptBuilder promptBuilder = prompt.getPromptBuilder();
+            Map<String, PromptResultItemIF> result = new HashMap<>();
+            try (ConsolePrompt prompt = new ConsolePrompt(terminal)) {
+                PromptBuilder promptBuilder = prompt.getPromptBuilder();
 
-            promptBuilder
-                    .createListPrompt()
-                    .name("pizzatype")
-                    .message("Which pizza do you want?")
-                    .newItem()
-                    .text("Margherita")
-                    .add() // without name (name defaults to text)
-                    .newItem("veneziana")
-                    .text("Veneziana")
-                    .add()
-                    .newItem("hawai")
-                    .text("Hawai")
-                    .add()
-                    .newItem("quattro")
-                    .text("Quattro Stagioni")
-                    .add()
-                    .addPrompt();
+                promptBuilder
+                        .createListPrompt()
+                        .name("pizzatype")
+                        .message("Which pizza do you want?")
+                        .newItem()
+                        .text("Margherita")
+                        .add() // without name (name defaults to text)
+                        .newItem("veneziana")
+                        .text("Veneziana")
+                        .add()
+                        .newItem("hawai")
+                        .text("Hawai")
+                        .add()
+                        .newItem("quattro")
+                        .text("Quattro Stagioni")
+                        .add()
+                        .addPrompt();
 
-            Map<String, PromptResultItemIF> result = prompt.prompt(header, promptBuilder.build());
+                prompt.prompt(header, promptBuilder.build(), result);
+            }
             System.out.println("result = " + result);
         } catch (IOException e) {
             e.printStackTrace();
