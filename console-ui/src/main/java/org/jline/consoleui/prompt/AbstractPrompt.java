@@ -576,6 +576,7 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             List<Candidate> matches = new ArrayList<>();
             KeyMap<Operation> keyMap = new KeyMap<>();
             bindKeys(keyMap);
+            StringBuilder displayBuffer = new StringBuilder();
             StringBuilder buffer = new StringBuilder();
             CompletionMatcher completionMatcher = new CompletionMatcherImpl();
             boolean tabCompletion = completer != null && reader != null;
@@ -596,7 +597,7 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
                 refreshDisplay(
                         firstItemRow - 1,
                         column,
-                        buffer.toString(),
+                        displayBuffer.toString(),
                         row,
                         startColumn,
                         displayCandidates ? matches : new ArrayList<>());
@@ -608,22 +609,26 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
                         }
                         break;
                     case RIGHT:
-                        if (column < startColumn + buffer.length()) {
+                        if (column < startColumn + displayBuffer.length()) {
                             column++;
                         }
                         break;
                     case INSERT:
-                        buffer.insert(column - startColumn, mask == null ? bindingReader.getLastBinding() : mask);
+                        displayBuffer.insert(
+                                column - startColumn, mask == null ? bindingReader.getLastBinding() : mask);
+                        buffer.insert(column - startColumn, bindingReader.getLastBinding());
                         column++;
                         break;
                     case BACKSPACE:
                         if (column > startColumn) {
+                            displayBuffer.deleteCharAt(column - startColumn - 1);
                             buffer.deleteCharAt(column - startColumn - 1);
                             column--;
                         }
                         break;
                     case DELETE:
-                        if (column < startColumn + buffer.length() && column >= startColumn) {
+                        if (column < startColumn + displayBuffer.length() && column >= startColumn) {
+                            displayBuffer.deleteCharAt(column - startColumn);
                             buffer.deleteCharAt(column - startColumn);
                         }
                         break;
@@ -631,7 +636,7 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
                         column = startColumn;
                         break;
                     case END_OF_LINE:
-                        column = startColumn + buffer.length();
+                        column = startColumn + displayBuffer.length();
                         break;
                     case SELECT_CANDIDATE:
                         if (tabCompletion && matches.size() < ReaderUtils.getInt(reader, LineReader.LIST_MAX, 50)) {
@@ -639,17 +644,32 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
                                     selectCandidate(firstItemRow - 1, buffer.toString(), row + 1, startColumn, matches);
                             resetHeader();
                             if (selected != null) {
-                                buffer.delete(0, buffer.length());
+                                displayBuffer.delete(0, displayBuffer.length());
+                                if (mask == null) {
+                                    displayBuffer.append(selected);
+                                } else {
+                                    for (int i = 0; i < selected.length(); i++) {
+                                        displayBuffer.append(mask);
+                                    }
+                                }
+                                buffer.delete(0, displayBuffer.length());
                                 buffer.append(selected);
-                                column = startColumn + buffer.length();
+                                column = startColumn + displayBuffer.length();
                             }
                         }
                         break;
                     case EXIT:
-                        if (buffer.toString().isEmpty()) {
+                        if (displayBuffer.toString().isEmpty()) {
+                            if (mask == null) {
+                                displayBuffer.append(defaultValue);
+                            } else {
+                                for (int i = 0; i < defaultValue.length(); i++) {
+                                    displayBuffer.append(mask);
+                                }
+                            }
                             buffer.append(defaultValue);
                         }
-                        return new InputResult(buffer.toString());
+                        return new InputResult(buffer.toString(), displayBuffer.toString());
                     case CANCEL:
                         return null;
                 }

@@ -10,13 +10,15 @@ package org.jline.consoleui.prompt;
 
 public class InputResult implements PromptResultItemIF {
     private final String input;
+    private final String displayInput;
 
-    public InputResult(String input) {
+    public InputResult(String input, String displayInput) {
         this.input = input;
+        this.displayInput = displayInput;
     }
 
-    public String getInput() {
-        return input;
+    public String getDisplayResult() {
+        return displayInput;
     }
 
     public String getResult() {
