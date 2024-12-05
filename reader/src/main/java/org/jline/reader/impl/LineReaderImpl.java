@@ -294,6 +294,8 @@ public class LineReaderImpl implements LineReader, Flushable {
     protected String alternateIn;
     protected String alternateOut;
 
+    protected int numOfSecondaryPromptLines;
+
     public LineReaderImpl(Terminal terminal) throws IOException {
         this(terminal, terminal.getName(), null);
     }
@@ -4177,6 +4179,16 @@ public class LineReaderImpl implements LineReader, Flushable {
                         case 'N':
                             sb.append(getInt(LINE_OFFSET, 0) + line);
                             break decode;
+                        case 'C':
+                            sb.append(getInt(LINE_OFFSET, 0) + (line + 1));
+                            break decode;
+                        case '*':
+                            if (this.numOfSecondaryPromptLines == line + 1) {
+                                sb.append("*");
+                            } else {
+                                sb.append(" ");
+                            }
+                            break decode;
                         case 'M':
                             if (message != null) sb.append(message);
                             break decode;
@@ -4278,6 +4290,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             buf.setLength(0);
         }
         int line = 0;
+        this.numOfSecondaryPromptLines = lines.size();
         while (line < lines.size() - 1) {
             sb.append(lines.get(line)).append("\n");
             buf.append(lines.get(line)).append("\n");
