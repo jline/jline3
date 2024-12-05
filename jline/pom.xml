@@ -400,6 +400,7 @@
                             </excludes>
                             <compilerArgs>
                                 <arg>-Xlint:all,-options</arg>
+                                <arg>-Werror</arg>
                             </compilerArgs>
                         </configuration>
                     </execution>
@@ -415,6 +416,7 @@
                             <release>22</release>
                             <compilerArgs>
                                 <arg>-Xlint:all,-options</arg>
+                                <arg>-Werror</arg>
                             </compilerArgs>
                         </configuration>
                     </execution>
