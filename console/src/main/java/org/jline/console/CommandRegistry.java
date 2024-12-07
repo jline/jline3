@@ -11,8 +11,8 @@ package org.jline.console;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.*;
-import java.util.stream.Stream;
 
+import org.jline.reader.Candidate;
 import org.jline.reader.impl.completer.SystemCompleter;
 import org.jline.terminal.Terminal;
 
@@ -43,15 +43,20 @@ public interface CommandRegistry {
      */
     static SystemCompleter compileCompleters(CommandRegistry... commandRegistries) {
         SystemCompleter out = aggregateCompleters(commandRegistries);
-        out.compile(s -> getDescription(commandRegistries, s));
+        out.compile(s -> createCandidate(commandRegistries, s));
         return out;
     }
 
-    static String getDescription(CommandRegistry[] commandRegistries, String s) {
-        return Stream.of(commandRegistries)
-                .flatMap(r -> r.hasCommand(s) ? r.commandInfo(s).stream() : Stream.empty())
-                .findFirst()
-                .orElse(null);
+    static Candidate createCandidate(CommandRegistry[] commandRegistries, String command) {
+        String group = null, desc = null;
+        for (CommandRegistry registry : commandRegistries) {
+            if (registry.hasCommand(command)) {
+                group = registry.name();
+                desc = registry.commandInfo(command).stream().findFirst().orElse(null);
+                break;
+            }
+        }
+        return new Candidate(command, command, group, desc, null, null, true);
     }
 
     /**

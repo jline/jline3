@@ -306,7 +306,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         }
         local.add(customSystemCompleter);
         out.add(local);
-        out.compile(s -> CommandRegistry.getDescription(commandRegistries, s));
+        out.compile(s -> CommandRegistry.createCandidate(commandRegistries, s));
         return out;
     }
 

@@ -126,7 +126,7 @@ public class SystemCompleter implements Completer {
         return aliasCommand;
     }
 
-    public void compile(Function<String, String> descriptionProvider) {
+    public void compile(Function<String, Candidate> candidateBuilder) {
         if (compiled) {
             return;
         }
@@ -142,9 +142,7 @@ public class SystemCompleter implements Completer {
         completers = compiledCompleters;
         Set<String> cmds = new HashSet<>(completers.keySet());
         cmds.addAll(aliasCommand.keySet());
-        commands = new StringsCompleter(cmds.stream()
-                .map(s -> new Candidate(s, s, null, descriptionProvider.apply(s), null, null, true, 0))
-                .collect(Collectors.toList()));
+        commands = new StringsCompleter(cmds.stream().map(candidateBuilder).collect(Collectors.toList()));
         compiled = true;
     }
 
