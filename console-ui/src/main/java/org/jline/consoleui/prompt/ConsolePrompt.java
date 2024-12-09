@@ -8,7 +8,9 @@
  */
 package org.jline.consoleui.prompt;
 
+import java.io.IOError;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -19,6 +21,7 @@ import org.jline.consoleui.elements.items.impl.ChoiceItem;
 import org.jline.consoleui.prompt.AbstractPrompt.*;
 import org.jline.consoleui.prompt.builder.PromptBuilder;
 import org.jline.reader.LineReader;
+import org.jline.reader.UserInterruptException;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Terminal;
 import org.jline.utils.*;
@@ -137,6 +140,12 @@ public class ConsolePrompt {
                 resultMap.put(pe.getName(), result);
             }
             return resultMap;
+        } catch (IOError e) {
+            if (e.getCause() instanceof InterruptedIOException) {
+                throw new UserInterruptException(e.getCause());
+            } else {
+                throw e;
+            }
         } finally {
             terminal.setAttributes(attributes);
             terminal.puts(InfoCmp.Capability.exit_ca_mode);
