@@ -77,8 +77,10 @@ public class ConsolePrompt {
      * @param promptableElementList the list of questions / prompts to ask the user for.
      * @return a map containing a result for each element of promptableElementList
      * @throws IOException  may be thrown by terminal
+     * @throws UserInterruptException if user interrupt handling is enabled and the user types the interrupt character (ctrl-C)
      */
-    public Map<String, PromptResultItemIF> prompt(List<PromptableElementIF> promptableElementList) throws IOException {
+    public Map<String, PromptResultItemIF> prompt(List<PromptableElementIF> promptableElementList)
+            throws IOException, UserInterruptException {
         return prompt(new ArrayList<>(), promptableElementList);
     }
 
@@ -92,9 +94,11 @@ public class ConsolePrompt {
      * @param promptableElementList the list of questions / prompts to ask the user for.
      * @return a map containing a result for each element of promptableElementList
      * @throws IOException  may be thrown by terminal
+     * @throws UserInterruptException if user interrupt handling is enabled and the user types the interrupt character (ctrl-C)
      */
     public Map<String, PromptResultItemIF> prompt(
-            List<AttributedString> header, List<PromptableElementIF> promptableElementList) throws IOException {
+            List<AttributedString> header, List<PromptableElementIF> promptableElementList)
+            throws IOException, UserInterruptException {
         Attributes attributes = terminal.enterRawMode();
         boolean cancelled = false;
         try {
