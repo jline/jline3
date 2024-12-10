@@ -41,7 +41,7 @@ public class ArgumentMaskCallbackReader {
         do {
             line = reader.readLine("prompt> ", null, maskingCallback, null);
             System.out.println("Got line: " + line);
-        } while (line != null && line.length() > 0);
+        } while (line != null && !line.isEmpty());
     }
 
     private static class CommandArgumentMask implements MaskingCallback {

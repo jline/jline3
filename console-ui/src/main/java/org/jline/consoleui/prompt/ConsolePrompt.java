@@ -8,7 +8,9 @@
  */
 package org.jline.consoleui.prompt;
 
+import java.io.IOError;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -19,6 +21,7 @@ import org.jline.consoleui.elements.items.impl.ChoiceItem;
 import org.jline.consoleui.prompt.AbstractPrompt.*;
 import org.jline.consoleui.prompt.builder.PromptBuilder;
 import org.jline.reader.LineReader;
+import org.jline.reader.UserInterruptException;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Terminal;
 import org.jline.utils.*;
@@ -99,9 +102,11 @@ public class ConsolePrompt implements AutoCloseable {
      * @param promptableElementList the list of questions / prompts to ask the user for.
      * @return a map containing a result for each element of promptableElementList
      * @throws IOException  may be thrown by terminal
+     * @throws UserInterruptException if user interrupt handling is enabled and the user types the interrupt character (ctrl-C)
      */
     @Deprecated
-    public Map<String, PromptResultItemIF> prompt(List<PromptableElementIF> promptableElementList) throws IOException {
+    public Map<String, PromptResultItemIF> prompt(List<PromptableElementIF> promptableElementList)
+            throws IOException, UserInterruptException {
         return prompt(new ArrayList<>(), promptableElementList);
     }
 
@@ -115,14 +120,22 @@ public class ConsolePrompt implements AutoCloseable {
      * @param promptableElementList the list of questions / prompts to ask the user for.
      * @return a map containing a result for each element of promptableElementList
      * @throws IOException  may be thrown by terminal
+     * @throws UserInterruptException if user interrupt handling is enabled and the user types the interrupt character (ctrl-C)
      */
     @Deprecated
     public Map<String, PromptResultItemIF> prompt(
-            List<AttributedString> header, List<PromptableElementIF> promptableElementList) throws IOException {
+            List<AttributedString> header, List<PromptableElementIF> promptableElementList)
+            throws IOException, UserInterruptException {
         try {
             Map<String, PromptResultItemIF> resultMap = new HashMap<>();
             prompt(header, promptableElementList, resultMap);
             return resultMap;
+        } catch (IOError e) {
+            if (e.getCause() instanceof InterruptedIOException) {
+                throw new UserInterruptException(e.getCause());
+            } else {
+                throw e;
+            }
         } finally {
             close();
         }

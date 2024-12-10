@@ -62,6 +62,7 @@ import static org.jline.console.ConsoleEngine.VAR_NANORC;
  */
 public class Repl {
 
+    @SuppressWarnings("resource")
     protected static class MyCommands extends JlineCommandRegistry implements CommandRegistry {
         private LineReader reader;
         private final Supplier<Path> workDir;
@@ -95,7 +96,7 @@ public class Repl {
             try {
                 Options opt = parseOptions(usage, input.xargs());
                 List<String> argv = opt.args();
-                if (argv.size() > 0) {
+                if (!argv.isEmpty()) {
                     Capability vcap = Capability.byName(argv.get(0));
                     if (vcap != null) {
                         terminal()
@@ -161,7 +162,7 @@ public class Repl {
                 List<String> argv = opt.args();
                 if (opt.isSet("version")) {
                     terminal().writer().println("echo version: v0.1");
-                } else if (opt.args().size() >= 1) {
+                } else if (!opt.args().isEmpty()) {
                     terminal().writer().println(String.join(" ", opt.args()));
                 }
             } catch (Exception e) {

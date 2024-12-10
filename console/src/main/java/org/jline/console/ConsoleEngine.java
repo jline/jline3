@@ -178,7 +178,19 @@ public interface ConsoleEngine extends CommandRegistry {
      * @return script execution result
      * @throws Exception in case of error
      */
-    Object execute(File script, String rawLine, String[] args) throws Exception;
+    default Object execute(File script, String rawLine, String[] args) throws Exception {
+        return execute(script != null ? script.toPath() : null, rawLine, args);
+    }
+
+    /**
+     * Executes either JLine or ScriptEngine script.
+     * @param script script file
+     * @param rawLine raw command line
+     * @param args script arguments
+     * @return script execution result
+     * @throws Exception in case of error
+     */
+    Object execute(Path script, String rawLine, String[] args) throws Exception;
 
     /**
      * Post processes execution result. If result is to be assigned to the console variable
