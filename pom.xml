@@ -98,13 +98,13 @@
         <jansi.version>2.4.1</jansi.version>
         <juniversalchardet.version>1.0.3</juniversalchardet.version>
         <sshd.version>2.14.0</sshd.version>
-        <easymock.version>5.4.0</easymock.version>
+        <easymock.version>5.5.0</easymock.version>
         <junit.version>5.11.3</junit.version>
         <gogo.runtime.version>1.1.6</gogo.runtime.version>
         <gogo.jline.version>1.1.8</gogo.jline.version>
         <slf4j.version>2.0.16</slf4j.version>
         <findbugs.version>3.0.2</findbugs.version>
-        <groovy.version>4.0.23</groovy.version>
+        <groovy.version>4.0.24</groovy.version>
         <ivy.version>2.5.2</ivy.version>
         <graal.version>24.1.1</graal.version>
         <graal.plugin.version>21.2.0</graal.plugin.version>
@@ -405,7 +405,7 @@
                 <plugin>
                     <groupId>org.apache.felix</groupId>
                     <artifactId>maven-bundle-plugin</artifactId>
-                    <version>5.1.9</version>
+                    <version>6.0.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
@@ -542,7 +542,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
-                    <version>3.11.1</version>
+                    <version>3.11.2</version>
                     <configuration>
                         <notimestamp>true</notimestamp>
                     </configuration>

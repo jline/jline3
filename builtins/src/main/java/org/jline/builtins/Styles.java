@@ -35,7 +35,7 @@ public class Styles {
             "italic",
             "underline");
     private static final String DEFAULT_LS_COLORS = "di=1;91:ex=1;92:ln=1;96:fi=";
-    private static final String DEFAULT_HELP_COLORS = "ti=1;34:co=1:ar=3:op=33";
+    private static final String DEFAULT_HELP_COLORS = "ti=1;34:co=1:ar=3:op=33:de=";
     private static final String DEFAULT_PRNT_COLORS = "th=1;34:rn=1;34:rs=,~grey15:mk=1;34:em=31:vs=32";
     private static final String LS_COLORS = "LS_COLORS";
     private static final String HELP_COLORS = "HELP_COLORS";
