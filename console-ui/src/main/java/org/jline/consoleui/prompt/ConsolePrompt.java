@@ -200,7 +200,7 @@ public class ConsolePrompt implements AutoCloseable {
                     }
                 }
             }
-            String resp = result.getResult();
+            String resp = result.getDisplayResult();
             if (result instanceof ConfirmResult) {
                 ConfirmResult cr = (ConfirmResult) result;
                 if (cr.getConfirmed() == ConfirmChoice.ConfirmationValue.YES) {
