@@ -840,7 +840,7 @@ public class Less {
         while (true) {
             checkInterrupted();
             Operation op = bindingReader.readBinding(fileKeyMap);
-            if (Objects.requireNonNull(op) == Operation.ACCEPT) {
+            if (op == Operation.ACCEPT) {
                 String name = buffer.substring(begPos);
                 addSource(name);
                 try {
@@ -849,7 +849,7 @@ public class Less {
                     ssp.restore(name);
                 }
                 return;
-            } else {
+            } else if (op != null) {
                 curPos = lineEditor.editBuffer(op, curPos);
             }
             if (curPos > begPos) {
