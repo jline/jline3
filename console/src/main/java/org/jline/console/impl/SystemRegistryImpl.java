@@ -1446,7 +1446,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         asb.append("\t");
         asb.append(command, HelpException.defaultStyle().resolve(".co"));
         asb.append("\t");
-        asb.append(info);
+        asb.append(info, HelpException.defaultStyle().resolve(".de"));
         asb.setLength(terminal().getWidth());
         asb.toAttributedString().println(terminal());
     }
