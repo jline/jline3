@@ -23,17 +23,14 @@ package org.jline.builtins;
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
-
-/**
+ *
  * Based on http://antony.lesuisse.org/software/ajaxterm/
  *  Public Domain License
- */
-
-/**
+ *
  * See http://www.ecma-international.org/publications/standards/Ecma-048.htm
  *       and http://vt100.net/docs/vt510-rm/
  */
+
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;

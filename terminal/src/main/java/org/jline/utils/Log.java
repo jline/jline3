@@ -10,6 +10,9 @@ package org.jline.utils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.Arrays;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -24,6 +27,19 @@ import java.util.logging.Logger;
  */
 public final class Log {
     private static final Logger logger = Logger.getLogger("org.jline");
+
+    public static class Stack extends Exception {
+        static final long serialVersionUID = -3387516993124229948L;
+    }
+
+    public static void stack() {
+        Stack ex = new Stack();
+        StackTraceElement[] ste = ex.getStackTrace();
+        ex.setStackTrace(Arrays.copyOfRange(ste, 1, ste.length));
+        StringWriter sw = new StringWriter();
+        ex.printStackTrace(new PrintWriter(sw));
+        Log.info(sw.toString());
+    }
 
     public static void trace(final Object... messages) {
         log(Level.FINEST, messages);

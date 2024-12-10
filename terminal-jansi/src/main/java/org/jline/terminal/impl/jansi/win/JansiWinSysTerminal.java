@@ -173,6 +173,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
                 inMode,
                 outConsole,
                 outMode);
+        startWinchMonitor();
     }
 
     @Override
@@ -229,6 +230,28 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
         return flush;
     }
 
+    private void startWinchMonitor() {
+        Size startSize = getSize();
+        Thread winchMonitor = new Thread(() -> {
+            Size size = startSize;
+            boolean proceed = true;
+            while (proceed) {
+                try {
+                    Thread.sleep(250);
+                } catch (InterruptedException ex) {
+                    proceed = false;
+                }
+                Size newSize = getSize();
+                if (size.getRows() != newSize.getRows() || size.getColumns() != newSize.getColumns()) {
+                    size = newSize;
+                    raise(Signal.WINCH);
+                }
+            }
+        });
+        winchMonitor.setDaemon(true);
+        winchMonitor.start();
+    }
+
     private char[] focus = new char[] {'\033', '[', ' '};
 
     private void processFocusEvent(boolean hasFocus) throws IOException {
@@ -282,7 +305,7 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
         if (GetConsoleScreenBufferInfo(outConsole, info) == 0) {
             throw new IOError(new IOException("Could not get the cursor position: " + getLastErrorMessage()));
         }
-        return new Cursor(info.cursorPosition.x, info.cursorPosition.y);
+        return new Cursor(info.cursorPosition.x, info.cursorPosition.y - info.window.top);
     }
 
     public void disableScrolling() {
