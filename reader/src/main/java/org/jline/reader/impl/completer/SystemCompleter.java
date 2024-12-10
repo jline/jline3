@@ -9,6 +9,8 @@
 package org.jline.reader.impl.completer;
 
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
@@ -24,6 +26,7 @@ import org.jline.utils.AttributedString;
 public class SystemCompleter implements Completer {
     private Map<String, List<Completer>> completers = new HashMap<>();
     private Map<String, String> aliasCommand = new HashMap<>();
+    private Map<String, String> descriptions = new HashMap<>();
     private StringsCompleter commands;
     private boolean compiled = false;
 
@@ -123,7 +126,7 @@ public class SystemCompleter implements Completer {
         return aliasCommand;
     }
 
-    public void compile() {
+    public void compile(Function<String, Candidate> candidateBuilder) {
         if (compiled) {
             return;
         }
@@ -139,7 +142,7 @@ public class SystemCompleter implements Completer {
         completers = compiledCompleters;
         Set<String> cmds = new HashSet<>(completers.keySet());
         cmds.addAll(aliasCommand.keySet());
-        commands = new StringsCompleter(cmds);
+        commands = new StringsCompleter(cmds.stream().map(candidateBuilder).collect(Collectors.toList()));
         compiled = true;
     }
 
