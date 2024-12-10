@@ -29,10 +29,12 @@ import org.jline.utils.*;
 /**
  * ConsolePrompt encapsulates the prompting of a list of input questions for the user.
  */
-public class ConsolePrompt {
+public class ConsolePrompt implements AutoCloseable {
     protected final LineReader reader;
     protected final Terminal terminal;
     protected final UiConfig config;
+    private Attributes attributes;
+    private List<AttributedString> header = new ArrayList<>();
 
     /**
      *
@@ -66,6 +68,29 @@ public class ConsolePrompt {
             }
             config.setReaderOptions(options);
         }
+        attributes = terminal.enterRawMode();
+        terminal.puts(InfoCmp.Capability.enter_ca_mode);
+        terminal.puts(InfoCmp.Capability.keypad_xmit);
+        terminal.writer().flush();
+    }
+
+    @Override
+    public void close() {
+        if (terminalInRawMode()) {
+            terminal.setAttributes(attributes);
+            terminal.puts(InfoCmp.Capability.exit_ca_mode);
+            terminal.puts(InfoCmp.Capability.keypad_local);
+            terminal.writer().flush();
+            for (AttributedString as : header) {
+                as.println(terminal);
+            }
+            terminal.writer().flush();
+            attributes = null;
+        }
+    }
+
+    private boolean terminalInRawMode() {
+        return attributes != null;
     }
 
     /**
@@ -79,6 +104,7 @@ public class ConsolePrompt {
      * @throws IOException  may be thrown by terminal
      * @throws UserInterruptException if user interrupt handling is enabled and the user types the interrupt character (ctrl-C)
      */
+    @Deprecated
     public Map<String, PromptResultItemIF> prompt(List<PromptableElementIF> promptableElementList)
             throws IOException, UserInterruptException {
         return prompt(new ArrayList<>(), promptableElementList);
@@ -96,53 +122,13 @@ public class ConsolePrompt {
      * @throws IOException  may be thrown by terminal
      * @throws UserInterruptException if user interrupt handling is enabled and the user types the interrupt character (ctrl-C)
      */
+    @Deprecated
     public Map<String, PromptResultItemIF> prompt(
             List<AttributedString> header, List<PromptableElementIF> promptableElementList)
             throws IOException, UserInterruptException {
-        Attributes attributes = terminal.enterRawMode();
-        boolean cancelled = false;
         try {
-            terminal.puts(InfoCmp.Capability.enter_ca_mode);
-            terminal.puts(InfoCmp.Capability.keypad_xmit);
-            terminal.writer().flush();
-
             Map<String, PromptResultItemIF> resultMap = new HashMap<>();
-
-            for (int i = 0; i < promptableElementList.size(); i++) {
-                PromptableElementIF pe = promptableElementList.get(i);
-                PromptResultItemIF result = promptElement(header, pe);
-                if (result == null) {
-                    // Prompt was cancelled by the user
-                    if (i > 0) {
-                        // Remove last result
-                        header.remove(header.size() - 1);
-                        // Go back to previous prompt
-                        i -= 2;
-                        continue;
-                    } else {
-                        if (config.cancellableFirstPrompt()) {
-                            cancelled = true;
-                            return null;
-                        } else {
-                            // Repeat current prompt
-                            i -= 1;
-                            continue;
-                        }
-                    }
-                }
-                String resp = result.getDisplayResult();
-                if (result instanceof ConfirmResult) {
-                    ConfirmResult cr = (ConfirmResult) result;
-                    if (cr.getConfirmed() == ConfirmChoice.ConfirmationValue.YES) {
-                        resp = config.resourceBundle().getString("confirmation_yes_answer");
-                    } else {
-                        resp = config.resourceBundle().getString("confirmation_no_answer");
-                    }
-                }
-                AttributedStringBuilder message = createMessage(pe.getMessage(), resp);
-                header.add(message.toAttributedString());
-                resultMap.put(pe.getName(), result);
-            }
+            prompt(header, promptableElementList, resultMap);
             return resultMap;
         } catch (IOError e) {
             if (e.getCause() instanceof InterruptedIOException) {
@@ -151,16 +137,81 @@ public class ConsolePrompt {
                 throw e;
             }
         } finally {
-            terminal.setAttributes(attributes);
-            terminal.puts(InfoCmp.Capability.exit_ca_mode);
-            terminal.puts(InfoCmp.Capability.keypad_local);
-            terminal.writer().flush();
-            if (!cancelled) {
-                for (AttributedString as : header) {
-                    as.println(terminal);
+            close();
+        }
+    }
+
+    /**
+     * Prompt a list of choices (questions). This method takes a list of promptable elements, typically
+     * created with {@link PromptBuilder}. Each of the elements is processed and the user entries and
+     * answers are filled in to the result map. The result map contains the key of each promptable element
+     * and the user entry as an object implementing {@link PromptResultItemIF}.
+     *
+     * @param promptableElementList the list of questions / prompts to ask the user for.
+     * @param resultMap a map containing a result for each element of promptableElementList
+     * @throws IOException  may be thrown by terminal
+     */
+    public void prompt(List<PromptableElementIF> promptableElementList, Map<String, PromptResultItemIF> resultMap)
+            throws IOException {
+        prompt(new ArrayList<>(), promptableElementList, resultMap);
+    }
+
+    /**
+     * Prompt a list of choices (questions). This method takes a list of promptable elements, typically
+     * created with {@link PromptBuilder}. Each of the elements is processed and the user entries and
+     * answers are filled in to the result map. The result map contains the key of each promptable element
+     * and the user entry as an object implementing {@link PromptResultItemIF}.
+     *
+     * @param headerIn info to be displayed before first prompt.
+     * @param promptableElementList the list of questions / prompts to ask the user for.
+     * @param resultMap a map containing a result for each element of promptableElementList
+     * @throws IOException  may be thrown by terminal
+     */
+    public void prompt(
+            List<AttributedString> headerIn,
+            List<PromptableElementIF> promptableElementList,
+            Map<String, PromptResultItemIF> resultMap)
+            throws IOException {
+        if (!terminalInRawMode()) {
+            throw new IllegalStateException("Terminal is not in raw mode! Maybe ConsolePrompt is closed?");
+        }
+        this.header = headerIn;
+
+        for (int i = resultMap.isEmpty() ? 0 : resultMap.size() - 1; i < promptableElementList.size(); i++) {
+            PromptableElementIF pe = promptableElementList.get(i);
+            PromptResultItemIF result = promptElement(header, pe);
+            if (result == null) {
+                // Prompt was cancelled by the user
+                if (i > 0) {
+                    // Remove last result
+                    header.remove(header.size() - 1);
+                    // Go back to previous prompt
+                    i -= 2;
+                    continue;
+                } else {
+                    if (config.cancellableFirstPrompt()) {
+                        header.remove(header.size() - 1);
+                        resultMap.clear();
+                        return;
+                    } else {
+                        // Repeat current prompt
+                        i -= 1;
+                        continue;
+                    }
                 }
-                terminal.writer().flush();
             }
+            String resp = result.getDisplayResult();
+            if (result instanceof ConfirmResult) {
+                ConfirmResult cr = (ConfirmResult) result;
+                if (cr.getConfirmed() == ConfirmChoice.ConfirmationValue.YES) {
+                    resp = config.resourceBundle().getString("confirmation_yes_answer");
+                } else {
+                    resp = config.resourceBundle().getString("confirmation_no_answer");
+                }
+            }
+            AttributedStringBuilder message = createMessage(pe.getMessage(), resp);
+            header.add(message.toAttributedString());
+            resultMap.put(pe.getName(), result);
         }
     }
 
