@@ -1865,6 +1865,7 @@ public class Posix {
         private char separator;
         private List<Key> sortKeys;
 
+        @SuppressWarnings("this-escape")
         public SortComparator(
                 boolean caseInsensitive,
                 boolean reverse,
