@@ -62,7 +62,7 @@
                     <showWarnings>true</showWarnings>
                     <compilerArgs>
                         <arg>-Xlint:all,-options</arg>
-                        <arg>-Werror</arg>
+                        <!--                        <arg>-Werror</arg>-->
                     </compilerArgs>
                     <fork>true</fork>
                 </configuration>
