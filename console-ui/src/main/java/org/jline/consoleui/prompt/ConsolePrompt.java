@@ -12,6 +12,7 @@ import java.io.IOError;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.jline.builtins.Styles;
@@ -142,6 +143,78 @@ public class ConsolePrompt implements AutoCloseable {
     }
 
     /**
+     * Prompt a list of choices (questions). This method takes a function that given a map of interim results
+     * returns a list of promptable elements (typically created with {@link PromptBuilder}). Each list is then
+     * passed to {@link #prompt(List, List, Map)} and the result added to the map of interim results.
+     * The function is then called again with the updated map of results until the function returns null.
+     * The final result map contains the key of each promptable element and the user entry as an object
+     * implementing {@link PromptResultItemIF}.
+     *
+     * @param promptableElementLists a function returning lists of questions / prompts to ask the user for.
+     * @throws IOException  may be thrown by terminal
+     */
+    public Map<String, PromptResultItemIF> prompt(
+            Function<Map<String, PromptResultItemIF>, List<PromptableElementIF>> promptableElementLists)
+            throws IOException {
+        return prompt(new ArrayList<>(), promptableElementLists);
+    }
+
+    /**
+     * Prompt a list of choices (questions). This method takes a function that given a map of interim results
+     * returns a list of promptable elements (typically created with {@link PromptBuilder}). Each list is then
+     * passed to {@link #prompt(List, List, Map)} and the result added to the map of interim results.
+     * The function is then called again with the updated map of results until the function returns null.
+     * The final result map contains the key of each promptable element and the user entry as an object
+     * implementing {@link PromptResultItemIF}.
+     *
+     * @param headerIn info to be displayed before first prompt.
+     * @param promptableElementLists a function returning lists of questions / prompts to ask the user for.
+     * @throws IOException  may be thrown by terminal
+     */
+    public Map<String, PromptResultItemIF> prompt(
+            List<AttributedString> headerIn,
+            Function<Map<String, PromptResultItemIF>, List<PromptableElementIF>> promptableElementLists)
+            throws IOException {
+        Map<String, PromptResultItemIF> resultMap = new HashMap<>();
+        Deque<List<PromptableElementIF>> prevLists = new ArrayDeque<>();
+        Deque<Map<String, PromptResultItemIF>> prevResults = new ArrayDeque<>();
+        boolean cancellable = config.cancellableFirstPrompt();
+        // Get our first list of prompts
+        List<PromptableElementIF> peList = promptableElementLists.apply(new HashMap<>());
+        Map<String, PromptResultItemIF> peResult = new HashMap<>();
+        while (peList != null) {
+            // Second and later prompts should always be cancellable
+            config.setCancellableFirstPrompt(!prevLists.isEmpty() || cancellable);
+            // Prompt the user
+            prompt(headerIn, peList, peResult);
+            if (peResult.isEmpty()) {
+                // The prompt was cancelled by the user, so let's go back to the
+                // previous list of prompts and its results (if any)
+                peList = prevLists.pollFirst();
+                peResult = prevResults.pollFirst();
+                if (peResult != null) {
+                    // Remove the results of the previous prompt from the main result map
+                    peResult.forEach((k, v) -> resultMap.remove(k));
+                    headerIn.remove(headerIn.size() - 1);
+                }
+            } else {
+                // We remember the list of prompts and their results
+                prevLists.push(peList);
+                prevResults.push(peResult);
+                // Add the results to the main result map
+                resultMap.putAll(peResult);
+                // And we get our next list of prompts (if any)
+                peList = promptableElementLists.apply(resultMap);
+                peResult = new HashMap<>();
+            }
+        }
+        // Restore the original state of cancellable
+        config.setCancellableFirstPrompt(cancellable);
+
+        return resultMap;
+    }
+
+    /**
      * Prompt a list of choices (questions). This method takes a list of promptable elements, typically
      * created with {@link PromptBuilder}. Each of the elements is processed and the user entries and
      * answers are filled in to the result map. The result map contains the key of each promptable element
@@ -190,7 +263,6 @@ public class ConsolePrompt implements AutoCloseable {
                     continue;
                 } else {
                     if (config.cancellableFirstPrompt()) {
-                        header.remove(header.size() - 1);
                         resultMap.clear();
                         return;
                     } else {
