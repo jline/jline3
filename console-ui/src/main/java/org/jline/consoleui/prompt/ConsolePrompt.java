@@ -173,39 +173,41 @@ public class ConsolePrompt implements AutoCloseable {
         Deque<List<PromptableElementIF>> prevLists = new ArrayDeque<>();
         Deque<Map<String, PromptResultItemIF>> prevResults = new ArrayDeque<>();
         boolean cancellable = config.cancellableFirstPrompt();
-        // Get our first list of prompts
-        List<PromptableElementIF> peList = promptableElementLists.apply(new HashMap<>());
-        Map<String, PromptResultItemIF> peResult = new HashMap<>();
-        while (peList != null) {
-            // Second and later prompts should always be cancellable
-            config.setCancellableFirstPrompt(!prevLists.isEmpty() || cancellable);
-            // Prompt the user
-            prompt(headerIn, peList, peResult);
-            if (peResult.isEmpty()) {
-                // The prompt was cancelled by the user, so let's go back to the
-                // previous list of prompts and its results (if any)
-                peList = prevLists.pollFirst();
-                peResult = prevResults.pollFirst();
-                if (peResult != null) {
-                    // Remove the results of the previous prompt from the main result map
-                    peResult.forEach((k, v) -> resultMap.remove(k));
-                    headerIn.remove(headerIn.size() - 1);
+        try {
+            // Get our first list of prompts
+            List<PromptableElementIF> peList = promptableElementLists.apply(new HashMap<>());
+            Map<String, PromptResultItemIF> peResult = new HashMap<>();
+            while (peList != null) {
+                // Second and later prompts should always be cancellable
+                config.setCancellableFirstPrompt(!prevLists.isEmpty() || cancellable);
+                // Prompt the user
+                prompt(headerIn, peList, peResult);
+                if (peResult.isEmpty()) {
+                    // The prompt was cancelled by the user, so let's go back to the
+                    // previous list of prompts and its results (if any)
+                    peList = prevLists.pollFirst();
+                    peResult = prevResults.pollFirst();
+                    if (peResult != null) {
+                        // Remove the results of the previous prompt from the main result map
+                        peResult.forEach((k, v) -> resultMap.remove(k));
+                        headerIn.remove(headerIn.size() - 1);
+                    }
+                } else {
+                    // We remember the list of prompts and their results
+                    prevLists.push(peList);
+                    prevResults.push(peResult);
+                    // Add the results to the main result map
+                    resultMap.putAll(peResult);
+                    // And we get our next list of prompts (if any)
+                    peList = promptableElementLists.apply(resultMap);
+                    peResult = new HashMap<>();
                 }
-            } else {
-                // We remember the list of prompts and their results
-                prevLists.push(peList);
-                prevResults.push(peResult);
-                // Add the results to the main result map
-                resultMap.putAll(peResult);
-                // And we get our next list of prompts (if any)
-                peList = promptableElementLists.apply(resultMap);
-                peResult = new HashMap<>();
             }
+            return resultMap;
+        } finally {
+            // Restore the original state of cancellable
+            config.setCancellableFirstPrompt(cancellable);
         }
-        // Restore the original state of cancellable
-        config.setCancellableFirstPrompt(cancellable);
-
-        return resultMap;
     }
 
     /**
