@@ -99,7 +99,7 @@
         <juniversalchardet.version>1.0.3</juniversalchardet.version>
         <sshd.version>2.14.0</sshd.version>
         <easymock.version>5.5.0</easymock.version>
-        <junit.version>5.11.3</junit.version>
+        <junit.version>5.11.4</junit.version>
         <gogo.runtime.version>1.1.6</gogo.runtime.version>
         <gogo.jline.version>1.1.8</gogo.jline.version>
         <slf4j.version>2.0.16</slf4j.version>
