@@ -246,17 +246,22 @@ public class ConsolePrompt implements AutoCloseable {
         }
         this.header = headerIn;
 
+        boolean backward = false;
         for (int i = resultMap.isEmpty() ? 0 : resultMap.size() - 1; i < promptableElementList.size(); i++) {
             PromptableElementIF pe = promptableElementList.get(i);
             try {
-                PromptResultItemIF result = promptElement(header, pe);
+                if (backward) {
+                    removePreviousResult(pe);
+                    backward = false;
+                }
+                PromptResultItemIF oldResult = resultMap.get(pe.getName());
+                PromptResultItemIF result = promptElement(header, pe, oldResult);
                 if (result == null) {
                     // Prompt was cancelled by the user
                     if (i > 0) {
-                        // Remove last result
-                        header.remove(header.size() - 1);
                         // Go back to previous prompt
                         i -= 2;
+                        backward = true;
                         continue;
                     } else {
                         if (config.cancellableFirstPrompt()) {
@@ -269,17 +274,23 @@ public class ConsolePrompt implements AutoCloseable {
                         }
                     }
                 }
-                String resp = result.getDisplayResult();
-                if (result instanceof ConfirmResult) {
-                    ConfirmResult cr = (ConfirmResult) result;
-                    if (cr.getConfirmed() == ConfirmChoice.ConfirmationValue.YES) {
-                        resp = config.resourceBundle().getString("confirmation_yes_answer");
-                    } else {
-                        resp = config.resourceBundle().getString("confirmation_no_answer");
+                AttributedStringBuilder message;
+                if (pe instanceof Text) {
+                    Text te = (Text) pe;
+                    header.addAll(te.getLines());
+                } else {
+                    String resp = result.getDisplayResult();
+                    if (result instanceof ConfirmResult) {
+                        ConfirmResult cr = (ConfirmResult) result;
+                        if (cr.getConfirmed() == ConfirmChoice.ConfirmationValue.YES) {
+                            resp = config.resourceBundle().getString("confirmation_yes_answer");
+                        } else {
+                            resp = config.resourceBundle().getString("confirmation_no_answer");
+                        }
                     }
+                    message = createMessage(pe.getMessage(), resp);
+                    header.add(message.toAttributedString());
                 }
-                AttributedStringBuilder message = createMessage(pe.getMessage(), resp);
-                header.add(message.toAttributedString());
                 resultMap.put(pe.getName(), result);
             } catch (IOError e) {
                 if (e.getCause() instanceof InterruptedIOException) {
@@ -291,7 +302,8 @@ public class ConsolePrompt implements AutoCloseable {
         }
     }
 
-    protected PromptResultItemIF promptElement(List<AttributedString> header, PromptableElementIF pe) {
+    protected PromptResultItemIF promptElement(
+            List<AttributedString> header, PromptableElementIF pe, PromptResultItemIF oldResult) {
         AttributedStringBuilder message = createMessage(pe.getMessage(), null);
         AttributedStringBuilder asb = new AttributedStringBuilder();
         asb.append(message);
@@ -356,6 +368,9 @@ public class ConsolePrompt implements AutoCloseable {
             asb.append(" ");
             result = ConfirmPrompt.getPrompt(terminal, header, asb.toAttributedString(), cc, config)
                     .execute();
+        } else if (pe instanceof Text) {
+            Text te = (Text) pe;
+            result = oldResult == null ? NoResult.INSTANCE : null;
         } else {
             throw new IllegalArgumentException("wrong type of promptable element");
         }
@@ -375,6 +390,17 @@ public class ConsolePrompt implements AutoCloseable {
     public static int computePageSize(Terminal terminal, int pageSize, PageSizeType sizeType) {
         int rows = terminal.getHeight();
         return sizeType == PageSizeType.ABSOLUTE ? Math.min(rows, pageSize) : (rows * pageSize) / 100;
+    }
+
+    private void removePreviousResult(PromptableElementIF pe) {
+        if (pe instanceof Text) {
+            Text te = (Text) pe;
+            for (int i = 0; i < te.getLines().size(); i++) {
+                header.remove(header.size() - 1);
+            }
+        } else {
+            header.remove(header.size() - 1);
+        }
     }
 
     /**
