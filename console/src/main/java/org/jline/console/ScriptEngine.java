@@ -160,8 +160,29 @@ public interface ScriptEngine {
      * @return result
      * @throws Exception in case of error
      */
+    default Object execute(Path script) throws Exception {
+        return execute(script.toFile(), null);
+    }
+
+    /**
+     * Executes scriptEngine script
+     * @param script the script
+     * @return result
+     * @throws Exception in case of error
+     */
     default Object execute(File script) throws Exception {
         return execute(script, null);
+    }
+
+    /**
+     * Executes scriptEngine script
+     * @param script the script
+     * @param args arguments
+     * @return result
+     * @throws Exception in case of error
+     */
+    default Object execute(Path script, Object[] args) throws Exception {
+        return execute(script.toFile(), args);
     }
 
     /**
