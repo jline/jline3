@@ -131,12 +131,6 @@ public class ConsolePrompt implements AutoCloseable {
             Map<String, PromptResultItemIF> resultMap = new HashMap<>();
             prompt(header, promptableElementList, resultMap);
             return resultMap;
-        } catch (IOError e) {
-            if (e.getCause() instanceof InterruptedIOException) {
-                throw new UserInterruptException(e.getCause());
-            } else {
-                throw e;
-            }
         } finally {
             close();
         }
@@ -259,44 +253,50 @@ public class ConsolePrompt implements AutoCloseable {
                 removePreviousResult(pe);
                 backward = false;
             }
-            PromptResultItemIF oldResult = resultMap.get(pe.getName());
-            PromptResultItemIF result = promptElement(header, pe, oldResult);
-            if (result == null) {
-                // Prompt was cancelled by the user
-                if (i > 0) {
-                    // Go back to previous prompt
-                    i -= 2;
-                    backward = true;
-                    continue;
-                } else {
-                    if (config.cancellableFirstPrompt()) {
-                        resultMap.clear();
-                        return;
-                    } else {
-                        // Repeat current prompt
-                        i -= 1;
+            try {
+                PromptResultItemIF oldResult = resultMap.get(pe.getName());
+                PromptResultItemIF result = promptElement(header, pe, oldResult);
+                if (result == null) {
+                    // Prompt was cancelled by the user
+                    if (i > 0) {
+                        // Go back to previous prompt
+                        i -= 2;
+                        backward = true;
                         continue;
-                    }
-                }
-            }
-            AttributedStringBuilder message;
-            if (pe instanceof Text) {
-                Text te = (Text) pe;
-                header.addAll(te.getLines());
-            } else {
-                String resp = result.getDisplayResult();
-                if (result instanceof ConfirmResult) {
-                    ConfirmResult cr = (ConfirmResult) result;
-                    if (cr.getConfirmed() == ConfirmChoice.ConfirmationValue.YES) {
-                        resp = config.resourceBundle().getString("confirmation_yes_answer");
                     } else {
-                        resp = config.resourceBundle().getString("confirmation_no_answer");
+                        if (config.cancellableFirstPrompt()) {
+                            resultMap.clear();
+                            return;
+                        } else {
+                            // Repeat current prompt
+                            i -= 1;
                     }
                 }
-                message = createMessage(pe.getMessage(), resp);
-                header.add(message.toAttributedString());
+                AttributedStringBuilder message;
+                if (pe instanceof Text) {
+                    Text te = (Text) pe;
+                    header.addAll(te.getLines());
+                } else {
+                    String resp = result.getDisplayResult();
+                    if (result instanceof ConfirmResult) {
+                        ConfirmResult cr = (ConfirmResult) result;
+                        if (cr.getConfirmed() == ConfirmChoice.ConfirmationValue.YES) {
+                            resp = config.resourceBundle().getString("confirmation_yes_answer");
+                        } else {
+                            resp = config.resourceBundle().getString("confirmation_no_answer");
+                        }
+                    }
+                    message = createMessage(pe.getMessage(), resp);
+                    header.add(message.toAttributedString());
+                }
+                resultMap.put(pe.getName(), result);
+            } catch (IOError e) {
+                if (e.getCause() instanceof InterruptedIOException) {
+                    throw new UserInterruptException(e.getCause());
+                } else {
+                    throw e;
+                }
             }
-            resultMap.put(pe.getName(), result);
         }
     }
 
