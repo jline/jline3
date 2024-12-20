@@ -270,6 +270,7 @@ public class ConsolePrompt implements AutoCloseable {
                         } else {
                             // Repeat current prompt
                             i -= 1;
+                        }
                     }
                 }
                 AttributedStringBuilder message;
