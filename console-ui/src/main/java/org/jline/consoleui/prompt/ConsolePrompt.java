@@ -131,12 +131,6 @@ public class ConsolePrompt implements AutoCloseable {
             Map<String, PromptResultItemIF> resultMap = new HashMap<>();
             prompt(header, promptableElementList, resultMap);
             return resultMap;
-        } catch (IOError e) {
-            if (e.getCause() instanceof InterruptedIOException) {
-                throw new UserInterruptException(e.getCause());
-            } else {
-                throw e;
-            }
         } finally {
             close();
         }
@@ -252,38 +246,46 @@ public class ConsolePrompt implements AutoCloseable {
 
         for (int i = resultMap.isEmpty() ? 0 : resultMap.size() - 1; i < promptableElementList.size(); i++) {
             PromptableElementIF pe = promptableElementList.get(i);
-            PromptResultItemIF result = promptElement(header, pe);
-            if (result == null) {
-                // Prompt was cancelled by the user
-                if (i > 0) {
-                    // Remove last result
-                    header.remove(header.size() - 1);
-                    // Go back to previous prompt
-                    i -= 2;
-                    continue;
-                } else {
-                    if (config.cancellableFirstPrompt()) {
-                        resultMap.clear();
-                        return;
-                    } else {
-                        // Repeat current prompt
-                        i -= 1;
+            try {
+                PromptResultItemIF result = promptElement(header, pe);
+                if (result == null) {
+                    // Prompt was cancelled by the user
+                    if (i > 0) {
+                        // Remove last result
+                        header.remove(header.size() - 1);
+                        // Go back to previous prompt
+                        i -= 2;
                         continue;
+                    } else {
+                        if (config.cancellableFirstPrompt()) {
+                            resultMap.clear();
+                            return;
+                        } else {
+                            // Repeat current prompt
+                            i -= 1;
+                            continue;
+                        }
                     }
                 }
-            }
-            String resp = result.getDisplayResult();
-            if (result instanceof ConfirmResult) {
-                ConfirmResult cr = (ConfirmResult) result;
-                if (cr.getConfirmed() == ConfirmChoice.ConfirmationValue.YES) {
-                    resp = config.resourceBundle().getString("confirmation_yes_answer");
+                String resp = result.getDisplayResult();
+                if (result instanceof ConfirmResult) {
+                    ConfirmResult cr = (ConfirmResult) result;
+                    if (cr.getConfirmed() == ConfirmChoice.ConfirmationValue.YES) {
+                        resp = config.resourceBundle().getString("confirmation_yes_answer");
+                    } else {
+                        resp = config.resourceBundle().getString("confirmation_no_answer");
+                    }
+                }
+                AttributedStringBuilder message = createMessage(pe.getMessage(), resp);
+                header.add(message.toAttributedString());
+                resultMap.put(pe.getName(), result);
+            } catch (IOError e) {
+                if (e.getCause() instanceof InterruptedIOException) {
+                    throw new UserInterruptException(e.getCause());
                 } else {
-                    resp = config.resourceBundle().getString("confirmation_no_answer");
+                    throw e;
                 }
             }
-            AttributedStringBuilder message = createMessage(pe.getMessage(), resp);
-            header.add(message.toAttributedString());
-            resultMap.put(pe.getName(), result);
         }
     }
 
