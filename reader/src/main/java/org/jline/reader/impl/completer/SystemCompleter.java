@@ -126,6 +126,10 @@ public class SystemCompleter implements Completer {
         return aliasCommand;
     }
 
+    public void compile() {
+        compile(s -> new Candidate(AttributedString.stripAnsi(s), s, null, null, null, null, true));
+    }
+
     public void compile(Function<String, Candidate> candidateBuilder) {
         if (compiled) {
             return;
