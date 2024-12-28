@@ -130,7 +130,7 @@ public class ConsolePrompt implements AutoCloseable {
         try {
             Map<String, PromptResultItemIF> resultMap = new HashMap<>();
             prompt(header, promptableElementList, resultMap);
-            return resultMap;
+            return removeNoResults(resultMap);
         } finally {
             close();
         }
@@ -203,7 +203,7 @@ public class ConsolePrompt implements AutoCloseable {
                     peResult = new HashMap<>();
                 }
             }
-            return resultMap;
+            return removeNoResults(resultMap);
         } finally {
             // Restore the original state of cancellable
             config.setCancellableFirstPrompt(cancellable);
@@ -401,6 +401,12 @@ public class ConsolePrompt implements AutoCloseable {
         } else {
             header.remove(header.size() - 1);
         }
+    }
+
+    private Map<String, PromptResultItemIF> removeNoResults(Map<String, PromptResultItemIF> resultMap) {
+        return resultMap.entrySet().stream()
+                .filter(e -> !(e.getValue() instanceof NoResult))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     /**
