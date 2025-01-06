@@ -30,6 +30,9 @@ import org.jline.utils.AttributedStyle;
 import org.jline.utils.OSUtils;
 
 public class BasicDynamic {
+    private static final AttributedStyle ITALIC_GREEN =
+            AttributedStyle.DEFAULT.italic().foreground(2);
+    private static final AttributedStyle BOLD_RED = AttributedStyle.BOLD.foreground(1);
 
     private static void addInHeader(List<AttributedString> header, String text) {
         addInHeader(header, AttributedStyle.DEFAULT, text);
@@ -43,8 +46,7 @@ public class BasicDynamic {
 
     public static void main(String[] args) {
         List<AttributedString> header = new ArrayList<>();
-        AttributedStyle style = new AttributedStyle();
-        addInHeader(header, style.italic().foreground(2), "Hello Dynamic World!");
+        addInHeader(header, ITALIC_GREEN, "Hello Dynamic World!");
         addInHeader(
                 header, "This is a demonstration of ConsoleUI java library. It provides a simple console interface");
         addInHeader(
@@ -141,6 +143,7 @@ public class BasicDynamic {
 
     static List<PromptableElementIF> pizzaPrompt(ConsolePrompt prompt) {
         PromptBuilder promptBuilder = prompt.getPromptBuilder();
+        promptBuilder.createText().addLine(ITALIC_GREEN, "Pizza time!").addPrompt();
         promptBuilder
                 .createListPrompt()
                 .name("pizzatype")
@@ -197,6 +200,7 @@ public class BasicDynamic {
 
     static List<PromptableElementIF> hamburgerPrompt(ConsolePrompt prompt) {
         PromptBuilder promptBuilder = prompt.getPromptBuilder();
+        promptBuilder.createText().addLine(ITALIC_GREEN, "Hamburger time!").addPrompt();
         promptBuilder
                 .createListPrompt()
                 .name("hamburgertype")
@@ -241,6 +245,12 @@ public class BasicDynamic {
 
     static List<PromptableElementIF> finalPrompt(ConsolePrompt prompt) {
         PromptBuilder promptBuilder = prompt.getPromptBuilder();
+        promptBuilder
+                .createText()
+                .addLine(BOLD_RED, "###################")
+                .addLine(ITALIC_GREEN, "Finalize your order")
+                .addLine(BOLD_RED, "###################")
+                .addPrompt();
         promptBuilder
                 .createChoicePrompt()
                 .name("payment")
