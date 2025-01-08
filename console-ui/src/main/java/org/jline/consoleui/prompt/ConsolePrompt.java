@@ -30,12 +30,12 @@ import org.jline.utils.*;
 /**
  * ConsolePrompt encapsulates the prompting of a list of input questions for the user.
  */
-public class ConsolePrompt implements AutoCloseable {
+public class ConsolePrompt {
     protected final LineReader reader;
     protected final Terminal terminal;
     protected final UiConfig config;
-    private Attributes attributes;
-    private List<AttributedString> header = new ArrayList<>();
+    protected Attributes attributes;
+    protected List<AttributedString> header = new ArrayList<>();
 
     /**
      *
@@ -52,6 +52,7 @@ public class ConsolePrompt implements AutoCloseable {
     public ConsolePrompt(Terminal terminal, UiConfig config) {
         this(null, terminal, config);
     }
+
     /**
      *
      * @param reader the lineReader.
@@ -69,14 +70,18 @@ public class ConsolePrompt implements AutoCloseable {
             }
             config.setReaderOptions(options);
         }
-        attributes = terminal.enterRawMode();
-        terminal.puts(InfoCmp.Capability.enter_ca_mode);
-        terminal.puts(InfoCmp.Capability.keypad_xmit);
-        terminal.writer().flush();
     }
 
-    @Override
-    public void close() {
+    protected void open() {
+        if (!terminalInRawMode()) {
+            attributes = terminal.enterRawMode();
+            terminal.puts(InfoCmp.Capability.enter_ca_mode);
+            terminal.puts(InfoCmp.Capability.keypad_xmit);
+            terminal.writer().flush();
+        }
+    }
+
+    protected void close() {
         if (terminalInRawMode()) {
             terminal.setAttributes(attributes);
             terminal.puts(InfoCmp.Capability.exit_ca_mode);
@@ -105,7 +110,6 @@ public class ConsolePrompt implements AutoCloseable {
      * @throws IOException  may be thrown by terminal
      * @throws UserInterruptException if user interrupt handling is enabled and the user types the interrupt character (ctrl-C)
      */
-    @Deprecated
     public Map<String, PromptResultItemIF> prompt(List<PromptableElementIF> promptableElementList)
             throws IOException, UserInterruptException {
         return prompt(new ArrayList<>(), promptableElementList);
@@ -123,11 +127,11 @@ public class ConsolePrompt implements AutoCloseable {
      * @throws IOException  may be thrown by terminal
      * @throws UserInterruptException if user interrupt handling is enabled and the user types the interrupt character (ctrl-C)
      */
-    @Deprecated
     public Map<String, PromptResultItemIF> prompt(
             List<AttributedString> header, List<PromptableElementIF> promptableElementList)
             throws IOException, UserInterruptException {
         try {
+            open();
             Map<String, PromptResultItemIF> resultMap = new HashMap<>();
             prompt(header, promptableElementList, resultMap);
             return removeNoResults(resultMap);
@@ -174,6 +178,7 @@ public class ConsolePrompt implements AutoCloseable {
         Deque<Map<String, PromptResultItemIF>> prevResults = new ArrayDeque<>();
         boolean cancellable = config.cancellableFirstPrompt();
         try {
+            open();
             // Get our first list of prompts
             List<PromptableElementIF> peList = promptableElementLists.apply(new HashMap<>());
             Map<String, PromptResultItemIF> peResult = new HashMap<>();
@@ -205,24 +210,10 @@ public class ConsolePrompt implements AutoCloseable {
             }
             return removeNoResults(resultMap);
         } finally {
+            close();
             // Restore the original state of cancellable
             config.setCancellableFirstPrompt(cancellable);
         }
-    }
-
-    /**
-     * Prompt a list of choices (questions). This method takes a list of promptable elements, typically
-     * created with {@link PromptBuilder}. Each of the elements is processed and the user entries and
-     * answers are filled in to the result map. The result map contains the key of each promptable element
-     * and the user entry as an object implementing {@link PromptResultItemIF}.
-     *
-     * @param promptableElementList the list of questions / prompts to ask the user for.
-     * @param resultMap a map containing a result for each element of promptableElementList
-     * @throws IOException  may be thrown by terminal
-     */
-    public void prompt(List<PromptableElementIF> promptableElementList, Map<String, PromptResultItemIF> resultMap)
-            throws IOException {
-        prompt(new ArrayList<>(), promptableElementList, resultMap);
     }
 
     /**
@@ -236,7 +227,7 @@ public class ConsolePrompt implements AutoCloseable {
      * @param resultMap a map containing a result for each element of promptableElementList
      * @throws IOException  may be thrown by terminal
      */
-    public void prompt(
+    protected void prompt(
             List<AttributedString> headerIn,
             List<PromptableElementIF> promptableElementList,
             Map<String, PromptResultItemIF> resultMap)
