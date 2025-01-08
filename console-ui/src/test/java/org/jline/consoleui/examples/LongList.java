@@ -10,7 +10,6 @@ package org.jline.consoleui.examples;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -38,35 +37,29 @@ public class LongList {
 
         try (Terminal terminal = TerminalBuilder.builder().build()) {
             ConsolePrompt.UiConfig config = new ConsolePrompt.UiConfig(">", "( )", "(x)", "( )");
-            Map<String, PromptResultItemIF> result = new HashMap<>();
+            ConsolePrompt prompt = new ConsolePrompt(terminal, config);
+            PromptBuilder promptBuilder = prompt.getPromptBuilder();
 
-            try (ConsolePrompt prompt = new ConsolePrompt(terminal, config)) {
-                PromptBuilder promptBuilder = prompt.getPromptBuilder();
+            ListPromptBuilder listPrompt = promptBuilder.createListPrompt();
+            listPrompt.name("longlist").message("What's your favourite Letter?").relativePageSize(66);
 
-                ListPromptBuilder listPrompt = promptBuilder.createListPrompt();
-                listPrompt
-                        .name("longlist")
-                        .message("What's your favourite Letter?")
-                        .relativePageSize(66);
+            for (char letter = 'A'; letter <= 'C'; letter++)
+                for (char letter2 = 'A'; letter2 <= 'Z'; letter2++)
+                    listPrompt.newItem().text("" + letter + letter2).add();
+            listPrompt.addPrompt();
 
-                for (char letter = 'A'; letter <= 'C'; letter++)
-                    for (char letter2 = 'A'; letter2 <= 'Z'; letter2++)
-                        listPrompt.newItem().text("" + letter + letter2).add();
-                listPrompt.addPrompt();
+            CheckboxPromptBuilder checkboxPrompt = promptBuilder.createCheckboxPrompt();
+            checkboxPrompt
+                    .name("longcheckbox")
+                    .message("What's your favourite Letter? Select all you want...")
+                    .relativePageSize(66);
 
-                CheckboxPromptBuilder checkboxPrompt = promptBuilder.createCheckboxPrompt();
-                checkboxPrompt
-                        .name("longcheckbox")
-                        .message("What's your favourite Letter? Select all you want...")
-                        .relativePageSize(66);
+            for (char letter = 'A'; letter <= 'C'; letter++)
+                for (char letter2 = 'A'; letter2 <= 'Z'; letter2++)
+                    checkboxPrompt.newItem().text("" + letter + letter2).add();
+            checkboxPrompt.addPrompt();
 
-                for (char letter = 'A'; letter <= 'C'; letter++)
-                    for (char letter2 = 'A'; letter2 <= 'Z'; letter2++)
-                        checkboxPrompt.newItem().text("" + letter + letter2).add();
-                checkboxPrompt.addPrompt();
-
-                prompt.prompt(header, promptBuilder.build(), result);
-            }
+            Map<String, PromptResultItemIF> result = prompt.prompt(header, promptBuilder.build());
             System.out.println("result = " + result);
         } catch (IOException e) {
             e.printStackTrace();
