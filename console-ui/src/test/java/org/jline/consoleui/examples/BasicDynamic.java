@@ -8,13 +8,13 @@
  */
 package org.jline.consoleui.examples;
 
-import java.io.InterruptedIOException;
+import java.io.IOError;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.jline.consoleui.elements.ConfirmChoice;
+import org.jline.consoleui.elements.PromptableElementIF;
 import org.jline.consoleui.prompt.ConfirmResult;
 import org.jline.consoleui.prompt.ConsolePrompt;
 import org.jline.consoleui.prompt.PromptResultItemIF;
@@ -30,6 +30,9 @@ import org.jline.utils.AttributedStyle;
 import org.jline.utils.OSUtils;
 
 public class BasicDynamic {
+    private static final AttributedStyle ITALIC_GREEN =
+            AttributedStyle.DEFAULT.italic().foreground(2);
+    private static final AttributedStyle BOLD_RED = AttributedStyle.BOLD.foreground(1);
 
     private static void addInHeader(List<AttributedString> header, String text) {
         addInHeader(header, AttributedStyle.DEFAULT, text);
@@ -43,8 +46,7 @@ public class BasicDynamic {
 
     public static void main(String[] args) {
         List<AttributedString> header = new ArrayList<>();
-        AttributedStyle style = new AttributedStyle();
-        addInHeader(header, style.italic().foreground(2), "Hello Dynamic World!");
+        addInHeader(header, ITALIC_GREEN, "Hello Dynamic World!");
         addInHeader(
                 header, "This is a demonstration of ConsoleUI java library. It provides a simple console interface");
         addInHeader(
@@ -70,49 +72,53 @@ public class BasicDynamic {
             // LineReader is needed only if you are adding JLine Completers in your prompts.
             // If you are not using Completers you do not need to create LineReader.
             //
+            Map<String, PromptResultItemIF> result;
             LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
-            ConsolePrompt prompt = new ConsolePrompt(reader, terminal, config);
-
-            Map<String, ? extends PromptResultItemIF> result1 = null, result2 = null, result3 = null;
-            while (result2 == null) {
-                List<AttributedString> header1 = new ArrayList<>(header);
-                result1 = prompt.prompt(header1, pizzaOrHamburgerPrompt(prompt).build());
-                if (result1 == null) {
-                    System.out.println("User cancelled order.");
-                    return;
-                }
-                while (result3 == null) {
-                    if ("Pizza".equals(result1.get("product").getResult())) {
-                        result2 = prompt.prompt(pizzaPrompt(prompt).build());
+            try (ConsolePrompt prompt = new ConsolePrompt(reader, terminal, config)) {
+                result = prompt.prompt(header, results -> {
+                    if (results.isEmpty()) {
+                        // No results yet, so we start with the first list of questions
+                        return pizzaOrHamburgerPrompt(prompt);
+                    }
+                    // We have some results, so we know that the user chose a "product",
+                    // so we can return the next list of questions based on that choice
+                    if ("Pizza".equals(results.get("product").getResult())) {
+                        // Check if the pizza questions were already answered
+                        if (!results.containsKey("pizzatype")) {
+                            // No, so let's return the pizza questions
+                            return pizzaPrompt(prompt);
+                        }
                     } else {
-                        result2 = prompt.prompt(hamburgerPrompt(prompt).build());
+                        // Check if the hamburger questions were already answered
+                        if (!results.containsKey("hamburgertype")) {
+                            // No, so let's return the hamburger questions
+                            return hamburgerPrompt(prompt);
+                        }
                     }
-                    if (result2 == null) {
-                        break;
+                    // Check if the final questions were already answered
+                    if (!results.containsKey("payment")) {
+                        return finalPrompt(prompt);
                     }
-                    result3 = prompt.prompt(finalPrompt(prompt).build());
+                    return null;
+                });
+            }
+            System.out.println("result = " + result);
+            if (result.isEmpty()) {
+                System.out.println("User cancelled order.");
+            } else {
+                ConfirmResult delivery = (ConfirmResult) result.get("delivery");
+                if (delivery.getConfirmed() == ConfirmChoice.ConfirmationValue.YES) {
+                    System.out.println("We will deliver the order in 5 minutes");
                 }
             }
-
-            Map<String, PromptResultItemIF> result = new HashMap<>();
-            result.putAll(result1);
-            result.putAll(result2);
-            result.putAll(result3);
-            System.out.println("result = " + result);
-
-            ConfirmResult delivery = (ConfirmResult) result.get("delivery");
-            if (delivery.getConfirmed() == ConfirmChoice.ConfirmationValue.YES) {
-                System.out.println("We will deliver the order in 5 minutes");
-            }
-
-        } catch (InterruptedIOException e) {
-            System.out.println("Exiting application.");
+        } catch (IOError e) {
+            System.out.println("<ctrl>-c pressed");
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println(e.getMessage());
         }
     }
 
-    static PromptBuilder pizzaOrHamburgerPrompt(ConsolePrompt prompt) {
+    static List<PromptableElementIF> pizzaOrHamburgerPrompt(ConsolePrompt prompt) {
         PromptBuilder promptBuilder = prompt.getPromptBuilder();
         promptBuilder
                 .createInputPrompt()
@@ -124,7 +130,7 @@ public class BasicDynamic {
         promptBuilder
                 .createListPrompt()
                 .name("product")
-                .message("Which do you want to order?")
+                .message("What do you want to order?")
                 .newItem()
                 .text("Pizza")
                 .add() // without name (name defaults to text)
@@ -132,11 +138,12 @@ public class BasicDynamic {
                 .text("Hamburger")
                 .add()
                 .addPrompt();
-        return promptBuilder;
+        return promptBuilder.build();
     }
 
-    static PromptBuilder pizzaPrompt(ConsolePrompt prompt) {
+    static List<PromptableElementIF> pizzaPrompt(ConsolePrompt prompt) {
         PromptBuilder promptBuilder = prompt.getPromptBuilder();
+        promptBuilder.createText().addLine(ITALIC_GREEN, "Pizza time!").addPrompt();
         promptBuilder
                 .createListPrompt()
                 .name("pizzatype")
@@ -188,11 +195,12 @@ public class BasicDynamic {
                 .checked(true)
                 .add()
                 .addPrompt();
-        return promptBuilder;
+        return promptBuilder.build();
     }
 
-    static PromptBuilder hamburgerPrompt(ConsolePrompt prompt) {
+    static List<PromptableElementIF> hamburgerPrompt(ConsolePrompt prompt) {
         PromptBuilder promptBuilder = prompt.getPromptBuilder();
+        promptBuilder.createText().addLine(ITALIC_GREEN, "Hamburger time!").addPrompt();
         promptBuilder
                 .createListPrompt()
                 .name("hamburgertype")
@@ -232,11 +240,17 @@ public class BasicDynamic {
                 .check()
                 .add()
                 .addPrompt();
-        return promptBuilder;
+        return promptBuilder.build();
     }
 
-    static PromptBuilder finalPrompt(ConsolePrompt prompt) {
+    static List<PromptableElementIF> finalPrompt(ConsolePrompt prompt) {
         PromptBuilder promptBuilder = prompt.getPromptBuilder();
+        promptBuilder
+                .createText()
+                .addLine(BOLD_RED, "###################")
+                .addLine(ITALIC_GREEN, "Finalize your order")
+                .addLine(BOLD_RED, "###################")
+                .addPrompt();
         promptBuilder
                 .createChoicePrompt()
                 .name("payment")
@@ -268,6 +282,6 @@ public class BasicDynamic {
                 .message("Is this order for delivery?")
                 .defaultValue(ConfirmChoice.ConfirmationValue.YES)
                 .addPrompt();
-        return promptBuilder;
+        return promptBuilder.build();
     }
 }

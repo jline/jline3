@@ -162,9 +162,9 @@ public abstract class AbstractCommandRegistry implements CommandRegistry {
         @SuppressWarnings("unchecked")
         public <V extends Enum<V>> void rename(V command, String newName) {
             if (nameCommand.containsKey(newName)) {
-                throw new IllegalArgumentException("Duplicate command name!");
+                throw new IllegalArgumentException("Duplicate command name '" + command + "'!");
             } else if (!commandName.containsKey(command)) {
-                throw new IllegalArgumentException("Command does not exists!");
+                throw new IllegalArgumentException("Command '" + command + "' does not exists!");
             }
             commandName.put((T) command, newName);
             doNameCommand();
@@ -172,7 +172,7 @@ public abstract class AbstractCommandRegistry implements CommandRegistry {
 
         public void alias(String alias, String command) {
             if (!nameCommand.containsKey(command)) {
-                throw new IllegalArgumentException("Command does not exists!");
+                throw new IllegalArgumentException("Command '" + command + "' does not exists!");
             }
             aliasCommand.put(alias, command);
         }
@@ -198,7 +198,7 @@ public abstract class AbstractCommandRegistry implements CommandRegistry {
             if (nameCommand.containsKey(name)) {
                 out = nameCommand.get(name);
             } else {
-                throw new IllegalArgumentException("Command does not exists!");
+                throw new IllegalArgumentException("Command '" + name + "' does not exists!");
             }
             return out;
         }
@@ -230,7 +230,7 @@ public abstract class AbstractCommandRegistry implements CommandRegistry {
 
         public void alias(String alias, String command) {
             if (!commandExecute.containsKey(command)) {
-                throw new IllegalArgumentException("Command does not exists!");
+                throw new IllegalArgumentException("Command '" + command + "' does not exists!");
             }
             aliasCommand.put(alias, command);
         }

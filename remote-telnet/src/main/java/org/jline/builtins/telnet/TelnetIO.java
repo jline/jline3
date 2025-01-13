@@ -139,7 +139,7 @@ public class TelnetIO {
      */
     protected static final int AO = 245;
 
-    /**** Implementation of OutputStream ****************************************************/
+    // ============= Implementation of OutputStream ===============
     /**
      * Are You There
      */
@@ -187,9 +187,9 @@ public class TelnetIO {
      */
     protected static final int SEND = 1;
 
-    /**** End implementation of OutputStream ***********************************************/
+    // ============ End implementation of OutputStream ============
 
-    /**** Implementation of InputStream ****************************************************/
+    // ============== Implementation of InputStream ===============
     /**
      * Telnet Option: Logout<br>
      * This allows nice goodbye to time-outed or unwanted clients.
@@ -206,7 +206,7 @@ public class TelnetIO {
     protected static final int LM_EDIT = 1;
     protected static final int LM_TRAPSIG = 2;
 
-    /**** Implementation of InputStream ****************************************************/
+    // ============== Implementation of InputStream ===============
 
     /****
      * Following methods implement init/request/answer procedures for telnet
@@ -219,12 +219,13 @@ public class TelnetIO {
     protected static final int LM_SLC_NOSUPPORT = 0;
     protected static final int LM_SLC_DEFAULT = 3;
 
-    /**** End telnet protocol level communication methods *******************************/
+    // ==== End telnet protocol level communication methods ===
+
     protected static final int LM_SLC_VALUE = 2;
 
-    /** Constants declaration ***********************************************/
+    // ============= Constants declaration ====================
 
-    // Telnet Protocoll Constants
+    // Telnet Protocol Constants
     protected static final int LM_SLC_CANTCHANGE = 1;
 
     protected static final int LM_SLC_LEVELBITS = 3;

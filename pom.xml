@@ -15,7 +15,7 @@
 
     <groupId>org.jline</groupId>
     <artifactId>jline-parent</artifactId>
-    <version>3.27.2-SNAPSHOT</version>
+    <version>3.28.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>JLine</name>
     <description>JLine</description>
@@ -85,7 +85,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.build.outputTimestamp>2024-10-15T19:03:37Z</project.build.outputTimestamp>
+        <project.build.outputTimestamp>2024-12-10T20:28:04Z</project.build.outputTimestamp>
 
         <java.build.version>22</java.build.version>
         <java.release.version>8</java.release.version>
@@ -94,18 +94,18 @@
         <native.image.skip>true</native.image.skip>
         <automatic.module.name />
 
-        <jna.version>5.15.0</jna.version>
+        <jna.version>5.16.0</jna.version>
         <jansi.version>2.4.1</jansi.version>
         <juniversalchardet.version>1.0.3</juniversalchardet.version>
         <sshd.version>2.14.0</sshd.version>
         <easymock.version>5.5.0</easymock.version>
-        <junit.version>5.11.3</junit.version>
+        <junit.version>5.11.4</junit.version>
         <gogo.runtime.version>1.1.6</gogo.runtime.version>
         <gogo.jline.version>1.1.8</gogo.jline.version>
         <slf4j.version>2.0.16</slf4j.version>
         <findbugs.version>3.0.2</findbugs.version>
         <groovy.version>4.0.24</groovy.version>
-        <ivy.version>2.5.2</ivy.version>
+        <ivy.version>2.5.3</ivy.version>
         <graal.version>24.1.1</graal.version>
         <graal.plugin.version>21.2.0</graal.plugin.version>
 
@@ -405,7 +405,7 @@
                 <plugin>
                     <groupId>org.apache.felix</groupId>
                     <artifactId>maven-bundle-plugin</artifactId>
-                    <version>5.1.9</version>
+                    <version>6.0.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
@@ -440,7 +440,7 @@
                 <plugin>
                     <groupId>org.sonatype.central</groupId>
                     <artifactId>central-publishing-maven-plugin</artifactId>
-                    <version>0.6.0</version>
+                    <version>0.7.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -536,13 +536,13 @@
                 <plugin>
                     <groupId>org.codehaus.gmavenplus</groupId>
                     <artifactId>gmavenplus-plugin</artifactId>
-                    <version>4.0.1</version>
+                    <version>4.1.1</version>
                 </plugin>
 
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
-                    <version>3.11.1</version>
+                    <version>3.11.2</version>
                     <configuration>
                         <notimestamp>true</notimestamp>
                     </configuration>
@@ -557,7 +557,7 @@
                 <plugin>
                     <groupId>com.diffplug.spotless</groupId>
                     <artifactId>spotless-maven-plugin</artifactId>
-                    <version>2.43.0</version>
+                    <version>2.44.1</version>
                     <configuration>
                         <java>
                             <toggleOffOn />

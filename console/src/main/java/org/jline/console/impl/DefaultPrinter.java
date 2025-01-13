@@ -229,7 +229,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
             Options opt = parseOptions(usage, input.xargs());
             Map<String, Object> options = compileOptions(opt);
             List<Object> args = opt.argObjects();
-            if (args.size() > 0) {
+            if (!args.isEmpty()) {
                 println(options, args.get(0));
             }
         } catch (Exception e) {

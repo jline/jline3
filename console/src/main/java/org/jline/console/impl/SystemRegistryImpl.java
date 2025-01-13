@@ -306,7 +306,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         }
         local.add(customSystemCompleter);
         out.add(local);
-        out.compile();
+        out.compile(s -> CommandRegistry.createCandidate(commandRegistries, s));
         return out;
     }
 
@@ -777,7 +777,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 boolean done = true;
                 boolean statement = false;
                 List<String> arglist = new ArrayList<>();
-                if (_words.size() > 0) {
+                if (!_words.isEmpty()) {
                     arglist.addAll(_words.subList(1, _words.size()));
                 }
                 if (rawLine != null || (pipes.size() > 1 && customPipes.containsKey(pipes.get(pipes.size() - 2)))) {
@@ -1446,7 +1446,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         asb.append("\t");
         asb.append(command, HelpException.defaultStyle().resolve(".co"));
         asb.append("\t");
-        asb.append(info);
+        asb.append(info, HelpException.defaultStyle().resolve(".de"));
         asb.setLength(terminal().getWidth());
         asb.toAttributedString().println(terminal());
     }
@@ -1479,7 +1479,7 @@ public class SystemRegistryImpl implements SystemRegistry {
     }
 
     private String doCommandInfo(List<String> info) {
-        return info != null && info.size() > 0 ? info.get(0) : " ";
+        return info != null && !info.isEmpty() ? info.get(0) : " ";
     }
 
     private boolean isInTopics(List<String> args, String name) {
@@ -1803,7 +1803,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 }
                 if (curBuf.startsWith("--") && !curBuf.contains("=")) {
                     doCandidates(candidates, names.options(), curBuf, "", param);
-                } else if (param.length() == 0) {
+                } else if (param.isEmpty()) {
                     doCandidates(candidates, names.fieldsAndValues(), curBuf, "", "");
                 } else if (param.contains(".")) {
                     int point = buffer.lastIndexOf(".");
@@ -1963,7 +1963,7 @@ public class SystemRegistryImpl implements SystemRegistry {
 
         public String encloseBy(String param) {
             boolean quoted =
-                    param.length() > 0 && (param.startsWith("\"") || param.startsWith("'") || param.startsWith("/"));
+                    !param.isEmpty() && (param.startsWith("\"") || param.startsWith("'") || param.startsWith("/"));
             if (quoted && param.length() > 1) {
                 quoted = !param.endsWith(Character.toString(param.charAt(0)));
             }

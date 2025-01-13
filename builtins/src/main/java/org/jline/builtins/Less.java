@@ -11,7 +11,6 @@ package org.jline.builtins;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -218,11 +217,11 @@ public class Less {
     }
 
     private void parseConfig(Path file) throws IOException {
-        try (BufferedReader reader = new BufferedReader(new FileReader(file.toFile()))) {
+        try (BufferedReader reader = Files.newBufferedReader(file)) {
             String line = reader.readLine();
             while (line != null) {
                 line = line.trim();
-                if (line.length() > 0 && !line.startsWith("#")) {
+                if (!line.isEmpty() && !line.startsWith("#")) {
                     List<String> parts = SyntaxHighlighter.RuleSplitter.split(line);
                     if (parts.get(0).equals(COMMAND_INCLUDE)) {
                         SyntaxHighlighter.nanorcInclude(parts.get(1), syntaxFiles);
@@ -840,20 +839,18 @@ public class Less {
         LineEditor lineEditor = new LineEditor(begPos);
         while (true) {
             checkInterrupted();
-            Operation op;
-            switch (op = bindingReader.readBinding(fileKeyMap)) {
-                case ACCEPT:
-                    String name = buffer.substring(begPos);
-                    addSource(name);
-                    try {
-                        openSource();
-                    } catch (Exception exp) {
-                        ssp.restore(name);
-                    }
-                    return;
-                default:
-                    curPos = lineEditor.editBuffer(op, curPos);
-                    break;
+            Operation op = bindingReader.readBinding(fileKeyMap);
+            if (op == Operation.ACCEPT) {
+                String name = buffer.substring(begPos);
+                addSource(name);
+                try {
+                    openSource();
+                } catch (Exception exp) {
+                    ssp.restore(name);
+                }
+                return;
+            } else if (op != null) {
+                curPos = lineEditor.editBuffer(op, curPos);
             }
             if (curPos > begPos) {
                 display(false, curPos);
@@ -911,7 +908,7 @@ public class Less {
                     try {
                         String _pattern = buffer.substring(1);
                         if (type == '&') {
-                            displayPattern = _pattern.length() > 0 ? _pattern : null;
+                            displayPattern = !_pattern.isEmpty() ? _pattern : null;
                             getPattern(true);
                         } else {
                             pattern = _pattern;
@@ -1025,7 +1022,7 @@ public class Less {
                 if (displayMessage) {
                     AttributedStringBuilder asb = new AttributedStringBuilder();
                     asb.style(AttributedStyle.INVERSE);
-                    asb.append(source.getName() + " (press RETURN)");
+                    asb.append(source.getName()).append(" (press RETURN)");
                     asb.toAttributedString().println(terminal);
                     terminal.writer().flush();
                     terminal.reader().read();
@@ -1039,7 +1036,7 @@ public class Less {
                     throw exp;
                 } else {
                     AttributedStringBuilder asb = new AttributedStringBuilder();
-                    asb.append(source.getName() + " not found!");
+                    asb.append(source.getName()).append(" not found!");
                     asb.toAttributedString().println(terminal);
                     terminal.writer().flush();
                     open = false;
@@ -1384,7 +1381,7 @@ public class Less {
         }
         if (buffer.length() > 0) {
             msg.append(" ").append(buffer);
-        } else if (bindingReader.getCurrentBuffer().length() > 0
+        } else if (!bindingReader.getCurrentBuffer().isEmpty()
                 && terminal.reader().peek(1) == NonBlockingReader.READ_EXPIRED) {
             msg.append(" ").append(printable(bindingReader.getCurrentBuffer()));
         } else if (message != null) {

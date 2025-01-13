@@ -8,25 +8,22 @@
  */
 package org.jline.consoleui.prompt;
 
-public class InputResult implements PromptResultItemIF {
-    private final String input;
-    private final String displayInput;
+public class NoResult implements PromptResultItemIF {
 
-    public InputResult(String input, String displayInput) {
-        this.input = input;
-        this.displayInput = displayInput;
-    }
+    public static final NoResult INSTANCE = new NoResult();
+
+    private NoResult() {}
 
     public String getDisplayResult() {
-        return displayInput;
+        return "";
     }
 
     public String getResult() {
-        return input;
+        return "";
     }
 
     @Override
     public String toString() {
-        return "InputResult{" + "input='" + input + '\'' + '}';
+        return "NoResult{}";
     }
 }
