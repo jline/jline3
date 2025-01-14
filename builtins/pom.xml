@@ -64,7 +64,7 @@
                         <configuration>
                             <compilerArgs>
                                 <arg>-Xlint:all,-options</arg>
-                                                                <arg>-Werror</arg>
+                                <arg>-Werror</arg>
                             </compilerArgs>
                         </configuration>
                     </execution>
