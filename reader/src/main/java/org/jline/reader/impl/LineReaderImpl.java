@@ -292,6 +292,7 @@ public class LineReaderImpl implements LineReader, Flushable {
 
     protected String alternateIn;
     protected String alternateOut;
+    protected List<AttributedString> currentLines;
 
     public LineReaderImpl(Terminal terminal) throws IOException {
         this(terminal, terminal.getName(), null);
@@ -4176,6 +4177,16 @@ public class LineReaderImpl implements LineReader, Flushable {
                         case 'N':
                             sb.append(getInt(LINE_OFFSET, 0) + line);
                             break decode;
+                        case 'C':
+                            sb.append(getInt(LINE_OFFSET, 0) + (line + 1));
+                            break decode;
+                        case '*':
+                            if (getCurrentLineNo(this.currentLines) == line) {
+                                sb.append("*");
+                            } else {
+                                sb.append(" ");
+                            }
+                            break decode;
                         case 'M':
                             if (message != null) sb.append(message);
                             break decode;
@@ -4231,6 +4242,21 @@ public class LineReaderImpl implements LineReader, Flushable {
         return AttributedString.join(null, parts);
     }
 
+    private int getCurrentLineNo(List<AttributedString> lines) {
+        int currentLine = -1;
+        int cursor = buf.cursor();
+        int start = 0;
+        for (int l = 0; l < lines.size(); l++) {
+            int end = start + lines.get(l).length();
+            if (cursor >= start && cursor <= end) {
+                currentLine = l;
+                break;
+            }
+            start = end + 1;
+        }
+        return currentLine;
+    }
+
     private AttributedString fromAnsi(String str) {
         return AttributedString.fromAnsi(str, Collections.singletonList(0), alternateIn, alternateOut);
     }
@@ -4277,6 +4303,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             buf.setLength(0);
         }
         int line = 0;
+        this.currentLines = lines;
         while (line < lines.size() - 1) {
             sb.append(lines.get(line)).append("\n");
             buf.append(lines.get(line)).append("\n");
