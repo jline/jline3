@@ -656,45 +656,187 @@ public class SyntaxHighlighter {
             Styles.StyleCompiler sh = new Styles.StyleCompiler(spec, true);
             AttributedStyle style = new StyleResolver(sh::getStyle).resolve("." + reference);
 
-            if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.PATTERN) {
-                if (parts.size() == 2) {
-                    highlightRules.get(tokenName).add(new HighlightRule(style, doPattern(".*", caseInsensitive)));
-                } else {
-                    for (int i = 2; i < parts.size(); i++) {
-                        highlightRules
-                                .get(tokenName)
-                                .add(new HighlightRule(style, doPattern(parts.get(i), caseInsensitive)));
+            try {
+                if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.PATTERN) {
+                    if (parts.size() == 2) {
+                        highlightRules.get(tokenName).add(new HighlightRule(style, doPattern(".*", caseInsensitive)));
+                    } else {
+                        for (int i = 2; i < parts.size(); i++) {
+                            highlightRules
+                                    .get(tokenName)
+                                    .add(new HighlightRule(style, doPattern(parts.get(i), caseInsensitive)));
+                        }
                     }
+                } else if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.START_END) {
+                    String s = parts.get(2);
+                    String e = parts.get(3);
+                    highlightRules
+                            .get(tokenName)
+                            .add(new HighlightRule(
+                                    style,
+                                    doPattern(s.substring(7, s.length() - 1), caseInsensitive),
+                                    doPattern(e.substring(5, e.length() - 1), caseInsensitive)));
+                } else if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.PARSER_START_WITH) {
+                    highlightRules
+                            .get(tokenName)
+                            .add(new HighlightRule(
+                                    HighlightRule.RuleType.PARSER_START_WITH,
+                                    style,
+                                    parts.get(2).substring(10)));
+                } else if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.PARSER_CONTINUE_AS) {
+                    highlightRules
+                            .get(tokenName)
+                            .add(new HighlightRule(
+                                    HighlightRule.RuleType.PARSER_CONTINUE_AS,
+                                    style,
+                                    parts.get(2).substring(11)));
                 }
-            } else if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.START_END) {
-                String s = parts.get(2);
-                String e = parts.get(3);
-                highlightRules
-                        .get(tokenName)
-                        .add(new HighlightRule(
-                                style,
-                                doPattern(s.substring(7, s.length() - 1), caseInsensitive),
-                                doPattern(e.substring(5, e.length() - 1), caseInsensitive)));
-            } else if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.PARSER_START_WITH) {
-                highlightRules
-                        .get(tokenName)
-                        .add(new HighlightRule(
-                                HighlightRule.RuleType.PARSER_START_WITH,
-                                style,
-                                parts.get(2).substring(10)));
-            } else if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.PARSER_CONTINUE_AS) {
-                highlightRules
-                        .get(tokenName)
-                        .add(new HighlightRule(
-                                HighlightRule.RuleType.PARSER_CONTINUE_AS,
-                                style,
-                                parts.get(2).substring(11)));
+            } catch (PatternSyntaxException e) {
+                Log.warn("Invalid highlight regex", reference, parts, e);
+            } catch (Exception e) {
+                Log.warn("Failure while handling highlight regex", reference, parts, e);
             }
         }
 
         private Pattern doPattern(String regex, boolean caseInsensitive) {
+            regex = posixToJavaRegex(regex);
             return caseInsensitive ? Pattern.compile(regex, Pattern.CASE_INSENSITIVE) : Pattern.compile(regex);
         }
+    }
+
+    /**
+     * Posix regex is different from Java regex. This function parses the given Posix regex and escapes according to these rules:
+     *
+     * <p>The first {@code ]} in a bracket expression does not need to be escaped in Posix,translate to {@code \]}.
+     *
+     * <p>Same as above for a negating bracket expression like {@code [^][]}, translate to {@code [^\]\[]}.
+     *
+     * <p>Any {@code [} in a bracket expression does not need to be escaped in Posix, translate to {@code \[}.
+     *
+     * <p>Any {@code ]} not in a bracket expression is valid in both Posix and Java, no translation.
+     *
+     * <p>A backslash before the closing bracket like {@code [.f\]} is not an escape of the closing bracket,
+     * the backslash needs to be escaped for Java, translate to {@code [.f\\]}.
+     *
+     * <p>Do not perform the above translations within an escape via {@code \}.
+     *
+     * <p>Do not perform the above translations for Posix "classes" like {@code [[:word:]]} or {@code [[:digit:]]}
+     * and their negation {@code [-[:word]]}.
+     *
+     * <p>Do not perform the above translations for single-bracket Posix classes like {@code [:digit:]},
+     * and handle the case of single-bracket Posix classes inside bracket expressions, like
+     * @code {[[:digit:]-.]}.
+     *
+     * @param posix Posix regex
+     * @return Java regex
+     */
+    static String posixToJavaRegex(String posix) {
+        int len = posix.length();
+        StringBuilder java = new StringBuilder();
+
+        boolean inBracketExpression = false;
+
+        int i = 0;
+        char next;
+        try {
+            for (; i < len; i++) {
+                char c = posix.charAt(i);
+
+                switch (c) {
+                    case '\\':
+                        next = posix.charAt(++i);
+                        // Don't translate anything after the \ character escape
+                        if (inBracketExpression && next == ']') {
+                            inBracketExpression = false;
+                            java.append("\\\\").append(next);
+                        } else {
+                            java.append(c).append(next);
+                        }
+                        break;
+                    case '[':
+                        if (i == len - 1) {
+                            throw new IllegalArgumentException("Lone [ at the end of (index " + i + "): " + posix);
+                        }
+                        // Handle "double bracket" Posix "classes" like [[:word:]] or [[:digit:]] and their negations
+                        // starting with [-[:
+                        if (posix.regionMatches(i, "[[:", 0, 3) || posix.regionMatches(i, "[-[:", 0, 4)) {
+                            int afterClass = nextAfterClass(posix, i + 3);
+                            if (posix.regionMatches(afterClass, ":]]", 0, 3)) {
+                                java.append(posix, i, afterClass + 3);
+                                i = afterClass + 2;
+                                break;
+                            } else if (posix.regionMatches(afterClass, ":]", 0, 2)) {
+                                if (inBracketExpression) {
+                                    throw new IllegalArgumentException("Unclear bracket expression");
+                                }
+                                // Handles character patterns like [[:alpha:]_-]
+                                java.append(posix, i, afterClass + 2);
+                                i = afterClass + 1;
+                                inBracketExpression = true;
+                                break;
+                            } else {
+                                throw new IllegalArgumentException("Invalid character class");
+                            }
+                        }
+                        // Handle "single bracket" Posix "classes" like [:word:]
+                        else if (posix.charAt(i + 1) == ':') {
+                            int afterClass = nextAfterClass(posix, i + 2);
+                            if (!posix.regionMatches(afterClass, ":]", 0, 2)) {
+                                java.append("[:");
+                                i++;
+                                inBracketExpression = true;
+                            } else {
+                                java.append(posix, i, afterClass + 2);
+                                i = afterClass + 1;
+                            }
+                            break;
+                        }
+                        if (inBracketExpression) {
+                            // Translate lone [ to \[
+                            java.append('\\').append(c);
+                        } else {
+                            inBracketExpression = true;
+                            java.append(c);
+                            next = posix.charAt(i + 1);
+                            if (next == ']') {
+                                i++;
+                                java.append("\\]");
+                            } else if (next == '^' && posix.charAt(i + 2) == ']') {
+                                i += 2;
+                                java.append("^\\]");
+                            }
+                        }
+                        break;
+                    case ']':
+                        if (inBracketExpression) {
+                            inBracketExpression = false;
+                        }
+                        java.append(c);
+                        break;
+                    default:
+                        java.append(c);
+                        break;
+                }
+            }
+        } catch (Exception e) {
+            throw new IllegalArgumentException(
+                    "Posix-to-Java regex translation failed around index " + i + " of: " + posix, e);
+        }
+        return java.toString();
+    }
+
+    private static int nextAfterClass(String s, int idx) {
+        if (s.charAt(idx) == ':') {
+            idx++;
+        }
+        while (true) {
+            char c = s.charAt(idx);
+            if (!Character.isLetterOrDigit(c)) {
+                break;
+            }
+            idx++;
+        }
+        return idx;
     }
 
     protected static class RuleSplitter {
