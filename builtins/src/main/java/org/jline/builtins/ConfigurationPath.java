@@ -9,6 +9,7 @@
 package org.jline.builtins;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class ConfigurationPath {
@@ -33,9 +34,9 @@ public class ConfigurationPath {
      */
     public Path getConfig(String name) {
         Path out = null;
-        if (userConfig != null && userConfig.resolve(name).toFile().exists()) {
+        if (userConfig != null && Files.exists(userConfig.resolve(name))) {
             out = userConfig.resolve(name);
-        } else if (appConfig != null && appConfig.resolve(name).toFile().exists()) {
+        } else if (appConfig != null && Files.exists(appConfig.resolve(name))) {
             out = appConfig.resolve(name);
         }
         return out;
@@ -62,10 +63,10 @@ public class ConfigurationPath {
     public Path getUserConfig(String name, boolean create) throws IOException {
         Path out = null;
         if (userConfig != null) {
-            if (!userConfig.resolve(name).toFile().exists() && create) {
-                userConfig.resolve(name).toFile().createNewFile();
+            if (!Files.exists(userConfig.resolve(name)) && create) {
+                Files.createFile(userConfig.resolve(name));
             }
-            if (userConfig.resolve(name).toFile().exists()) {
+            if (Files.exists(userConfig.resolve(name))) {
                 out = userConfig.resolve(name);
             }
         }
