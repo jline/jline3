@@ -247,7 +247,10 @@ public class AnsiConsole {
             width = terminal::getWidth;
             type = terminal instanceof DumbTerminal ? AnsiType.Unsupported : AnsiType.Native;
         } else {
-            out = new FastBufferedOutputStream(new FileOutputStream(stdout ? FileDescriptor.out : FileDescriptor.err));
+            out = terminal != null
+                    ? terminal.output()
+                    : new FastBufferedOutputStream(
+                            new FileOutputStream(stdout ? FileDescriptor.out : FileDescriptor.err));
             width = new AnsiOutputStream.ZeroWidthSupplier();
             type = ((TerminalExt) terminal).getSystemStream() != null ? AnsiType.Redirected : AnsiType.Unsupported;
         }
