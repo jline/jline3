@@ -245,7 +245,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 }
             }
             for (Path p : scripts) {
-                String name = p.toFile().getName();
+                String name = p.getFileName().toString();
                 int idx = name.lastIndexOf(".");
                 out.put(name.substring(0, idx), name.substring(idx + 1).equals(scriptExtension));
             }
@@ -395,7 +395,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                         for (String e : scriptExtensions()) {
                             String file = command + "." + e;
                             Path path = Paths.get(p, file);
-                            if (path.toFile().exists()) {
+                            if (Files.exists(path)) {
                                 script = path;
                                 scriptExtension(command);
                                 found = true;
@@ -959,7 +959,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                         : engine.getSerializationFormats().get(0);
                 try {
                     Path path = Paths.get(arg);
-                    if (path.toFile().exists()) {
+                    if (Files.exists(path)) {
                         if (!format.equals(SLURP_FORMAT_TEXT)) {
                             out = slurp(path, encoding, format);
                         } else {
