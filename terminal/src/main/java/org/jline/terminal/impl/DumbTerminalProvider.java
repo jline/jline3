@@ -8,6 +8,9 @@
  */
 package org.jline.terminal.impl;
 
+import java.io.FileDescriptor;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -43,8 +46,8 @@ public class DumbTerminalProvider implements TerminalProvider {
                 systemStream,
                 name,
                 type,
-                System.in,
-                systemStream == SystemStream.Error ? System.err : System.out,
+                new FileInputStream(FileDescriptor.in),
+                new FileOutputStream(systemStream == SystemStream.Error ? FileDescriptor.err : FileDescriptor.out),
                 encoding,
                 signalHandler);
     }
