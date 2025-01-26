@@ -110,8 +110,10 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
 
     @Override
     public void pause() {
-        synchronized (lock) {
-            paused = true;
+        try {
+            pause(false);
+        } catch (InterruptedException e) {
+            // nah
         }
     }
 
@@ -129,11 +131,13 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
         if (p2 != null) {
             p2.interrupt();
         }
-        if (p1 != null) {
-            p1.join();
-        }
-        if (p2 != null) {
-            p2.join();
+        if (wait) {
+            if (p1 != null) {
+                p1.join();
+            }
+            if (p2 != null) {
+                p2.join();
+            }
         }
     }
 

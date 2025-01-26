@@ -112,8 +112,10 @@ public class ExternalTerminal extends LineDisciplineTerminal {
 
     @Override
     public void pause() {
-        synchronized (lock) {
-            paused = true;
+        try {
+            pause(false);
+        } catch (InterruptedException e) {
+            // nah
         }
     }
 
@@ -126,7 +128,9 @@ public class ExternalTerminal extends LineDisciplineTerminal {
         }
         if (p != null) {
             p.interrupt();
-            p.join();
+            if (wait) {
+                p.join();
+            }
         }
     }
 
