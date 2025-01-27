@@ -114,9 +114,20 @@ public class SyntaxHighlighterTest {
     @EnabledOnOs(OS.LINUX)
     void processLocalNanorcFile(Path nanorcFile) throws Exception {
         Map<String, String> colorTheme = new HashMap<>();
-        String name = nanorcFile.getFileName().toString().replaceAll("[.].*", "");
+        String fileName = nanorcFile.getFileName().toString().replaceAll("[.].*", "");
+        String syntaxName;
+        switch (fileName) {
+            case "debian":
+                syntaxName = "sources.list";
+                break;
+            case "objc":
+                syntaxName = "m";
+                break;
+            default:
+                syntaxName = fileName;
+        }
         SyntaxHighlighter.NanorcParser nanorcParser =
-                new SyntaxHighlighter.NanorcParser(nanorcFile, name, "syntax", colorTheme);
+                new SyntaxHighlighter.NanorcParser(nanorcFile, syntaxName, "syntax", colorTheme);
         nanorcParser.parse();
 
         Iterator<String> sourceLines = Files.readAllLines(nanorcFile).stream()
@@ -124,7 +135,7 @@ public class SyntaxHighlighterTest {
                 .iterator();
 
         nanorcParser.getHighlightRules().forEach((s, rules) -> {
-            System.out.println(s + " / " + name);
+            System.out.println(s + " / " + syntaxName);
             for (SyntaxHighlighter.HighlightRule rule : rules) {
                 System.out.println();
                 String sourceLine = sourceLines.hasNext() ? sourceLines.next() : "<oops>";
