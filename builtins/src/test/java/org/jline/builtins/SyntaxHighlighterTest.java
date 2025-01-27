@@ -23,6 +23,8 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -109,6 +111,7 @@ public class SyntaxHighlighterTest {
     // local machine. Putting a set of .nanorc files into the code base would pull in GPL licensed elements.
     @ParameterizedTest
     @MethodSource
+    @EnabledOnOs(OS.LINUX)
     void processLocalNanorcFile(Path nanorcFile) throws Exception {
         Map<String, String> colorTheme = new HashMap<>();
         String name = nanorcFile.getFileName().toString().replaceAll("[.].*", "");
