@@ -10,9 +10,15 @@ package org.jline.builtins;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Assertions;
@@ -25,9 +31,29 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 public class SyntaxHighlighterTest {
 
+    static String fixRegexesOld(String line) {
+        return line.replaceAll("\\\\<", "\\\\b")
+                .replaceAll("\\\\>", "\\\\b")
+                .replaceAll("\\[:alnum:]", "\\\\p{Alnum}")
+                .replaceAll("\\[:alpha:]", "\\\\p{Alpha}")
+                .replaceAll("\\[:blank:]", "\\\\p{Blank}")
+                .replaceAll("\\[:cntrl:]", "\\\\p{Cntrl}")
+                .replaceAll("\\[:digit:]", "\\\\p{Digit}")
+                .replaceAll("\\[:graph:]", "\\\\p{Graph}")
+                .replaceAll("\\[:lower:]", "\\\\p{Lower}")
+                .replaceAll("\\[:print:]", "\\\\p{Print}")
+                .replaceAll("\\[:punct:]", "\\\\p{Punct}")
+                .replaceAll("\\[:space:]", "\\\\s")
+                .replaceAll("\\[:upper:]", "\\\\p{Upper}")
+                .replaceAll("\\[:xdigit:]", "\\\\p{XDigit}");
+    }
+
     @SuppressWarnings("ResultOfMethodCallIgnored")
     void checkRegexFix(String posix, String expectedJava) {
-        String java = SyntaxHighlighter.posixToJavaRegex(posix);
+        String java = SyntaxHighlighter.Parser.fixRegexes(posix);
+
+        expectedJava = fixRegexesOld(expectedJava);
+
         Assertions.assertEquals(expectedJava, java);
         // should not throw
         Pattern.compile(java);
@@ -78,38 +104,90 @@ public class SyntaxHighlighterTest {
                 "^deb(-src)?\\s+.*(mirror\\+)?(ftp|https?|rsh|ssh|copy|file|in-toto|s3|spacewalk|tor):/\\S+|cdrom:\\[.+\\]/)\\s+\\S+");
     }
 
+    // Reads in all .nanorc files on the local machine and pushes those through NanorcParser.
+    // Using System.out here is a bit unorhodox, but we cannot really assert on content that's present on a
+    // local machine. Putting a set of .nanorc files into the code base would pull in GPL licensed elements.
+    @ParameterizedTest
+    @MethodSource
+    void processLocalNanorcFile(Path nanorcFile) throws Exception {
+        Map<String, String> colorTheme = new HashMap<>();
+        String name = nanorcFile.getFileName().toString().replaceAll("[.].*", "");
+        SyntaxHighlighter.NanorcParser nanorcParser =
+                new SyntaxHighlighter.NanorcParser(nanorcFile, name, "syntax", colorTheme);
+        nanorcParser.parse();
+
+        Iterator<String> sourceLines = Files.readAllLines(nanorcFile).stream()
+                .filter(line -> line.startsWith("color ") || line.startsWith("icolor "))
+                .iterator();
+
+        nanorcParser.getHighlightRules().forEach((s, rules) -> {
+            System.out.println(s + " / " + name);
+            for (SyntaxHighlighter.HighlightRule rule : rules) {
+                System.out.println();
+                String sourceLine = sourceLines.hasNext() ? sourceLines.next() : "<oops>";
+                System.out.println("  Source line: " + sourceLine);
+                int i = sourceLine.indexOf(' ', sourceLine.indexOf(' ') + 1);
+                System.out.println("       source: " + sourceLine.substring(i + 1));
+                switch (rule.getType()) {
+                    case PATTERN:
+                        System.out.println("    processed:  " + rule.getPattern());
+                        break;
+                    case START_END:
+                        System.out.println("    processed: " + rule.getStart() + " - " + rule.getEnd());
+                        break;
+                    case PARSER_CONTINUE_AS:
+                        System.out.println("    processed: " + rule.getContinueAs());
+                        break;
+                    case PARSER_START_WITH:
+                        System.out.println("    processed: " + rule.getStartWith());
+                        break;
+                }
+            }
+        });
+    }
+
+    static List<Path> processLocalNanorcFile() throws Exception {
+        try (Stream<Path> list = Files.list(Paths.get("/usr/share/nano"))
+                .filter(Files::isRegularFile)
+                .filter(p -> p.toString().endsWith(".nanorc"))) {
+            return list.collect(Collectors.toList());
+        }
+    }
+
     // Code to extract highlight regexes from nanorc files
     @SuppressWarnings("unused")
     void dumpNanoRegexes() throws Exception {
-        Files.list(Paths.get("/usr/share/nano")).filter(Files::isRegularFile).forEachOrdered(p -> {
-            try {
-                Files.readAllLines(p).stream()
-                        .filter(s -> s.startsWith("color"))
-                        .map(s -> {
-                            int i = s.indexOf(' ');
-                            if (i == -1) {
+        try (Stream<Path> list = Files.list(Paths.get("/usr/share/nano")).filter(Files::isRegularFile)) {
+            list.forEach(p -> {
+                try {
+                    Files.readAllLines(p).stream()
+                            .filter(s -> s.startsWith("color"))
+                            .map(s -> {
+                                int i = s.indexOf(' ');
+                                if (i == -1) {
+                                    return null;
+                                }
+                                i = s.indexOf(' ', i + 1);
+                                if (i == -1) {
+                                    return null;
+                                }
+                                s = s.substring(i + 1).trim();
+                                if (s.startsWith("\"") && s.endsWith("\"")) {
+                                    return s.substring(1, s.length() - 1);
+                                }
                                 return null;
-                            }
-                            i = s.indexOf(' ', i + 1);
-                            if (i == -1) {
-                                return null;
-                            }
-                            s = s.substring(i + 1).trim();
-                            if (s.startsWith("\"") && s.endsWith("\"")) {
-                                return s.substring(1, s.length() - 1);
-                            }
-                            return null;
-                        })
-                        .filter(Objects::nonNull)
-                        .map(s -> s.replace("\\", "\\\\").replace("\"", "\\\""))
-                        .map(s -> '\"' + s + "\" ,")
-                        .sorted()
-                        .forEachOrdered(System.out::println);
-                ;
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        });
+                            })
+                            .filter(Objects::nonNull)
+                            .map(s -> s.replace("\\", "\\\\").replace("\"", "\\\""))
+                            .map(s -> '\"' + s + "\" ,")
+                            .sorted()
+                            .forEachOrdered(System.out::println);
+                    ;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
     }
 
     static Stream<Arguments> regexFixBrackets() {
