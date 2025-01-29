@@ -497,7 +497,7 @@ public class SyntaxHighlighter {
                     idx++;
                     line = line.trim();
                     if (!line.isEmpty() && !line.startsWith("#")) {
-                        List<String> parts = RuleSplitter.split(fixRegexes(line));
+                        List<String> parts = RuleSplitter.split(line);
                         if (parts.get(0).equals("syntax")) {
                             syntaxName = parts.get(1);
                             List<Pattern> filePatterns = new ArrayList<>();
@@ -547,7 +547,7 @@ public class SyntaxHighlighter {
                                     }
                                     for (String l : colorTheme.get(key).split("\\\\n")) {
                                         idx++;
-                                        addHighlightRule(RuleSplitter.split(fixRegexes(l)), idx, key);
+                                        addHighlightRule(RuleSplitter.split(l), idx, key);
                                     }
                                 }
                             } else {
@@ -560,7 +560,7 @@ public class SyntaxHighlighter {
                             if (theme != null) {
                                 for (String l : theme.split("\\\\n")) {
                                     idx++;
-                                    addHighlightRule(RuleSplitter.split(fixRegexes(l)), idx, TOKEN_NANORC);
+                                    addHighlightRule(RuleSplitter.split(l), idx, TOKEN_NANORC);
                                 }
                             } else {
                                 Log.warn("Unknown token type: ", key);
@@ -571,10 +571,6 @@ public class SyntaxHighlighter {
             } finally {
                 reader.close();
             }
-        }
-
-        private String fixRegexes(String line) {
-            return line;
         }
 
         private boolean addHighlightRule(List<String> parts, int idx, String tokenName) {
@@ -991,7 +987,7 @@ public class SyntaxHighlighter {
          *
          * <p>Do not perform the above translations within an escape via {@code \}, except for {@code \<} and {@code \>} to {@code \b}.
          *
-         * <p>Replace the Posix classes like {@code [:word:]} or {@code [:digit:]} to Java classes, inside and outside a bracket expression.
+         * <p>Replace the Posix classes like {@code [:space:]} or {@code [:digit:]} to Java classes, inside and outside a bracket expression.
          *
          * @param posix Posix regex
          * @return Java regex
@@ -1027,33 +1023,8 @@ public class SyntaxHighlighter {
                             if (i == len - 1) {
                                 throw new IllegalArgumentException("Lone [ at the end of (index " + i + "): " + posix);
                             }
-                            // Handle "double bracket" Posix "classes" like [[:word:]] or [[:digit:]] and their
-                            // negations
-                            // starting with [-[:
-                            if (posix.regionMatches(i, "[[:", 0, 3)) {
-                                int afterClass = nextAfterClass(posix, i + 3);
-                                if (posix.regionMatches(afterClass, ":]]", 0, 3)) {
-                                    String className = posix.substring(i + 3, afterClass);
-                                    java.append('[').append(replaceClass(className));
-                                    i = afterClass + 1;
-                                    inBracketExpression = true;
-                                    break;
-                                } else if (posix.regionMatches(afterClass, ":]", 0, 2)) {
-                                    if (inBracketExpression) {
-                                        throw new IllegalArgumentException("Unclear bracket expression");
-                                    }
-                                    // Handles character patterns like [[:alpha:]_-]
-                                    String className = posix.substring(i + 3, afterClass);
-                                    java.append('[').append(replaceClass(className));
-                                    i = afterClass + 1;
-                                    inBracketExpression = true;
-                                    break;
-                                } else {
-                                    throw new IllegalArgumentException("Invalid character class");
-                                }
-                            }
-                            // Handle "single bracket" Posix "classes" like [:word:]
-                            else if (posix.charAt(i + 1) == ':') {
+                            // Handle "single bracket" Posix "classes" like [:space:] or [:digit:]
+                            if (posix.charAt(i + 1) == ':') {
                                 int afterClass = nextAfterClass(posix, i + 2);
                                 if (!posix.regionMatches(afterClass, ":]", 0, 2)) {
                                     java.append("[:");
