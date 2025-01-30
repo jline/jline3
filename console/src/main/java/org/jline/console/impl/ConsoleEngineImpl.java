@@ -521,7 +521,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
         private void internalExecute() throws Exception {
             if (isEngineScript()) {
-                result = engine.execute(script, expandParameters(args));
+                result = engine.execute(script.toFile(), expandParameters(args));
             } else if (isConsoleScript()) {
                 executing = true;
                 boolean done = true;
@@ -669,9 +669,13 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         if (parser().validCommandName(cmd)) {
             file = new ScriptFile(cmd, line, args);
         } else {
-            Path f = Paths.get(line.split("\\s+")[0]);
-            if (Files.exists(f)) {
-                file = new ScriptFile(f, line, args);
+            try {
+                Path f = Paths.get(line.split("\\s+")[0]);
+                if (Files.exists(f)) {
+                    file = new ScriptFile(f, line, args);
+                }
+            } catch (Exception e) {
+                Log.trace("Failed to get Path: ", e);
             }
         }
         if (file != null && file.execute()) {
