@@ -72,36 +72,34 @@ public class BasicDynamic {
             // LineReader is needed only if you are adding JLine Completers in your prompts.
             // If you are not using Completers you do not need to create LineReader.
             //
-            Map<String, PromptResultItemIF> result;
             LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
-            try (ConsolePrompt prompt = new ConsolePrompt(reader, terminal, config)) {
-                result = prompt.prompt(header, results -> {
-                    if (results.isEmpty()) {
-                        // No results yet, so we start with the first list of questions
-                        return pizzaOrHamburgerPrompt(prompt);
+            ConsolePrompt prompt = new ConsolePrompt(reader, terminal, config);
+            Map<String, PromptResultItemIF> result = prompt.prompt(header, results -> {
+                if (results.isEmpty()) {
+                    // No results yet, so we start with the first list of questions
+                    return pizzaOrHamburgerPrompt(prompt);
+                }
+                // We have some results, so we know that the user chose a "product",
+                // so we can return the next list of questions based on that choice
+                if ("Pizza".equals(results.get("product").getResult())) {
+                    // Check if the pizza questions were already answered
+                    if (!results.containsKey("pizzatype")) {
+                        // No, so let's return the pizza questions
+                        return pizzaPrompt(prompt);
                     }
-                    // We have some results, so we know that the user chose a "product",
-                    // so we can return the next list of questions based on that choice
-                    if ("Pizza".equals(results.get("product").getResult())) {
-                        // Check if the pizza questions were already answered
-                        if (!results.containsKey("pizzatype")) {
-                            // No, so let's return the pizza questions
-                            return pizzaPrompt(prompt);
-                        }
-                    } else {
-                        // Check if the hamburger questions were already answered
-                        if (!results.containsKey("hamburgertype")) {
-                            // No, so let's return the hamburger questions
-                            return hamburgerPrompt(prompt);
-                        }
+                } else {
+                    // Check if the hamburger questions were already answered
+                    if (!results.containsKey("hamburgertype")) {
+                        // No, so let's return the hamburger questions
+                        return hamburgerPrompt(prompt);
                     }
-                    // Check if the final questions were already answered
-                    if (!results.containsKey("payment")) {
-                        return finalPrompt(prompt);
-                    }
-                    return null;
-                });
-            }
+                }
+                // Check if the final questions were already answered
+                if (!results.containsKey("payment")) {
+                    return finalPrompt(prompt);
+                }
+                return null;
+            });
             System.out.println("result = " + result);
             if (result.isEmpty()) {
                 System.out.println("User cancelled order.");
