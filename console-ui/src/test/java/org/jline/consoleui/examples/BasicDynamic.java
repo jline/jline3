@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, the original author(s).
+ * Copyright (c) 2024-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,7 +8,6 @@
  */
 package org.jline.consoleui.examples;
 
-import java.io.IOError;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +20,7 @@ import org.jline.consoleui.prompt.PromptResultItemIF;
 import org.jline.consoleui.prompt.builder.PromptBuilder;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
+import org.jline.reader.UserInterruptException;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
@@ -109,7 +109,7 @@ public class BasicDynamic {
                     System.out.println("We will deliver the order in 5 minutes");
                 }
             }
-        } catch (IOError e) {
+        } catch (UserInterruptException e) {
             System.out.println("<ctrl>-c pressed");
         } catch (Exception e) {
             System.out.println(e.getMessage());
