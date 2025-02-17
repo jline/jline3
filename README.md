@@ -8,7 +8,10 @@
     https://opensource.org/licenses/BSD-3-Clause
 
 -->
-# JLine [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-3-Clause) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.jline/jline/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.jline/jline) [![Build Status: Linux](https://travis-ci.org/jline/jline3.svg?branch=master)](https://travis-ci.org/jline/jline3) [![Build Status: Windows](https://ci.appveyor.com/api/projects/status/github/jline/jline3?svg=true)](https://ci.appveyor.com/project/gnodet/jline3)
+# JLine [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-3-Clause) [![Maven Central](https://img.shields.io/maven-central/v/org.jline/jline.svg?label=Maven%20Central)](https://search.maven.org/artifact/org.jline/jline) [![Reproducible Builds](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/jvm-repo-rebuild/reproducible-central/master/content/org/jline/badge.json)](https://github.com/jvm-repo-rebuild/reproducible-central/blob/master/content/org/jline/README.md)
+
+
+
 
 
 JLine is a Java library for handling console input. It is similar in functionality to [BSD editline](http://www.thrysoee.dk/editline/) and [GNU readline](http://www.gnu.org/s/readline/) but with additional features that bring it in par with [ZSH line editor](http://zsh.sourceforge.net/Doc/Release/Zsh-Line-Editor.html). People familiar with the readline/editline capabilities for modern shells (such as bash and tcsh) will find most of the command editing features of JLine to be familiar.
