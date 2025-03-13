@@ -292,7 +292,6 @@ public class LineReaderImpl implements LineReader, Flushable {
 
     protected String alternateIn;
     protected String alternateOut;
-    protected List<AttributedString> currentLines;
     protected int currentLine;
 
     public LineReaderImpl(Terminal terminal) throws IOException {
