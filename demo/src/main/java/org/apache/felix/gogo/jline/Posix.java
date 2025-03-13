@@ -1363,7 +1363,7 @@ public class Posix {
                     }
                 }
                 attrs.computeIfAbsent("isExecutable", s -> Files.isExecutable(path));
-                attrs.computeIfAbsent("permissions", s -> getPermissionsFromFile(path.toFile()));
+                attrs.computeIfAbsent("permissions", s -> getPermissionsFromFile(path));
                 return attrs;
             }
         }
@@ -2138,27 +2138,19 @@ public class Posix {
      * the file is readable/writable/executable. If so, then <U>all</U> the
      * relevant permissions are set (i.e., owner, group and others)
      */
-    private static Set<PosixFilePermission> getPermissionsFromFile(File f) {
-        Set<PosixFilePermission> perms = EnumSet.noneOf(PosixFilePermission.class);
-        if (f.canRead()) {
-            perms.add(PosixFilePermission.OWNER_READ);
-            perms.add(PosixFilePermission.GROUP_READ);
-            perms.add(PosixFilePermission.OTHERS_READ);
+    private static Set<PosixFilePermission> getPermissionsFromFile(Path f) {
+        try {
+            Set<PosixFilePermission> perms = Files.getPosixFilePermissions(f);
+            if (OSUtils.IS_WINDOWS && isWindowsExecutable(f.getFileName().toString())) {
+                perms = new HashSet<>(perms);
+                perms.add(PosixFilePermission.OWNER_EXECUTE);
+                perms.add(PosixFilePermission.GROUP_EXECUTE);
+                perms.add(PosixFilePermission.OTHERS_EXECUTE);
+            }
+            return perms;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-
-        if (f.canWrite()) {
-            perms.add(PosixFilePermission.OWNER_WRITE);
-            perms.add(PosixFilePermission.GROUP_WRITE);
-            perms.add(PosixFilePermission.OTHERS_WRITE);
-        }
-
-        if (f.canExecute() || (OSUtils.IS_WINDOWS && isWindowsExecutable(f.getName()))) {
-            perms.add(PosixFilePermission.OWNER_EXECUTE);
-            perms.add(PosixFilePermission.GROUP_EXECUTE);
-            perms.add(PosixFilePermission.OTHERS_EXECUTE);
-        }
-
-        return perms;
     }
 
     public static Map<String, String> getLsColorMap(CommandSession session) {

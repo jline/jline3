@@ -2105,7 +2105,7 @@ public class Nano implements Editor {
                 return false;
             }
         } else if (!Files.exists(newPath)) {
-            newPath.toFile().createNewFile();
+            Files.createFile(newPath);
         }
         Path t = Files.createTempFile("jline-", ".temp");
         try (OutputStream os = Files.newOutputStream(

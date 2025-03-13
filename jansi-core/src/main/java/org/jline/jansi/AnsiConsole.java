@@ -8,8 +8,6 @@
  */
 package org.jline.jansi;
 
-import java.io.FileDescriptor;
-import java.io.FileOutputStream;
 import java.io.IOError;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -18,13 +16,10 @@ import java.io.UnsupportedEncodingException;
 
 import org.jline.jansi.io.AnsiOutputStream;
 import org.jline.jansi.io.AnsiProcessor;
-import org.jline.jansi.io.FastBufferedOutputStream;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.impl.DumbTerminal;
-import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalExt;
-import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
 
 /**
@@ -239,22 +234,11 @@ public class AnsiConsole {
         final AnsiOutputStream.IoRunnable installer = null;
         final AnsiOutputStream.IoRunnable uninstaller = null;
 
-        final TerminalProvider provider = ((TerminalExt) terminal).getProvider();
-        final boolean isatty =
-                provider != null && provider.isSystemStream(stdout ? SystemStream.Output : SystemStream.Error);
-        if (isatty) {
-            out = terminal.output();
-            width = terminal::getWidth;
-            type = terminal instanceof DumbTerminal ? AnsiType.Unsupported : AnsiType.Native;
-        } else {
-            out = new FastBufferedOutputStream(new FileOutputStream(stdout ? FileDescriptor.out : FileDescriptor.err));
-            width = new AnsiOutputStream.ZeroWidthSupplier();
-            type = ((TerminalExt) terminal).getSystemStream() != null ? AnsiType.Redirected : AnsiType.Unsupported;
-        }
-        String enc = System.getProperty(stdout ? "stdout.encoding" : "stderr.encoding");
-        if (enc == null) {
-            enc = System.getProperty(stdout ? "sun.stdout.encoding" : "sun.stderr.encoding");
-        }
+        out = terminal.output();
+        width = terminal::getWidth;
+        type = terminal instanceof DumbTerminal
+                ? AnsiType.Unsupported
+                : ((TerminalExt) terminal).getSystemStream() != null ? AnsiType.Redirected : AnsiType.Native;
 
         AnsiMode mode;
 
@@ -265,7 +249,7 @@ public class AnsiConsole {
         } else if (JANSI_MODE_STRIP.equals(jansiMode)) {
             mode = AnsiMode.Strip;
         } else {
-            mode = isatty ? AnsiMode.Default : AnsiMode.Strip;
+            mode = type == AnsiType.Native ? AnsiMode.Default : AnsiMode.Strip;
         }
 
         AnsiColors colors;
