@@ -292,6 +292,7 @@ public class LineReaderImpl implements LineReader, Flushable {
 
     protected String alternateIn;
     protected String alternateOut;
+    protected int currentLine;
 
     public LineReaderImpl(Terminal terminal) throws IOException {
         this(terminal, terminal.getName(), null);
@@ -4176,6 +4177,13 @@ public class LineReaderImpl implements LineReader, Flushable {
                         case 'N':
                             sb.append(getInt(LINE_OFFSET, 0) + line);
                             break decode;
+                        case '*':
+                            if (this.currentLine == line) {
+                                sb.append("*");
+                            } else {
+                                sb.append(" ");
+                            }
+                            break decode;
                         case 'M':
                             if (message != null) sb.append(message);
                             break decode;
@@ -4277,6 +4285,19 @@ public class LineReaderImpl implements LineReader, Flushable {
             buf.setLength(0);
         }
         int line = 0;
+        // compute the current line number
+        this.currentLine = -1;
+        int cursor = this.buf.cursor();
+        int start = 0;
+        for (int l = 0; l < lines.size(); l++) {
+            int end = start + lines.get(l).length();
+            if (cursor >= start && cursor <= end) {
+                this.currentLine = l;
+                break;
+            }
+            start = end + 1;
+        }
+
         while (line < lines.size() - 1) {
             sb.append(lines.get(line)).append("\n");
             buf.append(lines.get(line)).append("\n");
