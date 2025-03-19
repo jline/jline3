@@ -4175,9 +4175,6 @@ public class LineReaderImpl implements LineReader, Flushable {
                             sb.append(ch);
                             break decode;
                         case 'N':
-                            sb.append(getInt(LINE_OFFSET, 0) + line);
-                            break decode;
-                        case 'C':
                             sb.append(getInt(LINE_OFFSET, 0) + (line + 1));
                             break decode;
                         case '*':
