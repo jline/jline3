@@ -79,6 +79,7 @@ public abstract class AbstractTerminal implements TerminalExt {
     protected final ColorPalette palette;
     protected Status status;
     protected Runnable onClose;
+    protected MouseTracking currentMouseTracking = MouseTracking.Off;
 
     public AbstractTerminal(String name, String type) throws IOException {
         this(name, type, null, SignalHandler.SIG_DFL);
@@ -260,8 +261,18 @@ public abstract class AbstractTerminal implements TerminalExt {
     }
 
     @Override
+    public MouseTracking getCurrentMouseTracking() {
+        return currentMouseTracking;
+    }
+
+    @Override
     public boolean trackMouse(MouseTracking tracking) {
-        return MouseSupport.trackMouse(this, tracking);
+        if (MouseSupport.trackMouse(this, tracking)) {
+            currentMouseTracking = tracking;
+            return true;
+        } else {
+            return false;
+        }
     }
 
     @Override
