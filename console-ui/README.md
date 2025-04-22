@@ -36,7 +36,7 @@ Console UI uses JLine for the dirty console things.
 
 # Maven artefact
 
-ConsoleUI releases are available at Maven Central [org.jline.console-ui » console-ui](https://search.maven.org/artifact/org.jline.console-ui/console-ui)
+ConsoleUI releases are available at Maven Central [org.jline » jline-console-ui](https://search.maven.org/artifact/org.jline/jline-console-ui)
 
 # Test Run
 
