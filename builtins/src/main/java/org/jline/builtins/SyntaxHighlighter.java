@@ -356,7 +356,7 @@ public class SyntaxHighlighter {
         return asb;
     }
 
-    private static class HighlightRule {
+    static class HighlightRule {
         public enum RuleType {
             PATTERN,
             START_END,
@@ -465,7 +465,7 @@ public class SyntaxHighlighter {
         }
     }
 
-    private static class NanorcParser {
+    static class NanorcParser {
         private static final String DEFAULT_SYNTAX = "default";
         private final String name;
         private final String target;
@@ -497,7 +497,7 @@ public class SyntaxHighlighter {
                     idx++;
                     line = line.trim();
                     if (!line.isEmpty() && !line.startsWith("#")) {
-                        List<String> parts = RuleSplitter.split(fixRegexes(line));
+                        List<String> parts = RuleSplitter.split(line);
                         if (parts.get(0).equals("syntax")) {
                             syntaxName = parts.get(1);
                             List<Pattern> filePatterns = new ArrayList<>();
@@ -547,7 +547,7 @@ public class SyntaxHighlighter {
                                     }
                                     for (String l : colorTheme.get(key).split("\\\\n")) {
                                         idx++;
-                                        addHighlightRule(RuleSplitter.split(fixRegexes(l)), idx, key);
+                                        addHighlightRule(RuleSplitter.split(l), idx, key);
                                     }
                                 }
                             } else {
@@ -560,7 +560,7 @@ public class SyntaxHighlighter {
                             if (theme != null) {
                                 for (String l : theme.split("\\\\n")) {
                                     idx++;
-                                    addHighlightRule(RuleSplitter.split(fixRegexes(l)), idx, TOKEN_NANORC);
+                                    addHighlightRule(RuleSplitter.split(l), idx, TOKEN_NANORC);
                                 }
                             } else {
                                 Log.warn("Unknown token type: ", key);
@@ -571,23 +571,6 @@ public class SyntaxHighlighter {
             } finally {
                 reader.close();
             }
-        }
-
-        private String fixRegexes(String line) {
-            return line.replaceAll("\\\\<", "\\\\b")
-                    .replaceAll("\\\\>", "\\\\b")
-                    .replaceAll("\\[:alnum:]", "\\\\p{Alnum}")
-                    .replaceAll("\\[:alpha:]", "\\\\p{Alpha}")
-                    .replaceAll("\\[:blank:]", "\\\\p{Blank}")
-                    .replaceAll("\\[:cntrl:]", "\\\\p{Cntrl}")
-                    .replaceAll("\\[:digit:]", "\\\\p{Digit}")
-                    .replaceAll("\\[:graph:]", "\\\\p{Graph}")
-                    .replaceAll("\\[:lower:]", "\\\\p{Lower}")
-                    .replaceAll("\\[:print:]", "\\\\p{Print}")
-                    .replaceAll("\\[:punct:]", "\\\\p{Punct}")
-                    .replaceAll("\\[:space:]", "\\\\s")
-                    .replaceAll("\\[:upper:]", "\\\\p{Upper}")
-                    .replaceAll("\\[:xdigit:]", "\\\\p{XDigit}");
         }
 
         private boolean addHighlightRule(List<String> parts, int idx, String tokenName) {
@@ -656,43 +639,50 @@ public class SyntaxHighlighter {
             Styles.StyleCompiler sh = new Styles.StyleCompiler(spec, true);
             AttributedStyle style = new StyleResolver(sh::getStyle).resolve("." + reference);
 
-            if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.PATTERN) {
-                if (parts.size() == 2) {
-                    highlightRules.get(tokenName).add(new HighlightRule(style, doPattern(".*", caseInsensitive)));
-                } else {
-                    for (int i = 2; i < parts.size(); i++) {
-                        highlightRules
-                                .get(tokenName)
-                                .add(new HighlightRule(style, doPattern(parts.get(i), caseInsensitive)));
+            try {
+                if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.PATTERN) {
+                    if (parts.size() == 2) {
+                        highlightRules.get(tokenName).add(new HighlightRule(style, doPattern(".*", caseInsensitive)));
+                    } else {
+                        for (int i = 2; i < parts.size(); i++) {
+                            highlightRules
+                                    .get(tokenName)
+                                    .add(new HighlightRule(style, doPattern(parts.get(i), caseInsensitive)));
+                        }
                     }
+                } else if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.START_END) {
+                    String s = parts.get(2);
+                    String e = parts.get(3);
+                    highlightRules
+                            .get(tokenName)
+                            .add(new HighlightRule(
+                                    style,
+                                    doPattern(s.substring(7, s.length() - 1), caseInsensitive),
+                                    doPattern(e.substring(5, e.length() - 1), caseInsensitive)));
+                } else if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.PARSER_START_WITH) {
+                    highlightRules
+                            .get(tokenName)
+                            .add(new HighlightRule(
+                                    HighlightRule.RuleType.PARSER_START_WITH,
+                                    style,
+                                    parts.get(2).substring(10)));
+                } else if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.PARSER_CONTINUE_AS) {
+                    highlightRules
+                            .get(tokenName)
+                            .add(new HighlightRule(
+                                    HighlightRule.RuleType.PARSER_CONTINUE_AS,
+                                    style,
+                                    parts.get(2).substring(11)));
                 }
-            } else if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.START_END) {
-                String s = parts.get(2);
-                String e = parts.get(3);
-                highlightRules
-                        .get(tokenName)
-                        .add(new HighlightRule(
-                                style,
-                                doPattern(s.substring(7, s.length() - 1), caseInsensitive),
-                                doPattern(e.substring(5, e.length() - 1), caseInsensitive)));
-            } else if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.PARSER_START_WITH) {
-                highlightRules
-                        .get(tokenName)
-                        .add(new HighlightRule(
-                                HighlightRule.RuleType.PARSER_START_WITH,
-                                style,
-                                parts.get(2).substring(10)));
-            } else if (HighlightRule.evalRuleType(parts) == HighlightRule.RuleType.PARSER_CONTINUE_AS) {
-                highlightRules
-                        .get(tokenName)
-                        .add(new HighlightRule(
-                                HighlightRule.RuleType.PARSER_CONTINUE_AS,
-                                style,
-                                parts.get(2).substring(11)));
+            } catch (PatternSyntaxException e) {
+                Log.warn("Invalid highlight regex", reference, parts, e);
+            } catch (Exception e) {
+                Log.warn("Failure while handling highlight regex", reference, parts, e);
             }
         }
 
         private Pattern doPattern(String regex, boolean caseInsensitive) {
+            regex = Parser.fixRegexes(regex);
             return caseInsensitive ? Pattern.compile(regex, Pattern.CASE_INSENSITIVE) : Pattern.compile(regex);
         }
     }
@@ -796,7 +786,7 @@ public class SyntaxHighlighter {
         }
     }
 
-    private static class Parser {
+    static class Parser {
         private static final char escapeChar = '\\';
         private String blockCommentTokenName;
         private BlockCommentDelimiters blockCommentDelimiters;
@@ -979,6 +969,149 @@ public class SyntaxHighlighter {
                 return false;
             }
             return isEscapeChar(buffer, pos - 1);
+        }
+
+        /**
+         * Perform Posix/Java regex fixups. This function parses the given regex and escapes according to these rules:
+         *
+         * <p>The first {@code ]} in a bracket expression does not need to be escaped in Posix,translate to {@code \]}.
+         *
+         * <p>Same as above for a negating bracket expression like {@code [^][]}, translate to {@code [^\]\[]}.
+         *
+         * <p>Any {@code [} in a bracket expression does not need to be escaped in Posix, translate to {@code \[}.
+         *
+         * <p>Any {@code ]} not in a bracket expression is valid in both Posix and Java, no translation.
+         *
+         * <p>A backslash before the closing bracket like {@code [.f\]} is not an escape of the closing bracket,
+         * the backslash needs to be escaped for Java, translate to {@code [.f\\]}.
+         *
+         * <p>Do not perform the above translations within an escape via {@code \}, except for {@code \<} and {@code \>} to {@code \b}.
+         *
+         * <p>Replace the Posix classes like {@code [:space:]} or {@code [:digit:]} to Java classes, inside and outside a bracket expression.
+         *
+         * @param posix Posix regex
+         * @return Java regex
+         */
+        static String fixRegexes(String posix) {
+            int len = posix.length();
+            StringBuilder java = new StringBuilder();
+
+            boolean inBracketExpression = false;
+
+            int i = 0;
+            char next;
+            try {
+                for (; i < len; i++) {
+                    char c = posix.charAt(i);
+
+                    switch (c) {
+                        case escapeChar:
+                            next = posix.charAt(++i);
+                            // Don't translate anything after the \ character escape
+                            if (inBracketExpression && next == ']') {
+                                inBracketExpression = false;
+                                java.append("\\\\").append(next);
+                            } else {
+                                // Translate '\<' and '\>' to '\b'
+                                if (next == '<' || next == '>') {
+                                    next = 'b';
+                                }
+                                java.append(c).append(next);
+                            }
+                            break;
+                        case '[':
+                            if (i == len - 1) {
+                                throw new IllegalArgumentException("Lone [ at the end of (index " + i + "): " + posix);
+                            }
+                            // Handle "single bracket" Posix "classes" like [:space:] or [:digit:]
+                            if (posix.charAt(i + 1) == ':') {
+                                int afterClass = nextAfterClass(posix, i + 2);
+                                if (!posix.regionMatches(afterClass, ":]", 0, 2)) {
+                                    java.append("[:");
+                                    i++;
+                                    inBracketExpression = true;
+                                } else {
+                                    String className = posix.substring(i + 2, afterClass);
+                                    java.append(replaceClass(className));
+                                    i = afterClass + 1;
+                                }
+                                break;
+                            }
+                            if (inBracketExpression) {
+                                // Translate lone [ to \[
+                                java.append('\\').append(c);
+                            } else {
+                                inBracketExpression = true;
+                                java.append(c);
+                                next = posix.charAt(i + 1);
+                                if (next == ']') {
+                                    i++;
+                                    java.append("\\]");
+                                } else if (next == '^' && posix.charAt(i + 2) == ']') {
+                                    i += 2;
+                                    java.append("^\\]");
+                                }
+                            }
+                            break;
+                        case ']':
+                            inBracketExpression = false;
+                            java.append(c);
+                            break;
+                        default:
+                            java.append(c);
+                            break;
+                    }
+                }
+            } catch (Exception e) {
+                throw new IllegalArgumentException(
+                        "Posix-to-Java regex translation failed around index " + i + " of: " + posix, e);
+            }
+
+            return java.toString();
+        }
+
+        private static String replaceClass(String className) {
+            switch (className) {
+                case "alnum":
+                    return "\\p{Alnum}";
+                case "alpha":
+                    return "\\p{Alpha}";
+                case "blank":
+                    return "\\p{Blank}";
+                case "cntrl":
+                    return "\\p{Cntrl}";
+                case "digit":
+                    return "\\p{Digit}";
+                case "graph":
+                    return "\\p{Graph}";
+                case "lower":
+                    return "\\p{Lower}";
+                case "print":
+                    return "\\p{Print}";
+                case "punct":
+                    return "\\p{Punct}";
+                case "space":
+                    return "\\s";
+                case "upper":
+                    return "\\p{Upper}";
+                case "xdigit":
+                    return "\\p{XDigit}";
+            }
+            throw new IllegalArgumentException("Unknown class '" + className + "'");
+        }
+
+        private static int nextAfterClass(String s, int idx) {
+            if (s.charAt(idx) == ':') {
+                idx++;
+            }
+            while (true) {
+                char c = s.charAt(idx);
+                if (!Character.isLetterOrDigit(c)) {
+                    break;
+                }
+                idx++;
+            }
+            return idx;
         }
     }
 }
