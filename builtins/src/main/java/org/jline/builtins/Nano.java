@@ -123,6 +123,8 @@ public class Nano implements Editor {
     protected boolean readNewBuffer = true;
     private boolean nanorcIgnoreErrors;
     private final boolean windowsTerminal;
+    private int mouseX;
+    private int mouseY;
 
     protected enum WriteMode {
         WRITE,
@@ -1654,6 +1656,14 @@ public class Nano implements Editor {
         }
     }
 
+    protected int getMouseX() {
+        return mouseX;
+    }
+
+    protected int getMouseY() {
+        return mouseY;
+    }
+
     private void parseConfig(Path file) throws IOException {
         try (BufferedReader reader = Files.newBufferedReader(file)) {
             String line;
@@ -1771,7 +1781,7 @@ public class Nano implements Editor {
         terminal.puts(Capability.enter_ca_mode);
         terminal.puts(Capability.keypad_xmit);
         if (mouseSupport) {
-            terminal.trackMouse(Terminal.MouseTracking.Normal);
+            terminal.trackMouse(getMouseTracking());
         }
 
         this.shortcuts = standardShortcuts();
@@ -1978,6 +1988,10 @@ public class Nano implements Editor {
             }
             patternHistory.persist();
         }
+    }
+
+    protected Terminal.MouseTracking getMouseTracking() {
+        return Terminal.MouseTracking.Normal;
     }
 
     private int editInputBuffer(Operation operation, int curPos) {
@@ -2962,7 +2976,7 @@ public class Nano implements Editor {
     void mouseSupport() {
         mouseSupport = !mouseSupport;
         setMessage("Mouse support " + (mouseSupport ? "enabled" : "disabled"));
-        terminal.trackMouse(mouseSupport ? Terminal.MouseTracking.Normal : Terminal.MouseTracking.Off);
+        terminal.trackMouse(mouseSupport ? getMouseTracking() : Terminal.MouseTracking.Off);
     }
 
     void constantCursor() {
@@ -3021,6 +3035,9 @@ public class Nano implements Editor {
             } else if (event.getButton() == MouseEvent.Button.WheelUp) {
                 buffer.moveUp(1);
             }
+        } else if (event.getType() == MouseEvent.Type.Moved) {
+            this.mouseX = event.getX();
+            this.mouseY = event.getY();
         }
     }
 
