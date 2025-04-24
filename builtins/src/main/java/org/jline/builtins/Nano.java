@@ -68,7 +68,7 @@ public class Nano implements Editor {
     private final List<Path> syntaxFiles = new ArrayList<>();
 
     // Keys
-    protected KeyMap<Operation> keys;
+    protected KeyMap<Operations> keys;
 
     // Configuration
     public String title = "JLine Nano 3.0.0";
@@ -1837,166 +1837,170 @@ public class Nano implements Editor {
             display();
 
             while (true) {
-                Operation op;
-                switch (op = readOperation(keys)) {
-                    case QUIT:
-                        if (quit()) {
-                            return;
-                        }
-                        break;
-                    case WRITE:
-                        write();
-                        break;
-                    case READ:
-                        read();
-                        break;
-                    case UP:
-                        buffer.moveUp(1);
-                        break;
-                    case DOWN:
-                        buffer.moveDown(1);
-                        break;
-                    case LEFT:
-                        buffer.moveLeft(1);
-                        break;
-                    case RIGHT:
-                        buffer.moveRight(1);
-                        break;
-                    case INSERT:
-                        buffer.insert(bindingReader.getLastBinding());
-                        break;
-                    case BACKSPACE:
-                        buffer.backspace(1);
-                        break;
-                    case DELETE:
-                        buffer.delete(1);
-                        break;
-                    case WRAP:
-                        wrap();
-                        break;
-                    case NUMBERS:
-                        numbers();
-                        break;
-                    case SMOOTH_SCROLLING:
-                        smoothScrolling();
-                        break;
-                    case MOUSE_SUPPORT:
-                        mouseSupport();
-                        break;
-                    case ONE_MORE_LINE:
-                        oneMoreLine();
-                        break;
-                    case CLEAR_SCREEN:
-                        clearScreen();
-                        break;
-                    case PREV_BUFFER:
-                        prevBuffer();
-                        break;
-                    case NEXT_BUFFER:
-                        nextBuffer();
-                        break;
-                    case CUR_POS:
-                        curPos();
-                        break;
-                    case PREV_WORD:
-                        buffer.prevWord();
-                        break;
-                    case NEXT_WORD:
-                        buffer.nextWord();
-                        break;
-                    case BEGINNING_OF_LINE:
-                        buffer.beginningOfLine();
-                        break;
-                    case END_OF_LINE:
-                        buffer.endOfLine();
-                        break;
-                    case FIRST_LINE:
-                        buffer.firstLine();
-                        break;
-                    case LAST_LINE:
-                        buffer.lastLine();
-                        break;
-                    case PREV_PAGE:
-                        buffer.prevPage();
-                        break;
-                    case NEXT_PAGE:
-                        buffer.nextPage();
-                        break;
-                    case SCROLL_UP:
-                        buffer.scrollUp(1);
-                        break;
-                    case SCROLL_DOWN:
-                        buffer.scrollDown(1);
-                        break;
-                    case SEARCH:
-                        searchToReplace = false;
-                        searchAndReplace();
-                        break;
-                    case REPLACE:
-                        searchToReplace = true;
-                        searchAndReplace();
-                        break;
-                    case NEXT_SEARCH:
-                        buffer.nextSearch();
-                        break;
-                    case HELP:
-                        help("nano-main-help.txt");
-                        break;
-                    case CONSTANT_CURSOR:
-                        constantCursor();
-                        break;
-                    case VERBATIM:
-                        buffer.insert(new String(Character.toChars(bindingReader.readCharacter())));
-                        break;
-                    case MATCHING:
-                        buffer.matching();
-                        break;
-                    case MOUSE_EVENT:
-                        mouseEvent();
-                        break;
-                    case TOGGLE_SUSPENSION:
-                        toggleSuspension();
-                        break;
-                    case COPY:
-                        buffer.copy();
-                        break;
-                    case CUT:
-                        buffer.cut();
-                        break;
-                    case UNCUT:
-                        buffer.uncut();
-                        break;
-                    case GOTO:
-                        gotoLine();
-                        curPos();
-                        break;
-                    case CUT_TO_END_TOGGLE:
-                        cut2end = !cut2end;
-                        setMessage("Cut to end " + (cut2end ? "enabled" : "disabled"));
-                        break;
-                    case CUT_TO_END:
-                        buffer.cut(true);
-                        break;
-                    case MARK:
-                        mark = !mark;
-                        setMessage("Mark " + (mark ? "Set" : "Unset"));
-                        buffer.mark();
-                        break;
-                    case HIGHLIGHT:
-                        highlight = !highlight;
-                        setMessage("Highlight " + (highlight ? "enabled" : "disabled"));
-                        break;
-                    case TABS_TO_SPACE:
-                        tabsToSpaces = !tabsToSpaces;
-                        setMessage("Conversion of typed tabs to spaces " + (tabsToSpaces ? "enabled" : "disabled"));
-                        break;
-                    case AUTO_INDENT:
-                        autoIndent = !autoIndent;
-                        setMessage("Auto indent " + (autoIndent ? "enabled" : "disabled"));
-                        break;
-                    default:
-                        setMessage("Unsupported " + op.name().toLowerCase().replace('_', '-'));
-                        break;
+                Operations op = readOperations(keys);
+                boolean handled = handle(op);
+                if (!handled && op instanceof Operation) {
+                    Operation operation = (Operation) op;
+                    switch (operation) {
+                        case QUIT:
+                            if (quit()) {
+                                return;
+                            }
+                            break;
+                        case WRITE:
+                            write();
+                            break;
+                        case READ:
+                            read();
+                            break;
+                        case UP:
+                            buffer.moveUp(1);
+                            break;
+                        case DOWN:
+                            buffer.moveDown(1);
+                            break;
+                        case LEFT:
+                            buffer.moveLeft(1);
+                            break;
+                        case RIGHT:
+                            buffer.moveRight(1);
+                            break;
+                        case INSERT:
+                            buffer.insert(bindingReader.getLastBinding());
+                            break;
+                        case BACKSPACE:
+                            buffer.backspace(1);
+                            break;
+                        case DELETE:
+                            buffer.delete(1);
+                            break;
+                        case WRAP:
+                            wrap();
+                            break;
+                        case NUMBERS:
+                            numbers();
+                            break;
+                        case SMOOTH_SCROLLING:
+                            smoothScrolling();
+                            break;
+                        case MOUSE_SUPPORT:
+                            mouseSupport();
+                            break;
+                        case ONE_MORE_LINE:
+                            oneMoreLine();
+                            break;
+                        case CLEAR_SCREEN:
+                            clearScreen();
+                            break;
+                        case PREV_BUFFER:
+                            prevBuffer();
+                            break;
+                        case NEXT_BUFFER:
+                            nextBuffer();
+                            break;
+                        case CUR_POS:
+                            curPos();
+                            break;
+                        case PREV_WORD:
+                            buffer.prevWord();
+                            break;
+                        case NEXT_WORD:
+                            buffer.nextWord();
+                            break;
+                        case BEGINNING_OF_LINE:
+                            buffer.beginningOfLine();
+                            break;
+                        case END_OF_LINE:
+                            buffer.endOfLine();
+                            break;
+                        case FIRST_LINE:
+                            buffer.firstLine();
+                            break;
+                        case LAST_LINE:
+                            buffer.lastLine();
+                            break;
+                        case PREV_PAGE:
+                            buffer.prevPage();
+                            break;
+                        case NEXT_PAGE:
+                            buffer.nextPage();
+                            break;
+                        case SCROLL_UP:
+                            buffer.scrollUp(1);
+                            break;
+                        case SCROLL_DOWN:
+                            buffer.scrollDown(1);
+                            break;
+                        case SEARCH:
+                            searchToReplace = false;
+                            searchAndReplace();
+                            break;
+                        case REPLACE:
+                            searchToReplace = true;
+                            searchAndReplace();
+                            break;
+                        case NEXT_SEARCH:
+                            buffer.nextSearch();
+                            break;
+                        case HELP:
+                            help("nano-main-help.txt");
+                            break;
+                        case CONSTANT_CURSOR:
+                            constantCursor();
+                            break;
+                        case VERBATIM:
+                            buffer.insert(new String(Character.toChars(bindingReader.readCharacter())));
+                            break;
+                        case MATCHING:
+                            buffer.matching();
+                            break;
+                        case MOUSE_EVENT:
+                            mouseEvent();
+                            break;
+                        case TOGGLE_SUSPENSION:
+                            toggleSuspension();
+                            break;
+                        case COPY:
+                            buffer.copy();
+                            break;
+                        case CUT:
+                            buffer.cut();
+                            break;
+                        case UNCUT:
+                            buffer.uncut();
+                            break;
+                        case GOTO:
+                            gotoLine();
+                            curPos();
+                            break;
+                        case CUT_TO_END_TOGGLE:
+                            cut2end = !cut2end;
+                            setMessage("Cut to end " + (cut2end ? "enabled" : "disabled"));
+                            break;
+                        case CUT_TO_END:
+                            buffer.cut(true);
+                            break;
+                        case MARK:
+                            mark = !mark;
+                            setMessage("Mark " + (mark ? "Set" : "Unset"));
+                            buffer.mark();
+                            break;
+                        case HIGHLIGHT:
+                            highlight = !highlight;
+                            setMessage("Highlight " + (highlight ? "enabled" : "disabled"));
+                            break;
+                        case TABS_TO_SPACE:
+                            tabsToSpaces = !tabsToSpaces;
+                            setMessage("Conversion of typed tabs to spaces " + (tabsToSpaces ? "enabled" : "disabled"));
+                            break;
+                        case AUTO_INDENT:
+                            autoIndent = !autoIndent;
+                            setMessage("Auto indent " + (autoIndent ? "enabled" : "disabled"));
+                            break;
+                        default:
+                            setMessage("Unsupported " + operation.name().toLowerCase().replace('_', '-'));
+                            break;
+                    }
                 }
                 display();
             }
@@ -2016,6 +2020,10 @@ public class Nano implements Editor {
             }
             patternHistory.persist();
         }
+    }
+
+    protected boolean handle(Operations op){
+        return false;
     }
 
     protected Terminal.MouseTracking getMouseTracking() {
@@ -2128,6 +2136,17 @@ public class Nano implements Editor {
     private Operation readOperation(KeyMap<Operation> keymap) {
         while (true) {
             Operation op = bindingReader.readBinding(keymap);
+            if (op == Operation.DO_LOWER_CASE) {
+                bindingReader.runMacro(bindingReader.getLastBinding().toLowerCase());
+            } else {
+                return op;
+            }
+        }
+    }
+
+    private Operations readOperations(KeyMap<Operations> keymap) {
+        while (true) {
+            Operations op = bindingReader.readBinding(keymap);
             if (op == Operation.DO_LOWER_CASE) {
                 bindingReader.runMacro(bindingReader.getLastBinding().toLowerCase());
             } else {
@@ -2566,36 +2585,40 @@ public class Nano implements Editor {
             terminal.puts(Capability.cursor_invisible);
             display();
             while (true) {
-                switch (readOperation(keys)) {
-                    case QUIT:
-                        return;
-                    case FIRST_LINE:
-                        buffer.firstLine();
-                        break;
-                    case LAST_LINE:
-                        buffer.lastLine();
-                        break;
-                    case PREV_PAGE:
-                        buffer.prevPage();
-                        break;
-                    case NEXT_PAGE:
-                        buffer.nextPage();
-                        break;
-                    case UP:
-                        buffer.scrollUp(1);
-                        break;
-                    case DOWN:
-                        buffer.scrollDown(1);
-                        break;
-                    case CLEAR_SCREEN:
-                        clearScreen();
-                        break;
-                    case MOUSE_EVENT:
-                        mouseEvent();
-                        break;
-                    case TOGGLE_SUSPENSION:
-                        toggleSuspension();
-                        break;
+                Operations operation = readOperations(keys);
+                if (operation instanceof Operation) {
+                    Operation op = (Operation) operation;
+                    switch (op) {
+                        case QUIT:
+                            return;
+                        case FIRST_LINE:
+                            buffer.firstLine();
+                            break;
+                        case LAST_LINE:
+                            buffer.lastLine();
+                            break;
+                        case PREV_PAGE:
+                            buffer.prevPage();
+                            break;
+                        case NEXT_PAGE:
+                            buffer.nextPage();
+                            break;
+                        case UP:
+                            buffer.scrollUp(1);
+                            break;
+                        case DOWN:
+                            buffer.scrollDown(1);
+                            break;
+                        case CLEAR_SCREEN:
+                            clearScreen();
+                            break;
+                        case MOUSE_EVENT:
+                            mouseEvent();
+                            break;
+                        case TOGGLE_SUSPENSION:
+                            toggleSuspension();
+                            break;
+                    }
                 }
                 display();
             }
@@ -3313,7 +3336,7 @@ public class Nano implements Editor {
         keys.bind(Operation.PREV_PAGE, key(terminal, Capability.key_ppage));
     }
 
-    protected enum Operation {
+    protected enum Operation implements Operations {
         DO_LOWER_CASE,
 
         QUIT,
@@ -3402,5 +3425,8 @@ public class Nano implements Editor {
         MOUSE_EVENT,
 
         TOGGLE_SUSPENSION
+    }
+    public interface Operations {
+
     }
 }
