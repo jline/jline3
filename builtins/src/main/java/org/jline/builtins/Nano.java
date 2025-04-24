@@ -3146,7 +3146,9 @@ public class Nano implements Editor {
         List<AttributedString> footer = computeFooter();
 
         int nbLines = size.getRows() - header.size() - footer.size();
+        preDisplayNewLines();
         List<AttributedString> newLines = buffer.getDisplayedLines(nbLines);
+        newLines = postDisplayNewLines(newLines);
         newLines.addAll(0, header);
         newLines.addAll(footer);
 
@@ -3163,6 +3165,12 @@ public class Nano implements Editor {
         if (windowsTerminal) {
             resetDisplay();
         }
+    }
+
+    protected void preDisplayNewLines() {}
+
+    protected List<AttributedString> postDisplayNewLines(List<AttributedString> newLines) {
+        return newLines;
     }
 
     protected List<AttributedString> computeFooter() {
