@@ -1998,7 +1998,8 @@ public class Nano implements Editor {
                             setMessage("Auto indent " + (autoIndent ? "enabled" : "disabled"));
                             break;
                         default:
-                            setMessage("Unsupported " + operation.name().toLowerCase().replace('_', '-'));
+                            setMessage("Unsupported "
+                                    + operation.name().toLowerCase().replace('_', '-'));
                             break;
                     }
                 }
@@ -2022,7 +2023,7 @@ public class Nano implements Editor {
         }
     }
 
-    protected boolean handle(Operations op){
+    protected boolean handle(Operations op) {
         return false;
     }
 
@@ -3434,7 +3435,6 @@ public class Nano implements Editor {
 
         TOGGLE_SUSPENSION
     }
-    public interface Operations {
 
-    }
+    public interface Operations {}
 }
