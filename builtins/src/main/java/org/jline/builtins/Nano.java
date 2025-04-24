@@ -503,7 +503,7 @@ public class Nano implements Editor {
             return ret;
         }
 
-        boolean moveRight(int chars) {
+        public boolean moveRight(int chars) {
             return moveRight(chars, false);
         }
 
@@ -946,6 +946,34 @@ public class Nano implements Editor {
             offsetInLine = offsetInLineToDisplay;
             wantedColumn = x;
             cursorDown(y);
+        }
+
+        public int getLine() {
+            return line;
+        }
+
+        public void setDirty(boolean dirty) {
+            this.dirty = dirty;
+        }
+
+        public String getFile() {
+            return file;
+        }
+
+        public List<String> getLines() {
+            return lines;
+        }
+
+        public int getFirstLineToDisplay() {
+            return firstLineToDisplay;
+        }
+
+        public int getOffsetInLine() {
+            return offsetInLine;
+        }
+
+        public int getColumn() {
+            return column;
         }
 
         public void gotoLine(int x, int y) {
