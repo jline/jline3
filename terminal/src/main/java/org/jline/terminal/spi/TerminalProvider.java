@@ -54,7 +54,7 @@ public interface TerminalProvider {
     static TerminalProvider load(String name) throws IOException {
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
         if (cl == null) {
-            cl = ClassLoader.getSystemClassLoader();
+            cl = TerminalProvider.class.getClassLoader();
         }
         InputStream is = cl.getResourceAsStream("META-INF/services/org/jline/terminal/provider/" + name);
         if (is != null) {
