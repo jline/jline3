@@ -1,109 +1,51 @@
 #!/bin/sh
 
-realpath() {
-  OURPWD=${PWD}
-  cd "$(dirname "${1}")"
-  LINK=$(readlink "$(basename "${1}")")
-  while [ "${LINK}" ]; do
-    cd "$(dirname "${LINK}")"
-    LINK=$(readlink "$(basename "${1}")")
-  done
-  REALPATH="${PWD}/$(basename "${1}")"
-  cd "${OURPWD}"
-  echo "${REALPATH}"
-}
+# Script to run the Gogo JLine demo
 
-REALNAME=$(realpath "$0")
-DIRNAME=$(dirname "${REALNAME}")
-PROGNAME=$(basename "${REALNAME}")
-ROOTDIR=${DIRNAME}/..
-TARGETDIR=${DIRNAME}/target
+SCRIPT_DIR=$(cd "$(dirname "$0")" || exit; pwd)
+. "${SCRIPT_DIR}/jline-common.sh"
 
-if [ ! -e ${TARGETDIR}/lib ] ; then
-  echo "Build jline with maven before running the demo"
-  exit
-fi;
+# We need to add the Gogo jars before calling setup_environment
+# because setup_environment will use the cp variable
+TARGETDIR="${SCRIPT_DIR}/target"
 
-cp=${TARGETDIR}/classes
-# JLINE
-cp=${cp}$(find ${TARGETDIR}/lib -name "jline-*.jar" -exec printf :{} ';')
-# Gogo Runtime
-cp=${cp}$(find ${TARGETDIR}/lib -name "org.apache.felix.gogo.runtime-*.jar" -exec printf :{} ';')
-# Gogo JLine
-cp=${cp}$(find ${TARGETDIR}/lib -name "org.apache.felix.gogo.jline-*.jar" -exec printf :{} ';')
+# Add Gogo Runtime
+if [ -d ${TARGETDIR}/lib ]; then
+  # Initialize cp if it's not already set
+  if [ -z "${cp}" ]; then
+    cp="${TARGETDIR}/classes"
+  fi
 
-opts="${JLINE_OPTS}"
-logconf="${DIRNAME}/etc/logging.properties"
-while [ "${1}" != "" ]; do
-    case ${1} in
-        'debug')
-            opts="${opts} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
-            shift
-            ;;
-        'debugs')
-            opts="${opts} -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005"
-            shift
-            ;;
-        'jansi')
-            cp=${cp}$(find ${TARGETDIR}/lib -name "jansi-*.jar" -exec printf :{} ';')
-            shift
-            ;;
-        'jna')
-            cp=${cp}$(find ${TARGETDIR}/lib -name "jna-*.jar" -exec printf :{} ';')
-            shift
-            ;;
+  cp=${cp}$(find ${TARGETDIR}/lib -name "org.apache.felix.gogo.runtime-*.jar" -exec printf :{} ';')
+  # Add Gogo JLine
+  cp=${cp}$(find ${TARGETDIR}/lib -name "org.apache.felix.gogo.jline-*.jar" -exec printf :{} ';')
+fi
+
+# Define gogo-specific help options
+GOGO_HELP="gogo-option"
+
+# Process SSH/Telnet/Remote options
+for arg in "$@"; do
+    case ${arg} in
         'ssh' | 'telnet' | 'remote')
-            cp=${cp}$(find ${TARGETDIR}/lib -name "sshd-common-*.jar" -exec printf :{} ';')
-            cp=${cp}$(find ${TARGETDIR}/lib -name "sshd-core-*.jar" -exec printf :{} ';')
-            cp=${cp}$(find ${TARGETDIR}/lib -name "sshd-scp-*.jar" -exec printf :{} ';')
-            cp=${cp}$(find ${TARGETDIR}/lib -name "sshd-sftp-*.jar" -exec printf :{} ';')
-            cp=${cp}$(find ${TARGETDIR}/lib -name "slf4j-api-*.jar" -exec printf :{} ';')
-            cp=${cp}$(find ${TARGETDIR}/lib -name "slf4j-jdk14-*.jar" -exec printf :{} ';')
-            shift
-            ;;
-        'verbose')
-            logconf="${DIRNAME}/etc/logging-verbose.properties"
-            shift
-            ;;
-        'ffm')
-            opts="${opts} --enable-preview --enable-native-access=ALL-UNNAMED"
-            shift
-            ;;
-        *)
-            opts="${opts} ${1}"
-            shift
+            if [ -d ${TARGETDIR}/lib ]; then
+              cp=${cp}$(find ${TARGETDIR}/lib -name "sshd-common-*.jar" -exec printf :{} ';')
+              cp=${cp}$(find ${TARGETDIR}/lib -name "sshd-core-*.jar" -exec printf :{} ';')
+              cp=${cp}$(find ${TARGETDIR}/lib -name "sshd-scp-*.jar" -exec printf :{} ';')
+              cp=${cp}$(find ${TARGETDIR}/lib -name "sshd-sftp-*.jar" -exec printf :{} ';')
+              cp=${cp}$(find ${TARGETDIR}/lib -name "slf4j-api-*.jar" -exec printf :{} ';')
+              cp=${cp}$(find ${TARGETDIR}/lib -name "slf4j-jdk14-*.jar" -exec printf :{} ';')
+            fi
             ;;
     esac
 done
 
-cygwin=false
-mingw=false
-case "$(uname)" in
-    CYGWIN*)
-        cygwin=true
-        ;;
-    MINGW*)
-        mingw=true
-        ;;
-esac
-if ${cygwin}; then
-  cp=$(cygpath --path --windows "${cp}")
-  DIRNAME=$(cygpath --path --windows "${DIRNAME}")
+# Pass the GOGO_HELP separately for help display only
+if [ "$1" = "--help" ]; then
+    show_help "$GOGO_HELP"
+    exit 0
 fi
 
-nothing() {
-   # nothing to do here
-   a=a
-}
-trap 'nothing' TSTP
+setup_environment "$@"
 
-# Launch gogo shell
-echo "Launching Gogo JLine..."
-echo "Classpath: $cp"
-set mouse=a
-java -cp $cp \
-    $opts \
-    -Dgosh.home="${DIRNAME}" \
-    -Djava.util.logging.config.file="${logconf}" \
-    org.apache.felix.gogo.jline.Main
-
+run_demo org.apache.felix.gogo.jline.Main

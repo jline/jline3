@@ -1,75 +1,54 @@
 @echo off
+rem Script to run the Groovy REPL demo
 
-set DIRNAME=%~dp0%
-set ROOTDIR=%DIRNAME%\..
-set TARGETDIR=%DIRNAME%target
+setlocal EnableDelayedExpansion
 
-rem initialization
-if not exist %TARGETDIR%\lib (
-    echo Build jline with maven before running the demo
-    goto END
+set SCRIPT_DIR=%~dp0
+
+rem No REPL-specific help options
+set REPL_HELP=repl-option
+
+rem Add Groovy and Ivy jars
+set TARGET_DIR=%SCRIPT_DIR%target
+set CP=%TARGET_DIR%\classes
+
+for %%j in ("%TARGET_DIR%\lib\groovy-*.jar") do (
+    set CP=!CP!;%%j
+)
+for %%j in ("%TARGET_DIR%\lib\ivy-*.jar") do (
+    set CP=!CP!;%%j
 )
 
-goto :SETUP_CLASSPATH
+rem Handle help separately
+if "%1"=="--help" (
+    call :show_help %REPL_HELP%
+    exit /b 0
+)
 
-: APPEND_TO_CLASSPATH
-set filename=%~1
-set cp=%cp%;%TARGETDIR%\lib\%filename%
-goto :EOF
+call "%SCRIPT_DIR%jline-common.bat" org.jline.demo.Repl %*
+exit /b %ERRORLEVEL%
 
-:SETUP_CLASSPATH
-set cp=%TARGETDIR%\classes
-rem JLINE
-pushd %TARGETDIR%\lib
-for %%G in (jline-*.jar) do call:APPEND_TO_CLASSPATH %%G
-rem Groovy
-for %%G in (groovy-*.jar) do call:APPEND_TO_CLASSPATH %%G
-for %%G in (ivy-*.jar) do call:APPEND_TO_CLASSPATH %%G
+:show_help
+echo Usage: %~nx0 [options]
+echo Options:
+echo   --help       Show this help message
 
-set "opts=%JLINE_OPTS%"
-set "logconf=%DIRNAME%etc\logging.properties"
-:RUN_LOOP
-    if "%1" == "jansi" goto :EXECUTE_JANSI
-    if "%1" == "jna" goto :EXECUTE_JNA
-    if "%1" == "debug" goto :EXECUTE_DEBUG
-    if "%1" == "debugs" goto :EXECUTE_DEBUGS
-    if "%1" == "verbose" goto :EXECUTE_VERBOSE
-    if "%1" == "" goto :EXECUTE_MAIN
-    set "opts=%opts% %~1"
-    shift
-    goto :RUN_LOOP
+rem Add demo-specific help options if provided
+if not "%~1"=="" (
+    if "%~1"=="repl-option" (
+        rem No REPL-specific options
+    ) else (
+        echo %~1
+    )
+)
 
-:EXECUTE_JANSI
-    for %%G in (jansi-*.jar) do call:APPEND_TO_CLASSPATH %%G
-    shift
-    goto :RUN_LOOP
-
-:EXECUTE_JNA
-    for %%G in (jna-*.jar) do call:APPEND_TO_CLASSPATH %%G
-    shift
-    goto :RUN_LOOP
-
-:EXECUTE_DEBUG
-    set "opts=%opts% -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
-    shift
-    goto :RUN_LOOP
-
-:EXECUTE_DEBUGS
-    set "opts=%opts% -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
-    shift
-    goto :RUN_LOOP
-
-:EXECUTE_VERBOSE
-    set "logconf=%DIRNAME%etc\logging-verbose.properties"
-    shift
-    goto :RUN_LOOP
-
-:EXECUTE_MAIN
-popd
-
-rem Launching Groovy REPL...
-echo Launching Groovy REPL...
-echo Classpath: %cp%
-java -cp %cp% %opts% -Dgosh.home=%DIRNAME% -Djava.util.logging.config.file=%logconf% org.jline.demo.Repl
-
-:END
+rem Add common options
+echo   debug        Enable remote debugging
+echo   debugs       Enable remote debugging with suspend
+echo   jansi        Add Jansi support
+echo   jna          Add JNA support
+echo   verbose      Enable verbose logging
+echo   ffm          Enable Foreign Function Memory (preview)
+echo.
+echo To test with a dumb terminal, use: set TERM=dumb ^& %~nx0
+exit /b 0
