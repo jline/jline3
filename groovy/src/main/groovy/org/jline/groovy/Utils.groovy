@@ -11,6 +11,7 @@ package org.jline.groovy
 import org.codehaus.groovy.runtime.HandleMetaClass
 import org.codehaus.groovy.runtime.typehandling.GroovyCastException
 
+import java.nio.file.Files
 import java.nio.file.Path
 import org.jline.script.GroovyEngine.Format
 import groovy.json.JsonOutput
@@ -62,9 +63,9 @@ class Utils {
 
     static void persist(Path file, Object object, Format format) {
         if (format == Format.JSON) {
-            file.toFile().write(JsonOutput.toJson(object))
+            Files.writeString(file, JsonOutput.toJson(object))
         } else if (format == Format.NONE) {
-            file.toFile().write(toString(object))
+            Files.writeString(file, toString(object))
         } else {
             throw new IllegalArgumentException()
         }

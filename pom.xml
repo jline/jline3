@@ -15,7 +15,7 @@
 
     <groupId>org.jline</groupId>
     <artifactId>jline-parent</artifactId>
-    <version>3.28.1-SNAPSHOT</version>
+    <version>3.29.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>JLine</name>
     <description>JLine</description>
@@ -85,7 +85,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.build.outputTimestamp>2024-12-10T20:28:04Z</project.build.outputTimestamp>
+        <project.build.outputTimestamp>2025-01-30T16:12:13Z</project.build.outputTimestamp>
 
         <java.build.version>22</java.build.version>
         <java.release.version>8</java.release.version>
@@ -94,19 +94,19 @@
         <native.image.skip>true</native.image.skip>
         <automatic.module.name />
 
-        <jna.version>5.15.0</jna.version>
+        <jna.version>5.17.0</jna.version>
         <jansi.version>2.4.1</jansi.version>
         <juniversalchardet.version>1.0.3</juniversalchardet.version>
-        <sshd.version>2.14.0</sshd.version>
+        <sshd.version>2.15.0</sshd.version>
         <easymock.version>5.5.0</easymock.version>
-        <junit.version>5.11.3</junit.version>
+        <junit.version>5.12.2</junit.version>
         <gogo.runtime.version>1.1.6</gogo.runtime.version>
         <gogo.jline.version>1.1.8</gogo.jline.version>
-        <slf4j.version>2.0.16</slf4j.version>
+        <slf4j.version>2.0.17</slf4j.version>
         <findbugs.version>3.0.2</findbugs.version>
-        <groovy.version>4.0.24</groovy.version>
-        <ivy.version>2.5.2</ivy.version>
-        <graal.version>24.1.1</graal.version>
+        <groovy.version>4.0.26</groovy.version>
+        <ivy.version>2.5.3</ivy.version>
+        <graal.version>24.2.1</graal.version>
         <graal.plugin.version>21.2.0</graal.plugin.version>
 
         <surefire.argLine>--add-opens java.base/java.io=ALL-UNNAMED</surefire.argLine>
@@ -360,7 +360,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-clean-plugin</artifactId>
-                    <version>3.4.0</version>
+                    <version>3.4.1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -370,7 +370,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-install-plugin</artifactId>
-                    <version>3.1.3</version>
+                    <version>3.1.4</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -400,7 +400,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>3.5.2</version>
+                    <version>3.5.3</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.felix</groupId>
@@ -425,7 +425,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.13.0</version>
+                    <version>3.14.0</version>
                     <configuration>
                         <showWarnings>true</showWarnings>
                         <release>${java.release.version}</release>
@@ -440,7 +440,7 @@
                 <plugin>
                     <groupId>org.sonatype.central</groupId>
                     <artifactId>central-publishing-maven-plugin</artifactId>
-                    <version>0.6.0</version>
+                    <version>0.7.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -451,7 +451,7 @@
                 <plugin>
                     <groupId>com.mycila</groupId>
                     <artifactId>license-maven-plugin</artifactId>
-                    <version>4.6</version>
+                    <version>5.0.0</version>
                     <configuration>
                         <encoding>UTF-8</encoding>
                         <strictCheck>true</strictCheck>
@@ -536,7 +536,7 @@
                 <plugin>
                     <groupId>org.codehaus.gmavenplus</groupId>
                     <artifactId>gmavenplus-plugin</artifactId>
-                    <version>4.0.1</version>
+                    <version>4.1.1</version>
                 </plugin>
 
                 <plugin>
@@ -557,7 +557,7 @@
                 <plugin>
                     <groupId>com.diffplug.spotless</groupId>
                     <artifactId>spotless-maven-plugin</artifactId>
-                    <version>2.43.0</version>
+                    <version>2.44.4</version>
                     <configuration>
                         <java>
                             <toggleOffOn />
@@ -705,7 +705,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-deploy-plugin</artifactId>
-                <version>3.1.3</version>
+                <version>3.1.4</version>
                 <executions>
                     <execution>
                         <id>default-deploy</id>

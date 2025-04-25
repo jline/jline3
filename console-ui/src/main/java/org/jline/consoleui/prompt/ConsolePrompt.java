@@ -30,12 +30,12 @@ import org.jline.utils.*;
 /**
  * ConsolePrompt encapsulates the prompting of a list of input questions for the user.
  */
-public class ConsolePrompt implements AutoCloseable {
+public class ConsolePrompt {
     protected final LineReader reader;
     protected final Terminal terminal;
     protected final UiConfig config;
-    private Attributes attributes;
-    private List<AttributedString> header = new ArrayList<>();
+    protected Attributes attributes;
+    protected List<AttributedString> header = new ArrayList<>();
 
     /**
      *
@@ -52,6 +52,7 @@ public class ConsolePrompt implements AutoCloseable {
     public ConsolePrompt(Terminal terminal, UiConfig config) {
         this(null, terminal, config);
     }
+
     /**
      *
      * @param reader the lineReader.
@@ -69,14 +70,18 @@ public class ConsolePrompt implements AutoCloseable {
             }
             config.setReaderOptions(options);
         }
-        attributes = terminal.enterRawMode();
-        terminal.puts(InfoCmp.Capability.enter_ca_mode);
-        terminal.puts(InfoCmp.Capability.keypad_xmit);
-        terminal.writer().flush();
     }
 
-    @Override
-    public void close() {
+    protected void open() {
+        if (!terminalInRawMode()) {
+            attributes = terminal.enterRawMode();
+            terminal.puts(InfoCmp.Capability.enter_ca_mode);
+            terminal.puts(InfoCmp.Capability.keypad_xmit);
+            terminal.writer().flush();
+        }
+    }
+
+    protected void close() {
         if (terminalInRawMode()) {
             terminal.setAttributes(attributes);
             terminal.puts(InfoCmp.Capability.exit_ca_mode);
@@ -105,7 +110,6 @@ public class ConsolePrompt implements AutoCloseable {
      * @throws IOException  may be thrown by terminal
      * @throws UserInterruptException if user interrupt handling is enabled and the user types the interrupt character (ctrl-C)
      */
-    @Deprecated
     public Map<String, PromptResultItemIF> prompt(List<PromptableElementIF> promptableElementList)
             throws IOException, UserInterruptException {
         return prompt(new ArrayList<>(), promptableElementList);
@@ -123,14 +127,14 @@ public class ConsolePrompt implements AutoCloseable {
      * @throws IOException  may be thrown by terminal
      * @throws UserInterruptException if user interrupt handling is enabled and the user types the interrupt character (ctrl-C)
      */
-    @Deprecated
     public Map<String, PromptResultItemIF> prompt(
             List<AttributedString> header, List<PromptableElementIF> promptableElementList)
             throws IOException, UserInterruptException {
         try {
+            open();
             Map<String, PromptResultItemIF> resultMap = new HashMap<>();
             prompt(header, promptableElementList, resultMap);
-            return resultMap;
+            return removeNoResults(resultMap);
         } finally {
             close();
         }
@@ -173,54 +177,43 @@ public class ConsolePrompt implements AutoCloseable {
         Deque<List<PromptableElementIF>> prevLists = new ArrayDeque<>();
         Deque<Map<String, PromptResultItemIF>> prevResults = new ArrayDeque<>();
         boolean cancellable = config.cancellableFirstPrompt();
-        // Get our first list of prompts
-        List<PromptableElementIF> peList = promptableElementLists.apply(new HashMap<>());
-        Map<String, PromptResultItemIF> peResult = new HashMap<>();
-        while (peList != null) {
-            // Second and later prompts should always be cancellable
-            config.setCancellableFirstPrompt(!prevLists.isEmpty() || cancellable);
-            // Prompt the user
-            prompt(headerIn, peList, peResult);
-            if (peResult.isEmpty()) {
-                // The prompt was cancelled by the user, so let's go back to the
-                // previous list of prompts and its results (if any)
-                peList = prevLists.pollFirst();
-                peResult = prevResults.pollFirst();
-                if (peResult != null) {
-                    // Remove the results of the previous prompt from the main result map
-                    peResult.forEach((k, v) -> resultMap.remove(k));
-                    headerIn.remove(headerIn.size() - 1);
+        try {
+            open();
+            // Get our first list of prompts
+            List<PromptableElementIF> peList = promptableElementLists.apply(new HashMap<>());
+            Map<String, PromptResultItemIF> peResult = new HashMap<>();
+            while (peList != null) {
+                // Second and later prompts should always be cancellable
+                config.setCancellableFirstPrompt(!prevLists.isEmpty() || cancellable);
+                // Prompt the user
+                prompt(headerIn, peList, peResult);
+                if (peResult.isEmpty()) {
+                    // The prompt was cancelled by the user, so let's go back to the
+                    // previous list of prompts and its results (if any)
+                    peList = prevLists.pollFirst();
+                    peResult = prevResults.pollFirst();
+                    if (peResult != null) {
+                        // Remove the results of the previous prompt from the main result map
+                        peResult.forEach((k, v) -> resultMap.remove(k));
+                        headerIn.remove(headerIn.size() - 1);
+                    }
+                } else {
+                    // We remember the list of prompts and their results
+                    prevLists.push(peList);
+                    prevResults.push(peResult);
+                    // Add the results to the main result map
+                    resultMap.putAll(peResult);
+                    // And we get our next list of prompts (if any)
+                    peList = promptableElementLists.apply(resultMap);
+                    peResult = new HashMap<>();
                 }
-            } else {
-                // We remember the list of prompts and their results
-                prevLists.push(peList);
-                prevResults.push(peResult);
-                // Add the results to the main result map
-                resultMap.putAll(peResult);
-                // And we get our next list of prompts (if any)
-                peList = promptableElementLists.apply(resultMap);
-                peResult = new HashMap<>();
             }
+            return removeNoResults(resultMap);
+        } finally {
+            close();
+            // Restore the original state of cancellable
+            config.setCancellableFirstPrompt(cancellable);
         }
-        // Restore the original state of cancellable
-        config.setCancellableFirstPrompt(cancellable);
-
-        return resultMap;
-    }
-
-    /**
-     * Prompt a list of choices (questions). This method takes a list of promptable elements, typically
-     * created with {@link PromptBuilder}. Each of the elements is processed and the user entries and
-     * answers are filled in to the result map. The result map contains the key of each promptable element
-     * and the user entry as an object implementing {@link PromptResultItemIF}.
-     *
-     * @param promptableElementList the list of questions / prompts to ask the user for.
-     * @param resultMap a map containing a result for each element of promptableElementList
-     * @throws IOException  may be thrown by terminal
-     */
-    public void prompt(List<PromptableElementIF> promptableElementList, Map<String, PromptResultItemIF> resultMap)
-            throws IOException {
-        prompt(new ArrayList<>(), promptableElementList, resultMap);
     }
 
     /**
@@ -234,7 +227,7 @@ public class ConsolePrompt implements AutoCloseable {
      * @param resultMap a map containing a result for each element of promptableElementList
      * @throws IOException  may be thrown by terminal
      */
-    public void prompt(
+    protected void prompt(
             List<AttributedString> headerIn,
             List<PromptableElementIF> promptableElementList,
             Map<String, PromptResultItemIF> resultMap)
@@ -244,17 +237,22 @@ public class ConsolePrompt implements AutoCloseable {
         }
         this.header = headerIn;
 
+        boolean backward = false;
         for (int i = resultMap.isEmpty() ? 0 : resultMap.size() - 1; i < promptableElementList.size(); i++) {
             PromptableElementIF pe = promptableElementList.get(i);
             try {
-                PromptResultItemIF result = promptElement(header, pe);
+                if (backward) {
+                    removePreviousResult(pe);
+                    backward = false;
+                }
+                PromptResultItemIF oldResult = resultMap.get(pe.getName());
+                PromptResultItemIF result = promptElement(header, pe, oldResult);
                 if (result == null) {
                     // Prompt was cancelled by the user
                     if (i > 0) {
-                        // Remove last result
-                        header.remove(header.size() - 1);
                         // Go back to previous prompt
                         i -= 2;
+                        backward = true;
                         continue;
                     } else {
                         if (config.cancellableFirstPrompt()) {
@@ -267,17 +265,23 @@ public class ConsolePrompt implements AutoCloseable {
                         }
                     }
                 }
-                String resp = result.getDisplayResult();
-                if (result instanceof ConfirmResult) {
-                    ConfirmResult cr = (ConfirmResult) result;
-                    if (cr.getConfirmed() == ConfirmChoice.ConfirmationValue.YES) {
-                        resp = config.resourceBundle().getString("confirmation_yes_answer");
-                    } else {
-                        resp = config.resourceBundle().getString("confirmation_no_answer");
+                AttributedStringBuilder message;
+                if (pe instanceof Text) {
+                    Text te = (Text) pe;
+                    header.addAll(te.getLines());
+                } else {
+                    String resp = result.getDisplayResult();
+                    if (result instanceof ConfirmResult) {
+                        ConfirmResult cr = (ConfirmResult) result;
+                        if (cr.getConfirmed() == ConfirmChoice.ConfirmationValue.YES) {
+                            resp = config.resourceBundle().getString("confirmation_yes_answer");
+                        } else {
+                            resp = config.resourceBundle().getString("confirmation_no_answer");
+                        }
                     }
+                    message = createMessage(pe.getMessage(), resp);
+                    header.add(message.toAttributedString());
                 }
-                AttributedStringBuilder message = createMessage(pe.getMessage(), resp);
-                header.add(message.toAttributedString());
                 resultMap.put(pe.getName(), result);
             } catch (IOError e) {
                 if (e.getCause() instanceof InterruptedIOException) {
@@ -289,7 +293,8 @@ public class ConsolePrompt implements AutoCloseable {
         }
     }
 
-    protected PromptResultItemIF promptElement(List<AttributedString> header, PromptableElementIF pe) {
+    protected PromptResultItemIF promptElement(
+            List<AttributedString> header, PromptableElementIF pe, PromptResultItemIF oldResult) {
         AttributedStringBuilder message = createMessage(pe.getMessage(), null);
         AttributedStringBuilder asb = new AttributedStringBuilder();
         asb.append(message);
@@ -354,6 +359,9 @@ public class ConsolePrompt implements AutoCloseable {
             asb.append(" ");
             result = ConfirmPrompt.getPrompt(terminal, header, asb.toAttributedString(), cc, config)
                     .execute();
+        } else if (pe instanceof Text) {
+            Text te = (Text) pe;
+            result = oldResult == null ? NoResult.INSTANCE : null;
         } else {
             throw new IllegalArgumentException("wrong type of promptable element");
         }
@@ -373,6 +381,23 @@ public class ConsolePrompt implements AutoCloseable {
     public static int computePageSize(Terminal terminal, int pageSize, PageSizeType sizeType) {
         int rows = terminal.getHeight();
         return sizeType == PageSizeType.ABSOLUTE ? Math.min(rows, pageSize) : (rows * pageSize) / 100;
+    }
+
+    private void removePreviousResult(PromptableElementIF pe) {
+        if (pe instanceof Text) {
+            Text te = (Text) pe;
+            for (int i = 0; i < te.getLines().size(); i++) {
+                header.remove(header.size() - 1);
+            }
+        } else {
+            header.remove(header.size() - 1);
+        }
+    }
+
+    private Map<String, PromptResultItemIF> removeNoResults(Map<String, PromptResultItemIF> resultMap) {
+        return resultMap.entrySet().stream()
+                .filter(e -> !(e.getValue() instanceof NoResult))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     /**

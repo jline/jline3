@@ -63,10 +63,12 @@ public class Status {
     }
 
     public void close() {
-        terminal.puts(Capability.save_cursor);
-        terminal.puts(Capability.change_scroll_region, 0, display.rows - 1);
-        terminal.puts(Capability.restore_cursor);
-        terminal.flush();
+        if (supported) {
+            terminal.puts(Capability.save_cursor);
+            terminal.puts(Capability.change_scroll_region, 0, display.rows - 1);
+            terminal.puts(Capability.restore_cursor);
+            terminal.flush();
+        }
     }
 
     public void setBorder(boolean border) {
@@ -78,7 +80,9 @@ public class Status {
     }
 
     public void resize(Size size) {
-        display.resize(size.getRows(), size.getColumns());
+        if (supported) {
+            display.resize(size.getRows(), size.getColumns());
+        }
     }
 
     public void reset() {

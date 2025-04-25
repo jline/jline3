@@ -9,7 +9,6 @@
 package org.jline.consoleui.examples;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -67,110 +66,107 @@ public class Basic {
             // If you are not using Completers you do not need to create LineReader.
             //
             LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
-            Map<String, PromptResultItemIF> result = new HashMap<>();
+            ConsolePrompt prompt = new ConsolePrompt(reader, terminal, config);
+            PromptBuilder promptBuilder = prompt.getPromptBuilder();
 
-            try (ConsolePrompt prompt = new ConsolePrompt(reader, terminal, config)) {
-                PromptBuilder promptBuilder = prompt.getPromptBuilder();
+            promptBuilder
+                    .createInputPrompt()
+                    .name("name")
+                    .message("Please enter your name")
+                    .defaultValue("John Doe")
+                    // .mask('*')
+                    .addCompleter(
+                            // new Completers.FilesCompleter(() -> Paths.get(System.getProperty("user.dir"))))
+                            new StringsCompleter("Jim", "Jack", "John", "Donald", "Dock"))
+                    .addPrompt();
 
-                promptBuilder
-                        .createInputPrompt()
-                        .name("name")
-                        .message("Please enter your name")
-                        .defaultValue("John Doe")
-                        // .mask('*')
-                        .addCompleter(
-                                // new Completers.FilesCompleter(() -> Paths.get(System.getProperty("user.dir"))))
-                                new StringsCompleter("Jim", "Jack", "John", "Donald", "Dock"))
-                        .addPrompt();
+            promptBuilder
+                    .createListPrompt()
+                    .name("pizzatype")
+                    .message("Which pizza do you want?")
+                    .newItem()
+                    .text("Margherita")
+                    .add() // without name (name defaults to text)
+                    .newItem("veneziana")
+                    .text("Veneziana")
+                    .add()
+                    .newItem("hawai")
+                    .text("Hawai")
+                    .add()
+                    .newItem("quattro")
+                    .text("Quattro Stagioni")
+                    .add()
+                    .addPrompt();
 
-                promptBuilder
-                        .createListPrompt()
-                        .name("pizzatype")
-                        .message("Which pizza do you want?")
-                        .newItem()
-                        .text("Margherita")
-                        .add() // without name (name defaults to text)
-                        .newItem("veneziana")
-                        .text("Veneziana")
-                        .add()
-                        .newItem("hawai")
-                        .text("Hawai")
-                        .add()
-                        .newItem("quattro")
-                        .text("Quattro Stagioni")
-                        .add()
-                        .addPrompt();
+            promptBuilder
+                    .createCheckboxPrompt()
+                    .name("topping")
+                    .message("Please select additional toppings:")
+                    .newSeparator("standard toppings")
+                    .add()
+                    .newItem()
+                    .name("cheese")
+                    .text("Cheese")
+                    .add()
+                    .newItem("bacon")
+                    .text("Bacon")
+                    .add()
+                    .newItem("onions")
+                    .text("Onions")
+                    .disabledText("Sorry. Out of stock.")
+                    .add()
+                    .newSeparator()
+                    .text("special toppings")
+                    .add()
+                    .newItem("salami")
+                    .text("Very hot salami")
+                    .check()
+                    .add()
+                    .newItem("salmon")
+                    .text("Smoked Salmon")
+                    .add()
+                    .newSeparator("and our speciality...")
+                    .add()
+                    .newItem("special")
+                    .text("Anchovies, and olives")
+                    .checked(true)
+                    .add()
+                    .addPrompt();
 
-                promptBuilder
-                        .createCheckboxPrompt()
-                        .name("topping")
-                        .message("Please select additional toppings:")
-                        .newSeparator("standard toppings")
-                        .add()
-                        .newItem()
-                        .name("cheese")
-                        .text("Cheese")
-                        .add()
-                        .newItem("bacon")
-                        .text("Bacon")
-                        .add()
-                        .newItem("onions")
-                        .text("Onions")
-                        .disabledText("Sorry. Out of stock.")
-                        .add()
-                        .newSeparator()
-                        .text("special toppings")
-                        .add()
-                        .newItem("salami")
-                        .text("Very hot salami")
-                        .check()
-                        .add()
-                        .newItem("salmon")
-                        .text("Smoked Salmon")
-                        .add()
-                        .newSeparator("and our speciality...")
-                        .add()
-                        .newItem("special")
-                        .text("Anchovies, and olives")
-                        .checked(true)
-                        .add()
-                        .addPrompt();
+            promptBuilder
+                    .createChoicePrompt()
+                    .name("payment")
+                    .message("How do you want to pay?")
+                    .newItem()
+                    .name("cash")
+                    .message("Cash")
+                    .key('c')
+                    .asDefault()
+                    .add()
+                    .newItem("visa")
+                    .message("Visa Card")
+                    .key('v')
+                    .add()
+                    .newItem("master")
+                    .message("Master Card")
+                    .key('m')
+                    .add()
+                    .newSeparator("online payment")
+                    .add()
+                    .newItem("paypal")
+                    .message("Paypal")
+                    .key('p')
+                    .add()
+                    .addPrompt();
 
-                promptBuilder
-                        .createChoicePrompt()
-                        .name("payment")
-                        .message("How do you want to pay?")
-                        .newItem()
-                        .name("cash")
-                        .message("Cash")
-                        .key('c')
-                        .asDefault()
-                        .add()
-                        .newItem("visa")
-                        .message("Visa Card")
-                        .key('v')
-                        .add()
-                        .newItem("master")
-                        .message("Master Card")
-                        .key('m')
-                        .add()
-                        .newSeparator("online payment")
-                        .add()
-                        .newItem("paypal")
-                        .message("Paypal")
-                        .key('p')
-                        .add()
-                        .addPrompt();
+            promptBuilder
+                    .createConfirmPromp()
+                    .name("delivery")
+                    .message("Is this pizza for delivery?")
+                    .defaultValue(ConfirmChoice.ConfirmationValue.YES)
+                    .addPrompt();
 
-                promptBuilder
-                        .createConfirmPromp()
-                        .name("delivery")
-                        .message("Is this pizza for delivery?")
-                        .defaultValue(ConfirmChoice.ConfirmationValue.YES)
-                        .addPrompt();
-
-                prompt.prompt(header, promptBuilder.build(), result);
-            }
+            Map<String, ? extends PromptResultItemIF> result = prompt.prompt(header, promptBuilder.build());
             System.out.println("result = " + result);
 
             ConfirmResult delivery = (ConfirmResult) result.get("delivery");

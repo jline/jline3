@@ -30,7 +30,7 @@ public class MouseSupport {
         if (hasMouseSupport(terminal)) {
             switch (tracking) {
                 case Off:
-                    terminal.writer().write("\033[?1000l");
+                    terminal.writer().write("\033[?1000l\033[?1002l\033[?1003l\033[?1005l");
                     break;
                 case Normal:
                     terminal.writer().write("\033[?1005h\033[?1000h");

@@ -1,93 +1,85 @@
 @echo off
+rem Script to run the Gogo JLine demo
 
-set DIRNAME=%~dp0%
-set ROOTDIR=%DIRNAME%\..
-set TARGETDIR=%DIRNAME%target
+setlocal EnableDelayedExpansion
 
-rem initialization
-if not exist %TARGETDIR%\lib (
-    echo Build jline with maven before running the demo
-    goto END
+set SCRIPT_DIR=%~dp0
+
+rem Define gogo-specific help options
+set GOGO_HELP=gogo-option
+
+rem Add Gogo Runtime and JLine jars
+set TARGET_DIR=%SCRIPT_DIR%target
+set CP=%TARGET_DIR%\classes
+
+for %%j in ("%TARGET_DIR%\lib\org.apache.felix.gogo.runtime-*.jar") do (
+    set CP=!CP!;%%j
+)
+for %%j in ("%TARGET_DIR%\lib\org.apache.felix.gogo.jline-*.jar") do (
+    set CP=!CP!;%%j
 )
 
-goto :SETUP_CLASSPATH
+rem Process SSH/Telnet/Remote options
+set ADD_SSH=false
+for %%a in (%*) do (
+    if "%%a"=="ssh" set ADD_SSH=true
+    if "%%a"=="telnet" set ADD_SSH=true
+    if "%%a"=="remote" set ADD_SSH=true
+)
 
-:APPEND_TO_CLASSPATH
-set filename=%~1
-set cp=%cp%;%TARGETDIR%\lib\%filename%
-goto :EOF
+if "%ADD_SSH%"=="true" (
+    for %%j in ("%TARGET_DIR%\lib\sshd-common-*.jar") do (
+        set CP=!CP!;%%j
+    )
+    for %%j in ("%TARGET_DIR%\lib\sshd-core-*.jar") do (
+        set CP=!CP!;%%j
+    )
+    for %%j in ("%TARGET_DIR%\lib\sshd-scp-*.jar") do (
+        set CP=!CP!;%%j
+    )
+    for %%j in ("%TARGET_DIR%\lib\sshd-sftp-*.jar") do (
+        set CP=!CP!;%%j
+    )
+    for %%j in ("%TARGET_DIR%\lib\slf4j-api-*.jar") do (
+        set CP=!CP!;%%j
+    )
+    for %%j in ("%TARGET_DIR%\lib\slf4j-jdk14-*.jar") do (
+        set CP=!CP!;%%j
+    )
+)
 
-:SETUP_CLASSPATH
-set cp=%TARGETDIR%\classes
-rem JLINE
-pushd %TARGETDIR%\lib
-for %%G in (jline-*.jar) do call:APPEND_TO_CLASSPATH %%G
-rem Gogo Runtime
-for %%G in (org.apache.felix.gogo.runtime-*.jar) do call:APPEND_TO_CLASSPATH %%G
-rem Gogo JLine
-for %%G in (org.apache.felix.gogo.jline-*.jar) do call:APPEND_TO_CLASSPATH %%G
+rem Handle help separately
+if "%1"=="--help" (
+    call :show_help %GOGO_HELP%
+    exit /b 0
+)
 
-set "opts=%JLINE_OPTS%"
-set "logconf=%DIRNAME%etc\logging.properties"
-:RUN_LOOP
-    if "%1" == "jansi" goto :EXECUTE_JANSI
-    if "%1" == "jna" goto :EXECUTE_JNA
-    if "%1" == "ssh" goto :EXECUTE_SSH
-    if "%1" == "debug" goto :EXECUTE_DEBUG
-    if "%1" == "debugs" goto :EXECUTE_DEBUGS
-    if "%1" == "verbose" goto :EXECUTE_VERBOSE
-    if "%1" == "ffm" goto :EXECUTE_FFM
-    if "%1" == "" goto :EXECUTE_MAIN
-    set "opts=%opts% %~1"
-    shift
-    goto :RUN_LOOP
+call "%SCRIPT_DIR%jline-common.bat" org.apache.felix.gogo.jline.Main %*
+exit /b %ERRORLEVEL%
 
-:EXECUTE_JANSI
-    for %%G in (jansi-*.jar) do call:APPEND_TO_CLASSPATH %%G
-    shift
-    goto :RUN_LOOP
+:show_help
+echo Usage: %~nx0 [options]
+echo Options:
+echo   --help       Show this help message
 
-:EXECUTE_JNA
-    for %%G in (jna-*.jar) do call:APPEND_TO_CLASSPATH %%G
-    shift
-    goto :RUN_LOOP
+rem Add demo-specific help options if provided
+if not "%~1"=="" (
+    if "%~1"=="gogo-option" (
+        echo   ssh          Add SSH support
+        echo   telnet       Add Telnet support
+        echo   remote       Add remote support (SSH and Telnet)
+    ) else (
+        echo %~1
+    )
+)
 
-:EXECUTE_SSH
-    for %%G in (sshd-common-*.jar) do call:APPEND_TO_CLASSPATH %%G
-    for %%G in (sshd-core-*.jar) do call:APPEND_TO_CLASSPATH %%G
-    for %%G in (sshd-scp-*.jar) do call:APPEND_TO_CLASSPATH %%G
-    for %%G in (sshd-sftp-*.jar) do call:APPEND_TO_CLASSPATH %%G
-    for %%G in (slf4j-api-*.jar) do call:APPEND_TO_CLASSPATH %%G
-    for %%G in (slf4j-jdk14-*.jar) do call:APPEND_TO_CLASSPATH %%G
-    shift
-    goto :RUN_LOOP
-
-:EXECUTE_DEBUG
-    set "opts=%opts% -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
-    shift
-    goto :RUN_LOOP
-
-:EXECUTE_DEBUGS
-    set "opts=%opts% -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005"
-    shift
-    goto :RUN_LOOP
-
-:EXECUTE_VERBOSE
-    set "logconf=%DIRNAME%etc\logging-verbose.properties"
-    shift
-    goto :RUN_LOOP
-
-:EXECUTE_FFM
-    set "opts=%opts% --enable-preview --enable-native-access=ALL-UNNAMED"
-    shift
-    goto :RUN_LOOP
-
-:EXECUTE_MAIN
-popd
-
-rem Launch gogo shell
-echo Launching Gogo JLine...
-echo Classpath: %cp%
-java -cp %cp% %opts% -Dgosh.home=%DIRNAME% -Djava.util.logging.config.file=%logconf% org.apache.felix.gogo.jline.Main
-
-:END
+rem Add common options
+echo   debug        Enable remote debugging
+echo   debugs       Enable remote debugging with suspend
+echo   jansi        Add Jansi support
+echo   jna          Add JNA support
+echo   verbose      Enable verbose logging
+echo   ffm          Enable Foreign Function Memory (preview)
+echo.
+echo To test with a dumb terminal, use: set TERM=dumb ^& %~nx0
+exit /b 0

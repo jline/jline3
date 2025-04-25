@@ -185,6 +185,7 @@ public class LineReaderImpl implements LineReader, Flushable {
     //
 
     protected final Map<Option, Boolean> options = new HashMap<>();
+    protected Thread maskThread = null;
 
     protected final Buffer buf = new BufferImpl();
     protected String tailTip = "";
@@ -292,6 +293,7 @@ public class LineReaderImpl implements LineReader, Flushable {
 
     protected String alternateIn;
     protected String alternateOut;
+    protected int currentLine;
 
     public LineReaderImpl(Terminal terminal) throws IOException {
         this(terminal, terminal.getName(), null);
@@ -667,6 +669,9 @@ public class LineReaderImpl implements LineReader, Flushable {
                     if (isSet(Option.AUTO_FRESH_LINE)) callWidget(FRESH_LINE);
                     if (isSet(Option.MOUSE)) terminal.trackMouse(Terminal.MouseTracking.Normal);
                     if (isSet(Option.BRACKETED_PASTE)) terminal.writer().write(BRACKETED_PASTE_ON);
+                } else if (isTerminalDumb() && maskingCallback != null) {
+                    // Setup masking thread for dumb terminals when reading a password
+                    setupMaskThread(prompt != null ? prompt : "");
                 }
 
                 callWidget(CALLBACK_INIT);
@@ -808,6 +813,46 @@ public class LineReaderImpl implements LineReader, Flushable {
         display = new Display(terminal, false);
         display.resize(size.getRows(), size.getColumns());
         if (isSet(Option.DELAY_LINE_WRAP)) display.setDelayLineWrap(true);
+    }
+
+    /**
+     * Setup the masking thread for dumb terminals.
+     * This is similar to the approach used in JLine 1.
+     *
+     * For dumb terminals, we can't process characters one by one, so we use a thread
+     * that continuously overwrites the input line to hide what the user is typing.
+     */
+    private void setupMaskThread(final String prompt) {
+        if (isTerminalDumb() && maskThread == null) {
+            // Create a prompt that will overwrite the current line and redisplay the prompt
+            final String fullPrompt = "\r" + prompt + "                                                   \r" + prompt;
+            maskThread = new Thread("JLine Mask Thread") {
+                public void run() {
+                    while (!Thread.interrupted()) {
+                        try {
+                            terminal.writer().write(fullPrompt);
+                            terminal.writer().flush();
+                            sleep(3);
+                        } catch (InterruptedException ie) {
+                            return;
+                        }
+                    }
+                }
+            };
+            maskThread.setPriority(Thread.MAX_PRIORITY);
+            maskThread.setDaemon(true);
+            maskThread.start();
+        }
+    }
+
+    /**
+     * Stops the masking thread for dumb terminals.
+     */
+    private void stopMaskThread() {
+        if (maskThread != null && maskThread.isAlive()) {
+            maskThread.interrupt();
+        }
+        maskThread = null;
     }
 
     @Override
@@ -2605,6 +2650,8 @@ public class LineReaderImpl implements LineReader, Flushable {
             terminal.trackMouse(Terminal.MouseTracking.Off);
             if (isSet(Option.BRACKETED_PASTE) && !isTerminalDumb())
                 terminal.writer().write(BRACKETED_PASTE_OFF);
+            // Stop the masking thread if it was started for dumb terminals
+            stopMaskThread();
             flush();
         }
         history.moveToEnd();
@@ -4176,6 +4223,13 @@ public class LineReaderImpl implements LineReader, Flushable {
                         case 'N':
                             sb.append(getInt(LINE_OFFSET, 0) + line);
                             break decode;
+                        case '*':
+                            if (this.currentLine == line) {
+                                sb.append("*");
+                            } else {
+                                sb.append(" ");
+                            }
+                            break decode;
                         case 'M':
                             if (message != null) sb.append(message);
                             break decode;
@@ -4277,6 +4331,19 @@ public class LineReaderImpl implements LineReader, Flushable {
             buf.setLength(0);
         }
         int line = 0;
+        // compute the current line number
+        this.currentLine = -1;
+        int cursor = this.buf.cursor();
+        int start = 0;
+        for (int l = 0; l < lines.size(); l++) {
+            int end = start + lines.get(l).length();
+            if (cursor >= start && cursor <= end) {
+                this.currentLine = l;
+                break;
+            }
+            start = end + 1;
+        }
+
         while (line < lines.size() - 1) {
             sb.append(lines.get(line)).append("\n");
             buf.append(lines.get(line)).append("\n");

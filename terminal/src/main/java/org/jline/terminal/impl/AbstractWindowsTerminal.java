@@ -282,7 +282,7 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
                     if (isAlt) {
                         processInputChar('\033');
                     }
-                    if (isCtrl && ch != ' ' && ch != '\n' && ch != 0x7f) {
+                    if (isCtrl && ch != '\n' && ch != 0x7f) {
                         processInputChar((char) (ch == '?' ? 0x7f : Character.toUpperCase(ch) & 0x1f));
                     } else {
                         processInputChar(ch);

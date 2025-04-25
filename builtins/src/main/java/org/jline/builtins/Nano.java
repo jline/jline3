@@ -1762,7 +1762,7 @@ public class Nano implements Editor {
         if (vsusp > 0) {
             attributes.setControlChar(ControlChar.VSUSP, vsusp);
         }
-        newAttr.setLocalFlags(EnumSet.of(LocalFlag.ICANON, LocalFlag.ECHO, LocalFlag.IEXTEN), false);
+        newAttr.setLocalFlags(EnumSet.of(LocalFlag.ICANON, LocalFlag.ECHO, LocalFlag.IEXTEN, LocalFlag.ISIG), false);
         newAttr.setInputFlags(EnumSet.of(InputFlag.IXON, InputFlag.ICRNL, InputFlag.INLCR), false);
         newAttr.setControlChar(ControlChar.VMIN, 1);
         newAttr.setControlChar(ControlChar.VTIME, 0);
@@ -2105,7 +2105,7 @@ public class Nano implements Editor {
                 return false;
             }
         } else if (!Files.exists(newPath)) {
-            newPath.toFile().createNewFile();
+            Files.createFile(newPath);
         }
         Path t = Files.createTempFile("jline-", ".temp");
         try (OutputStream os = Files.newOutputStream(
