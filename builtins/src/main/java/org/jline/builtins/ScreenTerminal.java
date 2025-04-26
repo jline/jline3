@@ -1657,7 +1657,17 @@ public class ScreenTerminal {
             long[][] sc = new long[h][];
             if (avail > 0) {
                 for (int i = 0; i < avail; i++) {
-                    sc[i] = history.remove(history.size() - avail + i);
+                    long[] historyLine = history.remove(history.size() - avail + i);
+                    // Check if the history line needs to be resized to match the new width
+                    if (historyLine.length < w) {
+                        int oldLength = historyLine.length;
+                        historyLine = Arrays.copyOf(historyLine, w);
+                        // Fill the rest with spaces
+                        for (int j = oldLength; j < w; j++) {
+                            historyLine[j] = attr | 0x00000020;
+                        }
+                    }
+                    sc[i] = historyLine;
                 }
                 cy += avail;
             }
