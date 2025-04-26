@@ -381,35 +381,47 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
         @SuppressWarnings("unchecked")
         public ScriptFile(String command, String cmdLine, String[] args) {
-            if (!parser().validCommandName(command)) {
-                return;
-            }
+            this.cmdLine = cmdLine;
             try {
-                this.script = Paths.get(command);
-                this.cmdLine = cmdLine;
-                if (Files.exists(script)) {
-                    scriptExtension(command);
-                } else if (engine.hasVariable(VAR_PATH)) {
-                    boolean found = false;
-                    for (String p : (List<String>) engine.get(VAR_PATH)) {
-                        for (String e : scriptExtensions()) {
-                            String file = command + "." + e;
-                            Path path = Paths.get(p, file);
-                            if (Files.exists(path)) {
-                                script = path;
-                                scriptExtension(command);
-                                found = true;
+                if (!parser().validCommandName(command)) {
+                    // DefaultParser not necessarily parse script file from command line.
+                    // As an example for Groovy REPL demo '/tmp/script.jline' is not a valid command i.e.
+                    // prompt> /tmp/script.jline arg1 arg2
+                    command = cmdLine.split("\\s+")[0];
+                    this.extension = fileExtension(command);
+                    if (isScript()) {
+                        this.extension = "";
+                        this.script = Paths.get(command);
+                        if (Files.exists(script)) {
+                            scriptExtension(command);
+                        }
+                    }
+                } else {
+                    this.script = Paths.get(command);
+                    if (Files.exists(script)) {
+                        scriptExtension(command);
+                    } else if (engine.hasVariable(VAR_PATH)) {
+                        boolean found = false;
+                        for (String p : (List<String>) engine.get(VAR_PATH)) {
+                            for (String e : scriptExtensions()) {
+                                String file = command + "." + e;
+                                Path path = Paths.get(p, file);
+                                if (Files.exists(path)) {
+                                    script = path;
+                                    this.extension = e;
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (found) {
                                 break;
                             }
-                        }
-                        if (found) {
-                            break;
                         }
                     }
                 }
                 doArgs(args);
             } catch (Exception e) {
-                // ignore
+                Log.trace("Not a script file: " + command);
             }
         }
 
@@ -423,9 +435,12 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             doArgs(args);
         }
 
+        private String fileExtension(String fileName) {
+            return fileName.contains(".") ? fileName.substring(fileName.lastIndexOf(".") + 1) : "";
+        }
+
         private void scriptExtension(String command) {
-            String name = script.getFileName().toString();
-            this.extension = name.contains(".") ? name.substring(name.lastIndexOf(".") + 1) : "";
+            this.extension = fileExtension(script.getFileName().toString());
             if (!isEngineScript() && !isConsoleScript()) {
                 throw new IllegalArgumentException("Command not found: " + command);
             }
@@ -665,16 +680,8 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             return null;
         }
         Object out = null;
-        ScriptFile file = null;
-        if (parser().validCommandName(cmd)) {
-            file = new ScriptFile(cmd, line, args);
-        } else {
-            Path f = Paths.get(line.split("\\s+")[0]);
-            if (Files.exists(f)) {
-                file = new ScriptFile(f, line, args);
-            }
-        }
-        if (file != null && file.execute()) {
+        ScriptFile file = new ScriptFile(cmd, line, args);
+        if (file.execute()) {
             out = file.getResult();
         } else {
             line = line.trim();
