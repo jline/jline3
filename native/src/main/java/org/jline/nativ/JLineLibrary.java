@@ -11,9 +11,23 @@ package org.jline.nativ;
 import java.io.FileDescriptor;
 
 /**
- * Interface to access some low level.
+ * Native interface for JLine's low-level system operations.
+ * <p>
+ * This class provides access to native methods that are implemented in the JLine native library.
+ * It automatically initializes the native library using {@link JLineNativeLoader#initialize()}
+ * when the class is loaded.
+ * <p>
+ * The native methods in this class provide functionality that is not available through standard
+ * Java APIs, such as creating file descriptors and process redirects directly from file descriptors.
+ * <p>
+ * This class is primarily used internally by JLine's terminal implementations, particularly
+ * those that require direct access to native system calls. Users of JLine typically do not need
+ * to interact with this class directly.
+ * <p>
+ * If the native library cannot be loaded, attempts to use methods in this class will result
+ * in {@link UnsatisfiedLinkError} exceptions.
  *
- * @see    JLineNativeLoader
+ * @see JLineNativeLoader For details on how the native library is loaded and configured
  */
 @SuppressWarnings("unused")
 public class JLineLibrary {

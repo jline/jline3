@@ -42,6 +42,18 @@ import org.jline.utils.OSUtils;
 
 /**
  * Builder class to create terminals.
+ * <p>
+ * This builder provides a flexible way to create terminal instances with various configurations.
+ * It supports multiple terminal provider implementations, including those that require native libraries.
+ * <p>
+ * When using providers that require native libraries (such as JNI, JNA, or Jansi), the appropriate
+ * native library will be loaded automatically. The loading of these libraries is handled by
+ * {@link org.jline.nativ.JLineNativeLoader} for the JNI provider.
+ * <p>
+ * The native library loading can be configured using system properties as documented in
+ * {@link org.jline.nativ.JLineNativeLoader}.
+ *
+ * @see org.jline.nativ.JLineNativeLoader
  */
 public final class TerminalBuilder {
 
@@ -253,8 +265,20 @@ public final class TerminalBuilder {
 
     /**
      * Enables or disables the {@link #PROP_PROVIDER_JNI}/{@code jni} terminal provider.
+     * <p>
+     * The JNI provider uses the JLine native library loaded by {@link org.jline.nativ.JLineNativeLoader}
+     * to access low-level terminal functionality. This provider generally offers the best performance
+     * and most complete terminal support.
+     * <p>
      * If not specified, the system property {@link #PROP_JNI} will be used if set.
-     * If not specified, the provider will be checked.
+     * If not specified, the provider will be checked for availability.
+     * <p>
+     * The native library loading can be configured using system properties as documented in
+     * {@link org.jline.nativ.JLineNativeLoader}.
+     *
+     * @param jni true to enable the JNI provider, false to disable it
+     * @return this builder
+     * @see org.jline.nativ.JLineNativeLoader
      */
     public TerminalBuilder jni(boolean jni) {
         this.jni = jni;

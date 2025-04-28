@@ -30,7 +30,43 @@ import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.Log;
 import org.jline.utils.OSUtils;
 
+/**
+ * Terminal provider implementation that uses JNI (Java Native Interface) to access
+ * native terminal functionality.
+ * <p>
+ * This provider requires the JLine native library to be loaded, which is handled by
+ * {@link org.jline.nativ.JLineNativeLoader}. The native library provides access to
+ * low-level terminal operations that are not available through standard Java APIs.
+ * <p>
+ * The native library is automatically loaded when this provider is used. If the library
+ * cannot be loaded, the provider will not be available and JLine will fall back to other
+ * available providers.
+ * <p>
+ * The native library loading can be configured using system properties as documented in
+ * {@link org.jline.nativ.JLineNativeLoader}.
+ *
+ * @see org.jline.nativ.JLineNativeLoader
+ * @see org.jline.terminal.TerminalBuilder
+ */
 public class JniTerminalProvider implements TerminalProvider {
+
+    /**
+     * Creates a new JNI terminal provider instance and ensures the native library is loaded.
+     * <p>
+     * The constructor initializes the JLine native library using {@link org.jline.nativ.JLineNativeLoader#initialize()}.
+     * If the native library cannot be loaded, methods in this provider may throw exceptions when used.
+     */
+    public JniTerminalProvider() {
+        try {
+            // Ensure the native library is loaded
+            org.jline.nativ.JLineNativeLoader.initialize();
+        } catch (Exception e) {
+            // Log the error but don't throw - this allows the provider to be instantiated
+            // even if the native library can't be loaded. TerminalBuilder will handle this
+            // by trying other providers.
+            Log.debug("Failed to load JLine native library: " + e.getMessage(), e);
+        }
+    }
 
     @Override
     public String name() {
