@@ -266,6 +266,28 @@ public class ColorPalette {
         return Arrays.copyOfRange(palette, 0, max + 1);
     }
 
+    /**
+     * Get the terminal's default foreground color.
+     * @return the RGB value of the default foreground color, or -1 if not available
+     */
+    public int getDefaultForeground() {
+        if (terminal == null) {
+            return -1;
+        }
+        return terminal.getDefaultForegroundColor();
+    }
+
+    /**
+     * Get the terminal's default background color.
+     * @return the RGB value of the default background color, or -1 if not available
+     */
+    public int getDefaultBackground() {
+        if (terminal == null) {
+            return -1;
+        }
+        return terminal.getDefaultBackgroundColor();
+    }
+
     @Override
     public String toString() {
         return "ColorPalette[" + "length=" + getLength() + ", " + "distance='" + getDist() + "\']";
