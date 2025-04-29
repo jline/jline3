@@ -293,4 +293,26 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<java.lang.fore
             return new Cursor(info.cursorPosition().x(), info.cursorPosition().y());
         }
     }
+
+    @Override
+    public int getDefaultForegroundColor() {
+        try (java.lang.foreign.Arena arena = java.lang.foreign.Arena.ofConfined()) {
+            CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO(arena);
+            if (GetConsoleScreenBufferInfo(outConsole, info) == 0) {
+                return -1;
+            }
+            return convertAttributeToRgb(info.attributes() & 0x0F, true);
+        }
+    }
+
+    @Override
+    public int getDefaultBackgroundColor() {
+        try (java.lang.foreign.Arena arena = java.lang.foreign.Arena.ofConfined()) {
+            CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO(arena);
+            if (GetConsoleScreenBufferInfo(outConsole, info) == 0) {
+                return -1;
+            }
+            return convertAttributeToRgb((info.attributes() & 0xF0) >> 4, false);
+        }
+    }
 }

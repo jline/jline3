@@ -295,4 +295,24 @@ public abstract class AbstractTerminal implements TerminalExt {
                 + type + '\'' + ", size='"
                 + getSize() + '\'' + ']';
     }
+
+    /**
+     * Get the terminal's default foreground color.
+     * This method should be overridden by concrete implementations.
+     *
+     * @return the RGB value of the default foreground color, or -1 if not available
+     */
+    public int getDefaultForegroundColor() {
+        return -1;
+    }
+
+    /**
+     * Get the terminal's default background color.
+     * This method should be overridden by concrete implementations.
+     *
+     * @return the RGB value of the default background color, or -1 if not available
+     */
+    public int getDefaultBackgroundColor() {
+        return -1;
+    }
 }

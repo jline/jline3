@@ -390,4 +390,20 @@ public interface Terminal extends Closeable, Flushable {
      * Color support
      */
     ColorPalette getPalette();
+
+    /**
+     * Get the terminal's default foreground color.
+     * @return the RGB value of the default foreground color, or -1 if not available
+     */
+    default int getDefaultForegroundColor() {
+        return getPalette().getDefaultForeground();
+    }
+
+    /**
+     * Get the terminal's default background color.
+     * @return the RGB value of the default background color, or -1 if not available
+     */
+    default int getDefaultBackgroundColor() {
+        return getPalette().getDefaultBackground();
+    }
 }

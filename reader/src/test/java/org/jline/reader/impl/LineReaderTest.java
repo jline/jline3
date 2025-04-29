@@ -135,6 +135,16 @@ public class LineReaderTest {
                     protected void setConsoleMode(Object console, int mode) {}
 
                     @Override
+                    public int getDefaultForegroundColor() {
+                        return -1;
+                    }
+
+                    @Override
+                    public int getDefaultBackgroundColor() {
+                        return -1;
+                    }
+
+                    @Override
                     protected boolean processConsoleInput() throws IOException {
                         return false;
                     }

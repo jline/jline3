@@ -291,4 +291,22 @@ public class JansiWinSysTerminal extends AbstractWindowsTerminal<Long> {
         strings.remove(InfoCmp.Capability.delete_line);
         strings.remove(InfoCmp.Capability.parm_delete_line);
     }
+
+    @Override
+    public int getDefaultForegroundColor() {
+        CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO();
+        if (GetConsoleScreenBufferInfo(outConsole, info) == 0) {
+            return -1;
+        }
+        return convertAttributeToRgb(info.attributes & 0x0F, true);
+    }
+
+    @Override
+    public int getDefaultBackgroundColor() {
+        CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO();
+        if (GetConsoleScreenBufferInfo(outConsole, info) == 0) {
+            return -1;
+        }
+        return convertAttributeToRgb((info.attributes & 0xF0) >> 4, false);
+    }
 }

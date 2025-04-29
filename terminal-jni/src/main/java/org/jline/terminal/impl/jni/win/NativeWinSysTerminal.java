@@ -306,4 +306,22 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<Long> {
         FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, 0, errorCode, 0, data, bufferSize, null);
         return new String(data, StandardCharsets.UTF_16LE).trim();
     }
+
+    @Override
+    public int getDefaultForegroundColor() {
+        CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO();
+        if (GetConsoleScreenBufferInfo(outConsole, info) == 0) {
+            return -1;
+        }
+        return convertAttributeToRgb(info.attributes & 0x0F, true);
+    }
+
+    @Override
+    public int getDefaultBackgroundColor() {
+        CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO();
+        if (GetConsoleScreenBufferInfo(outConsole, info) == 0) {
+            return -1;
+        }
+        return convertAttributeToRgb((info.attributes & 0xF0) >> 4, false);
+    }
 }

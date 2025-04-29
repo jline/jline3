@@ -81,6 +81,16 @@ public class AbstractWindowsTerminalTest {
     }
 
     private static class TestTerminal extends AbstractWindowsTerminal<Object> {
+        @Override
+        public int getDefaultForegroundColor() {
+            return -1;
+        }
+
+        @Override
+        public int getDefaultBackgroundColor() {
+            return -1;
+        }
+
         public TestTerminal(StringWriter sw) throws IOException {
             super(
                     null,

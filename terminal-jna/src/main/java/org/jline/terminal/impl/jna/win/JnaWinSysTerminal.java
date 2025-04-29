@@ -282,4 +282,18 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
         Kernel32.INSTANCE.GetConsoleScreenBufferInfo(consoleOut, info);
         return new Cursor(info.dwCursorPosition.X, info.dwCursorPosition.Y);
     }
+
+    @Override
+    public int getDefaultForegroundColor() {
+        Kernel32.CONSOLE_SCREEN_BUFFER_INFO info = new Kernel32.CONSOLE_SCREEN_BUFFER_INFO();
+        Kernel32.INSTANCE.GetConsoleScreenBufferInfo(consoleOut, info);
+        return convertAttributeToRgb(info.wAttributes & 0x0F, true);
+    }
+
+    @Override
+    public int getDefaultBackgroundColor() {
+        Kernel32.CONSOLE_SCREEN_BUFFER_INFO info = new Kernel32.CONSOLE_SCREEN_BUFFER_INFO();
+        Kernel32.INSTANCE.GetConsoleScreenBufferInfo(consoleOut, info);
+        return convertAttributeToRgb((info.wAttributes & 0xF0) >> 4, false);
+    }
 }

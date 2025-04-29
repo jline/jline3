@@ -48,6 +48,16 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
 
     public static final String TYPE_WINDOWS = "windows";
     public static final String TYPE_WINDOWS_256_COLOR = "windows-256color";
+
+    // Windows console color constants
+    protected static final int FOREGROUND_BLUE = 0x0001;
+    protected static final int FOREGROUND_GREEN = 0x0002;
+    protected static final int FOREGROUND_RED = 0x0004;
+    protected static final int FOREGROUND_INTENSITY = 0x0008;
+    protected static final int BACKGROUND_BLUE = 0x0010;
+    protected static final int BACKGROUND_GREEN = 0x0020;
+    protected static final int BACKGROUND_RED = 0x0040;
+    protected static final int BACKGROUND_INTENSITY = 0x0080;
     public static final String TYPE_WINDOWS_CONEMU = "windows-conemu";
     public static final String TYPE_WINDOWS_VTP = "windows-vtp";
 
@@ -412,6 +422,66 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
         focusTracking = tracking;
         return true;
     }
+
+    /**
+     * Get the default foreground color for Windows terminals.
+     *
+     * @return the RGB value of the default foreground color, or -1 if not available
+     */
+    public abstract int getDefaultForegroundColor();
+
+    /**
+     * Get the default background color for Windows terminals.
+     *
+     * @return the RGB value of the default background color, or -1 if not available
+     */
+    public abstract int getDefaultBackgroundColor();
+
+    /**
+     * Convert Windows console attribute to RGB color.
+     *
+     * @param attribute the Windows console attribute
+     * @param foreground true for foreground color, false for background color
+     * @return the RGB value of the color
+     */
+    protected int convertAttributeToRgb(int attribute, boolean foreground) {
+        // Map Windows console attributes to ANSI colors
+        int index = 0;
+        if (foreground) {
+            if ((attribute & FOREGROUND_RED) != 0) index |= 0x1;
+            if ((attribute & FOREGROUND_GREEN) != 0) index |= 0x2;
+            if ((attribute & FOREGROUND_BLUE) != 0) index |= 0x4;
+            if ((attribute & FOREGROUND_INTENSITY) != 0) index |= 0x8;
+        } else {
+            if ((attribute & BACKGROUND_RED) != 0) index |= 0x1;
+            if ((attribute & BACKGROUND_GREEN) != 0) index |= 0x2;
+            if ((attribute & BACKGROUND_BLUE) != 0) index |= 0x4;
+            if ((attribute & BACKGROUND_INTENSITY) != 0) index |= 0x8;
+        }
+        return ANSI_COLORS[index];
+    }
+
+    /**
+     * ANSI colors mapping.
+     */
+    protected static final int[] ANSI_COLORS = {
+        0x000000, // black
+        0xcd0000, // red
+        0x00cd00, // green
+        0xcdcd00, // yellow
+        0x0000ee, // blue
+        0xcd00cd, // magenta
+        0x00cdcd, // cyan
+        0xe5e5e5, // white
+        0x7f7f7f, // bright black
+        0xff0000, // bright red
+        0x00ff00, // bright green
+        0xffff00, // bright yellow
+        0x5c5cff, // bright blue
+        0xff00ff, // bright magenta
+        0x00ffff, // bright cyan
+        0xffffff // bright white
+    };
 
     @Override
     public boolean canPauseResume() {
