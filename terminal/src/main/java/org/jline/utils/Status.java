@@ -257,6 +257,9 @@ public class Status {
             super.update(newLines, targetCursorPos, flush);
             if (cursorPos != -1) {
                 terminal.puts(Capability.restore_cursor);
+                if (flush) {
+                    terminal.flush();
+                }
             }
         }
 
