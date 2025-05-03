@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -25,8 +25,6 @@ import org.jline.reader.ParsedLine;
  * A {@link Completer} implementation that invokes a child completer using the appropriate <i>separator</i> argument.
  * This can be used instead of the individual completers having to know about argument parsing semantics.
  *
- * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
- * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  * @since 2.3
  */
 public class ArgumentCompleter implements Completer {

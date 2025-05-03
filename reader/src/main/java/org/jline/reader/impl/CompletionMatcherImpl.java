@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -20,6 +20,30 @@ import org.jline.reader.CompletionMatcher;
 import org.jline.reader.LineReader;
 import org.jline.utils.AttributedString;
 
+/**
+ * Default implementation of the {@link CompletionMatcher} interface.
+ * <p>
+ * This matcher provides sophisticated algorithms for matching completion candidates
+ * against user input, with support for:
+ * <ul>
+ *   <li>Prefix matching - candidates that start with the input text</li>
+ *   <li>Substring matching - candidates that contain the input text</li>
+ *   <li>Camel case matching - matching based on camel case patterns</li>
+ *   <li>Fuzzy matching - candidates that approximately match with allowed typos</li>
+ * </ul>
+ * <p>
+ * The matcher uses a chain of matching strategies, trying each one in sequence until
+ * matches are found. This allows for a graceful fallback from exact matches to more
+ * approximate matches.
+ * <p>
+ * The behavior of the matcher can be controlled through LineReader options such as
+ * {@link LineReader.Option#COMPLETE_MATCHER_TYPO} and
+ * {@link LineReader.Option#COMPLETE_MATCHER_CAMELCASE}.
+ *
+ * @see CompletionMatcher
+ * @see LineReader.Option#COMPLETE_MATCHER_TYPO
+ * @see LineReader.Option#COMPLETE_MATCHER_CAMELCASE
+ */
 public class CompletionMatcherImpl implements CompletionMatcher {
     protected Predicate<String> exact;
     protected List<Function<Map<String, List<Candidate>>, Map<String, List<Candidate>>>> matchers;

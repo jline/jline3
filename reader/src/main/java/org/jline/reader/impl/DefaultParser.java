@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -18,6 +18,29 @@ import org.jline.reader.EOFError;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.Parser;
 
+/**
+ * Default implementation of the {@link Parser} interface.
+ * <p>
+ * This parser provides a flexible implementation for parsing command lines into tokens,
+ * with support for:
+ * <ul>
+ *   <li>Quoted strings with customizable quote characters</li>
+ *   <li>Escaped characters with customizable escape characters</li>
+ *   <li>Bracket matching with customizable bracket pairs</li>
+ *   <li>Line and block comments with customizable delimiters</li>
+ *   <li>Command and variable name validation with customizable regex patterns</li>
+ * </ul>
+ * <p>
+ * The parser is highly configurable through its chainable setter methods, allowing
+ * applications to customize its behavior to match their specific syntax requirements.
+ * <p>
+ * The parser also implements the {@link CompletingParsedLine} interface, which provides
+ * additional methods for handling completion with proper escaping of special characters.
+ *
+ * @see Parser
+ * @see CompletingParsedLine
+ * @see LineReader#setParser(Parser)
+ */
 public class DefaultParser implements Parser {
 
     public enum Bracket {
@@ -655,8 +678,6 @@ public class DefaultParser implements Parser {
 
     /**
      * The result of a delimited buffer.
-     *
-     * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
      */
     public class ArgumentList implements ParsedLine, CompletingParsedLine {
         private final String line;

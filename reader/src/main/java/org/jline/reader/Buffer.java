@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,36 +8,116 @@
  */
 package org.jline.reader;
 
+/**
+ * Represents the editable text buffer in the LineReader.
+ * <p>
+ * The Buffer interface provides methods for manipulating the text that the user
+ * is currently editing in the LineReader. It supports operations such as cursor
+ * movement, text insertion and deletion, and content retrieval.
+ * <p>
+ * The buffer maintains a current cursor position that indicates where text will
+ * be inserted or deleted. Many of the methods in this interface operate relative
+ * to this cursor position.
+ * <p>
+ * The default implementation is {@link org.jline.reader.impl.BufferImpl}.
+ *
+ * @see LineReader#getBuffer()
+ * @see org.jline.reader.impl.BufferImpl
+ */
 public interface Buffer {
 
     /*
      * Read access
      */
 
+    /**
+     * Returns the current cursor position in the buffer.
+     *
+     * @return the current cursor position (0-based index)
+     */
     int cursor();
 
+    /**
+     * Returns the character at the specified position in the buffer.
+     *
+     * @param i the position to check
+     * @return the character at the specified position, or -1 if the position is invalid
+     */
     int atChar(int i);
 
+    /**
+     * Returns the length of the buffer.
+     *
+     * @return the number of characters in the buffer
+     */
     int length();
 
+    /**
+     * Returns the character at the current cursor position.
+     *
+     * @return the character at the cursor position, or -1 if the cursor is at the end of the buffer
+     */
     int currChar();
 
+    /**
+     * Returns the character before the current cursor position.
+     *
+     * @return the character before the cursor position, or -1 if the cursor is at the beginning of the buffer
+     */
     int prevChar();
 
+    /**
+     * Returns the character after the current cursor position.
+     *
+     * @return the character after the cursor position, or -1 if the cursor is at the end of the buffer
+     */
     int nextChar();
 
     /*
      * Movement
      */
 
+    /**
+     * Moves the cursor to the specified position.
+     *
+     * @param position the position to move the cursor to
+     * @return true if the cursor was moved, false if the position was invalid
+     */
     boolean cursor(int position);
 
+    /**
+     * Moves the cursor by the specified number of characters.
+     * Positive values move right, negative values move left.
+     *
+     * @param num the number of characters to move
+     * @return the number of positions actually moved
+     */
     int move(int num);
 
+    /**
+     * Moves the cursor up one line while maintaining the same column position if possible.
+     * This is used for multi-line editing.
+     *
+     * @return true if the cursor was moved, false if it was already at the first line
+     */
     boolean up();
 
+    /**
+     * Moves the cursor down one line while maintaining the same column position if possible.
+     * This is used for multi-line editing.
+     *
+     * @return true if the cursor was moved, false if it was already at the last line
+     */
     boolean down();
 
+    /**
+     * Moves the cursor by the specified number of columns and rows.
+     * This is used for multi-line editing.
+     *
+     * @param dx the number of columns to move (positive for right, negative for left)
+     * @param dy the number of rows to move (positive for down, negative for up)
+     * @return true if the cursor was moved, false otherwise
+     */
     boolean moveXY(int dx, int dy);
 
     /*

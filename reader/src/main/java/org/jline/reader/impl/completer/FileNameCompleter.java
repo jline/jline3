@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -39,8 +39,6 @@ import org.jline.utils.AttributedStyle;
  * not provide any way of determining that easily</li>
  * </ul>
  *
- * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
- * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  * @since 2.3
  * @deprecated use <code>org.jline.builtins.Completers$FileNameCompleter</code> instead
  */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -18,6 +18,27 @@ import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.WCWidth;
 
+/**
+ * Default implementation of the {@link Highlighter} interface.
+ * <p>
+ * This highlighter provides basic syntax highlighting capabilities for the LineReader,
+ * including:
+ * <ul>
+ *   <li>Highlighting of search matches</li>
+ *   <li>Highlighting of errors based on patterns or indices</li>
+ *   <li>Highlighting of selected regions</li>
+ * </ul>
+ * <p>
+ * The highlighting is applied using {@link AttributedStyle} to change the appearance
+ * of text in the terminal, such as colors, bold, underline, etc.
+ * <p>
+ * Applications can customize the highlighting behavior by extending this class
+ * and overriding the {@link #highlight(LineReader, String)} method.
+ *
+ * @see Highlighter
+ * @see AttributedStyle
+ * @see LineReader#setHighlighter(Highlighter)
+ */
 public class DefaultHighlighter implements Highlighter {
     protected Pattern errorPattern;
     protected int errorIndex = -1;
