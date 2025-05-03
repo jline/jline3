@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -24,6 +24,41 @@ import org.jline.utils.NonBlocking;
 import org.jline.utils.NonBlockingInputStream;
 import org.jline.utils.NonBlockingReader;
 
+/**
+ * A minimal terminal implementation with limited capabilities.
+ *
+ * <p>
+ * The DumbTerminal class provides a basic terminal implementation that works in
+ * environments where a full-featured terminal is not available or not supported.
+ * It has minimal capabilities and does not support features like cursor movement,
+ * color output, or advanced input processing.
+ * </p>
+ *
+ * <p>
+ * This terminal type is often used as a fallback when more capable terminal
+ * implementations cannot be created, such as in non-interactive environments,
+ * redirected I/O scenarios, or when running inside IDEs or other tools that
+ * don't provide full terminal emulation.
+ * </p>
+ *
+ * <p>
+ * The DumbTerminal supports two variants:
+ * </p>
+ * <ul>
+ *   <li>Standard dumb terminal ({@link org.jline.terminal.Terminal#TYPE_DUMB}) - No color support</li>
+ *   <li>Color dumb terminal ({@link org.jline.terminal.Terminal#TYPE_DUMB_COLOR}) - Basic color support</li>
+ * </ul>
+ *
+ * <p>
+ * While limited in capabilities, the DumbTerminal still provides the core terminal
+ * functionality such as reading input and writing output, making it suitable for
+ * basic console applications that don't require advanced terminal features.
+ * </p>
+ *
+ * @see org.jline.terminal.Terminal#TYPE_DUMB
+ * @see org.jline.terminal.Terminal#TYPE_DUMB_COLOR
+ * @see org.jline.terminal.impl.AbstractTerminal
+ */
 public class DumbTerminal extends AbstractTerminal {
 
     private final TerminalProvider provider;

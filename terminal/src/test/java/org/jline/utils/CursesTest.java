@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * @author <a href="mailto:gnodet@gmail.com">Guillaume Nodet</a>
+ * Tests for the Curses utility class.
  */
 public class CursesTest {
 

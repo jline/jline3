@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -26,6 +26,36 @@ import org.jline.utils.ShutdownHooks;
 import org.jline.utils.ShutdownHooks.Task;
 import org.jline.utils.Signals;
 
+/**
+ * Terminal implementation for POSIX systems using system streams.
+ *
+ * <p>
+ * The PosixSysTerminal class provides a terminal implementation for POSIX systems
+ * (Linux, macOS, etc.) that uses the system standard input and output streams.
+ * It extends the AbstractPosixTerminal class and adds functionality specific to
+ * system stream-based terminals.
+ * </p>
+ *
+ * <p>
+ * This implementation is used when connecting to the actual system terminal, such
+ * as when running a console application in a terminal window. It provides access
+ * to the standard input and output streams, allowing for interaction with the
+ * user through the terminal.
+ * </p>
+ *
+ * <p>
+ * Key features of this implementation include:
+ * </p>
+ * <ul>
+ *   <li>Direct access to system standard input and output</li>
+ *   <li>Support for terminal attributes and size changes</li>
+ *   <li>Support for non-blocking I/O</li>
+ *   <li>Automatic restoration of terminal state on shutdown</li>
+ * </ul>
+ *
+ * @see org.jline.terminal.impl.AbstractPosixTerminal
+ * @see org.jline.terminal.spi.Pty
+ */
 public class PosixSysTerminal extends AbstractPosixTerminal {
 
     protected final NonBlockingInputStream input;

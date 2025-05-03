@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -10,6 +10,39 @@ package org.jline.utils;
 
 import java.io.File;
 
+/**
+ * Utility class for operating system detection and OS-specific operations.
+ *
+ * <p>
+ * The OSUtils class provides constants and methods for detecting the current operating
+ * system and performing OS-specific operations. It helps JLine components adapt their
+ * behavior based on the platform they're running on, which is particularly important
+ * for terminal handling where different operating systems have different terminal
+ * implementations and capabilities.
+ * </p>
+ *
+ * <p>
+ * This class includes constants for detecting common operating systems:
+ * </p>
+ * <ul>
+ *   <li>Windows - Including detection of Cygwin and MSYS environments</li>
+ *   <li>Linux</li>
+ *   <li>macOS (OSX)</li>
+ *   <li>AIX</li>
+ *   <li>Other Unix-like systems</li>
+ * </ul>
+ *
+ * <p>
+ * It also provides utility methods for working with file paths, environment variables,
+ * and other OS-specific features that affect terminal behavior.
+ * </p>
+ *
+ * <p>
+ * This class is used throughout JLine to ensure correct behavior across different
+ * platforms, particularly for terminal detection, path handling, and native library
+ * loading.
+ * </p>
+ */
 public class OSUtils {
 
     public static final boolean IS_LINUX =

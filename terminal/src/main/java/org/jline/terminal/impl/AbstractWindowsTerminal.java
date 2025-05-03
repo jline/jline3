@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2023, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -33,16 +33,49 @@ import org.jline.utils.Signals;
 import org.jline.utils.WriterOutputStream;
 
 /**
- * The AbstractWindowsTerminal is used as the base class for windows terminal.
- * Due to windows limitations, mostly the missing support for ansi sequences,
- * the only way to create a correct terminal is to use the windows api to set
- * character attributes, move the cursor, erasing, etc...
+ * Base implementation for terminals on Windows systems.
  *
- * UTF-8 support is also lacking in windows and the code page supposed to
- * emulate UTF-8 is a bit broken. In order to work around this broken
- * code page, windows api WriteConsoleW is used directly.  This means that
- * the writer() becomes the primary output, while the output() is bridged
- * to the writer() using a WriterOutputStream wrapper.
+ * <p>
+ * The AbstractWindowsTerminal class provides a foundation for terminal implementations
+ * on Windows operating systems. It addresses Windows-specific limitations and
+ * peculiarities, particularly related to console handling, character encoding,
+ * and ANSI sequence support.
+ * </p>
+ *
+ * <p>
+ * Due to Windows limitations, particularly the historically limited support for ANSI
+ * sequences, this implementation uses Windows-specific APIs to handle terminal
+ * operations such as setting character attributes, moving the cursor, erasing content,
+ * and other terminal functions. This approach provides better compatibility and
+ * performance compared to emulating ANSI sequences on Windows.
+ * </p>
+ *
+ * <p>
+ * UTF-8 support has also been historically problematic on Windows, with the code page
+ * meant to emulate UTF-8 being somewhat broken. To work around these issues, this
+ * implementation uses the Windows API WriteConsoleW directly. As a result, the
+ * writer() method becomes the primary output mechanism, while the output() stream
+ * is bridged to the writer using a WriterOutputStream wrapper.
+ * </p>
+ *
+ * <p>
+ * Key features provided by this class include:
+ * </p>
+ * <ul>
+ *   <li>Windows console API integration</li>
+ *   <li>Color attribute handling</li>
+ *   <li>Cursor positioning and manipulation</li>
+ *   <li>Proper UTF-8 and Unicode support</li>
+ *   <li>Input processing for Windows console events</li>
+ * </ul>
+ *
+ * <p>
+ * This class is designed to be extended by concrete implementations that use
+ * specific Windows API access mechanisms (e.g., JNA, JNI, FFM).
+ * </p>
+ *
+ * @see org.jline.terminal.impl.AbstractTerminal
+ * @param <Console> the Windows console type used by the specific implementation
  */
 public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal {
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2023, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -61,12 +61,32 @@ import static org.jline.keymap.KeyMap.translate;
 import static org.jline.terminal.TerminalBuilder.PROP_DISABLE_ALTERNATE_CHARSET;
 
 /**
- * A reader for terminal applications. It supports custom tab-completion,
- * saveable command history, and command line editing.
+ * The default implementation of the {@link LineReader} interface.
+ * <p>
+ * This class provides a comprehensive implementation of line editing capabilities
+ * for interactive terminal applications, including:
+ * <ul>
+ *   <li>Command history navigation and management</li>
+ *   <li>Tab completion with customizable completion strategies</li>
+ *   <li>Syntax highlighting</li>
+ *   <li>Emacs and Vi editing modes</li>
+ *   <li>Key binding customization</li>
+ *   <li>Cut and paste with kill ring</li>
+ *   <li>Undo/redo functionality</li>
+ *   <li>Search through history</li>
+ *   <li>Multi-line editing</li>
+ *   <li>Character masking for password input</li>
+ * </ul>
+ * <p>
+ * This implementation is highly configurable through options and variables that
+ * control various aspects of its behavior. It also provides a rich set of widgets
+ * (editing functions) that can be bound to key sequences.
+ * <p>
+ * Most applications should not create instances of this class directly, but instead
+ * use the {@link LineReaderBuilder} to create properly configured instances.
  *
- * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
- * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
- * @author <a href="mailto:gnodet@gmail.com">Guillaume Nodet</a>
+ * @see LineReader
+ * @see LineReaderBuilder
  */
 @SuppressWarnings("StatementWithEmptyBody")
 public class LineReaderImpl implements LineReader, Flushable {

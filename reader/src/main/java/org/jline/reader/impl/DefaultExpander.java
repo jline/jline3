@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -14,6 +14,26 @@ import org.jline.reader.Expander;
 import org.jline.reader.History;
 import org.jline.reader.History.Entry;
 
+/**
+ * Default implementation of the {@link Expander} interface.
+ * <p>
+ * This expander provides functionality for expanding special syntax in command lines,
+ * including:
+ * <ul>
+ *   <li>History expansions (e.g., !!, !$, !n, etc.)</li>
+ *   <li>Variable expansions (e.g., $HOME, ${PATH})</li>
+ * </ul>
+ * <p>
+ * The history expansion syntax is similar to that used in Bash and other shells,
+ * allowing users to reference and reuse previous commands or parts of commands.
+ * <p>
+ * The expander is used by the LineReader to process the command line after the user
+ * has accepted it but before it is executed or added to the history.
+ *
+ * @see Expander
+ * @see LineReader#getExpander()
+ * @see LineReader#setExpander(Expander)
+ */
 public class DefaultExpander implements Expander {
 
     /**
