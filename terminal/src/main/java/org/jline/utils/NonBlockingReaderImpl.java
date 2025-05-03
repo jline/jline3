@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -26,7 +26,6 @@ import java.io.Reader;
  *          the thread that handles blocking I/O.
  * </ul>
  * @since 2.7
- * @author Scott C. Gray &lt;scottgray1@gmail.com&gt;
  */
 public class NonBlockingReaderImpl extends NonBlockingReader {
     public static final int READ_EXPIRED = -2;

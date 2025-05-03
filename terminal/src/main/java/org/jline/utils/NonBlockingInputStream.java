@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -12,7 +12,34 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * Non blocking input stream
+ * An input stream that supports non-blocking read operations with timeouts.
+ *
+ * <p>
+ * The NonBlockingInputStream class extends InputStream to provide non-blocking read
+ * operations. Unlike standard input streams, which block indefinitely until data is
+ * available or the end of the stream is reached, non-blocking input streams can be
+ * configured to return immediately or after a specified timeout if no data is available.
+ * </p>
+ *
+ * <p>
+ * This class defines two special return values:
+ * </p>
+ * <ul>
+ *   <li>{@link #EOF} (-1) - Indicates that the end of the stream has been reached</li>
+ *   <li>{@link #READ_EXPIRED} (-2) - Indicates that the read operation timed out</li>
+ * </ul>
+ *
+ * <p>
+ * This abstract class provides the framework for non-blocking input operations, with
+ * concrete implementations handling the details of how the non-blocking behavior is
+ * achieved (e.g., through NIO, separate threads, or native methods).
+ * </p>
+ *
+ * <p>
+ * Non-blocking input streams are particularly useful for terminal applications that
+ * need to perform other tasks while waiting for user input, or that need to implement
+ * features like input timeouts or polling.
+ * </p>
  */
 public abstract class NonBlockingInputStream extends InputStream {
 

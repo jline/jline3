@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -35,6 +35,38 @@ import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Log;
 import org.jline.utils.Status;
 
+/**
+ * Base implementation of the Terminal interface.
+ *
+ * <p>
+ * This abstract class provides a common foundation for terminal implementations,
+ * handling many of the core terminal functions such as signal handling, attribute
+ * management, and capability lookup. It implements most of the methods defined in
+ * the {@link org.jline.terminal.Terminal} interface, leaving only a few abstract
+ * methods to be implemented by concrete subclasses.
+ * </p>
+ *
+ * <p>
+ * Terminal implementations typically extend this class and provide implementations
+ * for the abstract methods related to their specific platform or environment.
+ * This class handles the common functionality, allowing subclasses to focus on
+ * platform-specific details.
+ * </p>
+ *
+ * <p>
+ * Key features provided by this class include:
+ * </p>
+ * <ul>
+ *   <li>Signal handling infrastructure</li>
+ *   <li>Terminal attribute management</li>
+ *   <li>Terminal capability lookup and caching</li>
+ *   <li>Size and cursor position handling</li>
+ *   <li>Mouse and focus tracking support</li>
+ * </ul>
+ *
+ * @see org.jline.terminal.Terminal
+ * @see org.jline.terminal.spi.TerminalExt
+ */
 public abstract class AbstractTerminal implements TerminalExt {
 
     protected final String name;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,6 +8,33 @@
  */
 package org.jline.utils;
 
+/**
+ * Utility class for determining the display width of Unicode characters.
+ *
+ * <p>
+ * The WCWidth class provides methods for calculating the display width of Unicode
+ * characters in terminal environments. This is important for proper text alignment
+ * and cursor positioning, especially when dealing with wide characters (such as
+ * East Asian characters) and zero-width characters (such as combining marks).
+ * </p>
+ *
+ * <p>
+ * This implementation is based on Markus Kuhn's wcwidth implementation, which follows
+ * the Unicode Standard guidelines for character width. It categorizes characters as:
+ * </p>
+ * <ul>
+ *   <li>Zero width (0) - Control characters, combining marks, format characters</li>
+ *   <li>Single width (1) - Most Latin, Greek, Cyrillic, and other scripts</li>
+ *   <li>Double width (2) - East Asian scripts (Chinese, Japanese, Korean)</li>
+ *   <li>Ambiguous width (-1) - Characters with context-dependent width</li>
+ * </ul>
+ *
+ * <p>
+ * This class is used throughout JLine for calculating string display widths,
+ * which is essential for proper terminal display formatting, cursor positioning,
+ * and text alignment.
+ * </p>
+ */
 public final class WCWidth {
 
     private WCWidth() {}

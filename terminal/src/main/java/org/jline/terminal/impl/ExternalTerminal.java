@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -21,13 +21,39 @@ import org.jline.terminal.Size;
 import org.jline.terminal.spi.TerminalProvider;
 
 /**
- * Console implementation with embedded line disciplined.
+ * Terminal implementation designed for external connections with embedded line discipline.
  *
- * This terminal is well-suited for supporting incoming external
- * connections, such as from the network (through telnet, ssh,
- * or any kind of protocol).
- * The terminal will start consuming the input in a separate thread
- * to generate interruption events.
+ * <p>
+ * The ExternalTerminal class provides a terminal implementation that is well-suited
+ * for supporting incoming external connections, such as those from network sources
+ * (telnet, SSH, or other protocols). It extends the LineDisciplineTerminal class,
+ * inheriting its line discipline functionality while adding features specific to
+ * external connection handling.
+ * </p>
+ *
+ * <p>
+ * This terminal implementation starts consuming input in a separate thread to
+ * generate interruption events promptly, ensuring that signals like Ctrl+C are
+ * processed immediately rather than waiting for the application to read the input.
+ * This is particularly important for network-based terminals where latency could
+ * otherwise affect the responsiveness of signal handling.
+ * </p>
+ *
+ * <p>
+ * Key features of this implementation include:
+ * </p>
+ * <ul>
+ *   <li>Support for external connections over various protocols</li>
+ *   <li>Prompt signal handling through background input processing</li>
+ *   <li>Configurable terminal type and attributes</li>
+ *   <li>Support for dynamic size changes</li>
+ * </ul>
+ *
+ * <p>
+ * This terminal is commonly used in server applications that need to provide
+ * terminal access to remote clients, such as SSH servers, telnet servers, or
+ * custom network protocols that require terminal emulation.
+ * </p>
  *
  * @see LineDisciplineTerminal
  */

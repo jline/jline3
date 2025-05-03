@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -20,9 +20,41 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
- * Infocmp helper methods.
+ * Utility class for terminal capability handling and terminfo database access.
  *
- * @author <a href="mailto:gnodet@gmail.com">Guillaume Nodet</a>
+ * <p>
+ * The InfoCmp class provides utilities for working with terminal capabilities and
+ * accessing the terminfo database. It includes functionality for parsing terminfo
+ * entries, accessing capability values, and formatting capability strings with
+ * parameters.
+ * </p>
+ *
+ * <p>
+ * Terminal capabilities are properties that describe what a terminal can do, such as
+ * moving the cursor, changing colors, or clearing the screen. These capabilities are
+ * typically stored in a terminfo database and are accessed by terminal type (e.g.,
+ * "xterm", "vt100").
+ * </p>
+ *
+ * <p>
+ * This class defines three types of capabilities:
+ * </p>
+ * <ul>
+ *   <li><b>Boolean capabilities</b> - Indicate whether a terminal supports a feature</li>
+ *   <li><b>Numeric capabilities</b> - Provide numeric values for terminal properties</li>
+ *   <li><b>String capabilities</b> - Define escape sequences for terminal operations</li>
+ * </ul>
+ *
+ * <p>
+ * The class is named after the "infocmp" utility found in Unix-like systems, which
+ * is used to compare or print terminfo descriptions. It provides similar functionality
+ * for accessing and comparing terminal capabilities in Java.
+ * </p>
+ *
+ * <p>
+ * This class is used extensively throughout JLine to determine terminal capabilities
+ * and generate appropriate escape sequences for terminal operations.
+ * </p>
  */
 public final class InfoCmp {
 

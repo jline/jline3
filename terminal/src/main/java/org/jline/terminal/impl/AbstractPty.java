@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -30,6 +30,32 @@ import static org.jline.terminal.TerminalBuilder.PROP_FILE_DESCRIPTOR_CREATION_M
 import static org.jline.terminal.TerminalBuilder.PROP_FILE_DESCRIPTOR_CREATION_MODE_REFLECTION;
 import static org.jline.terminal.TerminalBuilder.PROP_NON_BLOCKING_READS;
 
+/**
+ * Base implementation of the Pty interface.
+ *
+ * <p>
+ * The AbstractPty class provides a common foundation for pseudoterminal (PTY)
+ * implementations. It handles common functionality such as system stream management
+ * and provider access, while leaving platform-specific PTY operations to be
+ * implemented by concrete subclasses.
+ * </p>
+ *
+ * <p>
+ * This class serves as the base for various PTY implementations, including:
+ * </p>
+ * <ul>
+ *   <li>Native PTY implementations (JNI, JNA, FFM) for direct access to system PTYs</li>
+ *   <li>Exec PTY implementation that uses external commands</li>
+ * </ul>
+ *
+ * <p>
+ * The AbstractPty maintains information about the associated system stream and
+ * terminal provider, which are common to all PTY implementations regardless of
+ * the underlying mechanism used to interact with the terminal.
+ * </p>
+ *
+ * @see org.jline.terminal.spi.Pty
+ */
 public abstract class AbstractPty implements Pty {
 
     protected final TerminalProvider provider;

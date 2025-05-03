@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -24,6 +24,42 @@ import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.NonBlockingReader;
 
+/**
+ * Base implementation for terminals on POSIX-compliant systems.
+ *
+ * <p>
+ * The AbstractPosixTerminal class provides a foundation for terminal implementations
+ * on POSIX-compliant systems such as Linux, macOS, and other Unix-like operating
+ * systems. It builds on the AbstractTerminal class and adds POSIX-specific
+ * functionality, particularly related to pseudoterminal (PTY) handling.
+ * </p>
+ *
+ * <p>
+ * This class manages the interaction with the underlying PTY, handling terminal
+ * attributes, size changes, and other POSIX-specific terminal operations. It
+ * provides implementations for many of the abstract methods defined in
+ * AbstractTerminal, leaving only a few methods to be implemented by concrete
+ * subclasses.
+ * </p>
+ *
+ * <p>
+ * Key features provided by this class include:
+ * </p>
+ * <ul>
+ *   <li>PTY management and interaction</li>
+ *   <li>Terminal attribute preservation and restoration</li>
+ *   <li>Size handling and window change signals</li>
+ *   <li>Cursor position detection</li>
+ * </ul>
+ *
+ * <p>
+ * This class is designed to be extended by concrete implementations that target
+ * specific POSIX platforms or environments.
+ * </p>
+ *
+ * @see org.jline.terminal.impl.AbstractTerminal
+ * @see org.jline.terminal.spi.Pty
+ */
 public abstract class AbstractPosixTerminal extends AbstractTerminal {
 
     protected final Pty pty;

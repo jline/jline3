@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -19,6 +19,42 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.AbstractTerminal;
 import org.jline.utils.InfoCmp.Capability;
 
+/**
+ * Manages a status bar at the bottom of the terminal.
+ *
+ * <p>
+ * The Status class provides functionality for displaying and managing a status bar
+ * at the bottom of the terminal. It allows applications to show persistent status
+ * information to the user while still using the rest of the terminal for normal
+ * input and output.
+ * </p>
+ *
+ * <p>
+ * Key features include:
+ * </p>
+ * <ul>
+ *   <li>Support for multiple status lines</li>
+ *   <li>Styled text with ANSI colors and attributes</li>
+ *   <li>Automatic resizing based on terminal dimensions</li>
+ *   <li>Optional border between main display and status area</li>
+ *   <li>Ability to temporarily suspend the status display</li>
+ * </ul>
+ *
+ * <p>
+ * The status bar is particularly useful for displaying persistent information such as:
+ * </p>
+ * <ul>
+ *   <li>Application mode or state</li>
+ *   <li>Current file or context</li>
+ *   <li>Key bindings or available commands</li>
+ *   <li>Error messages or notifications</li>
+ * </ul>
+ *
+ * <p>
+ * This class is used by various JLine components to provide status information
+ * to the user without disrupting the main terminal interaction.
+ * </p>
+ */
 public class Status {
 
     protected final Terminal terminal;

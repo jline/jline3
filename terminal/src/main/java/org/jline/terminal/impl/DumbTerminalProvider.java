@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, the original author(s).
+ * Copyright (c) 2023-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -23,6 +23,34 @@ import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 
+/**
+ * Terminal provider implementation for dumb terminals.
+ *
+ * <p>
+ * The DumbTerminalProvider class provides a TerminalProvider implementation that
+ * creates DumbTerminal instances. Dumb terminals have minimal capabilities and
+ * are used as a fallback when more capable terminal implementations cannot be
+ * created or when running in environments with limited terminal support.
+ * </p>
+ *
+ * <p>
+ * This provider supports two types of dumb terminals:
+ * </p>
+ * <ul>
+ *   <li>Standard dumb terminal ({@link Terminal#TYPE_DUMB}) - No color support</li>
+ *   <li>Color dumb terminal ({@link Terminal#TYPE_DUMB_COLOR}) - Basic color support</li>
+ * </ul>
+ *
+ * <p>
+ * The provider name is "dumb", which can be specified in the {@code org.jline.terminal.provider}
+ * system property to force the use of this provider. This is useful in environments
+ * where other terminal providers might not work correctly or when terminal capabilities
+ * are not needed.
+ * </p>
+ *
+ * @see org.jline.terminal.spi.TerminalProvider
+ * @see org.jline.terminal.impl.DumbTerminal
+ */
 public class DumbTerminalProvider implements TerminalProvider {
 
     @Override

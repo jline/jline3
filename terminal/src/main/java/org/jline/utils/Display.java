@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -19,9 +19,38 @@ import org.jline.terminal.Terminal;
 import org.jline.utils.InfoCmp.Capability;
 
 /**
- * Handle display and visual cursor.
+ * Manages terminal display and efficient screen updates with cursor positioning.
  *
- * @author <a href="mailto:gnodet@gmail.com">Guillaume Nodet</a>
+ * <p>
+ * The Display class provides functionality for managing the display of content on
+ * the terminal screen. It handles the complexities of cursor positioning, line wrapping,
+ * and efficient screen updates to minimize the amount of data sent to the terminal.
+ * </p>
+ *
+ * <p>
+ * This class supports two main modes of operation:
+ * </p>
+ * <ul>
+ *   <li><b>Full-screen mode</b> - Takes over the entire terminal screen</li>
+ *   <li><b>Partial-screen mode</b> - Updates only a portion of the screen, preserving content above</li>
+ * </ul>
+ *
+ * <p>
+ * Key features include:
+ * </p>
+ * <ul>
+ *   <li>Efficient screen updates using cursor positioning</li>
+ *   <li>Support for multi-line content with proper wrapping</li>
+ *   <li>Handling of ANSI-styled text (colors, attributes)</li>
+ *   <li>Size-aware rendering that adapts to terminal dimensions</li>
+ *   <li>Cursor positioning relative to the display area</li>
+ * </ul>
+ *
+ * <p>
+ * This class is used by various JLine components, such as LineReader, to provide
+ * efficient terminal display management for features like command-line editing,
+ * completion menus, and status messages.
+ * </p>
  */
 public class Display {
 

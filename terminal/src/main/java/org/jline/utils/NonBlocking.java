@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -18,6 +18,32 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CodingErrorAction;
 
+/**
+ * Factory class for creating non-blocking I/O components.
+ *
+ * <p>
+ * The NonBlocking class provides factory methods for creating various non-blocking
+ * input/output components used in JLine. These components allow for non-blocking
+ * reading operations, which are essential for interactive terminal applications
+ * that need to perform other tasks while waiting for user input.
+ * </p>
+ *
+ * <p>
+ * This class offers methods to create:
+ * </p>
+ * <ul>
+ *   <li>Non-blocking readers from various sources (streams, readers)</li>
+ *   <li>Non-blocking input streams</li>
+ *   <li>Pump readers and streams for buffered non-blocking I/O</li>
+ *   <li>Character encoding/decoding utilities for non-blocking I/O</li>
+ * </ul>
+ *
+ * <p>
+ * The non-blocking components created by this factory are used throughout JLine
+ * to implement features like input handling with timeouts, background processing
+ * while waiting for input, and efficient terminal I/O.
+ * </p>
+ */
 public class NonBlocking {
 
     public static NonBlockingPumpReader nonBlockingPumpReader() {

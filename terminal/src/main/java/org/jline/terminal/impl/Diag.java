@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, the original author(s).
+ * Copyright (c) 2022-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -21,12 +21,63 @@ import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
 
+/**
+ * Diagnostic utility for JLine terminals.
+ *
+ * <p>
+ * The Diag class provides diagnostic tools for analyzing and troubleshooting
+ * JLine terminal configurations. It can be used to gather information about
+ * the current environment, available terminal providers, system properties,
+ * and other details relevant to terminal operation.
+ * </p>
+ *
+ * <p>
+ * This class can be run as a standalone application to generate a diagnostic
+ * report, which is useful for debugging terminal-related issues. The report
+ * includes information such as:
+ * </p>
+ * <ul>
+ *   <li>Java version and system properties</li>
+ *   <li>Operating system details</li>
+ *   <li>Available terminal providers</li>
+ *   <li>Terminal capabilities and attributes</li>
+ *   <li>Console and TTY information</li>
+ * </ul>
+ *
+ * <p>
+ * The diagnostic information can help identify configuration issues, missing
+ * dependencies, or platform-specific problems that might affect terminal
+ * functionality.
+ * </p>
+ */
 public class Diag {
 
+    /**
+     * Main entry point for running the diagnostic tool.
+     *
+     * <p>
+     * This method runs the diagnostic tool and prints the results to standard output.
+     * If the "--verbose" flag is provided as an argument, additional detailed
+     * information will be included in the output.
+     * </p>
+     *
+     * @param args command-line arguments (use "--verbose" for detailed output)
+     */
     public static void main(String[] args) {
         diag(System.out, Arrays.asList(args).contains("--verbose"));
     }
 
+    /**
+     * Generates a diagnostic report with standard verbosity.
+     *
+     * <p>
+     * This method generates a diagnostic report with standard verbosity and
+     * writes it to the specified PrintStream. This is equivalent to calling
+     * {@link #diag(PrintStream, boolean)} with {@code verbose=false}.
+     * </p>
+     *
+     * @param out the PrintStream to write the diagnostic report to
+     */
     public static void diag(PrintStream out) {
         diag(out, true);
     }
