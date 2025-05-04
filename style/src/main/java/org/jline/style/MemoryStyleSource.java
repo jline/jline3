@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -18,9 +18,30 @@ import javax.annotation.Nullable;
 import static java.util.Objects.requireNonNull;
 
 /**
- * In-memory {@link StyleSource}.
+ * In-memory implementation of {@link StyleSource}.
+ * <p>
+ * This class provides a thread-safe implementation of StyleSource that stores
+ * style definitions in memory using concurrent hash maps. It is suitable for
+ * use in applications that need to dynamically define and modify styles at runtime.
+ * </p>
+ * <p>
+ * Example usage:
+ * </p>
+ * <pre>
+ * MemoryStyleSource source = new MemoryStyleSource();
+ * source.set("messages", "error", "bold,fg:red");
+ * source.set("messages", "warning", "bold,fg:yellow");
+ * source.set("links", "url", "fg:blue,underline");
+ *
+ * // Use the source with a StyleResolver
+ * StyleResolver resolver = new StyleResolver(source, "messages");
+ * AttributedStyle errorStyle = resolver.resolve(".error");
+ * </pre>
  *
  * @since 3.4
+ * @see StyleSource
+ * @see StyleResolver
+ * @see Styler
  */
 public class MemoryStyleSource implements StyleSource {
     private static final Logger log = Logger.getLogger(MemoryStyleSource.class.getName());

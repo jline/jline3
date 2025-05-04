@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2017, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -9,10 +9,26 @@
 package org.jline.style;
 
 /**
- * Style colors.
+ * Enumeration of named colors for use in styles.
+ * <p>
+ * This enum provides a comprehensive list of named colors that can be used in style
+ * specifications. Each color has an associated ANSI color code and an RGB hex value
+ * (shown in comments).
+ * </p>
+ * <p>
+ * This class is deprecated in favor of {@link org.jline.utils.Colors#rgbColor(String)},
+ * which provides a more flexible way to specify colors using RGB values or X11 color names.
+ * </p>
+ * <p>
+ * Example usage (not recommended due to deprecation):
+ * </p>
+ * <pre>
+ * // Get the ANSI color code for a named color
+ * int code = StyleColor.red.code;  // 9
+ * </pre>
  *
  * @since 3.4
- * @deprecated use {@link org.jline.utils.Colors#rgbColor(String)}
+ * @deprecated use {@link org.jline.utils.Colors#rgbColor(String)} instead
  */
 @Deprecated
 public enum StyleColor {
@@ -273,8 +289,20 @@ public enum StyleColor {
     grey89(254), // #e4e4e4
     grey93(255); // #eeeeee
 
+    /**
+     * The ANSI color code for this color.
+     * <p>
+     * This code can be used in ANSI escape sequences to set the foreground or
+     * background color in a terminal.
+     * </p>
+     */
     public final int code;
 
+    /**
+     * Constructs a StyleColor with the specified ANSI color code.
+     *
+     * @param code the ANSI color code
+     */
     StyleColor(final int code) {
         this.code = code;
     }
