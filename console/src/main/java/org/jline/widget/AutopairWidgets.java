@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -20,15 +20,22 @@ import org.jline.reader.LineReader;
 import org.jline.reader.Reference;
 
 /**
- * Creates and manages widgets that auto-closes, deletes and skips over matching delimiters intelligently.
- *
- * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
+ * Creates and manages widgets that intelligently handle matching delimiters in the console.
+ * <p>
+ * AutopairWidgets provides functionality for automatically:
+ * <ul>
+ *   <li>Closing matching delimiters (brackets, quotes, etc.) when the opening delimiter is typed</li>
+ *   <li>Deleting matching delimiter pairs when backspace is pressed</li>
+ *   <li>Skipping over closing delimiters when they are typed and already present</li>
+ * </ul>
+ * <p>
+ * This behavior is similar to what many modern code editors provide, making it easier
+ * to work with paired delimiters in the console.
+ * <p>
+ * Inspired by zsh-autopair: https://github.com/hlissner/zsh-autopair
  */
 public class AutopairWidgets extends Widgets {
-    /*
-     *  Inspired by zsh-autopair
-     *  https://github.com/hlissner/zsh-autopair
-     */
+    // Configuration for delimiter pairs and boundary characters
     private static final Map<String, String> LBOUNDS;
     private static final Map<String, String> RBOUNDS;
     private final Map<String, String> pairs;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2023, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -29,9 +29,12 @@ import static org.jline.keymap.KeyMap.alt;
 import static org.jline.keymap.KeyMap.ctrl;
 
 /**
- * Create custom widgets by extending Widgets class
+ * Base class for creating custom widgets for JLine's LineReader.
  *
- * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
+ * This abstract class provides methods for creating, managing, and interacting with
+ * widgets in JLine. Widgets are reusable components that can be bound to key sequences
+ * and provide specific functionality when invoked. Custom widget implementations should
+ * extend this class to leverage its utility methods for widget management.
  */
 public abstract class Widgets {
     public static final String TAILTIP_TOGGLE = "tailtip-toggle";
@@ -42,8 +45,14 @@ public abstract class Widgets {
     protected static final String AP_BACKWARD_DELETE_CHAR = "_autopair-backward-delete-char";
     protected static final String TT_ACCEPT_LINE = "_tailtip-accept-line";
 
+    /** The LineReader instance associated with these widgets */
     protected final LineReader reader;
 
+    /**
+     * Creates a new Widgets instance for the specified LineReader.
+     *
+     * @param reader the LineReader to associate with these widgets
+     */
     public Widgets(LineReader reader) {
         this.reader = reader;
     }
@@ -57,6 +66,14 @@ public abstract class Widgets {
         reader.getWidgets().put(name, namedWidget(name, widget));
     }
 
+    /**
+     * Creates a named widget that delegates to the specified widget.
+     * This is used internally to create widgets with specific names.
+     *
+     * @param name the name of the widget
+     * @param widget the widget to delegate to
+     * @return a new widget that delegates to the specified widget and has the specified name
+     */
     private Widget namedWidget(final String name, final Widget widget) {
         return new Widget() {
             @Override
@@ -130,6 +147,14 @@ public abstract class Widgets {
         return false;
     }
 
+    /**
+     * Resolves a widget name to the corresponding widget.
+     * If the name starts with a dot, it is treated as a builtin widget name.
+     *
+     * @param name the name of the widget to resolve
+     * @return the resolved widget
+     * @throws InvalidParameterException if no widget with the specified name exists
+     */
     private Widget widget(String name) {
         Widget out;
         if (name.startsWith(".")) {

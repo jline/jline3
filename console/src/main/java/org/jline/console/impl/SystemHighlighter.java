@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2022, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -30,9 +30,19 @@ import static org.jline.builtins.Styles.NANORC_THEME;
 import static org.jline.builtins.SyntaxHighlighter.REGEX_TOKEN_NAME;
 
 /**
- * Highlight command and language syntax using nanorc highlighter.
+ * Highlighter implementation that provides syntax highlighting for commands and languages.
+ * <p>
+ * SystemHighlighter extends DefaultHighlighter to provide syntax highlighting for:
+ * <ul>
+ *   <li>Command syntax (command names, options, arguments)</li>
+ *   <li>Programming language syntax (for various languages)</li>
+ *   <li>File content based on file extensions</li>
+ * </ul>
+ * <p>
+ * The highlighter uses nanorc syntax definitions for highlighting, making it compatible
+ * with existing nanorc configuration files. It can be customized with different styles
+ * and supports dynamic refreshing of highlighting rules.
  *
- * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public class SystemHighlighter extends DefaultHighlighter {
     private StyleResolver resolver = Styles.lsStyle();

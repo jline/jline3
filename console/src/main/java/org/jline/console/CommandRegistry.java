@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -17,16 +17,30 @@ import org.jline.reader.impl.completer.SystemCompleter;
 import org.jline.terminal.Terminal;
 
 /**
- * Store command information, compile tab completers and execute registered commands.
+ * Interface for registering, describing, and executing commands in a console application.
+ * <p>
+ * The CommandRegistry provides methods for managing a set of commands, including:
+ * <ul>
+ *   <li>Registering commands and their aliases</li>
+ *   <li>Providing command descriptions and usage information</li>
+ *   <li>Executing commands with arguments</li>
+ *   <li>Creating command completers for tab completion</li>
+ * </ul>
+ * <p>
+ * Implementations of this interface can be used to create custom command registries
+ * for specific domains or applications.
  *
- * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public interface CommandRegistry {
 
     /**
-     * Aggregate SystemCompleters of commandRegisteries
-     * @param commandRegistries command registeries which completers is to be aggregated
-     * @return uncompiled SystemCompleter
+     * Aggregates SystemCompleters from multiple command registries into a single completer.
+     * <p>
+     * This method combines the completers from all provided command registries without compiling them.
+     * The resulting completer can be used for tab completion across all commands from the provided registries.
+     *
+     * @param commandRegistries the command registries whose completers are to be aggregated
+     * @return an uncompiled SystemCompleter containing all completers from the provided registries
      */
     static SystemCompleter aggregateCompleters(CommandRegistry... commandRegistries) {
         SystemCompleter out = new SystemCompleter();
@@ -37,9 +51,14 @@ public interface CommandRegistry {
     }
 
     /**
-     * Aggregate and compile SystemCompleters of commandRegisteries
-     * @param commandRegistries command registeries which completers is to be aggregated and compile
-     * @return compiled SystemCompleter
+     * Aggregates and compiles SystemCompleters from multiple command registries into a single completer.
+     * <p>
+     * This method combines the completers from all provided command registries and compiles them into
+     * a single completer. The resulting completer can be used for tab completion across all commands
+     * from the provided registries.
+     *
+     * @param commandRegistries the command registries whose completers are to be aggregated and compiled
+     * @return a compiled SystemCompleter containing all completers from the provided registries
      */
     static SystemCompleter compileCompleters(CommandRegistry... commandRegistries) {
         SystemCompleter out = aggregateCompleters(commandRegistries);
@@ -47,6 +66,16 @@ public interface CommandRegistry {
         return out;
     }
 
+    /**
+     * Creates a completion candidate for the specified command.
+     * <p>
+     * This method searches for the command in the provided registries and creates a completion
+     * candidate with the command's name, group, and description.
+     *
+     * @param commandRegistries the command registries to search for the command
+     * @param command the command name
+     * @return a completion candidate for the command
+     */
     static Candidate createCandidate(CommandRegistry[] commandRegistries, String command) {
         String group = null, desc = null;
         for (CommandRegistry registry : commandRegistries) {
@@ -121,12 +150,27 @@ public interface CommandRegistry {
                 "CommandRegistry method invoke(session, command, ... args) is not implemented!");
     }
 
+    /**
+     * Class representing a command execution session.
+     * <p>
+     * A CommandSession encapsulates the terminal and I/O streams used for command execution.
+     * It provides access to the terminal, input stream, output stream, and error stream
+     * for the command being executed.
+     */
     class CommandSession {
+        /** The terminal for the command session */
         private final Terminal terminal;
+        /** The input stream for the command session */
         private final InputStream in;
+        /** The output stream for the command session */
         private final PrintStream out;
+        /** The error stream for the command session */
         private final PrintStream err;
 
+        /**
+         * Creates a new command session with the system's standard I/O streams.
+         * The terminal will be null in this case.
+         */
         public CommandSession() {
             this.in = System.in;
             this.out = System.out;
@@ -134,10 +178,24 @@ public interface CommandRegistry {
             this.terminal = null;
         }
 
+        /**
+         * Creates a new command session with the specified terminal.
+         * The I/O streams will be derived from the terminal.
+         *
+         * @param terminal the terminal for the command session
+         */
         public CommandSession(Terminal terminal) {
             this(terminal, terminal.input(), new PrintStream(terminal.output()), new PrintStream(terminal.output()));
         }
 
+        /**
+         * Creates a new command session with the specified terminal and I/O streams.
+         *
+         * @param terminal the terminal for the command session
+         * @param in the input stream for the command session
+         * @param out the output stream for the command session
+         * @param err the error stream for the command session
+         */
         public CommandSession(Terminal terminal, InputStream in, PrintStream out, PrintStream err) {
             this.terminal = terminal;
             this.in = in;
@@ -145,18 +203,38 @@ public interface CommandRegistry {
             this.err = err;
         }
 
+        /**
+         * Returns the terminal for the command session.
+         *
+         * @return the terminal, or null if no terminal is associated with this session
+         */
         public Terminal terminal() {
             return terminal;
         }
 
+        /**
+         * Returns the input stream for the command session.
+         *
+         * @return the input stream
+         */
         public InputStream in() {
             return in;
         }
 
+        /**
+         * Returns the output stream for the command session.
+         *
+         * @return the output stream
+         */
         public PrintStream out() {
             return out;
         }
 
+        /**
+         * Returns the error stream for the command session.
+         *
+         * @return the error stream
+         */
         public PrintStream err() {
             return err;
         }

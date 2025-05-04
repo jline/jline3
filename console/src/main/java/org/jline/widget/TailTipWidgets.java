@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2023, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -30,24 +30,37 @@ import org.jline.utils.*;
 import static org.jline.keymap.KeyMap.key;
 
 /**
- * Creates and manages widgets for as you type command line suggestions.
- * Suggestions are created using a command completer data and/or positional argument descriptions.
- *
- * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
+ * Creates and manages widgets for as-you-type command line suggestions.
+ * <p>
+ * TailTipWidgets provides real-time command line suggestions as the user types,
+ * based on command completer data and/or positional argument descriptions. These
+ * suggestions are displayed in the terminal's status bar, helping users understand
+ * the available options and arguments for commands.
+ * <p>
+ * The widgets can be configured to use different suggestion types and display styles,
+ * and can be bound to key sequences for manual invocation.
  */
 public class TailTipWidgets extends Widgets {
+    /**
+     * Enumeration specifying the type of suggestions to display.
+     */
     public enum TipType {
         /**
-         * Prepare command line suggestions using a command positional argument descriptions.
+         * Prepare command line suggestions using a command's positional argument descriptions.
+         * This type focuses on showing information about the expected arguments at the current position.
          */
         TAIL_TIP,
+
         /**
-         * Prepare command line suggestions using a command completer data.
+         * Prepare command line suggestions using a command's completer data.
+         * This type focuses on showing possible completions based on the current input.
          */
         COMPLETER,
+
         /**
-         * Prepare command line suggestions using either a command positional argument descriptions if exists
-         * or command completers data.
+         * Prepare command line suggestions using either a command's positional argument descriptions if they exist,
+         * or command completer data if no argument descriptions are available.
+         * This type provides the most comprehensive suggestions by combining both approaches.
          */
         COMBINED
     }
@@ -61,52 +74,63 @@ public class TailTipWidgets extends Widgets {
     private Object readerErrors;
 
     /**
-     * Creates tailtip widgets used in command line suggestions. Suggestions are created using a command
-     * positional argument names. If argument descriptions do not exists command completer data will be used.
-     * Status bar for argument descriptions will not be created.
+     * Creates tailtip widgets used in command line suggestions.
+     * <p>
+     * This constructor creates widgets that use both positional argument descriptions and completer data
+     * for suggestions (TipType.COMBINED). If argument descriptions don't exist, command completer data
+     * will be used. No status bar for argument descriptions will be created (descriptionSize = 0).
      *
-     * @param reader      LineReader.
-     * @param tailTips    Commands options and positional argument descriptions.
-     * @throws IllegalStateException     If widgets are already created.
+     * @param reader    the LineReader instance to associate with these widgets
+     * @param tailTips  a map of command names to their descriptions, containing options and positional argument information
+     * @throws IllegalStateException if widgets are already created for the LineReader
      */
     public TailTipWidgets(LineReader reader, Map<String, CmdDesc> tailTips) {
         this(reader, tailTips, 0, TipType.COMBINED);
     }
 
     /**
-     * Creates tailtip widgets used in command line suggestions.
-     * Status bar for argument descriptions will not be created.
+     * Creates tailtip widgets used in command line suggestions with a specific tip type.
+     * <p>
+     * This constructor allows specifying which data source to use for suggestions (positional argument
+     * descriptions, completer data, or both). No status bar for argument descriptions will be created
+     * (descriptionSize = 0).
      *
-     * @param reader      LineReader.
-     * @param tailTips    Commands options and positional argument descriptions.
-     * @param tipType     Defines which data will be used for suggestions.
-     * @throws IllegalStateException     If widgets are already created.
+     * @param reader    the LineReader instance to associate with these widgets
+     * @param tailTips  a map of command names to their descriptions, containing options and positional argument information
+     * @param tipType   defines which data will be used for suggestions (TAIL_TIP, COMPLETER, or COMBINED)
+     * @throws IllegalStateException if widgets are already created for the LineReader
      */
     public TailTipWidgets(LineReader reader, Map<String, CmdDesc> tailTips, TipType tipType) {
         this(reader, tailTips, 0, tipType);
     }
 
     /**
-     * Creates tailtip widgets used in command line suggestions. Suggestions are created using a command
-     * positional argument names. If argument descriptions do not exists command completer data will be used.
+     * Creates tailtip widgets used in command line suggestions with a status bar.
+     * <p>
+     * This constructor creates widgets that use both positional argument descriptions and completer data
+     * for suggestions (TipType.COMBINED). If argument descriptions don't exist, command completer data
+     * will be used. A status bar for argument descriptions will be created with the specified size.
      *
-     * @param reader           LineReader.
-     * @param tailTips         Commands options and positional argument descriptions.
-     * @param descriptionSize  Size of the status bar.
-     * @throws IllegalStateException     If widgets are already created.
+     * @param reader           the LineReader instance to associate with these widgets
+     * @param tailTips         a map of command names to their descriptions, containing options and positional argument information
+     * @param descriptionSize  the size of the status bar for displaying argument descriptions (0 for no status bar)
+     * @throws IllegalStateException if widgets are already created for the LineReader
      */
     public TailTipWidgets(LineReader reader, Map<String, CmdDesc> tailTips, int descriptionSize) {
         this(reader, tailTips, descriptionSize, TipType.COMBINED);
     }
 
     /**
-     * Creates tailtip widgets used in command line suggestions.
+     * Creates tailtip widgets used in command line suggestions with a status bar and specific tip type.
+     * <p>
+     * This constructor allows full customization of the widgets, specifying both the status bar size
+     * and which data source to use for suggestions (positional argument descriptions, completer data, or both).
      *
-     * @param reader           LineReader.
-     * @param tailTips         Commands options and  positional argument descriptions.
-     * @param descriptionSize  Size of the status bar.
-     * @param tipType          Defines which data will be used for suggestions.
-     * @throws IllegalStateException     If widgets are already created.
+     * @param reader           the LineReader instance to associate with these widgets
+     * @param tailTips         a map of command names to their descriptions, containing options and positional argument information
+     * @param descriptionSize  the size of the status bar for displaying argument descriptions (0 for no status bar)
+     * @param tipType          defines which data will be used for suggestions (TAIL_TIP, COMPLETER, or COMBINED)
+     * @throws IllegalStateException if widgets are already created for the LineReader
      */
     public TailTipWidgets(LineReader reader, Map<String, CmdDesc> tailTips, int descriptionSize, TipType tipType) {
         this(reader, tailTips, descriptionSize, tipType, null);
