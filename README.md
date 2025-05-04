@@ -1,7 +1,7 @@
 # JLine - Java Console Library
 
 [![Maven Central](https://img.shields.io/maven-central/v/org.jline/jline.svg)](https://search.maven.org/search?q=g:org.jline)
-[![Build Status](https://github.com/jline/jline3/workflows/Java%20CI/badge.svg)](https://github.com/jline/jline3/actions)
+[![Build Status](https://github.com/jline/jline3/actions/workflows/master-build.yml/badge.svg)](https://github.com/jline/jline3/actions)
 [![License](https://img.shields.io/badge/License-BSD-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 JLine is a Java library for handling console input. It's similar to [GNU Readline](https://tiswww.case.edu/php/chet/readline/rltop.html) but with a focus on portability, flexibility, and integration with Java applications.
@@ -86,7 +86,7 @@ JLine is organized into several modules:
 
 ## ConsoleUI
 
-<img src="./doc/ConsoleUI-Logo.png" width="200" align="right" alt="ConsoleUI logo">
+<img src="./docs/ConsoleUI-Logo.png" width="200" align="right" alt="ConsoleUI logo">
 
 JLine includes ConsoleUI, a library for creating interactive command-line interfaces inspired by [Inquirer.js](https://github.com/SBoudrias/Inquirer.js). It provides simple UI elements for ANSI terminals:
 
