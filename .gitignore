@@ -9,3 +9,4 @@ build.rc
 
 .mvn/wrapper/maven-wrapper.jar
 .dependency-reduced-pom.xml
+website/snippets/
