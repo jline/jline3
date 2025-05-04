@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -19,6 +19,23 @@ import org.jline.utils.StyleResolver;
 
 import static org.jline.builtins.SyntaxHighlighter.REGEX_TOKEN_NAME;
 
+/**
+ * Provides styling utilities for JLine applications.
+ * <p>
+ * This class contains methods and constants for working with terminal styles and colors.
+ * It supports various style formats including:
+ * </p>
+ * <ul>
+ *   <li>LS_COLORS format for file listings</li>
+ *   <li>Help text styling</li>
+ *   <li>Print styling</li>
+ *   <li>Syntax highlighting</li>
+ * </ul>
+ * <p>
+ * The class provides parsers for different style formats and resolvers to apply styles
+ * to text in the terminal.
+ * </p>
+ */
 public class Styles {
     public static final String NANORC_THEME = "NANORC_THEME";
     protected static final List<String> ANSI_STYLES = Arrays.asList(
@@ -47,14 +64,41 @@ public class Styles {
     private static final Pattern STYLE_ELEMENT_SEPARATOR = Pattern.compile(":");
     private static final Pattern STYLE_ELEMENT_PATTERN = Pattern.compile(KEY + "=" + VALUES);
 
+    /**
+     * Gets a StyleResolver for file listings using LS_COLORS format.
+     * <p>
+     * This method creates a StyleResolver that applies styles to file listings
+     * based on the LS_COLORS environment variable or default styles if not set.
+     * </p>
+     *
+     * @return a StyleResolver for file listings
+     */
     public static StyleResolver lsStyle() {
         return style(LS_COLORS, DEFAULT_LS_COLORS);
     }
 
+    /**
+     * Gets a StyleResolver for help text using HELP_COLORS format.
+     * <p>
+     * This method creates a StyleResolver that applies styles to help text
+     * based on the HELP_COLORS environment variable or default styles if not set.
+     * </p>
+     *
+     * @return a StyleResolver for help text
+     */
     public static StyleResolver helpStyle() {
         return style(HELP_COLORS, DEFAULT_HELP_COLORS);
     }
 
+    /**
+     * Gets a StyleResolver for print output using PRNT_COLORS format.
+     * <p>
+     * This method creates a StyleResolver that applies styles to print output
+     * based on the PRNT_COLORS environment variable or default styles if not set.
+     * </p>
+     *
+     * @return a StyleResolver for print output
+     */
     public static StyleResolver prntStyle() {
         return style(PRNT_COLORS, DEFAULT_PRNT_COLORS);
     }

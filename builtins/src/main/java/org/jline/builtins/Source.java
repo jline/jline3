@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2022, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -18,14 +18,42 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.stream.Stream;
 
+/**
+ * Interface representing a source of data that can be read.
+ * <p>
+ * This interface provides a unified way to access data from different sources,
+ * such as files, URLs, or standard input. It abstracts away the details of how
+ * the data is accessed, allowing commands to work with different types of input
+ * sources in a consistent way.
+ * </p>
+ */
 public interface Source {
 
+    /**
+     * Gets the name of this source.
+     *
+     * @return the name of the source
+     */
     String getName();
 
+    /**
+     * Opens a stream to read the content of this source.
+     *
+     * @return an input stream for reading the source content
+     * @throws IOException if an I/O error occurs
+     */
     InputStream read() throws IOException;
 
+    /**
+     * Gets the number of lines in this source, if known.
+     *
+     * @return the number of lines, or null if unknown
+     */
     Long lines();
 
+    /**
+     * A Source implementation that reads from a URL.
+     */
     class URLSource implements Source {
         final URL url;
         final String name;
@@ -56,6 +84,9 @@ public interface Source {
         }
     }
 
+    /**
+     * A Source implementation that reads from a file system path.
+     */
     class PathSource implements Source {
         final Path path;
         final String name;
@@ -90,6 +121,9 @@ public interface Source {
         }
     }
 
+    /**
+     * A Source implementation that reads from an InputStream.
+     */
     class InputStreamSource implements Source {
         final InputStream in;
         final String name;
@@ -129,6 +163,9 @@ public interface Source {
         }
     }
 
+    /**
+     * A Source implementation that reads from standard input.
+     */
     class StdInSource extends InputStreamSource {
 
         public StdInSource() {
@@ -140,6 +177,9 @@ public interface Source {
         }
     }
 
+    /**
+     * A Source implementation that reads from a classpath resource.
+     */
     class ResourceSource implements Source {
         final String resource;
         final String name;

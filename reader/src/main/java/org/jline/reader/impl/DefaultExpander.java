@@ -31,8 +31,7 @@ import org.jline.reader.History.Entry;
  * has accepted it but before it is executed or added to the history.
  *
  * @see Expander
- * @see LineReader#getExpander()
- * @see LineReader#setExpander(Expander)
+ * @see org.jline.reader.LineReader
  */
 public class DefaultExpander implements Expander {
 

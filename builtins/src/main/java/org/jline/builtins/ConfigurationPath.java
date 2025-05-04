@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -12,6 +12,15 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/**
+ * Manages configuration file paths for JLine applications.
+ * <p>
+ * This class provides a way to manage application and user configuration directories
+ * and locate configuration files within them. It follows the common pattern of looking
+ * for configuration files first in the user's configuration directory, then falling back
+ * to the application's configuration directory.
+ * </p>
+ */
 public class ConfigurationPath {
     private Path appConfig;
     private Path userConfig;

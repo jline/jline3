@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2018, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -14,26 +14,62 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
- * NFA implementation.
- * See https://swtch.com/~rsc/regexp/regexp1.html
+ * Non-deterministic Finite Automaton (NFA) implementation for pattern matching.
+ * <p>
+ * This class implements a Thompson NFA for regular expression matching. It converts
+ * a regular expression to postfix notation, builds an NFA, and uses it to match
+ * sequences of objects against the pattern.
+ * </p>
+ * <p>
+ * The implementation is based on the algorithm described in Russ Cox's article:
+ * <a href="https://swtch.com/~rsc/regexp/regexp1.html">https://swtch.com/~rsc/regexp/regexp1.html</a>
+ * </p>
+ *
+ * @param <T> the type of objects to match against the pattern
  */
 public class NfaMatcher<T> {
 
+    /** The regular expression pattern */
     private final String regexp;
+    /** Function to match an input against a pattern */
     private final BiFunction<T, String, Boolean> matcher;
+    /** The start state of the NFA */
     private volatile State start;
 
+    /**
+     * Creates a new NfaMatcher with the specified regular expression and matcher function.
+     *
+     * @param regexp the regular expression pattern
+     * @param matcher the function to match an input against a pattern
+     */
     public NfaMatcher(String regexp, BiFunction<T, String, Boolean> matcher) {
         this.regexp = regexp;
         this.matcher = matcher;
     }
 
+    /**
+     * Compiles the regular expression into an NFA.
+     * <p>
+     * This method is called automatically when needed, but can be called explicitly
+     * to precompile the pattern.
+     * </p>
+     */
     public void compile() {
         if (start == null) {
             start = toNfa(toPostFix(regexp));
         }
     }
 
+    /**
+     * Matches a list of arguments against the pattern.
+     * <p>
+     * This method uses the NFA to determine if the sequence of arguments matches
+     * the regular expression pattern.
+     * </p>
+     *
+     * @param args the list of arguments to match
+     * @return true if the arguments match the pattern, false otherwise
+     */
     public boolean match(List<T> args) {
         Set<State> clist = new HashSet<>();
         compile();
@@ -73,6 +109,12 @@ public class NfaMatcher<T> {
                 .collect(Collectors.toSet());
     }
 
+    /**
+     * Adds a state to the set of states, handling split states recursively.
+     *
+     * @param l the set of states to add to
+     * @param s the state to add
+     */
     void addState(Set<State> l, State s) {
         if (s != null && l.add(s)) {
             if (Objects.equals(State.Split, s.c)) {
@@ -82,6 +124,12 @@ public class NfaMatcher<T> {
         }
     }
 
+    /**
+     * Converts a postfix expression to an NFA.
+     *
+     * @param postfix the postfix expression
+     * @return the start state of the NFA
+     */
     static State toNfa(List<String> postfix) {
         Deque<Frag> stack = new ArrayDeque<>();
         Frag e1, e2, e;
@@ -131,6 +179,12 @@ public class NfaMatcher<T> {
         return e.start;
     }
 
+    /**
+     * Converts a regular expression to postfix notation.
+     *
+     * @param regexp the regular expression
+     * @return the postfix expression as a list of tokens
+     */
     static List<String> toPostFix(String regexp) {
         List<String> postfix = new ArrayList<>();
         int s = -1;
@@ -228,6 +282,9 @@ public class NfaMatcher<T> {
         return postfix;
     }
 
+    /**
+     * Represents a state in the NFA.
+     */
     static class State {
 
         static final String Match = "++MATCH++";
@@ -252,6 +309,9 @@ public class NfaMatcher<T> {
         }
     }
 
+    /**
+     * Represents a fragment of the NFA during construction.
+     */
     private static class Frag {
         final State start;
         final List<Consumer<State>> out = new ArrayList<>();

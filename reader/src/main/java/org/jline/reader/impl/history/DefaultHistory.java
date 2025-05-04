@@ -84,8 +84,16 @@ public class DefaultHistory implements History {
     private int offset = 0;
     private int index = 0;
 
+    /**
+     * Creates a new DefaultHistory instance.
+     */
     public DefaultHistory() {}
 
+    /**
+     * Creates a new DefaultHistory instance and attaches it to the specified LineReader.
+     *
+     * @param reader the LineReader to attach to
+     */
     @SuppressWarnings("this-escape")
     public DefaultHistory(LineReader reader) {
         attach(reader);
@@ -231,10 +239,23 @@ public class DefaultHistory implements History {
         return getHistoryFileData(path).getEntriesInFile();
     }
 
+    /**
+     * Adds a history line to the specified history file.
+     *
+     * @param path the path to the history file
+     * @param line the line to add
+     */
     protected void addHistoryLine(Path path, String line) {
         addHistoryLine(path, line, false);
     }
 
+    /**
+     * Adds a history line to the specified history file with an option to check for duplicates.
+     *
+     * @param path the path to the history file
+     * @param line the line to add
+     * @param checkDuplicates whether to check for duplicate entries
+     */
     protected void addHistoryLine(Path path, String line, boolean checkDuplicates) {
         if (reader.isSet(LineReader.Option.HISTORY_TIMESTAMPED)) {
             int idx = line.indexOf(':');
@@ -352,6 +373,13 @@ public class DefaultHistory implements History {
         setLastLoaded(path, items.size());
     }
 
+    /**
+     * Trims the history file to the specified maximum number of entries.
+     *
+     * @param path the path to the history file
+     * @param max the maximum number of entries to keep
+     * @throws IOException if an I/O error occurs
+     */
     protected void trimHistory(Path path, int max) throws IOException {
         Log.trace("Trimming history path: ", path);
         // Load all history entries
@@ -520,6 +548,13 @@ public class DefaultHistory implements History {
         }
     }
 
+    /**
+     * Checks if a line matches any of the specified patterns.
+     *
+     * @param patterns the patterns to match against, separated by '|'
+     * @param line the line to check
+     * @return true if the line matches any of the patterns
+     */
     protected boolean matchPatterns(String patterns, String line) {
         if (patterns == null || patterns.isEmpty()) {
             return false;
@@ -541,10 +576,23 @@ public class DefaultHistory implements History {
         return line.matches(sb.toString());
     }
 
+    /**
+     * Adds a line to the history with the specified timestamp.
+     *
+     * @param time the timestamp for the history entry
+     * @param line the line to add
+     */
     protected void internalAdd(Instant time, String line) {
         internalAdd(time, line, false);
     }
 
+    /**
+     * Adds a line to the history with the specified timestamp and an option to check for duplicates.
+     *
+     * @param time the timestamp for the history entry
+     * @param line the line to add
+     * @param checkDuplicates whether to check for duplicate entries
+     */
     protected void internalAdd(Instant time, String line, boolean checkDuplicates) {
         Entry entry = new EntryImpl(offset + items.size(), time, line);
         if (checkDuplicates) {
@@ -593,6 +641,13 @@ public class DefaultHistory implements History {
         private final Instant time;
         private final String line;
 
+        /**
+         * Creates a new history entry with the specified index, timestamp, and line.
+         *
+         * @param index the index of the entry in the history
+         * @param time the timestamp of the entry
+         * @param line the content of the entry
+         */
         public EntryImpl(int index, Instant time, String line) {
             this.index = index;
             this.time = time;

@@ -37,9 +37,13 @@ import org.jline.utils.NonBlockingReader;
  */
 public class BindingReader {
 
+    /** The non-blocking reader used to read input characters */
     protected final NonBlockingReader reader;
+    /** Buffer for storing characters during key sequence processing */
     protected final StringBuilder opBuffer = new StringBuilder();
+    /** Stack for pushing back characters that need to be re-read */
     protected final Deque<Integer> pushBackChar = new ArrayDeque<>();
+    /** The last key binding that was matched */
     protected String lastBinding;
 
     /**
@@ -162,6 +166,17 @@ public class BindingReader {
         return null;
     }
 
+    /**
+     * Reads characters from the input until a specific sequence is encountered.
+     * <p>
+     * This method reads characters one by one and accumulates them in a buffer
+     * until the specified terminating sequence is found.
+     * </p>
+     *
+     * @param sequence the terminating sequence to look for
+     * @return the string read up to but not including the terminating sequence,
+     *         or null if the end of the stream is reached before the sequence is found
+     */
     public String readStringUntil(String sequence) {
         StringBuilder sb = new StringBuilder();
         if (!pushBackChar.isEmpty()) {

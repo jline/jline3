@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2023, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -49,6 +49,25 @@ import org.jline.utils.StyleResolver;
 
 import static org.jline.builtins.SyntaxHighlighter.*;
 
+/**
+ * Provides built-in commands for JLine applications.
+ * <p>
+ * This class contains implementations of common terminal commands such as:
+ * </p>
+ * <ul>
+ *   <li>cat - Display file contents</li>
+ *   <li>ls - List directory contents</li>
+ *   <li>grep - Search for patterns in files</li>
+ *   <li>less - View file contents with pagination</li>
+ *   <li>history - Display command history</li>
+ *   <li>help - Display help information</li>
+ *   <li>clear - Clear the terminal screen</li>
+ * </ul>
+ * <p>
+ * These commands can be used to provide a familiar command-line interface in
+ * JLine-based applications.
+ * </p>
+ */
 public class Commands {
 
     public static void tmux(
