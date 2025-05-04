@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -62,7 +62,24 @@ import static org.jline.builtins.Tmux.Layout.Type.WindowPane;
 import static org.jline.keymap.KeyMap.*;
 
 /**
- * Terminal multiplexer
+ * A terminal multiplexer similar to the 'tmux' Unix command.
+ * <p>
+ * This class provides terminal multiplexing capabilities, allowing multiple virtual
+ * terminal sessions to be created, accessed, and controlled from a single terminal.
+ * Features include:
+ * </p>
+ * <ul>
+ *   <li>Window and pane management</li>
+ *   <li>Session persistence</li>
+ *   <li>Split screen layouts</li>
+ *   <li>Copy and paste functionality</li>
+ *   <li>Status line display</li>
+ *   <li>Command execution within panes</li>
+ * </ul>
+ * <p>
+ * The implementation provides a subset of the functionality of the Unix 'tmux' command,
+ * adapted for JLine's terminal handling and pure Java implementation.
+ * </p>
  */
 public class Tmux {
 

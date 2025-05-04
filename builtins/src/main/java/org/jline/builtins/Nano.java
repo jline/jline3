@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -56,6 +56,25 @@ import static org.jline.keymap.KeyMap.ctrl;
 import static org.jline.keymap.KeyMap.del;
 import static org.jline.keymap.KeyMap.key;
 
+/**
+ * A terminal text editor similar to the 'nano' Unix command.
+ * <p>
+ * This class provides a text editor with features including:
+ * </p>
+ * <ul>
+ *   <li>File editing with save functionality</li>
+ *   <li>Cut, copy, and paste operations</li>
+ *   <li>Search and replace functionality</li>
+ *   <li>Syntax highlighting</li>
+ *   <li>Undo/redo support</li>
+ *   <li>Line numbering</li>
+ * </ul>
+ * <p>
+ * The implementation supports many of the key bindings and features of the
+ * traditional Unix 'nano' editor, adapted for JLine's terminal handling.
+ * It implements the JLine Editor interface for integration with other components.
+ * </p>
+ */
 public class Nano implements Editor {
 
     // Final fields

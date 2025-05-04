@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -45,9 +45,25 @@ import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.StyleResolver;
 
 /**
- * Yet another GNU long options parser. This one is configured by parsing its Usage string.
- *
- * Code coming from Apache Felix Gogo Shell
+ * A GNU-style long options parser that is configured by parsing its usage string.
+ * <p>
+ * This class provides a flexible command-line option parser that supports both
+ * short options (-a) and long options (--option), with or without arguments.
+ * The parser is configured by parsing a usage string that describes the available
+ * options and their arguments.
+ * </p>
+ * <p>
+ * Features include:
+ * <ul>
+ *   <li>Support for both short (-a) and long (--option) options</li>
+ *   <li>Required and optional option arguments</li>
+ *   <li>Automatic generation of help text</li>
+ *   <li>Support for subcommands</li>
+ *   <li>Type conversion for option arguments</li>
+ * </ul>
+ * <p>
+ * Code originally from Apache Felix Gogo Shell, adapted for JLine.
+ * </p>
  */
 public class Options {
 

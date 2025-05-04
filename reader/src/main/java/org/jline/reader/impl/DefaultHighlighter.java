@@ -37,7 +37,7 @@ import org.jline.utils.WCWidth;
  *
  * @see Highlighter
  * @see AttributedStyle
- * @see LineReader#setHighlighter(Highlighter)
+ * @see org.jline.reader.LineReader
  */
 public class DefaultHighlighter implements Highlighter {
     protected Pattern errorPattern;

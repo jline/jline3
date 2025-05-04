@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2016, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -48,9 +48,24 @@ import org.jline.utils.Colors;
 import org.jline.utils.WCWidth;
 
 /**
- * Screen terminal implementation.
- * This class is copied from Apache Karaf WebConsole Gogo plugin
- * and slightly adapted to support alternate screen / resizing / 256 colors.
+ * A virtual terminal screen implementation.
+ * <p>
+ * This class provides a virtual terminal screen that can process ANSI escape sequences
+ * and maintain the state of a terminal display. It supports features including:
+ * </p>
+ * <ul>
+ *   <li>Cursor positioning and movement</li>
+ *   <li>Text attributes (bold, underline, etc.)</li>
+ *   <li>Color support (including 256 colors)</li>
+ *   <li>Screen clearing and scrolling</li>
+ *   <li>Alternate screen buffer</li>
+ *   <li>Screen resizing</li>
+ * </ul>
+ * <p>
+ * This implementation is based on the Apache Karaf WebConsole Gogo plugin,
+ * with adaptations to support alternate screen, resizing, and 256 colors.
+ * It follows the ECMA-48 standard for terminal control sequences.
+ * </p>
  */
 public class ScreenTerminal {
 

@@ -124,34 +124,107 @@ public interface Buffer {
      * Modification
      */
 
+    /**
+     * Clears the buffer content.
+     *
+     * @return true if the buffer was modified
+     */
     boolean clear();
 
+    /**
+     * Replaces the character at the current cursor position.
+     *
+     * @param c the character to set at the current position
+     * @return true if the buffer was modified
+     */
     boolean currChar(int c);
 
+    /**
+     * Writes a character at the current cursor position and advances the cursor.
+     *
+     * @param c the character to write
+     */
     void write(int c);
 
+    /**
+     * Writes a character at the current cursor position and advances the cursor.
+     *
+     * @param c the character to write
+     * @param overTyping if true, overwrites the character at the current position
+     */
     void write(int c, boolean overTyping);
 
+    /**
+     * Writes a string at the current cursor position and advances the cursor.
+     *
+     * @param str the string to write
+     */
     void write(CharSequence str);
 
+    /**
+     * Writes a string at the current cursor position and advances the cursor.
+     *
+     * @param str the string to write
+     * @param overTyping if true, overwrites characters at the current position
+     */
     void write(CharSequence str, boolean overTyping);
 
+    /**
+     * Deletes the character before the cursor position.
+     *
+     * @return true if the buffer was modified
+     */
     boolean backspace();
 
+    /**
+     * Deletes multiple characters before the cursor position.
+     *
+     * @param num the number of characters to delete
+     * @return the number of characters actually deleted
+     */
     int backspace(int num);
 
+    /**
+     * Deletes the character at the cursor position.
+     *
+     * @return true if the buffer was modified
+     */
     boolean delete();
 
+    /**
+     * Deletes multiple characters starting at the cursor position.
+     *
+     * @param num the number of characters to delete
+     * @return the number of characters actually deleted
+     */
     int delete(int num);
 
     /*
      * String
      */
 
+    /**
+     * Returns a substring of the buffer from the specified start position to the end.
+     *
+     * @param start the start index, inclusive
+     * @return the substring
+     */
     String substring(int start);
 
+    /**
+     * Returns a substring of the buffer from the specified start position to the specified end position.
+     *
+     * @param start the start index, inclusive
+     * @param end the end index, exclusive
+     * @return the substring
+     */
     String substring(int start, int end);
 
+    /**
+     * Returns a substring of the buffer from the beginning to the current cursor position.
+     *
+     * @return the substring
+     */
     String upToCursor();
 
     String toString();
@@ -160,8 +233,18 @@ public interface Buffer {
      * Copy
      */
 
+    /**
+     * Creates a copy of this buffer.
+     *
+     * @return a new buffer with the same content and cursor position
+     */
     Buffer copy();
 
+    /**
+     * Copies the content and cursor position from another buffer.
+     *
+     * @param buffer the buffer to copy from
+     */
     void copyFrom(Buffer buffer);
 
     /**

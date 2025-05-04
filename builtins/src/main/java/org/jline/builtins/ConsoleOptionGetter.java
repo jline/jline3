@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,6 +8,13 @@
  */
 package org.jline.builtins;
 
+/**
+ * Interface for retrieving console options.
+ * <p>
+ * This interface provides methods to access console configuration options
+ * with support for default values and type conversion.
+ * </p>
+ */
 public interface ConsoleOptionGetter {
 
     /**

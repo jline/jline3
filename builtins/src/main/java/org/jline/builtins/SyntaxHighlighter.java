@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2023, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -24,9 +24,24 @@ import java.util.stream.Stream;
 import org.jline.utils.*;
 
 /**
- *  Java implementation of nanorc highlighter
+ * Java implementation of a syntax highlighter based on nanorc format.
+ * <p>
+ * This class provides syntax highlighting capabilities for JLine applications,
+ * using configuration files in a format similar to GNU nano's nanorc files.
+ * It supports:
+ * </p>
+ * <ul>
+ *   <li>Regular expression based highlighting rules</li>
+ *   <li>Theme-based styling</li>
+ *   <li>File type detection</li>
+ *   <li>Inclusion of other configuration files</li>
+ * </ul>
+ * <p>
+ * The highlighter can be used to add syntax coloring to various text displays
+ * in terminal applications, such as file viewers, editors, and REPLs.
+ * </p>
  *
- *  @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
+ * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public class SyntaxHighlighter {
     public static final String REGEX_TOKEN_NAME = "[A-Z_]+";

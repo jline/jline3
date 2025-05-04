@@ -34,7 +34,7 @@ import org.jline.reader.Buffer;
  *
  * @since 2.0
  * @see Buffer
- * @see LineReader#getBuffer()
+ * @see org.jline.reader.LineReader#getBuffer()
  */
 public class BufferImpl implements Buffer {
     private int cursor = 0;
@@ -43,10 +43,18 @@ public class BufferImpl implements Buffer {
     private int g0;
     private int g1;
 
+    /**
+     * Creates a new buffer with the default size (64).
+     */
     public BufferImpl() {
         this(64);
     }
 
+    /**
+     * Creates a new buffer with the specified size.
+     *
+     * @param size the initial size of the buffer
+     */
     public BufferImpl(int size) {
         buffer = new int[size];
         g0 = 0;

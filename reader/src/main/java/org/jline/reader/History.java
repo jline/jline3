@@ -92,24 +92,61 @@ public interface History extends Iterable<History.Entry> {
      */
     void purge() throws IOException;
 
+    /**
+     * Returns the number of items in the history.
+     *
+     * @return the number of history items
+     */
     int size();
 
+    /**
+     * Checks if the history is empty.
+     *
+     * @return true if the history contains no items
+     */
     default boolean isEmpty() {
         return size() == 0;
     }
 
+    /**
+     * Returns the current index in the history.
+     *
+     * @return the current index
+     */
     int index();
 
+    /**
+     * Returns the index of the first element in the history.
+     *
+     * @return the index of the first history item
+     */
     int first();
 
+    /**
+     * Returns the index of the last element in the history.
+     *
+     * @return the index of the last history item
+     */
     int last();
 
+    /**
+     * Returns the history item at the specified index.
+     *
+     * @param index the index of the history item to retrieve
+     * @return the history item at the specified index
+     */
     String get(int index);
 
     default void add(String line) {
         add(Instant.now(), line);
     }
 
+    /**
+     * Adds a new item to the history with the specified timestamp.
+     *
+     * @param time the timestamp for the history item
+     * @param line the line to add to the history
+     */
     void add(Instant time, String line);
 
     /**
@@ -155,6 +192,12 @@ public interface History extends Iterable<History.Entry> {
         String line();
     }
 
+    /**
+     * Returns a list iterator over the history entries starting at the specified index.
+     *
+     * @param index the index to start iterating from
+     * @return a list iterator over the history entries
+     */
     ListIterator<Entry> iterator(int index);
 
     default ListIterator<Entry> iterator() {

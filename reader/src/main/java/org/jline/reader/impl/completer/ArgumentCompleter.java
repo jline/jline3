@@ -138,10 +138,23 @@ public class ArgumentCompleter implements Completer {
         completer.complete(reader, line, candidates);
     }
 
+    /**
+     * A simple implementation of ParsedLine for argument completion.
+     * <p>
+     * This class represents a single word with a cursor position, used for
+     * completing arguments in the ArgumentCompleter.
+     * </p>
+     */
     public static class ArgumentLine implements ParsedLine {
         private final String word;
         private final int cursor;
 
+        /**
+         * Creates a new ArgumentLine with the specified word and cursor position.
+         *
+         * @param word the word being completed
+         * @param cursor the cursor position within the word
+         */
         public ArgumentLine(String word, int cursor) {
             this.word = word;
             this.cursor = cursor;

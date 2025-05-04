@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -29,10 +29,28 @@ import static org.jline.builtins.TTop.Align.Left;
 import static org.jline.builtins.TTop.Align.Right;
 
 /**
- * Thread Top implementation.
+ * A terminal-based thread monitoring tool similar to the 'top' Unix command.
+ * <p>
+ * This class provides a real-time view of thread activity in the JVM, displaying
+ * information such as thread states, CPU usage, blocking, and waiting statistics.
+ * Features include:
+ * </p>
+ * <ul>
+ *   <li>Sortable thread list with multiple metrics</li>
+ *   <li>Customizable display columns</li>
+ *   <li>Interactive navigation and filtering</li>
+ *   <li>System resource statistics</li>
+ *   <li>Thread state visualization</li>
+ * </ul>
+ * <p>
+ * The implementation provides a terminal UI for monitoring thread activity,
+ * which can be useful for diagnosing performance issues and thread contention.
+ * </p>
  *
+ * <p>
  * TODO: option modification at runtime (such as implemented in less) is not currently supported
  * TODO: one possible addition would be to detect deadlock threads and display them in a specific way
+ * </p>
  */
 public class TTop {
 
