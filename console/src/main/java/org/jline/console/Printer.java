@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2022, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -14,14 +14,31 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Print object to the console.
+ * Interface for printing objects to the console with various formatting options.
+ * The Printer interface provides methods for displaying objects in different formats,
+ * such as tables or structured output, with customizable styling and formatting options.
  *
- * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
+ * Implementations of this interface handle the conversion of various object types to
+ * formatted text output, with support for syntax highlighting and structured display.
  */
 public interface Printer {
+    /**
+     * Enumeration specifying which rows in a table should be highlighted.
+     */
     enum TableRows {
+        /**
+         * Highlight only even-numbered rows in the table.
+         */
         EVEN,
+
+        /**
+         * Highlight only odd-numbered rows in the table.
+         */
         ODD,
+
+        /**
+         * Highlight all rows in the table.
+         */
         ALL
     }
     //
@@ -212,18 +229,43 @@ public interface Printer {
             VALUE_STYLE_ALL,
             MULTI_COLUMNS);
 
+    /**
+     * Prints an object to the console using default formatting options.
+     * This is a convenience method that calls {@link #println(Map, Object)} with an empty options map.
+     *
+     * @param object the object to print
+     */
     default void println(Object object) {
         println(new HashMap<>(), object);
     }
 
+    /**
+     * Prints an object to the console with the specified formatting options.
+     * The method handles different object types and formats them according to the provided options.
+     *
+     * @param options a map of formatting options that control how the object is displayed
+     * @param object the object to print
+     */
     void println(Map<String, Object> options, Object object);
 
+    /**
+     * Executes a print command with the given input.
+     * This method can be implemented by printer implementations to handle specific print commands.
+     * The default implementation returns null, indicating no error occurred.
+     *
+     * @param input the command input containing the command and its arguments
+     * @return an Exception if an error occurred during command execution, or null if successful
+     */
     default Exception prntCommand(CommandInput input) {
         return null;
     }
 
     /**
-     * Clear printer syntax highlighter cache
+     * Clears the printer's syntax highlighter cache and refreshes internal state.
+     * This method should be called when the highlighting rules or styles have changed
+     * and need to be reapplied.
+     *
+     * @return true if the refresh operation was successful, false otherwise
      */
     boolean refresh();
 }

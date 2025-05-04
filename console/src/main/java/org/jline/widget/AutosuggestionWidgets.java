@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -14,10 +14,19 @@ import org.jline.reader.LineReader.SuggestionType;
 import org.jline.reader.impl.BufferImpl;
 
 /**
- * Creates and manages widgets for as you type command line suggestions.
- * Suggestions are created using a using command history.
- *
- * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
+ * Creates and manages widgets for as-you-type command line suggestions based on command history.
+ * <p>
+ * AutosuggestionWidgets provides functionality for displaying and accepting suggestions
+ * as the user types in the console. These suggestions are derived from the command history,
+ * making it easier to repeat or modify previously entered commands.
+ * <p>
+ * The widgets support:
+ * <ul>
+ *   <li>Displaying suggestions as you type</li>
+ *   <li>Accepting the entire suggestion</li>
+ *   <li>Accepting part of a suggestion (word by word)</li>
+ *   <li>Toggling suggestion functionality on and off</li>
+ * </ul>
  */
 public class AutosuggestionWidgets extends Widgets {
     private boolean enabled = false;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2024, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -36,9 +36,21 @@ import static org.jline.builtins.SyntaxHighlighter.DEFAULT_NANORC_FILE;
 import static org.jline.console.ConsoleEngine.VAR_NANORC;
 
 /**
- * Print highlighted objects to console.
+ * Default implementation of the Printer interface that provides syntax highlighting and formatting.
+ * <p>
+ * DefaultPrinter provides functionality for printing various types of objects to the console
+ * with syntax highlighting and formatting. It supports printing:
+ * <ul>
+ *   <li>Simple objects (strings, numbers, etc.)</li>
+ *   <li>Collections and maps</li>
+ *   <li>Tables with row highlighting</li>
+ *   <li>JSON and other structured data</li>
+ *   <li>Source code with syntax highlighting</li>
+ * </ul>
+ * <p>
+ * The printer can be configured with various options to control the formatting and highlighting
+ * of the output, such as maximum number of rows, indentation, and highlighting styles.
  *
- * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     protected static final String VAR_PRNT_OPTIONS = "PRNT_OPTIONS";

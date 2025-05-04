@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -20,16 +20,37 @@ import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 
 /**
- * CommandRegistry common methods.
+ * Abstract base class implementing common methods for command registries.
+ * <p>
+ * AbstractCommandRegistry provides a base implementation of the CommandRegistry interface,
+ * with common methods for registering commands, generating command descriptions,
+ * and handling command execution. Concrete implementations can extend this class
+ * to create specific command registry types.
  *
- * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public abstract class AbstractCommandRegistry implements CommandRegistry {
+    /** The internal registry of commands */
     private CmdRegistry cmdRegistry;
+    /** The last exception that occurred during command execution */
     private Exception exception;
 
+    /**
+     * Creates a new AbstractCommandRegistry.
+     * The command registry is initialized lazily when commands are registered.
+     */
     public AbstractCommandRegistry() {}
 
+    /**
+     * Creates a command description for a help command.
+     * <p>
+     * This method combines the command information with the command description
+     * to create a comprehensive help description for the command.
+     *
+     * @param command the command name
+     * @param info the command information as a list of strings
+     * @param cmdDesc the command description
+     * @return a command description for the help command
+     */
     public CmdDesc doHelpDesc(String command, List<String> info, CmdDesc cmdDesc) {
         List<AttributedString> mainDesc = new ArrayList<>();
         AttributedStringBuilder asb = new AttributedStringBuilder();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2022, the original author(s).
+ * Copyright (c) 2002-2025, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -37,11 +37,26 @@ import static org.jline.builtins.SyntaxHighlighter.DEFAULT_NANORC_FILE;
 import static org.jline.builtins.SyntaxHighlighter.TYPE_NANORCTHEME;
 
 /**
- * Builtins: create tab completers, execute and create descriptions for builtins commands.
+ * Implementation of CommandRegistry that provides built-in commands for JLine.
+ * <p>
+ * The Builtins class provides a set of common commands that are useful in any
+ * JLine-based console application, such as:
+ * <ul>
+ *   <li>File editing (nano)</li>
+ *   <li>File viewing (less)</li>
+ *   <li>Command history management</li>
+ *   <li>Widget and keymap configuration</li>
+ *   <li>Terminal and system information display</li>
+ * </ul>
+ * <p>
+ * This class creates tab completers, executes commands, and provides descriptions
+ * for these built-in commands.
  *
- * @author <a href="mailto:matti.rintanikkola@gmail.com">Matti Rinta-Nikkola</a>
  */
 public class Builtins extends JlineCommandRegistry implements CommandRegistry {
+    /**
+     * Enumeration of built-in commands provided by this class.
+     */
     public enum Command {
         NANO,
         LESS,
