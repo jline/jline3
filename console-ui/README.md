@@ -2,16 +2,16 @@
 
 # ConsoleUI
 
-Tiny java library that provides simple UI elements on ANSI console based terminals. ConsoleUI is inspired by 
+Tiny java library that provides simple UI elements on ANSI console based terminals. ConsoleUI is inspired by
 [Inquirer.js](https://github.com/SBoudrias/Inquirer.js) which is written in JavaScript.
 
-ConsoleUI has been initially implemented using JLine2 by Andreas Wegmann. After ConsoleUI has been upgraded to use JLine3 
+ConsoleUI has been initially implemented using JLine2 by Andreas Wegmann. After ConsoleUI has been upgraded to use JLine3
 it has been merged into JLine3.
 
 # Intention
 
 I was impressed by JavaScript based Yeoman which leads the user through the process of creating new projects
-by querying with a simple user interface on the console. An investigation how this is done, brought 
+by querying with a simple user interface on the console. An investigation how this is done, brought
 me to Inquirer.js which implements a very simple and intuitive set of controls for checkbox, list and text input.
 
 Because I didn't find anything comparable to this in the Java ecosystem, I decided to write `Console UI`
@@ -40,7 +40,7 @@ ConsoleUI releases are available at Maven Central [org.jline » jline-console-ui
 
 # Test Run
 
-You can get an idea how the project works by looking at `org.jline.consoleui.examples.Basic`.  
+You can get an idea how the project works by looking at `org.jline.consoleui.examples.Basic`.
 You can run this by executing the following from the project root:
 
     ./jline-console-ui.sh
@@ -51,12 +51,12 @@ You can run this by executing the following from the project root:
 
 
 Entry point to the builder classes is to create a new object of type `ConsolePrompt`.
-    
+
     ConsolePrompt prompt = new ConsolePrompt();
 
-From the prompt object, use the `getPromptBuilder()` method to create the builder for all subsequent UI elements 
+From the prompt object, use the `getPromptBuilder()` method to create the builder for all subsequent UI elements
 you want to use.
-    
+
     PromptBuilder promptBuilder = prompt.getPromptBuilder();
 
 From with this `PromptBuilder` you can access UI builder with the following methods:
@@ -64,7 +64,7 @@ From with this `PromptBuilder` you can access UI builder with the following meth
 - createCheckboxPrompt()
     * creates a checkbox prompt. This prompt lets the user choose any number of items of a given list.
 - createChoicePrompt()
-    * creates a choice prompt. This prompt lets the user choose one from a given number of possible answers.     
+    * creates a choice prompt. This prompt lets the user choose one from a given number of possible answers.
 - createConfirmPromp()
     * creates a confirmation prompt. This prompt lets the user answer with 'yes' or 'no' to a given question.
 - createInputPrompt()

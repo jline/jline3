@@ -77,6 +77,42 @@ To run the demos, simply use one of the following commands after having built JL
 ./build repl
 ```
 
+## Website
+
+JLine includes a documentation website built with Docusaurus. The website includes code snippets extracted from actual working code in the `demo/src/main/java/org/jline/demo/examples` directory.
+
+### Building the Website
+
+To build the website:
+
+```sh
+./build-website.sh
+```
+
+This will:
+1. Extract code snippets from example classes
+2. Process documentation files to include the snippets
+3. Build the website
+
+### Previewing the Website
+
+To preview the website with the processed documentation:
+
+```sh
+cd website
+./scripts/preview-website.sh
+```
+
+To preview the built website:
+
+```sh
+cd website && npm run serve
+```
+
+### Deployment
+
+The website is automatically deployed to jline.org when changes are pushed to the master branch.
+
 ## Advanced Build Options
 
 ### Building Graal Native Image Demo
