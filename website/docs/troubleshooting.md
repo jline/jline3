@@ -408,6 +408,157 @@ Unix and Linux systems also have their own challenges:
    }
    ```
 
+## Remote Terminal Issues
+
+When using JLine's remote terminal capabilities (Telnet and SSH), you might encounter specific issues:
+
+### Telnet Connection Issues
+
+#### Possible Causes and Solutions:
+
+1. **Port Already in Use**
+
+   The default Telnet port might already be in use by another application.
+
+   **Solution**: Specify a different port when starting the Telnet server:
+
+   ```java
+   Telnet telnet = new Telnet(terminal, shellProvider);
+   telnet.telnetd(System.out, System.err, new String[]{"--port=2023", "start"});
+   ```
+
+2. **Connection Refused**
+
+   The server might be binding to a specific interface that's not accessible.
+
+   **Solution**: Specify the interface to bind to:
+
+   ```java
+   Telnet telnet = new Telnet(terminal, shellProvider);
+   telnet.telnetd(System.out, System.err, new String[]{"--ip=0.0.0.0", "start"});
+   ```
+
+3. **Terminal Type Negotiation**
+
+   Some Telnet clients might not properly negotiate terminal types.
+
+   **Solution**: Handle different terminal types in your ShellProvider implementation:
+
+   ```java
+   public void shell(Terminal terminal, Map<String, String> environment) {
+       String termType = terminal.getType();
+       if (termType == null || termType.isEmpty() || "dumb".equals(termType)) {
+           // Use basic terminal features only
+       }
+       // Continue with shell implementation
+   }
+   ```
+
+### SSH Connection Issues
+
+#### Possible Causes and Solutions:
+
+1. **Authentication Failures**
+
+   SSH requires proper authentication configuration.
+
+   **Solution**: Configure authentication properly:
+
+   ```java
+   // Set up password authentication
+   server.setPasswordAuthenticator((username, password, session) ->
+       "admin".equals(username) && "password".equals(password));
+
+   // Or set up public key authentication
+   server.setPublickeyAuthenticator((username, key, session) -> {
+       // Verify the key
+       return true; // if valid
+   });
+   ```
+
+2. **Host Key Verification**
+
+   Clients might reject connections due to unknown host keys.
+
+   **Solution**: Use a persistent key provider:
+
+   ```java
+   // Instead of SimpleGeneratorHostKeyProvider which generates temporary keys
+   File keyFile = new File("hostkey.ser");
+   server.setKeyPairProvider(new SimpleGeneratorHostKeyProvider(keyFile.toPath()));
+   ```
+
+3. **Terminal Size Issues**
+
+   Remote terminals might not properly report or update their size.
+
+   **Solution**: Handle window change requests and set default size if needed:
+
+   ```java
+   // In your shell implementation
+   if (terminal.getWidth() <= 0 || terminal.getHeight() <= 0) {
+       terminal.setSize(new Size(80, 24));
+   }
+
+   // Register for window change events
+   terminal.handle(Signal.WINCH, signal -> {
+       // Terminal size has changed
+       Size size = terminal.getSize();
+       // Update your UI accordingly
+   });
+   ```
+
+### General Remote Terminal Troubleshooting
+
+1. **Connection Timeouts**
+
+   Remote connections might time out if idle for too long.
+
+   **Solution**: Configure timeout settings:
+
+   ```java
+   // For Telnet
+   ConnectionManager manager = new ConnectionManager(
+       maxConnections,
+       warningTimeout,    // e.g., 5 * 60 * 1000 (5 minutes)
+       disconnectTimeout, // e.g., 10 * 60 * 1000 (10 minutes)
+       housekeepingInterval, // e.g., 60 * 1000 (1 minute)
+       filter, loginShell, lineMode);
+
+   // For SSH
+   server.getProperties().put(SshServer.IDLE_TIMEOUT, "600000"); // 10 minutes
+   ```
+
+2. **Character Encoding Issues**
+
+   Remote clients might use different character encodings.
+
+   **Solution**: Explicitly set the encoding:
+
+   ```java
+   Terminal terminal = TerminalBuilder.builder()
+       .streams(inputStream, outputStream)
+       .encoding(StandardCharsets.UTF_8)
+       .name("remote")
+       .build();
+   ```
+
+3. **Performance with Multiple Connections**
+
+   Handling many concurrent connections can impact performance.
+
+   **Solution**: Limit the number of concurrent connections and optimize your shell implementation:
+
+   ```java
+   // Limit to 10 concurrent connections
+   ConnectionManager manager = new ConnectionManager(
+       10, // maxConnections
+       warningTimeout,
+       disconnectTimeout,
+       housekeepingInterval,
+       filter, loginShell, lineMode);
+   ```
+
 ## Advanced Troubleshooting
 
 For more complex issues, try these advanced troubleshooting techniques:

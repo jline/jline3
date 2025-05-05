@@ -206,6 +206,12 @@
 
             <dependency>
                 <groupId>org.jline</groupId>
+                <artifactId>jline-console-ui</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jline</groupId>
                 <artifactId>jansi-core</artifactId>
                 <version>${project.version}</version>
             </dependency>

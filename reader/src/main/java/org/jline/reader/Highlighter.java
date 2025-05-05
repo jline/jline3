@@ -65,7 +65,7 @@ public interface Highlighter {
      *
      * @param errorPattern A regular expression pattern that matches text to be highlighted as errors
      */
-    void setErrorPattern(Pattern errorPattern);
+    default void setErrorPattern(Pattern errorPattern) {}
 
     /**
      * Sets a specific character position in the buffer to be highlighted as an error.
@@ -76,5 +76,5 @@ public interface Highlighter {
      *
      * @param errorIndex The character index in the buffer to be highlighted as an error
      */
-    void setErrorIndex(int errorIndex);
+    default void setErrorIndex(int errorIndex) {}
 }

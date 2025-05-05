@@ -24,30 +24,7 @@ The basic method for reading input is `readLine()`:
 
 JLine's `LineReader` supports numerous options to customize behavior:
 
-```java title="LineReaderOptionsExample.java"
-import org.jline.reader.LineReader;
-import org.jline.reader.LineReaderBuilder;
-import org.jline.terminal.Terminal;
-
-public class LineReaderOptionsExample {
-    public LineReader configureOptions(Terminal terminal) {
-        // highlight-start
-        // Configure options during creation
-        LineReader reader = LineReaderBuilder.builder()
-                .terminal(terminal)
-                .option(LineReader.Option.CASE_INSENSITIVE, true)
-                .option(LineReader.Option.AUTO_REMOVE_SLASH, true)
-                .build();
-        // highlight-end
-
-        // Or set options after creation
-        reader.setOpt(LineReader.Option.HISTORY_IGNORE_DUPS);
-        reader.unsetOpt(LineReader.Option.HISTORY_BEEP);
-
-        return reader;
-    }
-}
-```
+<CodeSnippet name="LineReaderOptionsExample" />
 
 Common options include:
 
@@ -62,68 +39,13 @@ Common options include:
 
 JLine supports rich prompt customization:
 
-```java title="CustomPromptExample.java"
-import org.jline.reader.LineReader;
-
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.util.function.Supplier;
-
-public class CustomPromptExample {
-    public void demonstratePrompts(LineReader reader) {
-        // Simple text prompt
-        String line1 = reader.readLine("simple> ");
-
-        // highlight-start
-        // Colored prompt (ANSI escape sequences)
-        String line2 = reader.readLine("\u001B[1;32msimple>\u001B[0m ");
-        // highlight-end
-
-        // Dynamic prompt
-        Supplier<String> timePrompt = () -> {
-            LocalTime now = LocalTime.now();
-            return now.format(DateTimeFormatter.ofPattern("HH:mm:ss")) + "> ";
-        };
-        String line3 = reader.readLine(timePrompt);
-
-        System.out.printf("Lines entered: %s, %s, %s%n", line1, line2, line3);
-    }
-}
-```
+<CodeSnippet name="CustomPromptExample" />
 
 ## Handling Special Keys
 
 You can customize how the `LineReader` responds to key presses:
 
-```java title="KeyBindingExample.java" showLineNumbers
-import org.jline.keymap.Binding;
-import org.jline.keymap.KeyMap;
-import org.jline.reader.LineReader;
-import org.jline.reader.Reference;
-
-public class KeyBindingExample {
-    public void customizeKeyBindings(LineReader reader) {
-        // Create a custom key map
-        KeyMap<Binding> keyMap = reader.getKeyMaps().get(LineReader.MAIN);
-
-        // Bind a key to a widget
-        keyMap.bind(new Reference("clear-screen"), KeyMap.ctrl('L'));
-
-        // highlight-start
-        // Bind a key to a custom action
-        keyMap.bind(
-            () -> {
-                System.out.println("Custom action executed!");
-                return true;
-            },
-            KeyMap.alt('X')
-        );
-        // highlight-end
-
-        System.out.println("Key bindings configured");
-    }
-}
-```
+<CodeSnippet name="KeyBindingExample" />
 
 ## Line Editing Features
 
@@ -141,107 +63,13 @@ JLine's `LineReader` provides numerous line editing features:
 
 JLine supports multi-line input with proper continuation:
 
-```java title="MultiLineInputExample.java"
-import org.jline.reader.LineReader;
-import org.jline.reader.LineReaderBuilder;
-import org.jline.reader.impl.DefaultParser;
-import org.jline.terminal.Terminal;
-
-public class MultiLineInputExample {
-    public String readMultiLineInput(Terminal terminal) {
-        // highlight-start
-        // Configure multi-line support
-        LineReader reader = LineReaderBuilder.builder()
-                .terminal(terminal)
-                .parser(new DefaultParser())
-                .variable(LineReader.SECONDARY_PROMPT_PATTERN, "%M> ")
-                .build();
-        // highlight-end
-
-        System.out.println("Enter a multi-line input (e.g., with unclosed quotes or brackets):");
-        // Read multi-line input
-        String multiLine = reader.readLine("multi> ");
-
-        return multiLine;
-    }
-}
-```
-
-### Custom Validators
-
-You can validate input before accepting it:
-
-```java title="ValidatorExample.java"
-import org.jline.reader.LineReader;
-import org.jline.reader.LineReaderBuilder;
-import org.jline.reader.ValidationException;
-import org.jline.reader.Validator;
-import org.jline.terminal.Terminal;
-
-public class ValidatorExample {
-    public LineReader createValidatingReader(Terminal terminal) {
-        // Create a validator
-        Validator validator = line -> {
-            // error-start
-            if (line.isEmpty()) {
-                throw new ValidationException("Input cannot be empty");
-            }
-            // error-end
-
-            if (line.length() < 3) {
-                throw new ValidationException("Input must be at least 3 characters");
-            }
-        };
-
-        // Use the validator
-        LineReader reader = LineReaderBuilder.builder()
-                .terminal(terminal)
-                .validator(validator)
-                .build();
-
-        return reader;
-    }
-}
-```
+<CodeSnippet name="MultiLineInputExample" />
 
 ### Custom Highlighters
 
 JLine can highlight input as it's typed:
 
-```java title="HighlighterExample.java"
-import org.jline.reader.Highlighter;
-import org.jline.reader.LineReader;
-import org.jline.reader.LineReaderBuilder;
-import org.jline.terminal.Terminal;
-import org.jline.utils.AttributedString;
-import org.jline.utils.AttributedStringBuilder;
-import org.jline.utils.AttributedStyle;
-
-import java.util.List;
-
-public class HighlighterExample {
-    public LineReader createHighlightingReader(Terminal terminal) {
-        // highlight-start
-        // Create a highlighter
-        Highlighter highlighter = (reader, buffer, list) -> {
-            AttributedString highlighted = new AttributedStringBuilder()
-                    .append(buffer.toString(), AttributedStyle.BOLD)
-                    .toAttributedString();
-            list.add(highlighted);
-            return highlighted;
-        };
-        // highlight-end
-
-        // Use the highlighter
-        LineReader reader = LineReaderBuilder.builder()
-                .terminal(terminal)
-                .highlighter(highlighter)
-                .build();
-
-        return reader;
-    }
-}
-```
+<CodeSnippet name="HighlighterExample" />
 
 ## Best Practices
 

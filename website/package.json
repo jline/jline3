@@ -5,7 +5,9 @@
   "scripts": {
     "docusaurus": "docusaurus",
     "start": "docusaurus start",
-    "build": "docusaurus build",
+    "start-with-snippets": "./scripts/start-dev.sh",
+    "extract-snippets": "node scripts/extract-snippets.js ../demo/src/main/java/org/jline/demo/examples ./static/snippets",
+    "build": "npm run extract-snippets && docusaurus build",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
     "clear": "docusaurus clear",
