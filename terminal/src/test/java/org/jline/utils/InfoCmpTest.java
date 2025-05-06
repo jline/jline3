@@ -45,7 +45,7 @@ public class InfoCmpTest {
         Map<Capability, Integer> ints = new HashMap<>();
         Map<Capability, String> strings = new HashMap<>();
 
-        String infocmp = InfoCmp.getLoadedInfoCmp("ansi");
+        String infocmp = InfoCmp.getDefaultInfoCmp("ansi");
         InfoCmp.parseInfoCmp(infocmp, bools, ints, strings);
         assertEquals(4, bools.size());
         assertTrue(strings.containsKey(Capability.byName("acsc")));
@@ -77,7 +77,7 @@ public class InfoCmpTest {
         Set<Capability> bools = new HashSet<>();
         Map<Capability, Integer> ints = new HashMap<>();
         Map<Capability, String> strings = new HashMap<>();
-        String infocmp = InfoCmp.getLoadedInfoCmp("xterm");
+        String infocmp = InfoCmp.getDefaultInfoCmp("xterm");
         InfoCmp.parseInfoCmp(infocmp, bools, ints, strings);
         assertEquals("\\E[J", strings.get(Capability.clr_eos));
     }

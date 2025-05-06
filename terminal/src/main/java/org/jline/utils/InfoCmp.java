@@ -58,7 +58,8 @@ import java.util.stream.Collectors;
  */
 public final class InfoCmp {
 
-    private static final Map<String, Object> CAPS = new HashMap<>();
+    private static final Map<String, Object> CAPS_DEFAULT = new HashMap<>();
+    private static final Map<String, Object> CAPS_LOADED = new HashMap<>();
 
     private InfoCmp() {}
 
@@ -528,6 +529,10 @@ public final class InfoCmp {
         enter_vertical_hl_mode, // enter_vertical_hl_mode, evhlm, Xv
         set_a_attributes, // set_a_attributes, sgr1, sA
         set_pglen_inch, // set_pglen_inch, slength, sL)
+
+        // Extended capabilities
+        xm, // format of mouse event escape sequences
+        XM, // enable/disable mouse event reporting
         ;
 
         public String[] getNames() {
@@ -563,29 +568,75 @@ public final class InfoCmp {
     }
 
     public static void setDefaultInfoCmp(String terminal, String caps) {
-        CAPS.putIfAbsent(terminal, caps);
+        CAPS_DEFAULT.putIfAbsent(terminal, caps);
     }
 
     public static void setDefaultInfoCmp(String terminal, Supplier<String> caps) {
-        CAPS.putIfAbsent(terminal, caps);
+        CAPS_DEFAULT.putIfAbsent(terminal, caps);
     }
 
-    public static String getInfoCmp(String terminal) throws IOException, InterruptedException {
-        String caps = getLoadedInfoCmp(terminal);
-        if (caps == null) {
-            Process p = new ProcessBuilder(OSUtils.INFOCMP_COMMAND, terminal).start();
-            caps = ExecHelper.waitAndCapture(p);
-            CAPS.put(terminal, caps);
-        }
-        return caps;
-    }
-
-    public static String getLoadedInfoCmp(String terminal) {
-        Object caps = CAPS.get(terminal);
+    public static String getDefaultInfoCmp(String terminal) {
+        Object caps = CAPS_DEFAULT.get(terminal);
         if (caps instanceof Supplier) {
             caps = ((Supplier) caps).get();
         }
         return (String) caps;
+    }
+
+    public static void setLoadedInfoCmp(String terminal, String caps) {
+        CAPS_LOADED.put(terminal, caps);
+    }
+
+    public static void setLoadedInfoCmp(String terminal, Supplier<String> caps) {
+        CAPS_LOADED.put(terminal, caps);
+    }
+
+    public static String getLoadedInfoCmp(String terminal) {
+        Object caps = CAPS_LOADED.get(terminal);
+        if (caps instanceof Supplier) {
+            caps = ((Supplier) caps).get();
+        }
+        return (String) caps;
+    }
+
+    public static String getInfoCmp(String terminal) throws IOException, InterruptedException {
+        IOException error = new IOException("Unable to retrieve infocmp for " + terminal);
+        String caps = getLoadedInfoCmp(terminal);
+        if (caps == null) {
+            try {
+                Process p = new ProcessBuilder(OSUtils.INFOCMP_COMMAND, "-x", terminal).start();
+                caps = ExecHelper.waitAndCapture(p);
+                if (p.exitValue() != 0) {
+                    error.addSuppressed(new IOException("Command '" + OSUtils.INFOCMP_COMMAND + " -x " + terminal
+                            + "' failed with exit code " + p.exitValue() + " and output '" + caps + "'"));
+                    caps = null;
+                }
+            } catch (IOException e) {
+                error.addSuppressed(e);
+            }
+        }
+        if (caps == null) {
+            try {
+                Process p = new ProcessBuilder(OSUtils.INFOCMP_COMMAND, terminal).start();
+                caps = ExecHelper.waitAndCapture(p);
+                if (p.exitValue() != 0) {
+                    error.addSuppressed(new IOException("Command '" + OSUtils.INFOCMP_COMMAND + " " + terminal
+                            + "' failed with exit code " + p.exitValue() + " and output '" + caps + "'"));
+                    caps = null;
+                }
+            } catch (IOException e) {
+                error.addSuppressed(e);
+            }
+        }
+        if (caps != null) {
+            setLoadedInfoCmp(terminal, caps);
+        } else {
+            caps = getDefaultInfoCmp(terminal);
+            if (caps == null) {
+                throw error;
+            }
+        }
+        return caps;
     }
 
     public static void parseInfoCmp(
