@@ -52,16 +52,20 @@ import static org.jline.builtins.SyntaxHighlighter.*;
 /**
  * Provides built-in commands for JLine applications.
  * <p>
- * This class contains implementations of common terminal commands such as:
+ * This class contains implementations of common terminal commands and utilities such as:
  * </p>
  * <ul>
- *   <li>cat - Display file contents</li>
- *   <li>ls - List directory contents</li>
- *   <li>grep - Search for patterns in files</li>
+ *   <li>tmux - Terminal multiplexer</li>
+ *   <li>nano - Text editor</li>
  *   <li>less - View file contents with pagination</li>
- *   <li>history - Display command history</li>
- *   <li>help - Display help information</li>
- *   <li>clear - Clear the terminal screen</li>
+ *   <li>history - Display and manage command history</li>
+ *   <li>complete - Edit command-specific tab completions</li>
+ *   <li>widget - Manipulate line reader widgets</li>
+ *   <li>keymap - Manipulate keymaps</li>
+ *   <li>setopt/unsetopt - Set/unset line reader options</li>
+ *   <li>setvar - Set line reader variables</li>
+ *   <li>colors - View color tables and ANSI styles</li>
+ *   <li>highlighter - Manage syntax highlighting themes</li>
  * </ul>
  * <p>
  * These commands can be used to provide a familiar command-line interface in
@@ -70,6 +74,18 @@ import static org.jline.builtins.SyntaxHighlighter.*;
  */
 public class Commands {
 
+    /**
+     * Implements a terminal multiplexer similar to tmux.
+     *
+     * @param terminal the terminal to use
+     * @param out the output stream
+     * @param err the error stream
+     * @param getter supplier to get the current tmux instance
+     * @param setter consumer to set the current tmux instance
+     * @param runner consumer to run a terminal
+     * @param argv command arguments
+     * @throws Exception if an error occurs
+     */
     public static void tmux(
             Terminal terminal,
             PrintStream out,
@@ -110,11 +126,34 @@ public class Commands {
         }
     }
 
+    /**
+     * Launches the nano text editor with the specified arguments.
+     * This is a convenience method that calls {@link #nano(Terminal, PrintStream, PrintStream, Path, String[], ConfigurationPath)}
+     * with a null ConfigurationPath.
+     *
+     * @param terminal the terminal to use
+     * @param out the output stream
+     * @param err the error stream
+     * @param currentDir the current directory
+     * @param argv command arguments
+     * @throws Exception if an error occurs
+     */
     public static void nano(Terminal terminal, PrintStream out, PrintStream err, Path currentDir, String[] argv)
             throws Exception {
         nano(terminal, out, err, currentDir, argv, null);
     }
 
+    /**
+     * Launches the nano text editor with the specified arguments.
+     *
+     * @param terminal the terminal to use
+     * @param out the output stream
+     * @param err the error stream
+     * @param currentDir the current directory
+     * @param argv command arguments
+     * @param configPath the configuration path or null for default
+     * @throws Exception if an error occurs
+     */
     public static void nano(
             Terminal terminal,
             PrintStream out,
@@ -132,12 +171,37 @@ public class Commands {
         edit.run();
     }
 
+    /**
+     * Launches the less pager with the specified arguments.
+     * This is a convenience method that calls {@link #less(Terminal, InputStream, PrintStream, PrintStream, Path, Object[], ConfigurationPath)}
+     * with a null ConfigurationPath.
+     *
+     * @param terminal the terminal to use
+     * @param in the input stream
+     * @param out the output stream
+     * @param err the error stream
+     * @param currentDir the current directory
+     * @param argv command arguments
+     * @throws Exception if an error occurs
+     */
     public static void less(
             Terminal terminal, InputStream in, PrintStream out, PrintStream err, Path currentDir, Object[] argv)
             throws Exception {
         less(terminal, in, out, err, currentDir, argv, null);
     }
 
+    /**
+     * Launches the less pager with the specified arguments.
+     *
+     * @param terminal the terminal to use
+     * @param in the input stream
+     * @param out the output stream
+     * @param err the error stream
+     * @param currentDir the current directory
+     * @param argv command arguments (can be String or Source objects)
+     * @param configPath the configuration path or null for default
+     * @throws Exception if an error occurs
+     */
     public static void less(
             Terminal terminal,
             InputStream in,
@@ -190,6 +254,14 @@ public class Commands {
         less.run(sources);
     }
 
+    /**
+     * Finds files matching a glob pattern.
+     *
+     * @param root the root directory to search from
+     * @param files the glob pattern to match
+     * @return a list of matching paths
+     * @throws IOException if an I/O error occurs
+     */
     protected static List<Path> findFiles(Path root, String files) throws IOException {
         files = files.startsWith("~") ? files.replace("~", System.getProperty("user.home")) : files;
         String regex = files;
@@ -214,6 +286,16 @@ public class Commands {
         }
     }
 
+    /**
+     * Displays or manipulates the command history.
+     *
+     * @param reader the line reader
+     * @param out the output stream
+     * @param err the error stream
+     * @param currentDir the current directory
+     * @param argv command arguments
+     * @throws Exception if an error occurs
+     */
     public static void history(LineReader reader, PrintStream out, PrintStream err, Path currentDir, String[] argv)
             throws Exception {
         final String[] usage = {
@@ -359,6 +441,9 @@ public class Commands {
         execute.editCommandsAndClose(reader);
     }
 
+    /**
+     * Helper class for re-executing commands from history.
+     */
     private static class ReExecute {
         private final boolean execute;
         private final boolean edit;
@@ -431,6 +516,14 @@ public class Commands {
         }
     }
 
+    /**
+     * Resolves a history ID, handling negative indices.
+     *
+     * @param id the history ID to resolve
+     * @param minId the minimum valid ID
+     * @param maxId the maximum valid ID
+     * @return the resolved history ID
+     */
     private static int historyId(int id, int minId, int maxId) {
         int out = id;
         if (id < 0) {
@@ -444,6 +537,15 @@ public class Commands {
         return out;
     }
 
+    /**
+     * Retrieves a history entry ID from a string, which can be either a number
+     * or a command prefix.
+     *
+     * @param history the history to search in
+     * @param s the string to parse
+     * @return the history ID
+     * @throws IllegalArgumentException if the history event is not found
+     */
     private static int retrieveHistoryId(History history, String s) throws IllegalArgumentException {
         try {
             return Integer.parseInt(s);
@@ -459,6 +561,16 @@ public class Commands {
         }
     }
 
+    /**
+     * Edits command-specific tab completions.
+     *
+     * @param reader the line reader
+     * @param out the output stream
+     * @param err the error stream
+     * @param completions the map of command completions
+     * @param argv command arguments
+     * @throws HelpException if help is requested or an error occurs
+     */
     public static void complete(
             LineReader reader,
             PrintStream out,
@@ -517,6 +629,16 @@ public class Commands {
         cmdCompletions.add(new CompletionData(options, description, argument, condition));
     }
 
+    /**
+     * Manipulates line reader widgets.
+     *
+     * @param reader the line reader
+     * @param out the output stream
+     * @param err the error stream
+     * @param widgetCreator function to create widgets from function names
+     * @param argv command arguments
+     * @throws Exception if an error occurs
+     */
     public static void widget(
             LineReader reader, PrintStream out, PrintStream err, Function<String, Widget> widgetCreator, String[] argv)
             throws Exception {
@@ -609,6 +731,15 @@ public class Commands {
         }
     }
 
+    /**
+     * Manipulates line reader keymaps.
+     *
+     * @param reader the line reader
+     * @param out the output stream
+     * @param err the error stream
+     * @param argv command arguments
+     * @throws HelpException if help is requested or an error occurs
+     */
     public static void keymap(LineReader reader, PrintStream out, PrintStream err, String[] argv) throws HelpException {
         final String[] usage = {
             "keymap -  manipulate keymaps",
@@ -945,6 +1076,15 @@ public class Commands {
         }
     }
 
+    /**
+     * Sets line reader options.
+     *
+     * @param reader the line reader
+     * @param out the output stream
+     * @param err the error stream
+     * @param argv command arguments
+     * @throws HelpException if help is requested or an error occurs
+     */
     public static void setopt(LineReader reader, PrintStream out, PrintStream err, String[] argv) throws HelpException {
         final String[] usage = {
             "setopt -  set options",
@@ -970,6 +1110,15 @@ public class Commands {
         }
     }
 
+    /**
+     * Unsets line reader options.
+     *
+     * @param reader the line reader
+     * @param out the output stream
+     * @param err the error stream
+     * @param argv command arguments
+     * @throws HelpException if help is requested or an error occurs
+     */
     public static void unsetopt(LineReader reader, PrintStream out, PrintStream err, String[] argv)
             throws HelpException {
         final String[] usage = {
@@ -996,6 +1145,16 @@ public class Commands {
         }
     }
 
+    /**
+     * Helper method to set or unset line reader options.
+     *
+     * @param reader the line reader
+     * @param out the output stream
+     * @param err the error stream
+     * @param options the list of options to set/unset
+     * @param match whether to use pattern matching
+     * @param set whether to set (true) or unset (false) the options
+     */
     private static void doSetOpts(
             LineReader reader, PrintStream out, PrintStream err, List<String> options, boolean match, boolean set) {
         for (String name : options) {
@@ -1035,6 +1194,12 @@ public class Commands {
         }
     }
 
+    /**
+     * Helper method to display a keymap binding value.
+     *
+     * @param sb the string builder to append to
+     * @param value the binding value to display
+     */
     private static void displayValue(StringBuilder sb, Object value) {
         if (value == null) {
             sb.append("undefined-key");
@@ -1047,6 +1212,15 @@ public class Commands {
         }
     }
 
+    /**
+     * Sets or displays line reader variables.
+     *
+     * @param lineReader the line reader
+     * @param out the output stream
+     * @param err the error stream
+     * @param argv command arguments
+     * @throws HelpException if help is requested or an error occurs
+     */
     public static void setvar(LineReader lineReader, PrintStream out, PrintStream err, String[] argv)
             throws HelpException {
         final String[] usage = {
@@ -1069,6 +1243,15 @@ public class Commands {
         }
     }
 
+    /**
+     * Displays color tables and ANSI styles.
+     *
+     * @param terminal the terminal to use
+     * @param out the output stream
+     * @param argv command arguments
+     * @throws HelpException if help is requested or an error occurs
+     * @throws IOException if an I/O error occurs
+     */
     public static void colors(Terminal terminal, PrintStream out, String[] argv) throws HelpException, IOException {
         String[] usage = {
             "colors -  view 256-color table and ANSI-styles",
@@ -1125,6 +1308,9 @@ public class Commands {
         }
     }
 
+    /**
+     * Helper class for displaying color tables and ANSI styles.
+     */
     private static class Colors {
         private static final String COLORS_24BIT = "[0-9a-fA-F]{6}";
         private static final List<String> COLORS_16 = Arrays.asList(
@@ -1647,6 +1833,17 @@ public class Commands {
         }
     }
 
+    /**
+     * Manages syntax highlighting themes.
+     *
+     * @param lineReader the line reader
+     * @param terminal the terminal to use
+     * @param out the output stream
+     * @param err the error stream
+     * @param argv command arguments
+     * @param configPath the configuration path
+     * @throws HelpException if help is requested or an error occurs
+     */
     public static void highlighter(
             LineReader lineReader,
             Terminal terminal,
@@ -1759,6 +1956,13 @@ public class Commands {
         }
     }
 
+    /**
+     * Helper method to switch the syntax highlighting theme.
+     *
+     * @param err the error stream
+     * @param config the configuration path
+     * @param theme the theme to switch to
+     */
     private static void switchTheme(PrintStream err, Path config, String theme) {
         try (Stream<String> stream = Files.lines(config, StandardCharsets.UTF_8)) {
             List<String> list = stream.map(line ->
@@ -1770,12 +1974,26 @@ public class Commands {
         }
     }
 
+    /**
+     * Helper method to replace a file name in a path.
+     *
+     * @param path the original path
+     * @param name the new file name
+     * @return the path with the file name replaced
+     */
     private static String replaceFileName(Path path, String name) {
         int nameLength = path.getFileName().toString().length();
         int pathLength = path.toString().length();
         return (path.toString().substring(0, pathLength - nameLength) + name).replace("\\", "\\\\");
     }
 
+    /**
+     * Helper method to compile a style from a color definition.
+     *
+     * @param reference the style reference name
+     * @param colorDef the color definition
+     * @return the compiled AttributedStyle
+     */
     private static AttributedStyle compileStyle(String reference, String colorDef) {
         Map<String, String> spec = new HashMap<>();
         spec.put(reference, colorDef);

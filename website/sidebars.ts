@@ -20,6 +20,7 @@ const sidebars: SidebarsConfig = {
     'line-reader',
     'tab-completion',
     'history',
+    'remote-terminals',
     'troubleshooting',
     {
       type: 'category',
@@ -59,8 +60,6 @@ const sidebars: SidebarsConfig = {
         'modules/overview',
         'modules/builtins',
         'modules/style',
-        'modules/console',
-        'modules/console-ui',
         'modules/terminal-providers',
       ],
     },

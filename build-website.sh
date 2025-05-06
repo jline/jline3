@@ -2,19 +2,15 @@
 
 set -e
 
-# Extract code snippets from example classes
-echo "Extracting code snippets..."
+# Change to website directory
 cd website
-node scripts/extract-snippets.js ../demo/src/main/java/org/jline/demo/examples ./snippets
 
-# Copy snippets to the static directory so they can be loaded by the CodeSnippet component
-echo "Copying snippets to static directory..."
-mkdir -p ./static/snippets
-cp ./snippets/* ./static/snippets/
-
-# Build the website
-echo "Building website..."
+# Install dependencies
+echo "Installing dependencies..."
 npm install
+
+# Build the website (this will extract snippets automatically)
+echo "Building website..."
 npm run build
 
 echo "Website built successfully in website/build directory"

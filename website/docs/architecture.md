@@ -4,6 +4,8 @@ sidebar_position: 2
 
 # JLine Architecture
 
+import CodeSnippet from '@site/src/components/CodeSnippet';
+
 This page provides a high-level overview of JLine's architecture and how its components interact with each other.
 
 ## Component Overview
@@ -129,50 +131,79 @@ JLine is highly customizable through several extension points:
 - **Highlighters**: Implement syntax highlighting
 - **History**: Customize history storage and retrieval
 
+## Remote Terminals
+
+JLine provides support for remote terminal connections through its `remote-telnet` and `remote-ssh` modules, allowing you to create networked terminal applications accessible via Telnet or SSH protocols.
+
+### Telnet Support
+
+The `remote-telnet` module provides a simple Telnet server implementation that can be used to expose JLine-based applications over the network:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      Telnet Architecture                        │
+└─────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                        Telnet Server                            │
+│                                                                 │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐             │
+│  │ Connection  │  │ Connection  │  │ Connection  │             │
+│  │  Manager    │  │    Data     │  │             │             │
+│  └─────────────┘  └─────────────┘  └─────────────┘             │
+└─────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      Remote Terminal                            │
+│                                                                 │
+│  ┌─────────────┐  ┌─────────────┐                               │
+│  │  Terminal   │  │ Shell       │                               │
+│  │  Builder    │  │ Provider    │                               │
+│  └─────────────┘  └─────────────┘                               │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+Key components:
+
+- **Telnet**: Main class that sets up the Telnet server
+- **ConnectionManager**: Manages client connections and sessions
+- **Connection**: Represents a single client connection
+- **ShellProvider**: Interface for providing a shell to connected clients
+
+The Telnet server creates a new `Terminal` instance for each client connection, allowing remote users to interact with your application as if they were using a local terminal.
+
+### SSH Support
+
+The `remote-ssh` module provides SSH server and client capabilities, offering a more secure alternative to Telnet:
+
+- **Server**: Allows remote users to connect to your application via SSH
+- **Client**: Enables your application to connect to remote SSH servers
+- **SCP/SFTP**: Support for secure file transfer protocols
+
+SSH support is built on Apache MINA SSHD and provides a more secure option for production environments.
+
+### Common Use Cases
+
+- **Remote Administration**: Allow administrators to manage applications remotely
+- **Multi-User Applications**: Create applications that can be accessed by multiple users simultaneously
+- **Network Services**: Implement network services with interactive terminal interfaces
+- **Embedded Systems**: Provide terminal access to devices with limited local I/O capabilities
+
 ## Common Usage Patterns
 
 ### Basic Terminal and LineReader
 
-```java
-// Create a terminal
-Terminal terminal = TerminalBuilder.builder()
-        .system(true)
-        .build();
-
-// Create a line reader
-LineReader reader = LineReaderBuilder.builder()
-        .terminal(terminal)
-        .build();
-
-// Read input
-String line = reader.readLine("prompt> ");
-```
+<CodeSnippet name="BasicTerminalAndLineReader" />
 
 ### Adding Tab Completion
 
-```java
-// Create a completer
-Completer completer = new StringsCompleter("command1", "command2", "help", "quit");
-
-// Create a line reader with completion
-LineReader reader = LineReaderBuilder.builder()
-        .terminal(terminal)
-        .completer(completer)
-        .build();
-```
+<CodeSnippet name="AddingTabCompletion" />
 
 ### Using History
 
-```java
-// Create a history file
-Path historyFile = Paths.get(System.getProperty("user.home"), ".myapp_history");
-
-// Create a line reader with history
-LineReader reader = LineReaderBuilder.builder()
-        .terminal(terminal)
-        .variable(LineReader.HISTORY_FILE, historyFile)
-        .build();
-```
+<CodeSnippet name="UsingHistory" />
 
 ## Conclusion
 
