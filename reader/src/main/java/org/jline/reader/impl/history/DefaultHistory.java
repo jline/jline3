@@ -138,6 +138,7 @@ public class DefaultHistory implements History {
      * <p>
      * This method clears the current history and loads entries from the history file.
      * If the file doesn't exist or can't be read, the history will be cleared.
+     * If individual lines in the history file are malformed, they will be skipped.
      *
      * @throws IOException if an I/O error occurs while reading the history file
      */
@@ -148,14 +149,31 @@ public class DefaultHistory implements History {
             try {
                 if (Files.exists(path)) {
                     Log.trace("Loading history from: ", path);
+                    internalClear();
+                    boolean hasErrors = false;
+
                     try (BufferedReader reader = Files.newBufferedReader(path)) {
-                        internalClear();
-                        reader.lines().forEach(line -> addHistoryLine(path, line));
-                        setHistoryFileData(path, new HistoryFileData(items.size(), offset + items.size()));
-                        maybeResize();
+                        List<String> lines = reader.lines().collect(java.util.stream.Collectors.toList());
+                        for (String line : lines) {
+                            try {
+                                addHistoryLine(path, line);
+                            } catch (IllegalArgumentException e) {
+                                Log.debug("Skipping invalid history line: " + line, e);
+                                hasErrors = true;
+                            }
+                        }
+                    }
+
+                    setHistoryFileData(path, new HistoryFileData(items.size(), offset + items.size()));
+                    maybeResize();
+
+                    // If we encountered errors, rewrite the history file with valid entries
+                    if (hasErrors) {
+                        Log.info("History file contained errors, rewriting with valid entries");
+                        write(path, false);
                     }
                 }
-            } catch (IllegalArgumentException | IOException e) {
+            } catch (IOException e) {
                 Log.debug("Failed to load history; clearing", e);
                 internalClear();
                 throw e;
@@ -168,7 +186,8 @@ public class DefaultHistory implements History {
      * <p>
      * Unlike {@link #load()}, this method does not clear the existing history before
      * adding entries from the file. If the file doesn't exist or can't be read,
-     * the history will be cleared.
+     * the history will be cleared. If individual lines in the history file are malformed,
+     * they will be skipped.
      *
      * @param file the file to read history from, or null to use the default history file
      * @param checkDuplicates whether to check for and skip duplicate entries
@@ -181,13 +200,30 @@ public class DefaultHistory implements History {
             try {
                 if (Files.exists(path)) {
                     Log.trace("Reading history from: ", path);
+                    boolean hasErrors = false;
+
                     try (BufferedReader reader = Files.newBufferedReader(path)) {
-                        reader.lines().forEach(line -> addHistoryLine(path, line, checkDuplicates));
-                        setHistoryFileData(path, new HistoryFileData(items.size(), offset + items.size()));
-                        maybeResize();
+                        List<String> lines = reader.lines().collect(java.util.stream.Collectors.toList());
+                        for (String line : lines) {
+                            try {
+                                addHistoryLine(path, line, checkDuplicates);
+                            } catch (IllegalArgumentException e) {
+                                Log.debug("Skipping invalid history line: " + line, e);
+                                hasErrors = true;
+                            }
+                        }
+                    }
+
+                    setHistoryFileData(path, new HistoryFileData(items.size(), offset + items.size()));
+                    maybeResize();
+
+                    // If we encountered errors, rewrite the history file with valid entries
+                    if (hasErrors) {
+                        Log.info("History file contained errors, rewriting with valid entries");
+                        write(path, false);
                     }
                 }
-            } catch (IllegalArgumentException | IOException e) {
+            } catch (IOException e) {
                 Log.debug("Failed to read history; clearing", e);
                 internalClear();
                 throw e;
@@ -385,16 +421,29 @@ public class DefaultHistory implements History {
         // Load all history entries
         LinkedList<Entry> allItems = new LinkedList<>();
         try (BufferedReader historyFileReader = Files.newBufferedReader(path)) {
-            historyFileReader.lines().forEach(l -> {
-                if (reader.isSet(LineReader.Option.HISTORY_TIMESTAMPED)) {
-                    int idx = l.indexOf(':');
-                    Instant time = Instant.ofEpochMilli(Long.parseLong(l.substring(0, idx)));
-                    String line = unescape(l.substring(idx + 1));
-                    allItems.add(createEntry(allItems.size(), time, line));
-                } else {
-                    allItems.add(createEntry(allItems.size(), Instant.now(), unescape(l)));
+            List<String> lines = historyFileReader.lines().collect(java.util.stream.Collectors.toList());
+            for (String l : lines) {
+                try {
+                    if (reader.isSet(LineReader.Option.HISTORY_TIMESTAMPED)) {
+                        int idx = l.indexOf(':');
+                        if (idx < 0) {
+                            Log.debug("Skipping invalid history line: " + l);
+                            continue;
+                        }
+                        try {
+                            Instant time = Instant.ofEpochMilli(Long.parseLong(l.substring(0, idx)));
+                            String line = unescape(l.substring(idx + 1));
+                            allItems.add(createEntry(allItems.size(), time, line));
+                        } catch (DateTimeException | NumberFormatException e) {
+                            Log.debug("Skipping invalid history timestamp: " + l);
+                        }
+                    } else {
+                        allItems.add(createEntry(allItems.size(), Instant.now(), unescape(l)));
+                    }
+                } catch (Exception e) {
+                    Log.debug("Skipping invalid history line: " + l, e);
                 }
-            });
+            }
         }
         // Remove duplicates
         List<Entry> trimmedItems = doTrimHistory(allItems, max);
