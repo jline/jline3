@@ -242,7 +242,7 @@ public abstract class AbstractTerminal implements TerminalExt {
             Log.warn("Unable to retrieve infocmp for type " + type, e);
         }
         if (capabilities == null) {
-            capabilities = InfoCmp.getLoadedInfoCmp("ansi");
+            capabilities = InfoCmp.getDefaultInfoCmp("ansi");
         }
         InfoCmp.parseInfoCmp(capabilities, bools, ints, strings);
     }
