@@ -1634,10 +1634,20 @@ public class ScreenTerminal {
         // Set width
         for (int i = 0; i < height; i++) {
             if (screen[i].length < w) {
+                int oldLength = screen[i].length;
                 screen[i] = Arrays.copyOf(screen[i], w);
+                // Fill the rest with spaces
+                for (int j = oldLength; j < w; j++) {
+                    screen[i][j] = attr | 0x00000020;
+                }
             }
             if (screen2[i].length < w) {
+                int oldLength = screen2[i].length;
                 screen2[i] = Arrays.copyOf(screen2[i], w);
+                // Fill the rest with spaces
+                for (int j = oldLength; j < w; j++) {
+                    screen2[i][j] = attr | 0x00000020;
+                }
             }
         }
         if (cx >= w) {
