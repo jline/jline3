@@ -433,6 +433,7 @@ public interface LineReader {
         COMPLETE_MATCHER_CAMELCASE,
         /** use type completion matcher */
         COMPLETE_MATCHER_TYPO(true),
+        /** disable special handling of magic history expansion commands like "!" and "!!" and "!n" and "!-n" and "!string" and "^string1^string2" **/
         DISABLE_EVENT_EXPANSION,
         HISTORY_VERIFY,
         HISTORY_IGNORE_SPACE(true),
