@@ -29,7 +29,7 @@ jobs:
           cache: npm
           cache-dependency-path: website/package-lock.json
       - name: Setup Pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v5
         with:
           enablement: true
       - name: Install dependencies
