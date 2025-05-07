@@ -1229,18 +1229,16 @@ public class SystemRegistryImpl implements SystemRegistry {
             throw new UnknownCommandException("Invalid command: " + rawLine);
         }
         Object out;
-        if (isLocalCommand(command)) {
+        int id = registryId(command);
+        if (id > -1) {
+            Object[] _args = consoleId != null ? consoleEngine().expandParameters(args) : args;
+            out = commandRegistries[id].invoke(outputStream.getCommandSession(), command, _args);
+        } else if (scriptStore.hasScript(command) && consoleEngine() != null) {
+            out = consoleEngine().execute(command, rawLine, args);
+        } else if (isLocalCommand(command)) {
             out = localExecute(command, consoleId != null ? consoleEngine().expandParameters(args) : args);
         } else {
-            int id = registryId(command);
-            if (id > -1) {
-                Object[] _args = consoleId != null ? consoleEngine().expandParameters(args) : args;
-                out = commandRegistries[id].invoke(outputStream.getCommandSession(), command, _args);
-            } else if (scriptStore.hasScript(command) && consoleEngine() != null) {
-                out = consoleEngine().execute(command, rawLine, args);
-            } else {
-                throw new UnknownCommandException("Unknown command: " + command);
-            }
+            throw new UnknownCommandException("Unknown command: " + command);
         }
         return out;
     }
