@@ -3006,7 +3006,7 @@ public class Nano implements Editor {
     }
 
     void mouseEvent() {
-        MouseEvent event = terminal.readMouseEvent();
+        MouseEvent event = terminal.readMouseEvent(bindingReader::readCharacter, bindingReader.getLastBinding());
         if (event.getModifiers().isEmpty()
                 && event.getType() == MouseEvent.Type.Released
                 && event.getButton() == MouseEvent.Button.Button1) {
