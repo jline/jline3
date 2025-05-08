@@ -602,7 +602,7 @@ public class Tmux {
                         first = true;
                     }
                     if (b == Binding.Mouse) {
-                        MouseEvent event = terminal.readMouseEvent();
+                        MouseEvent event = terminal.readMouseEvent(reader::readCharacter, reader.getLastBinding());
                         // System.err.println(event.toString());
                     } else if (b instanceof String || b instanceof String[]) {
                         ByteArrayOutputStream out = new ByteArrayOutputStream();

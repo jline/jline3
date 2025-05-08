@@ -277,12 +277,22 @@ public abstract class AbstractTerminal implements TerminalExt {
 
     @Override
     public MouseEvent readMouseEvent() {
-        return lastMouseEvent = MouseSupport.readMouse(this, lastMouseEvent);
+        return readMouseEvent(getStringCapability(Capability.key_mouse));
     }
 
     @Override
     public MouseEvent readMouseEvent(IntSupplier reader) {
-        return lastMouseEvent = MouseSupport.readMouse(reader, lastMouseEvent);
+        return readMouseEvent(reader, getStringCapability(Capability.key_mouse));
+    }
+
+    @Override
+    public MouseEvent readMouseEvent(String prefix) {
+        return lastMouseEvent = MouseSupport.readMouse(this, lastMouseEvent, prefix);
+    }
+
+    @Override
+    public MouseEvent readMouseEvent(IntSupplier reader, String prefix) {
+        return lastMouseEvent = MouseSupport.readMouse(reader, lastMouseEvent, prefix);
     }
 
     @Override

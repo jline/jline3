@@ -138,7 +138,8 @@ public class GUIImpl implements GUI {
                         handleInput(bindingReader.getLastBinding());
                         break;
                     case Mouse:
-                        handleMouse(terminal.readMouseEvent(bindingReader::readCharacter));
+                        handleMouse(
+                                terminal.readMouseEvent(bindingReader::readCharacter, bindingReader.getLastBinding()));
                         break;
                 }
                 redraw();

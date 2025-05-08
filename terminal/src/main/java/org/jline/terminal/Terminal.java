@@ -1172,6 +1172,50 @@ public interface Terminal extends Closeable, Flushable {
     MouseEvent readMouseEvent(IntSupplier reader);
 
     /**
+     * Reads and decodes a mouse event with a specified prefix that has already been consumed.
+     *
+     * <p>
+     * This method is similar to {@link #readMouseEvent()}, but it allows specifying a prefix
+     * that has already been consumed. This is useful when the mouse event prefix (e.g., "\033[<"
+     * or "\033[M") has been consumed by the key binding detection, and we need to continue
+     * parsing from the current position.
+     * </p>
+     *
+     * <p>
+     * This method is primarily intended for advanced use cases where the standard
+     * {@link #readMouseEvent()} method is not sufficient, particularly when dealing with
+     * key binding systems that may consume part of the mouse event sequence.
+     * </p>
+     *
+     * @param prefix the prefix that has already been consumed, or null if none
+     * @return the decoded mouse event containing event type, button, modifiers, and coordinates
+     * @see #readMouseEvent()
+     * @see MouseEvent
+     */
+    MouseEvent readMouseEvent(String prefix);
+
+    /**
+     * Reads and decodes a mouse event using the provided input supplier with a specified prefix
+     * that has already been consumed.
+     *
+     * <p>
+     * This method combines the functionality of {@link #readMouseEvent(IntSupplier)} and
+     * {@link #readMouseEvent(String)}, allowing both a custom input supplier and a prefix
+     * to be specified. This is useful for advanced input handling scenarios where both
+     * customization of the input source and handling of partially consumed sequences are needed.
+     * </p>
+     *
+     * @param reader the input supplier that provides the raw bytes of the mouse event data
+     * @param prefix the prefix that has already been consumed, or null if none
+     * @return the decoded mouse event containing event type, button, modifiers, and coordinates
+     * @see #readMouseEvent()
+     * @see #readMouseEvent(IntSupplier)
+     * @see #readMouseEvent(String)
+     * @see MouseEvent
+     */
+    MouseEvent readMouseEvent(IntSupplier reader, String prefix);
+
+    /**
      * Returns whether the terminal has support for focus tracking.
      *
      * <p>
