@@ -4,7 +4,7 @@
 [![Build Status](https://github.com/jline/jline3/actions/workflows/master-build.yml/badge.svg)](https://github.com/jline/jline3/actions)
 [![License](https://img.shields.io/badge/License-BSD-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
-JLine is a Java library for handling console input. It's similar to [GNU Readline](https://tiswww.case.edu/php/chet/readline/rltop.html) but with a focus on portability, flexibility, and integration with Java applications.
+JLine is a Java library for handling console input. It's similar to [GNU Readline](https://tiswww.case.edu/php/chet/readline/rltop.html) but with a focus on portability, flexibility, and integration with Java applications. See https://jline.org for its documentation.
 
 ## Features
 
