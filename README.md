@@ -26,14 +26,14 @@ JLine is a Java library for handling console input. It's similar to [GNU Readlin
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline</artifactId>
-    <version>3.29.0</version>
+    <version>3.30.0</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```groovy
-implementation 'org.jline:jline:3.29.0'
+implementation 'org.jline:jline:3.30.0'
 ```
 
 ## Quick Start
@@ -53,15 +53,15 @@ public class HelloJLine {
             Terminal terminal = TerminalBuilder.builder()
                     .system(true)
                     .build();
-            
+
             // Create line reader
             LineReader reader = LineReaderBuilder.builder()
                     .terminal(terminal)
                     .build();
-            
+
             // Prompt and read input
             String line = reader.readLine("JLine > ");
-            
+
             // Print the result
             System.out.println("You entered: " + line);
         } catch (Exception e) {
@@ -83,51 +83,6 @@ JLine is organized into several modules:
 - **jline-builtins**: Built-in commands and utilities
 - **jline-remote-ssh**: SSH server support
 - **jline-remote-telnet**: Telnet server support
-
-## ConsoleUI
-
-<img src="./docs/ConsoleUI-Logo.png" width="200" align="right" alt="ConsoleUI logo">
-
-JLine includes ConsoleUI, a library for creating interactive command-line interfaces inspired by [Inquirer.js](https://github.com/SBoudrias/Inquirer.js). It provides simple UI elements for ANSI terminals:
-
-- Text input with completion
-- Checkboxes
-- Lists
-- Expandable choices
-- Yes/No questions
-
-[Watch a demo of ConsoleUI on YouTube](https://youtu.be/6dB3CyOX9rU)
-
-### ConsoleUI Example
-
-```java
-import org.jline.console.ui.*;
-import org.jline.console.ui.prompt.*;
-
-public class ConsoleUIExample {
-    public static void main(String[] args) {
-        ConsolePrompt prompt = new ConsolePrompt();
-        PromptBuilder builder = prompt.getPromptBuilder();
-        
-        // Create a simple yes/no prompt
-        Prompt confirmPrompt = builder.createConfirmPromp()
-                .name("continue")
-                .message("Do you want to continue?")
-                .defaultValue(ConfirmChoice.ConfirmationValue.YES)
-                .build();
-        
-        try {
-            // Display the prompt and get the result
-            Map<String, Object> result = prompt.prompt(confirmPrompt);
-            System.out.println("You chose: " + result.get("continue"));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-}
-```
-
-For more details on ConsoleUI, see the [how-to guide](doc/howto.md).
 
 ## Documentation
 

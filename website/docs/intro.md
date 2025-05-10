@@ -6,6 +6,10 @@ sidebar_position: 1
 
 JLine is a Java library that brings advanced console input handling capabilities to your applications. It provides functionality similar to BSD editline and GNU readline, while offering additional features that rival the sophisticated ZSH line editor.
 
+:::tip API Documentation
+For detailed API documentation, check out the [JLine Javadoc](/javadoc).
+:::
+
 ## Overview
 
 JLine enhances your command-line applications with:
@@ -26,11 +30,13 @@ JLine enhances your command-line applications with:
 
 Add JLine to your project using Maven:
 
+import VersionDisplay from '@site/src/components/VersionDisplay';
+
 ```xml
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline</artifactId>
-    <version>3.29.0</version>
+    <version><VersionDisplay /></version>
 </dependency>
 ```
 
@@ -39,7 +45,7 @@ Add JLine to your project using Maven:
 Or if you're using Gradle:
 
 ```groovy
-implementation 'org.jline:jline:3.29.0'
+implementation 'org.jline:jline:<VersionDisplay />'
 ```
 
 ## Basic Usage

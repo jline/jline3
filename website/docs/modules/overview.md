@@ -46,14 +46,13 @@ The `jline-console` module provides a framework for building interactive console
 
 ### jline-console-ui
 
-The `jline-console-ui` module provides UI components for console applications, such as:
+The `jline-console-ui` module provides interactive prompt components for console applications, inspired by [Inquirer.js](https://github.com/SBoudrias/Inquirer.js). It includes:
 
-- Progress bars
-- Spinners
-- Tables
-- Trees
-- Forms
-- Wizards
+- Text input with completion and GNU ReadLine compatible editing
+- Checkboxes for multiple selections
+- Lists for single item selection
+- Expandable choices (key-based answers with help)
+- Yes/No confirmation prompts
 
 ## Module Dependencies
 
@@ -77,37 +76,39 @@ jline-console-ui
 
 To use these modules in your Maven project, add the appropriate dependencies:
 
+import VersionDisplay from '@site/src/components/VersionDisplay';
+
 ```xml
 <!-- Core functionality -->
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline</artifactId>
-    <version>3.29.0</version>
+    <version><VersionDisplay /></version>
 </dependency>
 
 <!-- Or individual modules -->
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-builtins</artifactId>
-    <version>3.29.0</version>
+    <version><VersionDisplay /></version>
 </dependency>
 
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-style</artifactId>
-    <version>3.29.0</version>
+    <version><VersionDisplay /></version>
 </dependency>
 
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-console</artifactId>
-    <version>3.29.0</version>
+    <version><VersionDisplay /></version>
 </dependency>
 
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-console-ui</artifactId>
-    <version>3.29.0</version>
+    <version><VersionDisplay /></version>
 </dependency>
 ```
 
