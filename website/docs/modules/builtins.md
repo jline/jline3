@@ -28,7 +28,7 @@ The Builtins module includes a Nano-like text editor:
 
 ## InputRC
 
-The `InputRC` can configure a `LineReader` from an `.inputrc` style file.
+The `InputRC` class can configure a `LineReader` from an `.inputrc` style file.
 
 ## Best Practices
 
