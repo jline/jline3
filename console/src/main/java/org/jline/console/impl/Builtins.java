@@ -74,7 +74,7 @@ public class Builtins extends JlineCommandRegistry implements CommandRegistry {
     private final ConfigurationPath configPath;
     private final Function<String, Widget> widgetCreator;
     private final Supplier<Path> workDir;
-    private LineReader reader;
+    private final LineReader reader;
 
     public Builtins(Path workDir, ConfigurationPath configPath, Function<String, Widget> widgetCreator) {
         this(null, () -> workDir, configPath, widgetCreator);
