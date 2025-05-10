@@ -1,4 +1,4 @@
-<img src="./doc/ConsoleUI-Logo.png" width="200"  align="right" alt="ConsoleUI logo">
+<img src="../website/static/img/ConsoleUI-Logo.png" width="200"  align="right" alt="ConsoleUI logo">
 
 # ConsoleUI
 
@@ -12,7 +12,7 @@ it has been merged into JLine3.
 
 I was impressed by JavaScript based Yeoman which leads the user through the process of creating new projects
 by querying with a simple user interface on the console. An investigation how this is done, brought
-me to Inquirer.js which implements a very simple and intuitive set of controls for checkbox, list and text input.
+me to Inquirer.js which implements a very simple and intuitive set of controls for checkbox, list, and text input.
 
 Because I didn't find anything comparable to this in the Java ecosystem, I decided to write `Console UI`
 as a library with the same easy 'look and feel'. Some parts of the API are also comparable, but Console UI is not
@@ -47,8 +47,7 @@ You can run this by executing the following from the project root:
 
 # Usage
 
-*Hint: see the [how to](doc/howto.md) to get a more detailed documentation how to use ConsoleUI.*
-
+For detailed documentation on how to use ConsoleUI, please visit the [JLine website](https://jline.org/docs/modules/console-ui).
 
 Entry point to the builder classes is to create a new object of type `ConsolePrompt`.
 
@@ -62,19 +61,12 @@ you want to use.
 From with this `PromptBuilder` you can access UI builder with the following methods:
 
 - createCheckboxPrompt()
-    * creates a checkbox prompt. This prompt lets the user choose any number of items of a given list.
+    * creates a checkbox prompt. This prompt lets the user choose any number of items from a list.
 - createChoicePrompt()
     * creates a choice prompt. This prompt lets the user choose one from a given number of possible answers.
 - createConfirmPromp()
-    * creates a confirmation prompt. This prompt lets the user answer with 'yes' or 'no' to a given question.
+    * creates a confirmation prompt. This prompt lets the user answer with 'yes' or 'no' to a question.
 - createInputPrompt()
-    * creates an input prompt. This prompt is a classic entry line like a shell. Because of the underlying readline
-      implementation it offers you to provide completers (like file name completer or string completer). In addition
-      to his, you can define a mask character which is printed on the screen instead of the typed keys like used
-      for hidden password entry.
+    * creates an input prompt. This prompt is a classic entry line like a shell with optional masking and completion.
 - createListPrompt()
-    * creates a list prompt. This prompt lets the user choose one item from a given list.
-
-
-
-
+    * creates a list prompt. This prompt lets the user choose one item from a list.

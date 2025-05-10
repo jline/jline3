@@ -46,14 +46,13 @@ The `jline-console` module provides a framework for building interactive console
 
 ### jline-console-ui
 
-The `jline-console-ui` module provides UI components for console applications, such as:
+The `jline-console-ui` module provides interactive prompt components for console applications, inspired by [Inquirer.js](https://github.com/SBoudrias/Inquirer.js). It includes:
 
-- Progress bars
-- Spinners
-- Tables
-- Trees
-- Forms
-- Wizards
+- Text input with completion and GNU ReadLine compatible editing
+- Checkboxes for multiple selections
+- Lists for single item selection
+- Expandable choices (key-based answers with help)
+- Yes/No confirmation prompts
 
 ## Module Dependencies
 
