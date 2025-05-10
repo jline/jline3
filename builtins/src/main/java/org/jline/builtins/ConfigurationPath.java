@@ -22,8 +22,8 @@ import java.nio.file.Path;
  * </p>
  */
 public class ConfigurationPath {
-    private Path appConfig;
-    private Path userConfig;
+    private final Path appConfig;
+    private final Path userConfig;
 
     /**
      * Configuration class constructor.
