@@ -26,14 +26,14 @@ JLine is a Java library for handling console input. It's similar to [GNU Readlin
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline</artifactId>
-    <version>3.29.0</version>
+    <version>3.30.0</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```groovy
-implementation 'org.jline:jline:3.29.0'
+implementation 'org.jline:jline:3.30.0'
 ```
 
 ## Quick Start
@@ -53,15 +53,15 @@ public class HelloJLine {
             Terminal terminal = TerminalBuilder.builder()
                     .system(true)
                     .build();
-            
+
             // Create line reader
             LineReader reader = LineReaderBuilder.builder()
                     .terminal(terminal)
                     .build();
-            
+
             // Prompt and read input
             String line = reader.readLine("JLine > ");
-            
+
             // Print the result
             System.out.println("You entered: " + line);
         } catch (Exception e) {
@@ -108,14 +108,14 @@ public class ConsoleUIExample {
     public static void main(String[] args) {
         ConsolePrompt prompt = new ConsolePrompt();
         PromptBuilder builder = prompt.getPromptBuilder();
-        
+
         // Create a simple yes/no prompt
         Prompt confirmPrompt = builder.createConfirmPromp()
                 .name("continue")
                 .message("Do you want to continue?")
                 .defaultValue(ConfirmChoice.ConfirmationValue.YES)
                 .build();
-        
+
         try {
             // Display the prompt and get the result
             Map<String, Object> result = prompt.prompt(confirmPrompt);

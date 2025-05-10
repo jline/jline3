@@ -27,11 +27,13 @@ The `remote-telnet` module provides a simple Telnet server implementation that c
 
 To use the Telnet support, add the following dependency to your project:
 
+import VersionDisplay from '@site/src/components/VersionDisplay';
+
 ```xml
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-remote-telnet</artifactId>
-    <version>3.29.0</version>
+    <version><VersionDisplay /></version>
 </dependency>
 ```
 
@@ -89,7 +91,7 @@ To use the SSH support, add the following dependency to your project:
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-remote-ssh</artifactId>
-    <version>3.29.0</version>
+    <version><VersionDisplay /></version>
 </dependency>
 ```
 

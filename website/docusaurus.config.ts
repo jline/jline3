@@ -4,7 +4,13 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
+// JLine version - update this when releasing a new version
+const jlineVersion = '3.30.0';
+
 const config: Config = {
+  customFields: {
+    jlineVersion: jlineVersion,
+  },
   title: 'JLine',
   tagline: 'Advanced Console Input for Java',
   favicon: 'img/favicon.ico',
@@ -64,6 +70,11 @@ const config: Config = {
         src: 'img/logo.svg',
       },
       items: [
+        {
+          to: '/javadoc',
+          label: 'Javadoc',
+          position: 'left',
+        },
         {
           type: 'docSidebar',
           sidebarId: 'tutorialSidebar',

@@ -77,37 +77,39 @@ jline-console-ui
 
 To use these modules in your Maven project, add the appropriate dependencies:
 
+import VersionDisplay from '@site/src/components/VersionDisplay';
+
 ```xml
 <!-- Core functionality -->
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline</artifactId>
-    <version>3.29.0</version>
+    <version><VersionDisplay /></version>
 </dependency>
 
 <!-- Or individual modules -->
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-builtins</artifactId>
-    <version>3.29.0</version>
+    <version><VersionDisplay /></version>
 </dependency>
 
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-style</artifactId>
-    <version>3.29.0</version>
+    <version><VersionDisplay /></version>
 </dependency>
 
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-console</artifactId>
-    <version>3.29.0</version>
+    <version><VersionDisplay /></version>
 </dependency>
 
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-console-ui</artifactId>
-    <version>3.29.0</version>
+    <version><VersionDisplay /></version>
 </dependency>
 ```
 
