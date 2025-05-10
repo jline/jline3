@@ -127,7 +127,7 @@ public class ConsoleUIExample {
 }
 ```
 
-For more details on ConsoleUI, see the [how-to guide](doc/howto.md).
+For more details on ConsoleUI, see the [how-to guide](console-ui/doc/howto.md).
 
 ## Documentation
 
