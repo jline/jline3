@@ -41,6 +41,7 @@ import org.jline.terminal.Attributes.ControlChar;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.Terminal.SignalHandler;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
+import org.jline.terminal.impl.MouseSupport;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
@@ -431,7 +432,7 @@ public class LineReaderImpl implements LineReader, Flushable {
 
     @Override
     public MouseEvent readMouseEvent() {
-        return terminal.readMouseEvent(bindingReader::readCharacter);
+        return terminal.readMouseEvent(bindingReader::readCharacter, bindingReader.getLastBinding());
     }
 
     /**
@@ -6466,7 +6467,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         bind(map, DELETE_CHAR, key(Capability.key_dc));
         bind(map, KILL_WHOLE_LINE, key(Capability.key_dl));
         bind(map, OVERWRITE_MODE, key(Capability.key_ic));
-        bind(map, MOUSE, key(Capability.key_mouse));
+        bind(map, MOUSE, MouseSupport.keys(terminal));
         bind(map, BEGIN_PASTE, BRACKETED_PASTE_BEGIN);
         bind(map, FOCUS_IN, FOCUS_IN_SEQ);
         bind(map, FOCUS_OUT, FOCUS_OUT_SEQ);
