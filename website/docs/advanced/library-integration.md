@@ -32,9 +32,9 @@ JCommander is a Java framework for parsing command-line parameters. It can be in
 
 This example demonstrates how to integrate JLine with JCommander to create an interactive shell that parses commands using JCommander.
 
-## picocli
+## Picocli
 
-picocli is a modern framework for building command-line applications. It has built-in support for JLine, making it easy to create interactive applications.
+[Picocli](https://picocli.info) is a modern framework for building command-line applications. It has [built-in support for JLine](https://github.com/remkop/picocli/blob/main/picocli-shell-jline3/README.md), making it easy to create interactive applications.
 
 <CodeSnippet name="PicoCLIJLineExample" />
 
