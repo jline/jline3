@@ -5,7 +5,6 @@ target
 .settings/
 .idea
 build.rc
-.vscode
 
 .mvn/wrapper/maven-wrapper.jar
 .dependency-reduced-pom.xml
