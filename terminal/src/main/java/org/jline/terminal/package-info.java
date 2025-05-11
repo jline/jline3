@@ -75,9 +75,10 @@
  * <p>The actual terminal implementations are provided in the {@code org.jline.terminal.impl} package,
  * with platform-specific implementations available through various provider modules like:</p>
  * <ul>
+ *   <li>jline-terminal-ffm - Foreign Function & Memory (Java 22+) based implementation</li>
+ *   <li>jline-terminal-jni - JNI-based implementation</li>
  *   <li>jline-terminal-jansi - JANSI-based implementation</li>
  *   <li>jline-terminal-jna - JNA-based implementation</li>
- *   <li>jline-terminal-jni - JNI-based implementation</li>
  * </ul>
  *
  * <p>The Service Provider Interface (SPI) for terminal implementations is defined in the
