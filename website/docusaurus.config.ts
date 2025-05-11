@@ -51,6 +51,9 @@ const config: Config = {
           // Remove this to remove the "edit this page" links.
           editUrl:
             'https://github.com/jline/jline3/edit/master/website/docs/',
+          remarkPlugins: [
+            require('./src/plugins/mdx-version-display'),
+          ],
         },
         blog: false, // blog section disabled
         theme: {

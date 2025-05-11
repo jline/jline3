@@ -33,14 +33,14 @@ This error occurs when JLine cannot initialize a terminal for the current enviro
    <dependency>
        <groupId>org.jline</groupId>
        <artifactId>jline-terminal-jni</artifactId>
-       <version><VersionDisplay /></version>
+       <version>{<VersionDisplay />}</version>
    </dependency>
 
    <!-- For FFM support (recommended for Java 22+) -->
    <dependency>
        <groupId>org.jline</groupId>
        <artifactId>jline-terminal-ffm</artifactId>
-       <version><VersionDisplay /></version>
+       <version>{<VersionDisplay />}</version>
    </dependency>
    ```
 

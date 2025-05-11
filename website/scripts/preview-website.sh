@@ -2,6 +2,10 @@
 
 set -e
 
+# Test the MDX plugin
+echo "Testing MDX plugin..."
+./scripts/test-plugin.sh
+
 # Extract code snippets from example classes
 echo "Extracting code snippets..."
 node scripts/extract-snippets.js ../demo/src/main/java/org/jline/demo/examples ./snippets

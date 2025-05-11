@@ -33,7 +33,7 @@ import VersionDisplay from '@site/src/components/VersionDisplay';
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-remote-telnet</artifactId>
-    <version><VersionDisplay /></version>
+    <version>{<VersionDisplay />}</version>
 </dependency>
 ```
 
@@ -91,7 +91,7 @@ To use the SSH support, add the following dependency to your project:
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-remote-ssh</artifactId>
-    <version><VersionDisplay /></version>
+    <version>{<VersionDisplay />}</version>
 </dependency>
 ```
 

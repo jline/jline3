@@ -83,32 +83,32 @@ import VersionDisplay from '@site/src/components/VersionDisplay';
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline</artifactId>
-    <version><VersionDisplay /></version>
+    <version>{<VersionDisplay />}</version>
 </dependency>
 
 <!-- Or individual modules -->
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-builtins</artifactId>
-    <version><VersionDisplay /></version>
+    <version>{<VersionDisplay />}</version>
 </dependency>
 
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-style</artifactId>
-    <version><VersionDisplay /></version>
+    <version>{<VersionDisplay />}</version>
 </dependency>
 
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-console</artifactId>
-    <version><VersionDisplay /></version>
+    <version>{<VersionDisplay />}</version>
 </dependency>
 
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-console-ui</artifactId>
-    <version><VersionDisplay /></version>
+    <version>{<VersionDisplay />}</version>
 </dependency>
 ```
 

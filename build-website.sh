@@ -9,6 +9,10 @@ cd website
 echo "Installing dependencies..."
 npm install
 
+# Test the MDX plugin
+echo "Testing MDX plugin..."
+./scripts/test-plugin.sh
+
 # Build the website (this will extract snippets automatically)
 echo "Building website..."
 npm run build

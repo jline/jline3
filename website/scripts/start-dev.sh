@@ -2,6 +2,10 @@
 
 set -e
 
+# Test the MDX plugin
+echo "Testing MDX plugin..."
+./scripts/test-plugin.sh
+
 # Extract code snippets from example classes directly to the static directory
 echo "Extracting code snippets..."
 mkdir -p ./static/snippets
