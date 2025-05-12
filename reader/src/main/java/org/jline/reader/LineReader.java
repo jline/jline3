@@ -440,6 +440,7 @@ public interface LineReader {
         HISTORY_IGNORE_DUPS(true),
         HISTORY_REDUCE_BLANKS(true),
         HISTORY_BEEP(true),
+        /** automatically save history when the line reader reads a new line (enabled by default) */
         HISTORY_INCREMENTAL(true),
         HISTORY_TIMESTAMPED(true),
         /** when displaying candidates, group them by {@link Candidate#group()} */
