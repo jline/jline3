@@ -11,9 +11,8 @@ The JLine documentation uses a code snippet system that extracts code examples f
 The snippet system works as follows:
 
 1. Example classes in the `demo/src/main/java/org/jline/demo/examples` directory are marked with special comments
-2. During the build process, snippets are extracted from these classes and saved as Markdown code blocks
-3. The snippets are copied to the `static/snippets` directory so they can be loaded by the `CodeSnippet` component
-4. The `CodeSnippet` component loads the snippet file at runtime and displays it as a code block
+2. During the build process, snippets are extracted from these classes and saved as Markdown code blocks directly to the `static/snippets` directory
+3. The `CodeSnippet` component loads the snippet file at runtime and displays it as a code block
 
 ## Using Snippets in Documentation
 
@@ -56,9 +55,9 @@ public class MyFeatureExample {
         LineReader reader = LineReaderBuilder.builder()
                 .terminal(terminal)
                 .build();
-        
+
         // Your example code here
-        
+
         String line = reader.readLine("prompt> ");
         System.out.println("You entered: " + line);
     }
@@ -110,9 +109,8 @@ int value = result; // Error: incompatible types
 
 The website build process includes the following steps:
 
-1. Extract snippets from the example classes
-2. Copy snippets to the static directory
-3. Build the website
+1. Extract snippets from the example classes directly to the static directory
+2. Build the website
 
 To build the website with snippets:
 

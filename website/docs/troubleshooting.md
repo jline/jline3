@@ -26,21 +26,19 @@ This error occurs when JLine cannot initialize a terminal for the current enviro
 
    **Solution**: Add the appropriate dependencies to your project:
 
-   import VersionDisplay from '@site/src/components/VersionDisplay';
-
    ```xml
    <!-- For JNI support (recommended for Java < 22) -->
    <dependency>
        <groupId>org.jline</groupId>
        <artifactId>jline-terminal-jni</artifactId>
-       <version><VersionDisplay /></version>
+       <version>%%JLINE_VERSION%%</version>
    </dependency>
 
    <!-- For FFM support (recommended for Java 22+) -->
    <dependency>
        <groupId>org.jline</groupId>
        <artifactId>jline-terminal-ffm</artifactId>
-       <version><VersionDisplay /></version>
+       <version>%%JLINE_VERSION%%</version>
    </dependency>
    ```
 
