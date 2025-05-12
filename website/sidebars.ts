@@ -51,6 +51,10 @@ const sidebars: SidebarsConfig = {
         'advanced/terminal-size',
         'advanced/screen-clearing',
         'advanced/library-integration',
+        'advanced/autosuggestions',
+        'advanced/auto-indentation-pairing',
+        'advanced/theme-system',
+        'advanced/nano-less-customization',
       ],
     },
     {
@@ -61,6 +65,7 @@ const sidebars: SidebarsConfig = {
         'modules/builtins',
         'modules/style',
         'modules/terminal-providers',
+        'modules/repl-console',
       ],
     },
     {
@@ -73,6 +78,14 @@ const sidebars: SidebarsConfig = {
         // 'api/line-reader',
         // 'api/completer',
         // 'api/history'
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Reference',
+      items: [
+        'reference/glossary',
+        'reference/diagnostic',
       ],
     },
   ],
