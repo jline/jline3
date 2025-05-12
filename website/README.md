@@ -22,6 +22,12 @@ To start the development server with code snippets extracted from the demo direc
 $ npm run start-with-snippets
 ```
 
+To preview the website with code snippets (alternative method):
+
+```
+$ npm run preview
+```
+
 This command extracts code snippets from the demo directory, then starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
 
 ### Code Snippets

@@ -32,14 +32,12 @@ jobs:
         uses: actions/configure-pages@v5
         with:
           enablement: true
-      - name: Install dependencies
-        run: cd website && npm ci
-      - name: Build
-        run: cd website && npm run build
+      - name: Build website
+        run: ./build website
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: website/build
+          path: website/target
 
   deploy:
     environment:

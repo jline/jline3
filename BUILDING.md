@@ -86,27 +86,27 @@ JLine includes a documentation website built with Docusaurus. The website includ
 To build the website:
 
 ```sh
-./build-website.sh
+./build website
 ```
 
 This will:
-1. Extract code snippets from example classes
-2. Process documentation files to include the snippets
-3. Build the website
+1. Extract code snippets from example classes to the target directory
+2. Build the website
+
+All generated files (build output, snippets, node_modules) will be placed in the `website/target` directory.
 
 ### Previewing the Website
 
-To preview the website with the processed documentation:
+For development with live reloading (includes extracting code snippets):
 
 ```sh
-cd website
-./scripts/preview-website.sh
+./build website-dev
 ```
 
-To preview the built website:
+To preview the already built website (after running `./build website`):
 
 ```sh
-cd website && npm run serve
+./build website-serve
 ```
 
 ### Deployment

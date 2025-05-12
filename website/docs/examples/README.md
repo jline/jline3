@@ -41,9 +41,8 @@ To add a new snippet:
 The snippet system works as follows:
 
 1. Example classes in the `demo/src/main/java/org/jline/demo/examples` directory are marked with `SNIPPET_START` and `SNIPPET_END` comments
-2. During the build process, snippets are extracted from these classes and saved as Markdown code blocks
-3. The snippets are copied to the `static/snippets` directory so they can be loaded by the `CodeSnippet` component
-4. The `CodeSnippet` component loads the snippet file at runtime and displays it as a code block
+2. During the build process, snippets are extracted from these classes and saved as Markdown code blocks directly to the `static/snippets` directory
+3. The `CodeSnippet` component loads the snippet file at runtime and displays it as a code block
 
 This approach ensures that:
 - Code examples in the documentation are always up-to-date with the actual code

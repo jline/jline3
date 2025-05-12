@@ -1,16 +1,29 @@
 import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
+import path from 'path';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 // JLine version - update this when releasing a new version
 const jlineVersion = '3.30.0';
 
+// Define build output directory - only used for production builds
+// We'll set this via CLI for development server
+const outputDir = path.join(process.cwd(), 'target/build');
+
+// Check if we're in build mode (not dev server)
+const isBuild = process.argv.includes('build');
+
 const config: Config = {
   customFields: {
     jlineVersion: jlineVersion,
+    // Store output directory in customFields for reference
+    ...(isBuild && {outDir: outputDir}),
   },
+
+  // Configure static directories
+  staticDirectories: ['static', 'target/static'],
   title: 'JLine',
   tagline: 'Advanced Console Input for Java',
   favicon: 'img/favicon.ico',

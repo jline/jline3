@@ -12,6 +12,14 @@
 const fs = require('fs');
 const path = require('path');
 
+// Helper function to ensure target directory exists
+function ensureDirectoryExists(dirPath) {
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+  }
+  return dirPath;
+}
+
 // Check arguments
 if (process.argv.length < 4) {
   console.error('Usage: node extract-snippets.js <source-dir> <output-dir>');
@@ -19,12 +27,31 @@ if (process.argv.length < 4) {
 }
 
 const sourceDir = process.argv[2];
-const outputDir = process.argv[3];
+let outputDir = process.argv[3];
+
+// If the output directory is a relative path like './target/static/snippets',
+// handle it appropriately
+if (outputDir.startsWith('./') || !path.isAbsolute(outputDir)) {
+  // Get the base directory (website folder)
+  const baseDir = process.cwd();
+
+  // Check if the path already includes 'target'
+  if (outputDir.includes('target')) {
+    // Path already has 'target', use as is but make it absolute
+    outputDir = path.resolve(baseDir, outputDir);
+  } else if (outputDir.startsWith('./static')) {
+    // For './static/...' paths, redirect to './target/static/...'
+    const targetDir = path.join(baseDir, 'target');
+    outputDir = path.join(targetDir, 'static', outputDir.substring(8)); // Remove './static/' prefix
+  } else {
+    // For other relative paths, put them in the target directory
+    const targetDir = path.join(baseDir, 'target');
+    outputDir = path.join(targetDir, outputDir);
+  }
+}
 
 // Create output directory if it doesn't exist
-if (!fs.existsSync(outputDir)) {
-  fs.mkdirSync(outputDir, { recursive: true });
-}
+ensureDirectoryExists(outputDir);
 
 // Find all Java files in the source directory
 function findJavaFiles(dir, fileList = []) {

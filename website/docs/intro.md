@@ -30,13 +30,11 @@ JLine enhances your command-line applications with:
 
 Add JLine to your project using Maven:
 
-import VersionDisplay from '@site/src/components/VersionDisplay';
-
 ```xml
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline</artifactId>
-    <version><VersionDisplay /></version>
+    <version>%%JLINE_VERSION%%</version>
 </dependency>
 ```
 
@@ -45,7 +43,7 @@ import VersionDisplay from '@site/src/components/VersionDisplay';
 Or if you're using Gradle:
 
 ```groovy
-implementation 'org.jline:jline:<VersionDisplay />'
+implementation 'org.jline:jline:%%JLINE_VERSION%%'
 ```
 
 ## Basic Usage

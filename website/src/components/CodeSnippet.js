@@ -40,11 +40,8 @@ export default function CodeSnippet({ name }) {
   }, [name]);
 
   if (error) {
-    return (
-      <div className="code-snippet-error">
-        <p>{error}</p>
-      </div>
-    );
+    // Always throw an error to make the build fail
+    throw new Error(error);
   }
 
   if (!snippet) {

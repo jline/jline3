@@ -5,13 +5,16 @@
   "scripts": {
     "docusaurus": "docusaurus",
     "start": "docusaurus start",
-    "start-with-snippets": "./scripts/start-dev.sh",
-    "extract-snippets": "node scripts/extract-snippets.js ../demo/src/main/java/org/jline/demo/examples ./static/snippets",
-    "build": "npm run extract-snippets && docusaurus build",
+    "extract-snippets": "mkdir -p ./target/static/snippets && node scripts/extract-snippets.js ../demo/src/main/java/org/jline/demo/examples ./target/static/snippets",
+    "replace-version": "node scripts/replace-version.js",
+    "replace-version-source": "node scripts/replace-version.js --source",
+    "revert-version-source": "node scripts/replace-version.js --source --revert",
+    "start-with-snippets": "npm run extract-snippets && npm run replace-version-source && npm start",
+    "build": "npm run extract-snippets && npm run replace-version-source && docusaurus build --out-dir=./target/build && npm run revert-version-source",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
     "clear": "docusaurus clear",
-    "serve": "docusaurus serve",
+    "serve": "docusaurus serve --dir ./target/build",
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
     "typecheck": "tsc"
@@ -29,6 +32,7 @@
     "@docusaurus/module-type-aliases": "3.7.0",
     "@docusaurus/tsconfig": "3.7.0",
     "@docusaurus/types": "3.7.0",
+    "replace-in-file": "^7.1.0",
     "typescript": "~5.6.2"
   },
   "browserslist": {
