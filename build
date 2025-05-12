@@ -4,7 +4,7 @@ dirname=`dirname $0`
 dirname=`cd "$dirname" && pwd`
 cd "$dirname"
 
-source build.config
+project=jline
 
 # load optional config
 if [ -f ./build.rc ]; then
@@ -20,6 +20,23 @@ function die {
 # show usage and exit
 function usage {
     echo "usage: $basename <command> [options]"
+    echo ""
+    echo "Available commands:"
+    echo "  demo <type>           Run a demo (gogo, repl, password)"
+    echo "  example <className>   Run an example from org.jline.demo.examples"
+    echo "  rebuild               Clean and install the project"
+    echo "  license-check         Check license headers"
+    echo "  license-format        Format license headers"
+    echo "  website               Build the website"
+    echo "  website-dev           Start the website development server"
+    echo "  website-serve         Serve the built website"
+    echo "  graal                 Run the Graal demo"
+    echo "  change-version        Change the version of the project"
+    echo "  ci-prepare            Prepare for CI build"
+    echo "  ci-build              Build for CI"
+    echo "  release               Release automation"
+    echo ""
+    echo "For more information on a specific command, run: $basename <command> --help"
     exit 2
 }
 
@@ -31,6 +48,325 @@ function self {
 # run maven
 function mvn {
     ./mvnw $*
+}
+
+function command_rebuild {
+  mvn clean install $*
+}
+
+function command_demo() {
+  local demo_type="$1"
+  shift
+
+  if [ -z "$demo_type" ]; then
+    echo "Usage: $basename demo <type> [options]"
+    echo "Available demo types:"
+    echo "  gogo      - Run the Gogo shell demo"
+    echo "  repl      - Run the REPL demo"
+    echo "  password  - Run the password demo"
+    echo "  consoleui - Run the ConsoleUI demo"
+    echo "Options:"
+    echo "  --help       Show help message"
+    echo "  debug        Enable remote debugging"
+    echo "  debugs       Enable remote debugging with suspend"
+    echo "  jansi        Add Jansi support"
+    echo "  jna          Add JNA support"
+    echo "  verbose      Enable verbose logging"
+    echo "  ffm          Enable Foreign Function Memory (preview)"
+    echo ""
+    echo "Gogo-specific options:"
+    echo "  ssh          Add SSH support"
+    echo "  telnet       Add Telnet support"
+    echo "  remote       Add remote support (SSH and Telnet)"
+    echo ""
+    echo "Password-specific options:"
+    echo "  --mask=X     Use X as the mask character (default: *)"
+    echo "               Use --mask= (empty) for no masking"
+    exit 1
+  fi
+
+  # Set up common variables
+  TARGETDIR="demo/target"
+  cp="${TARGETDIR}/classes"
+  logconf="demo/etc/logging.properties"
+  JVM_OPTS=""
+  APP_ARGS=""
+  MAIN_CLASS=""
+
+  # Add JLine jars
+  if [ -d ${TARGETDIR}/lib ]; then
+    cp=${cp}$(find ${TARGETDIR}/lib -name "jline-*.jar" -exec printf :{} ';')
+  fi
+
+  # Set up demo-specific configuration
+  case "$demo_type" in
+    "gogo")
+      # Add Gogo Runtime and JLine
+      if [ -d ${TARGETDIR}/lib ]; then
+        cp=${cp}$(find ${TARGETDIR}/lib -name "org.apache.felix.gogo.runtime-*.jar" -exec printf :{} ';')
+        cp=${cp}$(find ${TARGETDIR}/lib -name "org.apache.felix.gogo.jline-*.jar" -exec printf :{} ';')
+      fi
+      MAIN_CLASS="org.apache.felix.gogo.jline.Main"
+      ;;
+    "repl")
+      # Add Groovy and Ivy jars
+      if [ -d ${TARGETDIR}/lib ]; then
+        cp=${cp}$(find ${TARGETDIR}/lib -name "groovy-*.jar" -exec printf :{} ';')
+        cp=${cp}$(find ${TARGETDIR}/lib -name "ivy-*.jar" -exec printf :{} ';')
+      fi
+      MAIN_CLASS="org.jline.demo.Repl"
+      ;;
+    "password")
+      MAIN_CLASS="org.jline.demo.PasswordMaskingDemo"
+      # Process mask option separately for password demo
+      for arg in "$@"; do
+        if [[ "${arg}" == --mask=* ]]; then
+          APP_ARGS="${APP_ARGS} ${arg}"
+        fi
+      done
+      ;;
+    "consoleui")
+      # Add console-ui jar
+      if [ -d ${TARGETDIR}/lib ]; then
+        cp=${cp}$(find ${TARGETDIR}/lib -name "jline-console-ui-*.jar" -exec printf :{} ';')
+      fi
+      MAIN_CLASS="org.jline.demo.consoleui.BasicDynamic"
+      ;;
+    *)
+      echo "Unknown demo type: $demo_type"
+      exit 1
+      ;;
+  esac
+
+  # Process common options
+  for arg in "$@"; do
+    case ${arg} in
+      '--help')
+        # Show help based on demo type
+        if [ "$demo_type" = "gogo" ]; then
+          echo "Usage: $basename demo gogo [options]"
+          echo "Options:"
+          echo "  --help       Show this help message"
+          echo "  ssh          Add SSH support"
+          echo "  telnet       Add Telnet support"
+          echo "  remote       Add remote support (SSH and Telnet)"
+          echo "  debug        Enable remote debugging"
+          echo "  debugs       Enable remote debugging with suspend"
+          echo "  jansi        Add Jansi support"
+          echo "  jna          Add JNA support"
+          echo "  verbose      Enable verbose logging"
+          echo "  ffm          Enable Foreign Function Memory (preview)"
+          echo ""
+          echo "To test with a dumb terminal, use: TERM=dumb $basename demo gogo"
+        elif [ "$demo_type" = "password" ]; then
+          echo "Usage: $basename demo password [options]"
+          echo "Options:"
+          echo "  --help       Show this help message"
+          echo "  --mask=X     Use X as the mask character (default: *)"
+          echo "               Use --mask= (empty) for no masking"
+          echo "  debug        Enable remote debugging"
+          echo "  debugs       Enable remote debugging with suspend"
+          echo "  jansi        Add Jansi support"
+          echo "  jna          Add JNA support"
+          echo "  verbose      Enable verbose logging"
+          echo "  ffm          Enable Foreign Function Memory (preview)"
+          echo ""
+          echo "To test with a dumb terminal, use: TERM=dumb $basename demo password"
+        elif [ "$demo_type" = "consoleui" ]; then
+          echo "Usage: $basename demo consoleui [options]"
+          echo "Options:"
+          echo "  --help       Show this help message"
+          echo "  debug        Enable remote debugging"
+          echo "  debugs       Enable remote debugging with suspend"
+          echo "  jansi        Add Jansi support (recommended for Windows)"
+          echo "  jna          Add JNA support (alternative for Windows)"
+          echo "  verbose      Enable verbose logging"
+          echo "  ffm          Enable Foreign Function Memory (preview)"
+          echo ""
+          echo "Note: On Windows, either Jansi or JNA library must be included in classpath."
+          echo "To test with a dumb terminal, use: TERM=dumb $basename demo consoleui"
+        else
+          echo "Usage: $basename demo $demo_type [options]"
+          echo "Options:"
+          echo "  --help       Show this help message"
+          echo "  debug        Enable remote debugging"
+          echo "  debugs       Enable remote debugging with suspend"
+          echo "  jansi        Add Jansi support"
+          echo "  jna          Add JNA support"
+          echo "  verbose      Enable verbose logging"
+          echo "  ffm          Enable Foreign Function Memory (preview)"
+          echo ""
+          echo "To test with a dumb terminal, use: TERM=dumb $basename demo $demo_type"
+        fi
+        exit 0
+        ;;
+      'debug')
+        JVM_OPTS="${JVM_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+        ;;
+      'debugs')
+        JVM_OPTS="${JVM_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005"
+        ;;
+      'jansi')
+        cp=${cp}$(find ${TARGETDIR}/lib -name "jansi-*.jar" -exec printf :{} ';')
+        ;;
+      'jna')
+        cp=${cp}$(find ${TARGETDIR}/lib -name "jna-*.jar" -exec printf :{} ';')
+        ;;
+      'verbose')
+        logconf="demo/etc/logging-verbose.properties"
+        ;;
+      'ffm')
+        JVM_OPTS="${JVM_OPTS} --enable-preview --enable-native-access=ALL-UNNAMED"
+        ;;
+      'ssh' | 'telnet' | 'remote')
+        # Process SSH/Telnet/Remote options for gogo
+        if [ "$demo_type" = "gogo" ]; then
+          if [ -d ${TARGETDIR}/lib ]; then
+            cp=${cp}$(find ${TARGETDIR}/lib -name "sshd-common-*.jar" -exec printf :{} ';')
+            cp=${cp}$(find ${TARGETDIR}/lib -name "sshd-core-*.jar" -exec printf :{} ';')
+            cp=${cp}$(find ${TARGETDIR}/lib -name "sshd-scp-*.jar" -exec printf :{} ';')
+            cp=${cp}$(find ${TARGETDIR}/lib -name "sshd-sftp-*.jar" -exec printf :{} ';')
+            cp=${cp}$(find ${TARGETDIR}/lib -name "slf4j-api-*.jar" -exec printf :{} ';')
+            cp=${cp}$(find ${TARGETDIR}/lib -name "slf4j-jdk14-*.jar" -exec printf :{} ';')
+          fi
+        fi
+        ;;
+      --mask=*)
+        # Already processed for password demo
+        ;;
+      *)
+        # Unknown option, assume it's a JVM option
+        JVM_OPTS="${JVM_OPTS} ${arg}"
+        ;;
+    esac
+  done
+
+  # Check if JDK version supports --enable-native-access
+  java_version=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | cut -d. -f1)
+  if [ "$java_version" -ge 16 ] 2>/dev/null; then
+    # Only add if not already present
+    if [[ "$JVM_OPTS" != *"--enable-native-access=ALL-UNNAMED"* ]]; then
+      JVM_OPTS="${JVM_OPTS} --enable-native-access=ALL-UNNAMED"
+    fi
+  fi
+
+  # Launch the demo
+  echo "Launching ${MAIN_CLASS}..."
+  echo "Classpath: $cp"
+  echo "JVM options: $JVM_OPTS"
+  if [ -n "$APP_ARGS" ]; then
+    echo "Application arguments: $APP_ARGS"
+  fi
+
+  # Run Java directly with application arguments
+  JAVA_CMD="java -cp \"$cp\" $JVM_OPTS -Dgosh.home=\"demo\" -Djava.util.logging.config.file=\"${logconf}\" ${MAIN_CLASS}"
+
+  # Add each application argument individually
+  for arg in $APP_ARGS; do
+    JAVA_CMD="$JAVA_CMD \"$arg\""
+  done
+
+  # Execute the command
+  eval $JAVA_CMD
+}
+
+function command_example() {
+  local example_name="$1"
+  shift
+
+  if [ -z "$example_name" ]; then
+    echo "Usage: $basename example <ExampleClassName> [options]"
+    echo "Available examples:"
+    find demo/src/main/java/org/jline/demo/examples -name "*.java" | sed 's/.*\/\([^\/]*\)\.java/  \1/' | sort
+    exit 1
+  fi
+
+  # Set up classpath
+  TARGETDIR="demo/target"
+  cp="${TARGETDIR}/classes"
+
+  # Add JLine jars
+  if [ -d ${TARGETDIR}/lib ]; then
+    cp=${cp}$(find ${TARGETDIR}/lib -name "jline-*.jar" -exec printf :{} ';')
+  fi
+
+  # Process options
+  JVM_OPTS=""
+  for arg in "$@"; do
+    case ${arg} in
+      'debug')
+        JVM_OPTS="${JVM_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+        ;;
+      'debugs')
+        JVM_OPTS="${JVM_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005"
+        ;;
+      'jansi')
+        cp=${cp}$(find ${TARGETDIR}/lib -name "jansi-*.jar" -exec printf :{} ';')
+        ;;
+      'jna')
+        cp=${cp}$(find ${TARGETDIR}/lib -name "jna-*.jar" -exec printf :{} ';')
+        ;;
+      'ffm')
+        JVM_OPTS="${JVM_OPTS} --enable-preview --enable-native-access=ALL-UNNAMED"
+        ;;
+      *)
+        JVM_OPTS="${JVM_OPTS} ${arg}"
+        ;;
+    esac
+  done
+
+  # Check if the example class exists
+  if ! find demo/src/main/java/org/jline/demo/examples -name "${example_name}.java" | grep -q .; then
+    echo "Example class '${example_name}' not found."
+    echo "Available examples:"
+    find demo/src/main/java/org/jline/demo/examples -name "*.java" | sed 's/.*\/\([^\/]*\)\.java/  \1/' | sort
+    exit 1
+  fi
+
+  # Run the example
+  echo "Running example: org.jline.demo.examples.${example_name}"
+  echo "Classpath: $cp"
+  echo "JVM options: $JVM_OPTS"
+
+  java -cp "$cp" $JVM_OPTS org.jline.demo.examples.${example_name}
+}
+
+function command_graal() {
+  exec graal/target/graal $*
+}
+
+function command_website() {
+  # Change to website directory
+  cd website
+
+  # Install dependencies
+  echo "Installing dependencies..."
+  npm install
+
+  # Build the website (this will extract snippets and replace version placeholders)
+  echo "Building website..."
+  npm run build
+
+  echo "Website built successfully in website/target directory"
+  echo "To preview the website, run: $basename website-serve"
+}
+
+function command_website-dev() {
+  # Change to website directory
+  cd website
+
+  # Start the development server with snippets and version placeholders replaced
+  echo "Starting development server..."
+  npm run start-with-snippets
+}
+
+function command_website-serve() {
+  # Change to website directory
+  cd website
+
+  # Serve the built website
+  echo "Serving website from website/target directory..."
+  npm run serve
 }
 
 command="$1"
