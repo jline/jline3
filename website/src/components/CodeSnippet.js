@@ -2,6 +2,7 @@ import React from 'react';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import CodeBlock from '@theme/CodeBlock';
 import { useEffect, useState } from 'react';
+import ExecutionEnvironment from '@docusaurus/ExecutionEnvironment';
 
 // This component loads and displays a code snippet
 export default function CodeSnippet({ name }) {
@@ -10,7 +11,12 @@ export default function CodeSnippet({ name }) {
   const { siteConfig } = useDocusaurusContext();
 
   useEffect(() => {
-    // In development mode, try to load the snippet from the snippets directory
+    if (!ExecutionEnvironment.canUseDOM) {
+      // Skip client-side fetching during SSR
+      return;
+    }
+
+    // In browser, load the snippet from the snippets directory
     fetch(`/snippets/${name}.java`)
       .then(response => {
         if (!response.ok) {
@@ -40,10 +46,18 @@ export default function CodeSnippet({ name }) {
   }, [name]);
 
   if (error) {
-    // Always throw an error to make the build fail
-    throw new Error(error);
+    // Display the error in the UI and also throw it to make debugging easier
+    const errorMessage = `Failed to load snippet: ${name}`;
+    return (
+      <div className="code-snippet-error" style={{ color: 'red', padding: '1rem', border: '1px solid red', borderRadius: '4px', marginBottom: '1rem' }}>
+        <h3>Error Loading Code Snippet</h3>
+        <p>{errorMessage}</p>
+        <p>This error should have been caught during build time. Please check your build process.</p>
+      </div>
+    );
   }
 
+  // During SSR or while loading, show a placeholder
   if (!snippet) {
     return (
       <div className="code-snippet-loading">
