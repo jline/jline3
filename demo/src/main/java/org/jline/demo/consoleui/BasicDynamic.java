@@ -6,7 +6,7 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.consoleui.examples;
+package org.jline.demo.consoleui;
 
 import java.util.ArrayList;
 import java.util.List;
