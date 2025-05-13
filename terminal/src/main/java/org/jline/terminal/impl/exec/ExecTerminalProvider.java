@@ -282,9 +282,31 @@ public class ExecTerminalProvider implements TerminalProvider {
 
     public boolean isPosixSystemStream(SystemStream stream) {
         try {
-            Process p = new ProcessBuilder(OSUtils.TEST_COMMAND, "-t", Integer.toString(stream.ordinal()))
-                    .inheritIO()
-                    .start();
+            ProcessBuilder pb = new ProcessBuilder(OSUtils.TEST_COMMAND, "-t", Integer.toString(stream.ordinal()));
+
+            if (OSUtils.IS_WINDOWS) {
+                // On Windows, avoid inheriting stdin to prevent the pipe from being closed
+                if (stream == SystemStream.Output) {
+                    // For stdout, only inherit stdout
+                    pb.redirectInput(ProcessBuilder.Redirect.PIPE);
+                    pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+                    pb.redirectError(ProcessBuilder.Redirect.PIPE);
+                } else if (stream == SystemStream.Error) {
+                    // For stderr, only inherit stderr
+                    pb.redirectInput(ProcessBuilder.Redirect.PIPE);
+                    pb.redirectOutput(ProcessBuilder.Redirect.PIPE);
+                    pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+                } else { // SystemStream.Input
+                    // For stdin, we need a special approach
+                    // Use isWindowsSystemStream which is safer on Windows
+                    return isWindowsSystemStream(stream);
+                }
+            } else {
+                // On non-Windows platforms, we can use inheritIO() safely
+                pb.inheritIO();
+            }
+
+            Process p = pb.start();
             return p.waitFor() == 0;
         } catch (Throwable t) {
             Log.debug("ExecTerminalProvider failed 'test -t' for " + stream, t);
@@ -308,11 +330,22 @@ public class ExecTerminalProvider implements TerminalProvider {
     @Override
     public String systemStreamName(SystemStream stream) {
         try {
-            ProcessBuilder.Redirect input = stream == SystemStream.Input
-                    ? ProcessBuilder.Redirect.INHERIT
-                    : newDescriptor(stream == SystemStream.Output ? FileDescriptor.out : FileDescriptor.err);
-            Process p =
-                    new ProcessBuilder(OSUtils.TTY_COMMAND).redirectInput(input).start();
+            if (OSUtils.IS_WINDOWS && stream == SystemStream.Input) {
+                // On Windows, for stdin, use a safer approach that doesn't inherit stdin
+                // This prevents the pipe from being closed
+                return System.console() != null ? "console" : null;
+            }
+
+            ProcessBuilder pb = new ProcessBuilder(OSUtils.TTY_COMMAND);
+
+            if (stream == SystemStream.Input) {
+                pb.redirectInput(ProcessBuilder.Redirect.INHERIT);
+            } else {
+                pb.redirectInput(
+                        newDescriptor(stream == SystemStream.Output ? FileDescriptor.out : FileDescriptor.err));
+            }
+
+            Process p = pb.start();
             String result = ExecHelper.waitAndCapture(p);
             if (p.exitValue() == 0) {
                 return result.trim();
