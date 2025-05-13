@@ -39,6 +39,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Reader;
+import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -901,9 +902,44 @@ public class Posix {
         new Thread(() -> runShell(session, terminal), terminal.getName() + " shell").start();
     }
 
+    /**
+     * Run a shell in a new terminal.
+     *
+     * This method has been modified to fix an issue with interruption handling in nested shells.
+     * The fix clears the current pipe before creating a child shell and restores it afterward,
+     * ensuring that when Ctrl+C is pressed in a child shell (e.g., when running 'sh' followed by 'ttop'),
+     * the interruption signal is properly propagated to the child process.
+     *
+     * This is a temporary workaround for a Felix Gogo issue. The proper fix has been submitted to
+     * the Felix project in two PRs:
+     * 1. https://github.com/apache/felix-dev/pull/411 - Make Pipe.setCurrentPipe public
+     * 2. https://github.com/apache/felix-dev/pull/412 - Update Posix.runShell to handle nested shells
+     *
+     * Once these PRs are merged and released, this class should be removed from JLine
+     * and the official Felix Gogo JLine implementation should be used instead.
+     *
+     * See: https://github.com/jline/jline3/issues/1143
+     *
+     * @param session The parent command session
+     * @param terminal The terminal to use for the new shell
+     */
     private void runShell(CommandSession session, Terminal terminal) {
         InputStream in = terminal.input();
         OutputStream out = terminal.output();
+
+        // Save the current pipe and clear it before creating a child shell
+        // This requires org.apache.felix.gogo.runtime.Pipe.setCurrentPipe to be public
+        Object currentPipe = null;
+        try {
+            // Try to use the public API if available (Felix Gogo Runtime 1.1.7+)
+            Class<?> pipeClass = Class.forName("org.apache.felix.gogo.runtime.Pipe");
+            Method setCurrentPipeMethod = pipeClass.getMethod("setCurrentPipe", pipeClass);
+            // setCurrentPipe returns the previous pipe, so we can use it directly
+            currentPipe = setCurrentPipeMethod.invoke(null, (Object) null);
+        } catch (Exception e) {
+            // Ignore exceptions - this is just an optimization
+        }
+
         CommandSession newSession = processor.createSession(in, out, out);
         newSession.put(Shell.VAR_TERMINAL, terminal);
         newSession.put(".tmux", session.get(".tmux"));
@@ -916,11 +952,34 @@ public class Posix {
                 terminal.close();
             }
         };
+
+        // Register a signal handler for INT signal to properly propagate interruption
+        Terminal.SignalHandler prevIntHandler = terminal.handle(Terminal.Signal.INT, signal -> {
+            // Propagate the interrupt to the current thread
+            Thread.currentThread().interrupt();
+        });
+
         try {
             new Shell(context, processor).gosh(newSession, new String[] {"--login"});
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
+            // Restore the previous signal handler
+            if (prevIntHandler != null) {
+                terminal.handle(Terminal.Signal.INT, prevIntHandler);
+            }
+
+            // Restore the previous pipe
+            if (currentPipe != null) {
+                try {
+                    Class<?> pipeClass = Class.forName("org.apache.felix.gogo.runtime.Pipe");
+                    Method setCurrentPipeMethod = pipeClass.getMethod("setCurrentPipe", pipeClass);
+                    setCurrentPipeMethod.invoke(null, currentPipe);
+                } catch (Exception e) {
+                    // Ignore exceptions during pipe restoration
+                }
+            }
+
             try {
                 terminal.close();
             } catch (IOException e) {
