@@ -1070,6 +1070,7 @@ public interface Terminal extends Closeable, Flushable {
      * Returns the current mouse tracking mode.
      *
      * @see #trackMouse(MouseTracking)
+     * @since 3.30.0
      */
     MouseTracking getCurrentMouseTracking();
 
@@ -1191,6 +1192,7 @@ public interface Terminal extends Closeable, Flushable {
      * @return the decoded mouse event containing event type, button, modifiers, and coordinates
      * @see #readMouseEvent()
      * @see MouseEvent
+     * @since 3.30.0
      */
     MouseEvent readMouseEvent(String prefix);
 
@@ -1212,6 +1214,7 @@ public interface Terminal extends Closeable, Flushable {
      * @see #readMouseEvent(IntSupplier)
      * @see #readMouseEvent(String)
      * @see MouseEvent
+     * @since 3.30.0
      */
     MouseEvent readMouseEvent(IntSupplier reader, String prefix);
 
@@ -1347,6 +1350,7 @@ public interface Terminal extends Closeable, Flushable {
      * @return the RGB value (0xRRGGBB) of the default foreground color, or -1 if not available
      * @see #getDefaultBackgroundColor()
      * @see #getPalette()
+     * @since 3.30.0
      */
     default int getDefaultForegroundColor() {
         return getPalette().getDefaultForeground();
@@ -1369,6 +1373,7 @@ public interface Terminal extends Closeable, Flushable {
      * @return the RGB value (0xRRGGBB) of the default background color, or -1 if not available
      * @see #getDefaultForegroundColor()
      * @see #getPalette()
+     * @since 3.30.0
      */
     default int getDefaultBackgroundColor() {
         return getPalette().getDefaultBackground();
