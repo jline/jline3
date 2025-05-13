@@ -36,7 +36,7 @@ This example demonstrates how to integrate JLine with JCommander to create an in
 
 [Picocli](https://picocli.info) is a modern framework for building command-line applications. It has [built-in support for JLine](https://github.com/remkop/picocli/blob/main/picocli-shell-jline3/README.md), making it easy to create interactive applications.
 
-<CodeSnippet name="PicoCLIJLineExample" />
+<CodeSnippet name="PicocliJLineExample" />
 
 This example shows how to integrate JLine with picocli to create an interactive shell that parses commands using picocli.
 
