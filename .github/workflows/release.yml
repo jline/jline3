@@ -96,7 +96,7 @@ jobs:
               gh milestone create --title $version 
           fi
           
-          name=$(../mvn -q -DforceStdout help:evaluate -N -Dexpression=project.name)
+          name=$(../mvnw -q -DforceStdout help:evaluate -N -Dexpression=project.name)
           version=${{ steps.pre-release.outputs.VERSION }}
           tag=$(git describe --tags --abbrev=0)
           echo "Creating release \"$name $version\" from tag $tag"
