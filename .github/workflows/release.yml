@@ -57,7 +57,7 @@ jobs:
 
       - name: Release
         env:
-          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_COUNT: "2"
           GIT_CONFIG_KEY_0: "user.email"
           GIT_CONFIG_VALUE_0: "tamas@cservenak.net"
           GIT_CONFIG_KEY_1: "user.name"
