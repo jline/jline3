@@ -28,10 +28,6 @@ on:
         description: The java distribution to use.
         required: false
         default: temurin
-      maven-version:
-        description: The Maven version to use
-        required: false
-        default:  3.9.9
 
 jobs:
   release:
@@ -48,12 +44,6 @@ jobs:
           distribution: ${{ github.event.inputs.distribution }}
           java-version: ${{ github.event.inputs.java-version }}
 
-      - name: Build Maven distributions
-        shell: bash
-        run: |
-          cd ..
-          mvn wrapper:wrapper "-Dmaven=${{ github.event.inputs.maven-version }}"
-
       - name: Release preparation
         id: pre-release
         shell: bash
@@ -61,7 +51,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh extension install valeriobelli/gh-milestone
-          version=$(../mvnw -q -DforceStdout help:evaluate -N -Dexpression=project.version | sed -rn 's/([^-]+)(-SNAPSHOT|)$/\1/p')
+          version=$(./mvnw -q -DforceStdout help:evaluate -N -Dexpression=project.version | sed -rn 's/([^-]+)(-SNAPSHOT|)$/\1/p')
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Release
@@ -72,7 +62,7 @@ jobs:
           MAVEN_USER: ${{ secrets.MAVEN_USER }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
         run: |
-          ../mvnw -B release:prepare release:perform -Darguments="-DskipTests -Dnjord.autoPublish -s .github/release-settings.xml" -DreleaseVersion=${{ github.event.inputs.version }} -DdevelopmentVersion=${{ github.event.inputs.next-version }}
+          ./mvnw -B release:prepare release:perform -Darguments="-DskipTests -Dnjord.autoPublish -s .github/release-settings.xml" -DreleaseVersion=${{ github.event.inputs.version }} -DdevelopmentVersion=${{ github.event.inputs.next-version }}
 
       - name: Post release
         env:
@@ -87,7 +77,7 @@ jobs:
               gh milestone edit $milestone --state closed 
           fi
 
-          version=$(../mvnw -q -DforceStdout help:evaluate -N -Dexpression=project.version | sed -rn 's/([^-]+)(-SNAPSHOT|)$/\1/p')
+          version=$(./mvnw -q -DforceStdout help:evaluate -N -Dexpression=project.version | sed -rn 's/([^-]+)(-SNAPSHOT|)$/\1/p')
           echo "Preparing development $version"
           echo "Trying to find milestone $version"
           milestone=$(gh milestone list --json id,title,state  --jq "map_values(select(.title == \"${version}\" and .state == \"OPEN\")).[].number")
@@ -96,7 +86,7 @@ jobs:
               gh milestone create --title $version 
           fi
           
-          name=$(../mvnw -q -DforceStdout help:evaluate -N -Dexpression=project.name)
+          name=$(./mvnw -q -DforceStdout help:evaluate -N -Dexpression=project.name)
           version=${{ steps.pre-release.outputs.VERSION }}
           tag=$(git describe --tags --abbrev=0)
           echo "Creating release \"$name $version\" from tag $tag"
