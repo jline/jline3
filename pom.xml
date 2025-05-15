@@ -83,6 +83,19 @@
         <url>https://github.com/jline/jline3/issues</url>
     </issueManagement>
 
+    <distributionManagement>
+        <repository>
+            <id>jline-publish</id>
+            <name>JLine3 Releases</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+        </repository>
+        <snapshotRepository>
+            <id>jline-publish</id>
+            <name>JLine3 Snapshots</name>
+            <url>https://central.sonatype.com/repository/maven-snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.outputTimestamp>2025-05-09T19:10:48Z</project.build.outputTimestamp>
@@ -444,11 +457,6 @@
                 </plugin>
 
                 <plugin>
-                    <groupId>org.sonatype.central</groupId>
-                    <artifactId>central-publishing-maven-plugin</artifactId>
-                    <version>0.7.0</version>
-                </plugin>
-                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>
                     <version>3.6.0</version>
@@ -527,13 +535,9 @@
                             </goals>
                             <phase>verify</phase>
                             <configuration>
-                                <executable>gpg</executable>
-                                <gpgArguments>
-                                    <arg>--pinentry-mode</arg>
-                                    <arg>loopback</arg>
-                                </gpgArguments>
                                 <bestPractices>true</bestPractices>
-                                <useAgent>true</useAgent>
+                                <useAgent>false</useAgent>
+                                <signer>bc</signer>
                             </configuration>
                         </execution>
                     </executions>
@@ -716,23 +720,6 @@
                     <execution>
                         <id>default-deploy</id>
                         <phase>none</phase>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>org.sonatype.central</groupId>
-                <artifactId>central-publishing-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>publish-to-central</id>
-                        <goals>
-                            <goal>publish</goal>
-                        </goals>
-                        <phase>deploy</phase>
-                        <configuration>
-                            <publishingServerId>central</publishingServerId>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
