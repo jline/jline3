@@ -524,26 +524,6 @@
                 </plugin>
 
                 <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-gpg-plugin</artifactId>
-                    <version>3.2.7</version>
-                    <executions>
-                        <execution>
-                            <id>sign-artifacts</id>
-                            <goals>
-                                <goal>sign</goal>
-                            </goals>
-                            <phase>verify</phase>
-                            <configuration>
-                                <bestPractices>true</bestPractices>
-                                <useAgent>false</useAgent>
-                                <signer>bc</signer>
-                            </configuration>
-                        </execution>
-                    </executions>
-                </plugin>
-
-                <plugin>
                     <groupId>org.codehaus.gmavenplus</groupId>
                     <artifactId>gmavenplus-plugin</artifactId>
                     <version>4.2.0</version>
@@ -834,14 +814,10 @@
 
         <profile>
             <id>sign</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-gpg-plugin</artifactId>
-                    </plugin>
-                </plugins>
-            </build>
+            <properties>
+                <aether.generator.gpg.enabled>true</aether.generator.gpg.enabled>
+                <aether.generator.sigstore.enabled>true</aether.generator.sigstore.enabled>
+            </properties>
         </profile>
     </profiles>
 
