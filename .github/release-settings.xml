@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+  <pluginGroups>
+    <pluginGroup>eu.maveniverse.maven.plugins</pluginGroup>
+  </pluginGroups>
+
+  <servers>
+    <server>
+      <id>jline-publish</id>
+      <username>${env.MAVEN_USER}</username>
+      <password>${env.MAVEN_PASSWORD}</password>
+      <configuration>
+        <njord.publisher>sonatype-cp</njord.publisher>
+        <njord.releaseUrl>njord:template:release-sca</njord.releaseUrl>
+        <njord.snapshotUrl>njord:template:snapshot-sca</njord.snapshotUrl>
+      </configuration>
+    </server>
+  </servers>
+
+</settings>

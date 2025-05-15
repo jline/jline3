@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extensions>
+  <extension>
+    <groupId>eu.maveniverse.maven.njord</groupId>
+    <artifactId>extension</artifactId>
+    <version>0.5.1</version>
+  </extension>
+</extensions>

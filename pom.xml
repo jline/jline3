@@ -50,6 +50,19 @@
         </mailingList>
     </mailingLists>
 
+    <distributionManagement>
+        <snapshotRepository>
+            <id>jline-publish</id>
+            <name>JLine3 Snapshots</name>
+            <url>https://central.sonatype.com/repository/maven-snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>jline-publish</id>
+            <name>JLine3 Releases</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+        </repository>
+    </distributionManagement>
+
     <modules>
         <module>native</module>
         <module>terminal</module>
@@ -527,13 +540,8 @@
                             </goals>
                             <phase>verify</phase>
                             <configuration>
-                                <executable>gpg</executable>
-                                <gpgArguments>
-                                    <arg>--pinentry-mode</arg>
-                                    <arg>loopback</arg>
-                                </gpgArguments>
-                                <bestPractices>true</bestPractices>
-                                <useAgent>true</useAgent>
+                                <useAgent>false</useAgent>
+                                <signer>bc</signer>
                             </configuration>
                         </execution>
                     </executions>
