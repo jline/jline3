@@ -50,19 +50,6 @@
         </mailingList>
     </mailingLists>
 
-    <distributionManagement>
-        <snapshotRepository>
-            <id>jline-publish</id>
-            <name>JLine3 Snapshots</name>
-            <url>https://central.sonatype.com/repository/maven-snapshots</url>
-        </snapshotRepository>
-        <repository>
-            <id>jline-publish</id>
-            <name>JLine3 Releases</name>
-            <url>https://repo.maven.apache.org/maven2</url>
-        </repository>
-    </distributionManagement>
-
     <modules>
         <module>native</module>
         <module>terminal</module>
@@ -95,6 +82,19 @@
         <system>github</system>
         <url>https://github.com/jline/jline3/issues</url>
     </issueManagement>
+
+    <distributionManagement>
+        <repository>
+            <id>jline-publish</id>
+            <name>JLine3 Releases</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+        </repository>
+        <snapshotRepository>
+            <id>jline-publish</id>
+            <name>JLine3 Snapshots</name>
+            <url>https://central.sonatype.com/repository/maven-snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
