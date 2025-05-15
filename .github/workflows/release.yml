@@ -68,6 +68,7 @@ jobs:
         env:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
           MAVEN_GPG_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+          MAVEN_GPG_KEY_FINGERPRINT: ${{ secrets.GPG_KEY_FINGERPRINT }}
           MAVEN_USER: ${{ secrets.MAVEN_USER }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
         run: |
