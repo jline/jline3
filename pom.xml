@@ -457,11 +457,6 @@
                 </plugin>
 
                 <plugin>
-                    <groupId>org.sonatype.central</groupId>
-                    <artifactId>central-publishing-maven-plugin</artifactId>
-                    <version>0.7.0</version>
-                </plugin>
-                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>
                     <version>3.6.0</version>
@@ -724,23 +719,6 @@
                     <execution>
                         <id>default-deploy</id>
                         <phase>none</phase>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>org.sonatype.central</groupId>
-                <artifactId>central-publishing-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>publish-to-central</id>
-                        <goals>
-                            <goal>publish</goal>
-                        </goals>
-                        <phase>deploy</phase>
-                        <configuration>
-                            <publishingServerId>central</publishingServerId>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
