@@ -535,6 +535,7 @@
                             </goals>
                             <phase>verify</phase>
                             <configuration>
+                                <bestPractices>true</bestPractices>
                                 <useAgent>false</useAgent>
                                 <signer>bc</signer>
                             </configuration>
