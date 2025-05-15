@@ -43,6 +43,7 @@ jobs:
         with:
           distribution: ${{ github.event.inputs.distribution }}
           java-version: ${{ github.event.inputs.java-version }}
+          cache: maven
 
       - name: Release preparation
         id: pre-release
