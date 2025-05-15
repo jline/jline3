@@ -57,6 +57,11 @@ jobs:
 
       - name: Release
         env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: "user.email"
+          GIT_CONFIG_VALUE_0: "tamas@cservenak.net"
+          GIT_CONFIG_KEY_1: "user.name"
+          GIT_CONFIG_VALUE_1: "Tamas Cservenak"
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
           MAVEN_GPG_KEY: ${{ secrets.GPG_SIGNING_KEY }}
           MAVEN_GPG_KEY_FINGERPRINT: ${{ secrets.GPG_KEY_FINGERPRINT }}
