@@ -9,6 +9,7 @@
 package org.jline.builtins;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -20,10 +21,16 @@ import java.nio.file.Path;
  * for configuration files first in the user's configuration directory, then falling back
  * to the application's configuration directory.
  * </p>
+ * <p>
+ * This class also supports loading configuration files from the classpath. The application
+ * configuration directory can be a classpath resource path, which will be resolved using
+ * the ClasspathResourceUtil class.
+ * </p>
  */
 public class ConfigurationPath {
     private final Path appConfig;
     private final Path userConfig;
+    private final String classpathResource;
 
     /**
      * Configuration class constructor.
@@ -33,20 +40,49 @@ public class ConfigurationPath {
     public ConfigurationPath(Path appConfig, Path userConfig) {
         this.appConfig = appConfig;
         this.userConfig = userConfig;
+        this.classpathResource = null;
     }
 
     /**
-     * Search configuration file first from userConfig and then appConfig directory. Returns null if file is not found.
+     * Configuration class constructor with classpath resource support.
+     * @param classpathResource  Classpath resource path (e.g., "/nano")
+     * @param userConfig        User private configuration directory
+     */
+    public ConfigurationPath(String classpathResource, Path userConfig) {
+        this.appConfig = null;
+        this.userConfig = userConfig;
+        this.classpathResource = classpathResource;
+    }
+
+    /**
+     * Search configuration file first from userConfig, then appConfig directory, and finally from classpath.
+     * Returns null if file is not found.
+     *
      * @param  name    Configuration file name.
      * @return         Configuration file.
-     *
      */
     public Path getConfig(String name) {
         Path out = null;
+        // First check user config
         if (userConfig != null && Files.exists(userConfig.resolve(name))) {
             out = userConfig.resolve(name);
-        } else if (appConfig != null && Files.exists(appConfig.resolve(name))) {
+        }
+        // Then check app config directory
+        else if (appConfig != null && Files.exists(appConfig.resolve(name))) {
             out = appConfig.resolve(name);
+        }
+        // Finally check classpath resource
+        else if (classpathResource != null) {
+            try {
+                String resourcePath = classpathResource;
+                if (!resourcePath.endsWith("/")) {
+                    resourcePath += "/";
+                }
+                resourcePath += name;
+                out = ClasspathResourceUtil.getResourcePath(resourcePath);
+            } catch (IOException | URISyntaxException e) {
+                // Resource not found or cannot be accessed
+            }
         }
         return out;
     }
@@ -80,5 +116,15 @@ public class ConfigurationPath {
             }
         }
         return out;
+    }
+
+    /**
+     * Creates a ConfigurationPath from a classpath resource.
+     *
+     * @param classpathResource The classpath resource path (e.g., "/nano")
+     * @return A ConfigurationPath that will look for resources in the specified classpath location
+     */
+    public static ConfigurationPath fromClasspath(String classpathResource) {
+        return new ConfigurationPath(classpathResource, null);
     }
 }
