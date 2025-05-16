@@ -148,9 +148,9 @@ public class SyntaxHighlighter {
                     if (!line.isEmpty() && !line.startsWith("#")) {
                         List<String> parts = RuleSplitter.split(line);
                         if (parts.get(0).equals(COMMAND_INCLUDE)) {
-                            nanorcInclude(parts.get(1), syntaxFiles);
+                            nanorcInclude(nanorc, parts.get(1), syntaxFiles);
                         } else if (parts.get(0).equals(COMMAND_THEME)) {
-                            nanorcTheme(parts.get(1), syntaxFiles);
+                            nanorcTheme(nanorc, parts.get(1), syntaxFiles);
                         }
                     }
                 }
@@ -165,29 +165,38 @@ public class SyntaxHighlighter {
         return out;
     }
 
-    protected static void nanorcInclude(String parameter, List<Path> syntaxFiles) throws IOException {
-        addFiles(parameter, s -> s.forEach(syntaxFiles::add));
+    protected static void nanorcInclude(Path nanorc, String parameter, List<Path> syntaxFiles) throws IOException {
+        addFiles(nanorc, parameter, s -> s.forEach(syntaxFiles::add));
     }
 
-    protected static void nanorcTheme(String parameter, List<Path> syntaxFiles) throws IOException {
-        addFiles(parameter, s -> s.findFirst().ifPresent(p -> syntaxFiles.add(0, p)));
+    protected static void nanorcTheme(Path nanorc, String parameter, List<Path> syntaxFiles) throws IOException {
+        addFiles(nanorc, parameter, s -> s.findFirst().ifPresent(p -> syntaxFiles.add(0, p)));
     }
 
-    protected static void addFiles(String parameter, Consumer<Stream<Path>> consumer) throws IOException {
+    protected static void addFiles(Path nanorc, String parameter, Consumer<Stream<Path>> consumer) throws IOException {
         if (parameter.contains("*") || parameter.contains("?")) {
-            PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parameter);
-            try (Stream<Path> pathStream = Files.walk(Paths.get(new File(parameter).getParent()))) {
+            PathMatcher pathMatcher = nanorc.getFileSystem().getPathMatcher("glob:" + parameter);
+            try (Stream<Path> pathStream =
+                    Files.walk(nanorc.resolveSibling(parameter).getParent())) {
                 consumer.accept(pathStream.filter(pathMatcher::matches));
             }
         } else {
-            consumer.accept(Stream.of(Paths.get(parameter)));
+            consumer.accept(Stream.of(nanorc.resolveSibling(parameter)));
         }
     }
 
     /**
      * Build SyntaxHighlighter
+     * <p>
+     * This method builds a SyntaxHighlighter from a URL or classpath resource.
+     * The URL can be a file URL, an HTTP URL, or a classpath resource URL.
+     * </p>
+     * <p>
+     * For classpath resources, use the "classpath:" prefix followed by the resource path.
+     * For example: "classpath:/nano/jnanorc"
+     * </p>
      *
-     * @param nanorcUrl     Url of nanorc file
+     * @param nanorcUrl     URL or classpath resource path of nanorc file
      * @return              SyntaxHighlighter
      */
     public static SyntaxHighlighter build(String nanorcUrl) {
@@ -195,7 +204,15 @@ public class SyntaxHighlighter {
         InputStream inputStream;
         try {
             if (nanorcUrl.startsWith("classpath:")) {
-                inputStream = new Source.ResourceSource(nanorcUrl.substring(10), null).read();
+                String resourcePath = nanorcUrl.substring(10);
+                try {
+                    // Try to get the resource as a Path first
+                    Path resourceAsPath = ClasspathResourceUtil.getResourcePath(resourcePath);
+                    inputStream = Files.newInputStream(resourceAsPath);
+                } catch (Exception e) {
+                    // Fall back to direct resource loading if Path conversion fails
+                    inputStream = new Source.ResourceSource(resourcePath, null).read();
+                }
             } else {
                 inputStream = new Source.URLSource(new URI(nanorcUrl).toURL(), null).read();
             }

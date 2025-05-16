@@ -276,7 +276,7 @@ public class Nano implements Editor {
 
         protected Buffer(String file) {
             this.file = file;
-            this.syntaxHighlighter = SyntaxHighlighter.build(file != null ? root.resolve(file) : null, syntaxName);
+            this.syntaxHighlighter = SyntaxHighlighter.build(syntaxFiles, file, syntaxName, nanorcIgnoreErrors);
         }
 
         public void setDirty(boolean dirty) {
@@ -1845,9 +1845,9 @@ public class Nano implements Editor {
                 if (!line.isEmpty() && !line.startsWith("#")) {
                     List<String> parts = SyntaxHighlighter.RuleSplitter.split(line);
                     if (parts.get(0).equals(COMMAND_INCLUDE)) {
-                        SyntaxHighlighter.nanorcInclude(parts.get(1), syntaxFiles);
+                        SyntaxHighlighter.nanorcInclude(file, parts.get(1), syntaxFiles);
                     } else if (parts.get(0).equals(COMMAND_THEME)) {
-                        SyntaxHighlighter.nanorcTheme(parts.get(1), syntaxFiles);
+                        SyntaxHighlighter.nanorcTheme(file, parts.get(1), syntaxFiles);
                     } else if (parts.size() == 2
                             && (parts.get(0).equals("set") || parts.get(0).equals("unset"))) {
                         String option = parts.get(1);
