@@ -1,0 +1,7 @@
+## Sample nanorc file for testing classpath loading
+
+## Java syntax highlighting
+include "./java.nanorc"
+
+## XML syntax highlighting
+include "./xml.nanorc"
