@@ -255,10 +255,25 @@ public class EncodingTest {
     public void testComputeEncodingsFallback() {
         TerminalBuilder builder = TerminalBuilder.builder().encoding(StandardCharsets.UTF_8);
 
-        assertEquals(StandardCharsets.UTF_8, builder.computeEncoding());
-        assertEquals(StandardCharsets.UTF_8, builder.computeStdinEncoding());
-        assertEquals(StandardCharsets.UTF_8, builder.computeStdoutEncoding());
-        assertEquals(StandardCharsets.UTF_8, builder.computeStderrEncoding());
+        String stdin = System.clearProperty("stdin.encoding");
+        String stdout = System.clearProperty("stdout.encoding");
+        String stderr = System.clearProperty("stderr.encoding");
+        try {
+            assertEquals(StandardCharsets.UTF_8, builder.computeEncoding());
+            assertEquals(StandardCharsets.UTF_8, builder.computeStdinEncoding());
+            assertEquals(StandardCharsets.UTF_8, builder.computeStdoutEncoding());
+            assertEquals(StandardCharsets.UTF_8, builder.computeStderrEncoding());
+        } finally {
+            if (stdin != null) {
+                System.setProperty("stdin.encoding", stdin);
+            }
+            if (stdout != null) {
+                System.setProperty("stdout.encoding", stdout);
+            }
+            if (stderr != null) {
+                System.setProperty("stderr.encoding", stderr);
+            }
+        }
     }
 
     /**
