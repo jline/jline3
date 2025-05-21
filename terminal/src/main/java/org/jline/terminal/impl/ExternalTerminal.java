@@ -69,7 +69,17 @@ public class ExternalTerminal extends LineDisciplineTerminal {
     public ExternalTerminal(
             String name, String type, InputStream masterInput, OutputStream masterOutput, Charset encoding)
             throws IOException {
-        this(null, name, type, masterInput, masterOutput, encoding, SignalHandler.SIG_DFL);
+        this(
+                null,
+                name,
+                type,
+                masterInput,
+                masterOutput,
+                encoding,
+                encoding,
+                encoding,
+                encoding,
+                SignalHandler.SIG_DFL);
     }
 
     public ExternalTerminal(
@@ -81,7 +91,44 @@ public class ExternalTerminal extends LineDisciplineTerminal {
             Charset encoding,
             SignalHandler signalHandler)
             throws IOException {
-        this(provider, name, type, masterInput, masterOutput, encoding, signalHandler, false);
+        this(
+                provider,
+                name,
+                type,
+                masterInput,
+                masterOutput,
+                encoding,
+                encoding,
+                encoding,
+                encoding,
+                signalHandler,
+                false);
+    }
+
+    public ExternalTerminal(
+            TerminalProvider provider,
+            String name,
+            String type,
+            InputStream masterInput,
+            OutputStream masterOutput,
+            Charset encoding,
+            Charset stdinEncoding,
+            Charset stdoutEncoding,
+            Charset stderrEncoding,
+            SignalHandler signalHandler)
+            throws IOException {
+        this(
+                provider,
+                name,
+                type,
+                masterInput,
+                masterOutput,
+                encoding,
+                stdinEncoding,
+                stdoutEncoding,
+                stderrEncoding,
+                signalHandler,
+                false);
     }
 
     public ExternalTerminal(
@@ -94,7 +141,49 @@ public class ExternalTerminal extends LineDisciplineTerminal {
             SignalHandler signalHandler,
             boolean paused)
             throws IOException {
-        this(provider, name, type, masterInput, masterOutput, encoding, signalHandler, paused, null, null);
+        this(
+                provider,
+                name,
+                type,
+                masterInput,
+                masterOutput,
+                encoding,
+                encoding,
+                encoding,
+                encoding,
+                signalHandler,
+                paused,
+                null,
+                null);
+    }
+
+    public ExternalTerminal(
+            TerminalProvider provider,
+            String name,
+            String type,
+            InputStream masterInput,
+            OutputStream masterOutput,
+            Charset encoding,
+            Charset stdinEncoding,
+            Charset stdoutEncoding,
+            Charset stderrEncoding,
+            SignalHandler signalHandler,
+            boolean paused)
+            throws IOException {
+        this(
+                provider,
+                name,
+                type,
+                masterInput,
+                masterOutput,
+                encoding,
+                stdinEncoding,
+                stdoutEncoding,
+                stderrEncoding,
+                signalHandler,
+                paused,
+                null,
+                null);
     }
 
     @SuppressWarnings("this-escape")
@@ -110,7 +199,39 @@ public class ExternalTerminal extends LineDisciplineTerminal {
             Attributes attributes,
             Size size)
             throws IOException {
-        super(name, type, masterOutput, encoding, signalHandler);
+        this(
+                provider,
+                name,
+                type,
+                masterInput,
+                masterOutput,
+                encoding,
+                encoding,
+                encoding,
+                encoding,
+                signalHandler,
+                paused,
+                attributes,
+                size);
+    }
+
+    @SuppressWarnings("this-escape")
+    public ExternalTerminal(
+            TerminalProvider provider,
+            String name,
+            String type,
+            InputStream masterInput,
+            OutputStream masterOutput,
+            Charset encoding,
+            Charset stdinEncoding,
+            Charset stdoutEncoding,
+            Charset stderrEncoding,
+            SignalHandler signalHandler,
+            boolean paused,
+            Attributes attributes,
+            Size size)
+            throws IOException {
+        super(name, type, masterOutput, encoding, stdinEncoding, stdoutEncoding, stderrEncoding, signalHandler);
         this.provider = provider;
         this.masterInput = masterInput;
         if (attributes != null) {

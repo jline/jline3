@@ -57,6 +57,35 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<Long> {
             SignalHandler signalHandler,
             boolean paused)
             throws IOException {
+        return createTerminal(
+                provider,
+                systemStream,
+                name,
+                type,
+                ansiPassThrough,
+                encoding,
+                encoding,
+                encoding,
+                encoding,
+                nativeSignals,
+                signalHandler,
+                paused);
+    }
+
+    public static NativeWinSysTerminal createTerminal(
+            TerminalProvider provider,
+            SystemStream systemStream,
+            String name,
+            String type,
+            boolean ansiPassThrough,
+            Charset encoding,
+            Charset stdinEncoding,
+            Charset stdoutEncoding,
+            Charset stderrEncoding,
+            boolean nativeSignals,
+            SignalHandler signalHandler,
+            boolean paused)
+            throws IOException {
         // Get input console mode
         int[] inMode = new int[1];
         if (Kernel32.GetConsoleMode(consoleIn, inMode) == 0) {
@@ -93,6 +122,9 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<Long> {
                 name,
                 type,
                 encoding,
+                stdinEncoding,
+                stdoutEncoding,
+                stderrEncoding,
                 nativeSignals,
                 signalHandler,
                 consoleIn,
@@ -163,6 +195,41 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<Long> {
             long outConsole,
             int outMode)
             throws IOException {
+        this(
+                provider,
+                systemStream,
+                writer,
+                name,
+                type,
+                encoding,
+                encoding,
+                encoding,
+                encoding,
+                nativeSignals,
+                signalHandler,
+                inConsole,
+                inMode,
+                outConsole,
+                outMode);
+    }
+
+    NativeWinSysTerminal(
+            TerminalProvider provider,
+            SystemStream systemStream,
+            Writer writer,
+            String name,
+            String type,
+            Charset encoding,
+            Charset stdinEncoding,
+            Charset stdoutEncoding,
+            Charset stderrEncoding,
+            boolean nativeSignals,
+            SignalHandler signalHandler,
+            long inConsole,
+            int inMode,
+            long outConsole,
+            int outMode)
+            throws IOException {
         super(
                 provider,
                 systemStream,
@@ -170,6 +237,9 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<Long> {
                 name,
                 type,
                 encoding,
+                stdinEncoding,
+                stdoutEncoding,
+                stderrEncoding,
                 nativeSignals,
                 signalHandler,
                 inConsole,

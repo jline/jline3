@@ -127,6 +127,9 @@ public class ExecTerminalProvider implements TerminalProvider {
             String type,
             boolean ansiPassThrough,
             Charset encoding,
+            Charset stdinEncoding,
+            Charset stdoutEncoding,
+            Charset stderrEncoding,
             boolean nativeSignals,
             Terminal.SignalHandler signalHandler,
             boolean paused,
@@ -134,10 +137,30 @@ public class ExecTerminalProvider implements TerminalProvider {
             throws IOException {
         if (OSUtils.IS_WINDOWS) {
             return winSysTerminal(
-                    name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused, systemStream);
+                    name,
+                    type,
+                    ansiPassThrough,
+                    encoding,
+                    stdinEncoding,
+                    stdoutEncoding,
+                    stderrEncoding,
+                    nativeSignals,
+                    signalHandler,
+                    paused,
+                    systemStream);
         } else {
             return posixSysTerminal(
-                    name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused, systemStream);
+                    name,
+                    type,
+                    ansiPassThrough,
+                    encoding,
+                    stdinEncoding,
+                    stdoutEncoding,
+                    stderrEncoding,
+                    nativeSignals,
+                    signalHandler,
+                    paused,
+                    systemStream);
         }
     }
 
@@ -176,9 +199,45 @@ public class ExecTerminalProvider implements TerminalProvider {
             boolean paused,
             SystemStream systemStream)
             throws IOException {
+        return winSysTerminal(
+                name,
+                type,
+                ansiPassThrough,
+                encoding,
+                encoding,
+                encoding,
+                encoding,
+                nativeSignals,
+                signalHandler,
+                paused,
+                systemStream);
+    }
+
+    public Terminal winSysTerminal(
+            String name,
+            String type,
+            boolean ansiPassThrough,
+            Charset encoding,
+            Charset stdinEncoding,
+            Charset stdoutEncoding,
+            Charset stderrEncoding,
+            boolean nativeSignals,
+            Terminal.SignalHandler signalHandler,
+            boolean paused,
+            SystemStream systemStream)
+            throws IOException {
         if (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) {
             Pty pty = current(systemStream);
-            return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
+            return new PosixSysTerminal(
+                    name,
+                    type,
+                    pty,
+                    encoding,
+                    stdinEncoding,
+                    stdoutEncoding,
+                    stderrEncoding,
+                    nativeSignals,
+                    signalHandler);
         } else {
             return null;
         }
@@ -214,8 +273,36 @@ public class ExecTerminalProvider implements TerminalProvider {
             boolean paused,
             SystemStream systemStream)
             throws IOException {
+        return posixSysTerminal(
+                name,
+                type,
+                ansiPassThrough,
+                encoding,
+                encoding,
+                encoding,
+                encoding,
+                nativeSignals,
+                signalHandler,
+                paused,
+                systemStream);
+    }
+
+    public Terminal posixSysTerminal(
+            String name,
+            String type,
+            boolean ansiPassThrough,
+            Charset encoding,
+            Charset stdinEncoding,
+            Charset stdoutEncoding,
+            Charset stderrEncoding,
+            boolean nativeSignals,
+            Terminal.SignalHandler signalHandler,
+            boolean paused,
+            SystemStream systemStream)
+            throws IOException {
         Pty pty = current(systemStream);
-        return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
+        return new PosixSysTerminal(
+                name, type, pty, encoding, stdinEncoding, stdoutEncoding, stderrEncoding, nativeSignals, signalHandler);
     }
 
     /**
@@ -247,12 +334,28 @@ public class ExecTerminalProvider implements TerminalProvider {
             InputStream in,
             OutputStream out,
             Charset encoding,
+            Charset stdinEncoding,
+            Charset stdoutEncoding,
+            Charset stderrEncoding,
             Terminal.SignalHandler signalHandler,
             boolean paused,
             Attributes attributes,
             Size size)
             throws IOException {
-        return new ExternalTerminal(this, name, type, in, out, encoding, signalHandler, paused, attributes, size);
+        return new ExternalTerminal(
+                this,
+                name,
+                type,
+                in,
+                out,
+                encoding,
+                stdinEncoding,
+                stdoutEncoding,
+                stderrEncoding,
+                signalHandler,
+                paused,
+                attributes,
+                size);
     }
 
     /**

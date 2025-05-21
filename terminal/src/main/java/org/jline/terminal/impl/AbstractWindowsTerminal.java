@@ -146,15 +146,51 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
             Console outConsole,
             int outConsoleMode)
             throws IOException {
-        super(name, type, encoding, signalHandler);
+        this(
+                provider,
+                systemStream,
+                writer,
+                name,
+                type,
+                encoding,
+                encoding,
+                encoding,
+                encoding,
+                nativeSignals,
+                signalHandler,
+                inConsole,
+                inConsoleMode,
+                outConsole,
+                outConsoleMode);
+    }
+
+    @SuppressWarnings("this-escape")
+    public AbstractWindowsTerminal(
+            TerminalProvider provider,
+            SystemStream systemStream,
+            Writer writer,
+            String name,
+            String type,
+            Charset encoding,
+            Charset stdinEncoding,
+            Charset stdoutEncoding,
+            Charset stderrEncoding,
+            boolean nativeSignals,
+            SignalHandler signalHandler,
+            Console inConsole,
+            int inConsoleMode,
+            Console outConsole,
+            int outConsoleMode)
+            throws IOException {
+        super(name, type, encoding, stdinEncoding, stdoutEncoding, stderrEncoding, signalHandler);
         this.provider = provider;
         this.systemStream = systemStream;
         NonBlockingPumpReader reader = NonBlocking.nonBlockingPumpReader();
         this.slaveInputPipe = reader.getWriter();
         this.reader = reader;
-        this.input = NonBlocking.nonBlockingStream(reader, encoding());
+        this.input = NonBlocking.nonBlockingStream(reader, stdinEncoding());
         this.writer = new PrintWriter(writer);
-        this.output = new WriterOutputStream(writer, encoding());
+        this.output = new WriterOutputStream(writer, stdoutEncoding());
         this.inConsole = inConsole;
         this.outConsole = outConsole;
         parseInfoCmp();

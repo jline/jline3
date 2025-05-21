@@ -43,6 +43,35 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
             SignalHandler signalHandler,
             boolean paused)
             throws IOException {
+        return createTerminal(
+                provider,
+                systemStream,
+                name,
+                type,
+                ansiPassThrough,
+                encoding,
+                encoding,
+                encoding,
+                encoding,
+                nativeSignals,
+                signalHandler,
+                paused);
+    }
+
+    public static JnaWinSysTerminal createTerminal(
+            TerminalProvider provider,
+            SystemStream systemStream,
+            String name,
+            String type,
+            boolean ansiPassThrough,
+            Charset encoding,
+            Charset stdinEncoding,
+            Charset stdoutEncoding,
+            Charset stderrEncoding,
+            boolean nativeSignals,
+            SignalHandler signalHandler,
+            boolean paused)
+            throws IOException {
         // Get input console mode
         IntByReference inMode = new IntByReference();
         Kernel32.INSTANCE.GetConsoleMode(JnaWinSysTerminal.consoleIn, inMode);
@@ -85,6 +114,9 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
                 name,
                 type,
                 encoding,
+                stdinEncoding,
+                stdoutEncoding,
+                stderrEncoding,
                 nativeSignals,
                 signalHandler,
                 JnaWinSysTerminal.consoleIn,
@@ -146,6 +178,41 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
             Pointer outConsole,
             int outConsoleMode)
             throws IOException {
+        this(
+                provider,
+                systemStream,
+                writer,
+                name,
+                type,
+                encoding,
+                encoding,
+                encoding,
+                encoding,
+                nativeSignals,
+                signalHandler,
+                inConsole,
+                inConsoleMode,
+                outConsole,
+                outConsoleMode);
+    }
+
+    JnaWinSysTerminal(
+            TerminalProvider provider,
+            SystemStream systemStream,
+            Writer writer,
+            String name,
+            String type,
+            Charset encoding,
+            Charset stdinEncoding,
+            Charset stdoutEncoding,
+            Charset stderrEncoding,
+            boolean nativeSignals,
+            SignalHandler signalHandler,
+            Pointer inConsole,
+            int inConsoleMode,
+            Pointer outConsole,
+            int outConsoleMode)
+            throws IOException {
         super(
                 provider,
                 systemStream,
@@ -153,6 +220,9 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
                 name,
                 type,
                 encoding,
+                stdinEncoding,
+                stdoutEncoding,
+                stderrEncoding,
                 nativeSignals,
                 signalHandler,
                 inConsole,

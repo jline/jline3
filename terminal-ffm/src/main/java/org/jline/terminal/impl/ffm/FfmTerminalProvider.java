@@ -49,6 +49,9 @@ public class FfmTerminalProvider implements TerminalProvider {
             String type,
             boolean ansiPassThrough,
             Charset encoding,
+            Charset stdinEncoding,
+            Charset stdoutEncoding,
+            Charset stderrEncoding,
             boolean nativeSignals,
             Terminal.SignalHandler signalHandler,
             boolean paused,
@@ -56,7 +59,18 @@ public class FfmTerminalProvider implements TerminalProvider {
             throws IOException {
         if (OSUtils.IS_WINDOWS) {
             return NativeWinSysTerminal.createTerminal(
-                    this, systemStream, name, type, ansiPassThrough, encoding, nativeSignals, signalHandler, paused);
+                    this,
+                    systemStream,
+                    name,
+                    type,
+                    ansiPassThrough,
+                    encoding,
+                    stdinEncoding,
+                    stdoutEncoding,
+                    stderrEncoding,
+                    nativeSignals,
+                    signalHandler,
+                    paused);
         } else {
             Pty pty = new FfmNativePty(
                     this,
@@ -68,7 +82,16 @@ public class FfmTerminalProvider implements TerminalProvider {
                     systemStream == SystemStream.Output ? 1 : 2,
                     systemStream == SystemStream.Output ? FileDescriptor.out : FileDescriptor.err,
                     CLibrary.ttyName(0));
-            return new PosixSysTerminal(name, type, pty, encoding, nativeSignals, signalHandler);
+            return new PosixSysTerminal(
+                    name,
+                    type,
+                    pty,
+                    encoding,
+                    stdinEncoding,
+                    stdoutEncoding,
+                    stderrEncoding,
+                    nativeSignals,
+                    signalHandler);
         }
     }
 
@@ -79,13 +102,27 @@ public class FfmTerminalProvider implements TerminalProvider {
             InputStream in,
             OutputStream out,
             Charset encoding,
+            Charset stdinEncoding,
+            Charset stdoutEncoding,
+            Charset stderrEncoding,
             Terminal.SignalHandler signalHandler,
             boolean paused,
             Attributes attributes,
             Size size)
             throws IOException {
         Pty pty = CLibrary.openpty(this, attributes, size);
-        return new PosixPtyTerminal(name, type, pty, in, out, encoding, signalHandler, paused);
+        return new PosixPtyTerminal(
+                name,
+                type,
+                pty,
+                in,
+                out,
+                encoding,
+                stdinEncoding,
+                stdoutEncoding,
+                stderrEncoding,
+                signalHandler,
+                paused);
     }
 
     @Override

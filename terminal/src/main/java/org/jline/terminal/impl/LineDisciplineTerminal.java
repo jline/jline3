@@ -121,13 +121,27 @@ public class LineDisciplineTerminal extends AbstractTerminal {
     public LineDisciplineTerminal(
             String name, String type, OutputStream masterOutput, Charset encoding, SignalHandler signalHandler)
             throws IOException {
-        super(name, type, encoding, signalHandler);
+        this(name, type, masterOutput, encoding, encoding, encoding, encoding, signalHandler);
+    }
+
+    @SuppressWarnings("this-escape")
+    public LineDisciplineTerminal(
+            String name,
+            String type,
+            OutputStream masterOutput,
+            Charset encoding,
+            Charset stdinEncoding,
+            Charset stdoutEncoding,
+            Charset stderrEncoding,
+            SignalHandler signalHandler)
+            throws IOException {
+        super(name, type, encoding, stdinEncoding, stdoutEncoding, stderrEncoding, signalHandler);
         NonBlockingPumpInputStream input = NonBlocking.nonBlockingPumpInputStream(PIPE_SIZE);
         this.slaveInputPipe = input.getOutputStream();
         this.slaveInput = input;
-        this.slaveReader = NonBlocking.nonBlocking(getName(), slaveInput, encoding());
+        this.slaveReader = NonBlocking.nonBlocking(getName(), slaveInput, stdinEncoding());
         this.slaveOutput = new FilteringOutputStream();
-        this.slaveWriter = new PrintWriter(new OutputStreamWriter(slaveOutput, encoding()));
+        this.slaveWriter = new PrintWriter(new OutputStreamWriter(slaveOutput, stdoutEncoding()));
         this.masterOutput = masterOutput;
         this.attributes = getDefaultTerminalAttributes();
         this.size = new Size(160, 50);
