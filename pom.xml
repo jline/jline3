@@ -121,7 +121,7 @@
         <ivy.version>2.5.3</ivy.version>
         <graal.version>24.2.1</graal.version>
         <graal.plugin.version>21.2.0</graal.plugin.version>
-        <palantir.version>2.38.0</palantir.version>
+        <palantir.version>2.67.0</palantir.version>
 
         <surefire.argLine>--add-opens java.base/java.io=ALL-UNNAMED</surefire.argLine>
     </properties>
