@@ -84,10 +84,10 @@ public class ConsolePrompt {
 
     protected void close() {
         if (terminalInRawMode()) {
+            int cursor = (terminal.getWidth() + 1) * header.size();
+            display.update(header, cursor);
             terminal.setAttributes(attributes);
             terminal.puts(InfoCmp.Capability.keypad_local);
-            terminal.writer().println();
-            terminal.writer().flush();
             attributes = null;
         }
     }
