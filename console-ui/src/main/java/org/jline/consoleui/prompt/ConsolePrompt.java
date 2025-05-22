@@ -33,6 +33,7 @@ import org.jline.utils.*;
 public class ConsolePrompt {
     protected final LineReader reader;
     protected final Terminal terminal;
+    protected final Display display;
     protected final UiConfig config;
     protected Attributes attributes;
     protected List<AttributedString> header = new ArrayList<>();
@@ -61,6 +62,7 @@ public class ConsolePrompt {
      */
     public ConsolePrompt(LineReader reader, Terminal terminal, UiConfig config) {
         this.terminal = terminal;
+        this.display = new Display(terminal, false);
         this.config = config;
         this.reader = reader;
         if (reader != null) {
@@ -75,7 +77,6 @@ public class ConsolePrompt {
     protected void open() {
         if (!terminalInRawMode()) {
             attributes = terminal.enterRawMode();
-            terminal.puts(InfoCmp.Capability.enter_ca_mode);
             terminal.puts(InfoCmp.Capability.keypad_xmit);
             terminal.writer().flush();
         }
@@ -83,14 +84,10 @@ public class ConsolePrompt {
 
     protected void close() {
         if (terminalInRawMode()) {
+            int cursor = (terminal.getWidth() + 1) * header.size();
+            display.update(header, cursor);
             terminal.setAttributes(attributes);
-            terminal.puts(InfoCmp.Capability.exit_ca_mode);
             terminal.puts(InfoCmp.Capability.keypad_local);
-            terminal.writer().flush();
-            for (AttributedString as : header) {
-                as.println(terminal);
-            }
-            terminal.writer().flush();
             attributes = null;
         }
     }
@@ -304,6 +301,7 @@ public class ConsolePrompt {
             ListChoice lc = (ListChoice) pe;
             result = ListChoicePrompt.getPrompt(
                             terminal,
+                            display,
                             header,
                             asb.toAttributedString(),
                             lc.getListItemList(),
@@ -315,7 +313,7 @@ public class ConsolePrompt {
             if (ip.getDefaultValue() != null) {
                 asb.append("(").append(ip.getDefaultValue()).append(") ");
             }
-            result = InputValuePrompt.getPrompt(reader, terminal, header, asb.toAttributedString(), ip, config)
+            result = InputValuePrompt.getPrompt(reader, terminal, display, header, asb.toAttributedString(), ip, config)
                     .execute();
         } else if (pe instanceof ExpandableChoice) {
             ExpandableChoice ec = (ExpandableChoice) pe;
@@ -330,17 +328,25 @@ public class ConsolePrompt {
             }
             asb.append("h) ");
             try {
-                result = ExpandableChoicePrompt.getPrompt(terminal, header, asb.toAttributedString(), ec, config)
+                result = ExpandableChoicePrompt.getPrompt(
+                                terminal, display, header, asb.toAttributedString(), ec, config)
                         .execute();
             } catch (ExpandableChoiceException e) {
                 result = ListChoicePrompt.getPrompt(
-                                terminal, header, message.toAttributedString(), ec.getChoiceItems(), 10, config)
+                                terminal,
+                                display,
+                                header,
+                                message.toAttributedString(),
+                                ec.getChoiceItems(),
+                                10,
+                                config)
                         .execute();
             }
         } else if (pe instanceof Checkbox) {
             Checkbox cb = (Checkbox) pe;
             result = CheckboxPrompt.getPrompt(
                             terminal,
+                            display,
                             header,
                             message.toAttributedString(),
                             cb.getCheckboxItemList(),
@@ -357,7 +363,7 @@ public class ConsolePrompt {
                 asb.append(config.resourceBundle().getString("confirmation_no_default"));
             }
             asb.append(" ");
-            result = ConfirmPrompt.getPrompt(terminal, header, asb.toAttributedString(), cc, config)
+            result = ConfirmPrompt.getPrompt(terminal, display, header, asb.toAttributedString(), cc, config)
                     .execute();
         } else if (pe instanceof Text) {
             Text te = (Text) pe;

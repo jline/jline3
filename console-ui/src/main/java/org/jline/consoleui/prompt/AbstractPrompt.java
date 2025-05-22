@@ -48,18 +48,24 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
     public static final long DEFAULT_TIMEOUT_WITH_ESC = 150L;
 
     public AbstractPrompt(
-            Terminal terminal, List<AttributedString> header, AttributedString message, ConsolePrompt.UiConfig cfg) {
-        this(terminal, header, message, new ArrayList<>(), 0, cfg);
+            Terminal terminal,
+            Display display,
+            List<AttributedString> header,
+            AttributedString message,
+            ConsolePrompt.UiConfig cfg) {
+        this(terminal, display, header, message, new ArrayList<>(), 0, cfg);
     }
 
     public AbstractPrompt(
             Terminal terminal,
+            Display display,
             List<AttributedString> header,
             AttributedString message,
             List<T> items,
             int pageSize,
             ConsolePrompt.UiConfig cfg) {
         this.terminal = terminal;
+        this.display = display;
         this.bindingReader = new BindingReader(terminal.reader());
         this.size.copy(terminal.getSize());
         int listSpace = Math.min(size.getRows(), Math.max(pageSize, 3));
@@ -77,10 +83,7 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
     }
 
     protected void resetDisplay() {
-        display = new Display(terminal, true);
         size.copy(terminal.getSize());
-        display.clear();
-        display.reset();
     }
 
     protected void refreshDisplay(int row) {
@@ -89,7 +92,6 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
 
     protected void refreshDisplay(int row, Set<String> selected) {
         display.resize(size.getRows(), size.getColumns());
-        display.reset();
         display.update(
                 displayLines(row, selected),
                 size.cursorPos(Math.min(size.getRows() - 1, firstItemRow + items.size()), 0));
@@ -321,11 +323,12 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
 
         private ExpandableChoicePrompt(
                 Terminal terminal,
+                Display display,
                 List<AttributedString> header,
                 AttributedString message,
                 ExpandableChoice expandableChoice,
                 ConsolePrompt.UiConfig cfg) {
-            super(terminal, header, message, cfg);
+            super(terminal, display, header, message, cfg);
             startColumn = message.columnLength();
             items = expandableChoice.getChoiceItems();
             config = cfg;
@@ -333,11 +336,12 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
 
         public static ExpandableChoicePrompt getPrompt(
                 Terminal terminal,
+                Display display,
                 List<AttributedString> header,
                 AttributedString message,
                 ExpandableChoice expandableChoice,
                 ConsolePrompt.UiConfig cfg) {
-            return new ExpandableChoicePrompt(terminal, header, message, expandableChoice, cfg);
+            return new ExpandableChoicePrompt(terminal, display, header, message, expandableChoice, cfg);
         }
 
         private void bindKeys(KeyMap<Operation> map) {
@@ -422,11 +426,12 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
 
         private ConfirmPrompt(
                 Terminal terminal,
+                Display display,
                 List<AttributedString> header,
                 AttributedString message,
                 ConfirmChoice confirmChoice,
                 ConsolePrompt.UiConfig cfg) {
-            super(terminal, header, message, cfg);
+            super(terminal, display, header, message, cfg);
             startColumn = message.columnLength();
             defaultValue = confirmChoice.getDefaultConfirmation();
             config = cfg;
@@ -434,11 +439,12 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
 
         public static ConfirmPrompt getPrompt(
                 Terminal terminal,
+                Display display,
                 List<AttributedString> header,
                 AttributedString message,
                 ConfirmChoice confirmChoice,
                 ConsolePrompt.UiConfig cfg) {
-            return new ConfirmPrompt(terminal, header, message, confirmChoice, cfg);
+            return new ConfirmPrompt(terminal, display, header, message, confirmChoice, cfg);
         }
 
         private void bindKeys(KeyMap<Operation> map) {
@@ -493,6 +499,8 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             DELETE,
             RIGHT,
             LEFT,
+            UP,
+            DOWN,
             BEGINNING_OF_LINE,
             END_OF_LINE,
             SELECT_CANDIDATE,
@@ -516,11 +524,12 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
         private InputValuePrompt(
                 LineReader reader,
                 Terminal terminal,
+                Display display,
                 List<AttributedString> header,
                 AttributedString message,
                 InputValue inputValue,
                 ConsolePrompt.UiConfig cfg) {
-            super(terminal, header, message, cfg);
+            super(terminal, display, header, message, cfg);
             this.reader = reader;
             defaultValue = inputValue.getDefaultValue();
             startColumn = message.columnLength();
@@ -531,11 +540,12 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
         public static InputValuePrompt getPrompt(
                 LineReader reader,
                 Terminal terminal,
+                Display display,
                 List<AttributedString> header,
                 AttributedString message,
                 InputValue inputValue,
                 ConsolePrompt.UiConfig cfg) {
-            return new InputValuePrompt(reader, terminal, header, message, inputValue, cfg);
+            return new InputValuePrompt(reader, terminal, display, header, message, inputValue, cfg);
         }
 
         private void bindKeys(KeyMap<Operation> map) {
@@ -549,6 +559,8 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             map.bind(Operation.EXIT, "\r");
             map.bind(Operation.RIGHT, key(terminal, InfoCmp.Capability.key_right));
             map.bind(Operation.LEFT, key(terminal, InfoCmp.Capability.key_left));
+            map.bind(Operation.UP, key(terminal, InfoCmp.Capability.key_up));
+            map.bind(Operation.DOWN, key(terminal, InfoCmp.Capability.key_down));
             map.bind(Operation.BEGINNING_OF_LINE, ctrl('A'), key(terminal, InfoCmp.Capability.key_home));
             map.bind(Operation.END_OF_LINE, ctrl('E'), key(terminal, InfoCmp.Capability.key_end));
             map.bind(Operation.RIGHT, ctrl('F'));
@@ -805,23 +817,25 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
 
         private ListChoicePrompt(
                 Terminal terminal,
+                Display display,
                 List<AttributedString> header,
                 AttributedString message,
                 List<T> listItems,
                 int pageSize,
                 ConsolePrompt.UiConfig cfg) {
-            super(terminal, header, message, listItems, pageSize, cfg);
+            super(terminal, display, header, message, listItems, pageSize, cfg);
             items = listItems;
         }
 
         public static <T extends ListItemIF> ListChoicePrompt<T> getPrompt(
                 Terminal terminal,
+                Display display,
                 List<AttributedString> header,
                 AttributedString message,
                 List<T> listItems,
                 int pageSize,
                 ConsolePrompt.UiConfig cfg) {
-            return new ListChoicePrompt<>(terminal, header, message, listItems, pageSize, cfg);
+            return new ListChoicePrompt<>(terminal, display, header, message, listItems, pageSize, cfg);
         }
 
         private void bindKeys(KeyMap<Operation> map) {
@@ -887,23 +901,25 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
 
         private CheckboxPrompt(
                 Terminal terminal,
+                Display display,
                 List<AttributedString> header,
                 AttributedString message,
                 List<CheckboxItemIF> checkboxItemList,
                 int pageSize,
                 ConsolePrompt.UiConfig cfg) {
-            super(terminal, header, message, checkboxItemList, pageSize, cfg);
+            super(terminal, display, header, message, checkboxItemList, pageSize, cfg);
             items = checkboxItemList;
         }
 
         public static CheckboxPrompt getPrompt(
                 Terminal terminal,
+                Display display,
                 List<AttributedString> header,
                 AttributedString message,
                 List<CheckboxItemIF> checkboxItemList,
                 int pageSize,
                 ConsolePrompt.UiConfig cfg) {
-            return new CheckboxPrompt(terminal, header, message, checkboxItemList, pageSize, cfg);
+            return new CheckboxPrompt(terminal, display, header, message, checkboxItemList, pageSize, cfg);
         }
 
         private void bindKeys(KeyMap<Operation> map) {
