@@ -32,7 +32,7 @@ goto :usage
 echo usage: %~n0 ^<command^> [options]
 echo.
 echo Available commands:
-echo   demo ^<type^>           Run a demo (gogo, repl, password)
+echo   demo ^<type^>           Run a demo ^(gogo, repl, password^)
 echo   example ^<className^>   Run an example from org.jline.demo.examples
 echo   rebuild               Clean and install the project
 echo   license-check         Check license headers
@@ -65,16 +65,16 @@ if "%demo_type%"=="" (
     echo   jansi        Add Jansi support
     echo   jna          Add JNA support
     echo   verbose      Enable verbose logging
-    echo   ffm          Enable Foreign Function Memory (preview)
+    echo   ffm          Enable Foreign Function Memory ^(preview^)
     echo.
     echo Gogo-specific options:
     echo   ssh          Add SSH support
     echo   telnet       Add Telnet support
-    echo   remote       Add remote support (SSH and Telnet)
+    echo   remote       Add remote support ^(SSH and Telnet^)
     echo.
     echo Password-specific options:
-    echo   --mask=X     Use X as the mask character (default: *)
-    echo                Use --mask= (empty) for no masking
+    echo   --mask=X     Use X as the mask character ^(default: *^)
+    echo                Use --mask= ^(empty^) for no masking
     exit /b 1
 )
 
@@ -152,27 +152,27 @@ if "%~1"=="--help" (
         echo   --help       Show this help message
         echo   ssh          Add SSH support
         echo   telnet       Add Telnet support
-        echo   remote       Add remote support (SSH and Telnet)
+        echo   remote       Add remote support ^(SSH and Telnet^)
         echo   debug        Enable remote debugging
         echo   debugs       Enable remote debugging with suspend
         echo   jansi        Add Jansi support
         echo   jna          Add JNA support
         echo   verbose      Enable verbose logging
-        echo   ffm          Enable Foreign Function Memory (preview)
+        echo   ffm          Enable Foreign Function Memory ^(preview^)
         echo.
         echo To test with a dumb terminal, use: set TERM=dumb ^& %~n0 demo gogo
     ) else if "%demo_type%"=="password" (
         echo Usage: %~n0 demo password [options]
         echo Options:
         echo   --help       Show this help message
-        echo   --mask=X     Use X as the mask character (default: *)
-        echo                Use --mask= (empty) for no masking
+        echo   --mask=X     Use X as the mask character ^(default: *^)
+        echo                Use --mask= ^(empty^) for no masking
         echo   debug        Enable remote debugging
         echo   debugs       Enable remote debugging with suspend
         echo   jansi        Add Jansi support
         echo   jna          Add JNA support
         echo   verbose      Enable verbose logging
-        echo   ffm          Enable Foreign Function Memory (preview)
+        echo   ffm          Enable Foreign Function Memory ^(preview^)
         echo.
         echo To test with a dumb terminal, use: set TERM=dumb ^& %~n0 demo password
     ) else if "%demo_type%"=="consoleui" (
@@ -181,10 +181,10 @@ if "%~1"=="--help" (
         echo   --help       Show this help message
         echo   debug        Enable remote debugging
         echo   debugs       Enable remote debugging with suspend
-        echo   jansi        Add Jansi support (recommended for Windows)
-        echo   jna          Add JNA support (alternative for Windows)
+        echo   jansi        Add Jansi support ^(recommended for Windows^)
+        echo   jna          Add JNA support ^(alternative for Windows^)
         echo   verbose      Enable verbose logging
-        echo   ffm          Enable Foreign Function Memory (preview)
+        echo   ffm          Enable Foreign Function Memory ^(preview^)
         echo.
         echo Note: On Windows, either Jansi or JNA library must be included in classpath.
         echo To test with a dumb terminal, use: set TERM=dumb ^& %~n0 demo consoleui
@@ -197,7 +197,7 @@ if "%~1"=="--help" (
         echo   jansi        Add Jansi support
         echo   jna          Add JNA support
         echo   verbose      Enable verbose logging
-        echo   ffm          Enable Foreign Function Memory (preview)
+        echo   ffm          Enable Foreign Function Memory ^(preview^)
         echo.
         echo To test with a dumb terminal, use: set TERM=dumb ^& %~n0 demo %demo_type%
     )
@@ -290,12 +290,15 @@ if "%~1"=="--help" (
             )
         )
     )
-) else if "%~1:~0,7%"=="--mask=" (
-    :: Already processed for password demo
-    rem Do nothing
 ) else (
-    :: Unknown option, assume it's a JVM option
-    set "JVM_OPTS=!JVM_OPTS! %~1"
+    set "arg=%~1"
+    if "!arg:~0,7!"=="--mask=" (
+        :: Already processed for password demo
+        rem Do nothing
+    ) else (
+        :: Unknown option, assume it's a JVM option
+        set "JVM_OPTS=!JVM_OPTS! %~1"
+    )
 )
 
 shift
@@ -313,14 +316,16 @@ set "java_version=%java_version:~0,2%"
 set "java_version=%java_version:~0,2%"
 if "%java_version:~1,1%"=="." set "java_version=%java_version:~0,1%"
 
-:: Add --enable-native-access if JDK 16+
-if %java_version% GEQ 16 (
-    :: Only add if not already present
-    echo %JVM_OPTS% | findstr /C:"--enable-native-access=ALL-UNNAMED" >nul
-    if errorlevel 1 (
-        set "JVM_OPTS=%JVM_OPTS% --enable-native-access=ALL-UNNAMED"
-    )
-)
+:: Check Java version for --enable-native-access
+for /f "tokens=3" %%v in ('java -version 2^>^&1 ^| findstr /i "version"') do set "java_version=%%v"
+set "java_version=%java_version:"=%"
+set "java_version=%java_version:~0,2%"
+if "%java_version:~1,1%"=="." set "java_version=%java_version:~0,1%"
+:: Default to JDK 8 behavior if version not detected
+if not defined java_version set "java_version=8"
+:: Add --enable-native-access only for Java 16+
+echo %java_version% | findstr /C:"16" /C:"17" /C:"18" /C:"19" /C:"20" /C:"21" /C:"22" >nul
+if not errorlevel 1 set "JVM_OPTS=%JVM_OPTS% --enable-native-access=ALL-UNNAMED"
 
 :: Launch the demo
 echo Launching %MAIN_CLASS%...
@@ -404,7 +409,20 @@ java -cp "%cp%" %JVM_OPTS% org.jline.demo.examples.%example_name%
 goto :eof
 
 :rebuild
-call mvnw.cmd clean install %*
+:: Check if the first argument is "rebuild" and remove it if so
+set "mvn_args="
+:parse_rebuild_args
+if "%~1"=="" goto :do_rebuild
+if "%~1"=="rebuild" (
+    shift
+    goto :parse_rebuild_args
+)
+set "mvn_args=%mvn_args% %~1"
+shift
+goto :parse_rebuild_args
+
+:do_rebuild
+call mvnw.cmd clean install%mvn_args%
 goto :eof
 
 :license_check
