@@ -42,8 +42,29 @@ public class DumbTerminalPasswordTest {
             assertTrue(output.contains("Password: "));
 
             // The output should contain multiple instances of the prompt due to the masking thread
-            int promptCount = countOccurrences(output, "Password: ");
-            assertTrue(promptCount > 1, "Expected multiple instances of the prompt due to masking thread");
+            // Add a delay to ensure the masking thread has time to run
+            // The masking thread in LineReaderImpl runs every 3ms, so we need to wait
+            // long enough for multiple refreshes to occur
+            int promptCount = 0;
+            long startTime = System.currentTimeMillis();
+            long timeout = 500; // 500ms should be plenty of time
+
+            while (promptCount <= 1 && (System.currentTimeMillis() - startTime) < timeout) {
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    // Ignore
+                }
+
+                // Get the output again after the delay
+                output = out.toString();
+                promptCount = countOccurrences(output, "Password: ");
+            }
+
+            assertTrue(
+                    promptCount > 1,
+                    "Expected multiple instances of the prompt due to masking thread. " + "Prompt count: " + promptCount
+                            + ", Output: " + output);
         }
     }
 
