@@ -121,9 +121,9 @@ public final class Curses {
                             case 'n':
                                 out.append('\n');
                                 break;
-                                //                        case 'l':
-                                //                            rawPrint('\l');
-                                //                            break;
+                            //                        case 'l':
+                            //                            rawPrint('\l');
+                            //                            break;
                             case 'r':
                                 if (exec) {
                                     out.append('\r');

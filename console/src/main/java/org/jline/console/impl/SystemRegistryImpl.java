@@ -1070,7 +1070,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                         case ' ':
                             ch = ' ';
                             break;
-                            // Hex Unicode: u????
+                        // Hex Unicode: u????
                         case 'u':
                             if (i >= arg.length() - 5) {
                                 ch = 'u';

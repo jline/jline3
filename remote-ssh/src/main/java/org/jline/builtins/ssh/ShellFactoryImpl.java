@@ -133,14 +133,14 @@ public class ShellFactoryImpl implements ShellFactory {
                         case VLNEXT:
                             attributes.setControlChar(ControlChar.VLNEXT, e.getValue());
                             break;
-                            /*
-                            case VFLUSH:
-                                attr.setControlChar(ControlChar.VMIN, e.getValue());
-                                break;
-                            case VSWTCH:
-                                attr.setControlChar(ControlChar.VTIME, e.getValue());
-                                break;
-                            */
+                        /*
+                        case VFLUSH:
+                            attr.setControlChar(ControlChar.VMIN, e.getValue());
+                            break;
+                        case VSWTCH:
+                            attr.setControlChar(ControlChar.VTIME, e.getValue());
+                            break;
+                        */
                         case VSTATUS:
                             attributes.setControlChar(ControlChar.VSTATUS, e.getValue());
                             break;

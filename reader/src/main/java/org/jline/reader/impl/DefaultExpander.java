@@ -125,7 +125,7 @@ public class DefaultExpander implements Expander {
                                 case '-':
                                     neg = true;
                                     i++;
-                                    // fall through
+                                // fall through
                                 case '0':
                                 case '1':
                                 case '2':
