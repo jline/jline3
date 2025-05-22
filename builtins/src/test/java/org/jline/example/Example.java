@@ -214,20 +214,20 @@ public class Example {
 
             for (int index = 0; index < args.length; index++) {
                 switch (args[index]) {
-                        /* SANDBOX JANSI
-                        case "-posix":
-                            builder.posix(false);
-                            break;
-                        case "+posix":
-                            builder.posix(true);
-                            break;
-                        case "-native-pty":
-                            builder.nativePty(false);
-                            break;
-                        case "+native-pty":
-                            builder.nativePty(true);
-                            break;
-                        */
+                    /* SANDBOX JANSI
+                    case "-posix":
+                        builder.posix(false);
+                        break;
+                    case "+posix":
+                        builder.posix(true);
+                        break;
+                    case "-native-pty":
+                        builder.nativePty(false);
+                        break;
+                    case "+native-pty":
+                        builder.nativePty(true);
+                        break;
+                    */
                     case "timer":
                         timer = true;
                         break;

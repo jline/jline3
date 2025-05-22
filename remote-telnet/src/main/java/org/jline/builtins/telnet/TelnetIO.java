@@ -784,7 +784,7 @@ public class TelnetIO {
          */
         private void parse(int[] buf) throws IOException {
             switch (buf[0]) {
-                    /* First switch on the Negotiation Option */
+                /* First switch on the Negotiation Option */
                 case WILL:
                     if (supported(buf[1]) && isEnabled(buf[1])) {
                         ; // do nothing
@@ -840,7 +840,7 @@ public class TelnetIO {
                     }
                     break;
 
-                    /* Now about other two byte IACs */
+                /* Now about other two byte IACs */
                 case DM: // How do I implement a SYNCH signal?
                     break;
                 case SB: // handle subnegotiations

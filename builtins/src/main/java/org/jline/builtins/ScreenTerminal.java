@@ -541,18 +541,18 @@ public class ScreenTerminal {
                     // Insertion replacement mode
                     vt100_mode_insert = state;
                     break;
-                    // 5 : SRTM: Status reporting transfer
-                    // 7 : VEM: Vertical editing
-                    // 10 : HEM: Horizontal editing
-                    // 11 : PUM: Positioning nit
-                    // 12 : SRM: Send/receive
-                    // 13 : FEAM: Format effector action
-                    // 14 : FETM: Format effector transfer
-                    // 15 : MATM: Multiple area transfer
-                    // 16 : TTM: Transfer termination
-                    // 17 : SATM: Selected area transfer
-                    // 18 : TSM: Tabulation stop
-                    // 19 : EBM: Editing boundary
+                // 5 : SRTM: Status reporting transfer
+                // 7 : VEM: Vertical editing
+                // 10 : HEM: Horizontal editing
+                // 11 : PUM: Positioning nit
+                // 12 : SRM: Send/receive
+                // 13 : FEAM: Format effector action
+                // 14 : FETM: Format effector transfer
+                // 15 : MATM: Multiple area transfer
+                // 16 : TTM: Transfer termination
+                // 17 : SATM: Selected area transfer
+                // 18 : TSM: Tabulation stop
+                // 19 : EBM: Editing boundary
                 case "20":
                     // LNM: Line feed/new line
                     vt100_mode_lfnewline = state;
@@ -561,7 +561,7 @@ public class ScreenTerminal {
                     // DECCKM: Cursor keys
                     vt100_mode_cursorkey = state;
                     break;
-                    // ?2 : DECANM: ANSI
+                // ?2 : DECANM: ANSI
                 case "?3":
                     // DECCOLM: Column
                     if (vt100_mode_column_switch) {
@@ -573,7 +573,7 @@ public class ScreenTerminal {
                         reset_screen();
                     }
                     break;
-                    // ?4 : DECSCLM: Scrolling
+                // ?4 : DECSCLM: Scrolling
                 case "?5":
                     // DECSCNM: Screen
                     vt100_mode_inverse = state;
@@ -591,22 +591,22 @@ public class ScreenTerminal {
                     // DECAWM: Autowrap
                     vt100_mode_autowrap = state;
                     break;
-                    // ?8 : DECARM: Autorepeat
-                    // ?9 : Interlacing
-                    // ?18 : DECPFF: Print form feed
-                    // ?19 : DECPEX: Printer extent
+                // ?8 : DECARM: Autorepeat
+                // ?9 : Interlacing
+                // ?18 : DECPFF: Print form feed
+                // ?19 : DECPEX: Printer extent
                 case "?25":
                     // DECTCEM: Text cursor enable
                     vt100_mode_cursor = state;
                     break;
-                    // ?34 : DECRLM: Cursor direction, right to left
-                    // ?35 : DECHEBM: Hebrew keyboard mapping
-                    // ?36 : DECHEM: Hebrew encoding mode
+                // ?34 : DECRLM: Cursor direction, right to left
+                // ?35 : DECHEBM: Hebrew keyboard mapping
+                // ?36 : DECHEM: Hebrew encoding mode
                 case "?40":
                     // Column switch control
                     vt100_mode_column_switch = state;
                     break;
-                    // ?42 : DECNRCM: National replacement character set
+                // ?42 : DECNRCM: National replacement character set
                 case "?1049":
                     // Alternate screen mode
                     if ((state && !vt100_mode_alt_screen) || (!state && vt100_mode_alt_screen)) {
@@ -626,7 +626,7 @@ public class ScreenTerminal {
                     }
                     vt100_mode_alt_screen = state;
                     break;
-                    // ?57 : DECNAKB: Greek keyboard mapping
+                // ?57 : DECNAKB: Greek keyboard mapping
                 case "?67":
                     // DECBKM: Backarrow key
                     vt100_mode_backspace = state;
