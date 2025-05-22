@@ -83,12 +83,65 @@ public interface TerminalProvider {
      * @param systemStream the system stream to connect to
      * @return a new terminal connected to the specified system stream
      * @throws IOException if an I/O error occurs
+     * @deprecated Use {@link #sysTerminal(String, String, boolean, Charset, Charset, Charset, Charset, boolean, Terminal.SignalHandler, boolean, SystemStream)} instead
+     */
+    @Deprecated
+    default Terminal sysTerminal(
+            String name,
+            String type,
+            boolean ansiPassThrough,
+            Charset encoding,
+            boolean nativeSignals,
+            Terminal.SignalHandler signalHandler,
+            boolean paused,
+            SystemStream systemStream)
+            throws IOException {
+        return sysTerminal(
+                name,
+                type,
+                ansiPassThrough,
+                encoding,
+                encoding,
+                encoding,
+                encoding,
+                nativeSignals,
+                signalHandler,
+                paused,
+                systemStream);
+    }
+
+    /**
+     * Creates a terminal connected to a system stream.
+     *
+     * <p>
+     * This method creates a terminal that is connected to one of the standard
+     * system streams (standard input, standard output, or standard error). Such
+     * terminals typically represent the actual terminal window or console that
+     * the application is running in.
+     * </p>
+     *
+     * @param name the name of the terminal
+     * @param type the terminal type (e.g., "xterm", "dumb")
+     * @param ansiPassThrough whether to pass through ANSI escape sequences
+     * @param encoding the general character encoding to use
+     * @param stdinEncoding the character encoding to use for standard input
+     * @param stdoutEncoding the character encoding to use for standard output
+     * @param stderrEncoding the character encoding to use for standard error
+     * @param nativeSignals whether to use native signal handling
+     * @param signalHandler the signal handler to use
+     * @param paused whether the terminal should start in a paused state
+     * @param systemStream the system stream to connect to
+     * @return a new terminal connected to the specified system stream
+     * @throws IOException if an I/O error occurs
      */
     Terminal sysTerminal(
             String name,
             String type,
             boolean ansiPassThrough,
             Charset encoding,
+            Charset stdinEncoding,
+            Charset stdoutEncoding,
+            Charset stderrEncoding,
             boolean nativeSignals,
             Terminal.SignalHandler signalHandler,
             boolean paused,
@@ -116,6 +169,59 @@ public interface TerminalProvider {
      * @param size the initial terminal size
      * @return a new terminal connected to the specified streams
      * @throws IOException if an I/O error occurs
+     * @deprecated Use {@link #newTerminal(String, String, InputStream, OutputStream, Charset, Charset, Charset, Charset, Terminal.SignalHandler, boolean, Attributes, Size)} instead
+     */
+    @Deprecated
+    default Terminal newTerminal(
+            String name,
+            String type,
+            InputStream masterInput,
+            OutputStream masterOutput,
+            Charset encoding,
+            Terminal.SignalHandler signalHandler,
+            boolean paused,
+            Attributes attributes,
+            Size size)
+            throws IOException {
+        return newTerminal(
+                name,
+                type,
+                masterInput,
+                masterOutput,
+                encoding,
+                encoding,
+                encoding,
+                encoding,
+                signalHandler,
+                paused,
+                attributes,
+                size);
+    }
+
+    /**
+     * Creates a new terminal with custom input and output streams.
+     *
+     * <p>
+     * This method creates a terminal that is connected to the specified input and
+     * output streams. Such terminals can be used for various purposes, such as
+     * connecting to remote terminals over network connections or creating virtual
+     * terminals for testing.
+     * </p>
+     *
+     * @param name the name of the terminal
+     * @param type the terminal type (e.g., "xterm", "dumb")
+     * @param masterInput the input stream to read from
+     * @param masterOutput the output stream to write to
+     * @param encoding the general character encoding to use
+     * @param stdinEncoding the character encoding to use for standard input
+     * @param stdoutEncoding the character encoding to use for standard output
+     * @param stderrEncoding the character encoding to use for standard error
+     * @param signalHandler the signal handler to use
+     * @param paused whether the terminal should start in a paused state
+     * @param attributes the initial terminal attributes
+     * @param size the initial terminal size
+     * @return a new terminal connected to the specified streams
+     * @throws IOException if an I/O error occurs
      */
     Terminal newTerminal(
             String name,
@@ -123,6 +229,9 @@ public interface TerminalProvider {
             InputStream masterInput,
             OutputStream masterOutput,
             Charset encoding,
+            Charset stdinEncoding,
+            Charset stdoutEncoding,
+            Charset stderrEncoding,
             Terminal.SignalHandler signalHandler,
             boolean paused,
             Attributes attributes,

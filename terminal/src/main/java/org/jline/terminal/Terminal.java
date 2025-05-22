@@ -388,9 +388,61 @@ public interface Terminal extends Closeable, Flushable {
      * Returns the {@link Charset} that should be used to encode characters
      * for {@link #input()} and {@link #output()}.
      *
+     * <p>This method returns a general encoding that can be used for both input and output.
+     * For stream-specific encodings, use {@link #stdinEncoding()}, {@link #stdoutEncoding()},
+     * and {@link #stderrEncoding()}.</p>
+     *
      * @return The terminal encoding
+     * @see #stdinEncoding()
+     * @see #stdoutEncoding()
+     * @see #stderrEncoding()
      */
     Charset encoding();
+
+    /**
+     * Returns the {@link Charset} that should be used to decode characters
+     * from standard input ({@link #input()}).
+     *
+     * <p>This method returns the encoding specifically for standard input.
+     * If no specific stdin encoding was configured, it falls back to the
+     * general encoding from {@link #encoding()}.</p>
+     *
+     * @return The standard input encoding
+     * @see #encoding()
+     */
+    default Charset stdinEncoding() {
+        return encoding();
+    }
+
+    /**
+     * Returns the {@link Charset} that should be used to encode characters
+     * for standard output ({@link #output()}).
+     *
+     * <p>This method returns the encoding specifically for standard output.
+     * If no specific stdout encoding was configured, it falls back to the
+     * general encoding from {@link #encoding()}.</p>
+     *
+     * @return The standard output encoding
+     * @see #encoding()
+     */
+    default Charset stdoutEncoding() {
+        return encoding();
+    }
+
+    /**
+     * Returns the {@link Charset} that should be used to encode characters
+     * for standard error.
+     *
+     * <p>This method returns the encoding specifically for standard error.
+     * If no specific stderr encoding was configured, it falls back to the
+     * general encoding from {@link #encoding()}.</p>
+     *
+     * @return The standard error encoding
+     * @see #encoding()
+     */
+    default Charset stderrEncoding() {
+        return encoding();
+    }
 
     /**
      * Retrieve the input stream for this terminal.

@@ -135,6 +135,9 @@ public final class TerminalBuilder {
     //
 
     public static final String PROP_ENCODING = "org.jline.terminal.encoding";
+    public static final String PROP_STDIN_ENCODING = "org.jline.terminal.stdin.encoding";
+    public static final String PROP_STDOUT_ENCODING = "org.jline.terminal.stdout.encoding";
+    public static final String PROP_STDERR_ENCODING = "org.jline.terminal.stderr.encoding";
     public static final String PROP_CODEPAGE = "org.jline.terminal.codepage";
     public static final String PROP_TYPE = "org.jline.terminal.type";
     public static final String PROP_PROVIDER = "org.jline.terminal.provider";
@@ -286,6 +289,9 @@ public final class TerminalBuilder {
     private OutputStream out;
     private String type;
     private Charset encoding;
+    private Charset stdinEncoding;
+    private Charset stdoutEncoding;
+    private Charset stderrEncoding;
     private int codepage;
     private Boolean system;
     private SystemOutput systemOutput;
@@ -452,6 +458,10 @@ public final class TerminalBuilder {
      * <p>Use {@link Terminal#encoding()} to get the {@link Charset} that
      * should be used for a {@link Terminal}.</p>
      *
+     * <p>This method sets a single encoding for all streams (stdin, stdout, stderr).
+     * To set separate encodings for each stream, use {@link #stdinEncoding(Charset)},
+     * {@link #stdoutEncoding(Charset)}, and {@link #stderrEncoding(Charset)}.</p>
+     *
      * @param encoding The encoding to use or null to automatically select one
      * @return The builder
      * @throws UnsupportedCharsetException If the given encoding is not supported
@@ -471,12 +481,106 @@ public final class TerminalBuilder {
      * <p>Use {@link Terminal#encoding()} to get the {@link Charset} that
      * should be used to read/write from a {@link Terminal}.</p>
      *
+     * <p>This method sets a single encoding for all streams (stdin, stdout, stderr).
+     * To set separate encodings for each stream, use {@link #stdinEncoding(Charset)},
+     * {@link #stdoutEncoding(Charset)}, and {@link #stderrEncoding(Charset)}.</p>
+     *
      * @param encoding The encoding to use or null to automatically select one
      * @return The builder
      * @see Terminal#encoding()
      */
     public TerminalBuilder encoding(Charset encoding) {
         this.encoding = encoding;
+        return this;
+    }
+
+    /**
+     * Set the encoding to use for reading from standard input.
+     * If {@code null} (the default value), JLine will use the value from
+     * the "stdin.encoding" system property if set, or fall back to the
+     * general encoding.
+     *
+     * @param encoding The encoding to use or null to automatically select one
+     * @return The builder
+     * @throws UnsupportedCharsetException If the given encoding is not supported
+     * @see Terminal#stdinEncoding()
+     */
+    public TerminalBuilder stdinEncoding(String encoding) throws UnsupportedCharsetException {
+        return stdinEncoding(encoding != null ? Charset.forName(encoding) : null);
+    }
+
+    /**
+     * Set the {@link Charset} to use for reading from standard input.
+     * If {@code null} (the default value), JLine will use the value from
+     * the "stdin.encoding" system property if set, or fall back to the
+     * general encoding.
+     *
+     * @param encoding The encoding to use or null to automatically select one
+     * @return The builder
+     * @see Terminal#stdinEncoding()
+     */
+    public TerminalBuilder stdinEncoding(Charset encoding) {
+        this.stdinEncoding = encoding;
+        return this;
+    }
+
+    /**
+     * Set the encoding to use for writing to standard output.
+     * If {@code null} (the default value), JLine will use the value from
+     * the "stdout.encoding" system property if set, or fall back to the
+     * general encoding.
+     *
+     * @param encoding The encoding to use or null to automatically select one
+     * @return The builder
+     * @throws UnsupportedCharsetException If the given encoding is not supported
+     * @see Terminal#stdoutEncoding()
+     */
+    public TerminalBuilder stdoutEncoding(String encoding) throws UnsupportedCharsetException {
+        return stdoutEncoding(encoding != null ? Charset.forName(encoding) : null);
+    }
+
+    /**
+     * Set the {@link Charset} to use for writing to standard output.
+     * If {@code null} (the default value), JLine will use the value from
+     * the "stdout.encoding" system property if set, or fall back to the
+     * general encoding.
+     *
+     * @param encoding The encoding to use or null to automatically select one
+     * @return The builder
+     * @see Terminal#stdoutEncoding()
+     */
+    public TerminalBuilder stdoutEncoding(Charset encoding) {
+        this.stdoutEncoding = encoding;
+        return this;
+    }
+
+    /**
+     * Set the encoding to use for writing to standard error.
+     * If {@code null} (the default value), JLine will use the value from
+     * the "stderr.encoding" system property if set, or fall back to the
+     * general encoding.
+     *
+     * @param encoding The encoding to use or null to automatically select one
+     * @return The builder
+     * @throws UnsupportedCharsetException If the given encoding is not supported
+     * @see Terminal#stderrEncoding()
+     */
+    public TerminalBuilder stderrEncoding(String encoding) throws UnsupportedCharsetException {
+        return stderrEncoding(encoding != null ? Charset.forName(encoding) : null);
+    }
+
+    /**
+     * Set the {@link Charset} to use for writing to standard error.
+     * If {@code null} (the default value), JLine will use the value from
+     * the "stderr.encoding" system property if set, or fall back to the
+     * general encoding.
+     *
+     * @param encoding The encoding to use or null to automatically select one
+     * @return The builder
+     * @see Terminal#stderrEncoding()
+     */
+    public TerminalBuilder stderrEncoding(Charset encoding) {
+        this.stderrEncoding = encoding;
         return this;
     }
 
@@ -583,6 +687,9 @@ public final class TerminalBuilder {
             name = "JLine terminal";
         }
         Charset encoding = computeEncoding();
+        Charset stdinEncoding = computeStdinEncoding();
+        Charset stdoutEncoding = computeStdoutEncoding();
+        Charset stderrEncoding = computeStderrEncoding();
         String type = computeType();
 
         String provider = this.provider;
@@ -636,6 +743,9 @@ public final class TerminalBuilder {
                                     type,
                                     ansiPassThrough,
                                     encoding,
+                                    stdinEncoding,
+                                    stdoutEncoding,
+                                    stderrEncoding,
                                     nativeSignals,
                                     signalHandler,
                                     paused,
@@ -679,7 +789,18 @@ public final class TerminalBuilder {
                 }
                 type = getDumbTerminalType(dumb, systemStream);
                 terminal = new DumbTerminalProvider()
-                        .sysTerminal(name, type, false, encoding, nativeSignals, signalHandler, paused, systemStream);
+                        .sysTerminal(
+                                name,
+                                type,
+                                false,
+                                encoding,
+                                stdinEncoding,
+                                stdoutEncoding,
+                                stderrEncoding,
+                                nativeSignals,
+                                signalHandler,
+                                paused,
+                                systemStream);
                 if (OSUtils.IS_WINDOWS) {
                     Attributes attr = terminal.getAttributes();
                     attr.setInputFlag(Attributes.InputFlag.IGNCR, true);
@@ -691,7 +812,18 @@ public final class TerminalBuilder {
                 if (terminal == null) {
                     try {
                         terminal = prov.newTerminal(
-                                name, type, in, out, encoding, signalHandler, paused, attributes, size);
+                                name,
+                                type,
+                                in,
+                                out,
+                                encoding,
+                                stdinEncoding,
+                                stdoutEncoding,
+                                stderrEncoding,
+                                signalHandler,
+                                paused,
+                                attributes,
+                                size);
                     } catch (Throwable t) {
                         Log.debug("Error creating " + prov.name() + " based terminal: ", t.getMessage(), t);
                         exception.addSuppressed(t);
@@ -837,6 +969,48 @@ public final class TerminalBuilder {
             } else {
                 encoding = StandardCharsets.UTF_8;
             }
+        }
+        return encoding;
+    }
+
+    public Charset computeStdinEncoding() {
+        return computeSpecificEncoding(this.stdinEncoding, PROP_STDIN_ENCODING, "stdin.encoding");
+    }
+
+    public Charset computeStdoutEncoding() {
+        return computeSpecificEncoding(this.stdoutEncoding, PROP_STDOUT_ENCODING, "stdout.encoding");
+    }
+
+    public Charset computeStderrEncoding() {
+        return computeSpecificEncoding(this.stderrEncoding, PROP_STDERR_ENCODING, "stderr.encoding");
+    }
+
+    /**
+     * Helper method to compute encoding from a specific field, JLine property, and standard Java property.
+     *
+     * @param specificEncoding the specific encoding field value
+     * @param jlineProperty the JLine-specific property name
+     * @param standardProperty the standard Java property name
+     * @return the computed encoding, falling back to the general encoding if needed
+     */
+    private Charset computeSpecificEncoding(Charset specificEncoding, String jlineProperty, String standardProperty) {
+        Charset encoding = specificEncoding;
+        if (encoding == null) {
+            // First try JLine specific property
+            String charsetName = System.getProperty(jlineProperty);
+            if (charsetName != null && Charset.isSupported(charsetName)) {
+                encoding = Charset.forName(charsetName);
+            }
+            // Then try standard Java property
+            if (encoding == null) {
+                charsetName = System.getProperty(standardProperty);
+                if (charsetName != null && Charset.isSupported(charsetName)) {
+                    encoding = Charset.forName(charsetName);
+                }
+            }
+        }
+        if (encoding == null) {
+            encoding = computeEncoding();
         }
         return encoding;
     }

@@ -64,6 +64,9 @@ public class DumbTerminalProvider implements TerminalProvider {
             String type,
             boolean ansiPassThrough,
             Charset encoding,
+            Charset stdinEncoding,
+            Charset stdoutEncoding,
+            Charset stderrEncoding,
             boolean nativeSignals,
             Terminal.SignalHandler signalHandler,
             boolean paused,
@@ -77,6 +80,9 @@ public class DumbTerminalProvider implements TerminalProvider {
                 new FileInputStream(FileDescriptor.in),
                 new FileOutputStream(systemStream == SystemStream.Error ? FileDescriptor.err : FileDescriptor.out),
                 encoding,
+                stdinEncoding,
+                stdoutEncoding,
+                stderrEncoding,
                 signalHandler);
     }
 
@@ -87,6 +93,9 @@ public class DumbTerminalProvider implements TerminalProvider {
             InputStream masterInput,
             OutputStream masterOutput,
             Charset encoding,
+            Charset stdinEncoding,
+            Charset stdoutEncoding,
+            Charset stderrEncoding,
             Terminal.SignalHandler signalHandler,
             boolean paused,
             Attributes attributes,

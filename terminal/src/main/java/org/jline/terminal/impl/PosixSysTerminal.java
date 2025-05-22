@@ -69,11 +69,26 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
     public PosixSysTerminal(
             String name, String type, Pty pty, Charset encoding, boolean nativeSignals, SignalHandler signalHandler)
             throws IOException {
-        super(name, type, pty, encoding, signalHandler);
+        this(name, type, pty, encoding, encoding, encoding, encoding, nativeSignals, signalHandler);
+    }
+
+    @SuppressWarnings("this-escape")
+    public PosixSysTerminal(
+            String name,
+            String type,
+            Pty pty,
+            Charset encoding,
+            Charset stdinEncoding,
+            Charset stdoutEncoding,
+            Charset stderrEncoding,
+            boolean nativeSignals,
+            SignalHandler signalHandler)
+            throws IOException {
+        super(name, type, pty, encoding, stdinEncoding, stdoutEncoding, stderrEncoding, signalHandler);
         this.input = NonBlocking.nonBlocking(getName(), pty.getSlaveInput());
         this.output = new FastBufferedOutputStream(pty.getSlaveOutput());
-        this.reader = NonBlocking.nonBlocking(getName(), input, encoding());
-        this.writer = new PrintWriter(new OutputStreamWriter(output, encoding()));
+        this.reader = NonBlocking.nonBlocking(getName(), input, stdinEncoding());
+        this.writer = new PrintWriter(new OutputStreamWriter(output, stdoutEncoding()));
         parseInfoCmp();
         if (nativeSignals) {
             for (final Signal signal : Signal.values()) {
