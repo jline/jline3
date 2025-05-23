@@ -176,8 +176,7 @@ public class SyntaxHighlighter {
     protected static void addFiles(Path nanorc, String parameter, Consumer<Stream<Path>> consumer) throws IOException {
         if (parameter.contains("*") || parameter.contains("?")) {
             PathMatcher pathMatcher = nanorc.getFileSystem().getPathMatcher("glob:" + parameter);
-            try (Stream<Path> pathStream =
-                    Files.walk(nanorc.resolveSibling(parameter).getParent())) {
+            try (Stream<Path> pathStream = Files.walk(nanorc.resolveSibling(new File(parameter).getParent()))) {
                 consumer.accept(pathStream.filter(pathMatcher::matches));
             }
         } else {
