@@ -163,6 +163,11 @@ JLine has available the following terminal types:
 | Windows/cmd | windows, windows-256color, windows-vtp |
 | xterm | xterm, xterm-256color |
 
+## Pseudo-Terminals (PTY)
+
+JLine's `Terminal` can be combined with [Pty4j](https://github.com/JetBrains/pty4j)
+for a "[Pseudoterminal](https://en.wikipedia.org/wiki/Pseudoterminal)" (PTY).
+
 ## Best Practices
 
 When working with Terminal objects in JLine, consider these best practices:
