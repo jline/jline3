@@ -16,6 +16,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
+import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 
 /**
@@ -185,16 +186,49 @@ public class NonBlocking {
                     return EOF;
                 }
                 if (b >= 0) {
-                    if (!bytes.hasRemaining()) {
-                        bytes.position(0);
-                        bytes.limit(0);
+                    // Ensure we have space in the bytes buffer
+                    if (bytes.limit() >= bytes.capacity()) {
+                        // If buffer is full, compact it to make room
+                        if (bytes.position() > 0) {
+                            bytes.compact();
+                        } else {
+                            // Buffer is full and at position 0, reset it
+                            bytes.position(0);
+                            bytes.limit(0);
+                        }
                     }
+
+                    // Add the new byte to the buffer
                     int l = bytes.limit();
-                    bytes.array()[bytes.arrayOffset() + l] = (byte) b;
-                    bytes.limit(l + 1);
+                    if (l < bytes.capacity()) {
+                        bytes.array()[bytes.arrayOffset() + l] = (byte) b;
+                        bytes.limit(l + 1);
+                    } else {
+                        // This shouldn't happen after the compact/reset above, but be safe
+                        bytes.position(0);
+                        bytes.limit(1);
+                        bytes.array()[bytes.arrayOffset()] = (byte) b;
+                    }
+
+                    // Try to decode what we have so far
                     chars.clear();
-                    decoder.decode(bytes, chars, false);
+                    CoderResult result = decoder.decode(bytes, chars, false);
                     chars.flip();
+
+                    // Handle the decoder result properly
+                    if (result.isUnderflow()) {
+                        // Decoder needs more input - this is normal for incomplete multi-byte sequences
+                        // Only compact if we have characters to return, otherwise keep bytes for next iteration
+                        if (chars.hasRemaining()) {
+                            bytes.compact();
+                        }
+                    } else if (result.isOverflow()) {
+                        // Chars buffer is full - shouldn't happen with our buffer sizes, but handle it
+                        bytes.compact();
+                    } else if (result.isError()) {
+                        // Malformed or unmappable input - decoder should have replaced it
+                        bytes.compact();
+                    }
                 }
             }
             if (chars.hasRemaining()) {
@@ -223,19 +257,46 @@ public class NonBlocking {
             } else {
                 Timeout t = new Timeout(timeout);
                 while (!chars.hasRemaining() && !t.elapsed()) {
-                    if (!bytes.hasRemaining()) {
-                        bytes.position(0);
-                        bytes.limit(0);
+                    // Ensure we have space in the bytes buffer
+                    if (bytes.limit() >= bytes.capacity()) {
+                        // If buffer is full, compact it to make room
+                        if (bytes.position() > 0) {
+                            bytes.compact();
+                        } else {
+                            // Buffer is full and at position 0, reset it
+                            bytes.position(0);
+                            bytes.limit(0);
+                        }
                     }
+
                     int nb = input.readBuffered(
-                            bytes.array(), bytes.limit(), bytes.capacity() - bytes.limit(), t.timeout());
+                            bytes.array(),
+                            bytes.arrayOffset() + bytes.limit(),
+                            bytes.capacity() - bytes.limit(),
+                            t.timeout());
                     if (nb < 0) {
                         return nb;
                     }
                     bytes.limit(bytes.limit() + nb);
+
+                    // Try to decode the accumulated bytes
                     chars.clear();
-                    decoder.decode(bytes, chars, false);
+                    CoderResult result = decoder.decode(bytes, chars, false);
                     chars.flip();
+
+                    // Handle the decoder result properly
+                    if (result.isUnderflow()) {
+                        // Decoder needs more input - only compact if we have characters to return
+                        if (chars.hasRemaining()) {
+                            bytes.compact();
+                        }
+                    } else if (result.isOverflow()) {
+                        // Chars buffer is full - this is fine, we'll return what we have
+                        bytes.compact();
+                    } else if (result.isError()) {
+                        // Malformed or unmappable input - decoder should have replaced it
+                        bytes.compact();
+                    }
                 }
                 int nb = Math.min(len, chars.remaining());
                 chars.get(b, off, nb);
