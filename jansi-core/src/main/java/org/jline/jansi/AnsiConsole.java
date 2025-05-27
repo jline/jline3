@@ -238,7 +238,7 @@ public class AnsiConsole {
         width = terminal::getWidth;
         type = terminal instanceof DumbTerminal
                 ? AnsiType.Unsupported
-                : ((TerminalExt) terminal).getSystemStream() != null ? AnsiType.Redirected : AnsiType.Native;
+                : ((TerminalExt) terminal).getSystemStream() != null ? AnsiType.Native : AnsiType.Redirected;
 
         AnsiMode mode;
 
