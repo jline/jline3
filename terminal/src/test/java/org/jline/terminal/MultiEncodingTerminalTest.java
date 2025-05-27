@@ -55,8 +55,17 @@ public class MultiEncodingTerminalTest {
         NonBlockingReader reader = terminal.reader();
         StringBuilder result = new StringBuilder();
         int c;
-        while ((c = reader.read(1)) != -1) {
-            result.append((char) c);
+        int timeoutCount = 0;
+        while (timeoutCount < 1000) { // Allow up to 1000 timeouts before giving up
+            c = reader.read(1);
+            if (c == -1) { // EOF
+                break;
+            } else if (c == -2) { // READ_EXPIRED (timeout)
+                timeoutCount++;
+                continue; // Keep trying
+            } else if (c >= 0) { // Valid character
+                result.append((char) c);
+            }
         }
 
         // Verify the text was correctly decoded using ISO-8859-1
@@ -136,8 +145,17 @@ public class MultiEncodingTerminalTest {
         NonBlockingReader reader = terminal.reader();
         StringBuilder result = new StringBuilder();
         int c;
-        while ((c = reader.read(1)) != -1) {
-            result.append((char) c);
+        int timeoutCount = 0;
+        while (timeoutCount < 1000) { // Allow up to 1000 timeouts before giving up
+            c = reader.read(1);
+            if (c == -1) { // EOF
+                break;
+            } else if (c == -2) { // READ_EXPIRED (timeout)
+                timeoutCount++;
+                continue; // Keep trying
+            } else if (c >= 0) { // Valid character
+                result.append((char) c);
+            }
         }
 
         // Write to stdout (UTF-16)
