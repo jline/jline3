@@ -174,15 +174,75 @@ public class SyntaxHighlighter {
     }
 
     protected static void addFiles(Path nanorc, String parameter, Consumer<Stream<Path>> consumer) throws IOException {
-        if (parameter.contains("*") || parameter.contains("?")) {
-            PathMatcher pathMatcher = nanorc.getFileSystem().getPathMatcher("glob:" + parameter);
-            try (Stream<Path> pathStream =
-                    Files.walk(nanorc.resolveSibling(parameter).getParent())) {
-                consumer.accept(pathStream.filter(pathMatcher::matches));
+        // Extract the static prefix and glob pattern parts
+        PathParts parts = extractPathParts(parameter);
+
+        Path searchRoot = nanorc.resolveSibling(parts.staticPrefix);
+        if (Files.exists(searchRoot)) {
+            if (parts.globPattern.isEmpty()) {
+                // No wildcards - treat as literal path
+                consumer.accept(Stream.of(searchRoot));
+            } else {
+                // Has wildcards - use glob matching
+                PathMatcher pathMatcher = searchRoot.getFileSystem().getPathMatcher("glob:" + parts.globPattern);
+                try (Stream<Path> pathStream = Files.walk(searchRoot)) {
+                    consumer.accept(pathStream.filter(p -> pathMatcher.matches(searchRoot.relativize(p))));
+                }
             }
-        } else {
-            consumer.accept(Stream.of(nanorc.resolveSibling(parameter)));
         }
+    }
+
+    /**
+     * Represents the static and glob parts of a path pattern.
+     */
+    private static class PathParts {
+        final String staticPrefix;
+        final String globPattern;
+
+        PathParts(String staticPrefix, String globPattern) {
+            this.staticPrefix = staticPrefix;
+            this.globPattern = globPattern;
+        }
+    }
+
+    /**
+     * Extracts the static (non-wildcard) path prefix and the glob pattern from a path.
+     * For example: <ul>
+     * <li>{@code foo/bar&#47;*.nanorc} returns {@code PathParts("foo/bar", "*.nanorc")}</li>
+     * <li>{@code foo/bar/**&#47;*.nanorc} returns {@code PathParts("foo/bar", "**&#47;*.nanorc")}</li>
+     * <li>{@code *.nanorc} returns {@code PathParts("", "*.nanorc")}</li>
+     * <li>{@code /usr/share/nano/*.nanorc} returns {@code PathParts("/usr/share/nano", "*.nanorc")}</li>
+     * </ul>
+     */
+    private static PathParts extractPathParts(String pattern) {
+        // Find the first occurrence of wildcards
+        int firstWildcard = Math.min(
+                pattern.indexOf('*') == -1 ? Integer.MAX_VALUE : pattern.indexOf('*'),
+                pattern.indexOf('?') == -1 ? Integer.MAX_VALUE : pattern.indexOf('?'));
+
+        if (firstWildcard == Integer.MAX_VALUE) {
+            // No wildcards found, the entire pattern is static
+            return new PathParts(pattern, "");
+        }
+
+        // Find the last directory separator before the first wildcard (handle both / and \)
+        int lastSlashBeforeWildcard = -1;
+        for (int i = firstWildcard - 1; i >= 0; i--) {
+            char c = pattern.charAt(i);
+            if (c == '/' || c == '\\') {
+                lastSlashBeforeWildcard = i;
+                break;
+            }
+        }
+
+        if (lastSlashBeforeWildcard == -1) {
+            // No directory separator before wildcard (e.g., "*.nanorc")
+            return new PathParts("", pattern);
+        }
+
+        String staticPrefix = pattern.substring(0, lastSlashBeforeWildcard);
+        String globPattern = pattern.substring(lastSlashBeforeWildcard + 1);
+        return new PathParts(staticPrefix, globPattern);
     }
 
     /**
