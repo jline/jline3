@@ -38,12 +38,20 @@ jobs:
         with:
           java-version: ${{ matrix.java }}
           distribution: temurin
-          cache: maven
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ matrix.java }}-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-${{ matrix.java }}-
+            ${{ runner.os }}-maven-
 
       - name: Build with maven
         run: ./mvnw --no-transfer-progress verify
         if: matrix.os != 'windows-latest'
-      
+
       - name: Build with maven
         run: |
           set PATH=%JAVA_HOME%\bin;C:\Windows\System32\WindowsPowerShell\v1.0\
