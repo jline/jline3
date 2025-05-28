@@ -26,6 +26,8 @@ The Builtins module includes a Nano-like text editor:
 
 <CodeSnippet name="NanoEditorExample" />
 
+JLine provides [support for customizing `nano`](advanced/nano-less-customization.md).
+
 ## InputRC
 
 The `InputRC` class can configure a `LineReader` from an `.inputrc` style file.
