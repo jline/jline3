@@ -63,7 +63,7 @@ const config: Config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/jline/jline3/edit/master/website/docs/',
+            'https://github.com/jline/jline3/edit/master/website/',
         },
         blog: false, // blog section disabled
         theme: {
