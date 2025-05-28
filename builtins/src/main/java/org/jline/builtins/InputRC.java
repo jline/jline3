@@ -8,13 +8,13 @@
  */
 package org.jline.builtins;
 
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.jline.reader.LineReader;
 
@@ -69,10 +69,9 @@ public final class InputRC {
      * @throws IOException if an I/O error occurs
      */
     public static void configure(LineReader lineReader, Path path) throws IOException {
-        File rcFile = path.toFile();
-        if (rcFile.exists() && rcFile.isFile() && rcFile.canRead()) {
-            try (FileReader fileReader = new FileReader(rcFile)) {
-                configure(lineReader, fileReader);
+        if (Files.exists(path) && Files.isRegularFile(path) && Files.isReadable(path)) {
+            try (Reader reader = Files.newBufferedReader(path)) {
+                configure(lineReader, reader);
             }
         }
     }
@@ -89,8 +88,8 @@ public final class InputRC {
     public static void configure(LineReader lineReader) throws IOException {
         String userHome = System.getProperty("user.home");
         if (userHome != null) {
-            configure(lineReader, Path.of(userHome, ".inputrc"));
+            configure(lineReader, Paths.get(userHome, ".inputrc"));
         }
-        configure(lineReader, Path.of("/etc/inputrc"));
+        configure(lineReader, Paths.get("/etc/inputrc"));
     }
 }
