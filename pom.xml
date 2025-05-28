@@ -98,7 +98,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.build.outputTimestamp>2025-05-22T11:23:54Z</project.build.outputTimestamp>
+        <project.build.outputTimestamp>${nisse.jgit.dateIso8601}</project.build.outputTimestamp>
 
         <java.build.version>22</java.build.version>
         <java.release.version>8</java.release.version>
