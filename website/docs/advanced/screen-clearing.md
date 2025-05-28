@@ -16,6 +16,8 @@ The most basic screen operation is clearing the entire screen:
 
 This example uses the `clear_screen` capability to erase all content from the terminal and position the cursor at the top-left corner.
 
+To save and later restore the content of the screen, you can similarly use `terminal.puts(InfoCmp.Capability.enter_ca_mode)` and `terminal.puts(InfoCmp.Capability.exit_ca_mode)`.
+
 ## Partial Screen Clearing
 
 You can also clear only a portion of the screen:
