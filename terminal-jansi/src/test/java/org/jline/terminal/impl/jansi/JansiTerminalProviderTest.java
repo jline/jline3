@@ -52,7 +52,6 @@ public class JansiTerminalProviderTest {
                         Charset.defaultCharset(),
                         Charset.defaultCharset(),
                         Charset.defaultCharset(),
-                        Charset.defaultCharset(),
                         Terminal.SignalHandler.SIG_DFL,
                         true,
                         null,

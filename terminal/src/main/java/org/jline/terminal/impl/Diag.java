@@ -197,7 +197,6 @@ public class Diag {
                 StandardCharsets.UTF_8,
                 StandardCharsets.UTF_8,
                 StandardCharsets.UTF_8,
-                StandardCharsets.UTF_8,
                 false,
                 Terminal.SignalHandler.SIG_DFL,
                 false,

@@ -107,6 +107,8 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
             }
         }
         // Create terminal
+        // Use the appropriate output encoding based on the system stream
+        Charset outputEncoding = systemStream == SystemStream.Error ? stderrEncoding : stdoutEncoding;
         JnaWinSysTerminal terminal = new JnaWinSysTerminal(
                 provider,
                 systemStream,
@@ -115,8 +117,7 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
                 type,
                 encoding,
                 stdinEncoding,
-                stdoutEncoding,
-                stderrEncoding,
+                outputEncoding,
                 nativeSignals,
                 signalHandler,
                 JnaWinSysTerminal.consoleIn,
@@ -187,7 +188,6 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
                 encoding,
                 encoding,
                 encoding,
-                encoding,
                 nativeSignals,
                 signalHandler,
                 inConsole,
@@ -203,9 +203,8 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
             String name,
             String type,
             Charset encoding,
-            Charset stdinEncoding,
-            Charset stdoutEncoding,
-            Charset stderrEncoding,
+            Charset inputEncoding,
+            Charset outputEncoding,
             boolean nativeSignals,
             SignalHandler signalHandler,
             Pointer inConsole,
@@ -220,9 +219,8 @@ public class JnaWinSysTerminal extends AbstractWindowsTerminal<Pointer> {
                 name,
                 type,
                 encoding,
-                stdinEncoding,
-                stdoutEncoding,
-                stderrEncoding,
+                inputEncoding,
+                outputEncoding,
                 nativeSignals,
                 signalHandler,
                 inConsole,

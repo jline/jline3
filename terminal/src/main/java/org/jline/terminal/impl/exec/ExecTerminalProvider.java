@@ -114,6 +114,8 @@ public class ExecTerminalProvider implements TerminalProvider {
      * @param type the terminal type (e.g., "xterm", "dumb")
      * @param ansiPassThrough whether to pass through ANSI escape sequences
      * @param encoding the character encoding to use
+     * @param inputEncoding the character encoding to use for input
+     * @param outputEncoding the character encoding to use for output
      * @param nativeSignals whether to use native signal handling
      * @param signalHandler the signal handler to use
      * @param paused whether the terminal should start in a paused state
@@ -121,6 +123,71 @@ public class ExecTerminalProvider implements TerminalProvider {
      * @return a new terminal connected to the specified system stream
      * @throws IOException if an I/O error occurs
      */
+    @Override
+    public Terminal sysTerminal(
+            String name,
+            String type,
+            boolean ansiPassThrough,
+            Charset encoding,
+            Charset inputEncoding,
+            Charset outputEncoding,
+            boolean nativeSignals,
+            Terminal.SignalHandler signalHandler,
+            boolean paused,
+            SystemStream systemStream)
+            throws IOException {
+        if (OSUtils.IS_WINDOWS) {
+            return winSysTerminal(
+                    name,
+                    type,
+                    ansiPassThrough,
+                    encoding,
+                    inputEncoding,
+                    outputEncoding,
+                    outputEncoding,
+                    nativeSignals,
+                    signalHandler,
+                    paused,
+                    systemStream);
+        } else {
+            return posixSysTerminal(
+                    name,
+                    type,
+                    ansiPassThrough,
+                    encoding,
+                    inputEncoding,
+                    outputEncoding,
+                    outputEncoding,
+                    nativeSignals,
+                    signalHandler,
+                    paused,
+                    systemStream);
+        }
+    }
+
+    /**
+     * Creates a terminal connected to a system stream.
+     *
+     * <p>
+     * This method creates a terminal that is connected to one of the standard
+     * system streams (standard input, standard output, or standard error). It uses
+     * the ExecPty implementation to interact with the terminal using external commands.
+     * </p>
+     *
+     * @param name the name of the terminal
+     * @param type the terminal type (e.g., "xterm", "dumb")
+     * @param ansiPassThrough whether to pass through ANSI escape sequences
+     * @param encoding the character encoding to use
+     * @param nativeSignals whether to use native signal handling
+     * @param signalHandler the signal handler to use
+     * @param paused whether the terminal should start in a paused state
+     * @param systemStream the system stream to connect to
+     * @return a new terminal connected to the specified system stream
+     * @throws IOException if an I/O error occurs
+     * @deprecated Use {@link #sysTerminal(String, String, boolean, Charset, Charset, Charset, boolean, Terminal.SignalHandler, boolean, SystemStream)} instead
+     */
+    @SuppressWarnings("deprecation")
+    @Deprecated
     @Override
     public Terminal sysTerminal(
             String name,
@@ -228,16 +295,10 @@ public class ExecTerminalProvider implements TerminalProvider {
             throws IOException {
         if (OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM) {
             Pty pty = current(systemStream);
+            // Use the appropriate output encoding based on the system stream
+            Charset outputEncoding = systemStream == SystemStream.Error ? stderrEncoding : stdoutEncoding;
             return new PosixSysTerminal(
-                    name,
-                    type,
-                    pty,
-                    encoding,
-                    stdinEncoding,
-                    stdoutEncoding,
-                    stderrEncoding,
-                    nativeSignals,
-                    signalHandler);
+                    name, type, pty, encoding, stdinEncoding, outputEncoding, nativeSignals, signalHandler);
         } else {
             return null;
         }
@@ -301,8 +362,63 @@ public class ExecTerminalProvider implements TerminalProvider {
             SystemStream systemStream)
             throws IOException {
         Pty pty = current(systemStream);
+        // Use the appropriate output encoding based on the system stream
+        Charset outputEncoding = systemStream == SystemStream.Error ? stderrEncoding : stdoutEncoding;
         return new PosixSysTerminal(
-                name, type, pty, encoding, stdinEncoding, stdoutEncoding, stderrEncoding, nativeSignals, signalHandler);
+                name, type, pty, encoding, stdinEncoding, outputEncoding, nativeSignals, signalHandler);
+    }
+
+    /**
+     * Creates a new terminal with custom input and output streams.
+     *
+     * <p>
+     * This method creates a terminal that is connected to the specified input and
+     * output streams. It creates an ExternalTerminal that emulates the line
+     * discipline functionality typically provided by the operating system's terminal
+     * driver.
+     * </p>
+     *
+     * @param name the name of the terminal
+     * @param type the terminal type (e.g., "xterm", "dumb")
+     * @param in the input stream to read from
+     * @param out the output stream to write to
+     * @param encoding the character encoding to use
+     * @param inputEncoding the character encoding to use for input
+     * @param outputEncoding the character encoding to use for output
+     * @param signalHandler the signal handler to use
+     * @param paused whether the terminal should start in a paused state
+     * @param attributes the initial terminal attributes
+     * @param size the initial terminal size
+     * @return a new terminal connected to the specified streams
+     * @throws IOException if an I/O error occurs
+     */
+    @Override
+    public Terminal newTerminal(
+            String name,
+            String type,
+            InputStream in,
+            OutputStream out,
+            Charset encoding,
+            Charset inputEncoding,
+            Charset outputEncoding,
+            Terminal.SignalHandler signalHandler,
+            boolean paused,
+            Attributes attributes,
+            Size size)
+            throws IOException {
+        return new ExternalTerminal(
+                this,
+                name,
+                type,
+                in,
+                out,
+                encoding,
+                inputEncoding,
+                outputEncoding,
+                signalHandler,
+                paused,
+                attributes,
+                size);
     }
 
     /**
@@ -326,7 +442,10 @@ public class ExecTerminalProvider implements TerminalProvider {
      * @param size the initial terminal size
      * @return a new terminal connected to the specified streams
      * @throws IOException if an I/O error occurs
+     * @deprecated Use {@link #newTerminal(String, String, InputStream, OutputStream, Charset, Charset, Charset, Terminal.SignalHandler, boolean, Attributes, Size)} instead
      */
+    @SuppressWarnings("deprecation")
+    @Deprecated
     @Override
     public Terminal newTerminal(
             String name,
@@ -351,7 +470,6 @@ public class ExecTerminalProvider implements TerminalProvider {
                 encoding,
                 stdinEncoding,
                 stdoutEncoding,
-                stderrEncoding,
                 signalHandler,
                 paused,
                 attributes,

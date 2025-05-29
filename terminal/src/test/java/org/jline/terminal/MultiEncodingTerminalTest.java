@@ -48,7 +48,6 @@ public class MultiEncodingTerminalTest {
                 StandardCharsets.UTF_8,
                 StandardCharsets.ISO_8859_1,
                 StandardCharsets.UTF_8,
-                StandardCharsets.UTF_8,
                 Terminal.SignalHandler.SIG_DFL);
 
         // Read characters from the terminal
@@ -91,7 +90,6 @@ public class MultiEncodingTerminalTest {
                 StandardCharsets.UTF_8,
                 StandardCharsets.UTF_8,
                 StandardCharsets.UTF_16,
-                StandardCharsets.UTF_8,
                 Terminal.SignalHandler.SIG_DFL);
 
         // Write a string with non-ASCII characters
@@ -138,7 +136,6 @@ public class MultiEncodingTerminalTest {
                 StandardCharsets.UTF_8,
                 StandardCharsets.ISO_8859_1,
                 StandardCharsets.UTF_16,
-                StandardCharsets.UTF_8,
                 Terminal.SignalHandler.SIG_DFL);
 
         // Read from stdin (ISO-8859-1)
