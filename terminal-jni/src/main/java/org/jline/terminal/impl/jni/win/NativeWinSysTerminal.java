@@ -115,6 +115,8 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<Long> {
             }
         }
         // Create terminal
+        // Use the appropriate output encoding based on the system stream
+        Charset outputEncoding = systemStream == SystemStream.Error ? stderrEncoding : stdoutEncoding;
         NativeWinSysTerminal terminal = new NativeWinSysTerminal(
                 provider,
                 systemStream,
@@ -123,8 +125,7 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<Long> {
                 type,
                 encoding,
                 stdinEncoding,
-                stdoutEncoding,
-                stderrEncoding,
+                outputEncoding,
                 nativeSignals,
                 signalHandler,
                 consoleIn,
@@ -204,7 +205,6 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<Long> {
                 encoding,
                 encoding,
                 encoding,
-                encoding,
                 nativeSignals,
                 signalHandler,
                 inConsole,
@@ -220,9 +220,8 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<Long> {
             String name,
             String type,
             Charset encoding,
-            Charset stdinEncoding,
-            Charset stdoutEncoding,
-            Charset stderrEncoding,
+            Charset inputEncoding,
+            Charset outputEncoding,
             boolean nativeSignals,
             SignalHandler signalHandler,
             long inConsole,
@@ -237,9 +236,8 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<Long> {
                 name,
                 type,
                 encoding,
-                stdinEncoding,
-                stdoutEncoding,
-                stderrEncoding,
+                inputEncoding,
+                outputEncoding,
                 nativeSignals,
                 signalHandler,
                 inConsole,

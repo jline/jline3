@@ -503,7 +503,7 @@ public final class TerminalBuilder {
      * @param encoding The encoding to use or null to automatically select one
      * @return The builder
      * @throws UnsupportedCharsetException If the given encoding is not supported
-     * @see Terminal#stdinEncoding()
+     * @see Terminal#inputEncoding()
      */
     public TerminalBuilder stdinEncoding(String encoding) throws UnsupportedCharsetException {
         return stdinEncoding(encoding != null ? Charset.forName(encoding) : null);
@@ -517,7 +517,7 @@ public final class TerminalBuilder {
      *
      * @param encoding The encoding to use or null to automatically select one
      * @return The builder
-     * @see Terminal#stdinEncoding()
+     * @see Terminal#inputEncoding()
      */
     public TerminalBuilder stdinEncoding(Charset encoding) {
         this.stdinEncoding = encoding;
@@ -533,7 +533,7 @@ public final class TerminalBuilder {
      * @param encoding The encoding to use or null to automatically select one
      * @return The builder
      * @throws UnsupportedCharsetException If the given encoding is not supported
-     * @see Terminal#stdoutEncoding()
+     * @see Terminal#outputEncoding()
      */
     public TerminalBuilder stdoutEncoding(String encoding) throws UnsupportedCharsetException {
         return stdoutEncoding(encoding != null ? Charset.forName(encoding) : null);
@@ -547,7 +547,7 @@ public final class TerminalBuilder {
      *
      * @param encoding The encoding to use or null to automatically select one
      * @return The builder
-     * @see Terminal#stdoutEncoding()
+     * @see Terminal#outputEncoding()
      */
     public TerminalBuilder stdoutEncoding(Charset encoding) {
         this.stdoutEncoding = encoding;
@@ -563,7 +563,7 @@ public final class TerminalBuilder {
      * @param encoding The encoding to use or null to automatically select one
      * @return The builder
      * @throws UnsupportedCharsetException If the given encoding is not supported
-     * @see Terminal#stderrEncoding()
+     * @see Terminal#outputEncoding()
      */
     public TerminalBuilder stderrEncoding(String encoding) throws UnsupportedCharsetException {
         return stderrEncoding(encoding != null ? Charset.forName(encoding) : null);
@@ -577,7 +577,7 @@ public final class TerminalBuilder {
      *
      * @param encoding The encoding to use or null to automatically select one
      * @return The builder
-     * @see Terminal#stderrEncoding()
+     * @see Terminal#outputEncoding()
      */
     public TerminalBuilder stderrEncoding(Charset encoding) {
         this.stderrEncoding = encoding;
@@ -738,14 +738,16 @@ public final class TerminalBuilder {
                 for (TerminalProvider prov : providers) {
                     if (terminal == null) {
                         try {
+                            // Use the appropriate output encoding based on the system stream
+                            Charset outputEncoding =
+                                    systemStream == SystemStream.Error ? stderrEncoding : stdoutEncoding;
                             terminal = prov.sysTerminal(
                                     name,
                                     type,
                                     ansiPassThrough,
                                     encoding,
                                     stdinEncoding,
-                                    stdoutEncoding,
-                                    stderrEncoding,
+                                    outputEncoding,
                                     nativeSignals,
                                     signalHandler,
                                     paused,
@@ -788,6 +790,8 @@ public final class TerminalBuilder {
                     }
                 }
                 type = getDumbTerminalType(dumb, systemStream);
+                // Use the appropriate output encoding based on the system stream
+                Charset outputEncoding = systemStream == SystemStream.Error ? stderrEncoding : stdoutEncoding;
                 terminal = new DumbTerminalProvider()
                         .sysTerminal(
                                 name,
@@ -795,8 +799,7 @@ public final class TerminalBuilder {
                                 false,
                                 encoding,
                                 stdinEncoding,
-                                stdoutEncoding,
-                                stderrEncoding,
+                                outputEncoding,
                                 nativeSignals,
                                 signalHandler,
                                 paused,
@@ -819,7 +822,6 @@ public final class TerminalBuilder {
                                 encoding,
                                 stdinEncoding,
                                 stdoutEncoding,
-                                stderrEncoding,
                                 signalHandler,
                                 paused,
                                 attributes,

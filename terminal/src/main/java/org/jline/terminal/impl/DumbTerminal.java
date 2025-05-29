@@ -91,7 +91,7 @@ public class DumbTerminal extends AbstractTerminal {
             Charset encoding,
             SignalHandler signalHandler)
             throws IOException {
-        this(provider, systemStream, name, type, in, out, encoding, encoding, encoding, encoding, signalHandler);
+        this(provider, systemStream, name, type, in, out, encoding, encoding, encoding, signalHandler);
     }
 
     @SuppressWarnings("this-escape")
@@ -103,12 +103,11 @@ public class DumbTerminal extends AbstractTerminal {
             InputStream in,
             OutputStream out,
             Charset encoding,
-            Charset stdinEncoding,
-            Charset stdoutEncoding,
-            Charset stderrEncoding,
+            Charset inputEncoding,
+            Charset outputEncoding,
             SignalHandler signalHandler)
             throws IOException {
-        super(name, type, encoding, stdinEncoding, stdoutEncoding, stderrEncoding, signalHandler);
+        super(name, type, encoding, inputEncoding, outputEncoding, signalHandler);
         this.provider = provider;
         this.systemStream = systemStream;
         NonBlockingInputStream nbis = NonBlocking.nonBlocking(getName(), in);
@@ -159,8 +158,8 @@ public class DumbTerminal extends AbstractTerminal {
             }
         };
         this.output = out;
-        this.reader = NonBlocking.nonBlocking(getName(), input, stdinEncoding());
-        this.writer = new PrintWriter(new OutputStreamWriter(output, stdoutEncoding()));
+        this.reader = NonBlocking.nonBlocking(getName(), input, inputEncoding());
+        this.writer = new PrintWriter(new OutputStreamWriter(output, outputEncoding()));
         this.attributes = new Attributes();
         this.attributes.setControlChar(ControlChar.VERASE, (char) 127);
         this.attributes.setControlChar(ControlChar.VWERASE, (char) 23);

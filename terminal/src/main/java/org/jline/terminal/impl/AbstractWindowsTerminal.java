@@ -155,7 +155,6 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
                 encoding,
                 encoding,
                 encoding,
-                encoding,
                 nativeSignals,
                 signalHandler,
                 inConsole,
@@ -172,9 +171,8 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
             String name,
             String type,
             Charset encoding,
-            Charset stdinEncoding,
-            Charset stdoutEncoding,
-            Charset stderrEncoding,
+            Charset inputEncoding,
+            Charset outputEncoding,
             boolean nativeSignals,
             SignalHandler signalHandler,
             Console inConsole,
@@ -182,15 +180,15 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
             Console outConsole,
             int outConsoleMode)
             throws IOException {
-        super(name, type, encoding, stdinEncoding, stdoutEncoding, stderrEncoding, signalHandler);
+        super(name, type, encoding, inputEncoding, outputEncoding, signalHandler);
         this.provider = provider;
         this.systemStream = systemStream;
         NonBlockingPumpReader reader = NonBlocking.nonBlockingPumpReader();
         this.slaveInputPipe = reader.getWriter();
         this.reader = reader;
-        this.input = NonBlocking.nonBlockingStream(reader, stdinEncoding());
+        this.input = NonBlocking.nonBlockingStream(reader, inputEncoding());
         this.writer = new PrintWriter(writer);
-        this.output = new WriterOutputStream(writer, stdoutEncoding());
+        this.output = new WriterOutputStream(writer, outputEncoding());
         this.inConsole = inConsole;
         this.outConsole = outConsole;
         parseInfoCmp();
