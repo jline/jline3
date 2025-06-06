@@ -3395,16 +3395,19 @@ public class Nano implements Editor {
     protected void insertHelp(int selected) {}
 
     private void showCompletion(List<AttributedString> newLines) {
-        // Get suggestions and documentation from the computeSuggestions method
-        LinkedHashMap<AttributedString, List<AttributedString>> result = computeSuggestions();
+        // Only compute suggestions if something has changed
+        if (suggestions == null) {
+            // Get suggestions and documentation from the computeSuggestions method
+            LinkedHashMap<AttributedString, List<AttributedString>> result = computeSuggestions();
 
-        // If there are no suggestions, reset and return
-        if (result == null || result.isEmpty()) {
-            resetSuggestion();
-            return;
+            // If there are no suggestions, reset and return
+            if (result == null || result.isEmpty()) {
+                resetSuggestion();
+                return;
+            }
+
+            suggestions = result;
         }
-
-        suggestions = result;
 
         // Initialize the suggestion box with the suggestions
         initBoxes(newLines);
