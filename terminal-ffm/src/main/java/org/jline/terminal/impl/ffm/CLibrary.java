@@ -435,12 +435,12 @@ class CLibrary {
         }
     }
 
-    static MethodHandle ioctl;
-    static MethodHandle isatty;
-    static MethodHandle openpty;
-    static MethodHandle tcsetattr;
-    static MethodHandle tcgetattr;
-    static MethodHandle ttyname_r;
+    static final MethodHandle ioctl;
+    static final MethodHandle isatty;
+    static final MethodHandle openpty;
+    static final MethodHandle tcsetattr;
+    static final MethodHandle tcgetattr;
+    static final MethodHandle ttyname_r;
     static LinkageError openptyError;
 
     static {
