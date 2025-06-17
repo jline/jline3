@@ -82,7 +82,7 @@ Now that you have a basic understanding of JLine, here's a recommended learning 
    - [Terminal providers](./modules/terminal-providers.md)
    - [Builtins](./modules/builtins.md)
    - [Style](./modules/style.md)
-   - [Console](./modules/console.md)
+   - [Console](./modules/repl-console.md)
    - [Console UI](./modules/console-ui.md)
 
 7. **Troubleshooting**: Refer to the [troubleshooting guide](./troubleshooting.md) if you encounter issues
