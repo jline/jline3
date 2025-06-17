@@ -1189,7 +1189,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
 
     private List<Completer> slurpCompleter(String command) {
         List<Completer> completers = new ArrayList<>();
-        List<OptDesc> optDescs = commandOptions("slurp");
+        List<OptDesc> optDescs = commandOptions(command);
         for (OptDesc o : optDescs) {
             if (o.shortOption() != null && o.shortOption().equals("-f")) {
                 List<String> formats = new ArrayList<>(engine.getDeserializationFormats());
