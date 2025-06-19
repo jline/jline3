@@ -101,6 +101,13 @@ public class SystemRegistryImpl implements SystemRegistry {
         pipeName.put(pipe, name);
     }
 
+    public void renameLocal(String command, String newName) {
+        CommandMethods old = commandExecute.remove(command);
+        if (old != null) {
+            commandExecute.put(newName, old);
+        }
+    }
+
     @Override
     public Collection<String> getPipeNames() {
         return pipeName.values();
