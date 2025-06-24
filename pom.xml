@@ -15,7 +15,7 @@
 
     <groupId>org.jline</groupId>
     <artifactId>jline-parent</artifactId>
-    <version>4.0.0-SNAPSHOT</version>
+    <version>${nisse.jgit.dynamicVersion}</version>
     <packaging>pom</packaging>
     <name>JLine</name>
     <description>JLine</description>
@@ -74,7 +74,7 @@
     <scm>
         <connection>scm:git:https://github.com/jline/jline3.git</connection>
         <developerConnection>scm:git:https://github.com/jline/jline3.git</developerConnection>
-        <tag>jline-parent-3.26.3</tag>
+        <tag>${nisse.jgit.dynamicVersion}</tag>
         <url>http://github.com/jline/jline3</url>
     </scm>
 
@@ -98,11 +98,11 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.build.outputTimestamp>2025-08-06T16:07:16Z</project.build.outputTimestamp>
+        <project.build.outputTimestamp>${nisse.jgit.dateIso8601}</project.build.outputTimestamp>
 
         <java.build.version>22</java.build.version>
         <java.release.version>8</java.release.version>
-        <maven.version>3.9.6</maven.version>
+        <maven.version>4.0.0-rc-3</maven.version>
 
         <native.image.skip>true</native.image.skip>
         <automatic.module.name />
@@ -406,11 +406,6 @@
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-release-plugin</artifactId>
-                    <version>3.1.1</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-source-plugin</artifactId>
                     <version>3.3.1</version>
                 </plugin>
@@ -704,19 +699,6 @@
                     <redirectTestOutputToFile>true</redirectTestOutputToFile>
                     <argLine>${surefire.argLine}</argLine>
                     <failIfNoTests>false</failIfNoTests>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-release-plugin</artifactId>
-                <configuration>
-                    <autoVersionSubmodules>true</autoVersionSubmodules>
-                    <useReleaseProfile>false</useReleaseProfile>
-                    <goals>deploy</goals>
-                    <preparationProfiles>bundle,javadoc,format-check,sign</preparationProfiles>
-                    <releaseProfiles>bundle,javadoc,format-check,sign</releaseProfiles>
-                    <tagNameFormat>jline-@{project.version}</tagNameFormat>
                 </configuration>
             </plugin>
 
