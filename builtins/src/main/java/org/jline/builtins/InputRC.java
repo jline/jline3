@@ -12,6 +12,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.jline.reader.LineReader;
 
@@ -56,5 +59,37 @@ public final class InputRC {
      */
     public static void configure(LineReader reader, Reader r) throws IOException {
         org.jline.reader.impl.InputRC.configure(reader, r);
+    }
+
+    /**
+     * Configures a LineReader from an inputrc file located at the specified file path, if that's an existing readable file.
+     *
+     * @param lineReader the LineReader to configure
+     * @param path the Path representing the inputrc file
+     * @throws IOException if an I/O error occurs
+     */
+    public static void configure(LineReader lineReader, Path path) throws IOException {
+        if (Files.exists(path) && Files.isRegularFile(path) && Files.isReadable(path)) {
+            try (Reader reader = Files.newBufferedReader(path)) {
+                configure(lineReader, reader);
+            }
+        }
+    }
+
+    /**
+     * Configures a LineReader using the default inputrc files.
+     *
+     * <p>This method attempts to read the inputrc file from the user's home directory
+     * (e.g., ~/.inputrc) and from the system-wide configuration file (e.g., /etc/inputrc).
+     *
+     * @param lineReader the LineReader to configure
+     * @throws IOException if an I/O error occurs
+     */
+    public static void configure(LineReader lineReader) throws IOException {
+        String userHome = System.getProperty("user.home");
+        if (userHome != null) {
+            configure(lineReader, Paths.get(userHome, ".inputrc"));
+        }
+        configure(lineReader, Paths.get("/etc/inputrc"));
     }
 }
