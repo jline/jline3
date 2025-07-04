@@ -37,12 +37,8 @@ public class PosixCommandsRegistryExample {
         // Create some sample files
         Path file1 = workDir.resolve("sample1.txt");
         Path file2 = workDir.resolve("sample2.txt");
-        Files.write(
-                file1,
-                "apple\nbanana\ncherry\ndate\nelderberry".getBytes(StandardCharsets.UTF_8));
-        Files.write(
-                file2,
-                "one\ntwo\nthree\nfour\nfive".getBytes(StandardCharsets.UTF_8));
+        Files.write(file1, "apple\nbanana\ncherry\ndate\nelderberry".getBytes(StandardCharsets.UTF_8));
+        Files.write(file2, "one\ntwo\nthree\nfour\nfive".getBytes(StandardCharsets.UTF_8));
 
         // Create a POSIX commands registry
         PosixCommandsRegistry registry = new PosixCommandsRegistry(

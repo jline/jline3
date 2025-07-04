@@ -12,14 +12,10 @@ import java.io.*;
 import java.net.MalformedURLException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.function.Consumer;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -28,9 +24,6 @@ import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.Source.StdInSource;
 import org.jline.builtins.Source.URLSource;
 import org.jline.terminal.Terminal;
-import org.jline.utils.AttributedString;
-import org.jline.utils.AttributedStringBuilder;
-import org.jline.utils.AttributedStyle;
 import org.jline.utils.InfoCmp.Capability;
 
 /**
@@ -81,12 +74,29 @@ public class PosixCommands {
             this.terminal = terminal;
         }
 
-        public InputStream in() { return in; }
-        public PrintStream out() { return out; }
-        public PrintStream err() { return err; }
-        public Path currentDir() { return currentDir; }
-        public Terminal terminal() { return terminal; }
-        public boolean isTty() { return terminal != null; }
+        public InputStream in() {
+            return in;
+        }
+
+        public PrintStream out() {
+            return out;
+        }
+
+        public PrintStream err() {
+            return err;
+        }
+
+        public Path currentDir() {
+            return currentDir;
+        }
+
+        public Terminal terminal() {
+            return terminal;
+        }
+
+        public boolean isTty() {
+            return terminal != null;
+        }
     }
 
     /**
@@ -94,9 +104,7 @@ public class PosixCommands {
      */
     public static void pwd(Context context, String[] argv) throws Exception {
         final String[] usage = {
-            "pwd - print working directory", 
-            "Usage: pwd [OPTIONS]", 
-            "  -? --help                show help"
+            "pwd - print working directory", "Usage: pwd [OPTIONS]", "  -? --help                show help"
         };
         Options opt = Options.compile(usage).parse(argv);
         if (opt.isSet("help")) {
@@ -122,7 +130,7 @@ public class PosixCommands {
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
-        
+
         List<String> args = opt.args();
         StringBuilder buf = new StringBuilder();
         if (args != null) {
@@ -152,7 +160,7 @@ public class PosixCommands {
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
-        
+
         List<String> args = opt.args();
         if (args.isEmpty()) {
             args = Collections.singletonList("-");
@@ -202,7 +210,7 @@ public class PosixCommands {
 
         ZoneId zone = opt.isSet("u") ? ZoneId.of("UTC") : ZoneId.systemDefault();
         LocalDateTime now = LocalDateTime.now(zone);
-        
+
         String format = null;
         if (!opt.args().isEmpty()) {
             String arg = opt.args().get(0);
@@ -210,15 +218,15 @@ public class PosixCommands {
                 format = arg.substring(1);
             }
         }
-        
+
         if (format != null) {
             // Simple format support - just a few common patterns
             format = format.replace("%Y", "yyyy")
-                          .replace("%m", "MM")
-                          .replace("%d", "dd")
-                          .replace("%H", "HH")
-                          .replace("%M", "mm")
-                          .replace("%S", "ss");
+                    .replace("%m", "MM")
+                    .replace("%d", "dd")
+                    .replace("%H", "HH")
+                    .replace("%M", "mm")
+                    .replace("%S", "ss");
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
             context.out().println(now.format(formatter));
         } else {
@@ -240,7 +248,7 @@ public class PosixCommands {
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
-        
+
         List<String> args = opt.args();
         if (args.size() != 1) {
             throw new IllegalArgumentException("usage: sleep seconds");
@@ -255,9 +263,7 @@ public class PosixCommands {
      */
     public static void clear(Context context, String[] argv) throws Exception {
         final String[] usage = {
-            "clear - clear screen",
-            "Usage: clear [OPTIONS]",
-            "  -? --help                    Show help",
+            "clear - clear screen", "Usage: clear [OPTIONS]", "  -? --help                    Show help",
         };
         Options opt = Options.compile(usage).parse(argv);
         if (opt.isSet("help")) {
@@ -296,7 +302,8 @@ public class PosixCommands {
             if ("-".equals(arg)) {
                 sources.add(new StdInSource(context.in()));
             } else {
-                sources.add(new URLSource(context.currentDir().resolve(arg).toUri().toURL(), arg));
+                sources.add(
+                        new URLSource(context.currentDir().resolve(arg).toUri().toURL(), arg));
             }
         }
 
@@ -634,15 +641,32 @@ public class PosixCommands {
         if (hideFilename) showFilename = false;
 
         for (String file : files) {
-            grepFile(context, file, pattern, showLineNumbers, invertMatch, countOnly,
-                    filesWithMatches, filesWithoutMatch, showFilename, quiet);
+            grepFile(
+                    context,
+                    file,
+                    pattern,
+                    showLineNumbers,
+                    invertMatch,
+                    countOnly,
+                    filesWithMatches,
+                    filesWithoutMatch,
+                    showFilename,
+                    quiet);
         }
     }
 
-    private static void grepFile(Context context, String filename, Pattern pattern,
-                                boolean showLineNumbers, boolean invertMatch, boolean countOnly,
-                                boolean filesWithMatches, boolean filesWithoutMatch,
-                                boolean showFilename, boolean quiet) throws IOException {
+    private static void grepFile(
+            Context context,
+            String filename,
+            Pattern pattern,
+            boolean showLineNumbers,
+            boolean invertMatch,
+            boolean countOnly,
+            boolean filesWithMatches,
+            boolean filesWithoutMatch,
+            boolean showFilename,
+            boolean quiet)
+            throws IOException {
         InputStream is;
         if ("-".equals(filename)) {
             is = context.in();
@@ -768,7 +792,8 @@ public class PosixCommands {
             comparator = comparator.reversed();
         }
         if (opt.isSet("ignore-leading-blanks")) {
-            comparator = (a, b) -> comparator.compare(a.trim(), b.trim());
+            final Comparator<String> finalComparator = comparator;
+            comparator = (a, b) -> finalComparator.compare(a.trim(), b.trim());
         }
 
         lines.sort(comparator);
@@ -851,7 +876,8 @@ public class PosixCommands {
                     }
 
                     // Sort entries
-                    Comparator<Path> comparator = Comparator.comparing(p -> p.getFileName().toString());
+                    Comparator<Path> comparator =
+                            Comparator.comparing(p -> p.getFileName().toString());
                     if (sortByTime) {
                         comparator = Comparator.comparing(p -> {
                             try {
@@ -900,7 +926,8 @@ public class PosixCommands {
         }
     }
 
-    private static void listPath(Context context, Path path, boolean longFormat, boolean humanReadable, boolean colored) throws IOException {
+    private static void listPath(Context context, Path path, boolean longFormat, boolean humanReadable, boolean colored)
+            throws IOException {
         if (longFormat) {
             listPathLong(context, path, humanReadable, colored);
         } else {
@@ -908,7 +935,8 @@ public class PosixCommands {
         }
     }
 
-    private static void listPathLong(Context context, Path path, boolean humanReadable, boolean colored) throws IOException {
+    private static void listPathLong(Context context, Path path, boolean humanReadable, boolean colored)
+            throws IOException {
         try {
             BasicFileAttributes attrs = Files.readAttributes(path, BasicFileAttributes.class);
 
@@ -931,8 +959,7 @@ public class PosixCommands {
             String date = DateTimeFormatter.ofPattern("MMM dd HH:mm")
                     .format(LocalDateTime.ofInstant(attrs.lastModifiedTime().toInstant(), ZoneId.systemDefault()));
 
-            context.out().printf("%s %8s %s %s%n",
-                    perms, size, date, formatFileName(path, colored));
+            context.out().printf("%s %8s %s %s%n", perms, size, date, formatFileName(path, colored));
 
         } catch (IOException e) {
             context.out().println("? " + formatFileName(path, colored));

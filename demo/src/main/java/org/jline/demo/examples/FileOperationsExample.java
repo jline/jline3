@@ -120,22 +120,46 @@ public class FileOperationsExample {
                             // Show help for specific command
                             String[] helpArgs = {parts[1], "--help"};
                             switch (parts[1]) {
-                                case "cat": PosixCommands.cat(context, helpArgs); break;
-                                case "ls": PosixCommands.ls(context, helpArgs); break;
-                                case "grep": PosixCommands.grep(context, helpArgs); break;
-                                case "pwd": PosixCommands.pwd(context, helpArgs); break;
-                                case "echo": PosixCommands.echo(context, helpArgs); break;
-                                case "wc": PosixCommands.wc(context, helpArgs); break;
-                                case "head": PosixCommands.head(context, helpArgs); break;
-                                case "tail": PosixCommands.tail(context, helpArgs); break;
-                                case "sort": PosixCommands.sort(context, helpArgs); break;
-                                case "date": PosixCommands.date(context, helpArgs); break;
-                                case "clear": PosixCommands.clear(context, helpArgs); break;
+                                case "cat":
+                                    PosixCommands.cat(context, helpArgs);
+                                    break;
+                                case "ls":
+                                    PosixCommands.ls(context, helpArgs);
+                                    break;
+                                case "grep":
+                                    PosixCommands.grep(context, helpArgs);
+                                    break;
+                                case "pwd":
+                                    PosixCommands.pwd(context, helpArgs);
+                                    break;
+                                case "echo":
+                                    PosixCommands.echo(context, helpArgs);
+                                    break;
+                                case "wc":
+                                    PosixCommands.wc(context, helpArgs);
+                                    break;
+                                case "head":
+                                    PosixCommands.head(context, helpArgs);
+                                    break;
+                                case "tail":
+                                    PosixCommands.tail(context, helpArgs);
+                                    break;
+                                case "sort":
+                                    PosixCommands.sort(context, helpArgs);
+                                    break;
+                                case "date":
+                                    PosixCommands.date(context, helpArgs);
+                                    break;
+                                case "clear":
+                                    PosixCommands.clear(context, helpArgs);
+                                    break;
                                 default:
                                     terminal.writer().println("Unknown command: " + parts[1]);
                             }
                         } else {
-                            terminal.writer().println("Available commands: cat, ls, grep, pwd, echo, wc, head, tail, sort, date, clear");
+                            terminal.writer()
+                                    .println(
+                                            "Available commands: cat, ls, grep, pwd, echo, wc, head, tail, sort, date, clear");
                             terminal.writer().println("Use 'help <command>' for specific command help");
                         }
                         break;
