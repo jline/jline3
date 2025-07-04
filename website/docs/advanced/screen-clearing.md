@@ -16,6 +16,9 @@ The most basic screen operation is clearing the entire screen:
 
 This example uses the `clear_screen` capability to erase all content from the terminal and position the cursor at the top-left corner.
 
+To save and later restore the content of the screen, you can similarly use `terminal.puts(InfoCmp.Capability.enter_ca_mode)` and `terminal.puts(InfoCmp.Capability.exit_ca_mode)`.
+The `enter_ca_mode` capability enables a terminal to switch to an alternate screen buffer for cursor-addressable mode. This allows full-screen applications, such as text editors or file viewers, to take control of the display without modifying the main terminal's contents, preserving the user's session state, like command history or previous output. When the application exits, the `exit_ca_mode` capability restores the original screen. 
+
 ## Partial Screen Clearing
 
 You can also clear only a portion of the screen:
