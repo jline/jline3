@@ -71,7 +71,7 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
 
     public AbstractPosixTerminal(String name, String type, Pty pty, Charset encoding, SignalHandler signalHandler)
             throws IOException {
-        this(name, type, pty, encoding, encoding, encoding, encoding, signalHandler);
+        this(name, type, pty, encoding, encoding, encoding, signalHandler);
     }
 
     public AbstractPosixTerminal(
@@ -79,12 +79,11 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
             String type,
             Pty pty,
             Charset encoding,
-            Charset stdinEncoding,
-            Charset stdoutEncoding,
-            Charset stderrEncoding,
+            Charset inputEncoding,
+            Charset outputEncoding,
             SignalHandler signalHandler)
             throws IOException {
-        super(name, type, encoding, stdinEncoding, stdoutEncoding, stderrEncoding, signalHandler);
+        super(name, type, encoding, inputEncoding, outputEncoding, signalHandler);
         Objects.requireNonNull(pty);
         this.pty = pty;
         this.originalAttributes = this.pty.getAttr();

@@ -72,9 +72,8 @@ public abstract class AbstractTerminal implements TerminalExt {
     protected final String name;
     protected final String type;
     protected final Charset encoding;
-    protected final Charset stdinEncoding;
-    protected final Charset stdoutEncoding;
-    protected final Charset stderrEncoding;
+    protected final Charset inputEncoding;
+    protected final Charset outputEncoding;
     protected final Map<Signal, SignalHandler> handlers = new ConcurrentHashMap<>();
     protected final Set<Capability> bools = new HashSet<>();
     protected final Map<Capability, Integer> ints = new HashMap<>();
@@ -91,7 +90,7 @@ public abstract class AbstractTerminal implements TerminalExt {
     @SuppressWarnings("this-escape")
     public AbstractTerminal(String name, String type, Charset encoding, SignalHandler signalHandler)
             throws IOException {
-        this(name, type, encoding, encoding, encoding, encoding, signalHandler);
+        this(name, type, encoding, encoding, encoding, signalHandler);
     }
 
     @SuppressWarnings("this-escape")
@@ -99,17 +98,15 @@ public abstract class AbstractTerminal implements TerminalExt {
             String name,
             String type,
             Charset encoding,
-            Charset stdinEncoding,
-            Charset stdoutEncoding,
-            Charset stderrEncoding,
+            Charset inputEncoding,
+            Charset outputEncoding,
             SignalHandler signalHandler)
             throws IOException {
         this.name = name;
         this.type = type != null ? type : "ansi";
         this.encoding = encoding != null ? encoding : Charset.defaultCharset();
-        this.stdinEncoding = stdinEncoding != null ? stdinEncoding : this.encoding;
-        this.stdoutEncoding = stdoutEncoding != null ? stdoutEncoding : this.encoding;
-        this.stderrEncoding = stderrEncoding != null ? stderrEncoding : this.encoding;
+        this.inputEncoding = inputEncoding != null ? inputEncoding : this.encoding;
+        this.outputEncoding = outputEncoding != null ? outputEncoding : this.encoding;
         this.palette = new ColorPalette(this);
         for (Signal signal : Signal.values()) {
             handlers.put(signal, signalHandler);
@@ -229,18 +226,13 @@ public abstract class AbstractTerminal implements TerminalExt {
     }
 
     @Override
-    public Charset stdinEncoding() {
-        return this.stdinEncoding;
+    public Charset inputEncoding() {
+        return this.inputEncoding;
     }
 
     @Override
-    public Charset stdoutEncoding() {
-        return this.stdoutEncoding;
-    }
-
-    @Override
-    public Charset stderrEncoding() {
-        return this.stderrEncoding;
+    public Charset outputEncoding() {
+        return this.outputEncoding;
     }
 
     public void flush() {

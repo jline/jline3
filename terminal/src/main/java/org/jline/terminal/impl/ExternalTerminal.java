@@ -91,18 +91,7 @@ public class ExternalTerminal extends LineDisciplineTerminal {
             Charset encoding,
             SignalHandler signalHandler)
             throws IOException {
-        this(
-                provider,
-                name,
-                type,
-                masterInput,
-                masterOutput,
-                encoding,
-                encoding,
-                encoding,
-                encoding,
-                signalHandler,
-                false);
+        this(provider, name, type, masterInput, masterOutput, encoding, encoding, encoding, signalHandler, false);
     }
 
     public ExternalTerminal(
@@ -126,7 +115,6 @@ public class ExternalTerminal extends LineDisciplineTerminal {
                 encoding,
                 stdinEncoding,
                 stdoutEncoding,
-                stderrEncoding,
                 signalHandler,
                 false);
     }
@@ -150,7 +138,6 @@ public class ExternalTerminal extends LineDisciplineTerminal {
                 encoding,
                 encoding,
                 encoding,
-                encoding,
                 signalHandler,
                 paused,
                 null,
@@ -164,9 +151,8 @@ public class ExternalTerminal extends LineDisciplineTerminal {
             InputStream masterInput,
             OutputStream masterOutput,
             Charset encoding,
-            Charset stdinEncoding,
-            Charset stdoutEncoding,
-            Charset stderrEncoding,
+            Charset inputEncoding,
+            Charset outputEncoding,
             SignalHandler signalHandler,
             boolean paused)
             throws IOException {
@@ -177,9 +163,8 @@ public class ExternalTerminal extends LineDisciplineTerminal {
                 masterInput,
                 masterOutput,
                 encoding,
-                stdinEncoding,
-                stdoutEncoding,
-                stderrEncoding,
+                inputEncoding,
+                outputEncoding,
                 signalHandler,
                 paused,
                 null,
@@ -205,7 +190,6 @@ public class ExternalTerminal extends LineDisciplineTerminal {
                 type,
                 masterInput,
                 masterOutput,
-                encoding,
                 encoding,
                 encoding,
                 encoding,
@@ -223,15 +207,14 @@ public class ExternalTerminal extends LineDisciplineTerminal {
             InputStream masterInput,
             OutputStream masterOutput,
             Charset encoding,
-            Charset stdinEncoding,
-            Charset stdoutEncoding,
-            Charset stderrEncoding,
+            Charset inputEncoding,
+            Charset outputEncoding,
             SignalHandler signalHandler,
             boolean paused,
             Attributes attributes,
             Size size)
             throws IOException {
-        super(name, type, masterOutput, encoding, stdinEncoding, stdoutEncoding, stderrEncoding, signalHandler);
+        super(name, type, masterOutput, encoding, inputEncoding, outputEncoding, signalHandler);
         this.provider = provider;
         this.masterInput = masterInput;
         if (attributes != null) {

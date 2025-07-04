@@ -50,6 +50,50 @@ public class JnaTerminalProvider implements TerminalProvider {
             String type,
             boolean ansiPassThrough,
             Charset encoding,
+            Charset inputEncoding,
+            Charset outputEncoding,
+            boolean nativeSignals,
+            Terminal.SignalHandler signalHandler,
+            boolean paused,
+            SystemStream systemStream)
+            throws IOException {
+        if (OSUtils.IS_WINDOWS) {
+            return winSysTerminal(
+                    name,
+                    type,
+                    ansiPassThrough,
+                    encoding,
+                    inputEncoding,
+                    outputEncoding,
+                    outputEncoding,
+                    nativeSignals,
+                    signalHandler,
+                    paused,
+                    systemStream);
+        } else {
+            return posixSysTerminal(
+                    name,
+                    type,
+                    ansiPassThrough,
+                    encoding,
+                    inputEncoding,
+                    outputEncoding,
+                    outputEncoding,
+                    nativeSignals,
+                    signalHandler,
+                    paused,
+                    systemStream);
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    @Deprecated
+    @Override
+    public Terminal sysTerminal(
+            String name,
+            String type,
+            boolean ansiPassThrough,
+            Charset encoding,
             Charset stdinEncoding,
             Charset stdoutEncoding,
             Charset stderrEncoding,
@@ -177,10 +221,33 @@ public class JnaTerminalProvider implements TerminalProvider {
             SystemStream systemStream)
             throws IOException {
         Pty pty = current(systemStream);
+        // Use the appropriate output encoding based on the system stream
+        Charset outputEncoding = systemStream == SystemStream.Error ? stderrEncoding : stdoutEncoding;
         return new PosixSysTerminal(
-                name, type, pty, encoding, stdinEncoding, stdoutEncoding, stderrEncoding, nativeSignals, signalHandler);
+                name, type, pty, encoding, stdinEncoding, outputEncoding, nativeSignals, signalHandler);
     }
 
+    @Override
+    public Terminal newTerminal(
+            String name,
+            String type,
+            InputStream in,
+            OutputStream out,
+            Charset encoding,
+            Charset inputEncoding,
+            Charset outputEncoding,
+            Terminal.SignalHandler signalHandler,
+            boolean paused,
+            Attributes attributes,
+            Size size)
+            throws IOException {
+        Pty pty = open(attributes, size);
+        return new PosixPtyTerminal(
+                name, type, pty, in, out, encoding, inputEncoding, outputEncoding, signalHandler, paused);
+    }
+
+    @SuppressWarnings("deprecation")
+    @Deprecated
     @Override
     public Terminal newTerminal(
             String name,
@@ -198,17 +265,7 @@ public class JnaTerminalProvider implements TerminalProvider {
             throws IOException {
         Pty pty = open(attributes, size);
         return new PosixPtyTerminal(
-                name,
-                type,
-                pty,
-                in,
-                out,
-                encoding,
-                stdinEncoding,
-                stdoutEncoding,
-                stderrEncoding,
-                signalHandler,
-                paused);
+                name, type, pty, in, out, encoding, stdinEncoding, stdoutEncoding, signalHandler, paused);
     }
 
     @Override

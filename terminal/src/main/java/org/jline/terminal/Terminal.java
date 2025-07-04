@@ -389,59 +389,83 @@ public interface Terminal extends Closeable, Flushable {
      * for {@link #input()} and {@link #output()}.
      *
      * <p>This method returns a general encoding that can be used for both input and output.
-     * For stream-specific encodings, use {@link #stdinEncoding()}, {@link #stdoutEncoding()},
-     * and {@link #stderrEncoding()}.</p>
+     * For stream-specific encodings, use {@link #inputEncoding()} and {@link #outputEncoding()}.</p>
      *
      * @return The terminal encoding
-     * @see #stdinEncoding()
-     * @see #stdoutEncoding()
-     * @see #stderrEncoding()
+     * @see #inputEncoding()
+     * @see #outputEncoding()
      */
     Charset encoding();
 
     /**
      * Returns the {@link Charset} that should be used to decode characters
-     * from standard input ({@link #input()}).
+     * from the terminal input ({@link #input()}).
      *
-     * <p>This method returns the encoding specifically for standard input.
-     * If no specific stdin encoding was configured, it falls back to the
+     * <p>This method returns the encoding specifically for terminal input.
+     * If no specific input encoding was configured, it falls back to the
      * general encoding from {@link #encoding()}.</p>
      *
-     * @return The standard input encoding
+     * @return The terminal input encoding
      * @see #encoding()
      */
-    default Charset stdinEncoding() {
+    default Charset inputEncoding() {
         return encoding();
+    }
+
+    /**
+     * Returns the {@link Charset} that should be used to encode characters
+     * for the terminal output ({@link #output()}).
+     *
+     * <p>This method returns the encoding specifically for terminal output.
+     * The encoding used depends on the system stream associated with this terminal:
+     * if the terminal is bound to standard error, it uses the stderr encoding;
+     * otherwise, it uses the stdout encoding. If no specific output encoding
+     * was configured, it falls back to the general encoding from {@link #encoding()}.</p>
+     *
+     * @return The terminal output encoding
+     * @see #encoding()
+     */
+    default Charset outputEncoding() {
+        return encoding();
+    }
+
+    /**
+     * Returns the {@link Charset} that should be used to decode characters
+     * from standard input ({@link #input()}).
+     *
+     * @deprecated Use {@link #inputEncoding()} instead. This method will be removed in a future version.
+     * @return The standard input encoding
+     * @see #inputEncoding()
+     */
+    @Deprecated
+    default Charset stdinEncoding() {
+        return inputEncoding();
     }
 
     /**
      * Returns the {@link Charset} that should be used to encode characters
      * for standard output ({@link #output()}).
      *
-     * <p>This method returns the encoding specifically for standard output.
-     * If no specific stdout encoding was configured, it falls back to the
-     * general encoding from {@link #encoding()}.</p>
-     *
+     * @deprecated Use {@link #outputEncoding()} instead. This method will be removed in a future version.
      * @return The standard output encoding
-     * @see #encoding()
+     * @see #outputEncoding()
      */
+    @Deprecated
     default Charset stdoutEncoding() {
-        return encoding();
+        return outputEncoding();
     }
 
     /**
      * Returns the {@link Charset} that should be used to encode characters
      * for standard error.
      *
-     * <p>This method returns the encoding specifically for standard error.
-     * If no specific stderr encoding was configured, it falls back to the
-     * general encoding from {@link #encoding()}.</p>
-     *
+     * @deprecated This method will be removed in a future version. Use {@link #outputEncoding()} instead.
      * @return The standard error encoding
-     * @see #encoding()
+     * @see #outputEncoding()
      */
+    @Deprecated
     default Charset stderrEncoding() {
-        return encoding();
+        return outputEncoding();
     }
 
     /**

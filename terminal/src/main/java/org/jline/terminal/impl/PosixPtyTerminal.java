@@ -96,7 +96,7 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
             SignalHandler signalHandler,
             boolean paused)
             throws IOException {
-        this(name, type, pty, in, out, encoding, encoding, encoding, encoding, signalHandler, paused);
+        this(name, type, pty, in, out, encoding, encoding, encoding, signalHandler, paused);
     }
 
     @SuppressWarnings("this-escape")
@@ -107,21 +107,20 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
             InputStream in,
             OutputStream out,
             Charset encoding,
-            Charset stdinEncoding,
-            Charset stdoutEncoding,
-            Charset stderrEncoding,
+            Charset inputEncoding,
+            Charset outputEncoding,
             SignalHandler signalHandler,
             boolean paused)
             throws IOException {
-        super(name, type, pty, encoding, stdinEncoding, stdoutEncoding, stderrEncoding, signalHandler);
+        super(name, type, pty, encoding, inputEncoding, outputEncoding, signalHandler);
         this.in = Objects.requireNonNull(in);
         this.out = Objects.requireNonNull(out);
         this.masterInput = pty.getMasterInput();
         this.masterOutput = pty.getMasterOutput();
         this.input = new InputStreamWrapper(NonBlocking.nonBlocking(name, pty.getSlaveInput()));
         this.output = pty.getSlaveOutput();
-        this.reader = NonBlocking.nonBlocking(name, input, stdinEncoding());
-        this.writer = new PrintWriter(new OutputStreamWriter(output, stdoutEncoding()));
+        this.reader = NonBlocking.nonBlocking(name, input, inputEncoding());
+        this.writer = new PrintWriter(new OutputStreamWriter(output, outputEncoding()));
         parseInfoCmp();
         if (!paused) {
             resume();
