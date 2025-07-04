@@ -136,7 +136,73 @@ public class PosixCommands {
         if (args != null) {
             for (String arg : args) {
                 if (buf.length() > 0) buf.append(' ');
-                buf.append(arg);
+                // Process escape sequences
+                for (int i = 0; i < arg.length(); i++) {
+                    int c = arg.charAt(i);
+                    int ch;
+                    if (c == '\\') {
+                        c = i < arg.length() - 1 ? arg.charAt(++i) : '\\';
+                        switch (c) {
+                            case 'a':
+                                buf.append('\u0007');
+                                break;
+                            case 'n':
+                                buf.append('\n');
+                                break;
+                            case 't':
+                                buf.append('\t');
+                                break;
+                            case 'r':
+                                buf.append('\r');
+                                break;
+                            case '\\':
+                                buf.append('\\');
+                                break;
+                            case '0':
+                            case '1':
+                            case '2':
+                            case '3':
+                            case '4':
+                            case '5':
+                            case '6':
+                            case '7':
+                            case '8':
+                            case '9':
+                                ch = 0;
+                                for (int j = 0; j < 3; j++) {
+                                    c = i < arg.length() - 1 ? arg.charAt(++i) : -1;
+                                    if (c >= 0) {
+                                        ch = ch * 8 + (c - '0');
+                                    }
+                                }
+                                buf.append((char) ch);
+                                break;
+                            case 'u':
+                                ch = 0;
+                                for (int j = 0; j < 4; j++) {
+                                    c = i < arg.length() - 1 ? arg.charAt(++i) : -1;
+                                    if (c >= 0) {
+                                        if (c >= 'A' && c <= 'Z') {
+                                            ch = ch * 16 + (c - 'A' + 10);
+                                        } else if (c >= 'a' && c <= 'z') {
+                                            ch = ch * 16 + (c - 'a' + 10);
+                                        } else if (c >= '0' && c <= '9') {
+                                            ch = ch * 16 + (c - '0');
+                                        } else {
+                                            break;
+                                        }
+                                    }
+                                }
+                                buf.append((char) ch);
+                                break;
+                            default:
+                                buf.append((char) c);
+                                break;
+                        }
+                    } else {
+                        buf.append((char) c);
+                    }
+                }
             }
         }
         if (opt.isSet("n")) {
@@ -144,6 +210,18 @@ public class PosixCommands {
         } else {
             context.out().println(buf.toString());
         }
+    }
+
+    /**
+     * Echo command - display text (Object array version for compatibility).
+     */
+    public static void echo(Context context, Object[] argv) throws Exception {
+        // Convert Object array to String array
+        String[] stringArgv = new String[argv.length];
+        for (int i = 0; i < argv.length; i++) {
+            stringArgv[i] = argv[i] != null ? argv[i].toString() : "";
+        }
+        echo(context, stringArgv);
     }
 
     /**
@@ -199,40 +277,228 @@ public class PosixCommands {
     public static void date(Context context, String[] argv) throws Exception {
         String[] usage = {
             "date - display date",
-            "Usage: date [-u] [+format]",
+            "Usage: date [-r seconds] [-v[+|-]val[mwdHMS] ...] [-f input_fmt new_date] [+output_fmt]",
             "  -? --help                    Show help",
-            "  -u                           Use UTC"
+            "  -u                           Use UTC",
+            "  -r                           Print the date represented by 'seconds' since January 1, 1970",
+            "  -f                           Use 'input_fmt' to parse 'new_date'"
         };
-        Options opt = Options.compile(usage).parse(argv);
-        if (opt.isSet("help")) {
-            throw new HelpException(opt.usage());
-        }
+        java.util.Date input = new java.util.Date();
+        String output = null;
+        boolean useUtc = false;
 
-        ZoneId zone = opt.isSet("u") ? ZoneId.of("UTC") : ZoneId.systemDefault();
-        LocalDateTime now = LocalDateTime.now(zone);
-
-        String format = null;
-        if (!opt.args().isEmpty()) {
-            String arg = opt.args().get(0);
-            if (arg.startsWith("+")) {
-                format = arg.substring(1);
+        for (int i = 1; i < argv.length; i++) {
+            if ("-?".equals(argv[i]) || "--help".equals(argv[i])) {
+                throw new HelpException(Options.compile(usage).usage());
+            } else if ("-u".equals(argv[i])) {
+                useUtc = true;
+            } else if ("-r".equals(argv[i])) {
+                if (i + 1 < argv.length) {
+                    input = new java.util.Date(Long.parseLong(argv[++i]) * 1000L);
+                } else {
+                    throw new IllegalArgumentException(
+                            "usage: date [-u] [-r seconds] [-v[+|-]val[mwdHMS] ...] [-f input_fmt new_date] [+output_fmt]");
+                }
+            } else if ("-f".equals(argv[i])) {
+                if (i + 2 < argv.length) {
+                    String fmt = argv[++i];
+                    String inp = argv[++i];
+                    String jfmt = toJavaDateFormat(fmt);
+                    input = new java.text.SimpleDateFormat(jfmt).parse(inp);
+                } else {
+                    throw new IllegalArgumentException(
+                            "usage: date [-u] [-r seconds] [-v[+|-]val[mwdHMS] ...] [-f input_fmt new_date] [+output_fmt]");
+                }
+            } else if (argv[i].startsWith("+")) {
+                if (output == null) {
+                    output = argv[i].substring(1);
+                } else {
+                    throw new IllegalArgumentException(
+                            "usage: date [-u] [-r seconds] [-v[+|-]val[mwdHMS] ...] [-f input_fmt new_date] [+output_fmt]");
+                }
+            } else {
+                throw new IllegalArgumentException(
+                        "usage: date [-u] [-r seconds] [-v[+|-]val[mwdHMS] ...] [-f input_fmt new_date] [+output_fmt]");
             }
         }
-
-        if (format != null) {
-            // Simple format support - just a few common patterns
-            format = format.replace("%Y", "yyyy")
-                    .replace("%m", "MM")
-                    .replace("%d", "dd")
-                    .replace("%H", "HH")
-                    .replace("%M", "mm")
-                    .replace("%S", "ss");
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
-            context.out().println(now.format(formatter));
-        } else {
-            // Default format
-            context.out().println(now.format(DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss yyyy")));
+        if (output == null) {
+            output = "%c";
         }
+
+        // Create formatter with UTC if requested
+        java.text.SimpleDateFormat formatter = new java.text.SimpleDateFormat(toJavaDateFormat(output));
+        if (useUtc) {
+            formatter.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+        }
+
+        // Print output
+        context.out().println(formatter.format(input));
+    }
+
+    /**
+     * Convert Unix date format to Java SimpleDateFormat.
+     */
+    private static String toJavaDateFormat(String format) {
+        // transform Unix format to Java SimpleDateFormat (if required)
+        StringBuilder sb = new StringBuilder();
+        boolean quote = false;
+        for (int i = 0; i < format.length(); i++) {
+            char c = format.charAt(i);
+            if (c == '%') {
+                if (i + 1 < format.length()) {
+                    if (quote) {
+                        sb.append('\'');
+                        quote = false;
+                    }
+                    c = format.charAt(++i);
+                    switch (c) {
+                        case '+':
+                        case 'A':
+                            sb.append("MMM EEE d HH:mm:ss yyyy");
+                            break;
+                        case 'a':
+                            sb.append("EEE");
+                            break;
+                        case 'B':
+                            sb.append("MMMMMMM");
+                            break;
+                        case 'b':
+                            sb.append("MMM");
+                            break;
+                        case 'C':
+                            sb.append("yy");
+                            break;
+                        case 'c':
+                            sb.append("MMM EEE d HH:mm:ss yyyy");
+                            break;
+                        case 'D':
+                            sb.append("MM/dd/yy");
+                            break;
+                        case 'd':
+                            sb.append("dd");
+                            break;
+                        case 'e':
+                            sb.append("dd");
+                            break;
+                        case 'F':
+                            sb.append("yyyy-MM-dd");
+                            break;
+                        case 'G':
+                            sb.append("YYYY");
+                            break;
+                        case 'g':
+                            sb.append("YY");
+                            break;
+                        case 'H':
+                            sb.append("HH");
+                            break;
+                        case 'h':
+                            sb.append("MMM");
+                            break;
+                        case 'I':
+                            sb.append("hh");
+                            break;
+                        case 'j':
+                            sb.append("DDD");
+                            break;
+                        case 'k':
+                            sb.append("HH");
+                            break;
+                        case 'l':
+                            sb.append("hh");
+                            break;
+                        case 'M':
+                            sb.append("mm");
+                            break;
+                        case 'm':
+                            sb.append("MM");
+                            break;
+                        case 'N':
+                            sb.append("S");
+                            break;
+                        case 'n':
+                            sb.append("\n");
+                            break;
+                        case 'P':
+                            sb.append("aa");
+                            break;
+                        case 'p':
+                            sb.append("aa");
+                            break;
+                        case 'r':
+                            sb.append("hh:mm:ss aa");
+                            break;
+                        case 'R':
+                            sb.append("HH:mm");
+                            break;
+                        case 'S':
+                            sb.append("ss");
+                            break;
+                        case 's':
+                            sb.append("S");
+                            break;
+                        case 'T':
+                            sb.append("HH:mm:ss");
+                            break;
+                        case 't':
+                            sb.append("\t");
+                            break;
+                        case 'U':
+                            sb.append("w");
+                            break;
+                        case 'u':
+                            sb.append("u");
+                            break;
+                        case 'V':
+                            sb.append("W");
+                            break;
+                        case 'v':
+                            sb.append("dd-MMM-yyyy");
+                            break;
+                        case 'W':
+                            sb.append("w");
+                            break;
+                        case 'w':
+                            sb.append("u");
+                            break;
+                        case 'X':
+                            sb.append("HH:mm:ss");
+                            break;
+                        case 'x':
+                            sb.append("MM/dd/yy");
+                            break;
+                        case 'Y':
+                            sb.append("yyyy");
+                            break;
+                        case 'y':
+                            sb.append("yy");
+                            break;
+                        case 'Z':
+                            sb.append("z");
+                            break;
+                        case 'z':
+                            sb.append("X");
+                            break;
+                        case '%':
+                            sb.append("%");
+                            break;
+                    }
+                } else {
+                    if (!quote) {
+                        sb.append('\'');
+                    }
+                    sb.append(c);
+                    sb.append('\'');
+                }
+            } else {
+                if ((c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z') && !quote) {
+                    sb.append('\'');
+                    quote = true;
+                }
+                sb.append(c);
+            }
+        }
+        return sb.toString();
     }
 
     /**
