@@ -13,6 +13,7 @@ import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 import org.jline.terminal.Terminal;
 
@@ -63,8 +64,14 @@ public class PosixCommandsRegistry {
      * @param currentDir current working directory
      * @param terminal terminal instance (can be null for non-interactive use)
      */
-    public PosixCommandsRegistry(InputStream in, PrintStream out, PrintStream err, Path currentDir, Terminal terminal) {
-        this.context = new PosixCommands.Context(in, out, err, currentDir, terminal);
+    public PosixCommandsRegistry(
+            InputStream in,
+            PrintStream out,
+            PrintStream err,
+            Path currentDir,
+            Terminal terminal,
+            Function<String, Object> variables) {
+        this.context = new PosixCommands.Context(in, out, err, currentDir, terminal, variables);
         this.commands = new HashMap<>();
         populateDefaultCommands(this.commands);
     }
@@ -193,7 +200,7 @@ public class PosixCommandsRegistry {
      */
     public PosixCommandsRegistry withCurrentDirectory(Path newCurrentDir) {
         PosixCommands.Context newContext = new PosixCommands.Context(
-                context.in(), context.out(), context.err(), newCurrentDir, context.terminal());
+                context.in(), context.out(), context.err(), newCurrentDir, context.terminal(), context::get);
         return new PosixCommandsRegistry(newContext);
     }
 

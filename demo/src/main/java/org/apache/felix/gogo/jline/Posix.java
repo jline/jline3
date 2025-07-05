@@ -27,10 +27,6 @@ package org.apache.felix.gogo.jline;
  * under the License.
  */
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -40,8 +36,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.felix.gogo.jline.Shell.Context;
 import org.apache.felix.service.command.CommandProcessor;
@@ -53,11 +47,7 @@ import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.PosixCommands;
 import org.jline.builtins.TTop;
 import org.jline.terminal.Terminal;
-import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
-import org.jline.utils.OSUtils;
-import org.jline.utils.StyleResolver;
-import org.jline.utils.InfoCmp.Capability;
 
 /**
  * Posix-like utilities.
@@ -88,7 +78,6 @@ public class Posix {
         functions = func;
     }
 
-    public static final String DEFAULT_LS_COLORS = "dr=1;91:ex=1;92:sl=1;96:ot=34;43";
     public static final String DEFAULT_GREP_COLORS = "mt=1;31:fn=35:ln=32:se=36";
 
     private static final List<String> WINDOWS_EXECUTABLE_EXTENSIONS =
@@ -138,7 +127,12 @@ public class Posix {
      */
     protected PosixCommands.Context createPosixContext(CommandSession session, Process process) {
         return new PosixCommands.Context(
-                process.in(), process.out(), process.err(), session.currentDir(), Shell.getTerminal(session));
+                process.in(),
+                process.out(),
+                process.err(),
+                session.currentDir(),
+                Shell.getTerminal(session),
+                session::get);
     }
 
     protected Object run(CommandSession session, Process process, String[] argv) throws Exception {
@@ -376,8 +370,7 @@ public class Posix {
     }
 
     protected void ls(CommandSession session, Process process, String[] argv) throws Exception {
-        Map<String, String> colorMap = getLsColorMap(session);
-        PosixCommands.ls(createPosixContext(session, process), argv, colorMap);
+        PosixCommands.ls(createPosixContext(session, process), argv);
     }
 
     protected void cat(CommandSession session, Process process, String[] argv) throws Exception {
@@ -389,26 +382,28 @@ public class Posix {
     }
 
     protected void grep(CommandSession session, Process process, String[] argv) throws Exception {
-        Map<String, String> colorMap = getColorMap(session, "GREP", DEFAULT_GREP_COLORS);
-        PosixCommands.grep(createPosixContext(session, process), argv, colorMap);
+        PosixCommands.grep(createPosixContext(session, process), argv);
     }
 
     protected void sleep(CommandSession session, Process process, String[] argv) throws Exception {
         PosixCommands.sleep(createPosixContext(session, process), argv);
     }
 
-    public static Map<String, String> getLsColorMap(CommandSession session) {
-        return getColorMap(session, "LS", DEFAULT_LS_COLORS);
+    public static Map<String, String> getColorMap(CommandSession session, String name, String def) {
+        return PosixCommands.getColorMap(session::get, name, def);
     }
 
-    public static Map<String, String> getColorMap(CommandSession session, String name, String def) {
-        Object obj = session.get(name + "_COLORS");
-        String str = obj != null ? obj.toString() : null;
-        if (str == null) {
-            str = def;
-        }
-        String sep = str.matches("[a-z]{2}=[0-9]*(;[0-9]+)*(:[a-z]{2}=[0-9]*(;[0-9]+)*)*") ? ":" : " ";
-        return Arrays.stream(str.split(sep))
-                .collect(Collectors.toMap(s -> s.substring(0, s.indexOf('=')), s -> s.substring(s.indexOf('=') + 1)));
+    /**
+     * Apply style to text using color map.
+     */
+    public static String applyStyle(String text, Map<String, String> colors, String... types) {
+        return PosixCommands.applyStyle(text, colors, types);
+    }
+
+    /**
+     * Apply style to AttributedStringBuilder using color map.
+     */
+    public static void applyStyle(AttributedStringBuilder sb, Map<String, String> colors, String... types) {
+        PosixCommands.applyStyle(sb, colors, types);
     }
 }

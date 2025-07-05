@@ -12,6 +12,8 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.jline.builtins.PosixCommands;
 import org.jline.reader.LineReader;
@@ -34,6 +36,9 @@ public class FileOperationsExample {
         Path workDir = Files.createTempDirectory("jline-demo");
         workDir.toFile().deleteOnExit();
 
+        // Variables
+        Map<String, Object> variables = new HashMap<>();
+
         // Create some sample files
         Path file1 = workDir.resolve("sample1.txt");
         Path file2 = workDir.resolve("sample2.txt");
@@ -50,7 +55,8 @@ public class FileOperationsExample {
                 new PrintStream(terminal.output()),
                 new PrintStream(terminal.output()),
                 workDir,
-                terminal);
+                terminal,
+                variables::get);
 
         // Create a line reader
         LineReader reader = LineReaderBuilder.builder()

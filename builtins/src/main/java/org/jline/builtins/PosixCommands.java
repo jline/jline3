@@ -22,6 +22,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.IntBinaryOperator;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -79,13 +80,21 @@ public class PosixCommands {
         private final PrintStream err;
         private final Path currentDir;
         private final Terminal terminal;
+        private final Function<String, Object> variables;
 
-        public Context(InputStream in, PrintStream out, PrintStream err, Path currentDir, Terminal terminal) {
+        public Context(
+                InputStream in,
+                PrintStream out,
+                PrintStream err,
+                Path currentDir,
+                Terminal terminal,
+                Function<String, Object> variables) {
             this.in = in;
             this.out = out;
             this.err = err;
             this.currentDir = currentDir;
             this.terminal = terminal;
+            this.variables = variables;
         }
 
         public InputStream in() {
@@ -111,6 +120,10 @@ public class PosixCommands {
         public boolean isTty() {
             return terminal != null;
         }
+
+        public Object get(String name) {
+            return variables.apply(name);
+        }
     }
 
     /**
@@ -123,7 +136,7 @@ public class PosixCommands {
         final String[] usage = {
             "cd - change directory", "Usage: cd [OPTIONS] DIRECTORY", "  -? --help                show help"
         };
-        Options opt = Options.compile(usage).parse(argv);
+        Options opt = Options.compile(usage).parse(argv, true);
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
@@ -148,7 +161,7 @@ public class PosixCommands {
         final String[] usage = {
             "pwd - print working directory", "Usage: pwd [OPTIONS]", "  -? --help                show help"
         };
-        Options opt = Options.compile(usage).parse(argv);
+        Options opt = Options.compile(usage).parse(argv, true);
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
@@ -168,7 +181,7 @@ public class PosixCommands {
             "  -? --help                show help",
             "  -n                       no trailing new line"
         };
-        Options opt = Options.compile(usage).parse(argv);
+        Options opt = Options.compile(usage).parse(argv, true);
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
@@ -276,7 +289,7 @@ public class PosixCommands {
             "  -? --help                show help",
             "  -n                       number the output lines, starting at 1"
         };
-        Options opt = Options.compile(usage).parse(argv);
+        Options opt = Options.compile(usage).parse(argv, true);
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
@@ -552,7 +565,7 @@ public class PosixCommands {
             "Usage: sleep seconds",
             "  -? --help                    show help"
         };
-        Options opt = Options.compile(usage).parse(argv);
+        Options opt = Options.compile(usage).parse(argv, true);
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
@@ -585,7 +598,7 @@ public class PosixCommands {
             "  -a --append                  The output should be appended but not clear the console"
         };
 
-        Options opt = Options.compile(usage).parse(argv);
+        Options opt = Options.compile(usage).parse(argv, true);
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
@@ -684,7 +697,7 @@ public class PosixCommands {
      * Text editor command - edit files with nano-like interface.
      */
     public static void nano(Context context, String[] argv) throws Exception {
-        Options opt = Options.compile(Nano.usage()).parse(argv);
+        Options opt = Options.compile(Nano.usage()).parse(argv, true);
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
@@ -697,7 +710,7 @@ public class PosixCommands {
      * Pager command - view files with less-like interface.
      */
     public static void less(Context context, String[] argv) throws Exception {
-        Options opt = Options.compile(Less.usage()).parse(argv);
+        Options opt = Options.compile(Less.usage()).parse(argv, true);
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
@@ -754,7 +767,7 @@ public class PosixCommands {
         final String[] usage = {
             "clear - clear screen", "Usage: clear [OPTIONS]", "  -? --help                    Show help",
         };
-        Options opt = Options.compile(usage).parse(argv);
+        Options opt = Options.compile(usage).parse(argv, true);
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
@@ -778,7 +791,7 @@ public class PosixCommands {
             "  -m --chars                   Print character counts",
             "  -w --words                   Print word counts",
         };
-        Options opt = Options.compile(usage).parse(argv);
+        Options opt = Options.compile(usage).parse(argv, true);
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
@@ -868,7 +881,7 @@ public class PosixCommands {
             "  -n --lines=LINES             Print line counts",
             "  -c --bytes=BYTES             Print byte counts",
         };
-        Options opt = Options.compile(usage).parse(argv);
+        Options opt = Options.compile(usage).parse(argv, true);
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
@@ -942,7 +955,7 @@ public class PosixCommands {
             "  -n --lines=LINES             Number of lines to print",
             "  -c --bytes=BYTES             Number of bytes to print",
         };
-        Options opt = Options.compile(usage).parse(argv);
+        Options opt = Options.compile(usage).parse(argv, true);
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
@@ -1062,13 +1075,6 @@ public class PosixCommands {
      * Grep command - search text patterns.
      */
     public static void grep(Context context, String[] argv) throws Exception {
-        grep(context, argv, null);
-    }
-
-    /**
-     * Grep command - search text patterns with color map.
-     */
-    public static void grep(Context context, String[] argv, Map<String, String> colorMap) throws Exception {
         final String[] usage = {
             "grep -  search for PATTERN in each FILE or standard input.",
             "Usage: grep [OPTIONS] PATTERN [FILES]",
@@ -1086,10 +1092,12 @@ public class PosixCommands {
             "  -C --context=NUM         Print NUM lines of output context",
             "     --pad-lines           Pad line numbers"
         };
-        Options opt = Options.compile(usage).parse(argv);
+        Options opt = Options.compile(usage).parse(argv, true);
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
+
+        Map<String, String> colorMap = getColorMap(context, "GREP", DEFAULT_GREP_COLORS);
 
         List<String> args = opt.args();
         if (args.isEmpty()) {
@@ -1319,7 +1327,7 @@ public class PosixCommands {
             "  -k --key=KEY                 fields to use for sorting separated by whitespaces"
         };
 
-        Options opt = Options.compile(usage).parse(argv);
+        Options opt = Options.compile(usage).parse(argv, true);
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
@@ -1362,13 +1370,6 @@ public class PosixCommands {
      * List directory contents command.
      */
     public static void ls(Context context, String[] argv) throws Exception {
-        ls(context, argv, null);
-    }
-
-    /**
-     * List directory contents command with color map.
-     */
-    public static void ls(Context context, String[] argv, Map<String, String> colorMap) throws Exception {
         final String[] usage = {
             "ls - list files",
             "Usage: ls [OPTIONS] [PATTERNS...]",
@@ -1388,10 +1389,12 @@ public class PosixCommands {
             "  -L                       list referenced file for links",
             "  -h                       print sizes in human readable form"
         };
-        Options opt = Options.compile(usage).parse(argv);
+        Options opt = Options.compile(usage).parse(argv, true);
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
+
+        Map<String, String> colorMap = getLsColorMap(context);
 
         String color = opt.isSet("color") ? opt.get("color") : "auto";
         boolean colored;
@@ -1762,6 +1765,25 @@ public class PosixCommands {
         String str = colorString != null ? colorString : "";
         if (str.isEmpty()) {
             return Collections.emptyMap();
+        }
+        String sep = str.matches("[a-z]{2}=[0-9]*(;[0-9]+)*(:[a-z]{2}=[0-9]*(;[0-9]+)*)*") ? ":" : " ";
+        return Arrays.stream(str.split(sep))
+                .collect(Collectors.toMap(s -> s.substring(0, s.indexOf('=')), s -> s.substring(s.indexOf('=') + 1)));
+    }
+
+    public static Map<String, String> getLsColorMap(Context session) {
+        return getColorMap(session, "LS", DEFAULT_LS_COLORS);
+    }
+
+    public static Map<String, String> getColorMap(Context session, String name, String def) {
+        return getColorMap(session::get, name, def);
+    }
+
+    public static Map<String, String> getColorMap(Function<String, Object> variables, String name, String def) {
+        Object obj = variables.apply(name + "_COLORS");
+        String str = obj != null ? obj.toString() : null;
+        if (str == null) {
+            str = def;
         }
         String sep = str.matches("[a-z]{2}=[0-9]*(;[0-9]+)*(:[a-z]{2}=[0-9]*(;[0-9]+)*)*") ? ":" : " ";
         return Arrays.stream(str.split(sep))

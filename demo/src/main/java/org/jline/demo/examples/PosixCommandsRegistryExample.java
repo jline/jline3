@@ -12,6 +12,8 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.jline.builtins.PosixCommandsRegistry;
 import org.jline.reader.LineReader;
@@ -40,13 +42,16 @@ public class PosixCommandsRegistryExample {
         Files.write(file1, "apple\nbanana\ncherry\ndate\nelderberry".getBytes(StandardCharsets.UTF_8));
         Files.write(file2, "one\ntwo\nthree\nfour\nfive".getBytes(StandardCharsets.UTF_8));
 
+        Map<String, String> variables = new HashMap<>();
+
         // Create a POSIX commands registry
         PosixCommandsRegistry registry = new PosixCommandsRegistry(
                 terminal.input(),
                 new PrintStream(terminal.output()),
                 new PrintStream(terminal.output()),
                 workDir,
-                terminal);
+                terminal,
+                variables::get);
 
         // Create a line reader
         LineReader reader = LineReaderBuilder.builder()
