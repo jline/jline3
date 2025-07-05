@@ -67,6 +67,7 @@ import org.jline.utils.StyleResolver;
  * @see <a href="http://www.opengroup.org/onlinepubs/009695399/utilities/contents.html">
  * POSIX Utilities</a>
  */
+@SuppressWarnings("resource")
 public class PosixCommands {
 
     /**
@@ -247,9 +248,9 @@ public class PosixCommands {
             }
         }
         if (opt.isSet("n")) {
-            context.out().print(buf.toString());
+            context.out().print(buf);
         } else {
-            context.out().println(buf.toString());
+            context.out().println(buf);
         }
     }
 
@@ -840,7 +841,7 @@ public class PosixCommands {
             if (showBytes) result.append(String.format("%8d", bytes));
             result.append(" ").append(source.getName());
 
-            context.out().println(result.toString());
+            context.out().println(result);
         }
 
         // Print totals if multiple files
@@ -852,7 +853,7 @@ public class PosixCommands {
             if (showBytes) result.append(String.format("%8d", totalBytes));
             result.append(" total");
 
-            context.out().println(result.toString());
+            context.out().println(result);
         }
     }
 
@@ -1876,7 +1877,7 @@ public class PosixCommands {
             this.separator = separator;
             this.ignoreBlanks = ignoreBlanks;
             this.numeric = numeric;
-            if (sortFields == null || sortFields.size() == 0) {
+            if (sortFields == null || sortFields.isEmpty()) {
                 sortFields = new ArrayList<>();
                 sortFields.add("1");
             }
@@ -1996,7 +1997,7 @@ public class PosixCommands {
                         last = idx + 1;
                     }
                     if (last < o.length()) {
-                        fields.add(last < 0 ? 0 : last);
+                        fields.add(Math.max(last, 0));
                         fields.add(o.length() - 1);
                     }
                 }
