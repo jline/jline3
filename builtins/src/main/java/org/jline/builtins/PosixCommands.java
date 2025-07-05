@@ -136,10 +136,7 @@ public class PosixCommands {
         final String[] usage = {
             "cd - change directory", "Usage: cd [OPTIONS] DIRECTORY", "  -? --help                show help"
         };
-        Options opt = Options.compile(usage).parse(argv, true);
-        if (opt.isSet("help")) {
-            throw new HelpException(opt.usage());
-        }
+        Options opt = parseOptions(context, usage, argv);
         if (opt.args().size() != 1) {
             throw new IllegalArgumentException("usage: cd DIRECTORY");
         }
@@ -161,10 +158,7 @@ public class PosixCommands {
         final String[] usage = {
             "pwd - print working directory", "Usage: pwd [OPTIONS]", "  -? --help                show help"
         };
-        Options opt = Options.compile(usage).parse(argv, true);
-        if (opt.isSet("help")) {
-            throw new HelpException(opt.usage());
-        }
+        Options opt = parseOptions(context, usage, argv);
         if (!opt.args().isEmpty()) {
             throw new IllegalArgumentException("usage: pwd");
         }
@@ -181,10 +175,7 @@ public class PosixCommands {
             "  -? --help                show help",
             "  -n                       no trailing new line"
         };
-        Options opt = Options.compile(usage).parse(argv, true);
-        if (opt.isSet("help")) {
-            throw new HelpException(opt.usage());
-        }
+        Options opt = parseOptions(context, usage, argv);
 
         List<String> args = opt.args();
         StringBuilder buf = new StringBuilder();
@@ -289,10 +280,7 @@ public class PosixCommands {
             "  -? --help                show help",
             "  -n                       number the output lines, starting at 1"
         };
-        Options opt = Options.compile(usage).parse(argv, true);
-        if (opt.isSet("help")) {
-            throw new HelpException(opt.usage());
-        }
+        Options opt = parseOptions(context, usage, argv);
 
         List<String> args = opt.args();
         if (args.isEmpty()) {
@@ -565,10 +553,7 @@ public class PosixCommands {
             "Usage: sleep seconds",
             "  -? --help                    show help"
         };
-        Options opt = Options.compile(usage).parse(argv, true);
-        if (opt.isSet("help")) {
-            throw new HelpException(opt.usage());
-        }
+        Options opt = parseOptions(context, usage, argv);
 
         List<String> args = opt.args();
         if (args.size() != 1) {
@@ -598,10 +583,7 @@ public class PosixCommands {
             "  -a --append                  The output should be appended but not clear the console"
         };
 
-        Options opt = Options.compile(usage).parse(argv, true);
-        if (opt.isSet("help")) {
-            throw new HelpException(opt.usage());
-        }
+        Options opt = parseOptions(context, usage, argv);
 
         List<String> args = opt.args();
         if (args.isEmpty()) {
@@ -697,10 +679,7 @@ public class PosixCommands {
      * Text editor command - edit files with nano-like interface.
      */
     public static void nano(Context context, String[] argv) throws Exception {
-        Options opt = Options.compile(Nano.usage()).parse(argv, true);
-        if (opt.isSet("help")) {
-            throw new HelpException(opt.usage());
-        }
+        Options opt = parseOptions(context, Nano.usage(), argv);
         Nano nano = new Nano(context.terminal(), context.currentDir(), opt);
         nano.open(opt.args());
         nano.run();
@@ -710,10 +689,7 @@ public class PosixCommands {
      * Pager command - view files with less-like interface.
      */
     public static void less(Context context, String[] argv) throws Exception {
-        Options opt = Options.compile(Less.usage()).parse(argv, true);
-        if (opt.isSet("help")) {
-            throw new HelpException(opt.usage());
-        }
+        Options opt = parseOptions(context, Less.usage(), argv);
 
         List<Source> sources = new ArrayList<>();
         if (opt.args().isEmpty()) {
@@ -767,10 +743,7 @@ public class PosixCommands {
         final String[] usage = {
             "clear - clear screen", "Usage: clear [OPTIONS]", "  -? --help                    Show help",
         };
-        Options opt = Options.compile(usage).parse(argv, true);
-        if (opt.isSet("help")) {
-            throw new HelpException(opt.usage());
-        }
+        Options opt = parseOptions(context, usage, argv);
 
         if (context.isTty()) {
             context.terminal().puts(Capability.clear_screen);
@@ -791,10 +764,7 @@ public class PosixCommands {
             "  -m --chars                   Print character counts",
             "  -w --words                   Print word counts",
         };
-        Options opt = Options.compile(usage).parse(argv, true);
-        if (opt.isSet("help")) {
-            throw new HelpException(opt.usage());
-        }
+        Options opt = parseOptions(context, usage, argv);
 
         List<Source> sources = new ArrayList<>();
         if (opt.args().isEmpty()) {
@@ -881,10 +851,7 @@ public class PosixCommands {
             "  -n --lines=LINES             Print line counts",
             "  -c --bytes=BYTES             Print byte counts",
         };
-        Options opt = Options.compile(usage).parse(argv, true);
-        if (opt.isSet("help")) {
-            throw new HelpException(opt.usage());
-        }
+        Options opt = parseOptions(context, usage, argv);
 
         if (opt.isSet("lines") && opt.isSet("bytes")) {
             throw new IllegalArgumentException("usage: head [-n # | -c #] [file ...]");
@@ -955,10 +922,7 @@ public class PosixCommands {
             "  -n --lines=LINES             Number of lines to print",
             "  -c --bytes=BYTES             Number of bytes to print",
         };
-        Options opt = Options.compile(usage).parse(argv, true);
-        if (opt.isSet("help")) {
-            throw new HelpException(opt.usage());
-        }
+        Options opt = parseOptions(context, usage, argv);
 
         if (opt.isSet("lines") && opt.isSet("bytes")) {
             throw new IllegalArgumentException("usage: tail [-f] [-q] [-c # | -n #] [file ...]");
@@ -1092,10 +1056,7 @@ public class PosixCommands {
             "  -C --context=NUM         Print NUM lines of output context",
             "     --pad-lines           Pad line numbers"
         };
-        Options opt = Options.compile(usage).parse(argv, true);
-        if (opt.isSet("help")) {
-            throw new HelpException(opt.usage());
-        }
+        Options opt = parseOptions(context, usage, argv);
 
         Map<String, String> colorMap = getColorMap(context, "GREP", DEFAULT_GREP_COLORS);
 
@@ -1327,10 +1288,7 @@ public class PosixCommands {
             "  -k --key=KEY                 fields to use for sorting separated by whitespaces"
         };
 
-        Options opt = Options.compile(usage).parse(argv, true);
-        if (opt.isSet("help")) {
-            throw new HelpException(opt.usage());
-        }
+        Options opt = parseOptions(context, usage, argv);
 
         List<String> args = opt.args();
 
@@ -1389,10 +1347,7 @@ public class PosixCommands {
             "  -L                       list referenced file for links",
             "  -h                       print sizes in human readable form"
         };
-        Options opt = Options.compile(usage).parse(argv, true);
-        if (opt.isSet("help")) {
-            throw new HelpException(opt.usage());
-        }
+        Options opt = parseOptions(context, usage, argv);
 
         Map<String, String> colorMap = getLsColorMap(context);
 
@@ -2168,10 +2123,24 @@ public class PosixCommands {
     public interface CommandExecutor {
         /**
          * Execute a command and return its output.
+         *
          * @param command the command to execute
          * @return the command output
          * @throws Exception if execution fails
          */
         String execute(String command) throws Exception;
+    }
+
+    protected static Options parseOptions(Context context, String[] usage, Object[] argv) throws Exception {
+        Options opt = Options.compile(usage, s -> get(context, s)).parse(argv, true);
+        if (opt.isSet("help")) {
+            throw new HelpException(opt.usage());
+        }
+        return opt;
+    }
+
+    protected static String get(Context context, String name) {
+        Object o = context.get(name);
+        return o != null ? o.toString() : null;
     }
 }
