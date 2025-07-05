@@ -33,57 +33,32 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.net.MalformedURLException;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.nio.file.PathMatcher;
-import java.nio.file.attribute.FileTime;
 import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.function.IntBinaryOperator;
-import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.felix.gogo.jline.Shell.Context;
 import org.apache.felix.service.command.CommandProcessor;
 import org.apache.felix.service.command.CommandSession;
 import org.apache.felix.service.command.Process;
 import org.jline.builtins.Commands;
-import org.jline.builtins.Less;
-import org.jline.builtins.Nano;
 import org.jline.builtins.Options;
 import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.PosixCommands;
 import org.jline.builtins.Source;
-import org.jline.builtins.Source.PathSource;
-import org.jline.builtins.Source.URLSource;
 import org.jline.builtins.TTop;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Terminal;
@@ -301,34 +276,20 @@ public class Posix {
     }
 
     protected void ttop(final CommandSession session, Process process, String[] argv) throws Exception {
-        final String[] usage = {
-            "ttop -  display and update sorted information about threads",
-            "Usage: ttop [OPTIONS]",
-            "  -? --help                    Show help",
-            "  -o --order=ORDER             Comma separated list of sorting keys",
-            "  -t --stats=STATS             Comma separated list of stats to display",
-            "  -s --seconds=SECONDS         Delay between updates in seconds",
-            "  -m --millis=MILLIS           Delay between updates in milliseconds",
-            "  -n --nthreads=NTHREADS       Only display up to NTHREADS threads",
-        };
-        Options opt = parseOptions(session, usage, argv);
-        TTop ttop = new TTop(Shell.getTerminal(session));
-        ttop.sort = opt.isSet("order") ? Arrays.asList(opt.get("order").split(",")) : null;
-        ttop.delay = opt.isSet("seconds") ? opt.getNumber("seconds") * 1000 : ttop.delay;
-        ttop.delay = opt.isSet("millis") ? opt.getNumber("millis") : ttop.delay;
-        ttop.stats = opt.isSet("stats") ? Arrays.asList(opt.get("stats").split(",")) : null;
-        ttop.nthreads = opt.isSet("nthreads") ? opt.getNumber("nthreads") : ttop.nthreads;
-        ttop.run();
+        PosixCommands.ttop(createPosixContext(session, process), argv);
     }
 
     protected void nano(final CommandSession session, Process process, String[] argv) throws Exception {
-        Options opt = parseOptions(session, Nano.usage(), argv);
-        Nano edit = new Nano(Shell.getTerminal(session), session.currentDir(), opt);
-        edit.open(opt.args());
-        edit.run();
+        PosixCommands.nano(createPosixContext(session, process), argv);
     }
 
     protected void watch(final CommandSession session, Process process, String[] argv) throws Exception {
+        // Note: Using full gogo implementation for shell command execution
+        // PosixCommands.watch() provides a simplified version
+        watchFull(session, process, argv);
+    }
+
+    protected void watchFull(final CommandSession session, Process process, String[] argv) throws Exception {
         final String[] usage = {
             "watch - watches & refreshes the output of a command",
             "Usage: watch [OPTIONS] COMMAND",
@@ -386,53 +347,17 @@ public class Posix {
     }
 
     protected void less(CommandSession session, Process process, String[] argv) throws Exception {
-        Options opt = parseOptions(session, Less.usage(), argv);
-        List<Source> sources = new ArrayList<>();
-        if (opt.args().isEmpty()) {
-            opt.args().add("-");
-        }
-        for (String arg : opt.args()) {
-            if ("-".equals(arg)) {
-                sources.add(new StdInSource(process));
-            } else if (arg.contains("*") || arg.contains("?")) {
-                PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + arg);
-                try (Stream<Path> pathStream = Files.walk(session.currentDir())) {
-                    pathStream
-                            .filter(pathMatcher::matches)
-                            .forEach(p -> sources.add(doUrlSource(session.currentDir(), p)));
-                }
-            } else {
-                sources.add(new PathSource(session.currentDir().resolve(arg), arg));
-            }
-        }
-
-        if (!process.isTty(1)) {
-            for (Source source : sources) {
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(source.read()))) {
-                    cat(process, reader, opt.isSet("LINE-NUMBERS"));
-                }
-            }
-            return;
-        }
-
-        Less less = new Less(Shell.getTerminal(session), session.currentDir(), opt);
-        less.run(sources);
+        PosixCommands.less(createPosixContext(session, process), argv);
     }
 
-    private static Source doUrlSource(Path currentDir, Path file) {
-        Source out = null;
-        try {
-            out = new URLSource(currentDir.resolve(file).toUri().toURL(), file.toString());
-        } catch (MalformedURLException exp) {
-            throw new IllegalArgumentException(exp.getMessage());
-        }
-        return out;
-    }
+    // doUrlSource method removed - functionality moved to PosixCommands.less
 
     protected void sort(CommandSession session, Process process, String[] argv) throws Exception {
         PosixCommands.sort(createPosixContext(session, process), argv);
     }
 
+    // sortOld method removed - functionality moved to PosixCommands.sort
+    /*
     protected void sortOld(CommandSession session, Process process, String[] argv) throws Exception {
         final String[] usage = {
             "sort -  writes sorted standard input to standard output.",
@@ -482,6 +407,7 @@ public class Posix {
             last = s;
         }
     }
+    */
 
     protected void pwd(CommandSession session, Process process, String[] argv) throws Exception {
         PosixCommands.pwd(createPosixContext(session, process), argv);
@@ -506,9 +432,12 @@ public class Posix {
     }
 
     protected void ls(CommandSession session, Process process, String[] argv) throws Exception {
-        PosixCommands.ls(createPosixContext(session, process), argv);
+        Map<String, String> colorMap = getLsColorMap(session);
+        PosixCommands.ls(createPosixContext(session, process), argv, colorMap);
     }
 
+    // lsOld method removed - functionality moved to PosixCommands.ls
+    /*
     protected void lsOld(CommandSession session, Process process, String[] argv) throws Exception {
         final String[] usage = {
             "ls - list files",
@@ -858,6 +787,7 @@ public class Posix {
             out.print(sb.toAnsi(terminal));
         }
     }
+    */
 
     protected void cat(CommandSession session, Process process, String[] argv) throws Exception {
         PosixCommands.cat(createPosixContext(session, process), argv);
@@ -868,9 +798,12 @@ public class Posix {
     }
 
     protected void grep(CommandSession session, Process process, String[] argv) throws Exception {
-        PosixCommands.grep(createPosixContext(session, process), argv);
+        Map<String, String> colorMap = getColorMap(session, "GREP", DEFAULT_GREP_COLORS);
+        PosixCommands.grep(createPosixContext(session, process), argv, colorMap);
     }
 
+    // grepOld method removed - functionality moved to PosixCommands.grep
+    /*
     protected void grepOld(CommandSession session, Process process, String[] argv) throws Exception {
         final String[] usage = {
             "grep -  search for PATTERN in each FILE or standard input.",
@@ -1076,6 +1009,7 @@ public class Posix {
         }
         Process.Utils.current().error(match ? 0 : 1);
     }
+    */
 
     protected void sleep(CommandSession session, Process process, String[] argv) throws Exception {
         PosixCommands.sleep(createPosixContext(session, process), argv);
@@ -1103,6 +1037,8 @@ public class Posix {
         }
     }
 
+    // SortComparator class removed - functionality moved to PosixCommands.SortComparator
+    /*
     public static class SortComparator implements Comparator<String> {
 
         private static Pattern fpPattern;
@@ -1366,6 +1302,7 @@ public class Posix {
             }
         }
     }
+    */
 
     private static LinkOption[] getLinkOptions(boolean followLinks) {
         if (followLinks) {

@@ -9,13 +9,22 @@
 package org.jline.builtins;
 
 import java.io.*;
-import java.net.MalformedURLException;
 import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.time.LocalDateTime;
+import java.nio.file.attribute.FileTime;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.time.Instant;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.IntBinaryOperator;
+import java.util.function.Predicate;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -24,7 +33,11 @@ import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.Source.StdInSource;
 import org.jline.builtins.Source.URLSource;
 import org.jline.terminal.Terminal;
+import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.InfoCmp.Capability;
+import org.jline.utils.OSUtils;
+import org.jline.utils.StyleResolver;
 
 /**
  * POSIX-like command implementations for JLine applications.
@@ -97,6 +110,34 @@ public class PosixCommands {
         public boolean isTty() {
             return terminal != null;
         }
+    }
+
+    /**
+     * Change directory command.
+     * Note: This implementation cannot change the session's current directory
+     * since Context doesn't provide that capability. Use the gogo implementation
+     * for full cd functionality.
+     */
+    public static void cd(Context context, String[] argv) throws Exception {
+        final String[] usage = {
+            "cd - change directory", "Usage: cd [OPTIONS] DIRECTORY", "  -? --help                show help"
+        };
+        Options opt = Options.compile(usage).parse(argv);
+        if (opt.isSet("help")) {
+            throw new HelpException(opt.usage());
+        }
+        if (opt.args().size() != 1) {
+            throw new IllegalArgumentException("usage: cd DIRECTORY");
+        }
+        Path cwd = context.currentDir();
+        Path newDir = cwd.resolve(opt.args().get(0)).toAbsolutePath().normalize();
+        if (!Files.exists(newDir)) {
+            throw new IOException("no such file or directory: " + opt.args().get(0));
+        } else if (!Files.isDirectory(newDir)) {
+            throw new IOException("not a directory: " + opt.args().get(0));
+        }
+        // Note: Cannot actually change directory in Context - this is just validation
+        context.out().println("Directory exists: " + newDir);
     }
 
     /**
@@ -525,6 +566,153 @@ public class PosixCommands {
     }
 
     /**
+     * Watch command - execute a command repeatedly and display output.
+     * Note: This is a simplified implementation that doesn't execute shell commands.
+     * For full functionality, use the gogo implementation.
+     */
+    public static void watch(Context context, String[] argv) throws Exception {
+        final String[] usage = {
+            "watch - watches & refreshes the output of a command",
+            "Usage: watch [OPTIONS] COMMAND",
+            "  -? --help                    Show help",
+            "  -n --interval=SECONDS        Interval between executions of the command in seconds",
+            "  -a --append                  The output should be appended but not clear the console"
+        };
+
+        Options opt = Options.compile(usage).parse(argv);
+        if (opt.isSet("help")) {
+            throw new HelpException(opt.usage());
+        }
+
+        List<String> args = opt.args();
+        if (args.isEmpty()) {
+            throw new IllegalArgumentException("usage: watch COMMAND");
+        }
+
+        int interval = 1;
+        if (opt.isSet("interval")) {
+            interval = opt.getNumber("interval");
+            if (interval < 1) {
+                interval = 1;
+            }
+        }
+
+        boolean append = opt.isSet("append");
+        String command = String.join(" ", args);
+
+        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+        try {
+            Runnable task = () -> {
+                try {
+                    if (!append && context.isTty()) {
+                        // Clear screen if possible
+                        context.terminal().puts(org.jline.utils.InfoCmp.Capability.clear_screen);
+                        context.terminal().flush();
+                    } else {
+                        context.out().println();
+                    }
+
+                    // Note: This is a simplified implementation
+                    // Full command execution would require shell integration
+                    context.out().println("Command: " + command);
+                    context.out().println("Time: " + java.time.LocalDateTime.now());
+                    context.out().println("(Command execution not implemented in PosixCommands context)");
+                    context.out().flush();
+                } catch (Exception e) {
+                    context.err().println("Error executing command: " + e.getMessage());
+                }
+            };
+
+            executorService.scheduleAtFixedRate(task, 0, interval, TimeUnit.SECONDS);
+
+            if (context.isTty()) {
+                // Wait for user input to stop
+                context.out().println("Press any key to stop...");
+                context.in().read();
+            } else {
+                // Non-interactive mode - run for a limited time
+                Thread.sleep(10000); // 10 seconds
+            }
+        } finally {
+            executorService.shutdownNow();
+        }
+    }
+
+    /**
+     * Thread monitoring command - display and update sorted information about threads.
+     */
+    public static void ttop(Context context, String[] argv) throws Exception {
+        TTop.ttop(context.terminal(), context.out(), context.err(), argv);
+    }
+
+    /**
+     * Text editor command - edit files with nano-like interface.
+     */
+    public static void nano(Context context, String[] argv) throws Exception {
+        Options opt = Options.compile(Nano.usage()).parse(argv);
+        if (opt.isSet("help")) {
+            throw new HelpException(opt.usage());
+        }
+        Nano nano = new Nano(context.terminal(), context.currentDir(), opt);
+        nano.open(opt.args());
+        nano.run();
+    }
+
+    /**
+     * Pager command - view files with less-like interface.
+     */
+    public static void less(Context context, String[] argv) throws Exception {
+        Options opt = Options.compile(Less.usage()).parse(argv);
+        if (opt.isSet("help")) {
+            throw new HelpException(opt.usage());
+        }
+
+        List<Source> sources = new ArrayList<>();
+        if (opt.args().isEmpty()) {
+            opt.args().add("-");
+        }
+        for (String arg : opt.args()) {
+            if ("-".equals(arg)) {
+                sources.add(new Source.StdInSource(context.in()));
+            } else if (arg.contains("*") || arg.contains("?")) {
+                PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + arg);
+                try (Stream<Path> pathStream = Files.walk(context.currentDir())) {
+                    pathStream.filter(pathMatcher::matches).forEach(p -> {
+                        try {
+                            sources.add(new Source.URLSource(p.toUri().toURL(), p.toString()));
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                }
+            } else {
+                try {
+                    Path path = context.currentDir().resolve(arg);
+                    sources.add(new Source.URLSource(path.toUri().toURL(), arg));
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        if (!context.isTty()) {
+            // Non-interactive mode - just cat the files
+            for (Source source : sources) {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(source.read()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        context.out().println(line);
+                    }
+                }
+            }
+            return;
+        }
+
+        Less less = new Less(context.terminal(), context.currentDir(), opt);
+        less.run(sources);
+    }
+
+    /**
      * Clear command - clear terminal screen.
      */
     public static void clear(Context context, String[] argv) throws Exception {
@@ -839,27 +1027,29 @@ public class PosixCommands {
      * Grep command - search text patterns.
      */
     public static void grep(Context context, String[] argv) throws Exception {
+        grep(context, argv, null);
+    }
+
+    /**
+     * Grep command - search text patterns with color map.
+     */
+    public static void grep(Context context, String[] argv, Map<String, String> colorMap) throws Exception {
         final String[] usage = {
-            "grep - search text patterns",
+            "grep -  search for PATTERN in each FILE or standard input.",
             "Usage: grep [OPTIONS] PATTERN [FILES]",
-            "  -? --help                    Show help",
-            "  -i --ignore-case             Ignore case distinctions",
-            "  -n --line-number             Print line numbers with output lines",
-            "  -v --invert-match            Invert the sense of matching",
-            "  -c --count                   Print only a count of matching lines",
-            "  -l --files-with-matches      Print only names of files with matches",
-            "  -L --files-without-match     Print only names of files without matches",
-            "  -H --with-filename           Print the file name for each match",
-            "  -h --no-filename             Suppress the file name prefix on output",
-            "  -q --quiet                   Suppress all normal output",
-            "  -r --recursive               Read all files under each directory recursively",
-            "  -E --extended-regexp         Interpret PATTERN as an extended regular expression",
-            "  -F --fixed-strings           Interpret PATTERN as a list of fixed strings",
-            "  -w --word-regexp             Force PATTERN to match only whole words",
-            "  -x --line-regexp             Force PATTERN to match only whole lines",
-            "  -B --before-context=NUM      Print NUM lines of leading context before matching lines",
-            "  -A --after-context=NUM       Print NUM lines of trailing context after matching lines",
-            "  -C --context=NUM             Print NUM lines of output context",
+            "  -? --help                Show help",
+            "  -i --ignore-case         Ignore case distinctions",
+            "  -n --line-number         Prefix each line with line number within its input file",
+            "  -q --quiet, --silent     Suppress all normal output",
+            "  -v --invert-match        Select non-matching lines",
+            "  -w --word-regexp         Select only whole words",
+            "  -x --line-regexp         Select only whole lines",
+            "  -c --count               Only print a count of matching lines per file",
+            "     --color=WHEN          Use markers to distinguish the matching string, may be `always', `never' or `auto'",
+            "  -B --before-context=NUM  Print NUM lines of leading context before matching lines",
+            "  -A --after-context=NUM   Print NUM lines of trailing context after matching lines",
+            "  -C --context=NUM         Print NUM lines of output context",
+            "     --pad-lines           Pad line numbers"
         };
         Options opt = Options.compile(usage).parse(argv);
         if (opt.isSet("help")) {
@@ -871,207 +1061,265 @@ public class PosixCommands {
             throw new IllegalArgumentException("no pattern supplied");
         }
 
-        String patternStr = args.get(0);
-        List<String> files = args.subList(1, args.size());
-
-        if (files.isEmpty()) {
-            files = Collections.singletonList("-");
+        String regex = args.remove(0);
+        String regexp = regex;
+        if (opt.isSet("word-regexp")) {
+            regexp = "\\b" + regexp + "\\b";
         }
-
-        // Build pattern
-        int flags = 0;
+        if (opt.isSet("line-regexp")) {
+            regexp = "^" + regexp + "$";
+        } else {
+            regexp = ".*" + regexp + ".*";
+        }
+        Pattern p;
+        Pattern p2;
         if (opt.isSet("ignore-case")) {
-            flags |= Pattern.CASE_INSENSITIVE;
-        }
-
-        Pattern pattern;
-        if (opt.isSet("fixed-strings")) {
-            pattern = Pattern.compile(Pattern.quote(patternStr), flags);
-        } else if (opt.isSet("word-regexp")) {
-            pattern = Pattern.compile("\\b" + patternStr + "\\b", flags);
-        } else if (opt.isSet("line-regexp")) {
-            pattern = Pattern.compile("^" + patternStr + "$", flags);
+            p = Pattern.compile(regexp, Pattern.CASE_INSENSITIVE);
+            p2 = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
         } else {
-            pattern = Pattern.compile(patternStr, flags);
+            p = Pattern.compile(regexp);
+            p2 = Pattern.compile(regex);
         }
-
-        boolean showLineNumbers = opt.isSet("line-number");
-        boolean invertMatch = opt.isSet("invert-match");
-        boolean countOnly = opt.isSet("count");
-        boolean filesWithMatches = opt.isSet("files-with-matches");
-        boolean filesWithoutMatch = opt.isSet("files-without-match");
-        boolean showFilename = opt.isSet("with-filename") || files.size() > 1;
-        boolean hideFilename = opt.isSet("no-filename");
+        int after = opt.isSet("after-context") ? opt.getNumber("after-context") : -1;
+        int before = opt.isSet("before-context") ? opt.getNumber("before-context") : -1;
+        int contextLines = opt.isSet("context") ? opt.getNumber("context") : 0;
+        String lineFmt = opt.isSet("pad-lines") ? "%6d" : "%d";
+        if (after < 0) {
+            after = contextLines;
+        }
+        if (before < 0) {
+            before = contextLines;
+        }
+        boolean count = opt.isSet("count");
         boolean quiet = opt.isSet("quiet");
-
-        if (hideFilename) showFilename = false;
-
-        for (String file : files) {
-            grepFile(
-                    context,
-                    file,
-                    pattern,
-                    showLineNumbers,
-                    invertMatch,
-                    countOnly,
-                    filesWithMatches,
-                    filesWithoutMatch,
-                    showFilename,
-                    quiet);
+        boolean invert = opt.isSet("invert-match");
+        boolean lineNumber = opt.isSet("line-number");
+        String color = opt.isSet("color") ? opt.get("color") : "auto";
+        boolean colored;
+        switch (color) {
+            case "always":
+            case "yes":
+            case "force":
+                colored = true;
+                break;
+            case "never":
+            case "no":
+            case "none":
+                colored = false;
+                break;
+            case "auto":
+            case "tty":
+            case "if-tty":
+                colored = context.isTty();
+                break;
+            default:
+                throw new IllegalArgumentException("invalid argument '" + color + "' for '--color'");
         }
-    }
+        Map<String, String> colors =
+                colored ? (colorMap != null ? colorMap : getColorMap(DEFAULT_GREP_COLORS)) : Collections.emptyMap();
 
-    private static void grepFile(
-            Context context,
-            String filename,
-            Pattern pattern,
-            boolean showLineNumbers,
-            boolean invertMatch,
-            boolean countOnly,
-            boolean filesWithMatches,
-            boolean filesWithoutMatch,
-            boolean showFilename,
-            boolean quiet)
-            throws IOException {
-        InputStream is;
-        if ("-".equals(filename)) {
-            is = context.in();
-            filename = "(standard input)";
-        } else {
-            try {
-                is = context.currentDir().resolve(filename).toUri().toURL().openStream();
-            } catch (MalformedURLException e) {
-                context.err().println("grep: " + filename + ": " + e.getMessage());
-                return;
+        if (args.isEmpty()) {
+            args.add("-");
+        }
+        List<GrepSource> sources = new ArrayList<>();
+        for (String arg : args) {
+            if ("-".equals(arg)) {
+                sources.add(new GrepSource(context.in(), "(standard input)"));
+            } else {
+                Path path = context.currentDir().resolve(arg);
+                sources.add(new GrepSource(path, arg));
             }
         }
-
-        int matchCount = 0;
-        int lineNumber = 0;
-        boolean hasMatches = false;
-
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                lineNumber++;
-                boolean matches = pattern.matcher(line).find();
-                if (invertMatch) matches = !matches;
-
-                if (matches) {
-                    matchCount++;
-                    hasMatches = true;
-
-                    if (!quiet && !countOnly && !filesWithMatches && !filesWithoutMatch) {
-                        StringBuilder output = new StringBuilder();
-                        if (showFilename) {
-                            output.append(filename).append(":");
+        boolean match = false;
+        for (GrepSource src : sources) {
+            List<String> lines = new ArrayList<>();
+            boolean firstPrint = true;
+            int nb = 0;
+            try (InputStream is = src.getInputStream()) {
+                try (BufferedReader r = new BufferedReader(new InputStreamReader(is))) {
+                    String line;
+                    int lineno = 1;
+                    int lineMatch = 0;
+                    while ((line = r.readLine()) != null) {
+                        boolean matches = p.matcher(line).matches();
+                        if (invert) {
+                            matches = !matches;
                         }
-                        if (showLineNumbers) {
-                            output.append(lineNumber).append(":");
+                        AttributedStringBuilder sbl = new AttributedStringBuilder();
+                        if (matches) {
+                            nb++;
+                            if (!count && !quiet) {
+                                if (sources.size() > 1) {
+                                    if (colored) {
+                                        applyStyle(sbl, colors, "fn");
+                                    }
+                                    sbl.append(src.getName());
+                                    if (colored) {
+                                        applyStyle(sbl, colors, "se");
+                                    }
+                                    sbl.append(":");
+                                }
+                                if (lineNumber) {
+                                    if (colored) {
+                                        applyStyle(sbl, colors, "ln");
+                                    }
+                                    sbl.append(String.format(lineFmt, lineno));
+                                    if (colored) {
+                                        applyStyle(sbl, colors, "se");
+                                    }
+                                    sbl.append(":");
+                                }
+                                if (colored) {
+                                    Matcher matcher2 = p2.matcher(line);
+                                    int cur = 0;
+                                    while (matcher2.find()) {
+                                        sbl.append(line, cur, matcher2.start());
+                                        applyStyle(sbl, colors, "ms");
+                                        sbl.append(line, matcher2.start(), matcher2.end());
+                                        applyStyle(sbl, colors, "se");
+                                        cur = matcher2.end();
+                                    }
+                                    sbl.append(line, cur, line.length());
+                                } else {
+                                    sbl.append(line);
+                                }
+                                lineMatch = before + 1;
+                            }
+                        } else if (lineMatch > 0) {
+                            lineMatch--;
+                            if (sources.size() > 1) {
+                                if (colored) {
+                                    applyStyle(sbl, colors, "fn");
+                                }
+                                sbl.append(src.getName());
+                                if (colored) {
+                                    applyStyle(sbl, colors, "se");
+                                }
+                                sbl.append("-");
+                            }
+                            if (lineNumber) {
+                                if (colored) {
+                                    applyStyle(sbl, colors, "ln");
+                                }
+                                sbl.append(String.format(lineFmt, lineno));
+                                if (colored) {
+                                    applyStyle(sbl, colors, "se");
+                                }
+                                sbl.append("-");
+                            }
+                            sbl.append(line);
+                        } else {
+                            if (sources.size() > 1) {
+                                if (colored) {
+                                    applyStyle(sbl, colors, "fn");
+                                }
+                                sbl.append(src.getName());
+                                if (colored) {
+                                    applyStyle(sbl, colors, "se");
+                                }
+                                sbl.append("-");
+                            }
+                            if (lineNumber) {
+                                if (colored) {
+                                    applyStyle(sbl, colors, "ln");
+                                }
+                                sbl.append(String.format(lineFmt, lineno));
+                                if (colored) {
+                                    applyStyle(sbl, colors, "se");
+                                }
+                                sbl.append("-");
+                            }
+                            sbl.append(line);
+                            while (lines.size() > before) {
+                                lines.remove(0);
+                            }
+                            lineMatch = 0;
                         }
-                        output.append(line);
-                        context.out().println(output.toString());
+                        lines.add(sbl.toAnsi(context.terminal()));
+                        while (lineMatch == 0 && lines.size() > before) {
+                            lines.remove(0);
+                        }
+                        lineno++;
                     }
+                    if (!count && lineMatch > 0) {
+                        if (!firstPrint && before + after > 0) {
+                            AttributedStringBuilder sbl2 = new AttributedStringBuilder();
+                            if (colored) {
+                                applyStyle(sbl2, colors, "se");
+                            }
+                            sbl2.append("--");
+                            context.out().println(sbl2.toAnsi(context.terminal()));
+                        } else {
+                            firstPrint = false;
+                        }
+                        for (int i = 0; i < lineMatch + after && i < lines.size(); i++) {
+                            context.out().println(lines.get(i));
+                        }
+                    }
+                    if (count) {
+                        context.out().println(nb);
+                    }
+                    match |= nb > 0;
                 }
             }
         }
-
-        if (countOnly && !quiet) {
-            if (showFilename) {
-                context.out().println(filename + ":" + matchCount);
-            } else {
-                context.out().println(matchCount);
-            }
-        } else if (filesWithMatches && hasMatches && !quiet) {
-            context.out().println(filename);
-        } else if (filesWithoutMatch && !hasMatches && !quiet) {
-            context.out().println(filename);
-        }
     }
+
+    // Old grepFile method removed - functionality integrated into main grep method
 
     /**
      * Sort command - sort lines of text.
      */
     public static void sort(Context context, String[] argv) throws Exception {
         final String[] usage = {
-            "sort - sort lines of text",
+            "sort -  writes sorted standard input to standard output.",
             "Usage: sort [OPTIONS] [FILES]",
-            "  -? --help                    Show help",
-            "  -r --reverse                 Reverse the result of comparisons",
-            "  -n --numeric-sort            Compare according to string numerical value",
-            "  -f --ignore-case             Fold lower case to upper case characters",
-            "  -u --unique                  Output only the first of an equal run",
-            "  -b --ignore-leading-blanks   Ignore leading blanks",
-            "  -k --key=KEY                 Fields to use for sorting separated by whitespaces"
+            "  -? --help                    show help",
+            "  -f --ignore-case             fold lower case to upper case characters",
+            "  -r --reverse                 reverse the result of comparisons",
+            "  -u --unique                  output only the first of an equal run",
+            "  -t --field-separator=SEP     use SEP instead of non-blank to blank transition",
+            "  -b --ignore-leading-blanks   ignore leading blancks",
+            "     --numeric-sort            compare according to string numerical value",
+            "  -k --key=KEY                 fields to use for sorting separated by whitespaces"
         };
+
         Options opt = Options.compile(usage).parse(argv);
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
 
         List<String> args = opt.args();
-        List<String> lines = new ArrayList<>();
 
+        List<String> lines = new ArrayList<>();
         if (!args.isEmpty()) {
-            for (String arg : args) {
-                InputStream is;
-                if ("-".equals(arg)) {
-                    is = context.in();
-                } else {
-                    is = context.currentDir().resolve(arg).toUri().toURL().openStream();
-                }
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        lines.add(line);
-                    }
+            for (String filename : args) {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                        context.currentDir().toUri().resolve(filename).toURL().openStream()))) {
+                    readLines(reader, lines);
                 }
             }
         } else {
-            // Read from stdin
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(context.in()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    lines.add(line);
-                }
+            BufferedReader r = new BufferedReader(new InputStreamReader(context.in()));
+            readLines(r, lines);
+        }
+
+        String separator = opt.get("field-separator");
+        boolean caseInsensitive = opt.isSet("ignore-case");
+        boolean reverse = opt.isSet("reverse");
+        boolean ignoreBlanks = opt.isSet("ignore-leading-blanks");
+        boolean numeric = opt.isSet("numeric-sort");
+        boolean unique = opt.isSet("unique");
+        List<String> sortFields = opt.getList("key");
+
+        char sep = (separator == null || separator.length() == 0) ? '\0' : separator.charAt(0);
+        lines.sort(new SortComparator(caseInsensitive, reverse, ignoreBlanks, numeric, sep, sortFields));
+        String last = null;
+        for (String s : lines) {
+            if (!unique || last == null || !s.equals(last)) {
+                context.out().println(s);
             }
-        }
-
-        // Sort the lines
-        Comparator<String> comparator = String::compareTo;
-
-        if (opt.isSet("ignore-case")) {
-            comparator = String.CASE_INSENSITIVE_ORDER;
-        }
-        if (opt.isSet("numeric-sort")) {
-            comparator = (a, b) -> {
-                try {
-                    Double da = Double.parseDouble(a.trim());
-                    Double db = Double.parseDouble(b.trim());
-                    return da.compareTo(db);
-                } catch (NumberFormatException e) {
-                    return a.compareTo(b);
-                }
-            };
-        }
-        if (opt.isSet("reverse")) {
-            comparator = comparator.reversed();
-        }
-        if (opt.isSet("ignore-leading-blanks")) {
-            final Comparator<String> finalComparator = comparator;
-            comparator = (a, b) -> finalComparator.compare(a.trim(), b.trim());
-        }
-
-        lines.sort(comparator);
-
-        // Remove duplicates if unique option is set
-        if (opt.isSet("unique")) {
-            lines = lines.stream().distinct().collect(Collectors.toList());
-        }
-
-        // Output sorted lines
-        for (String line : lines) {
-            context.out().println(line);
+            last = s;
         }
     }
 
@@ -1079,172 +1327,363 @@ public class PosixCommands {
      * List directory contents command.
      */
     public static void ls(Context context, String[] argv) throws Exception {
+        ls(context, argv, null);
+    }
+
+    /**
+     * List directory contents command with color map.
+     */
+    public static void ls(Context context, String[] argv, Map<String, String> colorMap) throws Exception {
         final String[] usage = {
-            "ls - list directory contents",
-            "Usage: ls [OPTIONS] [FILES]",
-            "  -? --help                    Show help",
-            "  -a --all                     Do not ignore entries starting with .",
-            "  -l                           Use a long listing format",
-            "  -1                           List one file per line",
-            "  -C                           List entries by columns",
-            "  -m                           Fill width with a comma separated list of entries",
-            "  -r --reverse                 Reverse order while sorting",
-            "  -t                           Sort by modification time",
-            "  -S                           Sort by file size",
-            "  -h --human-readable          Print sizes in human readable form",
-            "  -d --directory               List directories themselves, not their contents",
-            "     --color=WHEN              Colorize output (always, never, auto)"
+            "ls - list files",
+            "Usage: ls [OPTIONS] [PATTERNS...]",
+            "  -? --help                show help",
+            "  -1                       list one entry per line",
+            "  -C                       multi-column output",
+            "     --color=WHEN          colorize the output, may be `always', `never' or `auto'",
+            "  -a                       list entries starting with .",
+            "  -F                       append file type indicators",
+            "  -m                       comma separated",
+            "  -l                       long listing",
+            "  -S                       sort by size",
+            "  -f                       output is not sorted",
+            "  -r                       reverse sort order",
+            "  -t                       sort by modification time",
+            "  -x                       sort horizontally",
+            "  -L                       list referenced file for links",
+            "  -h                       print sizes in human readable form"
         };
         Options opt = Options.compile(usage).parse(argv);
         if (opt.isSet("help")) {
             throw new HelpException(opt.usage());
         }
 
-        List<String> args = opt.args();
-        if (args.isEmpty()) {
-            args = Collections.singletonList(".");
-        }
-
-        boolean showAll = opt.isSet("all");
-        boolean longFormat = opt.isSet("l");
-        boolean onePerLine = opt.isSet("1");
-        boolean columnFormat = opt.isSet("C");
-        boolean commaFormat = opt.isSet("m");
-        boolean reverse = opt.isSet("reverse");
-        boolean sortByTime = opt.isSet("t");
-        boolean sortBySize = opt.isSet("S");
-        boolean humanReadable = opt.isSet("human-readable");
-        boolean directoryOnly = opt.isSet("directory");
-
         String color = opt.isSet("color") ? opt.get("color") : "auto";
-        boolean colored = "always".equals(color) || ("auto".equals(color) && context.isTty());
+        boolean colored;
+        switch (color) {
+            case "always":
+            case "yes":
+            case "force":
+                colored = true;
+                break;
+            case "never":
+            case "no":
+            case "none":
+                colored = false;
+                break;
+            case "auto":
+            case "tty":
+            case "if-tty":
+                colored = context.isTty();
+                break;
+            default:
+                throw new IllegalArgumentException("invalid argument '" + color + "' for '--color'");
+        }
+        Map<String, String> colors =
+                colored ? (colorMap != null ? colorMap : getLsColorMap(DEFAULT_LS_COLORS)) : Collections.emptyMap();
 
-        for (String arg : args) {
-            Path path = context.currentDir().resolve(arg);
+        class PathEntry implements Comparable<PathEntry> {
+            final Path abs;
+            final Path path;
+            final Map<String, Object> attributes;
 
-            if (directoryOnly || !Files.isDirectory(path)) {
-                // List the file/directory itself
-                listPath(context, path, longFormat, humanReadable, colored);
-            } else {
-                // List directory contents
-                if (args.size() > 1) {
-                    context.out().println(arg + ":");
+            public PathEntry(Path abs, Path root) {
+                this.abs = abs;
+                this.path = abs.startsWith(root) ? root.relativize(abs) : abs;
+                this.attributes = readAttributes(abs);
+            }
+
+            @Override
+            public int compareTo(PathEntry o) {
+                int c = doCompare(o);
+                return opt.isSet("r") ? -c : c;
+            }
+
+            private int doCompare(PathEntry o) {
+                if (opt.isSet("f")) {
+                    return -1;
                 }
+                if (opt.isSet("S")) {
+                    long s0 = attributes.get("size") != null ? ((Number) attributes.get("size")).longValue() : 0L;
+                    long s1 = o.attributes.get("size") != null ? ((Number) o.attributes.get("size")).longValue() : 0L;
+                    return s0 > s1 ? -1 : s0 < s1 ? 1 : path.toString().compareTo(o.path.toString());
+                }
+                if (opt.isSet("t")) {
+                    long t0 = attributes.get("lastModifiedTime") != null
+                            ? ((FileTime) attributes.get("lastModifiedTime")).toMillis()
+                            : 0L;
+                    long t1 = o.attributes.get("lastModifiedTime") != null
+                            ? ((FileTime) o.attributes.get("lastModifiedTime")).toMillis()
+                            : 0L;
+                    return t0 > t1 ? -1 : t0 < t1 ? 1 : path.toString().compareTo(o.path.toString());
+                }
+                return path.toString().compareTo(o.path.toString());
+            }
 
-                try (Stream<Path> stream = Files.list(path)) {
-                    List<Path> entries = stream.collect(Collectors.toList());
+            boolean isNotDirectory() {
+                return is("isRegularFile") || is("isSymbolicLink") || is("isOther");
+            }
 
-                    // Filter hidden files
-                    if (!showAll) {
-                        entries = entries.stream()
-                                .filter(p -> !p.getFileName().toString().startsWith("."))
-                                .collect(Collectors.toList());
+            boolean isDirectory() {
+                return is("isDirectory");
+            }
+
+            private boolean is(String attr) {
+                Object d = attributes.get(attr);
+                return d instanceof Boolean && (Boolean) d;
+            }
+
+            String display() {
+                String type;
+                String suffix;
+                String link = "";
+                if (is("isSymbolicLink")) {
+                    type = "sl";
+                    suffix = "@";
+                    try {
+                        Path l = Files.readSymbolicLink(abs);
+                        link = " -> " + l.toString();
+                    } catch (IOException e) {
+                        // ignore
                     }
+                } else if (is("isDirectory")) {
+                    type = "dr";
+                    suffix = "/";
+                } else if (is("isExecutable")) {
+                    type = "ex";
+                    suffix = "*";
+                } else if (is("isOther")) {
+                    type = "ot";
+                    suffix = "";
+                } else {
+                    type = "";
+                    suffix = "";
+                }
+                boolean addSuffix = opt.isSet("F");
+                return applyStyle(path.toString(), colors, type) + (addSuffix ? suffix : "") + link;
+            }
 
-                    // Sort entries
-                    Comparator<Path> comparator =
-                            Comparator.comparing(p -> p.getFileName().toString());
-                    if (sortByTime) {
-                        comparator = Comparator.comparing(p -> {
-                            try {
-                                return Files.getLastModifiedTime(p);
-                            } catch (IOException e) {
-                                return null;
+            String longDisplay() {
+                String username;
+                if (attributes.containsKey("owner")) {
+                    username = Objects.toString(attributes.get("owner"), null);
+                } else {
+                    username = "owner";
+                }
+                if (username.length() > 8) {
+                    username = username.substring(0, 8);
+                } else {
+                    for (int i = username.length(); i < 8; i++) {
+                        username = username + " ";
+                    }
+                }
+                String group;
+                if (attributes.containsKey("group")) {
+                    group = Objects.toString(attributes.get("group"), null);
+                } else {
+                    group = "group";
+                }
+                if (group.length() > 8) {
+                    group = group.substring(0, 8);
+                } else {
+                    for (int i = group.length(); i < 8; i++) {
+                        group = group + " ";
+                    }
+                }
+                Number length = (Number) attributes.get("size");
+                if (length == null) {
+                    length = 0L;
+                }
+                String lengthString;
+                if (opt.isSet("h")) {
+                    double l = length.longValue();
+                    String unit = "B";
+                    if (l >= 1000) {
+                        l /= 1024;
+                        unit = "K";
+                        if (l >= 1000) {
+                            l /= 1024;
+                            unit = "M";
+                            if (l >= 1000) {
+                                l /= 1024;
+                                unit = "T";
                             }
-                        });
-                    } else if (sortBySize) {
-                        comparator = Comparator.comparing(p -> {
-                            try {
-                                return Files.size(p);
-                            } catch (IOException e) {
-                                return 0L;
-                            }
-                        });
-                    }
-                    if (reverse) {
-                        comparator = comparator.reversed();
-                    }
-
-                    entries.sort(comparator);
-
-                    // Display entries
-                    if (longFormat) {
-                        for (Path entry : entries) {
-                            listPathLong(context, entry, humanReadable, colored);
                         }
-                    } else if (onePerLine) {
-                        for (Path entry : entries) {
-                            context.out().println(formatFileName(entry, colored));
-                        }
+                    }
+                    if (l < 10 && length.longValue() > 1000) {
+                        lengthString = String.format("%.1f", l) + unit;
                     } else {
-                        // Simple format - just names
-                        for (Path entry : entries) {
-                            context.out().print(formatFileName(entry, colored) + "  ");
-                        }
-                        context.out().println();
+                        lengthString = String.format("%3.0f", l) + unit;
+                    }
+                } else {
+                    lengthString = String.format("%1$8s", length);
+                }
+                @SuppressWarnings("unchecked")
+                Set<PosixFilePermission> perms = (Set<PosixFilePermission>) attributes.get("permissions");
+                if (perms == null) {
+                    perms = EnumSet.noneOf(PosixFilePermission.class);
+                }
+                // TODO: all fields should be padded to align
+                return (is("isDirectory") ? "d" : (is("isSymbolicLink") ? "l" : (is("isOther") ? "o" : "-")))
+                        + PosixFilePermissions.toString(perms) + " "
+                        + String.format(
+                                "%3s",
+                                (attributes.containsKey("nlink")
+                                        ? attributes.get("nlink").toString()
+                                        : "1"))
+                        + " " + username + " " + group + " " + lengthString + " "
+                        + toString((FileTime) attributes.get("lastModifiedTime"))
+                        + " " + display();
+            }
+
+            protected String toString(FileTime time) {
+                long millis = (time != null) ? time.toMillis() : -1L;
+                if (millis < 0L) {
+                    return "------------";
+                }
+                ZonedDateTime dt = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault());
+                // Less than six months
+                if (System.currentTimeMillis() - millis < 183L * 24L * 60L * 60L * 1000L) {
+                    return DateTimeFormatter.ofPattern("MMM ppd HH:mm").format(dt);
+                }
+                // Older than six months
+                else {
+                    return DateTimeFormatter.ofPattern("MMM ppd  yyyy").format(dt);
+                }
+            }
+
+            protected Map<String, Object> readAttributes(Path path) {
+                Map<String, Object> attrs = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+                for (String view : path.getFileSystem().supportedFileAttributeViews()) {
+                    try {
+                        Map<String, Object> ta =
+                                Files.readAttributes(path, view + ":*", getLinkOptions(opt.isSet("L")));
+                        ta.forEach(attrs::putIfAbsent);
+                    } catch (IOException e) {
+                        // Ignore
                     }
                 }
+                attrs.computeIfAbsent("isExecutable", s -> Files.isExecutable(path));
+                attrs.computeIfAbsent("permissions", s -> getPermissionsFromFile(path));
+                return attrs;
+            }
+        }
 
-                if (args.size() > 1) {
-                    context.out().println();
+        Path currentDir = context.currentDir();
+        // Listing
+        List<Path> expanded = new ArrayList<>();
+        if (opt.args().isEmpty()) {
+            expanded.add(currentDir);
+        } else {
+            opt.args().forEach(s -> expanded.add(currentDir.resolve(s)));
+        }
+        boolean listAll = opt.isSet("a");
+        Predicate<Path> filter = p -> listAll
+                || p.getFileName().toString().equals(".")
+                || p.getFileName().toString().equals("..")
+                || !p.getFileName().toString().startsWith(".");
+        List<PathEntry> all = expanded.stream()
+                .filter(filter)
+                .map(p -> new PathEntry(p, currentDir))
+                .sorted()
+                .collect(Collectors.toList());
+        // Print files first
+        List<PathEntry> files = all.stream().filter(PathEntry::isNotDirectory).collect(Collectors.toList());
+        PrintStream out = context.out();
+        Consumer<Stream<PathEntry>> display = s -> {
+            boolean optLine = opt.isSet("1");
+            boolean optComma = opt.isSet("m");
+            boolean optLong = opt.isSet("l");
+            boolean optCol = opt.isSet("C");
+            if (!optLine && !optComma && !optLong && !optCol) {
+                if (context.isTty()) {
+                    optCol = true;
+                } else {
+                    optLine = true;
                 }
             }
-        }
-    }
-
-    private static void listPath(Context context, Path path, boolean longFormat, boolean humanReadable, boolean colored)
-            throws IOException {
-        if (longFormat) {
-            listPathLong(context, path, humanReadable, colored);
-        } else {
-            context.out().println(formatFileName(path, colored));
-        }
-    }
-
-    private static void listPathLong(Context context, Path path, boolean humanReadable, boolean colored)
-            throws IOException {
-        try {
-            BasicFileAttributes attrs = Files.readAttributes(path, BasicFileAttributes.class);
-
-            // Permissions (simplified)
-            String perms = Files.isDirectory(path) ? "d" : "-";
-            perms += Files.isReadable(path) ? "r" : "-";
-            perms += Files.isWritable(path) ? "w" : "-";
-            perms += Files.isExecutable(path) ? "x" : "-";
-            perms += "------"; // Simplified - not showing group/other permissions
-
-            // Size
-            String size;
-            if (humanReadable) {
-                size = formatHumanReadable(attrs.size());
-            } else {
-                size = String.valueOf(attrs.size());
+            // One entry per line
+            if (optLine) {
+                s.map(PathEntry::display).forEach(out::println);
             }
-
-            // Date
-            String date = DateTimeFormatter.ofPattern("MMM dd HH:mm")
-                    .format(LocalDateTime.ofInstant(attrs.lastModifiedTime().toInstant(), ZoneId.systemDefault()));
-
-            context.out().printf("%s %8s %s %s%n", perms, size, date, formatFileName(path, colored));
-
-        } catch (IOException e) {
-            context.out().println("? " + formatFileName(path, colored));
+            // Comma separated list
+            else if (optComma) {
+                out.println(s.map(PathEntry::display).collect(Collectors.joining(", ")));
+            }
+            // Long listing
+            else if (optLong) {
+                s.map(PathEntry::longDisplay).forEach(out::println);
+            }
+            // Column listing
+            else if (optCol) {
+                toColumn(context, out, s.map(PathEntry::display), opt.isSet("x"));
+            }
+        };
+        boolean space = false;
+        if (!files.isEmpty()) {
+            display.accept(files.stream());
+            space = true;
+        }
+        // Print directories
+        List<PathEntry> directories =
+                all.stream().filter(PathEntry::isDirectory).collect(Collectors.toList());
+        for (PathEntry entry : directories) {
+            if (space) {
+                out.println();
+            }
+            space = true;
+            Path path = currentDir.resolve(entry.path);
+            if (expanded.size() > 1) {
+                out.println(currentDir.relativize(path).toString() + ":");
+            }
+            try (Stream<Path> pathStream = Files.list(path)) {
+                display.accept(Stream.concat(Stream.of(".", "..").map(path::resolve), pathStream)
+                        .filter(filter)
+                        .map(p -> new PathEntry(p, path))
+                        .sorted());
+            }
         }
     }
 
-    private static String formatFileName(Path path, boolean colored) {
-        String name = path.getFileName().toString();
-        if (!colored) {
-            return name;
-        }
-
-        // Simple coloring
-        if (Files.isDirectory(path)) {
-            return "\033[34m" + name + "\033[0m"; // Blue for directories
-        } else if (Files.isExecutable(path)) {
-            return "\033[32m" + name + "\033[0m"; // Green for executables
-        } else {
-            return name;
+    private static void toColumn(Context context, PrintStream out, Stream<String> ansi, boolean horizontal) {
+        Terminal terminal = context.terminal();
+        int width = context.isTty() ? terminal.getWidth() : 80;
+        List<AttributedString> strings = ansi.map(AttributedString::fromAnsi).collect(Collectors.toList());
+        if (!strings.isEmpty()) {
+            int max = strings.stream()
+                    .mapToInt(AttributedString::columnLength)
+                    .max()
+                    .getAsInt();
+            int c = Math.max(1, width / max);
+            while (c > 1 && c * max + (c - 1) >= width) {
+                c--;
+            }
+            int columns = c;
+            int lines = (strings.size() + columns - 1) / columns;
+            IntBinaryOperator index;
+            if (horizontal) {
+                index = (i, j) -> i * columns + j;
+            } else {
+                index = (i, j) -> j * lines + i;
+            }
+            AttributedStringBuilder sb = new AttributedStringBuilder();
+            for (int i = 0; i < lines; i++) {
+                for (int j = 0; j < columns; j++) {
+                    int idx = index.applyAsInt(i, j);
+                    if (idx < strings.size()) {
+                        AttributedString str = strings.get(idx);
+                        boolean hasRightItem = j < columns - 1 && index.applyAsInt(i, j + 1) < strings.size();
+                        sb.append(str);
+                        if (hasRightItem) {
+                            for (int k = 0; k <= max - str.length(); k++) {
+                                sb.append(' ');
+                            }
+                        }
+                    }
+                }
+                sb.append('\n');
+            }
+            out.print(sb.toAnsi(terminal));
         }
     }
 
@@ -1253,5 +1692,416 @@ public class PosixCommands {
         int exp = (int) (Math.log(bytes) / Math.log(1024));
         String pre = "KMGTPE".charAt(exp - 1) + "";
         return String.format("%.1f%s", bytes / Math.pow(1024, exp), pre);
+    }
+
+    /**
+     * Read lines from a BufferedReader into a list.
+     */
+    private static void readLines(BufferedReader reader, List<String> lines) throws IOException {
+        String line;
+        while ((line = reader.readLine()) != null) {
+            lines.add(line);
+        }
+    }
+
+    // Color constants and helper methods
+    public static final String DEFAULT_LS_COLORS = "dr=1;91:ex=1;92:sl=1;96:ot=34;43";
+    public static final String DEFAULT_GREP_COLORS = "mt=1;31:fn=35:ln=32:se=36";
+
+    private static final LinkOption[] NO_FOLLOW_OPTIONS = new LinkOption[] {LinkOption.NOFOLLOW_LINKS};
+    private static final List<String> WINDOWS_EXECUTABLE_EXTENSIONS =
+            Collections.unmodifiableList(Arrays.asList(".bat", ".exe", ".cmd"));
+    private static final LinkOption[] EMPTY_LINK_OPTIONS = new LinkOption[0];
+
+    /**
+     * Get color map for ls command.
+     */
+    public static Map<String, String> getLsColorMap(String colorString) {
+        return getColorMap(colorString != null ? colorString : DEFAULT_LS_COLORS);
+    }
+
+    /**
+     * Get color map from color string.
+     */
+    public static Map<String, String> getColorMap(String colorString) {
+        String str = colorString != null ? colorString : "";
+        if (str.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        String sep = str.matches("[a-z]{2}=[0-9]*(;[0-9]+)*(:[a-z]{2}=[0-9]*(;[0-9]+)*)*") ? ":" : " ";
+        return Arrays.stream(str.split(sep))
+                .collect(Collectors.toMap(s -> s.substring(0, s.indexOf('=')), s -> s.substring(s.indexOf('=') + 1)));
+    }
+
+    /**
+     * Apply style to text using color map.
+     */
+    public static String applyStyle(String text, Map<String, String> colors, String... types) {
+        String t = null;
+        for (String type : types) {
+            if (colors.get(type) != null) {
+                t = type;
+                break;
+            }
+        }
+        return new AttributedString(text, new StyleResolver(colors::get).resolve("." + t)).toAnsi();
+    }
+
+    /**
+     * Apply style to AttributedStringBuilder using color map.
+     */
+    public static void applyStyle(AttributedStringBuilder sb, Map<String, String> colors, String... types) {
+        String t = null;
+        for (String type : types) {
+            if (colors.get(type) != null) {
+                t = type;
+                break;
+            }
+        }
+        sb.style(new StyleResolver(colors::get).resolve("." + t));
+    }
+
+    /**
+     * Get link options based on whether to follow links.
+     */
+    private static LinkOption[] getLinkOptions(boolean followLinks) {
+        if (followLinks) {
+            return EMPTY_LINK_OPTIONS;
+        } else { // return a clone that modifications to the array will not affect others
+            return NO_FOLLOW_OPTIONS.clone();
+        }
+    }
+
+    /**
+     * Check if a file name is a Windows executable.
+     */
+    private static boolean isWindowsExecutable(String fileName) {
+        if ((fileName == null) || (fileName.length() <= 0)) {
+            return false;
+        }
+        for (String suffix : WINDOWS_EXECUTABLE_EXTENSIONS) {
+            if (fileName.endsWith(suffix)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Get POSIX file permissions from a file, with Windows executable handling.
+     */
+    private static Set<PosixFilePermission> getPermissionsFromFile(Path f) {
+        try {
+            Set<PosixFilePermission> perms = Files.getPosixFilePermissions(f);
+            if (OSUtils.IS_WINDOWS && isWindowsExecutable(f.getFileName().toString())) {
+                perms = new HashSet<>(perms);
+                perms.add(PosixFilePermission.OWNER_EXECUTE);
+                perms.add(PosixFilePermission.GROUP_EXECUTE);
+                perms.add(PosixFilePermission.OTHERS_EXECUTE);
+            }
+            return perms;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Comparator for sorting strings with various options.
+     */
+    public static class SortComparator implements Comparator<String> {
+
+        private static Pattern fpPattern;
+
+        static {
+            final String Digits = "(\\p{Digit}+)";
+            final String HexDigits = "(\\p{XDigit}+)";
+            final String Exp = "[eE][+-]?" + Digits;
+            final String fpRegex = "([\\x00-\\x20]*[+-]?(NaN|Infinity|(((" + Digits + "(\\.)?(" + Digits + "?)(" + Exp
+                    + ")?)|(\\.(" + Digits + ")(" + Exp + ")?)|(((0[xX]" + HexDigits + "(\\.)?)|(0[xX]" + HexDigits
+                    + "?(\\.)" + HexDigits + "))[pP][+-]?" + Digits + "))" + "[fFdD]?))[\\x00-\\x20]*)(.*)";
+            fpPattern = Pattern.compile(fpRegex);
+        }
+
+        private boolean caseInsensitive;
+        private boolean reverse;
+        private boolean ignoreBlanks;
+        private boolean numeric;
+        private char separator;
+        private List<Key> sortKeys;
+
+        @SuppressWarnings("this-escape")
+        public SortComparator(
+                boolean caseInsensitive,
+                boolean reverse,
+                boolean ignoreBlanks,
+                boolean numeric,
+                char separator,
+                List<String> sortFields) {
+            this.caseInsensitive = caseInsensitive;
+            this.reverse = reverse;
+            this.separator = separator;
+            this.ignoreBlanks = ignoreBlanks;
+            this.numeric = numeric;
+            if (sortFields == null || sortFields.size() == 0) {
+                sortFields = new ArrayList<>();
+                sortFields.add("1");
+            }
+            sortKeys = sortFields.stream().map(Key::new).collect(Collectors.toList());
+        }
+
+        public int compare(String o1, String o2) {
+            int res = 0;
+
+            List<Integer> fi1 = getFieldIndexes(o1);
+            List<Integer> fi2 = getFieldIndexes(o2);
+            for (Key key : sortKeys) {
+                int[] k1 = getSortKey(o1, fi1, key);
+                int[] k2 = getSortKey(o2, fi2, key);
+                if (key.numeric) {
+                    Double d1 = getDouble(o1, k1[0], k1[1]);
+                    Double d2 = getDouble(o2, k2[0], k2[1]);
+                    res = d1.compareTo(d2);
+                } else {
+                    res = compareRegion(o1, k1[0], k1[1], o2, k2[0], k2[1], key.caseInsensitive);
+                }
+                if (res != 0) {
+                    if (key.reverse) {
+                        res = -res;
+                    }
+                    break;
+                }
+            }
+            return res;
+        }
+
+        protected Double getDouble(String s, int start, int end) {
+            Matcher m = fpPattern.matcher(s.substring(start, end));
+            m.find();
+            return Double.valueOf(s.substring(0, m.end(1)));
+        }
+
+        protected int compareRegion(
+                String s1, int start1, int end1, String s2, int start2, int end2, boolean caseInsensitive) {
+            for (int i1 = start1, i2 = start2; i1 < end1 && i2 < end2; i1++, i2++) {
+                char c1 = s1.charAt(i1);
+                char c2 = s2.charAt(i2);
+                if (c1 != c2) {
+                    if (caseInsensitive) {
+                        c1 = Character.toUpperCase(c1);
+                        c2 = Character.toUpperCase(c2);
+                        if (c1 != c2) {
+                            c1 = Character.toLowerCase(c1);
+                            c2 = Character.toLowerCase(c2);
+                            if (c1 != c2) {
+                                return c1 - c2;
+                            }
+                        }
+                    } else {
+                        return c1 - c2;
+                    }
+                }
+            }
+            return end1 - end2;
+        }
+
+        protected int[] getSortKey(String str, List<Integer> fields, Key key) {
+            int start;
+            int end;
+            if (key.startField * 2 <= fields.size()) {
+                start = fields.get((key.startField - 1) * 2);
+                if (key.ignoreBlanksStart) {
+                    while (start < fields.get((key.startField - 1) * 2 + 1)
+                            && Character.isWhitespace(str.charAt(start))) {
+                        start++;
+                    }
+                }
+                if (key.startChar > 0) {
+                    start = Math.min(start + key.startChar - 1, fields.get((key.startField - 1) * 2 + 1));
+                }
+            } else {
+                start = 0;
+            }
+            if (key.endField > 0 && key.endField * 2 <= fields.size()) {
+                end = fields.get((key.endField - 1) * 2);
+                if (key.ignoreBlanksEnd) {
+                    while (end < fields.get((key.endField - 1) * 2 + 1) && Character.isWhitespace(str.charAt(end))) {
+                        end++;
+                    }
+                }
+                if (key.endChar > 0) {
+                    end = Math.min(end + key.endChar - 1, fields.get((key.endField - 1) * 2 + 1));
+                }
+            } else {
+                end = str.length();
+            }
+            return new int[] {start, end};
+        }
+
+        protected List<Integer> getFieldIndexes(String o) {
+            List<Integer> fields = new ArrayList<>();
+            if (o.length() > 0) {
+                if (separator == '\0') {
+                    fields.add(0);
+                    for (int idx = 1; idx < o.length(); idx++) {
+                        if (Character.isWhitespace(o.charAt(idx)) && !Character.isWhitespace(o.charAt(idx - 1))) {
+                            fields.add(idx - 1);
+                            fields.add(idx);
+                        }
+                    }
+                    fields.add(o.length() - 1);
+                } else {
+                    int last = -1;
+                    for (int idx = o.indexOf(separator); idx >= 0; idx = o.indexOf(separator, idx + 1)) {
+                        if (last >= 0) {
+                            fields.add(last);
+                            fields.add(idx - 1);
+                        } else if (idx > 0) {
+                            fields.add(0);
+                            fields.add(idx - 1);
+                        }
+                        last = idx + 1;
+                    }
+                    if (last < o.length()) {
+                        fields.add(last < 0 ? 0 : last);
+                        fields.add(o.length() - 1);
+                    }
+                }
+            }
+            return fields;
+        }
+
+        public class Key {
+            int startField;
+            int startChar;
+            int endField;
+            int endChar;
+            boolean ignoreBlanksStart;
+            boolean ignoreBlanksEnd;
+            boolean caseInsensitive;
+            boolean reverse;
+            boolean numeric;
+
+            public Key(String str) {
+                boolean modifiers = false;
+                boolean startPart = true;
+                boolean inField = true;
+                boolean inChar = false;
+                for (char c : str.toCharArray()) {
+                    switch (c) {
+                        case '0':
+                        case '1':
+                        case '2':
+                        case '3':
+                        case '4':
+                        case '5':
+                        case '6':
+                        case '7':
+                        case '8':
+                        case '9':
+                            if (!inField && !inChar) {
+                                throw new IllegalArgumentException("Bad field syntax: " + str);
+                            }
+                            if (startPart) {
+                                if (inChar) {
+                                    startChar = startChar * 10 + (c - '0');
+                                } else {
+                                    startField = startField * 10 + (c - '0');
+                                }
+                            } else {
+                                if (inChar) {
+                                    endChar = endChar * 10 + (c - '0');
+                                } else {
+                                    endField = endField * 10 + (c - '0');
+                                }
+                            }
+                            break;
+                        case '.':
+                            if (!inField) {
+                                throw new IllegalArgumentException("Bad field syntax: " + str);
+                            }
+                            inField = false;
+                            inChar = true;
+                            break;
+                        case 'n':
+                            inField = false;
+                            inChar = false;
+                            modifiers = true;
+                            numeric = true;
+                            break;
+                        case 'f':
+                            inField = false;
+                            inChar = false;
+                            modifiers = true;
+                            caseInsensitive = true;
+                            break;
+                        case 'r':
+                            inField = false;
+                            inChar = false;
+                            modifiers = true;
+                            reverse = true;
+                            break;
+                        case 'b':
+                            inField = false;
+                            inChar = false;
+                            modifiers = true;
+                            if (startPart) {
+                                ignoreBlanksStart = true;
+                            } else {
+                                ignoreBlanksEnd = true;
+                            }
+                            break;
+                        case ',':
+                            inField = true;
+                            inChar = false;
+                            startPart = false;
+                            break;
+                        default:
+                            throw new IllegalArgumentException("Bad field syntax: " + str);
+                    }
+                }
+                if (!modifiers) {
+                    ignoreBlanksStart = ignoreBlanksEnd = SortComparator.this.ignoreBlanks;
+                    reverse = SortComparator.this.reverse;
+                    caseInsensitive = SortComparator.this.caseInsensitive;
+                    numeric = SortComparator.this.numeric;
+                }
+                if (startField < 1) {
+                    throw new IllegalArgumentException("Bad field syntax: " + str);
+                }
+            }
+        }
+    }
+
+    /**
+     * Simple source abstraction for grep command.
+     */
+    private static class GrepSource {
+        private final InputStream inputStream;
+        private final Path path;
+        private final String name;
+
+        public GrepSource(InputStream inputStream, String name) {
+            this.inputStream = inputStream;
+            this.path = null;
+            this.name = name;
+        }
+
+        public GrepSource(Path path, String name) {
+            this.inputStream = null;
+            this.path = path;
+            this.name = name;
+        }
+
+        public InputStream getInputStream() throws IOException {
+            if (inputStream != null) {
+                return inputStream;
+            } else {
+                return path.toUri().toURL().openStream();
+            }
+        }
+
+        public String getName() {
+            return name;
+        }
     }
 }
