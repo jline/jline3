@@ -131,6 +131,17 @@ public class PosixCommands {
 
     /**
      * Change directory command.
+     * <p>
+     * Changes the current working directory to the specified directory.
+     * This version provides validation only and does not actually change
+     * the directory. Use the overloaded version with Consumer&lt;Path&gt; for
+     * actual directory changing functionality.
+     * </p>
+     *
+     * @param context the execution context
+     * @param argv command arguments
+     * @throws Exception if the command fails
+     * @see #cd(Context, String[], Consumer)
      */
     public static void cd(Context context, String[] argv) throws Exception {
         cd(context, argv, null);
@@ -138,6 +149,25 @@ public class PosixCommands {
 
     /**
      * Change directory command with directory changer.
+     * <p>
+     * Changes the current working directory to the specified directory.
+     * Supports POSIX-compliant options and behaviors:
+     * </p>
+     * <ul>
+     *   <li>No arguments: change to home directory</li>
+     *   <li>"-": change to previous directory (placeholder)</li>
+     *   <li>"-P": use physical directory structure (resolve symlinks)</li>
+     *   <li>"-L": follow symbolic links (default)</li>
+     * </ul>
+     * <p>
+     * The directoryChanger consumer is called with the resolved path if provided,
+     * allowing the caller to actually perform the directory change operation.
+     * </p>
+     *
+     * @param context the execution context
+     * @param argv command arguments
+     * @param directoryChanger consumer to perform the actual directory change
+     * @throws Exception if the command fails
      */
     public static void cd(Context context, String[] argv, Consumer<Path> directoryChanger) throws Exception {
         final String[] usage = {
@@ -195,6 +225,14 @@ public class PosixCommands {
 
     /**
      * Print working directory command.
+     * <p>
+     * Prints the absolute pathname of the current working directory to standard output.
+     * This command is equivalent to the POSIX pwd utility.
+     * </p>
+     *
+     * @param context the execution context
+     * @param argv command arguments (should be empty except for --help)
+     * @throws Exception if the command fails
      */
     public static void pwd(Context context, String[] argv) throws Exception {
         final String[] usage = {
@@ -209,6 +247,15 @@ public class PosixCommands {
 
     /**
      * Echo command - display text.
+     * <p>
+     * Writes its arguments to standard output, followed by a newline.
+     * Supports the -n option to suppress the trailing newline.
+     * This command is equivalent to the POSIX echo utility.
+     * </p>
+     *
+     * @param context the execution context
+     * @param argv command arguments
+     * @throws Exception if the command fails
      */
     public static void echo(Context context, String[] argv) throws Exception {
         final String[] usage = {
@@ -314,6 +361,16 @@ public class PosixCommands {
 
     /**
      * Cat command - concatenate and print files.
+     * <p>
+     * Reads files sequentially and writes them to standard output.
+     * If no files are specified, or if a file is "-", reads from standard input.
+     * Supports the -n option to number output lines.
+     * This command is equivalent to the POSIX cat utility.
+     * </p>
+     *
+     * @param context the execution context
+     * @param argv command arguments
+     * @throws Exception if the command fails
      */
     public static void cat(Context context, String[] argv) throws Exception {
         final String[] usage = {
@@ -358,6 +415,27 @@ public class PosixCommands {
 
     /**
      * Date command - display current date and time.
+     * <p>
+     * Displays the current date and time, or a specified date/time.
+     * Supports various output formats including ISO 8601, RFC 2822, and RFC 3339.
+     * Can parse date strings and display dates from epoch seconds.
+     * This command provides functionality similar to the POSIX date utility.
+     * </p>
+     * <p>
+     * Supported options:
+     * </p>
+     * <ul>
+     *   <li>-u, --utc: Display time in UTC</li>
+     *   <li>-r, --reference: Display time from epoch seconds</li>
+     *   <li>-d, --date: Parse and display specified date string</li>
+     *   <li>-I, --iso-8601: Output in ISO 8601 format</li>
+     *   <li>-R, --rfc-2822: Output in RFC 2822 format</li>
+     *   <li>--rfc-3339: Output in RFC 3339 format</li>
+     * </ul>
+     *
+     * @param context the execution context
+     * @param argv command arguments
+     * @throws Exception if the command fails
      */
     public static void date(Context context, String[] argv) throws Exception {
         final String[] usage = {
@@ -646,6 +724,14 @@ public class PosixCommands {
 
     /**
      * Sleep command - suspend execution.
+     * <p>
+     * Suspends execution for a specified number of seconds.
+     * This command is equivalent to the POSIX sleep utility.
+     * </p>
+     *
+     * @param context the execution context
+     * @param argv command arguments (should contain the number of seconds)
+     * @throws Exception if the command fails
      */
     public static void sleep(Context context, String[] argv) throws Exception {
         final String[] usage = {
@@ -666,6 +752,16 @@ public class PosixCommands {
 
     /**
      * Watch command - execute a command repeatedly and display output.
+     * <p>
+     * Executes a command repeatedly at specified intervals and displays the output.
+     * This version uses a basic command executor. For full shell integration,
+     * use the overloaded version with a CommandExecutor.
+     * </p>
+     *
+     * @param context the execution context
+     * @param argv command arguments
+     * @throws Exception if the command fails
+     * @see #watch(Context, String[], CommandExecutor)
      */
     public static void watch(Context context, String[] argv) throws Exception {
         watch(context, argv, null);
@@ -673,6 +769,23 @@ public class PosixCommands {
 
     /**
      * Watch command with command executor - execute a command repeatedly and display output.
+     * <p>
+     * Executes a command repeatedly at specified intervals and displays the output.
+     * The command is executed using the provided CommandExecutor, which allows for
+     * full shell integration and complex command execution.
+     * </p>
+     * <p>
+     * Supported options:
+     * </p>
+     * <ul>
+     *   <li>-n, --interval: Specify the interval between executions (default: 1 second)</li>
+     *   <li>-a, --append: Append output instead of clearing the screen</li>
+     * </ul>
+     *
+     * @param context the execution context
+     * @param argv command arguments
+     * @param executor the command executor for running the watched command
+     * @throws Exception if the command fails
      */
     public static void watch(Context context, String[] argv, CommandExecutor executor) throws Exception {
         final String[] usage = {
@@ -769,6 +882,15 @@ public class PosixCommands {
 
     /**
      * Thread monitoring command - display and update sorted information about threads.
+     * <p>
+     * Displays real-time information about Java threads in a top-like interface.
+     * Shows thread names, states, CPU usage, and other thread-related information.
+     * This command delegates to the TTop utility for full functionality.
+     * </p>
+     *
+     * @param context the execution context
+     * @param argv command arguments
+     * @throws Exception if the command fails
      */
     public static void ttop(Context context, String[] argv) throws Exception {
         TTop.ttop(context.terminal(), context.out(), context.err(), argv);
@@ -776,6 +898,15 @@ public class PosixCommands {
 
     /**
      * Text editor command - edit files with nano-like interface.
+     * <p>
+     * Opens a text editor with a nano-like interface for editing files.
+     * Provides basic text editing functionality with keyboard shortcuts
+     * similar to the nano editor. This command delegates to the Nano utility.
+     * </p>
+     *
+     * @param context the execution context
+     * @param argv command arguments (typically file names to edit)
+     * @throws Exception if the command fails
      */
     public static void nano(Context context, String[] argv) throws Exception {
         Options opt = parseOptions(context, Nano.usage(), argv);
@@ -786,6 +917,16 @@ public class PosixCommands {
 
     /**
      * Pager command - view files with less-like interface.
+     * <p>
+     * Opens a pager for viewing files with a less-like interface.
+     * Supports navigation, searching, and other pager functionality.
+     * Can handle multiple files and supports glob patterns.
+     * This command delegates to the Less utility for full functionality.
+     * </p>
+     *
+     * @param context the execution context
+     * @param argv command arguments (typically file names to view)
+     * @throws Exception if the command fails
      */
     public static void less(Context context, String[] argv) throws Exception {
         Options opt = parseOptions(context, Less.usage(), argv);
@@ -837,6 +978,15 @@ public class PosixCommands {
 
     /**
      * Clear command - clear terminal screen.
+     * <p>
+     * Clears the terminal screen by sending the appropriate escape sequence.
+     * Only works when connected to a TTY terminal.
+     * This command is equivalent to the POSIX clear utility.
+     * </p>
+     *
+     * @param context the execution context
+     * @param argv command arguments (should be empty except for --help)
+     * @throws Exception if the command fails
      */
     public static void clear(Context context, String[] argv) throws Exception {
         final String[] usage = {
@@ -2218,13 +2368,31 @@ public class PosixCommands {
 
     /**
      * Interface for executing shell commands in watch.
+     * <p>
+     * This interface allows the watch command to execute commands using
+     * different execution strategies. Implementations can provide shell
+     * integration, process execution, or other command execution mechanisms.
+     * </p>
+     * <p>
+     * Example implementation for shell integration:
+     * </p>
+     * <pre>{@code
+     * CommandExecutor executor = command -> {
+     *     Object result = session.execute(String.join(" ", command));
+     *     return result != null ? result.toString() : "";
+     * };
+     * }</pre>
      */
     public interface CommandExecutor {
         /**
          * Execute a command and return its output.
+         * <p>
+         * The command is provided as a list of strings where the first element
+         * is the command name and subsequent elements are arguments.
+         * </p>
          *
-         * @param command the command to execute
-         * @return the command output
+         * @param command the command to execute as a list of strings
+         * @return the command output as a string
          * @throws Exception if execution fails
          */
         String execute(List<String> command) throws Exception;

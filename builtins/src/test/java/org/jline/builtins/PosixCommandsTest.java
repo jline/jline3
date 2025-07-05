@@ -40,6 +40,7 @@ public class PosixCommandsTest {
         out = new ByteArrayOutputStream();
         err = new ByteArrayOutputStream();
         in = new ByteArrayInputStream("".getBytes());
+        vars = new HashMap<>();
 
         Terminal terminal = new DumbTerminal(in, out);
         context = new TestContext(terminal, tempDir, in, new PrintStream(out), new PrintStream(err), vars);
