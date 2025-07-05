@@ -623,7 +623,7 @@ public class PosixCommands {
                     // Execute command
                     if (executor != null) {
                         try {
-                            String output = executor.execute(command);
+                            String output = executor.execute(finalArgs);
                             context.out().print(output);
                         } catch (Exception e) {
                             context.err().println("Command execution failed: " + e.getMessage());
@@ -2128,7 +2128,7 @@ public class PosixCommands {
          * @return the command output
          * @throws Exception if execution fails
          */
-        String execute(String command) throws Exception;
+        String execute(List<String> command) throws Exception;
     }
 
     protected static Options parseOptions(Context context, String[] usage, Object[] argv) throws Exception {

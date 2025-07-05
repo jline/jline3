@@ -270,7 +270,8 @@ public class Posix {
         // Use enhanced PosixCommands.watch with command executor
         PosixCommands.CommandExecutor executor = command -> {
             try {
-                Object result = session.execute(command);
+                String cmdLine = String.join(" ", command);
+                Object result = session.execute(cmdLine);
                 return result != null ? result.toString() : "";
             } catch (Exception e) {
                 throw new RuntimeException("Command execution failed: " + e.getMessage(), e);

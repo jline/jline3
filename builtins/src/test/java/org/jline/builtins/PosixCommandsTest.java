@@ -33,6 +33,7 @@ public class PosixCommandsTest {
     private ByteArrayOutputStream out;
     private ByteArrayOutputStream err;
     private ByteArrayInputStream in;
+    private Map<String, Object> vars;
 
     @BeforeEach
     void setUp() throws IOException {
@@ -41,7 +42,7 @@ public class PosixCommandsTest {
         in = new ByteArrayInputStream("".getBytes());
 
         Terminal terminal = new DumbTerminal(in, out);
-        context = new TestContext(terminal, tempDir, in, new PrintStream(out), new PrintStream(err));
+        context = new TestContext(terminal, tempDir, in, new PrintStream(out), new PrintStream(err), vars);
     }
 
     @Test
@@ -79,8 +80,9 @@ public class PosixCommandsTest {
         Map<String, String> colorMap = new HashMap<>();
         colorMap.put("dr", "1;34"); // Blue for directories
         colorMap.put("ex", "1;32"); // Green for executables
+        vars.put("LS", colorMap);
 
-        PosixCommands.ls(context, new String[] {"--color=always"}, colorMap);
+        PosixCommands.ls(context, new String[] {"--color=always"});
 
         String output = out.toString();
         assertTrue(output.contains("test.txt"));
@@ -247,7 +249,7 @@ public class PosixCommandsTest {
 
     @Test
     void testWatchBasic() throws Exception {
-        AtomicReference<String> executedCommand = new AtomicReference<>();
+        AtomicReference<List<String>> executedCommand = new AtomicReference<>();
         PosixCommands.CommandExecutor executor = command -> {
             executedCommand.set(command);
             return "Command output: " + command;
@@ -335,8 +337,13 @@ public class PosixCommandsTest {
         private InputStream input;
 
         public TestContext(
-                Terminal terminal, Path currentDir, InputStream input, PrintStream output, PrintStream error) {
-            super(input, output, error, currentDir, terminal);
+                Terminal terminal,
+                Path currentDir,
+                InputStream input,
+                PrintStream output,
+                PrintStream error,
+                Map<String, Object> vars) {
+            super(input, output, error, currentDir, terminal, vars::get);
             this.input = input;
         }
 
