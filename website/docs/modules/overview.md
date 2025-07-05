@@ -21,10 +21,14 @@ Beyond the core functionality, JLine offers several additional modules that exte
 
 The `jline-builtins` module provides ready-to-use commands and utilities that you can incorporate into your command-line applications. These include:
 
-- File operations (ls, cat, less, etc.)
+- POSIX commands (cat, ls, grep, head, tail, wc, sort, etc.)
+- File operations and utilities
 - Command history management
 - Completion utilities
 - Table formatting
+- Text editors (Nano)
+- Terminal multiplexer (Tmux)
+- System monitoring (TTop)
 
 ### jline-style
 

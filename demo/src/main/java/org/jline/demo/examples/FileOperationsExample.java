@@ -8,11 +8,14 @@
  */
 package org.jline.demo.examples;
 
-import java.io.File;
+import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 
+import org.jline.builtins.PosixCommands;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.impl.DefaultParser;
@@ -20,7 +23,7 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
 /**
- * Example demonstrating file operations using JLine.
+ * Example demonstrating file operations using JLine Builtins PosixCommands.
  */
 public class FileOperationsExample {
 
@@ -33,6 +36,9 @@ public class FileOperationsExample {
         Path workDir = Files.createTempDirectory("jline-demo");
         workDir.toFile().deleteOnExit();
 
+        // Variables
+        Map<String, Object> variables = new HashMap<>();
+
         // Create some sample files
         Path file1 = workDir.resolve("sample1.txt");
         Path file2 = workDir.resolve("sample2.txt");
@@ -43,6 +49,15 @@ public class FileOperationsExample {
                 file2,
                 "This is sample file 2\nWith different content\nFor comparison".getBytes(StandardCharsets.UTF_8));
 
+        // Create a context for POSIX commands
+        PosixCommands.Context context = new PosixCommands.Context(
+                terminal.input(),
+                new PrintStream(terminal.output()),
+                new PrintStream(terminal.output()),
+                workDir,
+                terminal,
+                variables::get);
+
         // Create a line reader
         LineReader reader = LineReaderBuilder.builder()
                 .terminal(terminal)
@@ -50,15 +65,15 @@ public class FileOperationsExample {
                 .build();
 
         // Print instructions
-        terminal.writer().println("File Operations Example");
+        terminal.writer().println("File Operations Example using JLine Builtins");
         terminal.writer().println("Working directory: " + workDir);
-        terminal.writer().println("Available commands: cat, ls, grep");
-        terminal.writer().println("Type 'exit' to quit");
+        terminal.writer().println("Available commands: cat, ls, grep, pwd, echo, wc, head, tail, sort, date, clear");
+        terminal.writer().println("Type 'help <command>' for command help, or 'exit' to quit");
         terminal.writer().println();
 
         // Main command loop
         while (true) {
-            String line = reader.readLine("file-ops> ");
+            String line = reader.readLine("posix> ");
 
             if (line.equals("exit") || line.equals("quit")) {
                 break;
@@ -67,39 +82,96 @@ public class FileOperationsExample {
             try {
                 // Parse the command
                 String[] parts = line.split("\\s+");
+                if (parts.length == 0) continue;
+
                 String command = parts[0];
 
-                // Execute the command
-                if (command.equals("ls")) {
-                    // List files in the working directory
-                    File[] files = workDir.toFile().listFiles();
-                    if (files != null) {
-                        for (File file : files) {
-                            terminal.writer().println(file.getName() + "\t" + file.length() + " bytes");
+                // Execute the command using PosixCommands
+                switch (command) {
+                    case "cat":
+                        PosixCommands.cat(context, parts);
+                        break;
+                    case "ls":
+                        PosixCommands.ls(context, parts);
+                        break;
+                    case "grep":
+                        PosixCommands.grep(context, parts);
+                        break;
+                    case "pwd":
+                        PosixCommands.pwd(context, parts);
+                        break;
+                    case "echo":
+                        PosixCommands.echo(context, parts);
+                        break;
+                    case "wc":
+                        PosixCommands.wc(context, parts);
+                        break;
+                    case "head":
+                        PosixCommands.head(context, parts);
+                        break;
+                    case "tail":
+                        PosixCommands.tail(context, parts);
+                        break;
+                    case "sort":
+                        PosixCommands.sort(context, parts);
+                        break;
+                    case "date":
+                        PosixCommands.date(context, parts);
+                        break;
+                    case "clear":
+                        PosixCommands.clear(context, parts);
+                        break;
+                    case "help":
+                        if (parts.length > 1) {
+                            // Show help for specific command
+                            String[] helpArgs = {parts[1], "--help"};
+                            switch (parts[1]) {
+                                case "cat":
+                                    PosixCommands.cat(context, helpArgs);
+                                    break;
+                                case "ls":
+                                    PosixCommands.ls(context, helpArgs);
+                                    break;
+                                case "grep":
+                                    PosixCommands.grep(context, helpArgs);
+                                    break;
+                                case "pwd":
+                                    PosixCommands.pwd(context, helpArgs);
+                                    break;
+                                case "echo":
+                                    PosixCommands.echo(context, helpArgs);
+                                    break;
+                                case "wc":
+                                    PosixCommands.wc(context, helpArgs);
+                                    break;
+                                case "head":
+                                    PosixCommands.head(context, helpArgs);
+                                    break;
+                                case "tail":
+                                    PosixCommands.tail(context, helpArgs);
+                                    break;
+                                case "sort":
+                                    PosixCommands.sort(context, helpArgs);
+                                    break;
+                                case "date":
+                                    PosixCommands.date(context, helpArgs);
+                                    break;
+                                case "clear":
+                                    PosixCommands.clear(context, helpArgs);
+                                    break;
+                                default:
+                                    terminal.writer().println("Unknown command: " + parts[1]);
+                            }
+                        } else {
+                            terminal.writer()
+                                    .println(
+                                            "Available commands: cat, ls, grep, pwd, echo, wc, head, tail, sort, date, clear");
+                            terminal.writer().println("Use 'help <command>' for specific command help");
                         }
-                    }
-                } else if (command.equals("cat") && parts.length > 1) {
-                    // Display file content
-                    Path filePath = workDir.resolve(parts[1]);
-                    if (Files.exists(filePath)) {
-                        Files.lines(filePath).forEach(terminal.writer()::println);
-                    } else {
-                        terminal.writer().println("File not found: " + parts[1]);
-                    }
-                } else if (command.equals("grep") && parts.length > 2) {
-                    // Search for pattern in file
-                    String pattern = parts[1];
-                    Path filePath = workDir.resolve(parts[2]);
-                    if (Files.exists(filePath)) {
-                        Files.lines(filePath)
-                                .filter(line2 -> line2.contains(pattern))
-                                .forEach(terminal.writer()::println);
-                    } else {
-                        terminal.writer().println("File not found: " + parts[2]);
-                    }
-                } else {
-                    terminal.writer().println("Unknown command or invalid syntax: " + line);
-                    terminal.writer().println("Available commands: cat <file>, ls, grep <pattern> <file>");
+                        break;
+                    default:
+                        terminal.writer().println("Unknown command: " + command);
+                        terminal.writer().println("Type 'help' for available commands");
                 }
             } catch (Exception e) {
                 terminal.writer().println("Error: " + e.getMessage());
