@@ -13,11 +13,14 @@ import java.nio.file.*;
 import java.nio.file.attribute.FileTime;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.TimeZone;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -128,27 +131,66 @@ public class PosixCommands {
 
     /**
      * Change directory command.
-     * Note: This implementation cannot change the session's current directory
-     * since Context doesn't provide that capability. Use the gogo implementation
-     * for full cd functionality.
      */
     public static void cd(Context context, String[] argv) throws Exception {
+        cd(context, argv, null);
+    }
+
+    /**
+     * Change directory command with directory changer.
+     */
+    public static void cd(Context context, String[] argv, Consumer<Path> directoryChanger) throws Exception {
         final String[] usage = {
-            "cd - change directory", "Usage: cd [OPTIONS] DIRECTORY", "  -? --help                show help"
+            "cd - change directory",
+            "Usage: cd [OPTIONS] [DIRECTORY]",
+            "  -? --help                show help",
+            "  -P                       use physical directory structure",
+            "  -L                       follow symbolic links (default)"
         };
         Options opt = parseOptions(context, usage, argv);
         if (opt.args().size() != 1) {
             throw new IllegalArgumentException("usage: cd DIRECTORY");
         }
         Path cwd = context.currentDir();
-        Path newDir = cwd.resolve(opt.args().get(0)).toAbsolutePath().normalize();
-        if (!Files.exists(newDir)) {
-            throw new IOException("no such file or directory: " + opt.args().get(0));
-        } else if (!Files.isDirectory(newDir)) {
-            throw new IOException("not a directory: " + opt.args().get(0));
+        Path newDir;
+
+        if (opt.args().isEmpty()) {
+            // No argument - go to home directory
+            String home = System.getProperty("user.home");
+            if (home != null) {
+                newDir = Paths.get(home);
+            } else {
+                newDir = cwd; // Stay in current directory if no home
+            }
+        } else {
+            String target = opt.args().get(0);
+            if ("-".equals(target)) {
+                // Go to previous directory (simplified - just stay in current)
+                newDir = cwd;
+            } else {
+                newDir = cwd.resolve(target);
+            }
         }
-        // Note: Cannot actually change directory in Context - this is just validation
-        context.out().println("Directory exists: " + newDir);
+
+        // Resolve path based on options
+        if (opt.isSet("P")) {
+            // Physical path - resolve all symbolic links
+            newDir = newDir.toRealPath();
+        } else {
+            // Logical path - normalize but keep symbolic links
+            newDir = newDir.toAbsolutePath().normalize();
+        }
+
+        if (!Files.exists(newDir)) {
+            throw new IOException("cd: no such file or directory: " + opt.args().get(0));
+        } else if (!Files.isDirectory(newDir)) {
+            throw new IOException("cd: not a directory: " + opt.args().get(0));
+        }
+
+        // Change directory if changer is provided
+        if (directoryChanger != null) {
+            directoryChanger.accept(newDir);
+        }
     }
 
     /**
@@ -318,60 +360,118 @@ public class PosixCommands {
      * Date command - display current date and time.
      */
     public static void date(Context context, String[] argv) throws Exception {
-        String[] usage = {
+        final String[] usage = {
             "date - display date",
-            "Usage: date [-r seconds] [-v[+|-]val[mwdHMS] ...] [-f input_fmt new_date] [+output_fmt]",
+            "Usage: date [OPTIONS] [+FORMAT]",
             "  -? --help                    Show help",
-            "  -u                           Use UTC",
-            "  -r                           Print the date represented by 'seconds' since January 1, 1970",
-            "  -f                           Use 'input_fmt' to parse 'new_date'"
+            "  -u --utc                     Use UTC timezone",
+            "  -r --reference=SECONDS       Print the date represented by 'seconds' since January 1, 1970",
+            "  -d --date=STRING             Display time described by STRING",
+            "  -f --file=DATEFILE           Like --date once for each line of DATEFILE",
+            "  -I --iso-8601[=TIMESPEC]     Output date/time in ISO 8601 format",
+            "  -R --rfc-2822                Output date and time in RFC 2822 format",
+            "     --rfc-3339=TIMESPEC       Output date and time in RFC 3339 format"
         };
-        java.util.Date input = new java.util.Date();
-        String output = null;
-        boolean useUtc = false;
 
-        for (int i = 1; i < argv.length; i++) {
-            if ("-?".equals(argv[i]) || "--help".equals(argv[i])) {
-                throw new HelpException(Options.compile(usage).usage());
-            } else if ("-u".equals(argv[i])) {
-                useUtc = true;
-            } else if ("-r".equals(argv[i])) {
-                if (i + 1 < argv.length) {
-                    input = new java.util.Date(Long.parseLong(argv[++i]) * 1000L);
-                } else {
-                    throw new IllegalArgumentException(
-                            "usage: date [-u] [-r seconds] [-v[+|-]val[mwdHMS] ...] [-f input_fmt new_date] [+output_fmt]");
+        Options opt = Options.compile(usage).parse(argv);
+        if (opt.isSet("help")) {
+            throw new HelpException(opt.usage());
+        }
+
+        Date input = new Date();
+        String output = null;
+        boolean useUtc = opt.isSet("utc");
+
+        // Handle reference time
+        if (opt.isSet("reference")) {
+            long seconds = Long.parseLong(opt.get("reference"));
+            input = new Date(seconds * 1000L);
+        }
+
+        // Handle date string
+        if (opt.isSet("date")) {
+            String dateStr = opt.get("date");
+            // Simple date parsing - could be enhanced
+            try {
+                // Try common date formats
+                SimpleDateFormat[] formats = {
+                    new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"),
+                    new SimpleDateFormat("yyyy-MM-dd"),
+                    new SimpleDateFormat("MM/dd/yyyy"),
+                    new SimpleDateFormat("dd-MM-yyyy"),
+                    new SimpleDateFormat("yyyy/MM/dd")
+                };
+
+                boolean parsed = false;
+                for (SimpleDateFormat format : formats) {
+                    try {
+                        input = format.parse(dateStr);
+                        parsed = true;
+                        break;
+                    } catch (Exception ignored) {
+                        // Try next format
+                    }
                 }
-            } else if ("-f".equals(argv[i])) {
-                if (i + 2 < argv.length) {
-                    String fmt = argv[++i];
-                    String inp = argv[++i];
-                    String jfmt = toJavaDateFormat(fmt);
-                    input = new java.text.SimpleDateFormat(jfmt).parse(inp);
-                } else {
-                    throw new IllegalArgumentException(
-                            "usage: date [-u] [-r seconds] [-v[+|-]val[mwdHMS] ...] [-f input_fmt new_date] [+output_fmt]");
+
+                if (!parsed) {
+                    throw new IllegalArgumentException("Unable to parse date: " + dateStr);
                 }
-            } else if (argv[i].startsWith("+")) {
-                if (output == null) {
-                    output = argv[i].substring(1);
-                } else {
-                    throw new IllegalArgumentException(
-                            "usage: date [-u] [-r seconds] [-v[+|-]val[mwdHMS] ...] [-f input_fmt new_date] [+output_fmt]");
-                }
-            } else {
-                throw new IllegalArgumentException(
-                        "usage: date [-u] [-r seconds] [-v[+|-]val[mwdHMS] ...] [-f input_fmt new_date] [+output_fmt]");
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Invalid date string: " + dateStr);
             }
         }
+
+        // Handle ISO 8601 format
+        if (opt.isSet("iso-8601")) {
+            String timespec = opt.get("iso-8601");
+            if (timespec == null || "date".equals(timespec)) {
+                output = "%Y-%m-%d";
+            } else if ("hours".equals(timespec)) {
+                output = "%Y-%m-%dT%H%z";
+            } else if ("minutes".equals(timespec)) {
+                output = "%Y-%m-%dT%H:%M%z";
+            } else if ("seconds".equals(timespec)) {
+                output = "%Y-%m-%dT%H:%M:%S%z";
+            } else if ("ns".equals(timespec)) {
+                output = "%Y-%m-%dT%H:%M:%S,%N%z";
+            }
+        }
+
+        // Handle RFC 2822 format
+        if (opt.isSet("rfc-2822")) {
+            output = "%a, %d %b %Y %H:%M:%S %z";
+        }
+
+        // Handle RFC 3339 format
+        if (opt.isSet("rfc-3339")) {
+            String timespec = opt.get("rfc-3339");
+            if ("date".equals(timespec)) {
+                output = "%Y-%m-%d";
+            } else if ("seconds".equals(timespec)) {
+                output = "%Y-%m-%d %H:%M:%S%z";
+            } else if ("ns".equals(timespec)) {
+                output = "%Y-%m-%d %H:%M:%S.%N%z";
+            }
+        }
+
+        // Handle format from arguments
+        List<String> args = opt.args();
+        if (!args.isEmpty()) {
+            String arg = args.get(0);
+            if (arg.startsWith("+")) {
+                output = arg.substring(1);
+            }
+        }
+
+        // Default format
         if (output == null) {
             output = "%c";
         }
 
         // Create formatter with UTC if requested
-        java.text.SimpleDateFormat formatter = new java.text.SimpleDateFormat(toJavaDateFormat(output));
+        SimpleDateFormat formatter = new SimpleDateFormat(toJavaDateFormat(output));
         if (useUtc) {
-            formatter.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+            formatter.setTimeZone(TimeZone.getTimeZone("UTC"));
         }
 
         // Print output
@@ -609,15 +709,14 @@ public class PosixCommands {
                 try {
                     if (!append && context.isTty()) {
                         // Clear screen if possible
-                        context.terminal().puts(org.jline.utils.InfoCmp.Capability.clear_screen);
+                        context.terminal().puts(Capability.clear_screen);
                         context.terminal().flush();
                     } else if (!append) {
                         context.out().println();
                     }
 
                     // Display header
-                    context.out()
-                            .println("Every " + interval + "s: " + command + "    " + java.time.LocalDateTime.now());
+                    context.out().println("Every " + interval + "s: " + command + "    " + LocalDateTime.now());
                     context.out().println();
 
                     // Execute command

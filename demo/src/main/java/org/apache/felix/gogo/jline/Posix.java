@@ -36,6 +36,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.apache.felix.gogo.jline.Shell.Context;
 import org.apache.felix.service.command.CommandProcessor;
@@ -353,21 +354,8 @@ public class Posix {
     }
 
     protected void cd(CommandSession session, Process process, String[] argv) throws Exception {
-        final String[] usage = {
-            "cd - get current directory", "Usage: cd [OPTIONS] DIRECTORY", "  -? --help                show help"
-        };
-        Options opt = parseOptions(session, usage, argv);
-        if (opt.args().size() != 1) {
-            throw new IllegalArgumentException("usage: cd DIRECTORY");
-        }
-        Path cwd = session.currentDir();
-        cwd = cwd.resolve(opt.args().get(0)).toAbsolutePath().normalize();
-        if (!Files.exists(cwd)) {
-            throw new IOException("no such file or directory: " + opt.args().get(0));
-        } else if (!Files.isDirectory(cwd)) {
-            throw new IOException("not a directory: " + opt.args().get(0));
-        }
-        session.currentDir(cwd);
+        Consumer<Path> directoryChanger = path -> session.currentDir(path);
+        PosixCommands.cd(createPosixContext(session, process), argv, directoryChanger);
     }
 
     protected void ls(CommandSession session, Process process, String[] argv) throws Exception {
