@@ -28,13 +28,10 @@ package org.apache.felix.gogo.jline;
  */
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -45,9 +42,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.felix.gogo.jline.Shell.Context;
@@ -60,11 +54,9 @@ import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.PosixCommands;
 import org.jline.builtins.Source;
 import org.jline.builtins.TTop;
-import org.jline.terminal.Attributes;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
-import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.OSUtils;
 import org.jline.utils.StyleResolver;
 
@@ -284,11 +276,20 @@ public class Posix {
     }
 
     protected void watch(final CommandSession session, Process process, String[] argv) throws Exception {
-        // Note: Using full gogo implementation for shell command execution
-        // PosixCommands.watch() provides a simplified version
-        watchFull(session, process, argv);
+        // Use enhanced PosixCommands.watch with command executor
+        PosixCommands.CommandExecutor executor = command -> {
+            try {
+                Object result = session.execute(command);
+                return result != null ? result.toString() : "";
+            } catch (Exception e) {
+                throw new RuntimeException("Command execution failed: " + e.getMessage(), e);
+            }
+        };
+        PosixCommands.watch(createPosixContext(session, process), argv, executor);
     }
 
+    // watchFull method removed - functionality moved to PosixCommands.watch
+    /*
     protected void watchFull(final CommandSession session, Process process, String[] argv) throws Exception {
         final String[] usage = {
             "watch - watches & refreshes the output of a command",
@@ -345,6 +346,7 @@ public class Posix {
             executorService.shutdownNow();
         }
     }
+    */
 
     protected void less(CommandSession session, Process process, String[] argv) throws Exception {
         PosixCommands.less(createPosixContext(session, process), argv);

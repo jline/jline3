@@ -567,10 +567,15 @@ public class PosixCommands {
 
     /**
      * Watch command - execute a command repeatedly and display output.
-     * Note: This is a simplified implementation that doesn't execute shell commands.
-     * For full functionality, use the gogo implementation.
      */
     public static void watch(Context context, String[] argv) throws Exception {
+        watch(context, argv, null);
+    }
+
+    /**
+     * Watch command with command executor - execute a command repeatedly and display output.
+     */
+    public static void watch(Context context, String[] argv, CommandExecutor executor) throws Exception {
         final String[] usage = {
             "watch - watches & refreshes the output of a command",
             "Usage: watch [OPTIONS] COMMAND",
@@ -589,16 +594,18 @@ public class PosixCommands {
             throw new IllegalArgumentException("usage: watch COMMAND");
         }
 
-        int interval = 1;
+        int intervalValue = 1;
         if (opt.isSet("interval")) {
-            interval = opt.getNumber("interval");
-            if (interval < 1) {
-                interval = 1;
+            intervalValue = opt.getNumber("interval");
+            if (intervalValue < 1) {
+                intervalValue = 1;
             }
         }
+        final int interval = intervalValue;
 
-        boolean append = opt.isSet("append");
-        String command = String.join(" ", args);
+        final boolean append = opt.isSet("append");
+        final String command = String.join(" ", args);
+        final List<String> finalArgs = new ArrayList<>(args);
 
         ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
         try {
@@ -608,15 +615,42 @@ public class PosixCommands {
                         // Clear screen if possible
                         context.terminal().puts(org.jline.utils.InfoCmp.Capability.clear_screen);
                         context.terminal().flush();
-                    } else {
+                    } else if (!append) {
                         context.out().println();
                     }
 
-                    // Note: This is a simplified implementation
-                    // Full command execution would require shell integration
-                    context.out().println("Command: " + command);
-                    context.out().println("Time: " + java.time.LocalDateTime.now());
-                    context.out().println("(Command execution not implemented in PosixCommands context)");
+                    // Display header
+                    context.out()
+                            .println("Every " + interval + "s: " + command + "    " + java.time.LocalDateTime.now());
+                    context.out().println();
+
+                    // Execute command
+                    if (executor != null) {
+                        try {
+                            String output = executor.execute(command);
+                            context.out().print(output);
+                        } catch (Exception e) {
+                            context.err().println("Command execution failed: " + e.getMessage());
+                        }
+                    } else {
+                        // Fallback: try to execute as a simple command
+                        try {
+                            Process process = new ProcessBuilder(finalArgs).start();
+                            try (BufferedReader reader =
+                                    new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                                String line;
+                                while ((line = reader.readLine()) != null) {
+                                    context.out().println(line);
+                                }
+                            }
+                            process.waitFor();
+                        } catch (Exception e) {
+                            context.out().println("Command: " + command);
+                            context.out()
+                                    .println(
+                                            "(Command execution requires shell integration - use gogo implementation for full functionality)");
+                        }
+                    }
                     context.out().flush();
                 } catch (Exception e) {
                     context.err().println("Error executing command: " + e.getMessage());
@@ -2103,5 +2137,18 @@ public class PosixCommands {
         public String getName() {
             return name;
         }
+    }
+
+    /**
+     * Interface for executing shell commands in watch.
+     */
+    public interface CommandExecutor {
+        /**
+         * Execute a command and return its output.
+         * @param command the command to execute
+         * @return the command output
+         * @throws Exception if execution fails
+         */
+        String execute(String command) throws Exception;
     }
 }
