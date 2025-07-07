@@ -36,7 +36,7 @@ public class LongList {
         header.add(new AttributedStringBuilder().append("in JavaScript.").toAttributedString());
 
         try (Terminal terminal = TerminalBuilder.builder().build()) {
-            ConsolePrompt.UiConfig config = new ConsolePrompt.UiConfig(">", "( )", "(x)", "( )");
+            ConsolePrompt.UiConfig config = new ConsolePrompt.UiConfig();
             ConsolePrompt prompt = new ConsolePrompt(terminal, config);
             PromptBuilder promptBuilder = prompt.getPromptBuilder();
 

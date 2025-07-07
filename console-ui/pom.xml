@@ -9,7 +9,8 @@
     </parent>
 
     <artifactId>jline-console-ui</artifactId>
-    <name>JLine Console UI</name>
+    <name>JLine Console UI (Deprecated)</name>
+    <description>JLine Console UI - DEPRECATED: Use jline-prompt instead</description>
 
     <properties>
         <automatic.module.name>org.jline.consoleui</automatic.module.name>
