@@ -27,11 +27,8 @@ public class PromptErrorHandlingExample {
         Prompter prompter = PrompterFactory.create(terminal);
 
         PromptBuilder builder = prompter.newBuilder();
-        
-        builder.createInputPrompt()
-                .name("username")
-                .message("Enter username:")
-                .addPrompt();
+
+        builder.createInputPrompt().name("username").message("Enter username:").addPrompt();
 
         builder.createConfirmPrompt()
                 .name("proceed")
@@ -40,25 +37,24 @@ public class PromptErrorHandlingExample {
                 .addPrompt();
 
         try {
-            Map<String, ? extends PromptResult<? extends Prompt>> results = 
-                prompter.prompt(null, builder.build());
-            
+            Map<String, ? extends PromptResult<? extends Prompt>> results = prompter.prompt(null, builder.build());
+
             InputResult username = (InputResult) results.get("username");
             ConfirmResult proceed = (ConfirmResult) results.get("proceed");
-            
+
             // Validate input
             if (username.getInput().trim().isEmpty()) {
                 System.err.println("Error: Username cannot be empty");
                 return;
             }
-            
-            if (!proceed.getConfirmed()) {
+
+            if (!proceed.isConfirmed()) {
                 System.out.println("Operation cancelled by user");
                 return;
             }
-            
+
             System.out.println("Processing for user: " + username.getInput());
-            
+
         } catch (UserInterruptException e) {
             // User pressed Ctrl+C
             System.out.println("\nOperation interrupted by user");
@@ -66,10 +62,10 @@ public class PromptErrorHandlingExample {
         } catch (Exception e) {
             // Handle other exceptions
             System.err.println("An error occurred: " + e.getMessage());
-            
+
             // Provide fallback or retry logic
             System.out.println("Falling back to default configuration...");
-            
+
             // Log the error for debugging
             if (Boolean.getBoolean("jline.prompt.debug")) {
                 e.printStackTrace();

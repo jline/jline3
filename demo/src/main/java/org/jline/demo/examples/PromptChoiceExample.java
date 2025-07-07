@@ -30,18 +30,36 @@ public class PromptChoiceExample {
         builder.createChoicePrompt()
                 .name("action")
                 .message("What would you like to do?")
-                .newChoice("create").text("Create new file").key('c').add()
-                .newChoice("edit").text("Edit existing file").key('e').defaultChoice(true).add()
-                .newChoice("delete").text("Delete file").key('d').add()
-                .newChoice("copy").text("Copy file").key('o').add()
-                .newChoice("move").text("Move file").key('m').add()
-                .newChoice("quit").text("Quit").key('q').add()
+                .newChoice("create")
+                .text("Create new file")
+                .key('c')
+                .add()
+                .newChoice("edit")
+                .text("Edit existing file")
+                .key('e')
+                .defaultChoice(true)
+                .add()
+                .newChoice("delete")
+                .text("Delete file")
+                .key('d')
+                .add()
+                .newChoice("copy")
+                .text("Copy file")
+                .key('o')
+                .add()
+                .newChoice("move")
+                .text("Move file")
+                .key('m')
+                .add()
+                .newChoice("quit")
+                .text("Quit")
+                .key('q')
+                .add()
                 .addPrompt();
 
         try {
-            Map<String, ? extends PromptResult<? extends Prompt>> results = 
-                prompter.prompt(null, builder.build());
-            
+            Map<String, ? extends PromptResult<? extends Prompt>> results = prompter.prompt(null, builder.build());
+
             ChoiceResult result = (ChoiceResult) results.get("action");
             System.out.println("Selected action: " + result.getSelectedId());
         } catch (Exception e) {

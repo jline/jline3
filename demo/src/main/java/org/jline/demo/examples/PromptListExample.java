@@ -10,6 +10,7 @@ package org.jline.demo.examples;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import org.jline.prompt.*;
@@ -32,23 +33,38 @@ public class PromptListExample {
         builder.createListPrompt()
                 .name("language")
                 .message("Choose your favorite programming language:")
-                .newItem("java").text("Java").add()
-                .newItem("python").text("Python").add()
-                .newItem("javascript").text("JavaScript").add()
-                .newItem("typescript").text("TypeScript").add()
-                .newItem("go").text("Go").add()
-                .newItem("rust").text("Rust").add()
-                .newItem("kotlin").text("Kotlin").add()
-                .newItem("scala").text("Scala").add()
+                .newItem("java")
+                .text("Java")
+                .add()
+                .newItem("python")
+                .text("Python")
+                .add()
+                .newItem("javascript")
+                .text("JavaScript")
+                .add()
+                .newItem("typescript")
+                .text("TypeScript")
+                .add()
+                .newItem("go")
+                .text("Go")
+                .add()
+                .newItem("rust")
+                .text("Rust")
+                .add()
+                .newItem("kotlin")
+                .text("Kotlin")
+                .add()
+                .newItem("scala")
+                .text("Scala")
+                .add()
                 .addPrompt();
 
         try {
             // Add a header for better presentation
-            var header = Arrays.asList(new AttributedString("Programming Language Selection"));
-            
-            Map<String, ? extends PromptResult<? extends Prompt>> results = 
-                prompter.prompt(header, builder.build());
-            
+            List<AttributedString> header = Arrays.asList(new AttributedString("Programming Language Selection"));
+
+            Map<String, ? extends PromptResult<? extends Prompt>> results = prompter.prompt(header, builder.build());
+
             ListResult result = (ListResult) results.get("language");
             System.out.println("Selected language: " + result.getSelectedId());
         } catch (Exception e) {

@@ -10,6 +10,7 @@ package org.jline.demo.examples;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import org.jline.prompt.*;
@@ -29,15 +30,23 @@ public class PromptMixedTypesExample {
 
         // Create a comprehensive setup wizard
         PromptBuilder builder = prompter.newBuilder();
-        
+
         // Step 1: Project type selection
         builder.createListPrompt()
                 .name("project_type")
                 .message("What type of project are you creating?")
-                .newItem("web").text("Web Application").add()
-                .newItem("api").text("REST API").add()
-                .newItem("cli").text("Command Line Tool").add()
-                .newItem("library").text("Library/Framework").add()
+                .newItem("web")
+                .text("Web Application")
+                .add()
+                .newItem("api")
+                .text("REST API")
+                .add()
+                .newItem("cli")
+                .text("Command Line Tool")
+                .add()
+                .newItem("library")
+                .text("Library/Framework")
+                .add()
                 .addPrompt();
 
         // Step 2: Project details
@@ -51,20 +60,43 @@ public class PromptMixedTypesExample {
         builder.createCheckboxPrompt()
                 .name("features")
                 .message("Select features to include:")
-                .newItem("database").text("Database Integration").checked(true).add()
-                .newItem("auth").text("Authentication").add()
-                .newItem("testing").text("Unit Testing").checked(true).add()
-                .newItem("docker").text("Docker Support").add()
-                .newItem("docs").text("Documentation").checked(true).add()
+                .newItem("database")
+                .text("Database Integration")
+                .checked(true)
+                .add()
+                .newItem("auth")
+                .text("Authentication")
+                .add()
+                .newItem("testing")
+                .text("Unit Testing")
+                .checked(true)
+                .add()
+                .newItem("docker")
+                .text("Docker Support")
+                .add()
+                .newItem("docs")
+                .text("Documentation")
+                .checked(true)
+                .add()
                 .addPrompt();
 
         // Step 4: Environment choice
         builder.createChoicePrompt()
                 .name("environment")
                 .message("Choose target environment:")
-                .newChoice("dev").text("Development").key('d').defaultChoice(true).add()
-                .newChoice("staging").text("Staging").key('s').add()
-                .newChoice("prod").text("Production").key('p').add()
+                .newChoice("dev")
+                .text("Development")
+                .key('d')
+                .defaultChoice(true)
+                .add()
+                .newChoice("staging")
+                .text("Staging")
+                .key('s')
+                .add()
+                .newChoice("prod")
+                .text("Production")
+                .key('p')
+                .add()
                 .addPrompt();
 
         // Step 5: Final confirmation
@@ -75,22 +107,20 @@ public class PromptMixedTypesExample {
                 .addPrompt();
 
         try {
-            var header = Arrays.asList(
-                new AttributedString("Project Setup Wizard"),
-                new AttributedString("Follow the prompts to configure your new project")
-            );
-            
-            Map<String, ? extends PromptResult<? extends Prompt>> results = 
-                prompter.prompt(header, builder.build());
-            
+            List<AttributedString> header = Arrays.asList(
+                    new AttributedString("Project Setup Wizard"),
+                    new AttributedString("Follow the prompts to configure your new project"));
+
+            Map<String, ? extends PromptResult<? extends Prompt>> results = prompter.prompt(header, builder.build());
+
             // Process results
             ListResult projectType = (ListResult) results.get("project_type");
             InputResult projectName = (InputResult) results.get("project_name");
             CheckboxResult features = (CheckboxResult) results.get("features");
             ChoiceResult environment = (ChoiceResult) results.get("environment");
             ConfirmResult create = (ConfirmResult) results.get("create");
-            
-            if (create.getConfirmed()) {
+
+            if (create.isConfirmed()) {
                 System.out.println("\n✓ Project Configuration:");
                 System.out.println("  Type: " + projectType.getSelectedId());
                 System.out.println("  Name: " + projectName.getInput());

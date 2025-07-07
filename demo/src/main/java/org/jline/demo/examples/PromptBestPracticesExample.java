@@ -10,6 +10,7 @@ package org.jline.demo.examples;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import org.jline.prompt.*;
@@ -29,58 +30,85 @@ public class PromptBestPracticesExample {
 
         // Best Practice 1: Use descriptive but concise messages
         PromptBuilder builder = prompter.newBuilder();
-        
+
         builder.createListPrompt()
                 .name("deployment")
-                .message("Select deployment target:")  // Clear and concise
-                .newItem("local").text("Local Development").add()
-                .newItem("staging").text("Staging Environment").add()
-                .newItem("production").text("Production Environment").add()
+                .message("Select deployment target:") // Clear and concise
+                .newItem("local")
+                .text("Local Development")
+                .add()
+                .newItem("staging")
+                .text("Staging Environment")
+                .add()
+                .newItem("production")
+                .text("Production Environment")
+                .add()
                 .addPrompt();
 
         // Best Practice 2: Provide sensible defaults
         builder.createInputPrompt()
                 .name("port")
                 .message("Enter server port:")
-                .defaultValue("8080")  // Common default
+                .defaultValue("8080") // Common default
                 .addPrompt();
 
         // Best Practice 3: Group related options logically
         builder.createCheckboxPrompt()
                 .name("security")
                 .message("Security features:")
-                .newItem("https").text("HTTPS/TLS").checked(true).add()  // Security defaults enabled
-                .newItem("auth").text("Authentication").checked(true).add()
-                .newItem("cors").text("CORS Protection").add()
-                .newItem("rate_limit").text("Rate Limiting").add()
+                .newItem("https")
+                .text("HTTPS/TLS")
+                .checked(true)
+                .add() // Security defaults enabled
+                .newItem("auth")
+                .text("Authentication")
+                .checked(true)
+                .add()
+                .newItem("cors")
+                .text("CORS Protection")
+                .add()
+                .newItem("rate_limit")
+                .text("Rate Limiting")
+                .add()
                 .addPrompt();
 
         // Best Practice 4: Use choice prompts for quick decisions
         builder.createChoicePrompt()
                 .name("log_level")
                 .message("Set log level:")
-                .newChoice("debug").text("Debug").key('d').add()
-                .newChoice("info").text("Info").key('i').defaultChoice(true).add()  // Sensible default
-                .newChoice("warn").text("Warning").key('w').add()
-                .newChoice("error").text("Error").key('e').add()
+                .newChoice("debug")
+                .text("Debug")
+                .key('d')
+                .add()
+                .newChoice("info")
+                .text("Info")
+                .key('i')
+                .defaultChoice(true)
+                .add() // Sensible default
+                .newChoice("warn")
+                .text("Warning")
+                .key('w')
+                .add()
+                .newChoice("error")
+                .text("Error")
+                .key('e')
+                .add()
                 .addPrompt();
 
         try {
             // Best Practice 5: Provide helpful headers
-            var header = Arrays.asList(
-                new AttributedString("Application Configuration"),
-                new AttributedString("Configure your application settings below")
-            );
-            
-            Map<String, ? extends PromptResult<? extends Prompt>> results = 
-                prompter.prompt(header, builder.build());
-            
+            List<AttributedString> header = Arrays.asList(
+                    new AttributedString("Application Configuration"),
+                    new AttributedString("Configure your application settings below"));
+
+            Map<String, ? extends PromptResult<? extends Prompt>> results = prompter.prompt(header, builder.build());
+
             // Best Practice 6: Validate and provide feedback
             ListResult deployment = (ListResult) results.get("deployment");
             InputResult port = (InputResult) results.get("port");
             CheckboxResult security = (CheckboxResult) results.get("security");
             ChoiceResult logLevel = (ChoiceResult) results.get("log_level");
-            
+
             // Validate port number
             try {
                 int portNum = Integer.parseInt(port.getInput());
@@ -91,14 +119,14 @@ public class PromptBestPracticesExample {
                 System.err.println("Error: Invalid port number format");
                 return;
             }
-            
+
             // Provide clear summary
             System.out.println("\n✓ Configuration Summary:");
             System.out.println("  Deployment: " + deployment.getSelectedId());
             System.out.println("  Port: " + port.getInput());
             System.out.println("  Security: " + security.getSelectedIds());
             System.out.println("  Log Level: " + logLevel.getSelectedId());
-            
+
         } catch (Exception e) {
             // Best Practice 7: Handle cancellation gracefully
             System.out.println("Configuration cancelled. Using default settings.");

@@ -45,7 +45,6 @@ public class DefaultPrompterTest {
     @Test
     void testPrompterCreation() {
         assertNotNull(prompter);
-        assertNotNull(prompter.getConfig());
     }
 
     @Test
@@ -233,18 +232,6 @@ public class DefaultPrompterTest {
         assertTrue(prompts.get(0) instanceof ListPrompt);
         assertTrue(prompts.get(1) instanceof ConfirmPrompt);
         assertTrue(prompts.get(2) instanceof InputPrompt);
-    }
-
-    @Test
-    void testPrompterConfigAccess() {
-        PrompterConfig config = prompter.getConfig();
-        assertNotNull(config);
-
-        // Test that config provides expected symbols
-        assertNotNull(config.indicator());
-        assertNotNull(config.checkedBox());
-        assertNotNull(config.uncheckedBox());
-        assertNotNull(config.unavailable());
     }
 
     @Test

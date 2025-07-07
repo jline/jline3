@@ -10,6 +10,7 @@ package org.jline.demo.examples;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import org.jline.prompt.*;
@@ -29,9 +30,7 @@ public class PromptMultiColumnExample {
 
         // Create a list with many items to demonstrate multi-column layout
         PromptBuilder builder = prompter.newBuilder();
-        ListBuilder listBuilder = builder.createListPrompt()
-                .name("country")
-                .message("Select your country:");
+        ListBuilder listBuilder = builder.createListPrompt().name("country").message("Select your country:");
 
         // Add many countries to demonstrate column layout
         String[] countries = {
@@ -50,16 +49,15 @@ public class PromptMultiColumnExample {
 
         try {
             // Add informative header
-            var header = Arrays.asList(
-                new AttributedString("Country Selection"),
-                new AttributedString("Use arrow keys to navigate (left/right for columns, up/down for rows)")
-            );
-            
-            Map<String, ? extends PromptResult<? extends Prompt>> results = 
-                prompter.prompt(header, builder.build());
-            
+            List<AttributedString> header = Arrays.asList(
+                    new AttributedString("Country Selection"),
+                    new AttributedString("Use arrow keys to navigate (left/right for columns, up/down for rows)"));
+
+            Map<String, ? extends PromptResult<? extends Prompt>> results = prompter.prompt(header, builder.build());
+
             ListResult result = (ListResult) results.get("country");
-            System.out.println("Selected country: " + countries[Integer.parseInt(result.getSelectedId().substring(7))]);
+            System.out.println("Selected country: "
+                    + countries[Integer.parseInt(result.getSelectedId().substring(7))]);
         } catch (Exception e) {
             System.out.println("Selection cancelled");
         }

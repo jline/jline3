@@ -30,18 +30,31 @@ public class PromptCheckboxExample {
         builder.createCheckboxPrompt()
                 .name("features")
                 .message("Select features to enable:")
-                .newItem("logging").text("Logging").checked(true).add()  // Pre-checked
-                .newItem("caching").text("Caching").add()
-                .newItem("monitoring").text("Monitoring").checked(true).add()  // Pre-checked
-                .newItem("security").text("Security").add()
-                .newItem("database").text("Database Connection").add()
-                .newItem("messaging").text("Message Queue").add()
+                .newItem("logging")
+                .text("Logging")
+                .checked(true)
+                .add() // Pre-checked
+                .newItem("caching")
+                .text("Caching")
+                .add()
+                .newItem("monitoring")
+                .text("Monitoring")
+                .checked(true)
+                .add() // Pre-checked
+                .newItem("security")
+                .text("Security")
+                .add()
+                .newItem("database")
+                .text("Database Connection")
+                .add()
+                .newItem("messaging")
+                .text("Message Queue")
+                .add()
                 .addPrompt();
 
         try {
-            Map<String, ? extends PromptResult<? extends Prompt>> results = 
-                prompter.prompt(null, builder.build());
-            
+            Map<String, ? extends PromptResult<? extends Prompt>> results = prompter.prompt(null, builder.build());
+
             CheckboxResult result = (CheckboxResult) results.get("features");
             System.out.println("Selected features: " + result.getSelectedIds());
         } catch (Exception e) {

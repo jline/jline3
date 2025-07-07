@@ -14,7 +14,6 @@ import java.util.Map;
 import org.jline.prompt.*;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
-import org.jline.utils.AttributedString;
 
 /**
  * Example demonstrating basic Prompt module usage.
@@ -36,16 +35,21 @@ public class PromptBasicExample {
         builder.createListPrompt()
                 .name("framework")
                 .message("Choose a web framework:")
-                .newItem("spring").text("Spring Boot").add()
-                .newItem("quarkus").text("Quarkus").add()
-                .newItem("micronaut").text("Micronaut").add()
+                .newItem("spring")
+                .text("Spring Boot")
+                .add()
+                .newItem("quarkus")
+                .text("Quarkus")
+                .add()
+                .newItem("micronaut")
+                .text("Micronaut")
+                .add()
                 .addPrompt();
 
         try {
             // Display the prompt and get the result
-            Map<String, ? extends PromptResult<? extends Prompt>> results = 
-                prompter.prompt(null, builder.build());
-            
+            Map<String, ? extends PromptResult<? extends Prompt>> results = prompter.prompt(null, builder.build());
+
             ListResult result = (ListResult) results.get("framework");
             System.out.println("You chose: " + result.getSelectedId());
         } catch (Exception e) {

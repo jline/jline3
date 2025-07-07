@@ -26,7 +26,7 @@ public class PromptConfirmExample {
         Prompter prompter = PrompterFactory.create(terminal);
 
         PromptBuilder builder = prompter.newBuilder();
-        
+
         // Confirmation with default "yes"
         builder.createConfirmPrompt()
                 .name("save")
@@ -42,17 +42,16 @@ public class PromptConfirmExample {
                 .addPrompt();
 
         try {
-            Map<String, ? extends PromptResult<? extends Prompt>> results = 
-                prompter.prompt(null, builder.build());
-            
+            Map<String, ? extends PromptResult<? extends Prompt>> results = prompter.prompt(null, builder.build());
+
             ConfirmResult saveResult = (ConfirmResult) results.get("save");
             ConfirmResult deleteResult = (ConfirmResult) results.get("delete");
-            
-            if (saveResult.getConfirmed()) {
+
+            if (saveResult.isConfirmed()) {
                 System.out.println("Changes saved!");
             }
-            
-            if (deleteResult.getConfirmed()) {
+
+            if (deleteResult.isConfirmed()) {
                 System.out.println("Temporary files deleted!");
             } else {
                 System.out.println("Temporary files preserved.");

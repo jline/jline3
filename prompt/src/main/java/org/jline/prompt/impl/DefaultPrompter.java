@@ -24,13 +24,13 @@ import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.UserInterruptException;
 import org.jline.terminal.Attributes;
+import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.Display;
 import org.jline.utils.OSUtils;
-import org.jline.utils.Size;
 
 import static org.jline.keymap.KeyMap.*;
 import static org.jline.utils.InfoCmp.Capability.*;

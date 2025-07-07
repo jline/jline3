@@ -93,7 +93,11 @@ public class PromptCommands {
      */
     private static Options parseOptions(Context context, String[] usage, String[] argv) throws Exception {
         try {
-            return Options.compile(usage).parse(argv);
+            Options opt = Options.compile(usage).parse(argv);
+            if (opt.isSet("help")) {
+                throw new Options.HelpException(opt.usage());
+            }
+            return opt;
         } catch (Options.HelpException e) {
             context.out().println(e.getMessage());
             return null;
@@ -145,10 +149,10 @@ public class PromptCommands {
         }
 
         String type = args.get(0);
-        String message = opt.get("message", "");
-        String title = opt.get("title", "");
-        String defaultValue = opt.get("default", "");
-        String keys = opt.get("key", "");
+        String message = opt.isSet("message") ? opt.get("message") : "";
+        String title = opt.isSet("title") ? opt.get("title") : "";
+        String defaultValue = opt.isSet("default") ? opt.get("default") : "";
+        String keys = opt.isSet("key") ? opt.get("key") : "";
 
         List<String> items = args.subList(1, args.size());
 
@@ -338,7 +342,7 @@ public class PromptCommands {
 
         ConfirmResult result = (ConfirmResult) results.get("confirm");
         if (result != null) {
-            context.out().println(result.getConfirmed() ? "true" : "false");
+            context.out().println(result.isConfirmed() ? "true" : "false");
         }
     }
 }

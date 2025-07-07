@@ -53,31 +53,42 @@ public class PromptConfigExample {
         Prompter prompter = new DefaultPrompter(terminal, customConfig);
 
         PromptBuilder builder = prompter.newBuilder();
-        
+
         // Demonstrate custom symbols
         builder.createListPrompt()
                 .name("theme")
                 .message("Choose a theme (notice custom indicator):")
-                .newItem("light").text("Light Theme").add()
-                .newItem("dark").text("Dark Theme").add()
+                .newItem("light")
+                .text("Light Theme")
+                .add()
+                .newItem("dark")
+                .text("Dark Theme")
+                .add()
                 .add("custom", "Custom Theme", true) // disabled to show unavailable symbol
                 .addPrompt();
 
         builder.createCheckboxPrompt()
                 .name("options")
                 .message("Select options (notice custom checkboxes):")
-                .newItem("option1").text("Enable notifications").checked(true).add()
-                .newItem("option2").text("Auto-save").add()
-                .newItem("option3").text("Dark mode").checked(true).add()
+                .newItem("option1")
+                .text("Enable notifications")
+                .checked(true)
+                .add()
+                .newItem("option2")
+                .text("Auto-save")
+                .add()
+                .newItem("option3")
+                .text("Dark mode")
+                .checked(true)
+                .add()
                 .addPrompt();
 
         try {
-            Map<String, ? extends PromptResult<? extends Prompt>> results = 
-                prompter.prompt(null, builder.build());
-            
+            Map<String, ? extends PromptResult<? extends Prompt>> results = prompter.prompt(null, builder.build());
+
             ListResult themeResult = (ListResult) results.get("theme");
             CheckboxResult optionsResult = (CheckboxResult) results.get("options");
-            
+
             System.out.println("Selected theme: " + themeResult.getSelectedId());
             System.out.println("Selected options: " + optionsResult.getSelectedIds());
         } catch (Exception e) {

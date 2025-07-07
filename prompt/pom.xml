@@ -36,6 +36,10 @@
             <groupId>org.jline</groupId>
             <artifactId>jline-reader</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-builtins</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>

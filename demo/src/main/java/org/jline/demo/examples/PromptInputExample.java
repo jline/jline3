@@ -26,7 +26,7 @@ public class PromptInputExample {
         Prompter prompter = PrompterFactory.create(terminal);
 
         PromptBuilder builder = prompter.newBuilder();
-        
+
         // Text input with default value
         builder.createInputPrompt()
                 .name("username")
@@ -49,15 +49,15 @@ public class PromptInputExample {
                 .addPrompt();
 
         try {
-            Map<String, ? extends PromptResult<? extends Prompt>> results = 
-                prompter.prompt(null, builder.build());
-            
+            Map<String, ? extends PromptResult<? extends Prompt>> results = prompter.prompt(null, builder.build());
+
             InputResult username = (InputResult) results.get("username");
             InputResult password = (InputResult) results.get("password");
             InputResult email = (InputResult) results.get("email");
-            
+
             System.out.println("Username: " + username.getInput());
-            System.out.println("Password: " + "*".repeat(password.getInput().length()));
+            System.out.println(
+                    "Password: " + new String(new char[password.getInput().length()]).replace('\0', '*'));
             System.out.println("Email: " + email.getInput());
         } catch (Exception e) {
             System.out.println("Input cancelled");

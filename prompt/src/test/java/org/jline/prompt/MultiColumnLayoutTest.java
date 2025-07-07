@@ -12,8 +12,10 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import org.jline.prompt.impl.DefaultPrompter;
+import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.AttributedString;
@@ -37,7 +39,7 @@ public class MultiColumnLayoutTest {
         terminal = TerminalBuilder.builder()
                 .system(false)
                 .streams(new ByteArrayInputStream(new byte[0]), System.out)
-                .size(80, 24) // 80 columns, 24 rows
+                .size(new Size(80, 24)) // 80 columns, 24 rows
                 .build();
         prompter = new DefaultPrompter(terminal);
     }
@@ -271,7 +273,7 @@ public class MultiColumnLayoutTest {
         List<Prompt> emptyPrompts = Arrays.asList();
 
         // Should handle empty prompt list gracefully
-        var results = prompter.prompt(header, emptyPrompts);
+        Map<String, ? extends PromptResult<? extends Prompt>> results = prompter.prompt(header, emptyPrompts);
 
         assertNotNull(results);
         assertTrue(results.isEmpty());
@@ -305,7 +307,7 @@ public class MultiColumnLayoutTest {
         Terminal narrowTerminal = TerminalBuilder.builder()
                 .system(false)
                 .streams(new ByteArrayInputStream(new byte[0]), System.out)
-                .size(40, 24) // 40 columns, 24 rows
+                .size(new Size(40, 24)) // 40 columns, 24 rows
                 .build();
 
         DefaultPrompter narrowPrompter = new DefaultPrompter(narrowTerminal);
@@ -315,7 +317,7 @@ public class MultiColumnLayoutTest {
         Terminal wideTerminal = TerminalBuilder.builder()
                 .system(false)
                 .streams(new ByteArrayInputStream(new byte[0]), System.out)
-                .size(120, 24) // 120 columns, 24 rows
+                .size(new Size(120, 24)) // 120 columns, 24 rows
                 .build();
 
         DefaultPrompter widePrompter = new DefaultPrompter(wideTerminal);
