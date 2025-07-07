@@ -37,13 +37,13 @@ public class PromptCommandsTest {
         // Create test streams
         outStream = new ByteArrayOutputStream();
         errStream = new ByteArrayOutputStream();
-        
+
         // Create a test terminal
         terminal = TerminalBuilder.builder()
                 .system(false)
                 .streams(new ByteArrayInputStream(new byte[0]), outStream)
                 .build();
-        
+
         // Create context
         context = new PromptCommands.Context(
                 new ByteArrayInputStream(new byte[0]),
@@ -51,8 +51,7 @@ public class PromptCommandsTest {
                 new PrintStream(errStream),
                 Paths.get(System.getProperty("user.dir")),
                 terminal,
-                name -> System.getProperty(name)
-        );
+                name -> System.getProperty(name));
     }
 
     @Test
@@ -69,8 +68,8 @@ public class PromptCommandsTest {
     @Test
     void testPromptCommandHelp() throws Exception {
         // Test help option
-        PromptCommands.prompt(context, new String[]{"--help"});
-        
+        PromptCommands.prompt(context, new String[] {"--help"});
+
         String output = outStream.toString();
         assertTrue(output.contains("prompt - create interactive prompts"));
         assertTrue(output.contains("Usage: prompt [OPTIONS] TYPE [ITEMS...]"));
@@ -84,8 +83,8 @@ public class PromptCommandsTest {
     @Test
     void testPromptCommandNoArgs() throws Exception {
         // Test command with no arguments
-        PromptCommands.prompt(context, new String[]{});
-        
+        PromptCommands.prompt(context, new String[] {});
+
         String errorOutput = errStream.toString();
         assertTrue(errorOutput.contains("Error: prompt type required"));
     }
@@ -93,8 +92,8 @@ public class PromptCommandsTest {
     @Test
     void testPromptCommandInvalidType() throws Exception {
         // Test command with invalid type
-        PromptCommands.prompt(context, new String[]{"invalid", "item1", "item2"});
-        
+        PromptCommands.prompt(context, new String[] {"invalid", "item1", "item2"});
+
         String errorOutput = errStream.toString();
         assertTrue(errorOutput.contains("Error: unknown prompt type 'invalid'"));
         assertTrue(errorOutput.contains("Valid types: list, checkbox, choice, input, confirm"));
@@ -103,8 +102,8 @@ public class PromptCommandsTest {
     @Test
     void testListPromptCommandValidation() throws Exception {
         // Test list prompt with no items
-        PromptCommands.prompt(context, new String[]{"list", "-m", "Choose:"});
-        
+        PromptCommands.prompt(context, new String[] {"list", "-m", "Choose:"});
+
         String errorOutput = errStream.toString();
         assertTrue(errorOutput.contains("Error: list prompt requires at least one item"));
     }
@@ -112,8 +111,8 @@ public class PromptCommandsTest {
     @Test
     void testCheckboxPromptCommandValidation() throws Exception {
         // Test checkbox prompt with no items
-        PromptCommands.prompt(context, new String[]{"checkbox", "-m", "Select:"});
-        
+        PromptCommands.prompt(context, new String[] {"checkbox", "-m", "Select:"});
+
         String errorOutput = errStream.toString();
         assertTrue(errorOutput.contains("Error: checkbox prompt requires at least one item"));
     }
@@ -121,8 +120,8 @@ public class PromptCommandsTest {
     @Test
     void testChoicePromptCommandValidation() throws Exception {
         // Test choice prompt with no items
-        PromptCommands.prompt(context, new String[]{"choice", "-m", "Pick:"});
-        
+        PromptCommands.prompt(context, new String[] {"choice", "-m", "Pick:"});
+
         String errorOutput = errStream.toString();
         assertTrue(errorOutput.contains("Error: choice prompt requires at least one item"));
     }
@@ -132,7 +131,7 @@ public class PromptCommandsTest {
         // Test that message option is parsed correctly
         // This test verifies the option parsing without actually executing the prompt
         try {
-            PromptCommands.prompt(context, new String[]{"input", "-m", "Enter name:", "-d", "John"});
+            PromptCommands.prompt(context, new String[] {"input", "-m", "Enter name:", "-d", "John"});
         } catch (Exception e) {
             // Expected to fail due to no actual user input, but should not fail on parsing
             assertFalse(e.getMessage().contains("Error: prompt type required"));
@@ -144,7 +143,8 @@ public class PromptCommandsTest {
     void testPromptCommandWithTitle() throws Exception {
         // Test that title option is parsed correctly
         try {
-            PromptCommands.prompt(context, new String[]{"confirm", "-t", "Confirmation", "-m", "Continue?", "-d", "y"});
+            PromptCommands.prompt(
+                    context, new String[] {"confirm", "-t", "Confirmation", "-m", "Continue?", "-d", "y"});
         } catch (Exception e) {
             // Expected to fail due to no actual user input, but should not fail on parsing
             assertFalse(e.getMessage().contains("Error: prompt type required"));
@@ -156,7 +156,8 @@ public class PromptCommandsTest {
     void testPromptCommandWithKeys() throws Exception {
         // Test that keys option is parsed correctly for choice prompts
         try {
-            PromptCommands.prompt(context, new String[]{"choice", "-m", "Pick color:", "-k", "rgb", "Red", "Green", "Blue"});
+            PromptCommands.prompt(
+                    context, new String[] {"choice", "-m", "Pick color:", "-k", "rgb", "Red", "Green", "Blue"});
         } catch (Exception e) {
             // Expected to fail due to no actual user input, but should not fail on parsing
             assertFalse(e.getMessage().contains("Error: prompt type required"));
@@ -169,7 +170,7 @@ public class PromptCommandsTest {
     void testObjectArrayVersion() throws Exception {
         // Test the Object array version of the prompt command
         Object[] args = {"input", "-m", "Enter text:", "-d", "default"};
-        
+
         try {
             PromptCommands.prompt(context, args);
         } catch (Exception e) {
@@ -189,16 +190,18 @@ public class PromptCommandsTest {
             {"input"},
             {"confirm"}
         };
-        
+
         for (String[] args : testCases) {
             try {
                 PromptCommands.prompt(context, args);
             } catch (Exception e) {
                 // Should not fail on argument parsing
-                assertFalse(e.getMessage().contains("Error: prompt type required"), 
-                    "Failed for args: " + String.join(" ", args));
-                assertFalse(e.getMessage().contains("Error: unknown prompt type"), 
-                    "Failed for args: " + String.join(" ", args));
+                assertFalse(
+                        e.getMessage().contains("Error: prompt type required"),
+                        "Failed for args: " + String.join(" ", args));
+                assertFalse(
+                        e.getMessage().contains("Error: unknown prompt type"),
+                        "Failed for args: " + String.join(" ", args));
             }
         }
     }
@@ -207,13 +210,18 @@ public class PromptCommandsTest {
     void testPromptCommandWithAllOptions() throws Exception {
         // Test command with all possible options
         String[] args = {
-            "list", 
-            "-m", "Choose an option:",
-            "-t", "Selection Menu",
-            "-d", "default_value",
-            "Option 1", "Option 2", "Option 3"
+            "list",
+            "-m",
+            "Choose an option:",
+            "-t",
+            "Selection Menu",
+            "-d",
+            "default_value",
+            "Option 1",
+            "Option 2",
+            "Option 3"
         };
-        
+
         try {
             PromptCommands.prompt(context, args);
         } catch (Exception e) {
@@ -237,16 +245,18 @@ public class PromptCommandsTest {
             {"confirm", "-d", "0"},
             {"confirm", "-d", "false"}
         };
-        
+
         for (String[] args : testCases) {
             try {
                 PromptCommands.prompt(context, args);
             } catch (Exception e) {
                 // Should not fail on argument parsing
-                assertFalse(e.getMessage().contains("Error: prompt type required"), 
-                    "Failed for args: " + String.join(" ", args));
-                assertFalse(e.getMessage().contains("Error: unknown prompt type"), 
-                    "Failed for args: " + String.join(" ", args));
+                assertFalse(
+                        e.getMessage().contains("Error: prompt type required"),
+                        "Failed for args: " + String.join(" ", args));
+                assertFalse(
+                        e.getMessage().contains("Error: unknown prompt type"),
+                        "Failed for args: " + String.join(" ", args));
             }
         }
     }

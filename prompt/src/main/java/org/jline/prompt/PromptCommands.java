@@ -63,12 +63,29 @@ public class PromptCommands {
             this.variables = variables;
         }
 
-        public InputStream in() { return in; }
-        public PrintStream out() { return out; }
-        public PrintStream err() { return err; }
-        public Path currentDir() { return currentDir; }
-        public Terminal terminal() { return terminal; }
-        public Function<String, Object> variables() { return variables; }
+        public InputStream in() {
+            return in;
+        }
+
+        public PrintStream out() {
+            return out;
+        }
+
+        public PrintStream err() {
+            return err;
+        }
+
+        public Path currentDir() {
+            return currentDir;
+        }
+
+        public Terminal terminal() {
+            return terminal;
+        }
+
+        public Function<String, Object> variables() {
+            return variables;
+        }
     }
 
     /**
@@ -88,7 +105,7 @@ public class PromptCommands {
 
     /**
      * Prompt command - create interactive prompts.
-     * 
+     *
      * @param context the execution context
      * @param argv command arguments
      * @throws Exception if the command fails
@@ -105,7 +122,7 @@ public class PromptCommands {
             "",
             "Types:",
             "  list                     single selection list",
-            "  checkbox                 multiple selection checkboxes", 
+            "  checkbox                 multiple selection checkboxes",
             "  choice                   single character choice",
             "  input                    text input",
             "  confirm                  yes/no confirmation",
@@ -137,9 +154,8 @@ public class PromptCommands {
 
         try {
             Prompter prompter = PrompterFactory.create(context.terminal());
-            List<AttributedString> header = title.isEmpty() ?
-                new ArrayList<>() :
-                Arrays.asList(new AttributedString(title));
+            List<AttributedString> header =
+                    title.isEmpty() ? new ArrayList<>() : Arrays.asList(new AttributedString(title));
 
             switch (type.toLowerCase()) {
                 case "list":
@@ -183,29 +199,24 @@ public class PromptCommands {
         prompt(context, stringArgv);
     }
 
-    private static void handleListPrompt(Context context, Prompter prompter,
-                                       List<AttributedString> header, String message,
-                                       List<String> items) throws IOException {
+    private static void handleListPrompt(
+            Context context, Prompter prompter, List<AttributedString> header, String message, List<String> items)
+            throws IOException {
         if (items.isEmpty()) {
             context.err().println("Error: list prompt requires at least one item");
             return;
         }
 
         PromptBuilder builder = prompter.newBuilder();
-        ListBuilder listBuilder = builder.createListPrompt()
-            .name("list")
-            .message(message);
+        ListBuilder listBuilder = builder.createListPrompt().name("list").message(message);
 
         for (int i = 0; i < items.size(); i++) {
-            listBuilder.newItem("item" + i)
-                .text(items.get(i))
-                .add();
+            listBuilder.newItem("item" + i).text(items.get(i)).add();
         }
 
         listBuilder.addPrompt();
 
-        Map<String, ? extends PromptResult<? extends Prompt>> results =
-            prompter.prompt(header, builder.build());
+        Map<String, ? extends PromptResult<? extends Prompt>> results = prompter.prompt(header, builder.build());
 
         ListResult result = (ListResult) results.get("list");
         if (result != null) {
@@ -213,29 +224,25 @@ public class PromptCommands {
         }
     }
 
-    private static void handleCheckboxPrompt(Context context, Prompter prompter,
-                                           List<AttributedString> header, String message,
-                                           List<String> items) throws IOException {
+    private static void handleCheckboxPrompt(
+            Context context, Prompter prompter, List<AttributedString> header, String message, List<String> items)
+            throws IOException {
         if (items.isEmpty()) {
             context.err().println("Error: checkbox prompt requires at least one item");
             return;
         }
 
         PromptBuilder builder = prompter.newBuilder();
-        CheckboxBuilder checkboxBuilder = builder.createCheckboxPrompt()
-            .name("checkbox")
-            .message(message);
+        CheckboxBuilder checkboxBuilder =
+                builder.createCheckboxPrompt().name("checkbox").message(message);
 
         for (int i = 0; i < items.size(); i++) {
-            checkboxBuilder.newItem("item" + i)
-                .text(items.get(i))
-                .add();
+            checkboxBuilder.newItem("item" + i).text(items.get(i)).add();
         }
 
         checkboxBuilder.addPrompt();
 
-        Map<String, ? extends PromptResult<? extends Prompt>> results =
-            prompter.prompt(header, builder.build());
+        Map<String, ? extends PromptResult<? extends Prompt>> results = prompter.prompt(header, builder.build());
 
         CheckboxResult result = (CheckboxResult) results.get("checkbox");
         if (result != null) {
@@ -245,18 +252,22 @@ public class PromptCommands {
         }
     }
 
-    private static void handleChoicePrompt(Context context, Prompter prompter,
-                                         List<AttributedString> header, String message,
-                                         List<String> items, String keys) throws IOException {
+    private static void handleChoicePrompt(
+            Context context,
+            Prompter prompter,
+            List<AttributedString> header,
+            String message,
+            List<String> items,
+            String keys)
+            throws IOException {
         if (items.isEmpty()) {
             context.err().println("Error: choice prompt requires at least one item");
             return;
         }
 
         PromptBuilder builder = prompter.newBuilder();
-        ChoiceBuilder choiceBuilder = builder.createChoicePrompt()
-            .name("choice")
-            .message(message);
+        ChoiceBuilder choiceBuilder =
+                builder.createChoicePrompt().name("choice").message(message);
 
         for (int i = 0; i < items.size(); i++) {
             Character key = null;
@@ -266,23 +277,24 @@ public class PromptCommands {
             boolean isDefault = i == 0; // First item is default
 
             if (key != null) {
-                choiceBuilder.newChoice("item" + i)
-                    .text(items.get(i))
-                    .key(key)
-                    .defaultChoice(isDefault)
-                    .add();
+                choiceBuilder
+                        .newChoice("item" + i)
+                        .text(items.get(i))
+                        .key(key)
+                        .defaultChoice(isDefault)
+                        .add();
             } else {
-                choiceBuilder.newChoice("item" + i)
-                    .text(items.get(i))
-                    .defaultChoice(isDefault)
-                    .add();
+                choiceBuilder
+                        .newChoice("item" + i)
+                        .text(items.get(i))
+                        .defaultChoice(isDefault)
+                        .add();
             }
         }
 
         choiceBuilder.addPrompt();
 
-        Map<String, ? extends PromptResult<? extends Prompt>> results =
-            prompter.prompt(header, builder.build());
+        Map<String, ? extends PromptResult<? extends Prompt>> results = prompter.prompt(header, builder.build());
 
         ChoiceResult result = (ChoiceResult) results.get("choice");
         if (result != null) {
@@ -290,13 +302,11 @@ public class PromptCommands {
         }
     }
 
-    private static void handleInputPrompt(Context context, Prompter prompter,
-                                        List<AttributedString> header, String message,
-                                        String defaultValue) throws IOException {
+    private static void handleInputPrompt(
+            Context context, Prompter prompter, List<AttributedString> header, String message, String defaultValue)
+            throws IOException {
         PromptBuilder builder = prompter.newBuilder();
-        InputBuilder inputBuilder = builder.createInputPrompt()
-            .name("input")
-            .message(message);
+        InputBuilder inputBuilder = builder.createInputPrompt().name("input").message(message);
 
         if (defaultValue != null && !defaultValue.isEmpty()) {
             inputBuilder.defaultValue(defaultValue);
@@ -304,8 +314,7 @@ public class PromptCommands {
 
         inputBuilder.addPrompt();
 
-        Map<String, ? extends PromptResult<? extends Prompt>> results =
-            prompter.prompt(header, builder.build());
+        Map<String, ? extends PromptResult<? extends Prompt>> results = prompter.prompt(header, builder.build());
 
         InputResult result = (InputResult) results.get("input");
         if (result != null) {
@@ -313,20 +322,19 @@ public class PromptCommands {
         }
     }
 
-    private static void handleConfirmPrompt(Context context, Prompter prompter,
-                                          List<AttributedString> header, String message,
-                                          String defaultValue) throws IOException {
+    private static void handleConfirmPrompt(
+            Context context, Prompter prompter, List<AttributedString> header, String message, String defaultValue)
+            throws IOException {
         boolean defaultBool = defaultValue.toLowerCase().startsWith("y") || defaultValue.equals("1");
 
         PromptBuilder builder = prompter.newBuilder();
         builder.createConfirmPrompt()
-            .name("confirm")
-            .message(message)
-            .defaultValue(defaultBool)
-            .addPrompt();
+                .name("confirm")
+                .message(message)
+                .defaultValue(defaultBool)
+                .addPrompt();
 
-        Map<String, ? extends PromptResult<? extends Prompt>> results =
-            prompter.prompt(header, builder.build());
+        Map<String, ? extends PromptResult<? extends Prompt>> results = prompter.prompt(header, builder.build());
 
         ConfirmResult result = (ConfirmResult) results.get("confirm");
         if (result != null) {

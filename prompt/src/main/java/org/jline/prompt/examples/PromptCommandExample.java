@@ -10,10 +10,9 @@ package org.jline.prompt.examples;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.Map;
 
-import org.jline.prompt.PromptCommands;
-import org.jline.prompt.Prompter;
-import org.jline.prompt.PrompterFactory;
+import org.jline.prompt.*;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
@@ -26,29 +25,25 @@ public class PromptCommandExample {
     public static void main(String[] args) {
         try {
             // Create terminal
-            Terminal terminal = TerminalBuilder.builder()
-                .system(true)
-                .build();
+            Terminal terminal = TerminalBuilder.builder().system(true).build();
 
             // Create context
             PromptCommands.Context context = new PromptCommands.Context(
-                System.in,
-                System.out,
-                System.err,
-                Paths.get(System.getProperty("user.dir")),
-                terminal,
-                name -> System.getProperty(name)
-            );
+                    System.in,
+                    System.out,
+                    System.err,
+                    Paths.get(System.getProperty("user.dir")),
+                    terminal,
+                    name -> System.getProperty(name));
 
             System.out.println("=== PromptCommands Example ===\n");
 
             // Example 1: List prompt
             System.out.println("1. List Prompt Example:");
             try {
-                PromptCommands.prompt(context, new String[]{
-                    "list", "-m", "Choose your favorite color:", 
-                    "Red", "Green", "Blue", "Yellow"
-                });
+                PromptCommands.prompt(
+                        context,
+                        new String[] {"list", "-m", "Choose your favorite color:", "Red", "Green", "Blue", "Yellow"});
             } catch (Exception e) {
                 System.err.println("List prompt cancelled or failed");
             }
@@ -58,9 +53,15 @@ public class PromptCommandExample {
             // Example 2: Checkbox prompt
             System.out.println("2. Checkbox Prompt Example:");
             try {
-                PromptCommands.prompt(context, new String[]{
-                    "checkbox", "-m", "Select programming languages you know:",
-                    "Java", "Python", "JavaScript", "C++", "Go"
+                PromptCommands.prompt(context, new String[] {
+                    "checkbox",
+                    "-m",
+                    "Select programming languages you know:",
+                    "Java",
+                    "Python",
+                    "JavaScript",
+                    "C++",
+                    "Go"
                 });
             } catch (Exception e) {
                 System.err.println("Checkbox prompt cancelled or failed");
@@ -71,9 +72,8 @@ public class PromptCommandExample {
             // Example 3: Choice prompt
             System.out.println("3. Choice Prompt Example:");
             try {
-                PromptCommands.prompt(context, new String[]{
-                    "choice", "-m", "Select difficulty level:", "-k", "emh",
-                    "Easy", "Medium", "Hard"
+                PromptCommands.prompt(context, new String[] {
+                    "choice", "-m", "Select difficulty level:", "-k", "emh", "Easy", "Medium", "Hard"
                 });
             } catch (Exception e) {
                 System.err.println("Choice prompt cancelled or failed");
@@ -84,9 +84,7 @@ public class PromptCommandExample {
             // Example 4: Input prompt
             System.out.println("4. Input Prompt Example:");
             try {
-                PromptCommands.prompt(context, new String[]{
-                    "input", "-m", "Enter your name:", "-d", "John Doe"
-                });
+                PromptCommands.prompt(context, new String[] {"input", "-m", "Enter your name:", "-d", "John Doe"});
             } catch (Exception e) {
                 System.err.println("Input prompt cancelled or failed");
             }
@@ -96,9 +94,7 @@ public class PromptCommandExample {
             // Example 5: Confirm prompt
             System.out.println("5. Confirm Prompt Example:");
             try {
-                PromptCommands.prompt(context, new String[]{
-                    "confirm", "-m", "Do you want to continue?", "-d", "y"
-                });
+                PromptCommands.prompt(context, new String[] {"confirm", "-m", "Do you want to continue?", "-d", "y"});
             } catch (Exception e) {
                 System.err.println("Confirm prompt cancelled or failed");
             }
@@ -123,31 +119,42 @@ public class PromptCommandExample {
             Prompter prompter = PrompterFactory.create(terminal);
 
             // Build multiple prompts using the fluent API
-            var builder = prompter.newBuilder();
+            PromptBuilder builder = prompter.newBuilder();
 
             builder.createListPrompt()
-                .name("framework")
-                .message("Choose a web framework:")
-                .newItem("spring").text("Spring Boot").add()
-                .newItem("quarkus").text("Quarkus").add()
-                .newItem("micronaut").text("Micronaut").add()
-                .addPrompt()
+                    .name("framework")
+                    .message("Choose a web framework:")
+                    .newItem("spring")
+                    .text("Spring Boot")
+                    .add()
+                    .newItem("quarkus")
+                    .text("Quarkus")
+                    .add()
+                    .newItem("micronaut")
+                    .text("Micronaut")
+                    .add()
+                    .addPrompt()
+                    .createCheckboxPrompt()
+                    .name("databases")
+                    .message("Select databases to support:")
+                    .newItem("postgres")
+                    .text("PostgreSQL")
+                    .checked(true)
+                    .add()
+                    .newItem("mysql")
+                    .text("MySQL")
+                    .add()
+                    .newItem("mongodb")
+                    .text("MongoDB")
+                    .add()
+                    .addPrompt()
+                    .createConfirmPrompt()
+                    .name("proceed")
+                    .message("Generate project with these settings?")
+                    .defaultValue(true)
+                    .addPrompt();
 
-                .createCheckboxPrompt()
-                .name("databases")
-                .message("Select databases to support:")
-                .newItem("postgres").text("PostgreSQL").checked(true).add()
-                .newItem("mysql").text("MySQL").add()
-                .newItem("mongodb").text("MongoDB").add()
-                .addPrompt()
-
-                .createConfirmPrompt()
-                .name("proceed")
-                .message("Generate project with these settings?")
-                .defaultValue(true)
-                .addPrompt();
-
-            var results = prompter.prompt(null, builder.build());
+            Map<String, ? extends PromptResult<? extends Prompt>> results = prompter.prompt(null, builder.build());
 
             System.out.println("Framework: " + results.get("framework").getDisplayResult());
             System.out.println("Databases: " + results.get("databases").getDisplayResult());

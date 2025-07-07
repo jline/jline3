@@ -53,23 +53,29 @@ public class DefaultPrompterTest {
         // Test creating a list prompt with items
         Prompter factory = PrompterFactory.create(terminal);
         PromptBuilder builder = factory.newBuilder();
-        
+
         builder.createListPrompt()
                 .name("test-list")
                 .message("Choose an option:")
-                .newItem("option1").text("Option 1").add()
-                .newItem("option2").text("Option 2").add()
-                .newItem("option3").text("Option 3").add()
+                .newItem("option1")
+                .text("Option 1")
+                .add()
+                .newItem("option2")
+                .text("Option 2")
+                .add()
+                .newItem("option3")
+                .text("Option 3")
+                .add()
                 .addPrompt();
 
         List<Prompt> prompts = builder.build();
         assertEquals(1, prompts.size());
-        
+
         Prompt prompt = prompts.get(0);
         assertTrue(prompt instanceof ListPrompt);
         assertEquals("test-list", prompt.getName());
         assertEquals("Choose an option:", prompt.getMessage());
-        
+
         ListPrompt listPrompt = (ListPrompt) prompt;
         assertEquals(3, listPrompt.getItems().size());
     }
@@ -79,26 +85,34 @@ public class DefaultPrompterTest {
         // Test creating a checkbox prompt with pre-checked items
         Prompter factory = PrompterFactory.create(terminal);
         PromptBuilder builder = factory.newBuilder();
-        
+
         builder.createCheckboxPrompt()
                 .name("test-checkbox")
                 .message("Select options:")
-                .newItem("option1").text("Option 1").checked(true).add()
-                .newItem("option2").text("Option 2").add()
-                .newItem("option3").text("Option 3").checked(true).add()
+                .newItem("option1")
+                .text("Option 1")
+                .checked(true)
+                .add()
+                .newItem("option2")
+                .text("Option 2")
+                .add()
+                .newItem("option3")
+                .text("Option 3")
+                .checked(true)
+                .add()
                 .addPrompt();
 
         List<Prompt> prompts = builder.build();
         assertEquals(1, prompts.size());
-        
+
         Prompt prompt = prompts.get(0);
         assertTrue(prompt instanceof CheckboxPrompt);
         assertEquals("test-checkbox", prompt.getName());
-        
+
         CheckboxPrompt checkboxPrompt = (CheckboxPrompt) prompt;
         List<CheckboxItem> items = checkboxPrompt.getItems();
         assertEquals(3, items.size());
-        
+
         // Check pre-checked state
         assertTrue(items.get(0).isInitiallyChecked());
         assertFalse(items.get(1).isInitiallyChecked());
@@ -110,25 +124,35 @@ public class DefaultPrompterTest {
         // Test creating a choice prompt with keys
         Prompter factory = PrompterFactory.create(terminal);
         PromptBuilder builder = factory.newBuilder();
-        
+
         builder.createChoicePrompt()
                 .name("test-choice")
                 .message("Pick a color:")
-                .newChoice("red").text("Red").key('r').defaultChoice(true).add()
-                .newChoice("green").text("Green").key('g').add()
-                .newChoice("blue").text("Blue").key('b').add()
+                .newChoice("red")
+                .text("Red")
+                .key('r')
+                .defaultChoice(true)
+                .add()
+                .newChoice("green")
+                .text("Green")
+                .key('g')
+                .add()
+                .newChoice("blue")
+                .text("Blue")
+                .key('b')
+                .add()
                 .addPrompt();
 
         List<Prompt> prompts = builder.build();
         assertEquals(1, prompts.size());
-        
+
         Prompt prompt = prompts.get(0);
         assertTrue(prompt instanceof ChoicePrompt);
-        
+
         ChoicePrompt choicePrompt = (ChoicePrompt) prompt;
         List<ChoiceItem> items = choicePrompt.getItems();
         assertEquals(3, items.size());
-        
+
         // Check keys and default choice
         assertEquals(Character.valueOf('r'), items.get(0).getKey());
         assertTrue(items.get(0).isDefaultChoice());
@@ -143,7 +167,7 @@ public class DefaultPrompterTest {
         // Test creating an input prompt with default value
         Prompter factory = PrompterFactory.create(terminal);
         PromptBuilder builder = factory.newBuilder();
-        
+
         builder.createInputPrompt()
                 .name("test-input")
                 .message("Enter your name:")
@@ -152,7 +176,7 @@ public class DefaultPrompterTest {
 
         List<Prompt> prompts = builder.build();
         assertEquals(1, prompts.size());
-        
+
         Prompt prompt = prompts.get(0);
         assertTrue(prompt instanceof InputPrompt);
         assertEquals("test-input", prompt.getName());
@@ -164,7 +188,7 @@ public class DefaultPrompterTest {
         // Test creating a confirm prompt with default value
         Prompter factory = PrompterFactory.create(terminal);
         PromptBuilder builder = factory.newBuilder();
-        
+
         builder.createConfirmPrompt()
                 .name("test-confirm")
                 .message("Are you sure?")
@@ -173,7 +197,7 @@ public class DefaultPrompterTest {
 
         List<Prompt> prompts = builder.build();
         assertEquals(1, prompts.size());
-        
+
         Prompt prompt = prompts.get(0);
         assertTrue(prompt instanceof ConfirmPrompt);
         assertEquals("test-confirm", prompt.getName());
@@ -185,11 +209,13 @@ public class DefaultPrompterTest {
         // Test creating multiple prompts in a single builder
         Prompter factory = PrompterFactory.create(terminal);
         PromptBuilder builder = factory.newBuilder();
-        
+
         builder.createListPrompt()
                 .name("list")
                 .message("Choose:")
-                .newItem("opt1").text("Option 1").add()
+                .newItem("opt1")
+                .text("Option 1")
+                .add()
                 .addPrompt()
                 .createConfirmPrompt()
                 .name("confirm")
@@ -203,7 +229,7 @@ public class DefaultPrompterTest {
 
         List<Prompt> prompts = builder.build();
         assertEquals(3, prompts.size());
-        
+
         assertTrue(prompts.get(0) instanceof ListPrompt);
         assertTrue(prompts.get(1) instanceof ConfirmPrompt);
         assertTrue(prompts.get(2) instanceof InputPrompt);
@@ -213,7 +239,7 @@ public class DefaultPrompterTest {
     void testPrompterConfigAccess() {
         PrompterConfig config = prompter.getConfig();
         assertNotNull(config);
-        
+
         // Test that config provides expected symbols
         assertNotNull(config.indicator());
         assertNotNull(config.checkedBox());
@@ -226,11 +252,10 @@ public class DefaultPrompterTest {
         // Test behavior with empty prompt list
         List<AttributedString> header = Arrays.asList(new AttributedString("Test Header"));
         List<Prompt> emptyPrompts = Arrays.asList();
-        
+
         // Should handle empty prompt list gracefully
-        Map<String, ? extends PromptResult<? extends Prompt>> results = 
-            prompter.prompt(header, emptyPrompts);
-        
+        Map<String, ? extends PromptResult<? extends Prompt>> results = prompter.prompt(header, emptyPrompts);
+
         assertNotNull(results);
         assertTrue(results.isEmpty());
     }
@@ -240,7 +265,7 @@ public class DefaultPrompterTest {
         // Test behavior with null header
         Prompter factory = PrompterFactory.create(terminal);
         PromptBuilder builder = factory.newBuilder();
-        
+
         builder.createConfirmPrompt()
                 .name("test")
                 .message("Test?")
@@ -248,11 +273,10 @@ public class DefaultPrompterTest {
                 .addPrompt();
 
         List<Prompt> prompts = builder.build();
-        
+
         // Should handle null header gracefully
-        Map<String, ? extends PromptResult<? extends Prompt>> results = 
-            prompter.prompt(null, prompts);
-        
+        Map<String, ? extends PromptResult<? extends Prompt>> results = prompter.prompt(null, prompts);
+
         assertNotNull(results);
     }
 }

@@ -17,9 +17,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
-import org.jline.prompt.*;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
+import org.jline.prompt.*;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.UserInterruptException;
@@ -29,7 +29,6 @@ import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.Display;
-import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.OSUtils;
 import org.jline.utils.Size;
 
@@ -341,8 +340,9 @@ public class DefaultPrompter implements Prompter {
                     for (ListItem item : items) {
                         if (item instanceof ChoiceItem) {
                             ChoiceItem choiceItem = (ChoiceItem) item;
-                            if (choiceItem.isSelectable() && choiceItem.getKey() != null &&
-                                choiceItem.getKey().toString().equals(ch)) {
+                            if (choiceItem.isSelectable()
+                                    && choiceItem.getKey() != null
+                                    && choiceItem.getKey().toString().equals(ch)) {
                                 selectRow = firstItemRow + id;
                                 break;
                             }
@@ -468,8 +468,9 @@ public class DefaultPrompter implements Prompter {
                     // Check if the input character matches any choice key
                     String ch = bindingReader.getLastBinding();
                     for (ChoiceItem item : items) {
-                        if (item.isSelectable() && item.getKey() != null &&
-                            item.getKey().toString().equalsIgnoreCase(ch)) {
+                        if (item.isSelectable()
+                                && item.getKey() != null
+                                && item.getKey().toString().equalsIgnoreCase(ch)) {
                             // Found matching choice
                             terminal.writer().print(ch);
                             terminal.writer().println();
@@ -482,7 +483,11 @@ public class DefaultPrompter implements Prompter {
                 case EXIT:
                     // Use default choice if available
                     if (defaultChoice != null) {
-                        terminal.writer().println(defaultChoice.getKey() != null ? defaultChoice.getKey().toString() : "");
+                        terminal.writer()
+                                .println(
+                                        defaultChoice.getKey() != null
+                                                ? defaultChoice.getKey().toString()
+                                                : "");
                         terminal.flush();
                         return new DefaultChoiceResult(defaultChoice.getName(), prompt);
                     }
@@ -562,8 +567,6 @@ public class DefaultPrompter implements Prompter {
         }
     }
 
-
-
     /**
      * Bind keys for list prompt operations.
      */
@@ -586,7 +589,8 @@ public class DefaultPrompter implements Prompter {
     /**
      * Refresh the display for list prompts using JLine's Display class.
      */
-    private void refreshListDisplay(List<AttributedString> header, String message, List<ListItem> items, int cursorRow) {
+    private void refreshListDisplay(
+            List<AttributedString> header, String message, List<ListItem> items, int cursorRow) {
         display.resize(size.getRows(), size.getColumns());
         display.update(
                 buildListDisplayLines(header, message, items, cursorRow),
@@ -596,7 +600,8 @@ public class DefaultPrompter implements Prompter {
     /**
      * Build display lines for list prompts with column layout support.
      */
-    private List<AttributedString> buildListDisplayLines(List<AttributedString> header, String message, List<ListItem> items, int cursorRow) {
+    private List<AttributedString> buildListDisplayLines(
+            List<AttributedString> header, String message, List<ListItem> items, int cursorRow) {
         List<AttributedString> out = new ArrayList<>(header);
 
         // Add message line
@@ -643,7 +648,10 @@ public class DefaultPrompter implements Prompter {
             fillIndicatorSpace(asb);
             asb.append(" ").append(key);
             if (item.isDisabled()) {
-                asb.append(item.getDisabledText()).append(" (").append(item.getDisabledText()).append(")");
+                asb.append(item.getDisabledText())
+                        .append(" (")
+                        .append(item.getDisabledText())
+                        .append(")");
             } else {
                 asb.append(item.getText());
             }
@@ -676,7 +684,8 @@ public class DefaultPrompter implements Prompter {
                     String key = item instanceof ChoiceItem ? ((ChoiceItem) item).getKey() + " - " : "";
 
                     if (isSelected) {
-                        itemBuilder.append(config.indicator())
+                        itemBuilder
+                                .append(config.indicator())
                                 .style(AttributedStyle.DEFAULT.inverse())
                                 .append(" ")
                                 .append(key)
@@ -750,7 +759,12 @@ public class DefaultPrompter implements Prompter {
     /**
      * Refresh the display for checkbox prompts using JLine's Display class.
      */
-    private void refreshCheckboxDisplay(List<AttributedString> header, String message, List<CheckboxItem> items, int cursorRow, Set<String> selectedIds) {
+    private void refreshCheckboxDisplay(
+            List<AttributedString> header,
+            String message,
+            List<CheckboxItem> items,
+            int cursorRow,
+            Set<String> selectedIds) {
         display.resize(size.getRows(), size.getColumns());
         display.update(
                 buildCheckboxDisplayLines(header, message, items, cursorRow, selectedIds),
@@ -760,7 +774,12 @@ public class DefaultPrompter implements Prompter {
     /**
      * Build display lines for checkbox prompts with column layout support.
      */
-    private List<AttributedString> buildCheckboxDisplayLines(List<AttributedString> header, String message, List<CheckboxItem> items, int cursorRow, Set<String> selectedIds) {
+    private List<AttributedString> buildCheckboxDisplayLines(
+            List<AttributedString> header,
+            String message,
+            List<CheckboxItem> items,
+            int cursorRow,
+            Set<String> selectedIds) {
         List<AttributedString> out = new ArrayList<>(header);
 
         // Add message line
@@ -828,7 +847,8 @@ public class DefaultPrompter implements Prompter {
     /**
      * Build multi-column checkbox layout lines.
      */
-    private List<AttributedString> buildMultiColumnCheckboxLines(List<CheckboxItem> items, int cursorRow, Set<String> selectedIds) {
+    private List<AttributedString> buildMultiColumnCheckboxLines(
+            List<CheckboxItem> items, int cursorRow, Set<String> selectedIds) {
         List<AttributedString> out = new ArrayList<>();
 
         // Calculate column width
@@ -850,7 +870,10 @@ public class DefaultPrompter implements Prompter {
                     if (item.isSelectable()) {
                         // Selection indicator
                         if (isSelected) {
-                            itemBuilder.append(config.indicator()).style(AttributedStyle.DEFAULT).append(" ");
+                            itemBuilder
+                                    .append(config.indicator())
+                                    .style(AttributedStyle.DEFAULT)
+                                    .append(" ");
                         } else {
                             fillIndicatorSpace(itemBuilder).append(" ");
                         }
@@ -985,11 +1008,13 @@ public class DefaultPrompter implements Prompter {
         int itemsSize = items.size();
         int next;
         for (next = row + 1;
-                next - firstItemRow < itemsSize && !items.get(next - firstItemRow).isSelectable();
+                next - firstItemRow < itemsSize
+                        && !items.get(next - firstItemRow).isSelectable();
                 next++) {}
         if (next - firstItemRow >= itemsSize) {
             for (next = firstItemRow;
-                    next - firstItemRow < itemsSize && !items.get(next - firstItemRow).isSelectable();
+                    next - firstItemRow < itemsSize
+                            && !items.get(next - firstItemRow).isSelectable();
                     next++) {}
         }
         return next;
@@ -1045,7 +1070,8 @@ public class DefaultPrompter implements Prompter {
         // Add space for indicator and checkbox symbols
         maxWidth += config.indicator().length() + 1; // indicator + space
         if (items.get(0) instanceof CheckboxItem) {
-            maxWidth += Math.max(config.checkedBox().length(), config.uncheckedBox().length());
+            maxWidth +=
+                    Math.max(config.checkedBox().length(), config.uncheckedBox().length());
         }
 
         // Calculate how many columns fit
@@ -1084,17 +1110,17 @@ public class DefaultPrompter implements Prompter {
      */
     private int[] indexToGrid(int index) {
         if (rowsFirst) {
-            return new int[]{index / columns, index % columns};
+            return new int[] {index / columns, index % columns};
         } else {
-            return new int[]{index % lines, index / lines};
+            return new int[] {index % lines, index / lines};
         }
     }
 
     /**
      * Navigate to next column in grid layout.
      */
-    private static <T extends PromptItem> int nextColumn(int currentRow, int firstItemRow, List<T> items,
-                                                        int columns, int lines, boolean rowsFirst) {
+    private static <T extends PromptItem> int nextColumn(
+            int currentRow, int firstItemRow, List<T> items, int columns, int lines, boolean rowsFirst) {
         int currentIndex = currentRow - firstItemRow;
         int[] grid = indexToGrid(currentIndex, columns, lines, rowsFirst);
         int row = grid[0];
@@ -1115,8 +1141,8 @@ public class DefaultPrompter implements Prompter {
     /**
      * Navigate to previous column in grid layout.
      */
-    private static <T extends PromptItem> int prevColumn(int currentRow, int firstItemRow, List<T> items,
-                                                        int columns, int lines, boolean rowsFirst) {
+    private static <T extends PromptItem> int prevColumn(
+            int currentRow, int firstItemRow, List<T> items, int columns, int lines, boolean rowsFirst) {
         int currentIndex = currentRow - firstItemRow;
         int[] grid = indexToGrid(currentIndex, columns, lines, rowsFirst);
         int row = grid[0];
@@ -1149,9 +1175,9 @@ public class DefaultPrompter implements Prompter {
 
     private static int[] indexToGrid(int index, int columns, int lines, boolean rowsFirst) {
         if (rowsFirst) {
-            return new int[]{index / columns, index % columns};
+            return new int[] {index / columns, index % columns};
         } else {
-            return new int[]{index % lines, index / lines};
+            return new int[] {index % lines, index / lines};
         }
     }
 
