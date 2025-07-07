@@ -25,6 +25,7 @@ import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
+import org.jline.utils.OSUtils;
 
 public class Basic {
 
@@ -49,14 +50,17 @@ public class Basic {
                 "for querying information from the user. ConsoleUI is inspired by Inquirer.js which is written");
         addInHeader(header, "in JavaScript.");
         try (Terminal terminal = TerminalBuilder.builder().build()) {
+            ConsolePrompt.UiConfig config;
             if (terminal.getType().equals(Terminal.TYPE_DUMB)
                     || terminal.getType().equals(Terminal.TYPE_DUMB_COLOR)) {
                 System.out.println(terminal.getName() + ": " + terminal.getType());
                 throw new IllegalStateException("Dumb terminal detected.\nConsoleUi requires real terminal to work!\n"
                         + "Note: On Windows Jansi or JNA library must be included in classpath.");
+            } else if (OSUtils.IS_WINDOWS) {
+                config = new ConsolePrompt.UiConfig(">", "( )", "(x)", "( )");
+            } else {
+                config = new ConsolePrompt.UiConfig("\u276F", "\u25EF ", "\u25C9 ", "\u25EF ");
             }
-
-            ConsolePrompt.UiConfig config = new ConsolePrompt.UiConfig();
             //
             // LineReader is needed only if you are adding JLine Completers in your prompts.
             // If you are not using Completers you do not need to create LineReader.

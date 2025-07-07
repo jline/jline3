@@ -56,14 +56,17 @@ public class BasicDynamic {
         try (Terminal terminal = TerminalBuilder.builder().build()) {
             Thread executeThread = Thread.currentThread();
             terminal.handle(Terminal.Signal.INT, signal -> executeThread.interrupt());
+            ConsolePrompt.UiConfig config;
             if (terminal.getType().equals(Terminal.TYPE_DUMB)
                     || terminal.getType().equals(Terminal.TYPE_DUMB_COLOR)) {
                 System.out.println(terminal.getName() + ": " + terminal.getType());
                 throw new IllegalStateException("Dumb terminal detected.\nConsoleUi requires real terminal to work!\n"
                         + "Note: On Windows Jansi or JNA library must be included in classpath.");
+            } else if (OSUtils.IS_WINDOWS) {
+                config = new ConsolePrompt.UiConfig(">", "( )", "(x)", "( )");
+            } else {
+                config = new ConsolePrompt.UiConfig("\u276F", "\u25EF ", "\u25C9 ", "\u25EF ");
             }
-
-            ConsolePrompt.UiConfig config = new ConsolePrompt.UiConfig();
             config.setCancellableFirstPrompt(true);
             //
             // LineReader is needed only if you are adding JLine Completers in your prompts.

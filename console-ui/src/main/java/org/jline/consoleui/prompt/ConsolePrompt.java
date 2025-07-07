@@ -26,7 +26,6 @@ import org.jline.reader.UserInterruptException;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Terminal;
 import org.jline.utils.*;
-import org.jline.utils.OSUtils;
 
 /**
  * ConsolePrompt encapsulates the prompting of a list of input questions for the user.
@@ -73,14 +72,6 @@ public class ConsolePrompt {
             }
             config.setReaderOptions(options);
         }
-    }
-
-    public Terminal getTerminal() {
-        return terminal;
-    }
-
-    public LineReader getLineReader() {
-        return reader;
     }
 
     protected void open() {
@@ -450,32 +441,10 @@ public class ConsolePrompt {
             String uc = System.getenv(UI_COLORS);
             String uiColors = uc != null && Styles.isStylePattern(uc) ? uc : DEFAULT_UI_COLORS;
             this.resolver = resolver(uiColors);
-
-            // Set platform-specific defaults if not explicitly provided
-            String defaultIndicator;
-            String defaultUncheckedBox;
-            String defaultCheckedBox;
-            String defaultUnavailable;
-
-            if (OSUtils.IS_WINDOWS) {
-                defaultIndicator = ">";
-                defaultUncheckedBox = "( )";
-                defaultCheckedBox = "(x)";
-                defaultUnavailable = "( )";
-            } else {
-                defaultIndicator = "\u276F"; // ❯
-                defaultUncheckedBox = "\u25EF "; // ◯
-                defaultCheckedBox = "\u25C9 "; // ◉
-                defaultUnavailable = "\u25EF "; // ◯
-            }
-
-            this.indicator = toAttributedString(resolver, (indicator != null ? indicator : defaultIndicator), ".cu");
-            this.uncheckedBox =
-                    toAttributedString(resolver, (uncheckedBox != null ? uncheckedBox : defaultUncheckedBox), ".be");
-            this.checkedBox =
-                    toAttributedString(resolver, (checkedBox != null ? checkedBox : defaultCheckedBox), ".be");
-            this.unavailable =
-                    toAttributedString(resolver, (unavailable != null ? unavailable : defaultUnavailable), ".bd");
+            this.indicator = toAttributedString(resolver, (indicator != null ? indicator : ">"), ".cu");
+            this.uncheckedBox = toAttributedString(resolver, (uncheckedBox != null ? uncheckedBox : " "), ".be");
+            this.checkedBox = toAttributedString(resolver, (checkedBox != null ? checkedBox : "x "), ".be");
+            this.unavailable = toAttributedString(resolver, (unavailable != null ? unavailable : "- "), ".bd");
             this.resourceBundle = ResourceBundle.getBundle("consoleui_messages");
         }
 

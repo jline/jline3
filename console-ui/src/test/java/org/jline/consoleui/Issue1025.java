@@ -32,7 +32,6 @@ import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 import org.junit.jupiter.api.Test;
 
-@SuppressWarnings("deprecation")
 public class Issue1025 {
 
     private static void addInHeader(List<AttributedString> header, String text) {
@@ -81,7 +80,8 @@ public class Issue1025 {
             addInHeader(header, "Extra line: " + i);
         }
 
-        ConsolePrompt.UiConfig config = new ConsolePrompt.UiConfig();
+        ConsolePrompt.UiConfig config;
+        config = new ConsolePrompt.UiConfig("\u276F", "\u25EF ", "\u25C9 ", "\u25EF ");
         //
         // LineReader is needed only if you are adding JLine Completers in your prompts.
         // If you are not using Completers you do not need to create LineReader.
