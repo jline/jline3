@@ -158,3 +158,47 @@ When using the JLine Builtins module, consider these best practices:
 9. **Documentation**: Document all commands and their options.
 
 10. **Testing**: Test all commands thoroughly to ensure they work as expected.
+
+## Terminal Implementations
+
+The Builtins module also provides two specialized terminal implementations built on top of the `ScreenTerminal` class:
+
+### WebTerminal
+
+A web-based terminal implementation that serves a terminal interface over HTTP:
+
+```java
+WebTerminal webTerminal = new WebTerminal("localhost", 8080, 80, 24);
+webTerminal.write("Welcome to JLine WebTerminal!\n$ ");
+webTerminal.start();
+// Access at http://localhost:8080
+```
+
+**Features:**
+- HTTP server using JDK's built-in HttpServer
+- Real-time terminal updates via AJAX polling
+- ANSI escape sequence rendering in HTML/CSS
+- Full keyboard support including special keys
+- GZIP compression for better performance
+
+### SwingTerminal
+
+A Swing JComponent-based terminal for desktop GUI applications:
+
+```java
+SwingTerminal swingTerminal = new SwingTerminal(80, 24);
+JFrame frame = swingTerminal.createFrame("My Terminal");
+frame.setVisible(true);
+swingTerminal.write("Welcome to JLine SwingTerminal!\n$ ");
+```
+
+**Features:**
+- Custom painting for terminal characters and attributes
+- ANSI color support with configurable color palette
+- Font configuration with monospace font support
+- Keyboard and mouse input handling
+- Cursor blinking and thread-safe operations
+
+Both implementations support the full range of ANSI escape sequences and can be integrated with shell processes or command interpreters.
+
+For detailed documentation and examples, see [Web and Swing Terminal Implementations](/docs/advanced/web-swing-terminals).
