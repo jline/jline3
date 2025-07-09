@@ -39,6 +39,8 @@ import javax.swing.*;
  */
 public class SwingTerminal extends ScreenTerminal {
 
+    private JFrame frame;
+
     /**
      * JComponent that renders the terminal display.
      */
@@ -481,18 +483,31 @@ public class SwingTerminal extends ScreenTerminal {
      * @return the created frame
      */
     public JFrame createFrame(String title) {
-        JFrame frame = new JFrame(title);
+        this.frame = new JFrame(title);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.add(component);
         frame.pack();
         frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
         return frame;
+    }
+
+    /**
+     * Checks if the terminal window is closed.
+     *
+     * @return true if the window is closed or not visible
+     */
+    public boolean isClosed() {
+        return frame == null || !frame.isDisplayable() || !frame.isVisible();
     }
 
     /**
      * Disposes of resources used by this terminal.
      */
     public void dispose() {
+        if (frame != null) {
+            frame.dispose();
+        }
         component.dispose();
     }
 }

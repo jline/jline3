@@ -54,12 +54,169 @@ function command_rebuild {
   mvn clean install $*
 }
 
+function run_demo_in_terminal() {
+  local demo_type="$1"
+  local terminal_type="$2"
+  shift 2
+
+  # Set up common variables
+  TARGETDIR="demo/target"
+  cp="${TARGETDIR}/classes"
+  logconf="demo/etc/logging.properties"
+  JVM_OPTS=""
+  APP_ARGS=""
+  MAIN_CLASS=""
+  DEMO_MAIN_CLASS=""
+
+  # Add JLine jars
+  if [ -d ${TARGETDIR}/lib ]; then
+    cp=${cp}$(find ${TARGETDIR}/lib -name "jline-*.jar" -exec printf :{} ';')
+  fi
+
+  # Set up demo-specific configuration
+  case "$demo_type" in
+    "gogo")
+      # Add Gogo Runtime and JLine
+      if [ -d ${TARGETDIR}/lib ]; then
+        cp=${cp}$(find ${TARGETDIR}/lib -name "org.apache.felix.gogo.runtime-*.jar" -exec printf :{} ';')
+        cp=${cp}$(find ${TARGETDIR}/lib -name "org.apache.felix.gogo.jline-*.jar" -exec printf :{} ';')
+      fi
+      DEMO_MAIN_CLASS="org.apache.felix.gogo.jline.Main"
+      ;;
+    "repl")
+      # Add Groovy and Ivy jars
+      if [ -d ${TARGETDIR}/lib ]; then
+        cp=${cp}$(find ${TARGETDIR}/lib -name "groovy-*.jar" -exec printf :{} ';')
+        cp=${cp}$(find ${TARGETDIR}/lib -name "ivy-*.jar" -exec printf :{} ';')
+      fi
+      DEMO_MAIN_CLASS="org.jline.demo.Repl"
+      ;;
+    "password")
+      DEMO_MAIN_CLASS="org.jline.demo.PasswordMaskingDemo"
+      # Process mask option separately for password demo
+      for arg in "$@"; do
+        if [[ "${arg}" == --mask=* ]]; then
+          APP_ARGS="${APP_ARGS} ${arg}"
+        fi
+      done
+      ;;
+    "consoleui")
+      # Add console-ui jar
+      if [ -d ${TARGETDIR}/lib ]; then
+        cp=${cp}$(find ${TARGETDIR}/lib -name "jline-console-ui-*.jar" -exec printf :{} ';')
+      fi
+      DEMO_MAIN_CLASS="org.jline.demo.consoleui.BasicDynamic"
+      ;;
+    *)
+      echo "Demo type '$demo_type' cannot be run in terminal wrapper"
+      exit 1
+      ;;
+  esac
+
+  # Set the wrapper main class
+  case "$terminal_type" in
+    "web")
+      MAIN_CLASS="org.jline.demo.TerminalWrapper"
+      APP_ARGS="${APP_ARGS} --terminal=web --demo=${DEMO_MAIN_CLASS}"
+      ;;
+    "swing")
+      MAIN_CLASS="org.jline.demo.TerminalWrapper"
+      APP_ARGS="${APP_ARGS} --terminal=swing --demo=${DEMO_MAIN_CLASS}"
+      ;;
+    *)
+      echo "Unknown terminal type: $terminal_type"
+      exit 1
+      ;;
+  esac
+
+  # Process common options
+  for arg in "$@"; do
+    case ${arg} in
+      'debug')
+        JVM_OPTS="${JVM_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+        ;;
+      'debugs')
+        JVM_OPTS="${JVM_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005"
+        ;;
+      'jansi')
+        cp=${cp}$(find ${TARGETDIR}/lib -name "jansi-*.jar" -exec printf :{} ';')
+        ;;
+      'jna')
+        cp=${cp}$(find ${TARGETDIR}/lib -name "jna-*.jar" -exec printf :{} ';')
+        ;;
+      'verbose')
+        logconf="demo/etc/logging-verbose.properties"
+        ;;
+      'ffm')
+        JVM_OPTS="${JVM_OPTS} --enable-preview --enable-native-access=ALL-UNNAMED"
+        ;;
+      'ssh' | 'telnet' | 'remote')
+        # Process SSH/Telnet/Remote options for gogo
+        if [ "$demo_type" = "gogo" ]; then
+          if [ -d ${TARGETDIR}/lib ]; then
+            cp=${cp}$(find ${TARGETDIR}/lib -name "sshd-common-*.jar" -exec printf :{} ';')
+            cp=${cp}$(find ${TARGETDIR}/lib -name "sshd-core-*.jar" -exec printf :{} ';')
+            cp=${cp}$(find ${TARGETDIR}/lib -name "sshd-scp-*.jar" -exec printf :{} ';')
+            cp=${cp}$(find ${TARGETDIR}/lib -name "sshd-sftp-*.jar" -exec printf :{} ';')
+            cp=${cp}$(find ${TARGETDIR}/lib -name "slf4j-api-*.jar" -exec printf :{} ';')
+            cp=${cp}$(find ${TARGETDIR}/lib -name "slf4j-jdk14-*.jar" -exec printf :{} ';')
+          fi
+          APP_ARGS="${APP_ARGS} --${arg}"
+        fi
+        ;;
+      --mask=*)
+        # Already processed for password demo
+        ;;
+      *)
+        # Pass unknown options to the demo
+        APP_ARGS="${APP_ARGS} ${arg}"
+        ;;
+    esac
+  done
+
+  # Check if JDK version supports --enable-native-access
+  java_version=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | cut -d. -f1)
+  if [ "$java_version" -ge 16 ] 2>/dev/null; then
+    # Only add if not already present
+    if [[ "$JVM_OPTS" != *"--enable-native-access=ALL-UNNAMED"* ]]; then
+      JVM_OPTS="${JVM_OPTS} --enable-native-access=ALL-UNNAMED"
+    fi
+  fi
+
+  # Launch the demo in terminal wrapper
+  echo "Launching ${demo_type} demo in ${terminal_type} terminal..."
+  echo "Wrapper: ${MAIN_CLASS}"
+  echo "Demo: ${DEMO_MAIN_CLASS}"
+  echo "Classpath: $cp"
+  echo "JVM options: $JVM_OPTS"
+  if [ -n "$APP_ARGS" ]; then
+    echo "Application arguments: $APP_ARGS"
+  fi
+
+  if [ "$terminal_type" = "web" ]; then
+    echo ""
+    echo "WebTerminal will be available at: http://localhost:8080"
+    echo "Press Ctrl+C to stop the server."
+  fi
+
+  # Run Java directly with application arguments
+  JAVA_CMD="java -cp \"$cp\" $JVM_OPTS -Dgosh.home=\"demo\" -Djava.util.logging.config.file=\"${logconf}\" ${MAIN_CLASS}"
+
+  # Add each application argument individually
+  for arg in $APP_ARGS; do
+    JAVA_CMD="$JAVA_CMD \"$arg\""
+  done
+
+  # Execute the command
+  eval $JAVA_CMD
+}
+
 function command_demo() {
   local demo_type="$1"
   shift
 
   if [ -z "$demo_type" ]; then
-    echo "Usage: $basename demo <type> [options]"
+    echo "Usage: $basename demo <type> [options] [web|swing]"
     echo "Available demo types:"
     echo "  gogo      - Run the Gogo shell demo"
     echo "  repl      - Run the REPL demo"
@@ -74,6 +231,8 @@ function command_demo() {
     echo "  jna          Add JNA support"
     echo "  verbose      Enable verbose logging"
     echo "  ffm          Enable Foreign Function Memory (preview)"
+    echo "  web          Run demo inside WebTerminal (http://localhost:8080)"
+    echo "  swing        Run demo inside SwingTerminal (GUI window)"
     echo ""
     echo "Gogo-specific options:"
     echo "  ssh          Add SSH support"
@@ -83,7 +242,35 @@ function command_demo() {
     echo "Password-specific options:"
     echo "  --mask=X     Use X as the mask character (default: *)"
     echo "               Use --mask= (empty) for no masking"
+    echo ""
+    echo "Examples:"
+    echo "  $basename demo gogo web      - Run Gogo shell in WebTerminal"
+    echo "  $basename demo repl swing    - Run REPL in SwingTerminal"
+    echo "  $basename demo password web  - Run password demo in WebTerminal"
     exit 1
+  fi
+
+  # Check for terminal wrapper parameters
+  local terminal_wrapper=""
+  local filtered_args=()
+  for arg in "$@"; do
+    case "$arg" in
+      'web')
+        terminal_wrapper="web"
+        ;;
+      'swing')
+        terminal_wrapper="swing"
+        ;;
+      *)
+        filtered_args+=("$arg")
+        ;;
+    esac
+  done
+
+  # If terminal wrapper is specified, delegate to wrapper function
+  if [ -n "$terminal_wrapper" ]; then
+    run_demo_in_terminal "$demo_type" "$terminal_wrapper" "${filtered_args[@]}"
+    return
   fi
 
   # Set up common variables
@@ -148,7 +335,7 @@ function command_demo() {
       '--help')
         # Show help based on demo type
         if [ "$demo_type" = "gogo" ]; then
-          echo "Usage: $basename demo gogo [options]"
+          echo "Usage: $basename demo gogo [options] [web|swing]"
           echo "Options:"
           echo "  --help       Show this help message"
           echo "  ssh          Add SSH support"
@@ -160,10 +347,17 @@ function command_demo() {
           echo "  jna          Add JNA support"
           echo "  verbose      Enable verbose logging"
           echo "  ffm          Enable Foreign Function Memory (preview)"
+          echo "  web          Run in WebTerminal (http://localhost:8080)"
+          echo "  swing        Run in SwingTerminal (GUI window)"
+          echo ""
+          echo "Examples:"
+          echo "  $basename demo gogo          - Run in current terminal"
+          echo "  $basename demo gogo web      - Run in WebTerminal"
+          echo "  $basename demo gogo swing    - Run in SwingTerminal"
           echo ""
           echo "To test with a dumb terminal, use: TERM=dumb $basename demo gogo"
         elif [ "$demo_type" = "password" ]; then
-          echo "Usage: $basename demo password [options]"
+          echo "Usage: $basename demo password [options] [web|swing]"
           echo "Options:"
           echo "  --help       Show this help message"
           echo "  --mask=X     Use X as the mask character (default: *)"
@@ -174,10 +368,16 @@ function command_demo() {
           echo "  jna          Add JNA support"
           echo "  verbose      Enable verbose logging"
           echo "  ffm          Enable Foreign Function Memory (preview)"
+          echo "  web          Run in WebTerminal (http://localhost:8080)"
+          echo "  swing        Run in SwingTerminal (GUI window)"
+          echo ""
+          echo "Examples:"
+          echo "  $basename demo password web --mask=#  - Run in WebTerminal with # mask"
+          echo "  $basename demo password swing         - Run in SwingTerminal"
           echo ""
           echo "To test with a dumb terminal, use: TERM=dumb $basename demo password"
         elif [ "$demo_type" = "consoleui" ]; then
-          echo "Usage: $basename demo consoleui [options]"
+          echo "Usage: $basename demo consoleui [options] [web|swing]"
           echo "Options:"
           echo "  --help       Show this help message"
           echo "  debug        Enable remote debugging"
@@ -186,6 +386,12 @@ function command_demo() {
           echo "  jna          Add JNA support (alternative for Windows)"
           echo "  verbose      Enable verbose logging"
           echo "  ffm          Enable Foreign Function Memory (preview)"
+          echo "  web          Run in WebTerminal (http://localhost:8080)"
+          echo "  swing        Run in SwingTerminal (GUI window)"
+          echo ""
+          echo "Examples:"
+          echo "  $basename demo consoleui web    - Run in WebTerminal"
+          echo "  $basename demo consoleui swing  - Run in SwingTerminal"
           echo ""
           echo "Note: On Windows, either Jansi or JNA library must be included in classpath."
           echo "To test with a dumb terminal, use: TERM=dumb $basename demo consoleui"
@@ -204,7 +410,7 @@ function command_demo() {
           echo "WebTerminal provides a web-based terminal interface."
           echo "SwingTerminal provides a Swing-based GUI terminal."
         else
-          echo "Usage: $basename demo $demo_type [options]"
+          echo "Usage: $basename demo $demo_type [options] [web|swing]"
           echo "Options:"
           echo "  --help       Show this help message"
           echo "  debug        Enable remote debugging"
@@ -213,6 +419,12 @@ function command_demo() {
           echo "  jna          Add JNA support"
           echo "  verbose      Enable verbose logging"
           echo "  ffm          Enable Foreign Function Memory (preview)"
+          echo "  web          Run in WebTerminal (http://localhost:8080)"
+          echo "  swing        Run in SwingTerminal (GUI window)"
+          echo ""
+          echo "Examples:"
+          echo "  $basename demo $demo_type web    - Run in WebTerminal"
+          echo "  $basename demo $demo_type swing  - Run in SwingTerminal"
           echo ""
           echo "To test with a dumb terminal, use: TERM=dumb $basename demo $demo_type"
         fi
@@ -288,15 +500,257 @@ function command_demo() {
   eval $JAVA_CMD
 }
 
+function run_example_in_terminal() {
+  local example_name="$1"
+  local terminal_type="$2"
+  shift 2
+
+  # Set up classpath
+  TARGETDIR="demo/target"
+  cp="${TARGETDIR}/classes"
+  JVM_OPTS=""
+  APP_ARGS=""
+  MAIN_CLASS=""
+
+  # Add JLine jars
+  if [ -d ${TARGETDIR}/lib ]; then
+    cp=${cp}$(find ${TARGETDIR}/lib -name "jline-*.jar" -exec printf :{} ';')
+  fi
+
+  # Check if the example class exists
+  if ! find demo/src/main/java/org/jline/demo/examples -name "${example_name}.java" | grep -q .; then
+    echo "Example class '${example_name}' not found."
+    echo "Available examples:"
+    find demo/src/main/java/org/jline/demo/examples -name "*.java" | sed 's/.*\/\([^\/]*\)\.java/  \1/' | sort
+    exit 1
+  fi
+
+  # Set the wrapper main class
+  case "$terminal_type" in
+    "web")
+      MAIN_CLASS="org.jline.demo.TerminalWrapper"
+      APP_ARGS="${APP_ARGS} --terminal=web --demo=org.jline.demo.examples.${example_name}"
+      ;;
+    "swing")
+      MAIN_CLASS="org.jline.demo.TerminalWrapper"
+      APP_ARGS="${APP_ARGS} --terminal=swing --demo=org.jline.demo.examples.${example_name}"
+      ;;
+    *)
+      echo "Unknown terminal type: $terminal_type"
+      exit 1
+      ;;
+  esac
+
+  # Process options
+  for arg in "$@"; do
+    case ${arg} in
+      'debug')
+        JVM_OPTS="${JVM_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+        ;;
+      'debugs')
+        JVM_OPTS="${JVM_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005"
+        ;;
+      'jansi')
+        cp=${cp}$(find ${TARGETDIR}/lib -name "jansi-*.jar" -exec printf :{} ';')
+        ;;
+      'jna')
+        cp=${cp}$(find ${TARGETDIR}/lib -name "jna-*.jar" -exec printf :{} ';')
+        ;;
+      'ffm')
+        JVM_OPTS="${JVM_OPTS} --enable-preview --enable-native-access=ALL-UNNAMED"
+        ;;
+      *)
+        # Pass unknown options to the example
+        APP_ARGS="${APP_ARGS} ${arg}"
+        ;;
+    esac
+  done
+
+  # Check if JDK version supports --enable-native-access
+  java_version=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | cut -d. -f1)
+  if [ "$java_version" -ge 16 ] 2>/dev/null; then
+    # Only add if not already present
+    if [[ "$JVM_OPTS" != *"--enable-native-access=ALL-UNNAMED"* ]]; then
+      JVM_OPTS="${JVM_OPTS} --enable-native-access=ALL-UNNAMED"
+    fi
+  fi
+
+  # Launch the example in terminal wrapper
+  echo "Running example ${example_name} in ${terminal_type} terminal..."
+  echo "Wrapper: ${MAIN_CLASS}"
+  echo "Example: org.jline.demo.examples.${example_name}"
+  echo "Classpath: $cp"
+  echo "JVM options: $JVM_OPTS"
+  if [ -n "$APP_ARGS" ]; then
+    echo "Application arguments: $APP_ARGS"
+  fi
+
+  if [ "$terminal_type" = "web" ]; then
+    echo ""
+    echo "WebTerminal will be available at: http://localhost:8080"
+    echo "Press Ctrl+C to stop the server."
+  fi
+
+  # Run Java directly with application arguments
+  JAVA_CMD="java -cp \"$cp\" $JVM_OPTS ${MAIN_CLASS}"
+
+  # Add each application argument individually
+  for arg in $APP_ARGS; do
+    JAVA_CMD="$JAVA_CMD \"$arg\""
+  done
+
+  # Execute the command
+  eval $JAVA_CMD
+}
+
+function run_example_in_terminal() {
+  local example_name="$1"
+  local terminal_type="$2"
+  shift 2
+
+  # Set up classpath
+  TARGETDIR="demo/target"
+  cp="${TARGETDIR}/classes"
+  JVM_OPTS=""
+  APP_ARGS=""
+  MAIN_CLASS=""
+
+  # Add JLine jars
+  if [ -d ${TARGETDIR}/lib ]; then
+    cp=${cp}$(find ${TARGETDIR}/lib -name "jline-*.jar" -exec printf :{} ';')
+  fi
+
+  # Check if the example class exists
+  if ! find demo/src/main/java/org/jline/demo/examples -name "${example_name}.java" | grep -q .; then
+    echo "Example class '${example_name}' not found."
+    echo "Available examples:"
+    find demo/src/main/java/org/jline/demo/examples -name "*.java" | sed 's/.*\/\([^\/]*\)\.java/  \1/' | sort
+    exit 1
+  fi
+
+  # Set the wrapper main class
+  case "$terminal_type" in
+    "web")
+      MAIN_CLASS="org.jline.demo.TerminalWrapper"
+      APP_ARGS="${APP_ARGS} --terminal=web --demo=org.jline.demo.examples.${example_name}"
+      ;;
+    "swing")
+      MAIN_CLASS="org.jline.demo.TerminalWrapper"
+      APP_ARGS="${APP_ARGS} --terminal=swing --demo=org.jline.demo.examples.${example_name}"
+      ;;
+    *)
+      echo "Unknown terminal type: $terminal_type"
+      exit 1
+      ;;
+  esac
+
+  # Process options
+  for arg in "$@"; do
+    case ${arg} in
+      'debug')
+        JVM_OPTS="${JVM_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+        ;;
+      'debugs')
+        JVM_OPTS="${JVM_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005"
+        ;;
+      'jansi')
+        cp=${cp}$(find ${TARGETDIR}/lib -name "jansi-*.jar" -exec printf :{} ';')
+        ;;
+      'jna')
+        cp=${cp}$(find ${TARGETDIR}/lib -name "jna-*.jar" -exec printf :{} ';')
+        ;;
+      'ffm')
+        JVM_OPTS="${JVM_OPTS} --enable-preview --enable-native-access=ALL-UNNAMED"
+        ;;
+      *)
+        # Pass unknown options to the example
+        APP_ARGS="${APP_ARGS} ${arg}"
+        ;;
+    esac
+  done
+
+  # Check if JDK version supports --enable-native-access
+  java_version=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | cut -d. -f1)
+  if [ "$java_version" -ge 16 ] 2>/dev/null; then
+    # Only add if not already present
+    if [[ "$JVM_OPTS" != *"--enable-native-access=ALL-UNNAMED"* ]]; then
+      JVM_OPTS="${JVM_OPTS} --enable-native-access=ALL-UNNAMED"
+    fi
+  fi
+
+  # Launch the example in terminal wrapper
+  echo "Running example ${example_name} in ${terminal_type} terminal..."
+  echo "Wrapper: ${MAIN_CLASS}"
+  echo "Example: org.jline.demo.examples.${example_name}"
+  echo "Classpath: $cp"
+  echo "JVM options: $JVM_OPTS"
+  if [ -n "$APP_ARGS" ]; then
+    echo "Application arguments: $APP_ARGS"
+  fi
+
+  if [ "$terminal_type" = "web" ]; then
+    echo ""
+    echo "WebTerminal will be available at: http://localhost:8080"
+    echo "Press Ctrl+C to stop the server."
+  fi
+
+  # Run Java directly with application arguments
+  JAVA_CMD="java -cp \"$cp\" $JVM_OPTS ${MAIN_CLASS}"
+
+  # Add each application argument individually
+  for arg in $APP_ARGS; do
+    JAVA_CMD="$JAVA_CMD \"$arg\""
+  done
+
+  # Execute the command
+  eval $JAVA_CMD
+}
+
 function command_example() {
   local example_name="$1"
   shift
 
   if [ -z "$example_name" ]; then
-    echo "Usage: $basename example <ExampleClassName> [options]"
+    echo "Usage: $basename example <ExampleClassName> [options] [web|swing]"
     echo "Available examples:"
     find demo/src/main/java/org/jline/demo/examples -name "*.java" | sed 's/.*\/\([^\/]*\)\.java/  \1/' | sort
+    echo ""
+    echo "Options:"
+    echo "  debug        Enable remote debugging"
+    echo "  debugs       Enable remote debugging with suspend"
+    echo "  jansi        Add Jansi support"
+    echo "  jna          Add JNA support"
+    echo "  ffm          Enable Foreign Function Memory (preview)"
+    echo "  web          Run in WebTerminal (http://localhost:8080)"
+    echo "  swing        Run in SwingTerminal (GUI window)"
+    echo ""
+    echo "Examples:"
+    echo "  $basename example AnsiColors web    - Run AnsiColors in WebTerminal"
+    echo "  $basename example Repl swing        - Run Repl in SwingTerminal"
     exit 1
+  fi
+
+  # Check for terminal wrapper parameters
+  local terminal_wrapper=""
+  local filtered_args=()
+  for arg in "$@"; do
+    case "$arg" in
+      'web')
+        terminal_wrapper="web"
+        ;;
+      'swing')
+        terminal_wrapper="swing"
+        ;;
+      *)
+        filtered_args+=("$arg")
+        ;;
+    esac
+  done
+
+  # If terminal wrapper is specified, delegate to wrapper function
+  if [ -n "$terminal_wrapper" ]; then
+    run_example_in_terminal "$example_name" "$terminal_wrapper" "${filtered_args[@]}"
+    return
   fi
 
   # Set up classpath
