@@ -12,58 +12,40 @@
 name: Manual Maven Release
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: The version to release (will be inferred from the pom version by default).
-        required: false
-      next-version:
-        description: The next development version (will be inferred from the pom version by default).
-        required: false
-      java-version:
-        description: The java version to use
-        required: false
-        default: 22
-      distribution:
-        description: The java distribution to use.
-        required: false
-        default: temurin
+  push:
+    tags:
+      - '[0-9]*.[0-9]*.[0-9]*'
 
 jobs:
   release:
     name: Release to Maven Central
     runs-on: ubuntu-latest
+    if: github.ref_type == 'tag'
     steps:
 
       - name: Checkout ${{ github.ref_name }}
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # Full history for git describe
+          ref: ${{ github.ref }}  # Ensures we're on the exact tag when triggered by tag push
+
+      - name: Verify tag state
+        id: version
+        run: |
+          git fetch --tags
+          echo "All recent tags:"
+          git tag -l --sort=version:refname | head -5
+          echo "Current commit: $(git rev-parse HEAD)"
+          echo "Git describe: $(git describe --tags --always)"
+          echo "Tag: ${GITHUB_REF#refs/tags/}"
+          echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: ${{ github.event.inputs.distribution }}
-          java-version: ${{ github.event.inputs.java-version }}
+          distribution: temurin
+          java-version: 22
           cache: maven
-
-      - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v6
-        with:
-          gpg_private_key: ${{ secrets.GPG_SIGNING_KEY }}
-          passphrase: ${{ secrets.GPG_PASSPHRASE }}
-          git_config_global: true
-          git_user_signingkey: true
-          git_commit_gpgsign: true
-          fingerprint: ${{ secrets.GPG_KEY_FINGERPRINT }}
-
-      - name: Release preparation
-        id: pre-release
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh extension install valeriobelli/gh-milestone
-          version=$(./mvnw -q -DforceStdout --raw-streams help:evaluate -N -Dexpression=project.version | sed -rn 's/([^-]+)(-SNAPSHOT|)$/\1/p')
-          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Release
         env:
@@ -73,14 +55,15 @@ jobs:
           MAVEN_USER: ${{ secrets.MAVEN_USER }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
         run: |
-          ./mvnw -B release:prepare release:perform -Darguments="-DskipTests -Dnjord.autoPublish" -s .github/release-settings.xml -DreleaseVersion=${{ github.event.inputs.version }} -DdevelopmentVersion=${{ github.event.inputs.next-version }}
+          ./mvnw -B deploy -Dnjord.autoPublish -Pbundle,javadoc,format-check,sign -s .github/release-settings.xml 
 
       - name: Post release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          version=${{ steps.pre-release.outputs.version }}
+          gh extension install valeriobelli/gh-milestone
+          version=${{ steps.version.outputs.version }}
           echo "Trying to find milestone $version"
           milestone=$(gh milestone list --json id,title,state  --jq "map_values(select(.title == \"${version}\" and .state == \"OPEN\")).[].number")
           if [ ! -z "$milestone" ]; then
@@ -88,17 +71,30 @@ jobs:
               gh milestone edit $milestone --state closed 
           fi
 
-          version=$(./mvnw -q -DforceStdout --raw-streams help:evaluate -N -Dexpression=project.version | sed -rn 's/([^-]+)(-SNAPSHOT|)$/\1/p')
-          echo "Preparing development $version"
-          echo "Trying to find milestone $version"
-          milestone=$(gh milestone list --json id,title,state  --jq "map_values(select(.title == \"${version}\" and .state == \"OPEN\")).[].number")
-          if [ -z "$milestone" ]; then
-              echo "Creating milestone $version"
-              gh milestone create --title $version 
-          fi
+          # Parse semantic version and increment patch version
+          if [[ $version =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            major=${BASH_REMATCH[1]}
+            minor=${BASH_REMATCH[2]}
+            patch=${BASH_REMATCH[3]}
+  
+            # Increment patch version for next development cycle
+            next_patch=$((patch + 1))
+            next_version="${major}.${minor}.${next_patch}"
+  
+            echo "Preparing development $next_version"
+            echo "Trying to find milestone $next_version"
+  
+            milestone=$(gh milestone list --json id,title,state --jq "map_values(select(.title == \"${next_version}\" and .state == \"OPEN\")).[].number")
+            if [ -z "$milestone" ]; then
+              echo "Creating milestone $next_version"
+              gh milestone create --title $next_version
+            fi
+          else
+            echo "ERROR: Version $version is not a valid semantic version (x.y.z)"
+            exit 1
+          fi          
           
           name=$(./mvnw -q -DforceStdout --raw-streams help:evaluate -N -Dexpression=project.name)
-          version=${{ steps.pre-release.outputs.version }}
-          tag=$(git describe --tags --abbrev=0)
-          echo "Creating release \"$name $version\" from tag $tag"
-          gh release create $tag --verify-tag --notes-from-tag --title "$name $version"
+          version=${{ steps.version.outputs.version }}
+          echo "Creating release \"$name $version\" from tag"
+          gh release create $version --verify-tag --notes-from-tag --title "$name $version"
