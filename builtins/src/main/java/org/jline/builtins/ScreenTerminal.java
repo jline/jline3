@@ -1626,6 +1626,24 @@ public class ScreenTerminal {
     // External interface
     //
 
+    /**
+     * Gets the terminal width in characters.
+     *
+     * @return the width in characters
+     */
+    public int getWidth() {
+        return width;
+    }
+
+    /**
+     * Gets the terminal height in characters.
+     *
+     * @return the height in characters
+     */
+    public int getHeight() {
+        return height;
+    }
+
     public synchronized boolean setSize(int w, int h) {
         if (w < 2 || w > 256 || h < 2 || h > 256) {
             return false;
