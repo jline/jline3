@@ -8,10 +8,6 @@
  */
 package org.jline.builtins;
 
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
-
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
@@ -22,6 +18,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.GZIPOutputStream;
 
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpServer;
+
 /**
  * A web-based terminal implementation that extends ScreenTerminal.
  * <p>
@@ -29,7 +29,7 @@ import java.util.zip.GZIPOutputStream;
  * It serves an HTML page with JavaScript that communicates with the terminal via HTTP requests.
  * The terminal supports ANSI escape sequences and renders them as HTML with CSS styling.
  * </p>
- * 
+ *
  * <p>Features:</p>
  * <ul>
  *   <li>HTTP server using JDK's built-in HttpServer</li>
@@ -40,36 +40,36 @@ import java.util.zip.GZIPOutputStream;
  * </ul>
  */
 public class WebTerminal extends ScreenTerminal {
-    
+
     private static final int DEFAULT_PORT = 8080;
     private static final String DEFAULT_HOST = "localhost";
-    
+
     private HttpServer server;
     private final int port;
     private final String host;
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final Map<String, TerminalSession> sessions = new HashMap<>();
-    
+
     /**
      * Creates a new WebTerminal with default settings (localhost:8080).
      */
     public WebTerminal() {
         this(DEFAULT_HOST, DEFAULT_PORT);
     }
-    
+
     /**
      * Creates a new WebTerminal with specified host and port.
-     * 
+     *
      * @param host the host to bind to
      * @param port the port to bind to
      */
     public WebTerminal(String host, int port) {
         this(host, port, 80, 24);
     }
-    
+
     /**
      * Creates a new WebTerminal with specified host, port, and terminal size.
-     * 
+     *
      * @param host the host to bind to
      * @param port the port to bind to
      * @param width terminal width in characters
@@ -80,27 +80,27 @@ public class WebTerminal extends ScreenTerminal {
         this.host = host;
         this.port = port;
     }
-    
+
     /**
      * Starts the HTTP server and begins serving the web terminal.
-     * 
+     *
      * @throws IOException if the server cannot be started
      */
     public void start() throws IOException {
         if (running.get()) {
             throw new IllegalStateException("WebTerminal is already running");
         }
-        
+
         server = HttpServer.create(new InetSocketAddress(host, port), 0);
         server.createContext("/", new TerminalHandler());
         server.createContext("/terminal", new TerminalAjaxHandler());
         server.setExecutor(Executors.newCachedThreadPool());
         server.start();
         running.set(true);
-        
+
         System.out.println("WebTerminal started at http://" + host + ":" + port);
     }
-    
+
     /**
      * Stops the HTTP server.
      */
@@ -111,25 +111,25 @@ public class WebTerminal extends ScreenTerminal {
             System.out.println("WebTerminal stopped");
         }
     }
-    
+
     /**
      * Returns whether the web terminal is currently running.
-     * 
+     *
      * @return true if running, false otherwise
      */
     public boolean isRunning() {
         return running.get();
     }
-    
+
     /**
      * Gets the URL where the web terminal is accessible.
-     * 
+     *
      * @return the web terminal URL
      */
     public String getUrl() {
         return "http://" + host + ":" + port;
     }
-    
+
     /**
      * HTTP handler for serving the main terminal page.
      */
@@ -137,10 +137,10 @@ public class WebTerminal extends ScreenTerminal {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             String method = exchange.getRequestMethod();
-            
+
             if ("GET".equals(method)) {
                 String path = exchange.getRequestURI().getPath();
-                
+
                 if ("/".equals(path) || "/index.html".equals(path)) {
                     serveTerminalPage(exchange);
                 } else if (path.startsWith("/static/")) {
@@ -152,53 +152,53 @@ public class WebTerminal extends ScreenTerminal {
                 send405(exchange);
             }
         }
-        
+
         private void serveTerminalPage(HttpExchange exchange) throws IOException {
             String html = getTerminalHtml();
             byte[] response = html.getBytes(StandardCharsets.UTF_8);
-            
+
             exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
             exchange.sendResponseHeaders(200, response.length);
-            
+
             try (OutputStream os = exchange.getResponseBody()) {
                 os.write(response);
             }
         }
-        
+
         private void serveStaticResource(HttpExchange exchange, String path) throws IOException {
             String resourcePath = path.substring(8); // Remove "/static/"
             InputStream is = getClass().getResourceAsStream("/" + resourcePath);
-            
+
             if (is == null) {
                 send404(exchange);
                 return;
             }
-            
+
             String contentType = getContentType(resourcePath);
             exchange.getResponseHeaders().set("Content-Type", contentType);
-            
+
             byte[] buffer = new byte[8192];
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             int bytesRead;
             while ((bytesRead = is.read(buffer)) != -1) {
                 baos.write(buffer, 0, bytesRead);
             }
-            
+
             byte[] response = baos.toByteArray();
             exchange.sendResponseHeaders(200, response.length);
-            
+
             try (OutputStream os = exchange.getResponseBody()) {
                 os.write(response);
             }
         }
-        
+
         private String getContentType(String path) {
             if (path.endsWith(".js")) return "application/javascript";
             if (path.endsWith(".css")) return "text/css";
             if (path.endsWith(".html")) return "text/html";
             return "application/octet-stream";
         }
-        
+
         private void send404(HttpExchange exchange) throws IOException {
             String response = "404 Not Found";
             exchange.sendResponseHeaders(404, response.length());
@@ -206,7 +206,7 @@ public class WebTerminal extends ScreenTerminal {
                 os.write(response.getBytes());
             }
         }
-        
+
         private void send405(HttpExchange exchange) throws IOException {
             String response = "405 Method Not Allowed";
             exchange.sendResponseHeaders(405, response.length());
@@ -215,7 +215,7 @@ public class WebTerminal extends ScreenTerminal {
             }
         }
     }
-    
+
     /**
      * HTTP handler for AJAX terminal communication.
      */
@@ -226,22 +226,22 @@ public class WebTerminal extends ScreenTerminal {
                 exchange.sendResponseHeaders(405, -1);
                 return;
             }
-            
+
             // Parse form data
             Map<String, String> params = parseFormData(exchange);
             String sessionId = getOrCreateSession(exchange);
             TerminalSession session = sessions.get(sessionId);
-            
+
             String keyInput = params.get("k");
             String forceUpdate = params.get("f");
-            
+
             // Process input
             if (keyInput != null && !keyInput.isEmpty()) {
                 String processedInput = pipe(keyInput);
                 // In a real implementation, this would be sent to a shell process
                 write(processedInput);
             }
-            
+
             // Get terminal output
             try {
                 String output = dump(10, forceUpdate != null && !forceUpdate.isEmpty());
@@ -255,31 +255,31 @@ public class WebTerminal extends ScreenTerminal {
                 sendResponse(exchange, "");
             }
         }
-        
+
         private Map<String, String> parseFormData(HttpExchange exchange) throws IOException {
             Map<String, String> params = new HashMap<>();
-            
+
             try (InputStream is = exchange.getRequestBody();
-                 InputStreamReader isr = new InputStreamReader(is, StandardCharsets.UTF_8);
-                 BufferedReader br = new BufferedReader(isr)) {
-                
+                    InputStreamReader isr = new InputStreamReader(is, StandardCharsets.UTF_8);
+                    BufferedReader br = new BufferedReader(isr)) {
+
                 String formData = br.readLine();
                 if (formData != null) {
                     String[] pairs = formData.split("&");
                     for (String pair : pairs) {
                         String[] keyValue = pair.split("=", 2);
                         if (keyValue.length == 2) {
-                            String key = URLDecoder.decode(keyValue[0], StandardCharsets.UTF_8);
-                            String value = URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
+                            String key = URLDecoder.decode(keyValue[0], "UTF-8");
+                            String value = URLDecoder.decode(keyValue[1], "UTF-8");
                             params.put(key, value);
                         }
                     }
                 }
             }
-            
+
             return params;
         }
-        
+
         private String getOrCreateSession(HttpExchange exchange) {
             // Simple session management - in production, use proper session handling
             String sessionId = "default";
@@ -288,11 +288,11 @@ public class WebTerminal extends ScreenTerminal {
             }
             return sessionId;
         }
-        
+
         private void sendResponse(HttpExchange exchange, String content) throws IOException {
             String encoding = exchange.getRequestHeaders().getFirst("Accept-Encoding");
             boolean supportsGzip = encoding != null && encoding.toLowerCase().contains("gzip");
-            
+
             byte[] response;
             if (supportsGzip && content.length() > 100) {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -304,16 +304,16 @@ public class WebTerminal extends ScreenTerminal {
             } else {
                 response = content.getBytes(StandardCharsets.UTF_8);
             }
-            
+
             exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
             exchange.sendResponseHeaders(200, response.length);
-            
+
             try (OutputStream os = exchange.getResponseBody()) {
                 os.write(response);
             }
         }
     }
-    
+
     /**
      * Simple session container for terminal state.
      */
@@ -321,308 +321,306 @@ public class WebTerminal extends ScreenTerminal {
         // In a full implementation, this would contain session-specific state
         // For now, we'll use the shared ScreenTerminal state
     }
-    
+
     /**
      * Generates the HTML page for the web terminal.
      */
     private String getTerminalHtml() {
-        return """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JLine Web Terminal</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 20px;
-            background-color: #000;
-            color: #fff;
-            font-family: 'Courier New', monospace;
-            overflow: hidden;
-        }
-
-        #terminal {
-            width: 100%;
-            height: calc(100vh - 40px);
-            background-color: #000;
-            border: 1px solid #333;
-            padding: 10px;
-            box-sizing: border-box;
-            overflow: auto;
-            white-space: pre;
-            font-size: 14px;
-            line-height: 1.2;
-        }
-
-        .terminal-line {
-            margin: 0;
-            padding: 0;
-        }
-
-        /* ANSI color classes */
-        .ansi-black { color: #000; }
-        .ansi-red { color: #cd0000; }
-        .ansi-green { color: #00cd00; }
-        .ansi-yellow { color: #cdcd00; }
-        .ansi-blue { color: #0000ee; }
-        .ansi-magenta { color: #cd00cd; }
-        .ansi-cyan { color: #00cdcd; }
-        .ansi-white { color: #e5e5e5; }
-        .ansi-bright-black { color: #7f7f7f; }
-        .ansi-bright-red { color: #ff0000; }
-        .ansi-bright-green { color: #00ff00; }
-        .ansi-bright-yellow { color: #ffff00; }
-        .ansi-bright-blue { color: #5c5cff; }
-        .ansi-bright-magenta { color: #ff00ff; }
-        .ansi-bright-cyan { color: #00ffff; }
-        .ansi-bright-white { color: #fff; }
-
-        .ansi-bg-black { background-color: #000; }
-        .ansi-bg-red { background-color: #cd0000; }
-        .ansi-bg-green { background-color: #00cd00; }
-        .ansi-bg-yellow { background-color: #cdcd00; }
-        .ansi-bg-blue { background-color: #0000ee; }
-        .ansi-bg-magenta { background-color: #cd00cd; }
-        .ansi-bg-cyan { background-color: #00cdcd; }
-        .ansi-bg-white { background-color: #e5e5e5; }
-
-        .ansi-bold { font-weight: bold; }
-        .ansi-underline { text-decoration: underline; }
-        .ansi-inverse {
-            background-color: #fff;
-            color: #000;
-        }
-
-        .cursor {
-            background-color: #fff;
-            color: #000;
-        }
-
-        #input-handler {
-            position: absolute;
-            left: -9999px;
-            opacity: 0;
-        }
-    </style>
-</head>
-<body>
-    <div id="terminal"></div>
-    <input type="text" id="input-handler" autocomplete="off">
-
-    <script>
-        class WebTerminal {
-            constructor() {
-                this.terminal = document.getElementById('terminal');
-                this.inputHandler = document.getElementById('input-handler');
-                this.setupEventHandlers();
-                this.startPolling();
-                this.inputHandler.focus();
-            }
-
-            setupEventHandlers() {
-                // Keep input focused
-                document.addEventListener('click', () => {
-                    this.inputHandler.focus();
-                });
-
-                // Handle keyboard input
-                this.inputHandler.addEventListener('keydown', (e) => {
-                    this.handleKeyDown(e);
-                });
-
-                this.inputHandler.addEventListener('input', (e) => {
-                    this.handleInput(e);
-                });
-
-                // Prevent losing focus
-                this.inputHandler.addEventListener('blur', () => {
-                    setTimeout(() => this.inputHandler.focus(), 10);
-                });
-            }
-
-            handleKeyDown(e) {
-                let key = '';
-
-                // Handle special keys
-                switch (e.key) {
-                    case 'Enter':
-                        key = '\\r';
-                        break;
-                    case 'Backspace':
-                        key = '\\u007f';
-                        break;
-                    case 'Tab':
-                        key = '\\t';
-                        e.preventDefault();
-                        break;
-                    case 'ArrowUp':
-                        key = '~A';
-                        e.preventDefault();
-                        break;
-                    case 'ArrowDown':
-                        key = '~B';
-                        e.preventDefault();
-                        break;
-                    case 'ArrowRight':
-                        key = '~C';
-                        e.preventDefault();
-                        break;
-                    case 'ArrowLeft':
-                        key = '~D';
-                        e.preventDefault();
-                        break;
-                    case 'Home':
-                        key = '~H';
-                        e.preventDefault();
-                        break;
-                    case 'End':
-                        key = '~F';
-                        e.preventDefault();
-                        break;
-                    case 'PageUp':
-                        key = '~1';
-                        e.preventDefault();
-                        break;
-                    case 'PageDown':
-                        key = '~2';
-                        e.preventDefault();
-                        break;
-                    case 'Insert':
-                        key = '~3';
-                        e.preventDefault();
-                        break;
-                    case 'Delete':
-                        key = '~4';
-                        e.preventDefault();
-                        break;
-                    case 'F1':
-                        key = '~a';
-                        e.preventDefault();
-                        break;
-                    case 'F2':
-                        key = '~b';
-                        e.preventDefault();
-                        break;
-                    case 'F3':
-                        key = '~c';
-                        e.preventDefault();
-                        break;
-                    case 'F4':
-                        key = '~d';
-                        e.preventDefault();
-                        break;
-                    case 'F5':
-                        key = '~e';
-                        e.preventDefault();
-                        break;
-                    case 'F6':
-                        key = '~f';
-                        e.preventDefault();
-                        break;
-                    case 'F7':
-                        key = '~g';
-                        e.preventDefault();
-                        break;
-                    case 'F8':
-                        key = '~h';
-                        e.preventDefault();
-                        break;
-                    case 'F9':
-                        key = '~i';
-                        e.preventDefault();
-                        break;
-                    case 'F10':
-                        key = '~j';
-                        e.preventDefault();
-                        break;
-                    case 'F11':
-                        key = '~k';
-                        e.preventDefault();
-                        break;
-                    case 'F12':
-                        key = '~l';
-                        e.preventDefault();
-                        break;
-                    default:
-                        if (e.ctrlKey) {
-                            if (e.key.length === 1) {
-                                key = String.fromCharCode(e.key.charCodeAt(0) - 64);
-                                e.preventDefault();
-                            }
-                        }
-                        break;
-                }
-
-                if (key) {
-                    this.sendInput(key);
-                    this.inputHandler.value = '';
-                }
-            }
-
-            handleInput(e) {
-                const value = e.target.value;
-                if (value) {
-                    this.sendInput(value);
-                    e.target.value = '';
-                }
-            }
-
-            sendInput(input) {
-                const formData = new FormData();
-                formData.append('k', input);
-
-                fetch('/terminal', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.text())
-                .then(data => {
-                    if (data) {
-                        this.terminal.innerHTML = data;
-                        this.scrollToBottom();
-                    }
-                })
-                .catch(error => {
-                    console.error('Error sending input:', error);
-                });
-            }
-
-            startPolling() {
-                setInterval(() => {
-                    const formData = new FormData();
-                    formData.append('f', '1');
-
-                    fetch('/terminal', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => response.text())
-                    .then(data => {
-                        if (data) {
-                            this.terminal.innerHTML = data;
-                            this.scrollToBottom();
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error polling terminal:', error);
-                    });
-                }, 100);
-            }
-
-            scrollToBottom() {
-                this.terminal.scrollTop = this.terminal.scrollHeight;
-            }
-        }
-
-        // Initialize terminal when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            new WebTerminal();
-        });
-    </script>
-</body>
-</html>
-                """;
+        return "<!DOCTYPE html>\n"
+                + "<html lang=\"en\">\n"
+                + "<head>\n"
+                + "    <meta charset=\"UTF-8\">\n"
+                + "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
+                + "    <title>JLine Web Terminal</title>\n"
+                + "    <style>\n"
+                + "        body {\n"
+                + "            margin: 0;\n"
+                + "            padding: 20px;\n"
+                + "            background-color: #000;\n"
+                + "            color: #fff;\n"
+                + "            font-family: 'Courier New', monospace;\n"
+                + "            overflow: hidden;\n"
+                + "        }\n"
+                + "        \n"
+                + "        #terminal {\n"
+                + "            width: 100%;\n"
+                + "            height: calc(100vh - 40px);\n"
+                + "            background-color: #000;\n"
+                + "            border: 1px solid #333;\n"
+                + "            padding: 10px;\n"
+                + "            box-sizing: border-box;\n"
+                + "            overflow: auto;\n"
+                + "            white-space: pre;\n"
+                + "            font-size: 14px;\n"
+                + "            line-height: 1.2;\n"
+                + "        }\n"
+                + "        \n"
+                + "        .terminal-line {\n"
+                + "            margin: 0;\n"
+                + "            padding: 0;\n"
+                + "        }\n"
+                + "        \n"
+                + "        /* ANSI color classes */\n"
+                + "        .ansi-black { color: #000; }\n"
+                + "        .ansi-red { color: #cd0000; }\n"
+                + "        .ansi-green { color: #00cd00; }\n"
+                + "        .ansi-yellow { color: #cdcd00; }\n"
+                + "        .ansi-blue { color: #0000ee; }\n"
+                + "        .ansi-magenta { color: #cd00cd; }\n"
+                + "        .ansi-cyan { color: #00cdcd; }\n"
+                + "        .ansi-white { color: #e5e5e5; }\n"
+                + "        .ansi-bright-black { color: #7f7f7f; }\n"
+                + "        .ansi-bright-red { color: #ff0000; }\n"
+                + "        .ansi-bright-green { color: #00ff00; }\n"
+                + "        .ansi-bright-yellow { color: #ffff00; }\n"
+                + "        .ansi-bright-blue { color: #5c5cff; }\n"
+                + "        .ansi-bright-magenta { color: #ff00ff; }\n"
+                + "        .ansi-bright-cyan { color: #00ffff; }\n"
+                + "        .ansi-bright-white { color: #fff; }\n"
+                + "        \n"
+                + "        .ansi-bg-black { background-color: #000; }\n"
+                + "        .ansi-bg-red { background-color: #cd0000; }\n"
+                + "        .ansi-bg-green { background-color: #00cd00; }\n"
+                + "        .ansi-bg-yellow { background-color: #cdcd00; }\n"
+                + "        .ansi-bg-blue { background-color: #0000ee; }\n"
+                + "        .ansi-bg-magenta { background-color: #cd00cd; }\n"
+                + "        .ansi-bg-cyan { background-color: #00cdcd; }\n"
+                + "        .ansi-bg-white { background-color: #e5e5e5; }\n"
+                + "        \n"
+                + "        .ansi-bold { font-weight: bold; }\n"
+                + "        .ansi-underline { text-decoration: underline; }\n"
+                + "        .ansi-inverse { \n"
+                + "            background-color: #fff; \n"
+                + "            color: #000; \n"
+                + "        }\n"
+                + "        \n"
+                + "        .cursor {\n"
+                + "            background-color: #fff;\n"
+                + "            color: #000;\n"
+                + "        }\n"
+                + "        \n"
+                + "        #input-handler {\n"
+                + "            position: absolute;\n"
+                + "            left: -9999px;\n"
+                + "            opacity: 0;\n"
+                + "        }\n"
+                + "    </style>\n"
+                + "</head>\n"
+                + "<body>\n"
+                + "    <div id=\"terminal\"></div>\n"
+                + "    <input type=\"text\" id=\"input-handler\" autocomplete=\"off\">\n"
+                + "    \n"
+                + "    <script>\n"
+                + "        class WebTerminal {\n"
+                + "            constructor() {\n"
+                + "                this.terminal = document.getElementById('terminal');\n"
+                + "                this.inputHandler = document.getElementById('input-handler');\n"
+                + "                this.setupEventHandlers();\n"
+                + "                this.startPolling();\n"
+                + "                this.inputHandler.focus();\n"
+                + "            }\n"
+                + "            \n"
+                + "            setupEventHandlers() {\n"
+                + "                // Keep input focused\n"
+                + "                document.addEventListener('click', () => {\n"
+                + "                    this.inputHandler.focus();\n"
+                + "                });\n"
+                + "                \n"
+                + "                // Handle keyboard input\n"
+                + "                this.inputHandler.addEventListener('keydown', (e) => {\n"
+                + "                    this.handleKeyDown(e);\n"
+                + "                });\n"
+                + "                \n"
+                + "                this.inputHandler.addEventListener('input', (e) => {\n"
+                + "                    this.handleInput(e);\n"
+                + "                });\n"
+                + "                \n"
+                + "                // Prevent losing focus\n"
+                + "                this.inputHandler.addEventListener('blur', () => {\n"
+                + "                    setTimeout(() => this.inputHandler.focus(), 10);\n"
+                + "                });\n"
+                + "            }\n"
+                + "            \n"
+                + "            handleKeyDown(e) {\n"
+                + "                let key = '';\n"
+                + "                \n"
+                + "                // Handle special keys\n"
+                + "                switch (e.key) {\n"
+                + "                    case 'Enter':\n"
+                + "                        key = '\\\\r';\n"
+                + "                        break;\n"
+                + "                    case 'Backspace':\n"
+                + "                        key = '\\\\u007f';\n"
+                + "                        break;\n"
+                + "                    case 'Tab':\n"
+                + "                        key = '\\\\t';\n"
+                + "                        e.preventDefault();\n"
+                + "                        break;\n"
+                + "                    case 'ArrowUp':\n"
+                + "                        key = '~A';\n"
+                + "                        e.preventDefault();\n"
+                + "                        break;\n"
+                + "                    case 'ArrowDown':\n"
+                + "                        key = '~B';\n"
+                + "                        e.preventDefault();\n"
+                + "                        break;\n"
+                + "                    case 'ArrowRight':\n"
+                + "                        key = '~C';\n"
+                + "                        e.preventDefault();\n"
+                + "                        break;\n"
+                + "                    case 'ArrowLeft':\n"
+                + "                        key = '~D';\n"
+                + "                        e.preventDefault();\n"
+                + "                        break;\n"
+                + "                    case 'Home':\n"
+                + "                        key = '~H';\n"
+                + "                        e.preventDefault();\n"
+                + "                        break;\n"
+                + "                    case 'End':\n"
+                + "                        key = '~F';\n"
+                + "                        e.preventDefault();\n"
+                + "                        break;\n"
+                + "                    case 'PageUp':\n"
+                + "                        key = '~1';\n"
+                + "                        e.preventDefault();\n"
+                + "                        break;\n"
+                + "                    case 'PageDown':\n"
+                + "                        key = '~2';\n"
+                + "                        e.preventDefault();\n"
+                + "                        break;\n"
+                + "                    case 'Insert':\n"
+                + "                        key = '~3';\n"
+                + "                        e.preventDefault();\n"
+                + "                        break;\n"
+                + "                    case 'Delete':\n"
+                + "                        key = '~4';\n"
+                + "                        e.preventDefault();\n"
+                + "                        break;\n"
+                + "                    case 'F1':\n"
+                + "                        key = '~a';\n"
+                + "                        e.preventDefault();\n"
+                + "                        break;\n"
+                + "                    case 'F2':\n"
+                + "                        key = '~b';\n"
+                + "                        e.preventDefault();\n"
+                + "                        break;\n"
+                + "                    case 'F3':\n"
+                + "                        key = '~c';\n"
+                + "                        e.preventDefault();\n"
+                + "                        break;\n"
+                + "                    case 'F4':\n"
+                + "                        key = '~d';\n"
+                + "                        e.preventDefault();\n"
+                + "                        break;\n"
+                + "                    case 'F5':\n"
+                + "                        key = '~e';\n"
+                + "                        e.preventDefault();\n"
+                + "                        break;\n"
+                + "                    case 'F6':\n"
+                + "                        key = '~f';\n"
+                + "                        e.preventDefault();\n"
+                + "                        break;\n"
+                + "                    case 'F7':\n"
+                + "                        key = '~g';\n"
+                + "                        e.preventDefault();\n"
+                + "                        break;\n"
+                + "                    case 'F8':\n"
+                + "                        key = '~h';\n"
+                + "                        e.preventDefault();\n"
+                + "                        break;\n"
+                + "                    case 'F9':\n"
+                + "                        key = '~i';\n"
+                + "                        e.preventDefault();\n"
+                + "                        break;\n"
+                + "                    case 'F10':\n"
+                + "                        key = '~j';\n"
+                + "                        e.preventDefault();\n"
+                + "                        break;\n"
+                + "                    case 'F11':\n"
+                + "                        key = '~k';\n"
+                + "                        e.preventDefault();\n"
+                + "                        break;\n"
+                + "                    case 'F12':\n"
+                + "                        key = '~l';\n"
+                + "                        e.preventDefault();\n"
+                + "                        break;\n"
+                + "                    default:\n"
+                + "                        if (e.ctrlKey) {\n"
+                + "                            if (e.key.length === 1) {\n"
+                + "                                key = String.fromCharCode(e.key.charCodeAt(0) - 64);\n"
+                + "                                e.preventDefault();\n"
+                + "                            }\n"
+                + "                        }\n"
+                + "                        break;\n"
+                + "                }\n"
+                + "                \n"
+                + "                if (key) {\n"
+                + "                    this.sendInput(key);\n"
+                + "                    this.inputHandler.value = '';\n"
+                + "                }\n"
+                + "            }\n"
+                + "            \n"
+                + "            handleInput(e) {\n"
+                + "                const value = e.target.value;\n"
+                + "                if (value) {\n"
+                + "                    this.sendInput(value);\n"
+                + "                    e.target.value = '';\n"
+                + "                }\n"
+                + "            }\n"
+                + "            \n"
+                + "            sendInput(input) {\n"
+                + "                const formData = new FormData();\n"
+                + "                formData.append('k', input);\n"
+                + "                \n"
+                + "                fetch('/terminal', {\n"
+                + "                    method: 'POST',\n"
+                + "                    body: formData\n"
+                + "                })\n"
+                + "                .then(response => response.text())\n"
+                + "                .then(data => {\n"
+                + "                    if (data) {\n"
+                + "                        this.terminal.innerHTML = data;\n"
+                + "                        this.scrollToBottom();\n"
+                + "                    }\n"
+                + "                })\n"
+                + "                .catch(error => {\n"
+                + "                    console.error('Error sending input:', error);\n"
+                + "                });\n"
+                + "            }\n"
+                + "            \n"
+                + "            startPolling() {\n"
+                + "                setInterval(() => {\n"
+                + "                    const formData = new FormData();\n"
+                + "                    formData.append('f', '1');\n"
+                + "                    \n"
+                + "                    fetch('/terminal', {\n"
+                + "                        method: 'POST',\n"
+                + "                        body: formData\n"
+                + "                    })\n"
+                + "                    .then(response => response.text())\n"
+                + "                    .then(data => {\n"
+                + "                        if (data) {\n"
+                + "                            this.terminal.innerHTML = data;\n"
+                + "                            this.scrollToBottom();\n"
+                + "                        }\n"
+                + "                    })\n"
+                + "                    .catch(error => {\n"
+                + "                        console.error('Error polling terminal:', error);\n"
+                + "                    });\n"
+                + "                }, 100);\n"
+                + "            }\n"
+                + "            \n"
+                + "            scrollToBottom() {\n"
+                + "                this.terminal.scrollTop = this.terminal.scrollHeight;\n"
+                + "            }\n"
+                + "        }\n"
+                + "        \n"
+                + "        // Initialize terminal when page loads\n"
+                + "        document.addEventListener('DOMContentLoaded', () => {\n"
+                + "            new WebTerminal();\n"
+                + "        });\n"
+                + "    </script>\n"
+                + "</body>\n"
+                + "</html>";
     }
 }
