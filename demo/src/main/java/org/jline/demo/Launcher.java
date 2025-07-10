@@ -22,10 +22,8 @@ import javax.swing.JFrame;
 
 import org.jline.builtins.SwingTerminal;
 import org.jline.builtins.WebTerminal;
-import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
-import org.jline.terminal.impl.LineDisciplineTerminal;
 
 /**
  * Wrapper class that runs demos and examples with output redirected to WebTerminal or SwingTerminal.
@@ -143,9 +141,9 @@ public class Launcher {
     private static void runDemoInSwingTerminal(String demoClass, String[] args) throws Exception {
         System.out.println("Starting SwingTerminal for demo: " + demoClass);
 
-        // Create SwingTerminal
+        // Create SwingTerminal - it's now a proper Terminal implementation
         String title = "JLine Demo - " + demoClass.substring(demoClass.lastIndexOf('.') + 1);
-        SwingTerminal swingTerminal = new SwingTerminal(80, 24);
+        SwingTerminal swingTerminal = new SwingTerminal("SwingTerminal-Demo", 80, 24);
         JFrame frame = swingTerminal.createFrame(title);
 
         // Handle window closing
@@ -161,48 +159,20 @@ public class Launcher {
 
         System.out.println("SwingTerminal window opened: " + title);
 
-        // Create piped stream for output
-        PipedOutputStream outputPipe = new PipedOutputStream();
-        PipedInputStream outputInputPipe = new PipedInputStream(outputPipe);
-
-        // Create a terminal that uses the piped streams
-        LineDisciplineTerminal terminal =
-                new LineDisciplineTerminal("SwingTerminal-Demo", "screen-256color", outputPipe, null);
-        terminal.setSize(new Size(swingTerminal.getWidth(), swingTerminal.getHeight()));
-
-        // Start a thread to read from the output pipe and write to SwingTerminal
-        Thread outputThread = new Thread(
-                () -> {
-                    try {
-                        byte[] buffer = new byte[1024];
-                        int bytesRead;
-                        while ((bytesRead = outputInputPipe.read(buffer)) != -1 && !closed[0]) {
-                            String output = new String(buffer, 0, bytesRead, StandardCharsets.UTF_8);
-                            swingTerminal.write(output);
-                            swingTerminal.getComponent().repaint();
-                        }
-                    } catch (IOException e) {
-                        // Pipe closed, normal termination
-                    }
-                },
-                "SwingTerminal-Output");
-        outputThread.setDaemon(true);
-        outputThread.start();
-
-        // Start a thread to read from SwingTerminal and write to input pipe
+        // Start a thread to read from SwingTerminal and process input
         Thread inputThread = new Thread(
                 () -> {
                     try {
                         while (!closed[0]) {
                             String input = swingTerminal.takeInput();
                             if (input != null && !closed[0]) {
-                                terminal.processInputBytes(input.getBytes(StandardCharsets.UTF_8));
+                                swingTerminal.processInputBytes(input.getBytes(StandardCharsets.UTF_8));
                             }
                         }
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                     } catch (IOException e) {
-                        // Pipe closed, normal termination
+                        // Terminal closed, normal termination
                     }
                 },
                 "SwingTerminal-Input");
@@ -210,16 +180,11 @@ public class Launcher {
         inputThread.start();
 
         try {
-            // Run the demo
-            runDemo(demoClass, args, "swing", terminal);
+            // Run the demo directly with the SwingTerminal
+            runDemo(demoClass, args, "swing", swingTerminal);
         } finally {
             closed[0] = true;
-            terminal.close();
-            try {
-                outputPipe.close();
-            } catch (IOException e) {
-                // Ignore close errors
-            }
+            swingTerminal.close();
             if (frame.isDisplayable()) {
                 frame.dispose();
             }

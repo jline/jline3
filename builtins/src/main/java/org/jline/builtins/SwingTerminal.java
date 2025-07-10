@@ -13,42 +13,243 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.*;
 
+import org.jline.terminal.Size;
+import org.jline.terminal.impl.LineDisciplineTerminal;
+import org.jline.utils.InfoCmp;
+
 /**
- * A Swing-based terminal implementation that extends ScreenTerminal.
+ * A Swing-based terminal implementation that extends LineDisciplineTerminal.
  * <p>
- * This class provides a JComponent that can be embedded in Swing applications
- * to display a terminal interface. It renders terminal content using Java 2D
- * graphics and handles keyboard and mouse input.
+ * This class provides a proper JLine Terminal implementation that can be embedded in Swing applications
+ * to display a terminal interface. It renders terminal content using Java 2D graphics and handles
+ * keyboard and mouse input with proper terminal capabilities.
  * </p>
  *
  * <p>Features:</p>
  * <ul>
+ *   <li>Full JLine Terminal interface implementation</li>
  *   <li>Custom painting for terminal characters and attributes</li>
  *   <li>ANSI color support with configurable color palette</li>
  *   <li>Font configuration with monospace font support</li>
- *   <li>Keyboard input handling with special key support</li>
+ *   <li>Keyboard input handling with proper terminal capabilities</li>
  *   <li>Mouse support for cursor positioning</li>
  *   <li>Scrollback buffer support</li>
  *   <li>Cursor blinking</li>
  * </ul>
  */
-public class SwingTerminal extends ScreenTerminal {
+public class SwingTerminal extends LineDisciplineTerminal {
 
-    private JFrame frame;
+    private final TerminalComponent component;
+
+    /**
+     * Creates a new SwingTerminal with the specified dimensions.
+     *
+     * @param width  the terminal width in columns
+     * @param height the terminal height in rows
+     * @throws IOException if an I/O error occurs during initialization
+     */
+    public SwingTerminal(int width, int height) throws IOException {
+        this("SwingTerminal", width, height);
+    }
+
+    /**
+     * Creates a new SwingTerminal with default dimensions (80x24).
+     *
+     * @throws IOException if an I/O error occurs during initialization
+     */
+    public SwingTerminal() throws IOException {
+        this("SwingTerminal", 80, 24);
+    }
+
+    /**
+     * Creates a new SwingTerminal with the specified name and dimensions.
+     *
+     * @param name   the terminal name
+     * @param width  the terminal width in columns
+     * @param height the terminal height in rows
+     * @throws IOException if an I/O error occurs during initialization
+     */
+    @SuppressWarnings("this-escape")
+    public SwingTerminal(String name, int width, int height) throws IOException {
+        super(name, "swing", new SwingTerminalOutputStream(), StandardCharsets.UTF_8);
+
+        // Create the terminal component
+        this.component = new TerminalComponent(width, height);
+
+        // Initialize after construction to avoid this-escape warnings
+        initializeTerminal(width, height);
+    }
+
+    /**
+     * Initializes the terminal after construction to avoid this-escape issues.
+     */
+    private void initializeTerminal(int width, int height) {
+        // Set initial size
+        setSize(new Size(width, height));
+
+        // Connect the component output to our master output and set the terminal reference
+        SwingTerminalOutputStream outputStream = (SwingTerminalOutputStream) masterOutput;
+        outputStream.setComponent(component);
+        component.setTerminal(this);
+    }
+
+    /**
+     * Gets the Swing component that renders the terminal.
+     *
+     * @return the terminal component
+     */
+    public TerminalComponent getComponent() {
+        return component;
+    }
+
+    /**
+     * Creates a JFrame containing the terminal component.
+     *
+     * @param title the frame title
+     * @return the created frame
+     */
+    public JFrame createFrame(String title) {
+        JFrame frame = new JFrame(title);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.add(component);
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
+        component.requestFocusInWindow();
+        return frame;
+    }
+
+    /**
+     * Gets input from the terminal component (non-blocking).
+     *
+     * @return the next input string, or null if none available
+     */
+    public String pollInput() {
+        return component.pollInput();
+    }
+
+    /**
+     * Gets input from the terminal component (blocking).
+     *
+     * @return the next input string
+     * @throws InterruptedException if interrupted while waiting
+     */
+    public String takeInput() throws InterruptedException {
+        return component.takeInput();
+    }
+
+    /**
+     * Processes input bytes through the terminal's line discipline.
+     *
+     * @param input the input bytes to process
+     * @throws IOException if an I/O error occurs
+     */
+    public void processInputBytes(byte[] input) throws IOException {
+        super.processInputBytes(input);
+    }
+
+    /**
+     * Writes text to the terminal component.
+     *
+     * @param text the text to write
+     */
+    public void write(String text) {
+        component.write(text);
+    }
+
+    /**
+     * Dumps the terminal screen data.
+     *
+     * @param screen the screen data array to fill
+     * @param x the starting x coordinate
+     * @param y the starting y coordinate
+     * @param height the height to dump
+     * @param width the width to dump
+     * @param cursor the cursor position array to fill
+     */
+    public void dump(long[] screen, int x, int y, int height, int width, int[] cursor) {
+        component.dump(screen, x, y, height, width, cursor);
+    }
+
+    /**
+     * Dumps the terminal screen data with scrollback.
+     *
+     * @param scrollback the number of scrollback lines
+     * @param includeScrollback whether to include scrollback
+     * @return the screen data
+     * @throws InterruptedException if interrupted while waiting
+     */
+    public String dump(int scrollback, boolean includeScrollback) throws InterruptedException {
+        return component.dump(scrollback, includeScrollback);
+    }
+
+    /**
+     * Checks if the terminal is dirty (needs repainting).
+     *
+     * @return true if dirty
+     */
+    public boolean isDirty() {
+        return component.isDirty();
+    }
+
+    /**
+     * Disposes of the terminal resources.
+     */
+    public void dispose() {
+        component.dispose();
+    }
+
+    /**
+     * Custom OutputStream that writes to the TerminalComponent.
+     */
+    private static class SwingTerminalOutputStream extends OutputStream {
+        private TerminalComponent component;
+
+        public void setComponent(TerminalComponent component) {
+            this.component = component;
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            if (component != null) {
+                component.write(String.valueOf((char) b));
+            }
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            if (component != null) {
+                String text = new String(b, off, len, StandardCharsets.UTF_8);
+                component.write(text);
+            }
+        }
+
+        @Override
+        public void flush() throws IOException {
+            if (component != null) {
+                SwingUtilities.invokeLater(() -> component.repaint());
+            }
+        }
+    }
 
     /**
      * JComponent that renders the terminal display.
+     * This is the inner class that contains the original ScreenTerminal-based implementation.
      */
     public static class TerminalComponent extends JComponent implements KeyListener {
 
         private static final long serialVersionUID = 1L;
 
-        private final transient SwingTerminal terminal;
+        private transient SwingTerminal terminal;
+        private final transient ScreenTerminal screenTerminal;
         private Font terminalFont;
         private FontMetrics fontMetrics;
         private int charWidth;
@@ -62,18 +263,21 @@ public class SwingTerminal extends ScreenTerminal {
         private final AtomicBoolean cursorVisible = new AtomicBoolean(true);
         private transient Timer cursorTimer;
 
-        public TerminalComponent(SwingTerminal terminal) {
-            this.terminal = terminal;
+        @SuppressWarnings("this-escape")
+        public TerminalComponent(int width, int height) {
+            this.screenTerminal = new ScreenTerminal(width, height);
 
             // Set up font directly to avoid this-escape warning
             this.terminalFont = new Font(Font.MONOSPACED, Font.PLAIN, 14);
-            // All other initialization will be done in initialize() after construction
+
+            // Initialize the component after construction
+            initializeComponent();
         }
 
         /**
-         * Initializes the component after construction to avoid this-escape warnings.
+         * Initializes the component after construction to avoid this-escape issues.
          */
-        void initialize() {
+        private void initializeComponent() {
             // Initialize font metrics
             initializeFontMetrics();
 
@@ -82,7 +286,7 @@ public class SwingTerminal extends ScreenTerminal {
             setBackground(defaultBackground);
             setForeground(defaultForeground);
 
-            // Add listeners
+            // Add listeners - this is done after construction to avoid this-escape
             addKeyListener(this);
             addMouseListener(new MouseAdapter() {
                 @Override
@@ -91,7 +295,26 @@ public class SwingTerminal extends ScreenTerminal {
                 }
             });
 
-            // Set up cursor blinking timer
+            // Start cursor blinking timer
+            startCursorTimer();
+
+            // Update preferred size
+            updatePreferredSize();
+        }
+
+        /**
+         * Sets the terminal reference after construction to avoid this-escape issues.
+         *
+         * @param terminal the SwingTerminal instance
+         */
+        public void setTerminal(SwingTerminal terminal) {
+            this.terminal = terminal;
+        }
+
+        /**
+         * Starts the cursor blinking timer.
+         */
+        private void startCursorTimer() {
             cursorTimer = new Timer(500, e -> {
                 cursorVisible.set(!cursorVisible.get());
                 repaint();
@@ -134,8 +357,8 @@ public class SwingTerminal extends ScreenTerminal {
         }
 
         private void updatePreferredSize() {
-            int width = terminal.getWidth() * charWidth;
-            int height = terminal.getHeight() * charHeight;
+            int width = screenTerminal.getWidth() * charWidth;
+            int height = screenTerminal.getHeight() * charHeight;
             setPreferredSize(new Dimension(width, height));
         }
 
@@ -161,13 +384,13 @@ public class SwingTerminal extends ScreenTerminal {
         }
 
         private void paintTerminalContent(Graphics2D g2d) {
-            int termWidth = terminal.getWidth();
-            int termHeight = terminal.getHeight();
+            int termWidth = screenTerminal.getWidth();
+            int termHeight = screenTerminal.getHeight();
 
             // Get terminal screen data
             long[] screenData = new long[termWidth * termHeight];
             int[] cursor = new int[2];
-            terminal.dump(screenData, 0, 0, termHeight, termWidth, cursor);
+            screenTerminal.dump(screenData, 0, 0, termHeight, termWidth, cursor);
 
             // Paint each character
             for (int y = 0; y < termHeight; y++) {
@@ -279,6 +502,69 @@ public class SwingTerminal extends ScreenTerminal {
             return inputQueue.take();
         }
 
+        /**
+         * Writes text to the terminal component.
+         *
+         * @param text the text to write
+         */
+        public void write(String text) {
+            screenTerminal.write(text);
+            SwingUtilities.invokeLater(this::repaint);
+        }
+
+        /**
+         * Gets the terminal width in columns.
+         *
+         * @return the terminal width
+         */
+        public int getWidth() {
+            return screenTerminal.getWidth();
+        }
+
+        /**
+         * Gets the terminal height in rows.
+         *
+         * @return the terminal height
+         */
+        public int getHeight() {
+            return screenTerminal.getHeight();
+        }
+
+        /**
+         * Dumps the terminal screen data.
+         *
+         * @param screen the screen data array to fill
+         * @param x the starting x coordinate
+         * @param y the starting y coordinate
+         * @param height the height to dump
+         * @param width the width to dump
+         * @param cursor the cursor position array to fill
+         */
+        public void dump(long[] screen, int x, int y, int height, int width, int[] cursor) {
+            screenTerminal.dump(screen, x, y, height, width, cursor);
+        }
+
+        /**
+         * Dumps the terminal screen data with scrollback.
+         *
+         * @param scrollback the number of scrollback lines
+         * @param includeScrollback whether to include scrollback
+         * @return the screen data
+         * @throws InterruptedException if interrupted while waiting
+         */
+        public String dump(int scrollback, boolean includeScrollback) throws InterruptedException {
+            return screenTerminal.dump(scrollback, includeScrollback);
+        }
+
+        /**
+         * Checks if the terminal is dirty (needs repainting).
+         *
+         * @return true if dirty
+         */
+        public boolean isDirty() {
+            return screenTerminal.isDirty();
+        }
+
         // KeyListener implementation
         @Override
         public void keyTyped(KeyEvent e) {
@@ -297,76 +583,83 @@ public class SwingTerminal extends ScreenTerminal {
                     input = "\r";
                     break;
                 case KeyEvent.VK_BACK_SPACE:
-                    input = "\u007f";
+                    input = getCapabilitySequence(InfoCmp.Capability.key_backspace, "\u007f");
                     break;
                 case KeyEvent.VK_TAB:
-                    input = "\t";
+                    if (e.isShiftDown()) {
+                        input = getCapabilitySequence(InfoCmp.Capability.key_btab, "\t");
+                    } else {
+                        input = "\t";
+                    }
                     break;
                 case KeyEvent.VK_UP:
-                    input = "~A";
+                    input = getCapabilitySequence(InfoCmp.Capability.key_up, "\u001b[A");
                     break;
                 case KeyEvent.VK_DOWN:
-                    input = "~B";
+                    input = getCapabilitySequence(InfoCmp.Capability.key_down, "\u001b[B");
                     break;
                 case KeyEvent.VK_RIGHT:
-                    input = "~C";
+                    input = getCapabilitySequence(InfoCmp.Capability.key_right, "\u001b[C");
                     break;
                 case KeyEvent.VK_LEFT:
-                    input = "~D";
+                    input = getCapabilitySequence(InfoCmp.Capability.key_left, "\u001b[D");
                     break;
                 case KeyEvent.VK_HOME:
-                    input = "~H";
+                    input = getCapabilitySequence(InfoCmp.Capability.key_home, "\u001b[H");
                     break;
                 case KeyEvent.VK_END:
-                    input = "~F";
+                    input = getCapabilitySequence(InfoCmp.Capability.key_end, "\u001b[F");
                     break;
                 case KeyEvent.VK_PAGE_UP:
-                    input = "~1";
+                    input = getCapabilitySequence(InfoCmp.Capability.key_ppage, "\u001b[5~");
                     break;
                 case KeyEvent.VK_PAGE_DOWN:
-                    input = "~2";
+                    input = getCapabilitySequence(InfoCmp.Capability.key_npage, "\u001b[6~");
                     break;
                 case KeyEvent.VK_INSERT:
-                    input = "~3";
+                    input = getCapabilitySequence(InfoCmp.Capability.key_ic, "\u001b[2~");
                     break;
                 case KeyEvent.VK_DELETE:
-                    input = "~4";
+                    input = getCapabilitySequence(InfoCmp.Capability.key_dc, "\u001b[3~");
                     break;
                 case KeyEvent.VK_F1:
-                    input = "~a";
+                    input = getCapabilitySequence(InfoCmp.Capability.key_f1, "\u001bOP");
                     break;
                 case KeyEvent.VK_F2:
-                    input = "~b";
+                    input = getCapabilitySequence(InfoCmp.Capability.key_f2, "\u001bOQ");
                     break;
                 case KeyEvent.VK_F3:
-                    input = "~c";
+                    input = getCapabilitySequence(InfoCmp.Capability.key_f3, "\u001bOR");
                     break;
                 case KeyEvent.VK_F4:
-                    input = "~d";
+                    input = getCapabilitySequence(InfoCmp.Capability.key_f4, "\u001bOS");
                     break;
                 case KeyEvent.VK_F5:
-                    input = "~e";
+                    input = getCapabilitySequence(InfoCmp.Capability.key_f5, "\u001b[15~");
                     break;
                 case KeyEvent.VK_F6:
-                    input = "~f";
+                    input = getCapabilitySequence(InfoCmp.Capability.key_f6, "\u001b[17~");
                     break;
                 case KeyEvent.VK_F7:
-                    input = "~g";
+                    input = getCapabilitySequence(InfoCmp.Capability.key_f7, "\u001b[18~");
                     break;
                 case KeyEvent.VK_F8:
-                    input = "~h";
+                    input = getCapabilitySequence(InfoCmp.Capability.key_f8, "\u001b[19~");
                     break;
                 case KeyEvent.VK_F9:
-                    input = "~i";
+                    input = getCapabilitySequence(InfoCmp.Capability.key_f9, "\u001b[20~");
                     break;
                 case KeyEvent.VK_F10:
-                    input = "~j";
+                    input = getCapabilitySequence(InfoCmp.Capability.key_f10, "\u001b[21~");
                     break;
                 case KeyEvent.VK_F11:
-                    input = "~k";
+                    input = getCapabilitySequence(InfoCmp.Capability.key_f11, "\u001b[23~");
                     break;
                 case KeyEvent.VK_F12:
-                    input = "~l";
+                    input = getCapabilitySequence(InfoCmp.Capability.key_f12, "\u001b[24~");
+                    break;
+                case KeyEvent.VK_ESCAPE:
+                    input = "\u001b";
                     break;
                 default:
                     // Handle Ctrl+key combinations
@@ -387,6 +680,22 @@ public class SwingTerminal extends ScreenTerminal {
             }
         }
 
+        /**
+         * Gets the terminal capability sequence for the specified capability,
+         * falling back to a default sequence if the capability is not available.
+         *
+         * @param capability the terminal capability
+         * @param defaultSequence the default sequence to use if capability is not available
+         * @return the capability sequence or default sequence
+         */
+        private String getCapabilitySequence(InfoCmp.Capability capability, String defaultSequence) {
+            if (terminal != null) {
+                String sequence = terminal.getStringCapability(capability);
+                return sequence != null ? sequence : defaultSequence;
+            }
+            return defaultSequence;
+        }
+
         @Override
         public void keyReleased(KeyEvent e) {
             // Not used
@@ -400,111 +709,5 @@ public class SwingTerminal extends ScreenTerminal {
                 cursorTimer.stop();
             }
         }
-    }
-
-    private final TerminalComponent component;
-
-    /**
-     * Creates a new SwingTerminal with default size (80x24).
-     */
-    public SwingTerminal() {
-        this(80, 24);
-    }
-
-    /**
-     * Creates a new SwingTerminal with specified size.
-     *
-     * @param width terminal width in characters
-     * @param height terminal height in characters
-     */
-    public SwingTerminal(int width, int height) {
-        super(width, height);
-        this.component = new TerminalComponent(this);
-        // Initialize component after creation to avoid this-escape warning
-        this.component.initialize();
-    }
-
-    /**
-     * Gets the Swing component for this terminal.
-     *
-     * @return the terminal component
-     */
-    public TerminalComponent getComponent() {
-        return component;
-    }
-
-    /**
-     * Processes input from the terminal component.
-     *
-     * @param input the input string to process
-     */
-    public void processInput(String input) {
-        if (input != null) {
-            String processed = pipe(input);
-            write(processed);
-            component.repaint();
-        }
-    }
-
-    /**
-     * Gets input from the terminal component (non-blocking).
-     *
-     * @return the next input string, or null if none available
-     */
-    public String pollInput() {
-        return component.pollInput();
-    }
-
-    /**
-     * Gets input from the terminal component (blocking).
-     *
-     * @return the next input string
-     * @throws InterruptedException if interrupted while waiting
-     */
-    public String takeInput() throws InterruptedException {
-        return component.takeInput();
-    }
-
-    @Override
-    protected void setDirty() {
-        super.setDirty();
-        if (component != null) {
-            SwingUtilities.invokeLater(() -> component.repaint());
-        }
-    }
-
-    /**
-     * Creates a JFrame containing this terminal.
-     *
-     * @param title the frame title
-     * @return the created frame
-     */
-    public JFrame createFrame(String title) {
-        this.frame = new JFrame(title);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.add(component);
-        frame.pack();
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
-        return frame;
-    }
-
-    /**
-     * Checks if the terminal window is closed.
-     *
-     * @return true if the window is closed or not visible
-     */
-    public boolean isClosed() {
-        return frame == null || !frame.isDisplayable() || !frame.isVisible();
-    }
-
-    /**
-     * Disposes of resources used by this terminal.
-     */
-    public void dispose() {
-        if (frame != null) {
-            frame.dispose();
-        }
-        component.dispose();
     }
 }
