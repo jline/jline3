@@ -58,6 +58,7 @@ if "%demo_type%"=="" (
     echo   repl      - Run the REPL demo
     echo   password  - Run the password demo
     echo   consoleui - Run the ConsoleUI demo
+    echo   curses    - Run the interactive Curses demo
     echo Options:
     echo   --help       Show help message
     echo   debug        Enable remote debugging
@@ -135,6 +136,14 @@ if "%demo_type%"=="gogo" (
         )
     )
     set "MAIN_CLASS=org.jline.demo.consoleui.BasicDynamic"
+) else if "%demo_type%"=="curses" (
+    :: Add curses jar
+    if exist "%TARGETDIR%\lib" (
+        for /f "tokens=*" %%i in ('dir /b /s "%TARGETDIR%\lib\jline-curses-*.jar"') do (
+            set "cp=!cp!;%%i"
+        )
+    )
+    set "MAIN_CLASS=org.jline.demo.CursesDemo"
 ) else (
     echo Unknown demo type: %demo_type%
     exit /b 1
@@ -188,6 +197,26 @@ if "%~1"=="--help" (
         echo.
         echo Note: On Windows, either Jansi or JNA library must be included in classpath.
         echo To test with a dumb terminal, use: set TERM=dumb ^& %~n0 demo consoleui
+    ) else if "%demo_type%"=="curses" (
+        echo Usage: %~n0 demo curses [options]
+        echo Options:
+        echo   --help       Show this help message
+        echo   debug        Enable remote debugging
+        echo   debugs       Enable remote debugging with suspend
+        echo   jansi        Add Jansi support ^(recommended for Windows^)
+        echo   jna          Add JNA support ^(alternative for Windows^)
+        echo   verbose      Enable verbose logging
+        echo   ffm          Enable Foreign Function Memory ^(preview^)
+        echo.
+        echo Interactive demo showcasing Phase 2 curses enhancements:
+        echo   • Enhanced Input component with text selection and validation
+        echo   • Advanced List component with multiple selection
+        echo   • Rich TextArea component with multi-line editing
+        echo   • Dynamic Table component with sorting and filtering
+        echo   • Interactive Tree component with expandable nodes
+        echo.
+        echo Note: This demo requires a real terminal to work properly.
+        echo To test with a dumb terminal, use: set TERM=dumb ^& %~n0 demo curses
     ) else (
         echo Usage: %~n0 demo %demo_type% [options]
         echo Options:

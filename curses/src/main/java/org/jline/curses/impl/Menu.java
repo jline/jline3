@@ -19,6 +19,7 @@ import org.jline.curses.Screen;
 import org.jline.curses.Size;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
+import org.jline.terminal.KeyEvent;
 import org.jline.terminal.MouseEvent;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStringBuilder;
@@ -125,7 +126,7 @@ public class Menu extends AbstractComponent {
     }
 
     @Override
-    public void handleMouse(MouseEvent event) {
+    public boolean handleMouse(MouseEvent event) {
         int dx = event.getX() - getScreenPosition().x();
         SubMenu sel = null;
         for (SubMenu mc : getContents()) {
@@ -137,33 +138,67 @@ public class Menu extends AbstractComponent {
             dx -= l + 1;
         }
         select(sel);
+        return true; // Mouse event handled
     }
 
     @Override
-    public void handleInput(String input) {
+    public boolean handleKey(KeyEvent event) {
         if (keyMap == null) {
-            Terminal terminal = getWindow().getGUI().getTerminal();
-            keyMap = new KeyMap<>();
-            keyMap.bind(Action.Up, KeyMap.key(terminal, InfoCmp.Capability.key_up));
-            keyMap.bind(Action.Down, KeyMap.key(terminal, InfoCmp.Capability.key_down));
-            keyMap.bind(Action.Left, KeyMap.key(terminal, InfoCmp.Capability.key_left));
-            keyMap.bind(Action.Right, KeyMap.key(terminal, InfoCmp.Capability.key_right));
-            keyMap.bind(Action.Execute, KeyMap.key(terminal, InfoCmp.Capability.key_enter), " ", "\n", "\r");
-            keyMap.bind(Action.Close, KeyMap.esc());
-            global = new KeyMap<>();
-            for (SubMenu subMenu : contents) {
-                for (MenuItem item : subMenu.getContents()) {
-                    String s = item.getShortcut();
-                    if (s != null) {
-                        global.bind(item, KeyMap.translate(s));
+            initializeKeyMaps();
+        }
+
+        // Handle key events directly based on KeyEvent type
+        Action action = null;
+
+        // Check for arrow keys
+        if (event.getType() == KeyEvent.Type.Arrow) {
+            switch (event.getArrow()) {
+                case Up:
+                    action = Action.Up;
+                    break;
+                case Down:
+                    action = Action.Down;
+                    break;
+                case Left:
+                    action = Action.Left;
+                    break;
+                case Right:
+                    action = Action.Right;
+                    break;
+            }
+        }
+        // Check for special keys
+        else if (event.getType() == KeyEvent.Type.Special) {
+            switch (event.getSpecial()) {
+                case Enter:
+                    action = Action.Execute;
+                    break;
+                case Escape:
+                    action = Action.Close;
+                    break;
+            }
+        }
+        // Check for character keys
+        else if (event.getType() == KeyEvent.Type.Character) {
+            char ch = event.getCharacter();
+            if (ch == ' ' || ch == '\n' || ch == '\r') {
+                action = Action.Execute;
+            } else {
+                // Check for menu item shortcuts
+                for (SubMenu subMenu : contents) {
+                    for (MenuItem item : subMenu.getContents()) {
+                        String shortcut = item.getShortcut();
+                        if (shortcut != null && isShortcutMatch(event, shortcut)) {
+                            closeAndExecute(item);
+                            return true;
+                        }
                     }
                 }
             }
         }
-        bindingReader.runMacro(input);
-        Object binding = bindingReader.readBinding(keyMap, windows.get(selected).keyMap);
-        if (binding instanceof Action) {
-            Action action = (Action) binding;
+
+        // Execute the action if found
+        if (action != null) {
             switch (action) {
                 case Left:
                     select(contents.get((contents.indexOf(selected) + contents.size() - 1) % contents.size()));
@@ -184,6 +219,7 @@ public class Menu extends AbstractComponent {
                 case Close:
                     if (selected != null) {
                         windows.get(selected).close();
+                        selected = null; // Reset selection when submenu is closed with escape
                     }
                     break;
                 case Execute:
@@ -192,14 +228,46 @@ public class Menu extends AbstractComponent {
                     }
                     break;
             }
-        } else if (binding instanceof MenuItem) {
-            closeAndExecute((MenuItem) binding);
+            return true; // Action was handled
         }
+
+        return false; // Key not handled
+    }
+
+    private void initializeKeyMaps() {
+        Terminal terminal = getWindow().getGUI().getTerminal();
+        keyMap = new KeyMap<>();
+        keyMap.bind(Action.Up, KeyMap.key(terminal, InfoCmp.Capability.key_up));
+        keyMap.bind(Action.Down, KeyMap.key(terminal, InfoCmp.Capability.key_down));
+        keyMap.bind(Action.Left, KeyMap.key(terminal, InfoCmp.Capability.key_left));
+        keyMap.bind(Action.Right, KeyMap.key(terminal, InfoCmp.Capability.key_right));
+        keyMap.bind(Action.Execute, KeyMap.key(terminal, InfoCmp.Capability.key_enter), " ", "\n", "\r");
+        keyMap.bind(Action.Close, KeyMap.esc());
+        global = new KeyMap<>();
+        for (SubMenu subMenu : contents) {
+            for (MenuItem item : subMenu.getContents()) {
+                String s = item.getShortcut();
+                if (s != null) {
+                    global.bind(item, KeyMap.translate(s));
+                }
+            }
+        }
+    }
+
+    private boolean isShortcutMatch(KeyEvent event, String shortcut) {
+        // Simple shortcut matching - could be enhanced
+        if (shortcut.length() == 1) {
+            char shortcutChar = shortcut.toLowerCase().charAt(0);
+            char eventChar = Character.toLowerCase(event.getCharacter());
+            return shortcutChar == eventChar;
+        }
+        return false;
     }
 
     private void closeAndExecute(MenuItem item) {
         MenuWindow w = windows.get(selected);
         w.close();
+        selected = null; // Reset selection when submenu closes
         if (item.getAction() != null) {
             item.getAction().run();
         }
@@ -214,6 +282,12 @@ public class Menu extends AbstractComponent {
             if (selected != null) {
                 getWindow().getGUI().addWindow(windows.get(selected));
             }
+            invalidate(); // Trigger repaint when selection changes
+        } else if (s != null) {
+            // If clicking on the same submenu, close it (toggle behavior)
+            windows.get(selected).close();
+            selected = null;
+            invalidate(); // Trigger repaint when selection changes
         }
     }
 
@@ -321,8 +395,8 @@ public class Menu extends AbstractComponent {
         }
 
         @Override
-        public void handleInput(String input) {
-            Menu.this.handleInput(input);
+        public boolean handleKey(KeyEvent event) {
+            return Menu.this.handleKey(event);
         }
 
         void up() {
@@ -343,12 +417,14 @@ public class Menu extends AbstractComponent {
                 }
             }
             selected = contents.get(idx);
+            invalidate(); // Trigger repaint when selection changes
         }
 
         @Override
-        public void handleMouse(MouseEvent event) {
+        public boolean handleMouse(MouseEvent event) {
             if (event.getType() == MouseEvent.Type.Pressed && !isIn(event.getX(), event.getY())) {
                 close();
+                Menu.this.selected = null; // Reset selection when clicking outside submenu
             } else {
                 Position p = getScreenPosition();
                 Size s = getSize();
@@ -370,6 +446,7 @@ public class Menu extends AbstractComponent {
                 }
                 super.handleMouse(event);
             }
+            return true; // Mouse event handled
         }
 
         @Override
