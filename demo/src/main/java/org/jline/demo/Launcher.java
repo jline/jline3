@@ -159,24 +159,27 @@ public class Launcher {
 
         System.out.println("SwingTerminal window opened: " + title);
 
-        // Create piped streams to redirect demo output to SwingTerminal
+        // Create piped streams for input and output
         PipedOutputStream outputPipe = new PipedOutputStream();
-        PipedInputStream inputPipe = new PipedInputStream(outputPipe);
+        PipedInputStream outputInputPipe = new PipedInputStream(outputPipe);
+
+        PipedOutputStream inputOutputPipe = new PipedOutputStream();
+        PipedInputStream inputPipe = new PipedInputStream(inputOutputPipe);
 
         // Create a terminal that uses the piped streams
         Terminal terminal = TerminalBuilder.builder()
                 .name("SwingTerminal-Demo")
                 .type("ansi")
-                .streams(System.in, outputPipe)
+                .streams(inputPipe, outputPipe)
                 .build();
 
-        // Start a thread to read from the pipe and write to SwingTerminal
+        // Start a thread to read from the output pipe and write to SwingTerminal
         Thread outputThread = new Thread(
                 () -> {
                     try {
                         byte[] buffer = new byte[1024];
                         int bytesRead;
-                        while ((bytesRead = inputPipe.read(buffer)) != -1 && !closed[0]) {
+                        while ((bytesRead = outputInputPipe.read(buffer)) != -1 && !closed[0]) {
                             String output = new String(buffer, 0, bytesRead, StandardCharsets.UTF_8);
                             swingTerminal.write(output);
                             swingTerminal.getComponent().repaint();
@@ -189,12 +192,40 @@ public class Launcher {
         outputThread.setDaemon(true);
         outputThread.start();
 
+        // Start a thread to read from SwingTerminal and write to input pipe
+        Thread inputThread = new Thread(
+                () -> {
+                    try {
+                        while (!closed[0]) {
+                            String input = swingTerminal.takeInput();
+                            if (input != null && !closed[0]) {
+                                inputOutputPipe.write(input.getBytes(StandardCharsets.UTF_8));
+                                inputOutputPipe.flush();
+                            }
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    } catch (IOException e) {
+                        // Pipe closed, normal termination
+                    }
+                },
+                "SwingTerminal-Input");
+        inputThread.setDaemon(true);
+        inputThread.start();
+
         try {
             // Run the demo
             runDemo(demoClass, args, "swing", terminal);
         } finally {
+            closed[0] = true;
             terminal.close();
-            if (!closed[0]) {
+            try {
+                inputOutputPipe.close();
+                outputPipe.close();
+            } catch (IOException e) {
+                // Ignore close errors
+            }
+            if (frame.isDisplayable()) {
                 frame.dispose();
             }
         }
