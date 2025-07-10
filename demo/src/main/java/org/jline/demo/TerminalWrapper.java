@@ -11,7 +11,10 @@ package org.jline.demo;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -19,11 +22,13 @@ import javax.swing.JFrame;
 
 import org.jline.builtins.SwingTerminal;
 import org.jline.builtins.WebTerminal;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 
 /**
- * Wrapper class that demonstrates WebTerminal and SwingTerminal usage.
- * This class shows how to create and use both terminal implementations
- * for displaying terminal content in web browsers or Swing applications.
+ * Wrapper class that runs demos and examples with output redirected to WebTerminal or SwingTerminal.
+ * This allows any JLine demo or example to be displayed in a web browser or Swing GUI
+ * while still using the standard Terminal interface.
  */
 public class TerminalWrapper {
 
@@ -34,9 +39,8 @@ public class TerminalWrapper {
             System.err.println("  TerminalWrapper --terminal=web --demo=org.jline.demo.Repl");
             System.err.println("  TerminalWrapper --terminal=swing --demo=org.apache.felix.gogo.jline.Main");
             System.err.println("");
-            System.err.println("Note: This wrapper demonstrates WebTerminal and SwingTerminal components.");
-            System.err.println("      The actual demo will run in the current terminal, while the");
-            System.err.println("      web/swing terminal shows a demonstration of the terminal component.");
+            System.err.println("This wrapper runs the demo with output displayed in WebTerminal or SwingTerminal.");
+            System.err.println("The demo will be visible in the web browser or Swing window.");
             System.exit(1);
         }
 
@@ -63,82 +67,136 @@ public class TerminalWrapper {
             System.exit(1);
         }
 
-        // Start the terminal demonstration
-        switch (terminalType.toLowerCase()) {
-            case "web":
-                startWebTerminalDemo();
-                break;
-            case "swing":
-                startSwingTerminalDemo();
-                break;
-            default:
-                System.err.println("Error: Unknown terminal type: " + terminalType);
-                System.err.println("Supported types: web, swing");
-                System.exit(1);
-                return;
+        try {
+            switch (terminalType.toLowerCase()) {
+                case "web":
+                    runDemoInWebTerminal(demoClass, demoArgs.toArray(new String[0]));
+                    break;
+                case "swing":
+                    runDemoInSwingTerminal(demoClass, demoArgs.toArray(new String[0]));
+                    break;
+                default:
+                    System.err.println("Error: Unknown terminal type: " + terminalType);
+                    System.err.println("Supported types: web, swing");
+                    System.exit(1);
+                    return;
+            }
+        } catch (Exception e) {
+            System.err.println("Error running demo: " + e.getMessage());
+            e.printStackTrace();
+            System.exit(1);
         }
-
-        // Run the actual demo in the current terminal
-        System.out.println("Running demo: " + demoClass);
-        runDemo(demoClass, demoArgs.toArray(new String[0]));
     }
 
-    private static void startWebTerminalDemo() throws IOException {
-        System.out.println("Starting WebTerminal demonstration...");
+    private static void runDemoInWebTerminal(String demoClass, String[] args) throws Exception {
+        System.out.println("Starting WebTerminal for demo: " + demoClass);
+
+        // Create WebTerminal
         WebTerminal webTerminal = new WebTerminal("localhost", 8080, 80, 24);
-
-        // Add some demonstration content
-        webTerminal.write("=== JLine WebTerminal Demonstration ===\n");
-        webTerminal.write("This is a web-based terminal component.\n");
-        webTerminal.write("Visit http://localhost:8080 to see it in action.\n");
-        webTerminal.write("\n");
-        webTerminal.write("Features:\n");
-        webTerminal.write("- ANSI color support\n");
-        webTerminal.write("- Real-time updates via AJAX\n");
-        webTerminal.write("- Keyboard input handling\n");
-        webTerminal.write("- HTML/CSS rendering\n");
-        webTerminal.write("\n");
-        webTerminal.write("The actual demo is running in your current terminal.\n");
-        webTerminal.write("$ ");
-
         webTerminal.start();
         System.out.println("WebTerminal started at http://localhost:8080");
-        System.out.println("The web terminal shows a demonstration while your demo runs here.");
+
+        // Create piped streams to redirect demo output to WebTerminal
+        PipedOutputStream outputPipe = new PipedOutputStream();
+        PipedInputStream inputPipe = new PipedInputStream(outputPipe);
+
+        // Create a terminal that uses the piped streams
+        Terminal terminal = TerminalBuilder.builder()
+                .name("WebTerminal-Demo")
+                .type("ansi")
+                .streams(System.in, outputPipe)
+                .build();
+
+        // Start a thread to read from the pipe and write to WebTerminal
+        Thread outputThread = new Thread(
+                () -> {
+                    try {
+                        byte[] buffer = new byte[1024];
+                        int bytesRead;
+                        while ((bytesRead = inputPipe.read(buffer)) != -1) {
+                            String output = new String(buffer, 0, bytesRead, StandardCharsets.UTF_8);
+                            webTerminal.write(output);
+                        }
+                    } catch (IOException e) {
+                        // Pipe closed, normal termination
+                    }
+                },
+                "WebTerminal-Output");
+        outputThread.setDaemon(true);
+        outputThread.start();
+
+        try {
+            // Run the demo
+            runDemo(demoClass, args, terminal);
+        } finally {
+            terminal.close();
+            webTerminal.stop();
+        }
     }
 
-    private static void startSwingTerminalDemo() {
-        System.out.println("Starting SwingTerminal demonstration...");
+    private static void runDemoInSwingTerminal(String demoClass, String[] args) throws Exception {
+        System.out.println("Starting SwingTerminal for demo: " + demoClass);
+
+        // Create SwingTerminal
+        String title = "JLine Demo - " + demoClass.substring(demoClass.lastIndexOf('.') + 1);
         SwingTerminal swingTerminal = new SwingTerminal(80, 24);
+        JFrame frame = swingTerminal.createFrame(title);
 
-        // Add some demonstration content
-        swingTerminal.write("=== JLine SwingTerminal Demonstration ===\n");
-        swingTerminal.write("This is a Swing-based terminal component.\n");
-        swingTerminal.write("\n");
-        swingTerminal.write("Features:\n");
-        swingTerminal.write("- Custom painting with Java 2D\n");
-        swingTerminal.write("- ANSI color support\n");
-        swingTerminal.write("- Font configuration\n");
-        swingTerminal.write("- Keyboard and mouse input\n");
-        swingTerminal.write("- Cursor blinking\n");
-        swingTerminal.write("\n");
-        swingTerminal.write("The actual demo is running in your current terminal.\n");
-        swingTerminal.write("$ ");
-
-        JFrame frame = swingTerminal.createFrame("JLine SwingTerminal Demo");
+        // Handle window closing
+        final boolean[] closed = {false};
         frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         frame.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
-                System.out.println("SwingTerminal window closed.");
+                closed[0] = true;
                 frame.dispose();
             }
         });
 
-        System.out.println("SwingTerminal window opened.");
-        System.out.println("The Swing terminal shows a demonstration while your demo runs here.");
+        System.out.println("SwingTerminal window opened: " + title);
+
+        // Create piped streams to redirect demo output to SwingTerminal
+        PipedOutputStream outputPipe = new PipedOutputStream();
+        PipedInputStream inputPipe = new PipedInputStream(outputPipe);
+
+        // Create a terminal that uses the piped streams
+        Terminal terminal = TerminalBuilder.builder()
+                .name("SwingTerminal-Demo")
+                .type("ansi")
+                .streams(System.in, outputPipe)
+                .build();
+
+        // Start a thread to read from the pipe and write to SwingTerminal
+        Thread outputThread = new Thread(
+                () -> {
+                    try {
+                        byte[] buffer = new byte[1024];
+                        int bytesRead;
+                        while ((bytesRead = inputPipe.read(buffer)) != -1 && !closed[0]) {
+                            String output = new String(buffer, 0, bytesRead, StandardCharsets.UTF_8);
+                            swingTerminal.write(output);
+                            swingTerminal.getComponent().repaint();
+                        }
+                    } catch (IOException e) {
+                        // Pipe closed, normal termination
+                    }
+                },
+                "SwingTerminal-Output");
+        outputThread.setDaemon(true);
+        outputThread.start();
+
+        try {
+            // Run the demo
+            runDemo(demoClass, args, terminal);
+        } finally {
+            terminal.close();
+            if (!closed[0]) {
+                frame.dispose();
+            }
+        }
     }
 
-    private static void runDemo(String demoClassName, String[] args) throws Exception {
+    private static void runDemo(String demoClassName, String[] args, Terminal terminal) throws Exception {
         // Load the demo class
         Class<?> demoClass;
         try {
@@ -157,16 +215,14 @@ public class TerminalWrapper {
             throw e;
         }
 
-        System.out.println("Starting demo: " + demoClassName);
+        System.out.println("Starting demo: " + demoClassName + " in " + terminal.getType() + " terminal");
         if (args.length > 0) {
             System.out.println("Demo arguments: " + Arrays.toString(args));
         }
-        System.out.println("----------------------------------------");
 
-        // Invoke the main method directly
+        // Invoke the main method
         mainMethod.invoke(null, (Object) args);
 
-        System.out.println("----------------------------------------");
         System.out.println("Demo finished.");
     }
 }

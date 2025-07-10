@@ -65,7 +65,7 @@ function run_demo_in_terminal() {
   logconf="demo/etc/logging.properties"
   JVM_OPTS=""
   APP_ARGS=""
-  MAIN_CLASS=""
+  MAIN_CLASS="org.jline.demo.TerminalWrapper"
   DEMO_MAIN_CLASS=""
 
   # Add JLine jars
@@ -113,15 +113,15 @@ function run_demo_in_terminal() {
       ;;
   esac
 
-  # Set the wrapper main class
+  # Set up terminal-specific arguments
   case "$terminal_type" in
     "web")
-      MAIN_CLASS="org.jline.demo.TerminalWrapper"
       APP_ARGS="${APP_ARGS} --terminal=web --demo=${DEMO_MAIN_CLASS}"
+      echo "Running $demo_type demo in WebTerminal (http://localhost:8080)"
       ;;
     "swing")
-      MAIN_CLASS="org.jline.demo.TerminalWrapper"
       APP_ARGS="${APP_ARGS} --terminal=swing --demo=${DEMO_MAIN_CLASS}"
+      echo "Running $demo_type demo in SwingTerminal (GUI window)"
       ;;
     *)
       echo "Unknown terminal type: $terminal_type"
@@ -222,7 +222,6 @@ function command_demo() {
     echo "  repl      - Run the REPL demo"
     echo "  password  - Run the password demo"
     echo "  consoleui - Run the ConsoleUI demo"
-    echo "  terminal  - Run the Terminal demo (WebTerminal and SwingTerminal)"
     echo "Options:"
     echo "  --help       Show help message"
     echo "  debug        Enable remote debugging"
@@ -510,7 +509,7 @@ function run_example_in_terminal() {
   cp="${TARGETDIR}/classes"
   JVM_OPTS=""
   APP_ARGS=""
-  MAIN_CLASS=""
+  MAIN_CLASS="org.jline.demo.TerminalWrapper"
 
   # Add JLine jars
   if [ -d ${TARGETDIR}/lib ]; then
@@ -525,15 +524,15 @@ function run_example_in_terminal() {
     exit 1
   fi
 
-  # Set the wrapper main class
+  # Set up terminal-specific arguments
   case "$terminal_type" in
     "web")
-      MAIN_CLASS="org.jline.demo.TerminalWrapper"
       APP_ARGS="${APP_ARGS} --terminal=web --demo=org.jline.demo.examples.${example_name}"
+      echo "Running ${example_name} example in WebTerminal (http://localhost:8080)"
       ;;
     "swing")
-      MAIN_CLASS="org.jline.demo.TerminalWrapper"
       APP_ARGS="${APP_ARGS} --terminal=swing --demo=org.jline.demo.examples.${example_name}"
+      echo "Running ${example_name} example in SwingTerminal (GUI window)"
       ;;
     *)
       echo "Unknown terminal type: $terminal_type"
