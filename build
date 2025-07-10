@@ -323,211 +323,9 @@ function command_demo() {
   eval $JAVA_CMD
 }
 
-function run_example_in_terminal() {
-  local example_name="$1"
-  local terminal_type="$2"
-  shift 2
 
-  # Set up classpath
-  TARGETDIR="demo/target"
-  cp="${TARGETDIR}/classes"
-  JVM_OPTS=""
-  APP_ARGS=""
-  MAIN_CLASS="org.jline.demo.TerminalWrapper"
 
-  # Add JLine jars
-  if [ -d ${TARGETDIR}/lib ]; then
-    cp=${cp}$(find ${TARGETDIR}/lib -name "jline-*.jar" -exec printf :{} ';')
-  fi
 
-  # Check if the example class exists
-  if ! find demo/src/main/java/org/jline/demo/examples -name "${example_name}.java" | grep -q .; then
-    echo "Example class '${example_name}' not found."
-    echo "Available examples:"
-    find demo/src/main/java/org/jline/demo/examples -name "*.java" | sed 's/.*\/\([^\/]*\)\.java/  \1/' | sort
-    exit 1
-  fi
-
-  # Set up terminal-specific arguments
-  case "$terminal_type" in
-    "web")
-      APP_ARGS="${APP_ARGS} --terminal=web --demo=org.jline.demo.examples.${example_name}"
-      echo "Running ${example_name} example in WebTerminal (http://localhost:8080)"
-      ;;
-    "swing")
-      APP_ARGS="${APP_ARGS} --terminal=swing --demo=org.jline.demo.examples.${example_name}"
-      echo "Running ${example_name} example in SwingTerminal (GUI window)"
-      ;;
-    *)
-      echo "Unknown terminal type: $terminal_type"
-      exit 1
-      ;;
-  esac
-
-  # Process options
-  for arg in "$@"; do
-    case ${arg} in
-      'debug')
-        JVM_OPTS="${JVM_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
-        ;;
-      'debugs')
-        JVM_OPTS="${JVM_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005"
-        ;;
-      'jansi')
-        cp=${cp}$(find ${TARGETDIR}/lib -name "jansi-*.jar" -exec printf :{} ';')
-        ;;
-      'jna')
-        cp=${cp}$(find ${TARGETDIR}/lib -name "jna-*.jar" -exec printf :{} ';')
-        ;;
-      'ffm')
-        JVM_OPTS="${JVM_OPTS} --enable-preview --enable-native-access=ALL-UNNAMED"
-        ;;
-      *)
-        # Pass unknown options to the example
-        APP_ARGS="${APP_ARGS} ${arg}"
-        ;;
-    esac
-  done
-
-  # Check if JDK version supports --enable-native-access
-  java_version=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | cut -d. -f1)
-  if [ "$java_version" -ge 16 ] 2>/dev/null; then
-    # Only add if not already present
-    if [[ "$JVM_OPTS" != *"--enable-native-access=ALL-UNNAMED"* ]]; then
-      JVM_OPTS="${JVM_OPTS} --enable-native-access=ALL-UNNAMED"
-    fi
-  fi
-
-  # Launch the example in terminal wrapper
-  echo "Running example ${example_name} in ${terminal_type} terminal..."
-  echo "Wrapper: ${MAIN_CLASS}"
-  echo "Example: org.jline.demo.examples.${example_name}"
-  echo "Classpath: $cp"
-  echo "JVM options: $JVM_OPTS"
-  if [ -n "$APP_ARGS" ]; then
-    echo "Application arguments: $APP_ARGS"
-  fi
-
-  if [ "$terminal_type" = "web" ]; then
-    echo ""
-    echo "WebTerminal will be available at: http://localhost:8080"
-    echo "Press Ctrl+C to stop the server."
-  fi
-
-  # Run Java directly with application arguments
-  JAVA_CMD="java -cp \"$cp\" $JVM_OPTS ${MAIN_CLASS}"
-
-  # Add each application argument individually
-  for arg in $APP_ARGS; do
-    JAVA_CMD="$JAVA_CMD \"$arg\""
-  done
-
-  # Execute the command
-  eval $JAVA_CMD
-}
-
-function run_example_in_terminal() {
-  local example_name="$1"
-  local terminal_type="$2"
-  shift 2
-
-  # Set up classpath
-  TARGETDIR="demo/target"
-  cp="${TARGETDIR}/classes"
-  JVM_OPTS=""
-  APP_ARGS=""
-  MAIN_CLASS=""
-
-  # Add JLine jars
-  if [ -d ${TARGETDIR}/lib ]; then
-    cp=${cp}$(find ${TARGETDIR}/lib -name "jline-*.jar" -exec printf :{} ';')
-  fi
-
-  # Check if the example class exists
-  if ! find demo/src/main/java/org/jline/demo/examples -name "${example_name}.java" | grep -q .; then
-    echo "Example class '${example_name}' not found."
-    echo "Available examples:"
-    find demo/src/main/java/org/jline/demo/examples -name "*.java" | sed 's/.*\/\([^\/]*\)\.java/  \1/' | sort
-    exit 1
-  fi
-
-  # Set the wrapper main class
-  case "$terminal_type" in
-    "web")
-      MAIN_CLASS="org.jline.demo.TerminalWrapper"
-      APP_ARGS="${APP_ARGS} --terminal=web --demo=org.jline.demo.examples.${example_name}"
-      ;;
-    "swing")
-      MAIN_CLASS="org.jline.demo.TerminalWrapper"
-      APP_ARGS="${APP_ARGS} --terminal=swing --demo=org.jline.demo.examples.${example_name}"
-      ;;
-    *)
-      echo "Unknown terminal type: $terminal_type"
-      exit 1
-      ;;
-  esac
-
-  # Process options
-  for arg in "$@"; do
-    case ${arg} in
-      'debug')
-        JVM_OPTS="${JVM_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
-        ;;
-      'debugs')
-        JVM_OPTS="${JVM_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005"
-        ;;
-      'jansi')
-        cp=${cp}$(find ${TARGETDIR}/lib -name "jansi-*.jar" -exec printf :{} ';')
-        ;;
-      'jna')
-        cp=${cp}$(find ${TARGETDIR}/lib -name "jna-*.jar" -exec printf :{} ';')
-        ;;
-      'ffm')
-        JVM_OPTS="${JVM_OPTS} --enable-preview --enable-native-access=ALL-UNNAMED"
-        ;;
-      *)
-        # Pass unknown options to the example
-        APP_ARGS="${APP_ARGS} ${arg}"
-        ;;
-    esac
-  done
-
-  # Check if JDK version supports --enable-native-access
-  java_version=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | cut -d. -f1)
-  if [ "$java_version" -ge 16 ] 2>/dev/null; then
-    # Only add if not already present
-    if [[ "$JVM_OPTS" != *"--enable-native-access=ALL-UNNAMED"* ]]; then
-      JVM_OPTS="${JVM_OPTS} --enable-native-access=ALL-UNNAMED"
-    fi
-  fi
-
-  # Launch the example in terminal wrapper
-  echo "Running example ${example_name} in ${terminal_type} terminal..."
-  echo "Wrapper: ${MAIN_CLASS}"
-  echo "Example: org.jline.demo.examples.${example_name}"
-  echo "Classpath: $cp"
-  echo "JVM options: $JVM_OPTS"
-  if [ -n "$APP_ARGS" ]; then
-    echo "Application arguments: $APP_ARGS"
-  fi
-
-  if [ "$terminal_type" = "web" ]; then
-    echo ""
-    echo "WebTerminal will be available at: http://localhost:8080"
-    echo "Press Ctrl+C to stop the server."
-  fi
-
-  # Run Java directly with application arguments
-  JAVA_CMD="java -cp \"$cp\" $JVM_OPTS ${MAIN_CLASS}"
-
-  # Add each application argument individually
-  for arg in $APP_ARGS; do
-    JAVA_CMD="$JAVA_CMD \"$arg\""
-  done
-
-  # Execute the command
-  eval $JAVA_CMD
-}
 
 function command_example() {
   local example_name="$1"
@@ -544,8 +342,8 @@ function command_example() {
     echo "  jansi        Add Jansi support"
     echo "  jna          Add JNA support"
     echo "  ffm          Enable Foreign Function Memory (preview)"
-    echo "  web          Run in WebTerminal (http://localhost:8080)"
-    echo "  swing        Run in SwingTerminal (GUI window)"
+    echo "  web          Run example inside WebTerminal (http://localhost:8080)"
+    echo "  swing        Run example inside SwingTerminal (GUI window)"
     echo ""
     echo "Examples:"
     echo "  $basename example AnsiColors web    - Run AnsiColors in WebTerminal"
@@ -553,40 +351,30 @@ function command_example() {
     exit 1
   fi
 
-  # Check for terminal wrapper parameters
-  local terminal_wrapper=""
-  local filtered_args=()
-  for arg in "$@"; do
-    case "$arg" in
-      'web')
-        terminal_wrapper="web"
-        ;;
-      'swing')
-        terminal_wrapper="swing"
-        ;;
-      *)
-        filtered_args+=("$arg")
-        ;;
-    esac
-  done
-
-  # If terminal wrapper is specified, delegate to wrapper function
-  if [ -n "$terminal_wrapper" ]; then
-    run_example_in_terminal "$example_name" "$terminal_wrapper" "${filtered_args[@]}"
-    return
-  fi
-
-  # Set up classpath
+  # Set up common variables
   TARGETDIR="demo/target"
   cp="${TARGETDIR}/classes"
+  logconf="demo/etc/logging.properties"
+  JVM_OPTS=""
+  APP_ARGS=""
+  MAIN_CLASS="org.jline.demo.Launcher"
+  EXAMPLE_CLASS="org.jline.demo.examples.${example_name}"
+  terminal_type="system"
 
   # Add JLine jars
   if [ -d ${TARGETDIR}/lib ]; then
     cp=${cp}$(find ${TARGETDIR}/lib -name "jline-*.jar" -exec printf :{} ';')
   fi
 
+  # Check if the example class exists
+  if ! find demo/src/main/java/org/jline/demo/examples -name "${example_name}.java" | grep -q .; then
+    echo "Example class '${example_name}' not found."
+    echo "Available examples:"
+    find demo/src/main/java/org/jline/demo/examples -name "*.java" | sed 's/.*\/\([^\/]*\)\.java/  \1/' | sort
+    exit 1
+  fi
+
   # Process options
-  JVM_OPTS=""
   for arg in "$@"; do
     case ${arg} in
       'debug')
@@ -601,29 +389,51 @@ function command_example() {
       'jna')
         cp=${cp}$(find ${TARGETDIR}/lib -name "jna-*.jar" -exec printf :{} ';')
         ;;
+      'verbose')
+        logconf="demo/etc/logging-verbose.properties"
+        ;;
       'ffm')
         JVM_OPTS="${JVM_OPTS} --enable-preview --enable-native-access=ALL-UNNAMED"
         ;;
+      'web' | 'swing' | 'system')
+        terminal_type="$arg"
+        ;;
       *)
+        # Unknown option, assume it's a JVM option
         JVM_OPTS="${JVM_OPTS} ${arg}"
         ;;
     esac
   done
 
-  # Check if the example class exists
-  if ! find demo/src/main/java/org/jline/demo/examples -name "${example_name}.java" | grep -q .; then
-    echo "Example class '${example_name}' not found."
-    echo "Available examples:"
-    find demo/src/main/java/org/jline/demo/examples -name "*.java" | sed 's/.*\/\([^\/]*\)\.java/  \1/' | sort
-    exit 1
+  # Check if JDK version supports --enable-native-access
+  java_version=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | cut -d. -f1)
+  if [ "$java_version" -ge 16 ] 2>/dev/null; then
+    # Only add if not already present
+    if [[ "$JVM_OPTS" != *"--enable-native-access=ALL-UNNAMED"* ]]; then
+      JVM_OPTS="${JVM_OPTS} --enable-native-access=ALL-UNNAMED"
+    fi
   fi
 
-  # Run the example
-  echo "Running example: org.jline.demo.examples.${example_name}"
+  # Launch the example
+  echo "Launching ${MAIN_CLASS}..."
   echo "Classpath: $cp"
   echo "JVM options: $JVM_OPTS"
+  if [ -n "$APP_ARGS" ]; then
+    echo "Application arguments: $APP_ARGS"
+  fi
 
-  java -cp "$cp" $JVM_OPTS org.jline.demo.examples.${example_name}
+  # Run Java directly with application arguments
+  JAVA_CMD="java -cp \"$cp\" $JVM_OPTS -Dgosh.home=\"demo\" -Djava.util.logging.config.file=\"${logconf}\" ${MAIN_CLASS} --terminal=${terminal_type} --demo=${EXAMPLE_CLASS}"
+
+  # Add each application argument individually
+  for arg in $APP_ARGS; do
+    JAVA_CMD="$JAVA_CMD \"$arg\""
+  done
+
+  echo $JAVA_CMD
+
+  # Execute the command
+  eval $JAVA_CMD
 }
 
 function command_graal() {
