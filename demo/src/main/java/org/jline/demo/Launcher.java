@@ -30,21 +30,22 @@ import org.jline.terminal.TerminalBuilder;
  * This allows any JLine demo or example to be displayed in a web browser or Swing GUI
  * while still using the standard Terminal interface.
  */
-public class TerminalWrapper {
+public class Launcher {
 
     public static void main(String[] args) throws Exception {
-        if (args.length < 2) {
-            System.err.println("Usage: TerminalWrapper --terminal=<web|swing> --demo=<MainClass> [demo-args...]");
+        if (args.length < 1) {
+            System.err.println("Usage: Launcher [--terminal=<web|swing|system>] --demo=<MainClass> [demo-args...]");
             System.err.println("Examples:");
-            System.err.println("  TerminalWrapper --terminal=web --demo=org.jline.demo.Repl");
-            System.err.println("  TerminalWrapper --terminal=swing --demo=org.apache.felix.gogo.jline.Main");
+            System.err.println("  Launcher --demo=org.jline.demo.Repl");
+            System.err.println("  Launcher --terminal=web --demo=org.jline.demo.Repl");
+            System.err.println("  Launcher --terminal=swing --demo=org.apache.felix.gogo.jline.Main");
             System.err.println("");
             System.err.println("This wrapper runs the demo with output displayed in WebTerminal or SwingTerminal.");
             System.err.println("The demo will be visible in the web browser or Swing window.");
             System.exit(1);
         }
 
-        String terminalType = null;
+        String terminalType = "system";
         String demoClass = null;
         List<String> demoArgs = new ArrayList<>();
 
@@ -62,7 +63,7 @@ public class TerminalWrapper {
             }
         }
 
-        if (terminalType == null || demoClass == null) {
+        if (demoClass == null) {
             System.err.println("Error: Both --terminal and --demo parameters are required");
             System.exit(1);
         }
@@ -74,6 +75,9 @@ public class TerminalWrapper {
                     break;
                 case "swing":
                     runDemoInSwingTerminal(demoClass, demoArgs.toArray(new String[0]));
+                    break;
+                case "system":
+                    runDemo(demoClass, demoArgs.toArray(new String[0]), "system", null);
                     break;
                 default:
                     System.err.println("Error: Unknown terminal type: " + terminalType);
@@ -127,7 +131,7 @@ public class TerminalWrapper {
 
         try {
             // Run the demo
-            runDemo(demoClass, args, terminal);
+            runDemo(demoClass, args, "web", terminal);
         } finally {
             terminal.close();
             webTerminal.stop();
@@ -187,7 +191,7 @@ public class TerminalWrapper {
 
         try {
             // Run the demo
-            runDemo(demoClass, args, terminal);
+            runDemo(demoClass, args, "swing", terminal);
         } finally {
             terminal.close();
             if (!closed[0]) {
@@ -196,7 +200,9 @@ public class TerminalWrapper {
         }
     }
 
-    private static void runDemo(String demoClassName, String[] args, Terminal terminal) throws Exception {
+    @SuppressWarnings("deprecation")
+    private static void runDemo(String demoClassName, String[] args, String terminalType, Terminal terminal)
+            throws Exception {
         // Load the demo class
         Class<?> demoClass;
         try {
@@ -215,13 +221,18 @@ public class TerminalWrapper {
             throw e;
         }
 
-        System.out.println("Starting demo: " + demoClassName + " in " + terminal.getType() + " terminal");
+        System.out.println("Starting demo: " + demoClassName + " in " + terminalType + " terminal");
         if (args.length > 0) {
             System.out.println("Demo arguments: " + Arrays.toString(args));
         }
 
         // Invoke the main method
-        mainMethod.invoke(null, (Object) args);
+        TerminalBuilder.setTerminalOverride(terminal);
+        try {
+            mainMethod.invoke(null, (Object) args);
+        } finally {
+            TerminalBuilder.setTerminalOverride(null);
+        }
 
         System.out.println("Demo finished.");
     }
