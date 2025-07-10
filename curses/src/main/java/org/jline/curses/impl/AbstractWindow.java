@@ -11,6 +11,7 @@ package org.jline.curses.impl;
 import java.util.EnumSet;
 
 import org.jline.curses.*;
+import org.jline.terminal.KeyEvent;
 import org.jline.terminal.MouseEvent;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStyle;
@@ -133,24 +134,114 @@ public abstract class AbstractWindow extends AbstractComponent implements Window
     }
 
     @Override
-    public void handleInput(String input) {
-        if (input.contains("q")) {
+    public boolean handleKey(KeyEvent event) {
+        // Handle 'q' key to close window
+        if (event.getType() == KeyEvent.Type.Character && event.getCharacter() == 'q') {
             close();
+            return true;
         }
+
+        // First try the focused component
+        if (focused != null && focused.handleKey(event)) {
+            return true;
+        }
+
+        // If not handled by focused component, try the main component
+        if (component != null && component.handleKey(event)) {
+            return true;
+        }
+
+        // If still not handled, check for shortcuts to focus other components
+        if (component instanceof Container) {
+            Container container = (Container) component;
+            if (tryFocusShortcut(container, event)) {
+                return true;
+            }
+        }
+
+        return false; // Not handled
+    }
+
+    private boolean tryFocusShortcut(Container container, KeyEvent event) {
+        // Check if any child component has a shortcut for this key event
+        for (Component child : container.getComponents()) {
+            String shortcutKey = child.getShortcutKey();
+            if (shortcutKey != null && isShortcutMatch(event, shortcutKey)) {
+                child.focus();
+                return true;
+            }
+            // Recursively check child containers
+            if (child instanceof Container && tryFocusShortcut((Container) child, event)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isShortcutMatch(KeyEvent event, String shortcutKey) {
+        // Check if the key event matches the shortcut (Alt+key)
+        if (event.getType() == KeyEvent.Type.Character
+                && event.hasModifier(KeyEvent.Modifier.Alt)
+                && shortcutKey.length() == 1) {
+            char expectedChar = shortcutKey.toLowerCase().charAt(0);
+            char actualChar = Character.toLowerCase(event.getCharacter());
+            return expectedChar == actualChar;
+        }
+        return false;
     }
 
     @Override
-    public void handleMouse(MouseEvent event) {
-        if (component != null && component.isIn(event.getX(), event.getY())) {
-            component.handleMouse(event);
-            return;
-        }
+    public boolean handleMouse(MouseEvent event) {
+        // Check close button first
         if (getBehaviors().contains(Behavior.CloseButton) && !getBehaviors().contains(Behavior.NoDecoration)) {
             Position pos = getScreenPosition();
             if (event.getX() == pos.x() + getSize().w() - 2 && event.getY() == pos.y()) {
                 close();
+                return true;
             }
         }
+
+        // Try to find the component under the mouse and handle the event
+        if (component != null) {
+            Component target = findComponentAt(component, event.getX(), event.getY());
+            if (target != null) {
+                // If it's a click event and the component can be focused, focus it
+                if (event.getType() == MouseEvent.Type.Pressed
+                        && !target.getBehaviors().contains(Behavior.NoFocus)) {
+                    target.focus();
+                }
+
+                // Let the component handle the mouse event
+                if (target.handleMouse(event)) {
+                    return true;
+                }
+            }
+        }
+
+        return false; // Not handled
+    }
+
+    private Component findComponentAt(Component component, int x, int y) {
+        if (!component.isIn(x, y)) {
+            return null;
+        }
+
+        // If it's a container, check children first (front to back)
+        if (component instanceof Container) {
+            Container container = (Container) component;
+            // Check children in reverse order (topmost first)
+            java.util.List<Component> children = new java.util.ArrayList<>(container.getComponents());
+            java.util.Collections.reverse(children);
+
+            for (Component child : children) {
+                Component found = findComponentAt(child, x, y);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+
+        return component; // This component is the target
     }
 
     @Override
@@ -174,15 +265,10 @@ public abstract class AbstractWindow extends AbstractComponent implements Window
                     getSize().w(),
                     getSize().h(),
                     getTheme().getStyle(".window.shadow"));
+            // Use focused border style if this window has focus
+            String borderStyleName = (focused != null) ? ".window.border.focused" : ".window.border";
             getTheme()
-                    .box(
-                            screen,
-                            pos.x(),
-                            pos.y(),
-                            getSize().w(),
-                            getSize().h(),
-                            Curses.Border.Double,
-                            ".window.border");
+                    .box(screen, pos.x(), pos.y(), getSize().w(), getSize().h(), Curses.Border.Double, borderStyleName);
             if (getBehaviors().contains(Behavior.CloseButton)) {
                 screen.text(
                         pos.x() + getSize().w() - 2,
@@ -190,10 +276,11 @@ public abstract class AbstractWindow extends AbstractComponent implements Window
                         new AttributedString("x", getTheme().getStyle(".window.close")));
             }
             if (title != null) {
+                String titleStyleName = (focused != null) ? ".window.title.focused" : ".window.title";
                 screen.text(
                         pos.x() + 3,
                         pos.y(),
-                        new AttributedString(title, getTheme().getStyle(".window.title")));
+                        new AttributedString(title, getTheme().getStyle(titleStyleName)));
             }
             if (component != null) {
                 component.draw(screen);
