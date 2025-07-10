@@ -209,9 +209,19 @@ public class SwingTerminal extends ScreenTerminal {
             // Extract colors and attributes
             int fg = (int) ((attr >>> 20) & 0x0f);
             int bg = (int) ((attr >>> 16) & 0x0f);
-            boolean bold = (attr & 0x08000000L) != 0;
             boolean underline = (attr & 0x01000000L) != 0;
             boolean inverse = (attr & 0x02000000L) != 0;
+            boolean conceal = (attr & 0x04000000L) != 0;
+            boolean bold = (attr & 0x08000000L) != 0;
+            boolean fgset = (attr & 0x10000000L) != 0;
+            boolean bgset = (attr & 0x20000000L) != 0;
+
+            if (!fgset) {
+                fg = 0;
+            }
+            if (!bgset) {
+                bg = 15;
+            }
 
             // Handle inverse
             if (inverse) {
