@@ -94,6 +94,10 @@ public class Curses {
         return new Box(title, border, component);
     }
 
+    public static BoxBuilder box(String title, Border border) {
+        return new BoxBuilder(title, border);
+    }
+
     public interface ComponentBuilder<C extends Component> {
 
         C build();
@@ -127,7 +131,7 @@ public class Curses {
     public static class SubMenuBuilder {
         private String name;
         private String key;
-        List<MenuItem> contents = new ArrayList<>();
+        java.util.List<MenuItem> contents = new ArrayList<>();
 
         public SubMenuBuilder name(String name) {
             this.name = name;
@@ -205,9 +209,9 @@ public class Curses {
 
     public static class MenuBuilder implements ComponentBuilder<Menu> {
 
-        List<SubMenu> contents = new ArrayList<>();
+        java.util.List<SubMenu> contents = new ArrayList<>();
 
-        public MenuBuilder submenu(String name, String key, List<MenuItem> menu) {
+        public MenuBuilder submenu(String name, String key, java.util.List<MenuItem> menu) {
             return submenu(new SubMenu(name, key, menu));
         }
 
@@ -257,6 +261,40 @@ public class Curses {
             w.setTitle(title);
             w.setComponent(component);
             return w;
+        }
+    }
+
+    public static class BoxBuilder implements ComponentBuilder<Box> {
+        private final String title;
+        private final Border border;
+        private Component component;
+        private String shortcutKey;
+
+        BoxBuilder(String title, Border border) {
+            this.title = title;
+            this.border = border;
+        }
+
+        public BoxBuilder component(Component component) {
+            this.component = component;
+            return this;
+        }
+
+        public BoxBuilder component(ComponentBuilder<?> component) {
+            return component(component.build());
+        }
+
+        public BoxBuilder key(String shortcutKey) {
+            this.shortcutKey = shortcutKey;
+            return this;
+        }
+
+        @Override
+        public Box build() {
+            if (component == null) {
+                throw new IllegalStateException("Component must be set");
+            }
+            return new Box(title, border, component, shortcutKey);
         }
     }
 }

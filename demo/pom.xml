@@ -60,6 +60,10 @@
         <dependency>
             <artifactId>jline-groovy</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-curses</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.felix</groupId>

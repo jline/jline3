@@ -23,7 +23,6 @@ public class DefaultTheme implements Theme {
 
     private final Map<String, String> styles = new HashMap<>();
     private final StyleResolver resolver = new StyleResolver(styles::get);
-    private final Map<Curses.Border, String> boxChars = new HashMap<>();
 
     private static final int TOP_LEFT = 0;
     private static final int TOP = 1;
@@ -36,18 +35,62 @@ public class DefaultTheme implements Theme {
     private static final int BOTTOM_RIGHT = 8;
 
     public DefaultTheme() {
+        // Menu styles
         styles.put("menu.text.normal", "fg:!white,bg:cyan");
         styles.put("menu.key.normal", "fg:!yellow,bg:cyan");
         styles.put("menu.text.selected", "fg:!white,bg:black");
         styles.put("menu.key.selected", "fg:!yellow,bg:black");
         styles.put("menu.border", "fg:!white,bg:cyan");
-        styles.put("background", "bg:blue,fg:black");
-        styles.put("window.border", "bg:white,fg:black");
-        styles.put("window.border.back", "bg:white,fg:black");
-        styles.put("window.border.light", "bg:white,fg:white");
-        styles.put("window.title", "bg:white,fg:black");
-        styles.put("window.shadow", "bg:black,fg:black");
-        styles.put("window.close", "bg:white,fg:black");
+
+        // Window and background styles
+        styles.put("background", "fg:black,bg:blue");
+        styles.put("window.border", "fg:black,bg:white");
+        styles.put("window.border.focused", "fg:!yellow,bg:white");
+        styles.put("window.border.back", "fg:black,bg:white");
+        styles.put("window.border.light", "fg:white,bg:white");
+        styles.put("window.title", "fg:black,bg:white");
+        styles.put("window.title.focused", "fg:!yellow,bg:white");
+        styles.put("window.shadow", "fg:black,bg:black");
+        styles.put("window.close", "fg:black,bg:white");
+
+        // Box styles
+        styles.put("box.border", "fg:black,bg:white");
+        styles.put("box.border.focused", "fg:!yellow,bg:white");
+        styles.put("box.title", "fg:black,bg:white");
+        styles.put("box.title.focused", "fg:!yellow,bg:white");
+        styles.put("box.key", "fg:!yellow,bg:white");
+
+        // Input component
+        styles.put("input.normal", "fg:black,bg:white");
+        styles.put("input.focused", "fg:!black,bg:white");
+        styles.put("input.placeholder", "fg:!black,bg:white");
+        styles.put("input.selection", "fg:white,bg:blue");
+
+        // List component
+        styles.put("list.normal", "fg:black,bg:white");
+        styles.put("list.selected", "fg:white,bg:blue");
+        styles.put("list.focused", "fg:black,bg:!white");
+        styles.put("list.selected.focused", "fg:white,bg:!blue");
+
+        // Table component
+        styles.put("table.normal", "fg:black,bg:white");
+        styles.put("table.header", "fg:black,bg:white");
+        styles.put("table.selected", "fg:white,bg:blue");
+        styles.put("table.focused", "fg:black,bg:white,inverse");
+        styles.put("table.selected.focused", "fg:white,bg:blue,inverse");
+
+        // Tree component
+        styles.put("tree.normal", "fg:black,bg:white");
+        styles.put("tree.selected", "fg:white,bg:blue");
+        styles.put("tree.focused", "fg:black,bg:white,inverse");
+        styles.put("tree.selected.focused", "fg:white,bg:blue,inverse");
+
+        // TextArea component
+        styles.put("textarea.normal", "fg:black,bg:white");
+        styles.put("textarea.focused", "fg:black,bg:white");
+        styles.put("textarea.cursor", "fg:black,bg:white,inverse");
+
+        // Box drawing characters
         styles.put("box.chars.double", "╔═╗║ ║╚═╝");
         styles.put("box.chars.single", "┌─┐│ │└─┘");
         styles.put("sep.chars.horz.double.double", "╠═╣");
