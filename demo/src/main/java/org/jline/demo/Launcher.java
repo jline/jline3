@@ -8,8 +8,6 @@
  */
 package org.jline.demo;
 
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
@@ -146,44 +144,12 @@ public class Launcher {
         SwingTerminal swingTerminal = new SwingTerminal("SwingTerminal-Demo", 80, 24);
         JFrame frame = swingTerminal.createFrame(title);
 
-        // Handle window closing
-        final boolean[] closed = {false};
-        frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        frame.addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-                closed[0] = true;
-                frame.dispose();
-            }
-        });
-
         System.out.println("SwingTerminal window opened: " + title);
-
-        // Start a thread to read from SwingTerminal and process input
-        Thread inputThread = new Thread(
-                () -> {
-                    try {
-                        while (!closed[0]) {
-                            String input = swingTerminal.takeInput();
-                            if (input != null && !closed[0]) {
-                                swingTerminal.processInputBytes(input.getBytes(StandardCharsets.UTF_8));
-                            }
-                        }
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    } catch (IOException e) {
-                        // Terminal closed, normal termination
-                    }
-                },
-                "SwingTerminal-Input");
-        inputThread.setDaemon(true);
-        inputThread.start();
 
         try {
             // Run the demo directly with the SwingTerminal
             runDemo(demoClass, args, "swing", swingTerminal);
         } finally {
-            closed[0] = true;
             swingTerminal.close();
             if (frame.isDisplayable()) {
                 frame.dispose();

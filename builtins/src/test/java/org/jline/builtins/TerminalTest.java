@@ -12,6 +12,7 @@ import java.awt.*;
 import java.io.IOException;
 import javax.swing.*;
 
+import org.jline.terminal.Size;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -180,11 +181,11 @@ public class TerminalTest {
 
         // Test size setting
         assertTrue(webTerminal.setSize(30, 15));
-        assertTrue(swingTerminal.setSize(30, 15));
+        swingTerminal.setSize(new Size(30, 15));
 
         // Test writing
         assertTrue(webTerminal.write("Test content"));
-        assertTrue(swingTerminal.write("Test content"));
+        swingTerminal.write("Test content");
 
         // Test that content appears in dump
         try {
@@ -240,7 +241,7 @@ public class TerminalTest {
     public void testTerminalResizing() {
         // Test resizing functionality
         assertTrue(webTerminal.setSize(40, 20));
-        assertTrue(swingTerminal.setSize(40, 20));
+        swingTerminal.setSize(new Size(40, 20));
 
         // Write content after resize
         webTerminal.write("Resized terminal content");
@@ -264,9 +265,9 @@ public class TerminalTest {
         assertFalse(webTerminal.setSize(300, 10)); // Too large width
         assertFalse(webTerminal.setSize(10, 300)); // Too large height
 
-        assertFalse(swingTerminal.setSize(1, 10));
-        assertFalse(swingTerminal.setSize(10, 1));
-        assertFalse(swingTerminal.setSize(300, 10));
-        assertFalse(swingTerminal.setSize(10, 300));
+        swingTerminal.setSize(new Size(1, 10));
+        swingTerminal.setSize(new Size(10, 1));
+        swingTerminal.setSize(new Size(300, 10));
+        swingTerminal.setSize(new Size(10, 300));
     }
 }

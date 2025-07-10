@@ -9,10 +9,7 @@
 package org.jline.builtins;
 
 import java.awt.*;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -48,6 +45,7 @@ import org.jline.utils.InfoCmp;
 public class SwingTerminal extends LineDisciplineTerminal {
 
     private final TerminalComponent component;
+    private boolean closed;
 
     /**
      * Creates a new SwingTerminal with the specified dimensions.
@@ -86,6 +84,26 @@ public class SwingTerminal extends LineDisciplineTerminal {
 
         // Initialize after construction to avoid this-escape warnings
         initializeTerminal(width, height);
+
+        // Start a thread to read from SwingTerminal and process input
+        Thread inputThread = new Thread(
+                () -> {
+                    try {
+                        while (!closed) {
+                            String input = component.takeInput();
+                            if (input != null && !closed) {
+                                processInputBytes(input.getBytes(StandardCharsets.UTF_8));
+                            }
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    } catch (IOException e) {
+                        // Terminal closed, normal termination
+                    }
+                },
+                "SwingTerminal-Input");
+        inputThread.setDaemon(true);
+        inputThread.start();
     }
 
     /**
@@ -510,24 +528,6 @@ public class SwingTerminal extends LineDisciplineTerminal {
         public void write(String text) {
             screenTerminal.write(text);
             SwingUtilities.invokeLater(this::repaint);
-        }
-
-        /**
-         * Gets the terminal width in columns.
-         *
-         * @return the terminal width
-         */
-        public int getWidth() {
-            return screenTerminal.getWidth();
-        }
-
-        /**
-         * Gets the terminal height in rows.
-         *
-         * @return the terminal height
-         */
-        public int getHeight() {
-            return screenTerminal.getHeight();
         }
 
         /**
