@@ -55,26 +55,6 @@ public class SwingTerminal extends ScreenTerminal {
         private int charHeight;
         private int charAscent;
 
-        // Color palette for ANSI colors
-        private final Color[] ansiColors = {
-            Color.BLACK, // 0: Black
-            new Color(128, 0, 0), // 1: Dark Red
-            new Color(0, 128, 0), // 2: Dark Green
-            new Color(128, 128, 0), // 3: Dark Yellow
-            new Color(0, 0, 128), // 4: Dark Blue
-            new Color(128, 0, 128), // 5: Dark Magenta
-            new Color(0, 128, 128), // 6: Dark Cyan
-            new Color(192, 192, 192), // 7: Light Gray
-            new Color(128, 128, 128), // 8: Dark Gray
-            new Color(255, 0, 0), // 9: Bright Red
-            new Color(0, 255, 0), // 10: Bright Green
-            new Color(255, 255, 0), // 11: Bright Yellow
-            new Color(0, 0, 255), // 12: Bright Blue
-            new Color(255, 0, 255), // 13: Bright Magenta
-            new Color(0, 255, 255), // 14: Bright Cyan
-            Color.WHITE // 15: White
-        };
-
         private final Color defaultForeground = Color.WHITE;
         private final Color defaultBackground = Color.BLACK;
 
@@ -202,13 +182,23 @@ public class SwingTerminal extends ScreenTerminal {
         }
 
         private void paintCell(Graphics2D g2d, int x, int y, long cell, boolean isCursor) {
+            // Attribute mask: 0xYXFFFBBB00000000L
+            //	X:	Bit 0 - Underlined
+            //		Bit 1 - Negative
+            //		Bit 2 - Concealed
+            //      Bit 3 - Bold
+            //  Y:  Bit 0 - Foreground set
+            //      Bit 1 - Background set
+            //	F:	Foreground r-g-b
+            //	B:	Background r-g-b
+
             // Extract character and attributes from cell
             char ch = (char) (cell & 0xffffffffL);
             long attr = cell >>> 32;
 
             // Extract colors and attributes
-            int fg = (int) ((attr >>> 20) & 0x0f);
-            int bg = (int) ((attr >>> 16) & 0x0f);
+            int bg = (int) ((attr) & 0x0fff);
+            int fg = (int) ((attr >>> 12) & 0x0fff);
             boolean underline = (attr & 0x01000000L) != 0;
             boolean inverse = (attr & 0x02000000L) != 0;
             boolean conceal = (attr & 0x04000000L) != 0;
@@ -220,7 +210,7 @@ public class SwingTerminal extends ScreenTerminal {
                 fg = 0;
             }
             if (!bgset) {
-                bg = 15;
+                bg = 0x0fff;
             }
 
             // Handle inverse
@@ -232,7 +222,7 @@ public class SwingTerminal extends ScreenTerminal {
 
             // Handle cursor
             if (isCursor && cursorVisible.get()) {
-                bg = 15; // White background for cursor
+                bg = 0x0fff; // White background for cursor
                 fg = 0; // Black foreground for cursor
             }
 
@@ -266,11 +256,8 @@ public class SwingTerminal extends ScreenTerminal {
             }
         }
 
-        private Color getAnsiColor(int colorIndex) {
-            if (colorIndex >= 0 && colorIndex < ansiColors.length) {
-                return ansiColors[colorIndex];
-            }
-            return defaultForeground;
+        private Color getAnsiColor(int color) {
+            return new Color(((color >> 8) & 0x0f) << 4, ((color >> 4) & 0x0f) << 4, ((color >> 0) & 0x0f) << 4);
         }
 
         /**

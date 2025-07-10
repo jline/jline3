@@ -22,8 +22,10 @@ import javax.swing.JFrame;
 
 import org.jline.builtins.SwingTerminal;
 import org.jline.builtins.WebTerminal;
+import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.impl.LineDisciplineTerminal;
 
 /**
  * Wrapper class that runs demos and examples with output redirected to WebTerminal or SwingTerminal.
@@ -107,7 +109,7 @@ public class Launcher {
         // Create a terminal that uses the piped streams
         Terminal terminal = TerminalBuilder.builder()
                 .name("WebTerminal-Demo")
-                .type("ansi")
+                .type("screen-256color")
                 .streams(System.in, outputPipe)
                 .build();
 
@@ -159,19 +161,14 @@ public class Launcher {
 
         System.out.println("SwingTerminal window opened: " + title);
 
-        // Create piped streams for input and output
+        // Create piped stream for output
         PipedOutputStream outputPipe = new PipedOutputStream();
         PipedInputStream outputInputPipe = new PipedInputStream(outputPipe);
 
-        PipedOutputStream inputOutputPipe = new PipedOutputStream();
-        PipedInputStream inputPipe = new PipedInputStream(inputOutputPipe);
-
         // Create a terminal that uses the piped streams
-        Terminal terminal = TerminalBuilder.builder()
-                .name("SwingTerminal-Demo")
-                .type("ansi")
-                .streams(inputPipe, outputPipe)
-                .build();
+        LineDisciplineTerminal terminal =
+                new LineDisciplineTerminal("SwingTerminal-Demo", "screen-256color", outputPipe, null);
+        terminal.setSize(new Size(swingTerminal.getWidth(), swingTerminal.getHeight()));
 
         // Start a thread to read from the output pipe and write to SwingTerminal
         Thread outputThread = new Thread(
@@ -199,8 +196,7 @@ public class Launcher {
                         while (!closed[0]) {
                             String input = swingTerminal.takeInput();
                             if (input != null && !closed[0]) {
-                                inputOutputPipe.write(input.getBytes(StandardCharsets.UTF_8));
-                                inputOutputPipe.flush();
+                                terminal.processInputBytes(input.getBytes(StandardCharsets.UTF_8));
                             }
                         }
                     } catch (InterruptedException e) {
@@ -220,7 +216,6 @@ public class Launcher {
             closed[0] = true;
             terminal.close();
             try {
-                inputOutputPipe.close();
                 outputPipe.close();
             } catch (IOException e) {
                 // Ignore close errors
