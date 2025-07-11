@@ -10,9 +10,14 @@ package org.jline.builtins;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CoderResult;
+import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -229,12 +234,15 @@ public class SwingTerminal extends LineDisciplineTerminal {
 
     /**
      * Custom OutputStream that writes to the TerminalComponent.
-     * Uses proper stream decoder to handle byte-to-char transformation.
+     * Uses proper ByteBuffer and CharsetDecoder to handle byte-to-char transformation.
      */
     private static class SwingTerminalOutputStream extends OutputStream {
         private TerminalComponent component;
         private SwingTerminal terminal;
-        private final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        private CharsetDecoder decoder;
+        private ByteBuffer inputBuffer;
+        private CharBuffer outputBuffer;
+        private final StringBuilder pendingOutput = new StringBuilder();
 
         public void setComponent(TerminalComponent component) {
             this.component = component;
@@ -242,57 +250,157 @@ public class SwingTerminal extends LineDisciplineTerminal {
 
         public void setTerminal(SwingTerminal terminal) {
             this.terminal = terminal;
+            initializeDecoder();
+        }
+
+        private void initializeDecoder() {
+            if (terminal != null) {
+                Charset charset = terminal.outputEncoding();
+                this.decoder = charset.newDecoder()
+                        .onMalformedInput(CodingErrorAction.REPLACE)
+                        .onUnmappableCharacter(CodingErrorAction.REPLACE);
+
+                // Allocate buffers - input buffer for incomplete byte sequences
+                this.inputBuffer = ByteBuffer.allocate(16); // Enough for any multi-byte sequence
+                this.outputBuffer = CharBuffer.allocate(16);
+            }
         }
 
         @Override
         public void write(int b) throws IOException {
-            // Buffer single bytes to handle multi-byte sequences properly
-            buffer.write(b);
+            if (component == null || terminal == null) {
+                return;
+            }
 
-            // Try to decode the buffered bytes
-            if (component != null && terminal != null) {
-                byte[] bytes = buffer.toByteArray();
-                try {
-                    // Use the terminal's output encoding for proper decoding
-                    String text = new String(bytes, terminal.outputEncoding());
-                    // If decoding succeeds, write the text and clear buffer
-                    component.write(text);
-                    buffer.reset();
-                } catch (Exception e) {
-                    // If decoding fails, it might be an incomplete multi-byte sequence
-                    // Keep buffering unless buffer gets too large
-                    if (buffer.size() > 6) { // UTF-8 max is 4 bytes, but allow some margin
-                        // Force output with replacement characters
-                        String text = new String(bytes, terminal.outputEncoding());
-                        component.write(text);
-                        buffer.reset();
-                    }
+            // Ensure decoder is initialized
+            if (decoder == null) {
+                initializeDecoder();
+            }
+
+            // Add byte to input buffer
+            if (!inputBuffer.hasRemaining()) {
+                // Buffer is full, this shouldn't happen with proper multi-byte sequences
+                // Force decode what we have and reset
+                decodeAndOutput(true);
+                inputBuffer.clear();
+            }
+
+            inputBuffer.put((byte) b);
+
+            // Try to decode - flip buffer for reading
+            inputBuffer.flip();
+            outputBuffer.clear();
+
+            CoderResult result = decoder.decode(inputBuffer, outputBuffer, false);
+
+            if (result.isUnderflow()) {
+                // Need more input bytes (incomplete sequence) or successful decode
+                if (outputBuffer.position() > 0) {
+                    // We decoded some characters
+                    outputBuffer.flip();
+                    pendingOutput.append(outputBuffer);
+
+                    // Compact input buffer to keep any remaining bytes
+                    inputBuffer.compact();
+                } else {
+                    // No output, need more bytes - compact and continue
+                    inputBuffer.compact();
                 }
+            } else if (result.isOverflow()) {
+                // Output buffer too small (shouldn't happen with our buffer size)
+                outputBuffer.flip();
+                pendingOutput.append(outputBuffer);
+                inputBuffer.compact();
+            } else {
+                // Error occurred, decoder handled it with replacement chars
+                outputBuffer.flip();
+                pendingOutput.append(outputBuffer);
+                inputBuffer.compact();
+            }
+
+            // Output any complete characters
+            if (pendingOutput.length() > 0) {
+                component.write(pendingOutput.toString());
+                pendingOutput.setLength(0);
             }
         }
 
         @Override
         public void write(byte[] b, int off, int len) throws IOException {
-            if (component != null && terminal != null) {
-                // For byte arrays, we can decode directly using the terminal's encoding
-                String text = new String(b, off, len, terminal.outputEncoding());
-                component.write(text);
+            if (component == null || terminal == null) {
+                return;
+            }
+
+            // Ensure decoder is initialized
+            if (decoder == null) {
+                initializeDecoder();
+            }
+
+            // For byte arrays, we can decode directly using ByteBuffer
+            ByteBuffer byteBuffer = ByteBuffer.wrap(b, off, len);
+            CharBuffer charBuffer = CharBuffer.allocate(len * 2); // Generous allocation
+
+            // Decode the byte array
+            CoderResult result = decoder.decode(byteBuffer, charBuffer, false);
+
+            // Output the decoded characters
+            charBuffer.flip();
+            if (charBuffer.hasRemaining()) {
+                component.write(charBuffer.toString());
+            }
+
+            // Handle any remaining bytes by adding them to our input buffer
+            if (byteBuffer.hasRemaining()) {
+                while (byteBuffer.hasRemaining() && inputBuffer.hasRemaining()) {
+                    inputBuffer.put(byteBuffer.get());
+                }
             }
         }
 
         @Override
         public void flush() throws IOException {
-            // Flush any remaining bytes in buffer
-            if (component != null && terminal != null && buffer.size() > 0) {
-                byte[] bytes = buffer.toByteArray();
-                String text = new String(bytes, terminal.outputEncoding());
-                component.write(text);
-                buffer.reset();
+            // Flush any remaining bytes in input buffer
+            if (component != null && terminal != null && inputBuffer != null) {
+                decodeAndOutput(true);
             }
 
             if (component != null) {
                 SwingUtilities.invokeLater(() -> component.repaint());
             }
+        }
+
+        /**
+         * Decode any remaining bytes in the input buffer and output them.
+         *
+         * @param endOfInput true if this is the end of input (flush)
+         */
+        private void decodeAndOutput(boolean endOfInput) {
+            if (decoder == null || inputBuffer == null) {
+                return;
+            }
+
+            inputBuffer.flip();
+            outputBuffer.clear();
+
+            CoderResult result = decoder.decode(inputBuffer, outputBuffer, endOfInput);
+
+            if (endOfInput) {
+                // Final flush
+                outputBuffer.clear();
+                decoder.flush(outputBuffer);
+            }
+
+            outputBuffer.flip();
+            if (outputBuffer.hasRemaining()) {
+                pendingOutput.append(outputBuffer);
+            }
+
+            if (pendingOutput.length() > 0) {
+                component.write(pendingOutput.toString());
+                pendingOutput.setLength(0);
+            }
+
+            inputBuffer.compact();
         }
     }
 
