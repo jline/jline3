@@ -268,61 +268,8 @@ public class SwingTerminal extends LineDisciplineTerminal {
 
         @Override
         public void write(int b) throws IOException {
-            if (component == null || terminal == null) {
-                return;
-            }
-
-            // Ensure decoder is initialized
-            if (decoder == null) {
-                initializeDecoder();
-            }
-
-            // Add byte to input buffer
-            if (!inputBuffer.hasRemaining()) {
-                // Buffer is full, this shouldn't happen with proper multi-byte sequences
-                // Force decode what we have and reset
-                decodeAndOutput(true);
-                inputBuffer.clear();
-            }
-
-            inputBuffer.put((byte) b);
-
-            // Try to decode - flip buffer for reading
-            inputBuffer.flip();
-            outputBuffer.clear();
-
-            CoderResult result = decoder.decode(inputBuffer, outputBuffer, false);
-
-            if (result.isUnderflow()) {
-                // Need more input bytes (incomplete sequence) or successful decode
-                if (outputBuffer.position() > 0) {
-                    // We decoded some characters
-                    outputBuffer.flip();
-                    pendingOutput.append(outputBuffer);
-
-                    // Compact input buffer to keep any remaining bytes
-                    inputBuffer.compact();
-                } else {
-                    // No output, need more bytes - compact and continue
-                    inputBuffer.compact();
-                }
-            } else if (result.isOverflow()) {
-                // Output buffer too small (shouldn't happen with our buffer size)
-                outputBuffer.flip();
-                pendingOutput.append(outputBuffer);
-                inputBuffer.compact();
-            } else {
-                // Error occurred, decoder handled it with replacement chars
-                outputBuffer.flip();
-                pendingOutput.append(outputBuffer);
-                inputBuffer.compact();
-            }
-
-            // Output any complete characters
-            if (pendingOutput.length() > 0) {
-                component.write(pendingOutput.toString());
-                pendingOutput.setLength(0);
-            }
+            // Delegate to the byte array method for consistency
+            write(new byte[] {(byte) b}, 0, 1);
         }
 
         @Override
@@ -331,29 +278,37 @@ public class SwingTerminal extends LineDisciplineTerminal {
                 return;
             }
 
-            // Ensure decoder is initialized
-            if (decoder == null) {
-                initializeDecoder();
-            }
+            // For byte arrays, create a fresh decoder to avoid state issues
+            Charset charset = terminal != null ? terminal.outputEncoding() : StandardCharsets.UTF_8;
+            CharsetDecoder arrayDecoder = charset.newDecoder()
+                    .onMalformedInput(CodingErrorAction.REPLACE)
+                    .onUnmappableCharacter(CodingErrorAction.REPLACE);
 
-            // For byte arrays, we can decode directly using ByteBuffer
+            // Decode the entire byte array at once
             ByteBuffer byteBuffer = ByteBuffer.wrap(b, off, len);
             CharBuffer charBuffer = CharBuffer.allocate(len * 2); // Generous allocation
 
-            // Decode the byte array
-            CoderResult result = decoder.decode(byteBuffer, charBuffer, false);
+            CoderResult result = arrayDecoder.decode(byteBuffer, charBuffer, true);
+
+            // Handle any remaining bytes after decoding
+            if (result.isUnderflow() && byteBuffer.hasRemaining()) {
+                // There are incomplete bytes, add them to our persistent buffer
+                // for processing with the next single-byte write
+                if (inputBuffer == null) {
+                    initializeDecoder();
+                }
+                while (byteBuffer.hasRemaining() && inputBuffer.hasRemaining()) {
+                    inputBuffer.put(byteBuffer.get());
+                }
+            }
+
+            // Flush the decoder to get any final characters
+            arrayDecoder.flush(charBuffer);
 
             // Output the decoded characters
             charBuffer.flip();
             if (charBuffer.hasRemaining()) {
                 component.write(charBuffer.toString());
-            }
-
-            // Handle any remaining bytes by adding them to our input buffer
-            if (byteBuffer.hasRemaining()) {
-                while (byteBuffer.hasRemaining() && inputBuffer.hasRemaining()) {
-                    inputBuffer.put(byteBuffer.get());
-                }
             }
         }
 
@@ -388,6 +343,8 @@ public class SwingTerminal extends LineDisciplineTerminal {
                 // Final flush
                 outputBuffer.clear();
                 decoder.flush(outputBuffer);
+                // Reset decoder after flush to allow reuse
+                decoder.reset();
             }
 
             outputBuffer.flip();
