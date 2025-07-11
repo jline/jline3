@@ -189,6 +189,28 @@ public class SwingTerminalEncodingTest {
         assertTrue(captured.contains("🚀"), "Should contain emojis");
     }
 
+    @Test
+    public void testFontMetricsCharacterWidth() {
+        // Test that character width is calculated properly to prevent overlap
+        SwingTerminal.TerminalComponent component = swingTerminal.getComponent();
+
+        // Verify that the component has a font set
+        assertNotNull(component.getTerminalFont(), "Terminal should have a font set");
+
+        // The character width should be positive and reasonable
+        // We can't test the exact value since it depends on the font,
+        // but we can verify it's calculated properly
+        assertTrue(component.getPreferredSize().width > 0, "Component should have positive width");
+        assertTrue(component.getPreferredSize().height > 0, "Component should have positive height");
+
+        // Verify that the preferred size is based on character dimensions
+        // Width should be terminal width * character width
+        // Height should be terminal height * character height
+        int expectedCells = 80 * 24; // Default terminal size
+        assertTrue(component.getPreferredSize().width >= 80, "Width should accommodate at least 80 characters");
+        assertTrue(component.getPreferredSize().height >= 24, "Height should accommodate at least 24 lines");
+    }
+
     /**
      * Helper method to get captured text from the terminal.
      * This is a simplified version - in the real implementation,

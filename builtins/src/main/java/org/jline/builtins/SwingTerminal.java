@@ -486,7 +486,10 @@ public class SwingTerminal extends LineDisciplineTerminal {
         void initializeFontMetrics() {
             if (terminalFont != null) {
                 this.fontMetrics = getFontMetrics(terminalFont);
-                this.charWidth = fontMetrics.charWidth('M'); // Use 'M' for width calculation
+                // Use getMaxAdvance() for proper character cell width to prevent overlap
+                // Fall back to 'M' width if getMaxAdvance() returns -1 (unknown)
+                int maxAdvance = fontMetrics.getMaxAdvance();
+                this.charWidth = (maxAdvance > 0) ? maxAdvance : fontMetrics.charWidth('M');
                 this.charHeight = fontMetrics.getHeight();
                 this.charAscent = fontMetrics.getAscent();
                 updatePreferredSize();
