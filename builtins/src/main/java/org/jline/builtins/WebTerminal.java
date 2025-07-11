@@ -18,12 +18,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.GZIPOutputStream;
 
+import org.jline.terminal.impl.LineDisciplineTerminal;
+
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
 /**
- * A web-based terminal implementation that extends ScreenTerminal.
+ * A web-based terminal implementation that extends LineDisciplineTerminal.
  * <p>
  * This class provides a web interface for terminal interaction using an embedded HTTP server.
  * It serves an HTML page with JavaScript that communicates with the terminal via HTTP requests.
@@ -39,21 +41,21 @@ import com.sun.net.httpserver.HttpServer;
  *   <li>GZIP compression support</li>
  * </ul>
  */
-public class WebTerminal extends ScreenTerminal {
+public class WebTerminal extends LineDisciplineTerminal {
 
     private static final int DEFAULT_PORT = 8080;
     private static final String DEFAULT_HOST = "localhost";
 
+    private final WebTerminalComponent component;
     private HttpServer server;
     private final int port;
     private final String host;
     private final AtomicBoolean running = new AtomicBoolean(false);
-    private final Map<String, TerminalSession> sessions = new HashMap<>();
 
     /**
      * Creates a new WebTerminal with default settings (localhost:8080).
      */
-    public WebTerminal() {
+    public WebTerminal() throws IOException {
         this(DEFAULT_HOST, DEFAULT_PORT);
     }
 
@@ -63,7 +65,7 @@ public class WebTerminal extends ScreenTerminal {
      * @param host the host to bind to
      * @param port the port to bind to
      */
-    public WebTerminal(String host, int port) {
+    public WebTerminal(String host, int port) throws IOException {
         this(host, port, 80, 24);
     }
 
@@ -75,10 +77,36 @@ public class WebTerminal extends ScreenTerminal {
      * @param width terminal width in characters
      * @param height terminal height in characters
      */
-    public WebTerminal(String host, int port, int width, int height) {
-        super(width, height);
+    @SuppressWarnings("this-escape")
+    public WebTerminal(String host, int port, int width, int height) throws IOException {
+        super("WebTerminal", "web", new WebTerminalOutputStream(), StandardCharsets.UTF_8);
         this.host = host;
         this.port = port;
+
+        // Create the terminal component
+        this.component = new WebTerminalComponent(width, height);
+        this.component.setWebTerminal(this);
+
+        // Connect the output stream to the component
+        ((WebTerminalOutputStream) output()).setComponent(this.component);
+    }
+
+    /**
+     * Gets the web terminal component.
+     *
+     * @return the WebTerminalComponent instance
+     */
+    public WebTerminalComponent getComponent() {
+        return component;
+    }
+
+    /**
+     * Gets the URL where the web terminal is accessible.
+     *
+     * @return the web terminal URL
+     */
+    public String getUrl() {
+        return "http://" + host + ":" + port;
     }
 
     /**
@@ -121,13 +149,49 @@ public class WebTerminal extends ScreenTerminal {
         return running.get();
     }
 
+    // Delegation methods to the component
+
     /**
-     * Gets the URL where the web terminal is accessible.
+     * Writes text to the terminal.
      *
-     * @return the web terminal URL
+     * @param text the text to write
+     * @return true if successful
      */
-    public String getUrl() {
-        return "http://" + host + ":" + port;
+    public boolean write(String text) {
+        return component.write(text);
+    }
+
+    /**
+     * Reads and processes input through the terminal.
+     *
+     * @param input the input to process
+     * @return the processed input
+     */
+    public String pipe(String input) {
+        return component.pipe(input);
+    }
+
+    /**
+     * Dumps the terminal content as HTML.
+     *
+     * @param timeout timeout in seconds
+     * @param forceUpdate whether to force an update
+     * @return the terminal content as HTML
+     * @throws InterruptedException if interrupted
+     */
+    public String dump(int timeout, boolean forceUpdate) throws InterruptedException {
+        return component.dump(timeout, forceUpdate);
+    }
+
+    /**
+     * Sets the terminal size.
+     *
+     * @param width the new width
+     * @param height the new height
+     * @return true if successful
+     */
+    public boolean setSize(int width, int height) {
+        return component.setSize(width, height);
     }
 
     /**
@@ -229,8 +293,6 @@ public class WebTerminal extends ScreenTerminal {
 
             // Parse form data
             Map<String, String> params = parseFormData(exchange);
-            String sessionId = getOrCreateSession(exchange);
-            TerminalSession session = sessions.get(sessionId);
 
             String keyInput = params.get("k");
             String forceUpdate = params.get("f");
@@ -282,11 +344,7 @@ public class WebTerminal extends ScreenTerminal {
 
         private String getOrCreateSession(HttpExchange exchange) {
             // Simple session management - in production, use proper session handling
-            String sessionId = "default";
-            if (!sessions.containsKey(sessionId)) {
-                sessions.put(sessionId, new TerminalSession());
-            }
-            return sessionId;
+            return "default";
         }
 
         private void sendResponse(HttpExchange exchange, String content) throws IOException {
@@ -315,11 +373,235 @@ public class WebTerminal extends ScreenTerminal {
     }
 
     /**
-     * Simple session container for terminal state.
+     * Custom OutputStream for the WebTerminal that writes to the component.
      */
-    private static class TerminalSession {
-        // In a full implementation, this would contain session-specific state
-        // For now, we'll use the shared ScreenTerminal state
+    private static class WebTerminalOutputStream extends OutputStream {
+
+        private WebTerminalComponent component;
+
+        @Override
+        public void write(int b) throws IOException {
+            if (component != null) {
+                component.write(String.valueOf((char) b));
+            }
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            if (component != null) {
+                String text = new String(b, off, len, StandardCharsets.UTF_8);
+                component.write(text);
+            }
+        }
+
+        @Override
+        public void flush() throws IOException {
+            // No buffering, so nothing to flush
+        }
+
+        public void setComponent(WebTerminalComponent component) {
+            this.component = component;
+        }
+    }
+
+    /**
+     * The inner WebTerminalComponent that contains the original ScreenTerminal-based implementation.
+     * This is the inner class that contains the original ScreenTerminal-based implementation.
+     */
+    public static class WebTerminalComponent extends ScreenTerminal {
+
+        private static final long serialVersionUID = 1L;
+
+        private transient WebTerminal webTerminal;
+
+        /**
+         * Creates a new WebTerminalComponent with the specified dimensions.
+         *
+         * @param width terminal width in characters
+         * @param height terminal height in characters
+         */
+        public WebTerminalComponent(int width, int height) {
+            super(width, height);
+        }
+
+        /**
+         * Sets the web terminal reference after construction to avoid this-escape issues.
+         *
+         * @param webTerminal the WebTerminal instance
+         */
+        public void setWebTerminal(WebTerminal webTerminal) {
+            this.webTerminal = webTerminal;
+        }
+
+        /**
+         * Writes text to the terminal.
+         *
+         * @param text the text to write
+         * @return true if successful
+         */
+        public boolean write(String text) {
+            return super.write(text);
+        }
+
+        /**
+         * Reads and processes input through the terminal.
+         *
+         * @param input the input to process
+         * @return the processed input
+         */
+        public String pipe(String input) {
+            // Process special key sequences
+            if (input.startsWith("~")) {
+                switch (input) {
+                    case "~A":
+                        return "\u001b[A"; // Up arrow
+                    case "~B":
+                        return "\u001b[B"; // Down arrow
+                    case "~C":
+                        return "\u001b[C"; // Right arrow
+                    case "~D":
+                        return "\u001b[D"; // Left arrow
+                    default:
+                        return input;
+                }
+            }
+
+            // Handle carriage return
+            if ("\r".equals(input)) {
+                return "\r\n";
+            }
+
+            return input;
+        }
+
+        /**
+         * Dumps the terminal content as HTML with enhanced attribute support.
+         * This method overrides the ScreenTerminal dump method to provide better
+         * RGB color support and attribute handling.
+         *
+         * @param timeout timeout in seconds
+         * @param forceUpdate whether to force an update
+         * @return the terminal content as HTML
+         * @throws InterruptedException if interrupted
+         */
+        public String dump(int timeout, boolean forceUpdate) throws InterruptedException {
+            // Use the parent's dump method but enhance the output
+            String originalHtml = super.dump(timeout, forceUpdate);
+            if (originalHtml != null) {
+                return enhanceHtmlOutput(originalHtml);
+            }
+            return null;
+        }
+
+        /**
+         * Enhances the HTML output from ScreenTerminal to support RGB colors.
+         * This method processes the original HTML and replaces basic color classes
+         * with inline styles that support RGB colors.
+         *
+         * @param originalHtml the original HTML from ScreenTerminal
+         * @return enhanced HTML with RGB color support
+         */
+        private String enhanceHtmlOutput(String originalHtml) {
+            // For now, return the original HTML
+            // TODO: Implement RGB color enhancement by parsing and replacing color classes
+            return originalHtml;
+        }
+
+        /**
+         * Generates a span tag with proper CSS styling for the given attributes.
+         * Handles RGB colors, bold, underline, inverse, and other attributes.
+         *
+         * @param attr the attribute value from the cell
+         * @return HTML span tag with appropriate CSS classes and inline styles
+         */
+        private String generateSpanTag(long attr) {
+            // Attribute mask: 0xYXFFFBBB00000000L
+            // X: Bit 0 - Underlined, Bit 1 - Negative, Bit 2 - Concealed, Bit 3 - Bold
+            // Y: Bit 0 - Foreground set, Bit 1 - Background set
+            // F: Foreground r-g-b
+            // B: Background r-g-b
+
+            int bg = (int) ((attr) & 0x0fff);
+            int fg = (int) ((attr >>> 12) & 0x0fff);
+            boolean underline = (attr & 0x01000000L) != 0;
+            boolean inverse = (attr & 0x02000000L) != 0;
+            boolean conceal = (attr & 0x04000000L) != 0;
+            boolean bold = (attr & 0x08000000L) != 0;
+            boolean fgset = (attr & 0x10000000L) != 0;
+            boolean bgset = (attr & 0x20000000L) != 0;
+
+            // Handle default colors
+            if (!fgset) {
+                fg = 0x0fff; // Default white foreground
+            }
+            if (!bgset) {
+                bg = 0x0000; // Default black background
+            }
+
+            // Handle inverse
+            if (inverse) {
+                int temp = fg;
+                fg = bg;
+                bg = temp;
+            }
+
+            // Handle concealed
+            if (conceal) {
+                fg = bg; // Make text invisible by setting foreground to background
+            }
+
+            StringBuilder span = new StringBuilder("<span style='");
+
+            // Add foreground color
+            String fgColor = rgbToHex(fg);
+            span.append("color:").append(fgColor).append(";");
+
+            // Add background color
+            String bgColor = rgbToHex(bg);
+            span.append("background-color:").append(bgColor).append(";");
+
+            // Add text decorations
+            if (underline) {
+                span.append("text-decoration:underline;");
+            }
+
+            // Add font weight
+            if (bold) {
+                span.append("font-weight:bold;");
+            }
+
+            span.append("'>");
+            return span.toString();
+        }
+
+        /**
+         * Converts a 12-bit RGB color value to a hex color string.
+         * The format is 0xRGB where each component is 4 bits.
+         *
+         * @param color 12-bit color value
+         * @return hex color string (e.g., "#ff0000")
+         */
+        private String rgbToHex(int color) {
+            int r = ((color >> 8) & 0x0f) << 4; // Expand 4-bit to 8-bit
+            int g = ((color >> 4) & 0x0f) << 4;
+            int b = ((color >> 0) & 0x0f) << 4;
+            return String.format("#%02x%02x%02x", r, g, b);
+        }
+
+        /**
+         * Sets the terminal size.
+         *
+         * @param width the new width
+         * @param height the new height
+         * @return true if successful
+         */
+        public boolean setSize(int width, int height) {
+            if (width < 10 || height < 5 || width > 200 || height > 100) {
+                return false;
+            }
+            // ScreenTerminal.setSize takes width and height directly
+            return super.setSize(width, height);
+        }
     }
 
     /**
