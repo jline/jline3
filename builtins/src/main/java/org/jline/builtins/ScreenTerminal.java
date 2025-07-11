@@ -1588,7 +1588,10 @@ public class ScreenTerminal {
                             vt100_parse_func <<= 8;
                             vt100_parse_func += (char) c;
                         } else if (msb == 0x30 && vt100_parse_state == State.Csi) {
-                            vt100_parse_param += String.valueOf((char) c);
+                            // Use StringBuilder.appendCodePoint for proper Unicode handling
+                            StringBuilder sb = new StringBuilder();
+                            sb.appendCodePoint(c);
+                            vt100_parse_param += sb.toString();
                         } else {
                             vt100_parse_func <<= 8;
                             vt100_parse_func += (char) c;
@@ -2005,7 +2008,9 @@ public class ScreenTerminal {
                         default:
                             wx += utf8_charwidth(c);
                             if (wx <= width) {
-                                sb.append((char) c);
+                                // Use appendCodePoint for proper codepoint-to-char conversion
+                                // This handles Unicode characters beyond the BMP correctly
+                                sb.appendCodePoint(c);
                             }
                             break;
                     }

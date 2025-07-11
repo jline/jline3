@@ -10,6 +10,7 @@ package org.jline.builtins;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -116,6 +117,7 @@ public class SwingTerminal extends LineDisciplineTerminal {
         // Connect the component output to our master output and set the terminal reference
         SwingTerminalOutputStream outputStream = (SwingTerminalOutputStream) masterOutput;
         outputStream.setComponent(component);
+        outputStream.setTerminal(this);
         component.setTerminal(this);
     }
 
@@ -227,31 +229,67 @@ public class SwingTerminal extends LineDisciplineTerminal {
 
     /**
      * Custom OutputStream that writes to the TerminalComponent.
+     * Uses proper stream decoder to handle byte-to-char transformation.
      */
     private static class SwingTerminalOutputStream extends OutputStream {
         private TerminalComponent component;
+        private SwingTerminal terminal;
+        private final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 
         public void setComponent(TerminalComponent component) {
             this.component = component;
         }
 
+        public void setTerminal(SwingTerminal terminal) {
+            this.terminal = terminal;
+        }
+
         @Override
         public void write(int b) throws IOException {
-            if (component != null) {
-                component.write(String.valueOf((char) b));
+            // Buffer single bytes to handle multi-byte sequences properly
+            buffer.write(b);
+
+            // Try to decode the buffered bytes
+            if (component != null && terminal != null) {
+                byte[] bytes = buffer.toByteArray();
+                try {
+                    // Use the terminal's output encoding for proper decoding
+                    String text = new String(bytes, terminal.outputEncoding());
+                    // If decoding succeeds, write the text and clear buffer
+                    component.write(text);
+                    buffer.reset();
+                } catch (Exception e) {
+                    // If decoding fails, it might be an incomplete multi-byte sequence
+                    // Keep buffering unless buffer gets too large
+                    if (buffer.size() > 6) { // UTF-8 max is 4 bytes, but allow some margin
+                        // Force output with replacement characters
+                        String text = new String(bytes, terminal.outputEncoding());
+                        component.write(text);
+                        buffer.reset();
+                    }
+                }
             }
         }
 
         @Override
         public void write(byte[] b, int off, int len) throws IOException {
-            if (component != null) {
-                String text = new String(b, off, len, StandardCharsets.UTF_8);
+            if (component != null && terminal != null) {
+                // For byte arrays, we can decode directly using the terminal's encoding
+                String text = new String(b, off, len, terminal.outputEncoding());
                 component.write(text);
             }
         }
 
         @Override
         public void flush() throws IOException {
+            // Flush any remaining bytes in buffer
+            if (component != null && terminal != null && buffer.size() > 0) {
+                byte[] bytes = buffer.toByteArray();
+                String text = new String(bytes, terminal.outputEncoding());
+                component.write(text);
+                buffer.reset();
+            }
+
             if (component != null) {
                 SwingUtilities.invokeLater(() -> component.repaint());
             }
