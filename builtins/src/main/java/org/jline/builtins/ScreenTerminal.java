@@ -1946,7 +1946,7 @@ public class ScreenTerminal {
         int cx = Math.min(this.cx, width - 1);
         int cy = this.cy;
         for (int y = 0; y < Math.min(height, fheight - ftop); y++) {
-            System.arraycopy(screen[y], 0, fullscreen, (y + ftop) * fwidth + fleft, width);
+            System.arraycopy(screen[y + ftop], fleft, fullscreen, y * fwidth, fwidth);
         }
         if (cursor != null) {
             cursor[0] = cx + fleft;
@@ -1980,7 +1980,7 @@ public class ScreenTerminal {
         int height = this.height;
         long[] screen = new long[width * height];
         int[] cursor = new int[2];
-        if (dump(timeout, forceDump, screen, 0, 0, width, height, cursor)) {
+        if (dump(timeout, forceDump, screen, 0, 0, height, width, cursor)) {
             StringBuilder sb = new StringBuilder();
             int prev_attr = -1;
             int cx = cursor[0];
@@ -2065,7 +2065,10 @@ public class ScreenTerminal {
         StringBuilder sb = new StringBuilder();
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                sb.appendCodePoint((int) (screen[y][x] & 0xffffffffL));
+                int c = (int) (screen[y][x] & 0xffffffffL);
+                if (c != 0) {
+                    sb.appendCodePoint(c);
+                }
             }
             sb.append("\n");
         }
