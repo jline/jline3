@@ -440,6 +440,9 @@ public class SwingTerminal extends LineDisciplineTerminal {
             setBackground(defaultBackground);
             setForeground(defaultForeground);
 
+            // Disable focus traversal for Tab key so we can handle it ourselves
+            setFocusTraversalKeysEnabled(false);
+
             // Add listeners - this is done after construction to avoid this-escape
             addKeyListener(this);
             addMouseListener(new MouseAdapter() {
