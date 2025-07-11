@@ -28,7 +28,7 @@ public class TerminalTest {
     private SwingTerminal swingTerminal;
 
     @BeforeEach
-    public void setUp() {
+    public void setUp() throws IOException {
         // Create terminals with small sizes for testing
         webTerminal = new WebTerminal("localhost", 0, 20, 10); // Port 0 = random available port
         swingTerminal = new SwingTerminal(20, 10);
