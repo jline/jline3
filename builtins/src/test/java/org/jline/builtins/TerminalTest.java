@@ -187,6 +187,13 @@ public class TerminalTest {
         assertTrue(webTerminal.write("Test content"));
         swingTerminal.write("Test content");
 
+        // Add a small delay to ensure content is processed
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
         // Test that content appears in dump
         try {
             String webDump = webTerminal.dump(0, true);

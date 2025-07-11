@@ -505,8 +505,17 @@ public class ScreenTerminal {
         } else if (vt100_charset_is_graphical && ((c & 0xffe0) == 0x0060)) {
             c = vt100_charset_graph[c - 0x60];
         }
+        int charWidth = utf8_charwidth(c);
         poke(cy, cx, new long[] {attr | c});
-        cursor_right(utf8_charwidth(c));
+
+        // For wide characters, fill the subsequent cells with a continuation marker
+        if (charWidth > 1) {
+            for (int i = 1; i < charWidth && cx + i < width; i++) {
+                poke(cy, cx + i, new long[] {attr | 0}); // Use null character as continuation marker
+            }
+        }
+
+        cursor_right(charWidth);
     }
 
     //
@@ -2033,9 +2042,10 @@ public class ScreenTerminal {
                             sb.append("&gt;");
                             break;
                         default:
-                            int wx = utf8_charwidth(c);
-                            if (wx > 1) {
-                                x += wx - 1;
+                            // Skip continuation markers (null characters)
+                            if (c == 0) {
+                                // This is a continuation of a wide character, skip it
+                                break;
                             }
                             // Use appendCodePoint for proper codepoint-to-char conversion
                             // This handles Unicode characters beyond the BMP correctly

@@ -490,7 +490,6 @@ public class WebTerminal extends LineDisciplineTerminal {
          */
         public String dump(int timeout, boolean forceUpdate) throws InterruptedException {
             // Use the parent's dump method but enhance the output
-            waitDirty();
             String originalHtml = super.dump(timeout, forceUpdate);
             if (originalHtml != null) {
                 return enhanceHtmlOutput(originalHtml);

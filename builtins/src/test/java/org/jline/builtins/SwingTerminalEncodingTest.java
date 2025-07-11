@@ -100,19 +100,39 @@ public class SwingTerminalEncodingTest {
 
     @Test
     public void testMultiByteUtf8Characters() throws IOException {
-        // Test various UTF-8 multi-byte sequences
-        String testText = "Hello 世界 🌍 café naïve résumé";
+        // Test with a shorter string to isolate the issue
+        String testText = "Hello résumé";
 
         // Write through the terminal's writer
         swingTerminal.writer().write(testText);
         swingTerminal.writer().flush();
 
         String captured = getCapturedTextFromTerminal();
-        assertTrue(captured.contains("世界"), "Should contain Chinese characters");
-        assertTrue(captured.contains("🌍"), "Should contain emoji");
-        assertTrue(captured.contains("café"), "Should contain accented characters");
-        assertTrue(captured.contains("naïve"), "Should contain diaeresis");
-        assertTrue(captured.contains("résumé"), "Should contain acute accents: " + captured);
+        System.out.println("DEBUG: Simple test captured: " + captured);
+
+        // Now test the full string
+        swingTerminal.writer().write("\n");
+        String fullText = "Hello 世界 🌍 café naïve résumé";
+        swingTerminal.writer().write(fullText);
+        swingTerminal.writer().flush();
+
+        // Add a small delay to ensure content is processed
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        String captured2 = getCapturedTextFromTerminal();
+        System.out.println("DEBUG: Full test captured: " + captured2);
+        System.out.println("DEBUG: Text length: " + fullText.length());
+        System.out.println("DEBUG: Terminal width: " + swingTerminal.getWidth());
+
+        assertTrue(captured2.contains("世界"), "Should contain Chinese characters");
+        assertTrue(captured2.contains("🌍"), "Should contain emoji");
+        assertTrue(captured2.contains("café"), "Should contain accented characters");
+        assertTrue(captured2.contains("naïve"), "Should contain diaeresis");
+        assertTrue(captured2.contains("résumé"), "Should contain acute accents: " + captured2);
     }
 
     @Test
@@ -135,6 +155,13 @@ public class SwingTerminalEncodingTest {
         // Write through the terminal's writer
         swingTerminal.writer().write(testText);
         swingTerminal.writer().flush();
+
+        // Add a small delay to ensure content is processed
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
 
         String captured = getCapturedTextFromTerminal();
         assertTrue(captured.contains("测试"), "Should contain Chinese test characters");
@@ -182,6 +209,13 @@ public class SwingTerminalEncodingTest {
         swingTerminal.writer().write(testText);
         swingTerminal.writer().flush();
 
+        // Add a small delay to ensure content is processed
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
         String captured = getCapturedTextFromTerminal();
         assertTrue(captured.contains("Line 0"), "Should contain first line");
         assertTrue(captured.contains("Line 99"), "Should contain last line");
@@ -219,7 +253,10 @@ public class SwingTerminalEncodingTest {
     private String getCapturedTextFromTerminal() {
         // For now, we'll use the terminal's dump functionality to get the content
         try {
-            return swingTerminal.dump(0, true);
+            String result = swingTerminal.dump(0, true);
+            System.out.println("DEBUG: dump() returned: "
+                    + (result != null ? "non-null (" + result.length() + " chars)" : "null"));
+            return result;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return "";
