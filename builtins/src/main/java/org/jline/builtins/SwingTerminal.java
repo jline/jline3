@@ -26,6 +26,7 @@ import javax.swing.*;
 
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.LineDisciplineTerminal;
+import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp;
 
 /**
@@ -708,7 +709,7 @@ public class SwingTerminal extends LineDisciplineTerminal {
         @Override
         public void keyTyped(KeyEvent e) {
             char ch = e.getKeyChar();
-            if (ch != KeyEvent.CHAR_UNDEFINED && !e.isControlDown()) {
+            if (ch != '\t' && ch != KeyEvent.CHAR_UNDEFINED && !e.isControlDown()) {
                 inputQueue.offer(String.valueOf(ch));
             }
         }
@@ -830,7 +831,7 @@ public class SwingTerminal extends LineDisciplineTerminal {
         private String getCapabilitySequence(InfoCmp.Capability capability, String defaultSequence) {
             if (terminal != null) {
                 String sequence = terminal.getStringCapability(capability);
-                return sequence != null ? sequence : defaultSequence;
+                return sequence != null ? Curses.tputs(sequence) : defaultSequence;
             }
             return defaultSequence;
         }
