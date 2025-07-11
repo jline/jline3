@@ -112,7 +112,7 @@ public class SwingTerminalEncodingTest {
         assertTrue(captured.contains("🌍"), "Should contain emoji");
         assertTrue(captured.contains("café"), "Should contain accented characters");
         assertTrue(captured.contains("naïve"), "Should contain diaeresis");
-        assertTrue(captured.contains("résumé"), "Should contain acute accents");
+        assertTrue(captured.contains("résumé"), "Should contain acute accents: " + captured);
     }
 
     @Test

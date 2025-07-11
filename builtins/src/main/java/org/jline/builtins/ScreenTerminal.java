@@ -506,7 +506,7 @@ public class ScreenTerminal {
             c = vt100_charset_graph[c - 0x60];
         }
         poke(cy, cx, new long[] {attr | c});
-        cursor_right();
+        cursor_right(utf8_charwidth(c));
     }
 
     //
@@ -1620,6 +1620,12 @@ public class ScreenTerminal {
         }
     }
 
+    public synchronized void waitDirty(int timeout) throws InterruptedException {
+        while (!dirty.compareAndSet(true, false)) {
+            wait(timeout);
+        }
+    }
+
     protected synchronized void setDirty() {
         dirty.set(true);
         notifyAll();
@@ -1920,7 +1926,7 @@ public class ScreenTerminal {
 
     public synchronized boolean write(CharSequence d) {
         d.codePoints().forEachOrdered(c -> {
-            if (!vt100_write(c) && !dumb_write(c) && c <= 0xffff) {
+            if (!vt100_write(c) && !dumb_write(c)) {
                 dumb_echo(c);
             }
         });
@@ -1939,21 +1945,42 @@ public class ScreenTerminal {
         }
     }
 
-    public synchronized String dump(long timeout, boolean forceDump) throws InterruptedException {
+    public synchronized boolean dump(
+            long timeout,
+            boolean forceDump,
+            long[] fullscreen,
+            int ftop,
+            int fleft,
+            int fheight,
+            int fwidth,
+            int[] cursor)
+            throws InterruptedException {
         if (!dirty.get() && timeout > 0) {
             wait(timeout);
         }
         if (dirty.compareAndSet(true, false) || forceDump) {
+            dump(fullscreen, ftop, fleft, fheight, fwidth, cursor);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public synchronized String dump(long timeout, boolean forceDump) throws InterruptedException {
+        int width = this.width;
+        int height = this.height;
+        long[] screen = new long[width * height];
+        int[] cursor = new int[2];
+        if (dump(timeout, forceDump, screen, 0, 0, width, height, cursor)) {
             StringBuilder sb = new StringBuilder();
             int prev_attr = -1;
-            int cx = Math.min(this.cx, width - 1);
-            int cy = this.cy;
+            int cx = cursor[0];
+            int cy = cursor[1];
             sb.append("<div><pre class='term'>");
             for (int y = 0; y < height; y++) {
-                int wx = 0;
                 for (int x = 0; x < width; x++) {
-                    long d = screen[y][x];
-                    int c = (int) (d & 0xffffffff);
+                    long d = screen[y * width + x];
+                    int c = (int) (d & 0xffffffffL);
                     int a = (int) (d >> 32);
                     if (cy == y && cx == x && vt100_mode_cursor) {
                         a = a & 0xfff0 | 0x000c;
@@ -2006,12 +2033,13 @@ public class ScreenTerminal {
                             sb.append("&gt;");
                             break;
                         default:
-                            wx += utf8_charwidth(c);
-                            if (wx <= width) {
-                                // Use appendCodePoint for proper codepoint-to-char conversion
-                                // This handles Unicode characters beyond the BMP correctly
-                                sb.appendCodePoint(c);
+                            int wx = utf8_charwidth(c);
+                            if (wx > 1) {
+                                x += wx - 1;
                             }
+                            // Use appendCodePoint for proper codepoint-to-char conversion
+                            // This handles Unicode characters beyond the BMP correctly
+                            sb.appendCodePoint(c);
                             break;
                     }
                 }

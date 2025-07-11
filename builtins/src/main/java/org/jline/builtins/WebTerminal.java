@@ -79,7 +79,7 @@ public class WebTerminal extends LineDisciplineTerminal {
      */
     @SuppressWarnings("this-escape")
     public WebTerminal(String host, int port, int width, int height) throws IOException {
-        super("WebTerminal", "web", new WebTerminalOutputStream(), StandardCharsets.UTF_8);
+        super("WebTerminal", "screen-256color", new WebTerminalOutputStream(), StandardCharsets.UTF_8);
         this.host = host;
         this.port = port;
 
@@ -88,7 +88,7 @@ public class WebTerminal extends LineDisciplineTerminal {
         this.component.setWebTerminal(this);
 
         // Connect the output stream to the component
-        ((WebTerminalOutputStream) output()).setComponent(this.component);
+        ((WebTerminalOutputStream) masterOutput).setComponent(this.component);
     }
 
     /**
@@ -169,6 +169,10 @@ public class WebTerminal extends LineDisciplineTerminal {
      */
     public String pipe(String input) {
         return component.pipe(input);
+    }
+
+    public String read() {
+        return component.read();
     }
 
     /**
@@ -486,6 +490,7 @@ public class WebTerminal extends LineDisciplineTerminal {
          */
         public String dump(int timeout, boolean forceUpdate) throws InterruptedException {
             // Use the parent's dump method but enhance the output
+            waitDirty();
             String originalHtml = super.dump(timeout, forceUpdate);
             if (originalHtml != null) {
                 return enhanceHtmlOutput(originalHtml);

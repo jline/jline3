@@ -84,7 +84,7 @@ public class SwingTerminal extends LineDisciplineTerminal {
      */
     @SuppressWarnings("this-escape")
     public SwingTerminal(String name, int width, int height) throws IOException {
-        super(name, "swing", new SwingTerminalOutputStream(), StandardCharsets.UTF_8);
+        super(name, "screen-256color", new SwingTerminalOutputStream(), StandardCharsets.UTF_8);
 
         // Create the terminal component
         this.component = new TerminalComponent(width, height);
@@ -208,13 +208,13 @@ public class SwingTerminal extends LineDisciplineTerminal {
     /**
      * Dumps the terminal screen data with scrollback.
      *
-     * @param scrollback the number of scrollback lines
-     * @param includeScrollback whether to include scrollback
+     * @param timeout the number of scrollback lines
+     * @param forceUpdate whether to include scrollback
      * @return the screen data
      * @throws InterruptedException if interrupted while waiting
      */
-    public String dump(int scrollback, boolean includeScrollback) throws InterruptedException {
-        return component.dump(scrollback, includeScrollback);
+    public String dump(long timeout, boolean forceUpdate) throws InterruptedException {
+        return component.dump(timeout, forceUpdate);
     }
 
     /**
@@ -230,6 +230,7 @@ public class SwingTerminal extends LineDisciplineTerminal {
      * Disposes of the terminal resources.
      */
     public void dispose() {
+        closed = true;
         component.dispose();
     }
 
@@ -690,13 +691,13 @@ public class SwingTerminal extends LineDisciplineTerminal {
         /**
          * Dumps the terminal screen data with scrollback.
          *
-         * @param scrollback the number of scrollback lines
-         * @param includeScrollback whether to include scrollback
+         * @param timeout
+         * @param forceUpdate
          * @return the screen data
          * @throws InterruptedException if interrupted while waiting
          */
-        public String dump(int scrollback, boolean includeScrollback) throws InterruptedException {
-            return screenTerminal.dump(scrollback, includeScrollback);
+        public String dump(long timeout, boolean forceUpdate) throws InterruptedException {
+            return screenTerminal.dump(timeout, forceUpdate);
         }
 
         /**
