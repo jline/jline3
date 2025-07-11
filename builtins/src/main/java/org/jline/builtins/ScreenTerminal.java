@@ -1751,152 +1751,152 @@ public class ScreenTerminal {
     }
 
     public synchronized String pipe(String d) {
-        String o = "";
+        StringBuilder o = new StringBuilder();
         for (char c : d.toCharArray()) {
             if (vt100_keyfilter_escape) {
                 vt100_keyfilter_escape = false;
                 if (vt100_mode_cursorkey) {
                     switch (c) {
                         case '~':
-                            o += "~";
+                            o.append("~");
                             break;
                         case 'A':
-                            o += "\u001bOA";
+                            o.append("\u001bOA");
                             break;
                         case 'B':
-                            o += "\u001bOB";
+                            o.append("\u001bOB");
                             break;
                         case 'C':
-                            o += "\u001bOC";
+                            o.append("\u001bOC");
                             break;
                         case 'D':
-                            o += "\u001bOD";
+                            o.append("\u001bOD");
                             break;
                         case 'F':
-                            o += "\u001bOF";
+                            o.append("\u001bOF");
                             break;
                         case 'H':
-                            o += "\u001bOH";
+                            o.append("\u001bOH");
                             break;
                         case '1':
-                            o += "\u001b[5~";
+                            o.append("\u001b[5~");
                             break;
                         case '2':
-                            o += "\u001b[6~";
+                            o.append("\u001b[6~");
                             break;
                         case '3':
-                            o += "\u001b[2~";
+                            o.append("\u001b[2~");
                             break;
                         case '4':
-                            o += "\u001b[3~";
+                            o.append("\u001b[3~");
                             break;
                         case 'a':
-                            o += "\u001bOP";
+                            o.append("\u001bOP");
                             break;
                         case 'b':
-                            o += "\u001bOQ";
+                            o.append("\u001bOQ");
                             break;
                         case 'c':
-                            o += "\u001bOR";
+                            o.append("\u001bOR");
                             break;
                         case 'd':
-                            o += "\u001bOS";
+                            o.append("\u001bOS");
                             break;
                         case 'e':
-                            o += "\u001b[15~";
+                            o.append("\u001b[15~");
                             break;
                         case 'f':
-                            o += "\u001b[17~";
+                            o.append("\u001b[17~");
                             break;
                         case 'g':
-                            o += "\u001b[18~";
+                            o.append("\u001b[18~");
                             break;
                         case 'h':
-                            o += "\u001b[19~";
+                            o.append("\u001b[19~");
                             break;
                         case 'i':
-                            o += "\u001b[20~";
+                            o.append("\u001b[20~");
                             break;
                         case 'j':
-                            o += "\u001b[21~";
+                            o.append("\u001b[21~");
                             break;
                         case 'k':
-                            o += "\u001b[23~";
+                            o.append("\u001b[23~");
                             break;
                         case 'l':
-                            o += "\u001b[24~";
+                            o.append("\u001b[24~");
                             break;
                     }
                 } else {
                     switch (c) {
                         case '~':
-                            o += "~";
+                            o.append("~");
                             break;
                         case 'A':
-                            o += "\u001b[A";
+                            o.append("\u001b[A");
                             break;
                         case 'B':
-                            o += "\u001b[B";
+                            o.append("\u001b[B");
                             break;
                         case 'C':
-                            o += "\u001b[C";
+                            o.append("\u001b[C");
                             break;
                         case 'D':
-                            o += "\u001b[D";
+                            o.append("\u001b[D");
                             break;
                         case 'F':
-                            o += "\u001b[F";
+                            o.append("\u001b[F");
                             break;
                         case 'H':
-                            o += "\u001b[H";
+                            o.append("\u001b[H");
                             break;
                         case '1':
-                            o += "\u001b[5~";
+                            o.append("\u001b[5~");
                             break;
                         case '2':
-                            o += "\u001b[6~";
+                            o.append("\u001b[6~");
                             break;
                         case '3':
-                            o += "\u001b[2~";
+                            o.append("\u001b[2~");
                             break;
                         case '4':
-                            o += "\u001b[3~";
+                            o.append("\u001b[3~");
                             break;
                         case 'a':
-                            o += "\u001bOP";
+                            o.append("\u001bOP");
                             break;
                         case 'b':
-                            o += "\u001bOQ";
+                            o.append("\u001bOQ");
                             break;
                         case 'c':
-                            o += "\u001bOR";
+                            o.append("\u001bOR");
                             break;
                         case 'd':
-                            o += "\u001bOS";
+                            o.append("\u001bOS");
                             break;
                         case 'e':
-                            o += "\u001b[15~";
+                            o.append("\u001b[15~");
                             break;
                         case 'f':
-                            o += "\u001b[17~";
+                            o.append("\u001b[17~");
                             break;
                         case 'g':
-                            o += "\u001b[18~";
+                            o.append("\u001b[18~");
                             break;
                         case 'h':
-                            o += "\u001b[19~";
+                            o.append("\u001b[19~");
                             break;
                         case 'i':
-                            o += "\u001b[20~";
+                            o.append("\u001b[20~");
                             break;
                         case 'j':
-                            o += "\u001b[21~";
+                            o.append("\u001b[21~");
                             break;
                         case 'k':
-                            o += "\u001b[23~";
+                            o.append("\u001b[23~");
                             break;
                         case 'l':
-                            o += "\u001b[24~";
+                            o.append("\u001b[24~");
                             break;
                     }
                 }
@@ -1904,18 +1904,18 @@ public class ScreenTerminal {
                 vt100_keyfilter_escape = true;
             } else if (c == 127) {
                 if (vt100_mode_backspace) {
-                    o += (char) 8;
+                    o.append((char) 8);
                 } else {
-                    o += (char) 127;
+                    o.append((char) 127);
                 }
             } else {
-                o += c;
+                o.append(c);
                 if (vt100_mode_lfnewline && c == 13) {
-                    o += (char) 10;
+                    o.append((char) 10);
                 }
             }
         }
-        return o;
+        return o.toString();
     }
 
     public synchronized boolean write(CharSequence d) {
