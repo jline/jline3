@@ -69,7 +69,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     private static final String SLURP_FORMAT_TEXT = "TEXT";
     private static final String END_HELP = "END_HELP";
     private static final int HELP_MAX_SIZE = 30;
-    private final ScriptEngine engine;
+    protected final ScriptEngine engine;
     private Exception exception;
     private SystemRegistry systemRegistry;
     private String scriptExtension = "jline";
@@ -264,16 +264,8 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     @Override
     public Object[] expandParameters(String[] args) throws Exception {
         Object[] out = new Object[args.length];
-        String regexPath = "(.*)\\$\\{(.*?)}(/.*)";
         for (int i = 0; i < args.length; i++) {
-            if (args[i].matches(regexPath)) {
-                Matcher matcher = Pattern.compile(regexPath).matcher(args[i]);
-                if (matcher.find()) {
-                    out[i] = matcher.group(1) + engine.get(matcher.group(2)) + matcher.group(3);
-                } else {
-                    throw new IllegalArgumentException();
-                }
-            } else if (args[i].startsWith("${")) {
+            if (args[i].startsWith("${")) {
                 out[i] = engine.execute(expandName(args[i]));
             } else if (args[i].startsWith("$")) {
                 out[i] = engine.get(expandName(args[i]));
@@ -310,7 +302,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         return sb.toString();
     }
 
-    private String expandName(String name) {
+    protected String expandName(String name) {
         String regexVar = "[a-zA-Z_]+[a-zA-Z0-9_-]*";
         String out = name;
         if (name.matches("^\\$" + regexVar)) {
