@@ -69,7 +69,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     private static final String SLURP_FORMAT_TEXT = "TEXT";
     private static final String END_HELP = "END_HELP";
     private static final int HELP_MAX_SIZE = 30;
-    private final ScriptEngine engine;
+    protected final ScriptEngine engine;
     private Exception exception;
     private SystemRegistry systemRegistry;
     private String scriptExtension = "jline";
@@ -310,7 +310,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         return sb.toString();
     }
 
-    private String expandName(String name) {
+    protected String expandName(String name) {
         String regexVar = "[a-zA-Z_]+[a-zA-Z0-9_-]*";
         String out = name;
         if (name.matches("^\\$" + regexVar)) {
