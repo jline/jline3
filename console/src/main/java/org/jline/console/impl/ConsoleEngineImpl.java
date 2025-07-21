@@ -1223,7 +1223,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         return completers;
     }
 
-    private static class VariableReferenceCompleter implements Completer {
+    protected static class VariableReferenceCompleter implements Completer {
         private final ScriptEngine engine;
 
         public VariableReferenceCompleter(ScriptEngine engine) {
