@@ -523,7 +523,9 @@ public class SystemRegistryImpl implements SystemRegistry {
                 if (outputStream instanceof ByteArrayOutputStream) {
                     output = outputStream.toString();
                 }
-                terminal.close();
+                if (!OSUtils.IS_OSX) {
+                    terminal.close();
+                }
             } catch (Exception e) {
                 // ignore
             }
