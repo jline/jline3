@@ -15,6 +15,7 @@ import org.jline.curses.*;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
 import org.jline.terminal.Attributes;
+import org.jline.terminal.KeyEvent;
 import org.jline.terminal.MouseEvent;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStyle;
@@ -107,10 +108,7 @@ public class GUIImpl implements GUI {
     @Override
     public void run() {
         BindingReader bindingReader = new BindingReader(terminal.reader());
-        KeyMap<Event> map = new KeyMap<>();
-        map.setNomatch(Event.Key);
-        map.setUnicode(Event.Key);
-        map.bind(Event.Mouse, KeyMap.key(terminal, InfoCmp.Capability.key_mouse));
+        KeyMap<InputEvent> map = KeyMapBuilder.createInputEventKeyMap(terminal);
 
         Attributes attributes = terminal.getAttributes();
         Attributes newAttr = new Attributes(attributes);
@@ -132,15 +130,20 @@ public class GUIImpl implements GUI {
         try {
             onResize();
             while (!windows.isEmpty()) {
-                Event event = bindingReader.readBinding(map);
-                switch (event) {
-                    case Key:
-                        handleInput(bindingReader.getLastBinding());
-                        break;
-                    case Mouse:
-                        handleMouse(
-                                terminal.readMouseEvent(bindingReader::readCharacter, bindingReader.getLastBinding()));
-                        break;
+                InputEvent inputEvent = bindingReader.readBinding(map);
+
+                // Handle special cases and unmatched input
+                if (inputEvent == null) {
+                    inputEvent = KeyMapBuilder.parseUnmatchedInput(bindingReader.getLastBinding());
+                } else if (inputEvent == KeyMapBuilder.UNICODE_HANDLER || inputEvent == KeyMapBuilder.NOMATCH_HANDLER) {
+                    // Parse the actual input for unicode/nomatch cases
+                    inputEvent = KeyMapBuilder.parseUnmatchedInput(bindingReader.getLastBinding());
+                }
+
+                if (inputEvent.isMouse()) {
+                    handleMouse(terminal.readMouseEvent(bindingReader::readCharacter, bindingReader.getLastBinding()));
+                } else {
+                    handleKey(inputEvent.getKeyEvent());
                 }
                 redraw();
             }
@@ -182,16 +185,11 @@ public class GUIImpl implements GUI {
         redraw();
     }
 
-    enum Event {
-        Key,
-        Mouse
-    }
-
-    protected void handleInput(String input) {
+    protected void handleKey(KeyEvent event) {
         if (activeWindow != null) {
-            activeWindow.handleInput(input);
+            activeWindow.handleKey(event);
         } else {
-            background.handleInput(input);
+            background.handleKey(event);
         }
     }
 

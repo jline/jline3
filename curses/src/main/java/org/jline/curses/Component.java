@@ -10,6 +10,7 @@ package org.jline.curses;
 
 import java.util.EnumSet;
 
+import org.jline.terminal.KeyEvent;
 import org.jline.terminal.MouseEvent;
 
 public interface Component {
@@ -51,7 +52,32 @@ public interface Component {
         Popup
     }
 
-    void handleMouse(MouseEvent event);
+    boolean handleMouse(MouseEvent event);
 
-    void handleInput(String input);
+    /**
+     * Handle a key event.
+     * @param event the key event to handle
+     * @return true if the event was handled, false otherwise
+     */
+    boolean handleKey(KeyEvent event);
+
+    /**
+     * Marks this component as needing to be repainted.
+     * This will trigger a redraw on the next render cycle.
+     */
+    void invalidate();
+
+    /**
+     * Returns true if this component needs to be repainted.
+     * @return true if the component is invalid and needs repainting
+     */
+    boolean isInvalid();
+
+    /**
+     * Gets the shortcut key for this component, if any.
+     * @return the shortcut key, or null if none
+     */
+    default String getShortcutKey() {
+        return null;
+    }
 }

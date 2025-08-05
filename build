@@ -65,6 +65,7 @@ function command_demo() {
     echo "  repl      - Run the REPL demo"
     echo "  password  - Run the password demo"
     echo "  consoleui - Run the ConsoleUI demo"
+    echo "  curses    - Run the interactive Curses demo"
     echo "Options:"
     echo "  --help       Show help message"
     echo "  debug        Enable remote debugging"
@@ -132,6 +133,13 @@ function command_demo() {
       fi
       MAIN_CLASS="org.jline.demo.consoleui.BasicDynamic"
       ;;
+    "curses")
+      # Add curses jar
+      if [ -d ${TARGETDIR}/lib ]; then
+        cp=${cp}$(find ${TARGETDIR}/lib -name "jline-curses-*.jar" -exec printf :{} ';')
+      fi
+      MAIN_CLASS="org.jline.demo.CursesDemo"
+      ;;
     *)
       echo "Unknown demo type: $demo_type"
       exit 1
@@ -185,6 +193,26 @@ function command_demo() {
           echo ""
           echo "Note: On Windows, either Jansi or JNA library must be included in classpath."
           echo "To test with a dumb terminal, use: TERM=dumb $basename demo consoleui"
+        elif [ "$demo_type" = "curses" ]; then
+          echo "Usage: $basename demo curses [options]"
+          echo "Options:"
+          echo "  --help       Show this help message"
+          echo "  debug        Enable remote debugging"
+          echo "  debugs       Enable remote debugging with suspend"
+          echo "  jansi        Add Jansi support (recommended for Windows)"
+          echo "  jna          Add JNA support (alternative for Windows)"
+          echo "  verbose      Enable verbose logging"
+          echo "  ffm          Enable Foreign Function Memory (preview)"
+          echo ""
+          echo "Interactive demo showcasing Phase 2 curses enhancements:"
+          echo "  • Enhanced Input component with text selection and validation"
+          echo "  • Advanced List component with multiple selection"
+          echo "  • Rich TextArea component with multi-line editing"
+          echo "  • Dynamic Table component with sorting and filtering"
+          echo "  • Interactive Tree component with expandable nodes"
+          echo ""
+          echo "Note: This demo requires a real terminal to work properly."
+          echo "To test with a dumb terminal, use: TERM=dumb $basename demo curses"
         else
           echo "Usage: $basename demo $demo_type [options]"
           echo "Options:"

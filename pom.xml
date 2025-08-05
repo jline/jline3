@@ -112,16 +112,16 @@
         <juniversalchardet.version>1.0.3</juniversalchardet.version>
         <sshd.version>2.15.0</sshd.version>
         <easymock.version>5.6.0</easymock.version>
-        <junit.version>5.13.4</junit.version>
+        <junit.version>5.13.3</junit.version>
         <gogo.runtime.version>1.1.6</gogo.runtime.version>
         <gogo.jline.version>1.1.8</gogo.jline.version>
         <slf4j.version>2.0.17</slf4j.version>
         <findbugs.version>3.0.2</findbugs.version>
-        <groovy.version>4.0.28</groovy.version>
+        <groovy.version>4.0.27</groovy.version>
         <ivy.version>2.5.3</ivy.version>
-        <graal.version>24.2.2</graal.version>
+        <graal.version>24.2.1</graal.version>
         <graal.plugin.version>21.2.0</graal.plugin.version>
-        <palantir.version>2.73.0</palantir.version>
+        <palantir.version>2.70.0</palantir.version>
 
         <surefire.argLine>--add-opens java.base/java.io=ALL-UNNAMED</surefire.argLine>
     </properties>
@@ -442,7 +442,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-enforcer-plugin</artifactId>
-                    <version>3.6.1</version>
+                    <version>3.6.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -549,7 +549,7 @@
                 <plugin>
                     <groupId>org.codehaus.gmavenplus</groupId>
                     <artifactId>gmavenplus-plugin</artifactId>
-                    <version>4.2.1</version>
+                    <version>4.2.0</version>
                 </plugin>
 
                 <plugin>
@@ -570,7 +570,7 @@
                 <plugin>
                     <groupId>com.diffplug.spotless</groupId>
                     <artifactId>spotless-maven-plugin</artifactId>
-                    <version>2.46.1</version>
+                    <version>2.44.5</version>
                     <configuration>
                         <java>
                             <toggleOffOn />
@@ -628,7 +628,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.6.1</version>
+                <version>3.6.0</version>
                 <executions>
                     <execution>
                         <id>enforce-maven</id>
