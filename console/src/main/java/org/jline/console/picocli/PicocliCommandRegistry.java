@@ -72,12 +72,24 @@ public class PicocliCommandRegistry implements CommandRegistry {
     /**
      * Creates a new PicocliCommandRegistry with the given context.
      * @param context the command execution context
+     * @throws IllegalStateException if Picocli is not available on the classpath
      */
     public PicocliCommandRegistry(CommandContext context) {
+        checkPicocliAvailable();
         this.context = context;
         // Create a root command line for completion
         this.rootCommandLine = new CommandLine(new RootCommand());
         this.completer = new PicocliJLineCompleter(rootCommandLine.getCommandSpec());
+    }
+
+    private static void checkPicocliAvailable() {
+        try {
+            Class.forName("picocli.CommandLine");
+            Class.forName("picocli.shell.jline3.PicocliJLineCompleter");
+        } catch (ClassNotFoundException e) {
+            throw new IllegalStateException(
+                "Picocli integration requires picocli and picocli-shell-jline3 on the classpath", e);
+        }
     }
 
     /**
@@ -123,6 +135,58 @@ public class PicocliCommandRegistry implements CommandRegistry {
             }
         }
         return this;
+    }
+
+    /**
+     * Scans packages for @Command annotated classes and registers them.
+     * @param packageNames the package names to scan
+     * @return this registry for method chaining
+     */
+    public PicocliCommandRegistry scanPackages(String... packageNames) {
+        for (String packageName : packageNames) {
+            try {
+                scanPackage(packageName);
+            } catch (Exception e) {
+                Log.warn("Failed to scan package: " + packageName, e);
+            }
+        }
+        return this;
+    }
+
+    private void scanPackage(String packageName) {
+        // This is a simplified implementation - in a real scenario you'd use
+        // a proper classpath scanner like Reflections or Spring's ClassPathScanningCandidateComponentProvider
+        try {
+            String packagePath = packageName.replace('.', '/');
+            java.net.URL packageUrl = Thread.currentThread().getContextClassLoader().getResource(packagePath);
+            if (packageUrl != null) {
+                java.io.File packageDir = new java.io.File(packageUrl.toURI());
+                if (packageDir.exists() && packageDir.isDirectory()) {
+                    scanDirectory(packageDir, packageName);
+                }
+            }
+        } catch (Exception e) {
+            Log.debug("Could not scan package: " + packageName, e);
+        }
+    }
+
+    private void scanDirectory(java.io.File dir, String packageName) {
+        java.io.File[] files = dir.listFiles();
+        if (files != null) {
+            for (java.io.File file : files) {
+                if (file.isFile() && file.getName().endsWith(".class")) {
+                    String className = packageName + "." + file.getName().substring(0, file.getName().length() - 6);
+                    try {
+                        Class<?> clazz = Class.forName(className);
+                        if (clazz.isAnnotationPresent(Command.class)) {
+                            register(clazz);
+                        }
+                    } catch (Exception e) {
+                        Log.debug("Could not load class: " + className, e);
+                    }
+                }
+            }
+        }
     }
 
     private Object createCommandInstance(Class<?> commandClass) throws Exception {
@@ -279,6 +343,65 @@ public class PicocliCommandRegistry implements CommandRegistry {
             }
         }
         return commandLine;
+    }
+
+    /**
+     * Creates a builder for PicocliCommandRegistry.
+     * @param context the command execution context
+     * @return a new builder instance
+     */
+    public static Builder builder(CommandContext context) {
+        return new Builder(context);
+    }
+
+    /**
+     * Builder for PicocliCommandRegistry with fluent configuration.
+     */
+    public static class Builder {
+        private final CommandContext context;
+        private final List<Object> commands = new ArrayList<>();
+        private final List<Class<?>> commandClasses = new ArrayList<>();
+        private final List<String> packages = new ArrayList<>();
+
+        private Builder(CommandContext context) {
+            this.context = context;
+        }
+
+        public Builder register(Object command) {
+            commands.add(command);
+            return this;
+        }
+
+        public Builder register(Class<?> commandClass) {
+            commandClasses.add(commandClass);
+            return this;
+        }
+
+        public Builder scanPackages(String... packageNames) {
+            packages.addAll(Arrays.asList(packageNames));
+            return this;
+        }
+
+        public PicocliCommandRegistry build() {
+            PicocliCommandRegistry registry = new PicocliCommandRegistry(context);
+
+            // Register individual commands
+            for (Object command : commands) {
+                registry.register(command);
+            }
+
+            // Register command classes
+            for (Class<?> commandClass : commandClasses) {
+                registry.register(commandClass);
+            }
+
+            // Scan packages
+            if (!packages.isEmpty()) {
+                registry.scanPackages(packages.toArray(new String[0]));
+            }
+
+            return registry;
+        }
     }
 
     /**

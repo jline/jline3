@@ -105,11 +105,17 @@ public class DefaultCommandContext implements CommandContext {
 
     @Override
     public CommandContext withCurrentDirectory(Path newCurrentDir) {
+        if (newCurrentDir == null) {
+            throw new IllegalArgumentException("Current directory cannot be null");
+        }
         return new Builder(this).currentDir(newCurrentDir).build();
     }
 
     @Override
     public CommandContext withVariables(Map<String, Object> newVariables) {
+        if (newVariables == null) {
+            throw new IllegalArgumentException("Variables map cannot be null");
+        }
         return new Builder(this).environment(newVariables).build();
     }
 

@@ -48,15 +48,50 @@ public class ContextInjectingExecutionStrategy implements IExecutionStrategy {
 
     @Override
     public int execute(ParseResult parseResult) throws CommandLine.ExecutionException {
-        // Wrap the command object to support context injection
+        // Inject context into the original command object before execution
         Object command = parseResult.commandSpec().commandLine().getCommand();
-        if (command instanceof Callable) {
-            parseResult.commandSpec().commandLine().setCommand(new ContextInjectingCallable((Callable<?>) command));
-        } else if (command instanceof Runnable) {
-            parseResult.commandSpec().commandLine().setCommand(new ContextInjectingRunnable((Runnable) command));
+        injectContextIntoCommand(command);
+
+        // Check if we need method parameter injection
+        if (needsMethodParameterInjection(command)) {
+            // Replace with wrapper that handles method parameter injection
+            if (command instanceof Callable) {
+                parseResult.commandSpec().commandLine().setCommand(new ContextInjectingCallable((Callable<?>) command));
+            } else if (command instanceof Runnable) {
+                parseResult.commandSpec().commandLine().setCommand(new ContextInjectingRunnable((Runnable) command));
+            }
         }
-        
+
         return delegate.execute(parseResult);
+    }
+
+    private void injectContextIntoCommand(Object command) {
+        // Try field injection first
+        injectContextIntoFields(command);
+    }
+
+    private boolean needsMethodParameterInjection(Object command) {
+        return findMethodWithContext(command.getClass(), "call") != null ||
+               findMethodWithContext(command.getClass(), "run") != null;
+    }
+
+    private void injectContextIntoFields(Object command) {
+        Class<?> clazz = command.getClass();
+        while (clazz != null) {
+            for (java.lang.reflect.Field field : clazz.getDeclaredFields()) {
+                if (CommandContext.class.isAssignableFrom(field.getType())) {
+                    try {
+                        field.setAccessible(true);
+                        if (field.get(command) == null) { // Only inject if not already set
+                            field.set(command, context);
+                        }
+                    } catch (Exception e) {
+                        // Ignore injection failures
+                    }
+                }
+            }
+            clazz = clazz.getSuperclass();
+        }
     }
 
     /**

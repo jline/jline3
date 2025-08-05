@@ -63,12 +63,13 @@ public class EnhancedPicocliExample {
                 .currentDir(workDir)
                 .build();
 
-        // Create Picocli registry with automatic context injection
-        PicocliCommandRegistry picocliRegistry = new PicocliCommandRegistry(context)
+        // Create Picocli registry using builder pattern with enhanced features
+        PicocliCommandRegistry picocliRegistry = PicocliCommandRegistry.builder(context)
                 .register(new GreetCommand())
                 .register(new FileCommand())
                 .register(new MathCommand())
-                .register(ExitCommand.class); // Can register classes too
+                .register(ExitCommand.class) // Can register classes too
+                .build();
 
         // Create system registry combining multiple command sources
         SystemRegistry systemRegistry = new SystemRegistryImpl(
