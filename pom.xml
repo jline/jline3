@@ -60,6 +60,7 @@
         <module>reader</module>
         <module>builtins</module>
         <module>console-ui</module>
+        <module>prompt</module>
         <module>console</module>
         <module>groovy</module>
         <module>remote-ssh</module>
@@ -224,6 +225,11 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-prompt</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.jline</groupId>
                 <artifactId>jansi-core</artifactId>

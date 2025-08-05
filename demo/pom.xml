@@ -61,6 +61,10 @@
         </dependency>
         <dependency>
             <groupId>org.jline</groupId>
+            <artifactId>jline-prompt</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
             <artifactId>jline-remote-ssh</artifactId>
         </dependency>
         <dependency>

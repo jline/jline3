@@ -88,6 +88,8 @@ public class ConsolePrompt {
             display.update(header, cursor);
             terminal.setAttributes(attributes);
             terminal.puts(InfoCmp.Capability.keypad_local);
+            terminal.writer().println();
+            terminal.writer().flush();
             attributes = null;
         }
     }

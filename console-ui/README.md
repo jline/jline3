@@ -1,6 +1,8 @@
 <img src="../website/static/img/ConsoleUI-Logo.png" width="200"  align="right" alt="ConsoleUI logo">
 
-# ConsoleUI
+# ConsoleUI (DEPRECATED)
+
+> **⚠️ DEPRECATED**: This module is deprecated. Please use `jline-prompt` instead, which provides a cleaner, interface-based API.
 
 Tiny java library that provides simple UI elements on ANSI console based terminals. ConsoleUI is inspired by
 [Inquirer.js](https://github.com/SBoudrias/Inquirer.js) which is written in JavaScript.
@@ -40,7 +42,7 @@ ConsoleUI releases are available at Maven Central [org.jline » jline-console-ui
 
 # Test Run
 
-You can get an idea how the project works by looking at `org.jline.consoleui.examples.Basic`.
+You can get an idea how the project works by looking at `org.jline.prompt.examples.NewApiExample`.
 You can run this by executing the following from the project root:
 
     ./jline-console-ui.sh
@@ -49,7 +51,52 @@ You can run this by executing the following from the project root:
 
 For detailed documentation on how to use ConsoleUI, please visit the [JLine website](https://jline.org/docs/modules/console-ui).
 
-Entry point to the builder classes is to create a new object of type `ConsolePrompt`.
+## New API (org.jline.prompt)
+
+The new API provides a cleaner interface-based approach. The entry point is the `ConsoleUI` interface, which can be created using the `ConsoleUIFactory`.
+
+```java
+// Create a ConsoleUI instance
+Terminal terminal = TerminalBuilder.builder().build();
+Prompter prompter = PrompterFactory.create(terminal);
+
+// Create a prompt builder
+PromptBuilder promptBuilder = prompter.getPromptBuilder();
+
+// Add prompts
+promptBuilder.createListPrompt()
+    .name("choice")
+    .message("Choose an option:")
+    .newItem("option1")
+    .text("Option 1")
+    .add()
+    .newItem("option2")
+    .text("Option 2")
+    .add()
+    .addPrompt();
+
+// Prompt the user
+Map<String, PromptResult> result = prompter.prompt(header, promptBuilder.build());
+```
+
+## Migration to jline-prompt
+
+This module is deprecated. Please migrate to the new `jline-prompt` module which provides:
+
+- Clean interface-based design
+- Better separation of concerns
+- Record-style accessor methods
+- Improved type safety
+- Better documentation
+
+To migrate:
+1. Replace dependency `jline-console-ui` with `jline-prompt`
+2. Replace imports from `org.jline.consoleui` with `org.jline.prompt`
+3. Use the new API as shown in the `jline-prompt` documentation
+
+## Legacy API (org.jline.consoleui.prompt)
+
+The legacy API is still available for backward compatibility. Entry point to the builder classes is to create a new object of type `ConsolePrompt`.
 
     ConsolePrompt prompt = new ConsolePrompt();
 
