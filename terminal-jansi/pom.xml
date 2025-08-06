@@ -16,7 +16,7 @@
     <parent>
         <groupId>org.jline</groupId>
         <artifactId>jline-parent</artifactId>
-        <version>3.30.5</version>
+        <version>4.0.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>jline-terminal-jansi</artifactId>
