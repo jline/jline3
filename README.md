@@ -6,6 +6,10 @@
 
 JLine is a Java library for handling console input. It's similar to [GNU Readline](https://tiswww.case.edu/php/chet/readline/rltop.html) but with a focus on portability, flexibility, and integration with Java applications. See https://jline.org for its documentation.
 
+## Requirements
+
+- **Java 11 or higher**: JLine requires Java 11 as the minimum runtime version
+
 ## Features
 
 - **Cross-platform support**: Works on Windows, macOS, Linux, and other Unix-like systems

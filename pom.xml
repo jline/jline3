@@ -101,7 +101,7 @@
         <project.build.outputTimestamp>${nisse.jgit.dateIso8601}</project.build.outputTimestamp>
 
         <java.build.version>22</java.build.version>
-        <java.release.version>8</java.release.version>
+        <java.release.version>11</java.release.version>
         <maven.version>4.0.0-rc-3</maven.version>
 
         <native.image.skip>true</native.image.skip>
