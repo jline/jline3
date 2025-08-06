@@ -70,8 +70,6 @@ function command_demo() {
     echo "  --help       Show help message"
     echo "  debug        Enable remote debugging"
     echo "  debugs       Enable remote debugging with suspend"
-    echo "  jansi        Add Jansi support"
-    echo "  jna          Add JNA support"
     echo "  verbose      Enable verbose logging"
     echo "  ffm          Enable Foreign Function Memory (preview)"
     echo ""
@@ -160,8 +158,6 @@ function command_demo() {
           echo "  remote       Add remote support (SSH and Telnet)"
           echo "  debug        Enable remote debugging"
           echo "  debugs       Enable remote debugging with suspend"
-          echo "  jansi        Add Jansi support"
-          echo "  jna          Add JNA support"
           echo "  verbose      Enable verbose logging"
           echo "  ffm          Enable Foreign Function Memory (preview)"
           echo ""
@@ -174,8 +170,6 @@ function command_demo() {
           echo "               Use --mask= (empty) for no masking"
           echo "  debug        Enable remote debugging"
           echo "  debugs       Enable remote debugging with suspend"
-          echo "  jansi        Add Jansi support"
-          echo "  jna          Add JNA support"
           echo "  verbose      Enable verbose logging"
           echo "  ffm          Enable Foreign Function Memory (preview)"
           echo ""
@@ -186,12 +180,9 @@ function command_demo() {
           echo "  --help       Show this help message"
           echo "  debug        Enable remote debugging"
           echo "  debugs       Enable remote debugging with suspend"
-          echo "  jansi        Add Jansi support (recommended for Windows)"
-          echo "  jna          Add JNA support (alternative for Windows)"
           echo "  verbose      Enable verbose logging"
           echo "  ffm          Enable Foreign Function Memory (preview)"
           echo ""
-          echo "Note: On Windows, either Jansi or JNA library must be included in classpath."
           echo "Note: ConsoleUI is deprecated. Use 'prompt' demo for the new API."
           echo "To test with a dumb terminal, use: TERM=dumb $basename demo consoleui"
         elif [ "$demo_type" = "prompt" ]; then
@@ -200,13 +191,10 @@ function command_demo() {
           echo "  --help       Show this help message"
           echo "  debug        Enable remote debugging"
           echo "  debugs       Enable remote debugging with suspend"
-          echo "  jansi        Add Jansi support (recommended for Windows)"
-          echo "  jna          Add JNA support (alternative for Windows)"
           echo "  verbose      Enable verbose logging"
           echo "  ffm          Enable Foreign Function Memory (preview)"
           echo ""
           echo "This demo showcases the new JLine Prompt API with dynamic prompts."
-          echo "Note: On Windows, either Jansi or JNA library must be included in classpath."
           echo "To test with a dumb terminal, use: TERM=dumb $basename demo prompt"
         else
           echo "Usage: $basename demo $demo_type [options]"
@@ -214,8 +202,6 @@ function command_demo() {
           echo "  --help       Show this help message"
           echo "  debug        Enable remote debugging"
           echo "  debugs       Enable remote debugging with suspend"
-          echo "  jansi        Add Jansi support"
-          echo "  jna          Add JNA support"
           echo "  verbose      Enable verbose logging"
           echo "  ffm          Enable Foreign Function Memory (preview)"
           echo ""
@@ -228,12 +214,6 @@ function command_demo() {
         ;;
       'debugs')
         JVM_OPTS="${JVM_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005"
-        ;;
-      'jansi')
-        cp=${cp}$(find ${TARGETDIR}/lib -name "jansi-*.jar" -exec printf :{} ';')
-        ;;
-      'jna')
-        cp=${cp}$(find ${TARGETDIR}/lib -name "jna-*.jar" -exec printf :{} ';')
         ;;
       'verbose')
         logconf="demo/etc/logging-verbose.properties"
@@ -298,9 +278,19 @@ function command_example() {
   shift
 
   if [ -z "$example_name" ]; then
-    echo "Usage: $basename example <ExampleClassName> [options]"
+    echo "Usage: $basename example <ExampleClassName> [options] [-- app_args]"
     echo "Available examples:"
     find demo/src/main/java/org/jline/demo/examples -name "*.java" | sed 's/.*\/\([^\/]*\)\.java/  \1/' | sort
+    echo ""
+    echo "Options:"
+    echo "  --help       Show this help message"
+    echo "  debug        Enable remote debugging"
+    echo "  debugs       Enable remote debugging with suspend"
+    echo "  ffm          Enable Foreign Function Memory (preview)"
+    echo ""
+    echo "Use -- to separate JVM options from application arguments:"
+    echo "  $basename example SixelExample debug -- --force-enable"
+    echo "  $basename example SixelExample -- --test-image"
     exit 1
   fi
 
@@ -313,29 +303,53 @@ function command_example() {
     cp=${cp}$(find ${TARGETDIR}/lib -name "jline-*.jar" -exec printf :{} ';')
   fi
 
-  # Process options
+  # Process options and separate JVM options from application arguments
   JVM_OPTS=""
+  APP_ARGS=""
+  parsing_app_args=false
+
   for arg in "$@"; do
-    case ${arg} in
-      'debug')
-        JVM_OPTS="${JVM_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
-        ;;
-      'debugs')
-        JVM_OPTS="${JVM_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005"
-        ;;
-      'jansi')
-        cp=${cp}$(find ${TARGETDIR}/lib -name "jansi-*.jar" -exec printf :{} ';')
-        ;;
-      'jna')
-        cp=${cp}$(find ${TARGETDIR}/lib -name "jna-*.jar" -exec printf :{} ';')
-        ;;
-      'ffm')
-        JVM_OPTS="${JVM_OPTS} --enable-preview --enable-native-access=org.jline.terminal.ffm"
-        ;;
-      *)
-        JVM_OPTS="${JVM_OPTS} ${arg}"
-        ;;
-    esac
+    if [ "$arg" = "--" ]; then
+      parsing_app_args=true
+      continue
+    fi
+
+    if [ "$parsing_app_args" = true ]; then
+      APP_ARGS="${APP_ARGS} ${arg}"
+    else
+      case ${arg} in
+        '--help')
+          echo "Usage: $basename example ${example_name} [options] [-- app_args]"
+          echo "Options:"
+          echo "  --help       Show this help message"
+          echo "  debug        Enable remote debugging"
+          echo "  debugs       Enable remote debugging with suspend"
+          echo "  ffm          Enable Foreign Function Memory (preview)"
+          echo ""
+          echo "Use -- to separate JVM options from application arguments:"
+          echo "  $basename example ${example_name} debug -- --force-enable"
+          echo "  $basename example ${example_name} -- --test-image"
+          exit 0
+          ;;
+        'debug')
+          JVM_OPTS="${JVM_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+          ;;
+        'debugs')
+          JVM_OPTS="${JVM_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005"
+          ;;
+        'ffm')
+          JVM_OPTS="${JVM_OPTS} --enable-preview --enable-native-access=ALL-UNNAMED"
+          ;;
+        -*)
+          # Arguments starting with - are treated as application arguments if no -- separator
+          APP_ARGS="${APP_ARGS} ${arg}"
+          ;;
+        *)
+          # Other arguments are treated as JVM options for backward compatibility
+          JVM_OPTS="${JVM_OPTS} ${arg}"
+          ;;
+      esac
+    fi
   done
 
   # Check if the example class exists
@@ -350,8 +364,20 @@ function command_example() {
   echo "Running example: org.jline.demo.examples.${example_name}"
   echo "Classpath: $cp"
   echo "JVM options: $JVM_OPTS"
+  if [ -n "$APP_ARGS" ]; then
+    echo "Application arguments: $APP_ARGS"
+  fi
 
-  java -cp "$cp" $JVM_OPTS org.jline.demo.examples.${example_name}
+  # Run Java directly with application arguments
+  JAVA_CMD="java -cp \"$cp\" $JVM_OPTS org.jline.demo.examples.${example_name}"
+
+  # Add each application argument individually
+  for arg in $APP_ARGS; do
+    JAVA_CMD="$JAVA_CMD \"$arg\""
+  done
+
+  # Execute the command
+  eval $JAVA_CMD
 }
 
 function command_graal() {
