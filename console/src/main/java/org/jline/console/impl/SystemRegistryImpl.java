@@ -8,12 +8,10 @@
  */
 package org.jline.console.impl;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
@@ -40,13 +38,8 @@ import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.reader.impl.completer.SystemCompleter;
-import org.jline.terminal.Attributes;
-import org.jline.terminal.Attributes.InputFlag;
 import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.*;
-
-import static org.jline.keymap.KeyMap.ctrl;
 
 /**
  * Aggregate command registries.
@@ -494,24 +487,11 @@ public class SystemRegistryImpl implements SystemRegistry {
             PrintStream out = new PrintStream(outputStream);
             System.setOut(out);
             System.setErr(out);
-            String input = ctrl('X') + "q";
-            InputStream in = new ByteArrayInputStream(input.getBytes());
-            Attributes attrs = new Attributes();
-            if (OSUtils.IS_WINDOWS) {
-                attrs.setInputFlag(InputFlag.IGNCR, true);
-            }
-            try {
-                terminal = TerminalBuilder.builder()
-                        .streams(in, outputStream)
-                        .attributes(attrs)
-                        .type((redirectColor ? Terminal.TYPE_DUMB_COLOR : Terminal.TYPE_DUMB))
-                        .build();
-                this.commandSession = new CommandRegistry.CommandSession(terminal, terminal.input(), out, out);
-                redirecting = true;
-            } catch (IOException e) {
-                reset();
-                throw e;
-            }
+
+            // Use simple streams instead of creating a PTY terminal to avoid hangs on macOS
+            // Create a command session that uses the original terminal for input but redirected streams for output
+            this.commandSession = new CommandRegistry.CommandSession(origTerminal, origTerminal.input(), out, out);
+            redirecting = true;
         }
 
         public void close() {
@@ -519,11 +499,12 @@ public class SystemRegistryImpl implements SystemRegistry {
                 return;
             }
             try {
-                terminal.flush();
+                // Flush the original terminal since we're using it for input
+                origTerminal.flush();
                 if (outputStream instanceof ByteArrayOutputStream) {
                     output = outputStream.toString();
                 }
-                terminal.close();
+                // No need to close a separate terminal since we're reusing the original one
             } catch (Exception e) {
                 // ignore
             }
@@ -538,7 +519,6 @@ public class SystemRegistryImpl implements SystemRegistry {
             outputStream = null;
             System.setOut(origOut);
             System.setErr(origErr);
-            terminal = null;
             terminal = origTerminal;
             PrintStream ps = new PrintStream(terminal.output());
             this.commandSession = new CommandRegistry.CommandSession(terminal, terminal.input(), ps, ps);
