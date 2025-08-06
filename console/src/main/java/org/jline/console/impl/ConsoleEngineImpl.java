@@ -274,7 +274,9 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                     throw new IllegalArgumentException();
                 }
             } else if (args[i].startsWith("${")) {
-                out[i] = engine.execute(expandName(args[i]));
+                String expanded = expandName(args[i]);
+                String statement = expanded.startsWith("$") ? args[i].substring(2, args[i].length() - 1) : expanded;
+                out[i] = engine.execute(statement);
             } else if (args[i].startsWith("$")) {
                 out[i] = engine.get(expandName(args[i]));
             } else {
