@@ -16,6 +16,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 import org.jline.builtins.ConfigurationPath;
@@ -80,6 +83,53 @@ public class SystemRegistryImplTest {
     }
 
     /**
+     * Test that pipe operations don't hang on macOS.
+     *
+     * This test verifies the fix for issues #1361 and #1360 where pipe operations
+     * would hang on macOS due to PTY terminal creation in CommandOutputStream.
+     * The fix removes PTY terminal usage and uses simple Java streams instead.
+     */
+    @Test
+    public void testPipeOperationDoesNotHang() throws Exception {
+        // Add a test command that outputs some text
+        TestCommandRegistry echoRegistry = new TestCommandRegistry(output);
+        echoRegistry.addCommand("echo", (input) -> {
+            if (input.args().length > 0) {
+                StringBuilder sb = new StringBuilder();
+                for (Object arg : input.args()) {
+                    if (sb.length() > 0) sb.append(" ");
+                    sb.append(arg.toString());
+                }
+                output.append(sb.toString());
+            }
+            return null;
+        });
+
+        registry.setCommandRegistries(echoRegistry);
+
+        // Test pipe operation with a timeout to ensure it doesn't hang
+        CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+            try {
+                // This command uses pipes which previously could hang on macOS
+                registry.execute("echo hello | echo world");
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        try {
+            // If the operation hangs, this will throw TimeoutException
+            future.get(5, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            future.cancel(true);
+            throw new AssertionError("Pipe operation hung - this indicates the macOS hang bug is present", e);
+        }
+
+        // If we get here, the operation completed without hanging
+        // The exact output doesn't matter as much as the fact that it didn't hang
+    }
+
+    /**
      * A test command registry that provides a custom implementation of the "exit" command.
      */
     private static class TestCommandRegistry implements CommandRegistry {
@@ -90,6 +140,10 @@ public class SystemRegistryImplTest {
             this.output = output;
             // Register our custom "exit" command
             commandExecute.put("exit", new CommandMethods(this::exit, this::defaultCompleter));
+        }
+
+        public void addCommand(String name, java.util.function.Function<CommandInput, Object> executor) {
+            commandExecute.put(name, new CommandMethods(executor, this::defaultCompleter));
         }
 
         private Object exit(CommandInput input) {
