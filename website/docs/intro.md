@@ -24,6 +24,10 @@ JLine enhances your command-line applications with:
 - Flexible keyboard mapping
 - Advanced line editing features (cut/paste, word movement, etc.)
 
+## Requirements
+
+JLine requires **Java 11 or higher** as the minimum runtime version.
+
 ## Installation
 
 ### Maven Dependency
