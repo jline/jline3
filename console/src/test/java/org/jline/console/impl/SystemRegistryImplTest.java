@@ -83,14 +83,17 @@ public class SystemRegistryImplTest {
     }
 
     /**
-     * Test that pipe operations don't hang on macOS.
+     * Test that variable assignment operations don't hang on macOS.
      *
-     * This test verifies the fix for issues #1361 and #1360 where pipe operations
+     * This test verifies the fix for issues #1361 and #1360 where variable assignments
      * would hang on macOS due to PTY terminal creation in CommandOutputStream.
      * The fix removes PTY terminal usage and uses simple Java streams instead.
+     *
+     * Variable assignments trigger CommandOutputStream.open() which previously created
+     * PTY terminals that could hang on BSD/macOS platforms.
      */
     @Test
-    public void testPipeOperationDoesNotHang() throws Exception {
+    public void testVariableAssignmentDoesNotHang() throws Exception {
         // Add a test command that outputs some text
         TestCommandRegistry echoRegistry = new TestCommandRegistry(output);
         echoRegistry.addCommand("echo", (input) -> {
@@ -100,18 +103,20 @@ public class SystemRegistryImplTest {
                     if (sb.length() > 0) sb.append(" ");
                     sb.append(arg.toString());
                 }
-                output.append(sb.toString());
+                // Print to System.out which will be captured by CommandOutputStream
+                System.out.print(sb.toString());
             }
             return null;
         });
 
         registry.setCommandRegistries(echoRegistry);
 
-        // Test pipe operation with a timeout to ensure it doesn't hang
+        // Test variable assignment with a timeout to ensure it doesn't hang
         CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
             try {
-                // This command uses pipes which previously could hang on macOS
-                registry.execute("echo hello | echo world");
+                // This command uses variable assignment which triggers CommandOutputStream.open()
+                // and previously could hang on macOS due to PTY terminal creation
+                registry.execute("result=echo hello world");
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -122,7 +127,8 @@ public class SystemRegistryImplTest {
             future.get(5, TimeUnit.SECONDS);
         } catch (TimeoutException e) {
             future.cancel(true);
-            throw new AssertionError("Pipe operation hung - this indicates the macOS hang bug is present", e);
+            throw new AssertionError(
+                    "Variable assignment operation hung - this indicates the macOS hang bug is present", e);
         }
 
         // If we get here, the operation completed without hanging
