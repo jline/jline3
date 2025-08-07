@@ -9,15 +9,9 @@
     https://opensource.org/licenses/BSD-3-Clause
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.1.0 https://maven.apache.org/xsd/maven-4.1.0.xsd">
 
-    <modelVersion>4.0.0</modelVersion>
-
-    <parent>
-        <groupId>org.jline</groupId>
-        <artifactId>jline-parent</artifactId>
-        <version>${nisse.jgit.dynamicVersion}</version>
-    </parent>
+    <parent />
 
     <artifactId>jline</artifactId>
     <name>JLine Bundle</name>
@@ -63,7 +57,6 @@
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>org.jline</groupId>
             <artifactId>jline-terminal</artifactId>
             <scope>test</scope>
         </dependency>
@@ -73,22 +66,18 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.jline</groupId>
             <artifactId>jline-terminal-jansi</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.jline</groupId>
             <artifactId>jline-terminal-jna</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.jline</groupId>
             <artifactId>jline-terminal-ffm</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.jline</groupId>
             <artifactId>jline-reader</artifactId>
             <scope>test</scope>
         </dependency>
@@ -98,7 +87,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.jline</groupId>
             <artifactId>jline-console</artifactId>
             <scope>test</scope>
         </dependency>
@@ -113,7 +101,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.jline</groupId>
             <artifactId>jline-style</artifactId>
             <scope>test</scope>
         </dependency>
@@ -123,7 +110,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.jline</groupId>
             <artifactId>jansi-core</artifactId>
             <scope>test</scope>
         </dependency>
