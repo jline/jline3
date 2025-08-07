@@ -62,6 +62,14 @@ import java.util.logging.Logger;
  * @since 2.0
  */
 public final class Log {
+
+    /**
+     * Private constructor to prevent instantiation.
+     */
+    private Log() {
+        // Utility class
+    }
+
     private static final Logger logger = Logger.getLogger("org.jline");
 
     public static void trace(final Object... messages) {

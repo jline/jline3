@@ -12,7 +12,6 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.util.Locale;
-import javax.annotation.Nonnull;
 
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
@@ -107,7 +106,7 @@ public class StyledWriter extends PrintWriter {
      * @throws NullPointerException if value is null
      */
     @Override
-    public void write(@Nonnull final String value) {
+    public void write(final String value) {
         AttributedString result = expression.evaluate(value);
         super.write(result.toAnsi(terminal));
     }
@@ -130,7 +129,7 @@ public class StyledWriter extends PrintWriter {
      * @see String#format(String, Object...)
      */
     @Override
-    public PrintWriter format(@Nonnull final String format, final Object... args) {
+    public PrintWriter format(final String format, final Object... args) {
         print(String.format(format, args));
         return this;
     }
@@ -152,7 +151,7 @@ public class StyledWriter extends PrintWriter {
      * @see String#format(Locale, String, Object...)
      */
     @Override
-    public PrintWriter format(final Locale locale, @Nonnull final String format, final Object... args) {
+    public PrintWriter format(final Locale locale, final String format, final Object... args) {
         print(String.format(locale, format, args));
         return this;
     }

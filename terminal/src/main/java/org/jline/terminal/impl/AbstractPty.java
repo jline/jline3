@@ -218,7 +218,7 @@ public abstract class AbstractPty implements Pty {
 
     /*
      * Class that could be used on OpenJDK 17.  However, it requires the following JVM option
-     *   --add-exports java.base/jdk.internal.access=ALL-UNNAMED
+     *   --add-exports java.base/jdk.internal.access=org.jline.terminal
      * so the benefit does not seem important enough to warrant the problems caused
      * by access the jdk.internal.access package at compile time, which itself requires
      * custom compiler options and a different maven module, or at least a different compile
@@ -243,7 +243,7 @@ public abstract class AbstractPty implements Pty {
     /**
      * Reflection based file descriptor creator.
      * This requires the following option
-     *   --add-opens java.base/java.io=ALL-UNNAMED
+     *   --add-opens java.base/java.io=org.jline.terminal
      */
     static class ReflectionFileDescriptorCreator implements FileDescriptorCreator {
         private final Field fileDescriptorField;

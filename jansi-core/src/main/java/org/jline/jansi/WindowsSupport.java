@@ -11,6 +11,13 @@ package org.jline.jansi;
 @Deprecated
 public class WindowsSupport {
 
+    /**
+     * Creates a new WindowsSupport.
+     */
+    public WindowsSupport() {
+        // Default constructor
+    }
+
     @Deprecated
     public static String getLastErrorMessage() {
         throw new UnsupportedOperationException();

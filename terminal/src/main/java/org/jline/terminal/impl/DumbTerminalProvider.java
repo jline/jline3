@@ -53,6 +53,13 @@ import org.jline.terminal.spi.TerminalProvider;
  */
 public class DumbTerminalProvider implements TerminalProvider {
 
+    /**
+     * Default constructor.
+     */
+    public DumbTerminalProvider() {
+        // Default constructor
+    }
+
     @Override
     public String name() {
         return TerminalBuilder.PROP_PROVIDER_DUMB;

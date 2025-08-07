@@ -57,6 +57,13 @@ import org.jline.utils.InfoCmp;
 public class CursorSupport {
 
     /**
+     * Private constructor to prevent instantiation.
+     */
+    private CursorSupport() {
+        // Utility class
+    }
+
+    /**
      * Gets the current cursor position from the terminal.
      *
      * <p>

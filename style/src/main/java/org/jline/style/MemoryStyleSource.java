@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Nullable;
 
 import static java.util.Objects.requireNonNull;
 
@@ -48,7 +47,13 @@ public class MemoryStyleSource implements StyleSource {
 
     private final Map<String, Map<String, String>> backing = new ConcurrentHashMap<>();
 
-    @Nullable
+    /**
+     * Creates a new MemoryStyleSource.
+     */
+    public MemoryStyleSource() {
+        // Default constructor
+    }
+
     @Override
     public String get(final String group, final String name) {
         String style = null;

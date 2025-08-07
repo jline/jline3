@@ -42,6 +42,13 @@ import static org.jline.jansi.Ansi.ansi;
  */
 @SuppressWarnings("deprecation")
 public class AnsiMain {
+    /**
+     * Private constructor to prevent instantiation.
+     */
+    private AnsiMain() {
+        // Utility class
+    }
+
     public static void main(String... args) throws IOException {
         Diag.diag(System.out);
 

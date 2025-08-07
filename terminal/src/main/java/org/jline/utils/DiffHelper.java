@@ -44,6 +44,13 @@ import java.util.List;
 public class DiffHelper {
 
     /**
+     * Private constructor to prevent instantiation.
+     */
+    private DiffHelper() {
+        // Utility class
+    }
+
+    /**
      * The data structure representing a diff is a Linked list of Diff objects:
      * {Diff(Operation.DELETE, "Hello"), Diff(Operation.INSERT, "Goodbye"),
      *  Diff(Operation.EQUAL, " world.")}

@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Tests for terminal encoding functionality.
  */
+@SuppressWarnings("missing-explicit-ctor")
 public class EncodingTest {
 
     /**

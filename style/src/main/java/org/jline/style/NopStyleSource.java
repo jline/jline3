@@ -10,7 +10,6 @@ package org.jline.style;
 
 import java.util.Collections;
 import java.util.Map;
-import javax.annotation.Nullable;
 
 import static java.util.Objects.requireNonNull;
 
@@ -46,6 +45,13 @@ public class NopStyleSource implements StyleSource {
     // NOTE: preconditions here to help validate usage when this impl is used
 
     /**
+     * Creates a new NopStyleSource.
+     */
+    public NopStyleSource() {
+        // Default constructor
+    }
+
+    /**
      * Always returns {@code null} for any style lookup.
      * <p>
      * This implementation validates that the parameters are not null but
@@ -57,7 +63,6 @@ public class NopStyleSource implements StyleSource {
      * @return always {@code null}
      * @throws NullPointerException if group or name is null
      */
-    @Nullable
     @Override
     public String get(final String group, final String name) {
         requireNonNull(group);

@@ -49,6 +49,14 @@ import java.util.Objects;
  * @since 2.7
  */
 public final class ShutdownHooks {
+
+    /**
+     * Private constructor to prevent instantiation.
+     */
+    private ShutdownHooks() {
+        // Utility class
+    }
+
     private static final List<Task> tasks = new ArrayList<>();
 
     private static Thread hook;

@@ -13,7 +13,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Nullable;
 
 import org.jline.style.StyleBundle.DefaultStyle;
 import org.jline.style.StyleBundle.StyleGroup;
@@ -56,8 +55,7 @@ class StyleBundleInvocationHandler implements InvocationHandler {
         }
     }
 
-    @Nullable
-    private static String emptyToNull(@Nullable final String value) {
+    private static String emptyToNull(final String value) {
         if (value == null || value.isEmpty()) {
             return null;
         }
@@ -67,7 +65,6 @@ class StyleBundleInvocationHandler implements InvocationHandler {
     /**
      * Returns the style group-name for given type, or {@code null} if unable to determine.
      */
-    @Nullable
     private static String getStyleGroup(final Class<?> type) {
         StyleGroup styleGroup = type.getAnnotation(StyleGroup.class);
         return styleGroup != null ? emptyToNull(styleGroup.value().trim()) : null;
@@ -88,7 +85,6 @@ class StyleBundleInvocationHandler implements InvocationHandler {
     /**
      * Returns the default-style for given method, or {@code null} if unable to determine.
      */
-    @Nullable
     private static String getDefaultStyle(final Method method) {
         DefaultStyle defaultStyle = method.getAnnotation(DefaultStyle.class);
         // allow whitespace in default-style.value, but disallow empty-string

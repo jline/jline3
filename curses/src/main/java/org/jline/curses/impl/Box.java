@@ -23,6 +23,11 @@ public class Box extends AbstractComponent implements Container {
         this.title = title;
         this.border = border;
         this.component = component;
+        // Set parent after all fields are initialized to avoid this-escape warning
+        initializeComponent();
+    }
+
+    private void initializeComponent() {
         ((AbstractComponent) component).setParent(this);
     }
 

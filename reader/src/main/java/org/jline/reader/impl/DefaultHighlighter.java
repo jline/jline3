@@ -43,6 +43,13 @@ public class DefaultHighlighter implements Highlighter {
     protected Pattern errorPattern;
     protected int errorIndex = -1;
 
+    /**
+     * Creates a new DefaultHighlighter.
+     */
+    public DefaultHighlighter() {
+        // Default constructor
+    }
+
     @Override
     public void setErrorPattern(Pattern errorPattern) {
         this.errorPattern = errorPattern;

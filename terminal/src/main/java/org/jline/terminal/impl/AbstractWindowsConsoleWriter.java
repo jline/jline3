@@ -39,6 +39,13 @@ import java.io.Writer;
 public abstract class AbstractWindowsConsoleWriter extends Writer {
 
     /**
+     * Default constructor.
+     */
+    public AbstractWindowsConsoleWriter() {
+        // Default constructor
+    }
+
+    /**
      * Writes text to the Windows console.
      *
      * <p>

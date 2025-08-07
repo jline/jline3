@@ -19,6 +19,13 @@ import org.jline.consoleui.elements.PromptableElementIF;
 public class PromptBuilder {
     List<PromptableElementIF> promptList = new ArrayList<>();
 
+    /**
+     * Creates a new PromptBuilder.
+     */
+    public PromptBuilder() {
+        // Default constructor
+    }
+
     public List<PromptableElementIF> build() {
         return promptList;
     }

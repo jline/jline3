@@ -216,7 +216,7 @@ function command_demo() {
         logconf="demo/etc/logging-verbose.properties"
         ;;
       'ffm')
-        JVM_OPTS="${JVM_OPTS} --enable-preview --enable-native-access=ALL-UNNAMED"
+        JVM_OPTS="${JVM_OPTS} --enable-preview --enable-native-access=org.jline.terminal.ffm"
         ;;
       'ssh' | 'telnet' | 'remote')
         # Process SSH/Telnet/Remote options for gogo
@@ -245,8 +245,8 @@ function command_demo() {
   java_version=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | cut -d. -f1)
   if [ "$java_version" -ge 16 ] 2>/dev/null; then
     # Only add if not already present
-    if [[ "$JVM_OPTS" != *"--enable-native-access=ALL-UNNAMED"* ]]; then
-      JVM_OPTS="${JVM_OPTS} --enable-native-access=ALL-UNNAMED"
+    if [[ "$JVM_OPTS" != *"--enable-native-access=org.jline.terminal.ffm"* ]]; then
+      JVM_OPTS="${JVM_OPTS} --enable-native-access=org.jline.terminal.ffm"
     fi
   fi
 
@@ -307,7 +307,7 @@ function command_example() {
         cp=${cp}$(find ${TARGETDIR}/lib -name "jna-*.jar" -exec printf :{} ';')
         ;;
       'ffm')
-        JVM_OPTS="${JVM_OPTS} --enable-preview --enable-native-access=ALL-UNNAMED"
+        JVM_OPTS="${JVM_OPTS} --enable-preview --enable-native-access=org.jline.terminal.ffm"
         ;;
       *)
         JVM_OPTS="${JVM_OPTS} ${arg}"

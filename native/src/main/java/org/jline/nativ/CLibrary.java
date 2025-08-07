@@ -16,6 +16,13 @@ package org.jline.nativ;
 @SuppressWarnings("unused")
 public class CLibrary {
 
+    /**
+     * Private constructor to prevent instantiation.
+     */
+    private CLibrary() {
+        // Utility class
+    }
+
     //
     // Initialization
     //
@@ -122,6 +129,13 @@ public class CLibrary {
      * @see <a href="http://man7.org/linux/man-pages/man3/termios.3.html">TERMIOS(3) man-page</a>
      */
     public static class Termios {
+
+        /**
+         * Default constructor.
+         */
+        public Termios() {
+            // Default constructor
+        }
 
         static {
             if (JLineNativeLoader.initialize()) {

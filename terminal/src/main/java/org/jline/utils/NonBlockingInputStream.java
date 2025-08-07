@@ -43,6 +43,13 @@ import java.io.InputStream;
  */
 public abstract class NonBlockingInputStream extends InputStream {
 
+    /**
+     * Default constructor.
+     */
+    public NonBlockingInputStream() {
+        // Default constructor
+    }
+
     public static final int EOF = -1;
     public static final int READ_EXPIRED = -2;
 

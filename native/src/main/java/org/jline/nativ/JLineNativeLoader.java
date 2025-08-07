@@ -106,7 +106,7 @@ import java.util.logging.Logger;
  *
  * <h2>Java Module System (JPMS) Considerations</h2>
  * When using JLine with the Java Module System, you may need to add the
- * {@code --enable-native-access=ALL-UNNAMED} JVM option to allow the native library loading.
+ * {@code --enable-native-access=org.jline.nativ} JVM option to allow the native library loading.
  *
  * @see OSInfo For details on platform detection
  */
@@ -116,6 +116,13 @@ public class JLineNativeLoader {
     private static boolean loaded = false;
     private static String nativeLibraryPath;
     private static String nativeLibrarySourceUrl;
+
+    /**
+     * Private constructor to prevent instantiation.
+     */
+    private JLineNativeLoader() {
+        // Utility class
+    }
 
     /**
      * Loads the JLine native library for the current platform.

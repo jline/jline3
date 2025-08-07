@@ -42,6 +42,13 @@ import java.util.logging.Logger;
  */
 public class OSInfo {
 
+    /**
+     * Private constructor to prevent instantiation.
+     */
+    private OSInfo() {
+        // Utility class
+    }
+
     public static final String X86 = "x86";
     public static final String X86_64 = "x86_64";
     public static final String IA64_32 = "ia64_32";

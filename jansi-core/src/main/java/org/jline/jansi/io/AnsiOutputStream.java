@@ -46,6 +46,13 @@ public class AnsiOutputStream extends FilterOutputStream {
     }
 
     public static class ZeroWidthSupplier implements WidthSupplier {
+        /**
+         * Creates a new ZeroWidthSupplier.
+         */
+        public ZeroWidthSupplier() {
+            // Default constructor
+        }
+
         @Override
         public int getTerminalWidth() {
             return 0;

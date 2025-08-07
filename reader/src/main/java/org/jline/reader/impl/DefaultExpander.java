@@ -36,6 +36,13 @@ import org.jline.reader.History.Entry;
 public class DefaultExpander implements Expander {
 
     /**
+     * Creates a new DefaultExpander.
+     */
+    public DefaultExpander() {
+        // Default constructor
+    }
+
+    /**
      * Expand event designator such as !!, !#, !3, etc...
      * See http://www.gnu.org/software/bash/manual/html_node/Event-Designators.html
      */

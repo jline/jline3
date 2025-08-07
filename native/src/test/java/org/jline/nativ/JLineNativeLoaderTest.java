@@ -12,6 +12,13 @@ import org.junit.jupiter.api.Test;
 
 public class JLineNativeLoaderTest {
 
+    /**
+     * Default constructor.
+     */
+    public JLineNativeLoaderTest() {
+        // Default constructor
+    }
+
     @Test
     public void testLoadLibrary() {
         JLineNativeLoader.initialize();

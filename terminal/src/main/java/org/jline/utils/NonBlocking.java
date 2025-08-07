@@ -46,6 +46,13 @@ import java.nio.charset.CodingErrorAction;
  */
 public class NonBlocking {
 
+    /**
+     * Private constructor to prevent instantiation.
+     */
+    private NonBlocking() {
+        // Utility class
+    }
+
     public static NonBlockingPumpReader nonBlockingPumpReader() {
         return new NonBlockingPumpReader();
     }

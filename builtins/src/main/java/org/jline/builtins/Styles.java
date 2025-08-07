@@ -37,6 +37,13 @@ import static org.jline.builtins.SyntaxHighlighter.REGEX_TOKEN_NAME;
  * </p>
  */
 public class Styles {
+    /**
+     * Creates a new Styles instance.
+     */
+    public Styles() {
+        // Default constructor
+    }
+
     public static final String NANORC_THEME = "NANORC_THEME";
     protected static final List<String> ANSI_STYLES = Arrays.asList(
             "blink",

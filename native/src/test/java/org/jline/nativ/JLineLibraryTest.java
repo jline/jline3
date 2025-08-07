@@ -18,6 +18,13 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class JLineLibraryTest {
 
+    /**
+     * Default constructor.
+     */
+    public JLineLibraryTest() {
+        // Default constructor
+    }
+
     @Test
     void testNewFileDescriptor() throws Exception {
         FileDescriptor fd = JLineLibrary.newFileDescriptor(12);
@@ -31,7 +38,7 @@ public class JLineLibraryTest {
     void testNewRedirectPipeImpl() throws Exception {
         ProcessBuilder.Redirect redirect = JLineLibrary.newRedirectPipe(FileDescriptor.out);
         assertNotNull(redirect);
-        // This requires '--add-opens java.base/java.lang=ALL-UNNAMED', but adding this option
+        // This requires '--add-opens java.base/java.lang=org.jline.nativ', but adding this option
         // defeats the very purpose of the method
         //
         // Method mth = redirect.getClass().getDeclaredMethod("getFd");

@@ -60,6 +60,13 @@ import org.jline.utils.StyleResolver;
 public class Completers {
 
     /**
+     * Creates a new Completers.
+     */
+    public Completers() {
+        // Default constructor
+    }
+
+    /**
      * Interface defining the environment for command completion.
      * <p>
      * This interface provides methods to access command information and evaluate
@@ -578,6 +585,8 @@ public class Completers {
      * @since 2.3
      */
     public static class FileNameCompleter implements org.jline.reader.Completer {
+
+        public FileNameCompleter() {}
 
         public void complete(LineReader reader, ParsedLine commandLine, final List<Candidate> candidates) {
             assert commandLine != null;
@@ -1534,6 +1543,8 @@ public class Completers {
     public static class AnyCompleter implements org.jline.reader.Completer {
         /** Singleton instance of AnyCompleter */
         public static final AnyCompleter INSTANCE = new AnyCompleter();
+
+        private AnyCompleter() {}
 
         /**
          * Completes the current word by returning it as a candidate.

@@ -64,6 +64,13 @@ public class KeyMap<T> {
     private long ambiguousTimeout = DEFAULT_AMBIGUOUS_TIMEOUT;
 
     /**
+     * Creates a new KeyMap.
+     */
+    public KeyMap() {
+        // Default constructor
+    }
+
+    /**
      * Converts a key sequence to a displayable string representation.
      * <p>
      * This method formats control characters, escape sequences, and other special

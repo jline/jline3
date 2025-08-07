@@ -45,6 +45,13 @@ import java.io.File;
  */
 public class OSUtils {
 
+    /**
+     * Private constructor to prevent instantiation.
+     */
+    private OSUtils() {
+        // Utility class
+    }
+
     public static final boolean IS_LINUX =
             System.getProperty("os.name").toLowerCase().contains("linux");
 

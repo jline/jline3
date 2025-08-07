@@ -9,7 +9,6 @@
 package org.jline.style;
 
 import java.util.Map;
-import javax.annotation.Nullable;
 
 /**
  * Interface for sources of style configuration.
@@ -62,7 +61,6 @@ public interface StyleSource {
      * @return the style definition string, or {@code null} if no style is defined for the given group and name
      * @throws NullPointerException if group or name is null
      */
-    @Nullable
     String get(String group, String name);
 
     /**

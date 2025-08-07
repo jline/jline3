@@ -25,6 +25,13 @@ import java.util.HashMap;
 public class ClasspathResourceUtil {
 
     /**
+     * Creates a new ClasspathResourceUtil.
+     */
+    public ClasspathResourceUtil() {
+        // Default constructor
+    }
+
+    /**
      * Converts a classpath resource to a Path.
      *
      * @param name The resource name (e.g., "/nano/jnanorc")
