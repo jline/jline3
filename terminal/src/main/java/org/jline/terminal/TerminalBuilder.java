@@ -199,6 +199,11 @@ public final class TerminalBuilder {
     public static final String PROP_DISABLE_DEPRECATED_PROVIDER_WARNING =
             "org.jline.terminal.disableDeprecatedProviderWarning";
 
+    // Sixel properties
+    public static final String GRAPHICS_SIXEL_TIMEOUT = "org.jline.terminal.graphics.sixel.timeout";
+    public static final String GRAPHICS_SIXEL_SUBSEQUENT_TIMEOUT =
+            "org.jline.terminal.graphics.sixel.subsequent.timeout";
+
     //
     // Terminal output control
     //
