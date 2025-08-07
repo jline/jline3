@@ -82,7 +82,8 @@ JLine is organized into several modules:
 - **jline-terminal**: Core terminal functionality
 - **jline-reader**: Line editing and reading
 - **jline-console**: Higher-level console abstractions
-- **jline-console-ui**: Interactive UI components (checkboxes, lists, etc.)
+- **jline-console-ui**: Interactive UI components (checkboxes, lists, etc.) - **Deprecated**
+- **jline-prompt**: Modern prompt API for interactive console applications
 - **jline-style**: Styling and coloring support
 - **jline-builtins**: Built-in commands and utilities
 - **jline-remote-ssh**: SSH server support
@@ -106,7 +107,8 @@ JLine provides full support for JPMS starting with version 4.0. The following mo
 | Style | `jline-style` | `org.jline.style` | Styling and coloring |
 | **Extended Modules** | | | |
 | Builtins | `jline-builtins` | `org.jline.builtins` | Built-in commands |
-| Console UI | `jline-console-ui` | `org.jline.console.ui` | Interactive UI components |
+| Console UI | `jline-console-ui` | `org.jline.console.ui` | Interactive UI components (deprecated) |
+| Prompt | `jline-prompt` | `org.jline.prompt` | Modern prompt API for interactive applications |
 | Console | `jline-console` | `org.jline.console` | Console framework |
 | Jansi Core | `jline-jansi-core` | `org.jline.jansi.core` | ANSI support |
 | Curses | `jline-curses` | `org.jline.curses` | Curses-like UI components |
@@ -135,7 +137,8 @@ module your.application {
     requires org.jline.style;        // Optional: for styling
     requires org.jline.builtins;     // Optional: for built-in commands
     requires org.jline.console;      // Optional: for console framework
-    requires org.jline.console.ui;   // Optional: for UI components
+    requires org.jline.prompt;       // Optional: for modern prompt API
+    requires org.jline.console.ui;   // Optional: for legacy UI components (deprecated)
 }
 ```
 

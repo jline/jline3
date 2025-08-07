@@ -21,6 +21,7 @@ import org.jline.terminal.TerminalBuilder;
 /**
  * Example demonstrating basic ConsoleUI usage.
  */
+@SuppressWarnings("deprecation")
 public class ConsoleUIExample {
 
     // SNIPPET_START: ConsoleUIBasicExample

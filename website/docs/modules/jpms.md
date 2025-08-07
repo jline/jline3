@@ -35,7 +35,8 @@ These modules have complete `module-info.java` descriptors with proper exports, 
 | Terminal JNA | `jline-terminal-jna` | `org.jline.terminal.jna` | 11+ | Java Native Access provider |
 | **Extended Functionality** | | | | |
 | Builtins | `jline-builtins` | `org.jline.builtins` | 11+ | Built-in shell commands (ls, cat, etc.) |
-| Console UI | `jline-console-ui` | `org.jline.console.ui` | 11+ | Interactive UI components |
+| Console UI | `jline-console-ui` | `org.jline.console.ui` | 11+ | Interactive UI components (deprecated) |
+| Prompt | `jline-prompt` | `org.jline.prompt` | 11+ | Modern prompt API for interactive applications |
 | Console | `jline-console` | `org.jline.console` | 11+ | High-level console framework |
 | Jansi Core | `jline-jansi-core` | `org.jline.jansi.core` | 11+ | JLine's ANSI implementation |
 | Curses | `jline-curses` | `org.jline.curses` | 11+ | Curses-like UI components |
@@ -77,13 +78,14 @@ module your.application {
     // Core modules
     requires org.jline.terminal;
     requires org.jline.reader;
-    
+
     // Optional modules
     requires org.jline.style;        // For text styling
     requires org.jline.builtins;     // For built-in commands
     requires org.jline.console;      // For console framework
-    requires org.jline.console.ui;   // For interactive UI components
-    
+    requires org.jline.prompt;       // For modern prompt API
+    requires org.jline.console.ui;   // For legacy UI components (deprecated)
+
     // Terminal providers (choose one or more)
     requires org.jline.terminal.jni; // JNI-based (recommended)
     requires org.jline.terminal.ffm; // FFM-based (recommended, JDK 22+)
