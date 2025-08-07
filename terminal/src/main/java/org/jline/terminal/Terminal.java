@@ -430,45 +430,6 @@ public interface Terminal extends Closeable, Flushable {
     }
 
     /**
-     * Returns the {@link Charset} that should be used to decode characters
-     * from standard input ({@link #input()}).
-     *
-     * @deprecated Use {@link #inputEncoding()} instead. This method will be removed in a future version.
-     * @return The standard input encoding
-     * @see #inputEncoding()
-     */
-    @Deprecated
-    default Charset stdinEncoding() {
-        return inputEncoding();
-    }
-
-    /**
-     * Returns the {@link Charset} that should be used to encode characters
-     * for standard output ({@link #output()}).
-     *
-     * @deprecated Use {@link #outputEncoding()} instead. This method will be removed in a future version.
-     * @return The standard output encoding
-     * @see #outputEncoding()
-     */
-    @Deprecated
-    default Charset stdoutEncoding() {
-        return outputEncoding();
-    }
-
-    /**
-     * Returns the {@link Charset} that should be used to encode characters
-     * for standard error.
-     *
-     * @deprecated This method will be removed in a future version. Use {@link #outputEncoding()} instead.
-     * @return The standard error encoding
-     * @see #outputEncoding()
-     */
-    @Deprecated
-    default Charset stderrEncoding() {
-        return outputEncoding();
-    }
-
-    /**
      * Retrieve the input stream for this terminal.
      * In some rare cases, there may be a need to access the
      * terminal input stream directly. In the usual cases,

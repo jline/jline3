@@ -724,8 +724,6 @@
         <subproject>native</subproject>
         <subproject>terminal</subproject>
         <subproject>terminal-ffm</subproject>
-        <subproject>terminal-jna</subproject>
-        <subproject>terminal-jansi</subproject>
         <subproject>terminal-jni</subproject>
         <subproject>reader</subproject>
         <subproject>builtins</subproject>

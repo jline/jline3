@@ -129,26 +129,6 @@ public class Diag {
         }
         out.println();
 
-        out.println("JnaSupport");
-        out.println("=================");
-        try {
-            TerminalProvider provider = TerminalProvider.load("jna");
-            testProvider(provider);
-        } catch (Throwable t) {
-            error("JNA support not available", t);
-        }
-        out.println();
-
-        out.println("Jansi2Support");
-        out.println("=================");
-        try {
-            TerminalProvider provider = TerminalProvider.load("jansi");
-            testProvider(provider);
-        } catch (Throwable t) {
-            error("Jansi 2 support not available", t);
-        }
-        out.println();
-
         out.println("JniSupport");
         out.println("=================");
         try {

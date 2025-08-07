@@ -17,15 +17,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -35,7 +32,6 @@ import org.jline.terminal.impl.AbstractTerminal;
 import org.jline.terminal.impl.DumbTerminal;
 import org.jline.terminal.impl.DumbTerminalProvider;
 import org.jline.terminal.spi.SystemStream;
-import org.jline.terminal.spi.TerminalExt;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.Log;
 import org.jline.utils.OSUtils;
@@ -144,16 +140,12 @@ public final class TerminalBuilder {
     public static final String PROP_PROVIDERS = "org.jline.terminal.providers";
     public static final String PROP_PROVIDER_FFM = "ffm";
     public static final String PROP_PROVIDER_JNI = "jni";
-    public static final String PROP_PROVIDER_JANSI = "jansi";
-    public static final String PROP_PROVIDER_JNA = "jna";
     public static final String PROP_PROVIDER_EXEC = "exec";
     public static final String PROP_PROVIDER_DUMB = "dumb";
-    public static final String PROP_PROVIDERS_DEFAULT = String.join(
-            ",", PROP_PROVIDER_FFM, PROP_PROVIDER_JNI, PROP_PROVIDER_JANSI, PROP_PROVIDER_JNA, PROP_PROVIDER_EXEC);
+    public static final String PROP_PROVIDERS_DEFAULT =
+            String.join(",", PROP_PROVIDER_FFM, PROP_PROVIDER_JNI, PROP_PROVIDER_EXEC);
     public static final String PROP_FFM = "org.jline.terminal." + PROP_PROVIDER_FFM;
     public static final String PROP_JNI = "org.jline.terminal." + PROP_PROVIDER_JNI;
-    public static final String PROP_JANSI = "org.jline.terminal." + PROP_PROVIDER_JANSI;
-    public static final String PROP_JNA = "org.jline.terminal." + PROP_PROVIDER_JNA;
     public static final String PROP_EXEC = "org.jline.terminal." + PROP_PROVIDER_EXEC;
     public static final String PROP_DUMB = "org.jline.terminal." + PROP_PROVIDER_DUMB;
     public static final String PROP_DUMB_COLOR = "org.jline.terminal.dumb.color";
@@ -192,12 +184,6 @@ public final class TerminalBuilder {
     public static final String PROP_REDIRECT_PIPE_CREATION_MODE_REFLECTION = "reflection";
     public static final String PROP_REDIRECT_PIPE_CREATION_MODE_DEFAULT =
             String.join(",", PROP_REDIRECT_PIPE_CREATION_MODE_REFLECTION, PROP_REDIRECT_PIPE_CREATION_MODE_NATIVE);
-
-    public static final Set<String> DEPRECATED_PROVIDERS =
-            Collections.unmodifiableSet(new HashSet<>(Arrays.asList(PROP_PROVIDER_JNA, PROP_PROVIDER_JANSI)));
-
-    public static final String PROP_DISABLE_DEPRECATED_PROVIDER_WARNING =
-            "org.jline.terminal.disableDeprecatedProviderWarning";
 
     //
     // Terminal output control
@@ -297,8 +283,6 @@ public final class TerminalBuilder {
     private SystemOutput systemOutput;
     private String provider;
     private String providers;
-    private Boolean jna;
-    private Boolean jansi;
     private Boolean jni;
     private Boolean exec;
     private Boolean ffm;
@@ -363,26 +347,6 @@ public final class TerminalBuilder {
      */
     public TerminalBuilder providers(String providers) {
         this.providers = providers;
-        return this;
-    }
-
-    /**
-     * Enables or disables the {@link #PROP_PROVIDER_JNA}/{@code jna} terminal provider.
-     * If not specified, the system property {@link #PROP_JNA} will be used if set.
-     * If not specified, the provider will be checked.
-     */
-    public TerminalBuilder jna(boolean jna) {
-        this.jna = jna;
-        return this;
-    }
-
-    /**
-     * Enables or disables the {@link #PROP_PROVIDER_JANSI}/{@code jansi} terminal provider.
-     * If not specified, the system property {@link #PROP_JANSI} will be used if set.
-     * If not specified, the provider will be checked.
-     */
-    public TerminalBuilder jansi(boolean jansi) {
-        this.jansi = jansi;
         return this;
     }
 
@@ -581,19 +545,6 @@ public final class TerminalBuilder {
      */
     public TerminalBuilder stderrEncoding(Charset encoding) {
         this.stderrEncoding = encoding;
-        return this;
-    }
-
-    /**
-     * @param codepage the codepage
-     * @return The builder
-     * @deprecated JLine now writes Unicode output independently from the selected
-     *   code page. Using this option will only make it emulate the selected code
-     *   page for {@link Terminal#input()} and {@link Terminal#output()}.
-     */
-    @Deprecated
-    public TerminalBuilder codepage(int codepage) {
-        this.codepage = codepage;
         return this;
     }
 
@@ -836,15 +787,7 @@ public final class TerminalBuilder {
         if (terminal == null) {
             throw exception;
         }
-        if (terminal instanceof TerminalExt) {
-            TerminalExt te = (TerminalExt) terminal;
-            if (DEPRECATED_PROVIDERS.contains(te.getProvider().name())
-                    && !getBoolean(PROP_DISABLE_DEPRECATED_PROVIDER_WARNING, false)) {
-                Log.warn("The terminal provider " + te.getProvider().name()
-                        + " has been deprecated, check your configuration. This warning can be disabled by setting the system property "
-                        + PROP_DISABLE_DEPRECATED_PROVIDER_WARNING + " to true.");
-            }
-        }
+
         return terminal;
     }
 
@@ -1030,10 +973,6 @@ public final class TerminalBuilder {
         checkProvider(provider, exception, providers, ffm, PROP_FFM, PROP_PROVIDER_FFM);
         // Check jni provider
         checkProvider(provider, exception, providers, jni, PROP_JNI, PROP_PROVIDER_JNI);
-        // Check jansi provider
-        checkProvider(provider, exception, providers, jansi, PROP_JANSI, PROP_PROVIDER_JANSI);
-        // Check jna provider
-        checkProvider(provider, exception, providers, jna, PROP_JNA, PROP_PROVIDER_JNA);
         // Check exec provider
         checkProvider(provider, exception, providers, exec, PROP_EXEC, PROP_PROVIDER_EXEC);
         // Order providers
@@ -1175,6 +1114,9 @@ public final class TerminalBuilder {
      * </p>
      *
      * @param terminal the {@link Terminal} to globally override
+     * @deprecated This method is deprecated to discourage its use. It will remain
+     *             available but users should avoid it when possible and use proper
+     *             dependency injection instead.
      */
     @Deprecated
     public static void setTerminalOverride(final Terminal terminal) {

@@ -16,7 +16,7 @@
  * Key completer implementations include:
  * <ul>
  *   <li>{@link org.jline.reader.impl.completer.ArgumentCompleter} - Completes commands based on argument position</li>
- *   <li>{@link org.jline.reader.impl.completer.FileNameCompleter} - Completes file and directory names</li>
+ *   <li>{@link org.jline.builtins.Completers.FileNameCompleter} - Completes file and directory names</li>
  *   <li>{@link org.jline.reader.impl.completer.StringsCompleter} - Completes from a predefined set of strings</li>
  *   <li>{@link org.jline.reader.impl.completer.SystemCompleter} - Aggregates multiple completers for different commands</li>
  *   <li>{@link org.jline.reader.impl.completer.AggregateCompleter} - Combines multiple completers</li>

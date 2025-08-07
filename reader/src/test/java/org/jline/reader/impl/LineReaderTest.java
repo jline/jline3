@@ -43,6 +43,7 @@ public class LineReaderTest {
 
     @Test
     @Disabled
+    @SuppressWarnings("deprecation")
     public void emptyStringGivesEOFWithJna() throws Exception {
         String inputString = "";
         InputStream inputStream = new ByteArrayInputStream(inputString.getBytes());
@@ -50,7 +51,6 @@ public class LineReaderTest {
         LineReaderBuilder builder = LineReaderBuilder.builder()
                 .terminal(TerminalBuilder.builder()
                         .streams(inputStream, System.out)
-                        .jna(true)
                         .build());
 
         LineReader reader = builder.build();
@@ -61,6 +61,7 @@ public class LineReaderTest {
 
     @Test
     @Disabled
+    @SuppressWarnings("deprecation")
     public void emptyStringGivesEOFNoJna() throws Exception {
         String inputString = "";
         InputStream inputStream = new ByteArrayInputStream(inputString.getBytes());
@@ -68,7 +69,6 @@ public class LineReaderTest {
         LineReaderBuilder builder = LineReaderBuilder.builder()
                 .terminal(TerminalBuilder.builder()
                         .streams(inputStream, System.out)
-                        .jna(false)
                         .build());
 
         LineReader reader = builder.build();

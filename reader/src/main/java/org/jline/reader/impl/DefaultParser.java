@@ -849,24 +849,6 @@ public class DefaultParser implements Parser {
 
         private final int rawWordLength;
 
-        @Deprecated
-        public ArgumentList(
-                final String line,
-                final List<String> words,
-                final int wordIndex,
-                final int wordCursor,
-                final int cursor) {
-            this(
-                    line,
-                    words,
-                    wordIndex,
-                    wordCursor,
-                    cursor,
-                    null,
-                    wordCursor,
-                    words.get(wordIndex).length());
-        }
-
         /**
          *
          * @param line the command line being edited

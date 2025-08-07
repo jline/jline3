@@ -530,9 +530,6 @@ public class AnsiWriter extends FilterWriter {
     protected static final int ATTRIBUTE_UNDERLINE_OFF = 24; // 	Underline; None
     protected static final int ATTRIBUTE_BLINK_OFF = 25; // 	Blink; off
 
-    @Deprecated
-    protected static final int ATTRIBUTE_NEGATIVE_Off = 27; // 	Image; Positive
-
     protected static final int ATTRIBUTE_NEGATIVE_OFF = 27; // 	Image; Positive
     protected static final int ATTRIBUTE_CONCEAL_OFF = 28; // 	Reveal 	conceal off
 

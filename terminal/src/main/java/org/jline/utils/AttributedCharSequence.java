@@ -195,16 +195,6 @@ public abstract class AttributedCharSequence implements CharSequence {
         return toAnsi(colors, forceMode, palette, alternateIn, alternateOut);
     }
 
-    @Deprecated
-    public String toAnsi(int colors, boolean force256colors) {
-        return toAnsi(colors, force256colors, null, null);
-    }
-
-    @Deprecated
-    public String toAnsi(int colors, boolean force256colors, String altIn, String altOut) {
-        return toAnsi(colors, force256colors ? ForceMode.Force256Colors : ForceMode.None, null, altIn, altOut);
-    }
-
     /**
      * Converts this attributed string to an ANSI escape sequence string
      * with the specified color capabilities and force mode.
@@ -419,21 +409,6 @@ public abstract class AttributedCharSequence implements CharSequence {
             sb.append("\033[0m");
         }
         return sb.toString();
-    }
-
-    @Deprecated
-    public static int rgbColor(int col) {
-        return Colors.rgbColor(col);
-    }
-
-    @Deprecated
-    public static int roundColor(int col, int max) {
-        return Colors.roundColor(col, max);
-    }
-
-    @Deprecated
-    public static int roundRgbColor(int r, int g, int b, int max) {
-        return Colors.roundRgbColor(r, g, b, max);
     }
 
     private static boolean attr(StringBuilder sb, String s, boolean first) {

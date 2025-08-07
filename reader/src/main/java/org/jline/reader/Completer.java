@@ -18,13 +18,7 @@ import java.util.List;
  * a list of possible completions based on the context.
  * <p>
  * JLine provides several built-in completers in the {@code org.jline.reader.impl.completer}
- * package, including:
- * <ul>
- *   <li>{@code ArgumentCompleter} - Completes commands based on position of arguments</li>
- *   <li>{@code FileNameCompleter} - Completes file and directory names</li>
- *   <li>{@code StringsCompleter} - Completes from a predefined set of strings</li>
- *   <li>{@code SystemCompleter} - Aggregates multiple completers for different commands</li>
- * </ul>
+ * package and in the {@code org.jline.builtins.Completers} class.
  * <p>
  * Completers can be combined and nested to create sophisticated completion behavior.
  * They are typically registered with a {@link LineReader} using the

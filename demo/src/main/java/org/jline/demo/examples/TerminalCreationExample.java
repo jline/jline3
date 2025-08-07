@@ -9,7 +9,7 @@
 package org.jline.demo.examples;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
@@ -32,8 +32,7 @@ public class TerminalCreationExample {
                 .name("CustomTerminal")
                 .system(false)
                 .streams(System.in, System.out)
-                .encoding(Charset.forName("UTF-8"))
-                .jansi(true)
+                .encoding(StandardCharsets.UTF_8)
                 .build();
     }
     // SNIPPET_END: TerminalCreationExample
