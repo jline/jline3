@@ -27,6 +27,7 @@ import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.OSUtils;
 
+@SuppressWarnings("removal")
 public class Basic {
 
     private static void addInHeader(List<AttributedString> header, String text) {

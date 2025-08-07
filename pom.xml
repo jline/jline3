@@ -730,6 +730,7 @@
         <subproject>reader</subproject>
         <subproject>builtins</subproject>
         <subproject>console-ui</subproject>
+        <subproject>prompt</subproject>
         <subproject>console</subproject>
         <subproject>groovy</subproject>
         <subproject>remote-ssh</subproject>

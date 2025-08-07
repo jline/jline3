@@ -50,6 +50,10 @@
         </dependency>
         <dependency>
             <groupId>org.jline</groupId>
+            <artifactId>jline-prompt</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
             <artifactId>jline-remote-ssh</artifactId>
         </dependency>
         <dependency>
@@ -238,6 +242,16 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <compilerArgs>
+                        <arg>-Xlint:all,-options,-processing,-restricted,-removal</arg>
+                        <arg>-Werror</arg>
+                    </compilerArgs>
+                </configuration>
             </plugin>
         </plugins>
     </build>

@@ -29,7 +29,24 @@ import org.jline.utils.*;
 
 /**
  * ConsolePrompt encapsulates the prompting of a list of input questions for the user.
+ *
+ * @deprecated This class is deprecated as of JLine 4.0.0. Please use the new
+ *             {@code jline-prompt} module instead, which provides a cleaner,
+ *             interface-based API. Use {@link org.jline.prompt.PrompterFactory#create(org.jline.terminal.Terminal)}
+ *             to create a {@link org.jline.prompt.Prompter} instance.
+ *
+ *             <p>Migration example:</p>
+ *             <pre>{@code
+ *             // Old API
+ *             ConsolePrompt prompt = new ConsolePrompt(terminal);
+ *             PromptBuilder builder = prompt.getPromptBuilder();
+ *
+ *             // New API
+ *             Prompter prompter = PrompterFactory.create(terminal);
+ *             PromptBuilder builder = prompter.newBuilder();
+ *             }</pre>
  */
+@Deprecated(since = "4.0.0", forRemoval = true)
 public class ConsolePrompt {
     protected final LineReader reader;
     protected final Terminal terminal;
@@ -39,27 +56,31 @@ public class ConsolePrompt {
     protected List<AttributedString> header = new ArrayList<>();
 
     /**
-     *
      * @param terminal the terminal.
+     * @deprecated Use {@link org.jline.prompt.PrompterFactory#create(org.jline.terminal.Terminal)} instead.
      */
+    @Deprecated(since = "4.0.0", forRemoval = true)
     public ConsolePrompt(Terminal terminal) {
         this(null, terminal, new UiConfig());
     }
+
     /**
-     *
      * @param terminal the terminal.
      * @param config ConsolePrompt cursor pointer and checkbox configuration
+     * @deprecated Use {@link org.jline.prompt.PrompterFactory#create(org.jline.terminal.Terminal, org.jline.prompt.PrompterConfig)} instead.
      */
+    @Deprecated(since = "4.0.0", forRemoval = true)
     public ConsolePrompt(Terminal terminal, UiConfig config) {
         this(null, terminal, config);
     }
 
     /**
-     *
      * @param reader the lineReader.
      * @param terminal the terminal.
      * @param config ConsolePrompt cursor pointer and checkbox configuration
+     * @deprecated Use {@link org.jline.prompt.PrompterFactory#create(org.jline.reader.LineReader, org.jline.terminal.Terminal, org.jline.prompt.PrompterConfig)} instead.
      */
+    @Deprecated(since = "4.0.0", forRemoval = true)
     public ConsolePrompt(LineReader reader, Terminal terminal, UiConfig config) {
         this.terminal = terminal;
         this.display = new Display(terminal, false);
@@ -88,6 +109,8 @@ public class ConsolePrompt {
             display.update(header, cursor);
             terminal.setAttributes(attributes);
             terminal.puts(InfoCmp.Capability.keypad_local);
+            terminal.writer().println();
+            terminal.writer().flush();
             attributes = null;
         }
     }
@@ -106,7 +129,9 @@ public class ConsolePrompt {
      * @return a map containing a result for each element of promptableElementList
      * @throws IOException  may be thrown by terminal
      * @throws UserInterruptException if user interrupt handling is enabled and the user types the interrupt character (ctrl-C)
+     * @deprecated Use {@link org.jline.prompt.Prompter#prompt(java.util.List, java.util.List)} instead.
      */
+    @Deprecated(since = "4.0.0", forRemoval = true)
     public Map<String, PromptResultItemIF> prompt(List<PromptableElementIF> promptableElementList)
             throws IOException, UserInterruptException {
         return prompt(new ArrayList<>(), promptableElementList);
@@ -123,7 +148,9 @@ public class ConsolePrompt {
      * @return a map containing a result for each element of promptableElementList
      * @throws IOException  may be thrown by terminal
      * @throws UserInterruptException if user interrupt handling is enabled and the user types the interrupt character (ctrl-C)
+     * @deprecated Use {@link org.jline.prompt.Prompter#prompt(java.util.List, java.util.List)} instead.
      */
+    @Deprecated(since = "4.0.0", forRemoval = true)
     public Map<String, PromptResultItemIF> prompt(
             List<AttributedString> header, List<PromptableElementIF> promptableElementList)
             throws IOException, UserInterruptException {
@@ -147,7 +174,9 @@ public class ConsolePrompt {
      *
      * @param promptableElementLists a function returning lists of questions / prompts to ask the user for.
      * @throws IOException  may be thrown by terminal
+     * @deprecated Use {@link org.jline.prompt.Prompter#prompt(java.util.List, java.util.function.Function)} instead.
      */
+    @Deprecated(since = "4.0.0", forRemoval = true)
     public Map<String, PromptResultItemIF> prompt(
             Function<Map<String, PromptResultItemIF>, List<PromptableElementIF>> promptableElementLists)
             throws IOException {
@@ -165,7 +194,9 @@ public class ConsolePrompt {
      * @param headerIn info to be displayed before first prompt.
      * @param promptableElementLists a function returning lists of questions / prompts to ask the user for.
      * @throws IOException  may be thrown by terminal
+     * @deprecated Use {@link org.jline.prompt.Prompter#prompt(java.util.List, java.util.function.Function)} instead.
      */
+    @Deprecated(since = "4.0.0", forRemoval = true)
     public Map<String, PromptResultItemIF> prompt(
             List<AttributedString> headerIn,
             Function<Map<String, PromptResultItemIF>, List<PromptableElementIF>> promptableElementLists)
@@ -384,6 +415,10 @@ public class ConsolePrompt {
         return asb;
     }
 
+    /**
+     * @deprecated This method is deprecated along with the ConsolePrompt class. Use the new jline-prompt module instead.
+     */
+    @Deprecated(since = "4.0.0", forRemoval = true)
     public static int computePageSize(Terminal terminal, int pageSize, PageSizeType sizeType) {
         int rows = terminal.getHeight();
         return sizeType == PageSizeType.ABSOLUTE ? Math.min(rows, pageSize) : (rows * pageSize) / 100;
@@ -410,7 +445,9 @@ public class ConsolePrompt {
      * Creates a {@link PromptBuilder}.
      *
      * @return a new prompt builder object.
+     * @deprecated Use {@link org.jline.prompt.Prompter#newBuilder()} instead.
      */
+    @Deprecated(since = "4.0.0", forRemoval = true)
     public PromptBuilder getPromptBuilder() {
         return new PromptBuilder();
     }
@@ -418,7 +455,10 @@ public class ConsolePrompt {
     /**
      * ConsoleUI configuration: colors, cursor pointer and selected/unselected/unavailable boxes.
      * ConsoleUI colors are configurable using UI_COLORS environment variable
+     *
+     * @deprecated This class is deprecated along with ConsolePrompt. Use {@link org.jline.prompt.PrompterConfig} instead.
      */
+    @Deprecated(since = "4.0.0", forRemoval = true)
     public static class UiConfig {
         static final String DEFAULT_UI_COLORS = "cu=36:be=32:bd=37:pr=32:me=1:an=36:se=36:cb=100";
         static final String UI_COLORS = "UI_COLORS";

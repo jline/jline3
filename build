@@ -64,7 +64,8 @@ function command_demo() {
     echo "  gogo      - Run the Gogo shell demo"
     echo "  repl      - Run the REPL demo"
     echo "  password  - Run the password demo"
-    echo "  consoleui - Run the ConsoleUI demo"
+    echo "  consoleui - Run the ConsoleUI demo (deprecated)"
+    echo "  prompt    - Run the new Prompt API demo"
     echo "Options:"
     echo "  --help       Show help message"
     echo "  debug        Enable remote debugging"
@@ -132,6 +133,13 @@ function command_demo() {
       fi
       MAIN_CLASS="org.jline.demo.consoleui.BasicDynamic"
       ;;
+    "prompt")
+      # Add prompt jar
+      if [ -d ${TARGETDIR}/lib ]; then
+        cp=${cp}$(find ${TARGETDIR}/lib -name "jline-prompt-*.jar" -exec printf :{} ';')
+      fi
+      MAIN_CLASS="org.jline.demo.examples.PromptDynamicExample"
+      ;;
     *)
       echo "Unknown demo type: $demo_type"
       exit 1
@@ -184,7 +192,22 @@ function command_demo() {
           echo "  ffm          Enable Foreign Function Memory (preview)"
           echo ""
           echo "Note: On Windows, either Jansi or JNA library must be included in classpath."
+          echo "Note: ConsoleUI is deprecated. Use 'prompt' demo for the new API."
           echo "To test with a dumb terminal, use: TERM=dumb $basename demo consoleui"
+        elif [ "$demo_type" = "prompt" ]; then
+          echo "Usage: $basename demo prompt [options]"
+          echo "Options:"
+          echo "  --help       Show this help message"
+          echo "  debug        Enable remote debugging"
+          echo "  debugs       Enable remote debugging with suspend"
+          echo "  jansi        Add Jansi support (recommended for Windows)"
+          echo "  jna          Add JNA support (alternative for Windows)"
+          echo "  verbose      Enable verbose logging"
+          echo "  ffm          Enable Foreign Function Memory (preview)"
+          echo ""
+          echo "This demo showcases the new JLine Prompt API with dynamic prompts."
+          echo "Note: On Windows, either Jansi or JNA library must be included in classpath."
+          echo "To test with a dumb terminal, use: TERM=dumb $basename demo prompt"
         else
           echo "Usage: $basename demo $demo_type [options]"
           echo "Options:"

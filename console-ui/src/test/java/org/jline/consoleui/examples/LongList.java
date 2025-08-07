@@ -23,6 +23,7 @@ import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 
+@SuppressWarnings("removal")
 public class LongList {
 
     public static void main(String[] args) {
