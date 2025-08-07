@@ -9,9 +9,7 @@
     https://opensource.org/licenses/BSD-3-Clause
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-
-    <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.1.0 https://maven.apache.org/xsd/maven-4.1.0.xsd">
 
     <groupId>org.jline</groupId>
     <artifactId>jline-parent</artifactId>
@@ -49,27 +47,6 @@
             <archive>https://groups.google.com/group/jline-users</archive>
         </mailingList>
     </mailingLists>
-
-    <modules>
-        <module>native</module>
-        <module>terminal</module>
-        <module>terminal-ffm</module>
-        <module>terminal-jna</module>
-        <module>terminal-jansi</module>
-        <module>terminal-jni</module>
-        <module>reader</module>
-        <module>builtins</module>
-        <module>console-ui</module>
-        <module>console</module>
-        <module>groovy</module>
-        <module>remote-ssh</module>
-        <module>remote-telnet</module>
-        <module>style</module>
-        <module>curses</module>
-        <module>demo</module>
-        <module>graal</module>
-        <module>jansi-core</module>
-    </modules>
 
     <scm>
         <connection>scm:git:https://github.com/jline/jline3.git</connection>
@@ -128,113 +105,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>org.jline</groupId>
-                <artifactId>jline-native</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.jline</groupId>
-                <artifactId>jline-terminal</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.jline</groupId>
-                <artifactId>jline-terminal-ffm</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.jline</groupId>
-                <artifactId>jline-terminal-jansi</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.jline</groupId>
-                <artifactId>jline-terminal-jni</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.jline</groupId>
-                <artifactId>jline-terminal-jna</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.jline</groupId>
-                <artifactId>jline-reader</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.jline</groupId>
-                <artifactId>jline-curses</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.jline</groupId>
-                <artifactId>jline-builtins</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.jline</groupId>
-                <artifactId>jline-remote-ssh</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.jline</groupId>
-                <artifactId>jline-remote-telnet</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.jline</groupId>
-                <artifactId>jline</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.jline</groupId>
-                <artifactId>jline-style</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.jline</groupId>
-                <artifactId>jline-groovy</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.jline</groupId>
-                <artifactId>jline-console</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.jline</groupId>
-                <artifactId>jline-console-ui</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.jline</groupId>
-                <artifactId>jansi-core</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.jline</groupId>
-                <artifactId>jansi</artifactId>
-                <version>${project.version}</version>
-            </dependency>
 
             <dependency>
                 <groupId>org.fusesource.jansi</groupId>
@@ -728,10 +598,6 @@
                     <name>!nobundle</name>
                 </property>
             </activation>
-            <modules>
-                <module>jline</module>
-                <module>jansi</module>
-            </modules>
             <build>
                 <plugins>
                     <plugin>
@@ -748,6 +614,10 @@
                     </plugin>
                 </plugins>
             </build>
+            <subprojects>
+                <subproject>jline</subproject>
+                <subproject>jansi</subproject>
+            </subprojects>
         </profile>
 
         <profile>
@@ -834,5 +704,26 @@
             </build>
         </profile>
     </profiles>
+
+    <subprojects>
+        <subproject>native</subproject>
+        <subproject>terminal</subproject>
+        <subproject>terminal-ffm</subproject>
+        <subproject>terminal-jna</subproject>
+        <subproject>terminal-jansi</subproject>
+        <subproject>terminal-jni</subproject>
+        <subproject>reader</subproject>
+        <subproject>builtins</subproject>
+        <subproject>console-ui</subproject>
+        <subproject>console</subproject>
+        <subproject>groovy</subproject>
+        <subproject>remote-ssh</subproject>
+        <subproject>remote-telnet</subproject>
+        <subproject>style</subproject>
+        <subproject>curses</subproject>
+        <subproject>demo</subproject>
+        <subproject>graal</subproject>
+        <subproject>jansi-core</subproject>
+    </subprojects>
 
 </project>
