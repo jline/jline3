@@ -59,7 +59,7 @@ function command_demo() {
   shift
 
   if [ -z "$demo_type" ]; then
-    echo "Usage: $basename demo <type> [options]"
+    echo "Usage: $basename demo <type> [options] [web|swing]"
     echo "Available demo types:"
     echo "  gogo      - Run the Gogo shell demo"
     echo "  repl      - Run the REPL demo"
@@ -73,6 +73,8 @@ function command_demo() {
     echo "  jna          Add JNA support"
     echo "  verbose      Enable verbose logging"
     echo "  ffm          Enable Foreign Function Memory (preview)"
+    echo "  web          Run demo inside WebTerminal (http://localhost:8080)"
+    echo "  swing        Run demo inside SwingTerminal (GUI window)"
     echo ""
     echo "Gogo-specific options:"
     echo "  ssh          Add SSH support"
@@ -82,6 +84,11 @@ function command_demo() {
     echo "Password-specific options:"
     echo "  --mask=X     Use X as the mask character (default: *)"
     echo "               Use --mask= (empty) for no masking"
+    echo ""
+    echo "Examples:"
+    echo "  $basename demo gogo web      - Run Gogo shell in WebTerminal"
+    echo "  $basename demo repl swing    - Run REPL in SwingTerminal"
+    echo "  $basename demo password web  - Run password demo in WebTerminal"
     exit 1
   fi
 
@@ -91,7 +98,8 @@ function command_demo() {
   logconf="demo/etc/logging.properties"
   JVM_OPTS=""
   APP_ARGS=""
-  MAIN_CLASS=""
+  MAIN_CLASS="org.jline.demo.Launcher"
+  DEMO_CLASS=""
 
   # Add JLine jars
   if [ -d ${TARGETDIR}/lib ]; then
@@ -101,23 +109,23 @@ function command_demo() {
   # Set up demo-specific configuration
   case "$demo_type" in
     "gogo")
+      DEMO_CLASS="org.apache.felix.gogo.jline.Main"
       # Add Gogo Runtime and JLine
       if [ -d ${TARGETDIR}/lib ]; then
         cp=${cp}$(find ${TARGETDIR}/lib -name "org.apache.felix.gogo.runtime-*.jar" -exec printf :{} ';')
         cp=${cp}$(find ${TARGETDIR}/lib -name "org.apache.felix.gogo.jline-*.jar" -exec printf :{} ';')
       fi
-      MAIN_CLASS="org.apache.felix.gogo.jline.Main"
       ;;
     "repl")
+      DEMO_CLASS="org.jline.demo.Repl"
       # Add Groovy and Ivy jars
       if [ -d ${TARGETDIR}/lib ]; then
         cp=${cp}$(find ${TARGETDIR}/lib -name "groovy-*.jar" -exec printf :{} ';')
         cp=${cp}$(find ${TARGETDIR}/lib -name "ivy-*.jar" -exec printf :{} ';')
       fi
-      MAIN_CLASS="org.jline.demo.Repl"
       ;;
     "password")
-      MAIN_CLASS="org.jline.demo.PasswordMaskingDemo"
+      DEMO_CLASS="org.jline.demo.PasswordMaskingDemo"
       # Process mask option separately for password demo
       for arg in "$@"; do
         if [[ "${arg}" == --mask=* ]]; then
@@ -126,11 +134,11 @@ function command_demo() {
       done
       ;;
     "consoleui")
+      DEMO_CLASS="org.jline.demo.consoleui.BasicDynamic"
       # Add console-ui jar
       if [ -d ${TARGETDIR}/lib ]; then
         cp=${cp}$(find ${TARGETDIR}/lib -name "jline-console-ui-*.jar" -exec printf :{} ';')
       fi
-      MAIN_CLASS="org.jline.demo.consoleui.BasicDynamic"
       ;;
     *)
       echo "Unknown demo type: $demo_type"
@@ -139,12 +147,13 @@ function command_demo() {
   esac
 
   # Process common options
+  local terminal_type="system"
   for arg in "$@"; do
     case ${arg} in
       '--help')
         # Show help based on demo type
         if [ "$demo_type" = "gogo" ]; then
-          echo "Usage: $basename demo gogo [options]"
+          echo "Usage: $basename demo gogo [options] [web|swing]"
           echo "Options:"
           echo "  --help       Show this help message"
           echo "  ssh          Add SSH support"
@@ -156,10 +165,17 @@ function command_demo() {
           echo "  jna          Add JNA support"
           echo "  verbose      Enable verbose logging"
           echo "  ffm          Enable Foreign Function Memory (preview)"
+          echo "  web          Run in WebTerminal (http://localhost:8080)"
+          echo "  swing        Run in SwingTerminal (GUI window)"
+          echo ""
+          echo "Examples:"
+          echo "  $basename demo gogo          - Run in current terminal"
+          echo "  $basename demo gogo web      - Run in WebTerminal"
+          echo "  $basename demo gogo swing    - Run in SwingTerminal"
           echo ""
           echo "To test with a dumb terminal, use: TERM=dumb $basename demo gogo"
         elif [ "$demo_type" = "password" ]; then
-          echo "Usage: $basename demo password [options]"
+          echo "Usage: $basename demo password [options] [web|swing]"
           echo "Options:"
           echo "  --help       Show this help message"
           echo "  --mask=X     Use X as the mask character (default: *)"
@@ -170,10 +186,16 @@ function command_demo() {
           echo "  jna          Add JNA support"
           echo "  verbose      Enable verbose logging"
           echo "  ffm          Enable Foreign Function Memory (preview)"
+          echo "  web          Run in WebTerminal (http://localhost:8080)"
+          echo "  swing        Run in SwingTerminal (GUI window)"
+          echo ""
+          echo "Examples:"
+          echo "  $basename demo password web --mask=#  - Run in WebTerminal with # mask"
+          echo "  $basename demo password swing         - Run in SwingTerminal"
           echo ""
           echo "To test with a dumb terminal, use: TERM=dumb $basename demo password"
         elif [ "$demo_type" = "consoleui" ]; then
-          echo "Usage: $basename demo consoleui [options]"
+          echo "Usage: $basename demo consoleui [options] [web|swing]"
           echo "Options:"
           echo "  --help       Show this help message"
           echo "  debug        Enable remote debugging"
@@ -182,11 +204,17 @@ function command_demo() {
           echo "  jna          Add JNA support (alternative for Windows)"
           echo "  verbose      Enable verbose logging"
           echo "  ffm          Enable Foreign Function Memory (preview)"
+          echo "  web          Run in WebTerminal (http://localhost:8080)"
+          echo "  swing        Run in SwingTerminal (GUI window)"
+          echo ""
+          echo "Examples:"
+          echo "  $basename demo consoleui web    - Run in WebTerminal"
+          echo "  $basename demo consoleui swing  - Run in SwingTerminal"
           echo ""
           echo "Note: On Windows, either Jansi or JNA library must be included in classpath."
           echo "To test with a dumb terminal, use: TERM=dumb $basename demo consoleui"
-        else
-          echo "Usage: $basename demo $demo_type [options]"
+        elif [ "$demo_type" = "terminal" ]; then
+          echo "Usage: $basename demo terminal [options]"
           echo "Options:"
           echo "  --help       Show this help message"
           echo "  debug        Enable remote debugging"
@@ -195,6 +223,26 @@ function command_demo() {
           echo "  jna          Add JNA support"
           echo "  verbose      Enable verbose logging"
           echo "  ffm          Enable Foreign Function Memory (preview)"
+          echo ""
+          echo "This demo shows WebTerminal and SwingTerminal implementations."
+          echo "WebTerminal provides a web-based terminal interface."
+          echo "SwingTerminal provides a Swing-based GUI terminal."
+        else
+          echo "Usage: $basename demo $demo_type [options] [web|swing]"
+          echo "Options:"
+          echo "  --help       Show this help message"
+          echo "  debug        Enable remote debugging"
+          echo "  debugs       Enable remote debugging with suspend"
+          echo "  jansi        Add Jansi support"
+          echo "  jna          Add JNA support"
+          echo "  verbose      Enable verbose logging"
+          echo "  ffm          Enable Foreign Function Memory (preview)"
+          echo "  web          Run in WebTerminal (http://localhost:8080)"
+          echo "  swing        Run in SwingTerminal (GUI window)"
+          echo ""
+          echo "Examples:"
+          echo "  $basename demo $demo_type web    - Run in WebTerminal"
+          echo "  $basename demo $demo_type swing  - Run in SwingTerminal"
           echo ""
           echo "To test with a dumb terminal, use: TERM=dumb $basename demo $demo_type"
         fi
@@ -231,6 +279,9 @@ function command_demo() {
           fi
         fi
         ;;
+      'web' | 'swing' | 'system')
+        terminal_type="$arg"
+        ;;
       --mask=*)
         # Already processed for password demo
         ;;
@@ -259,39 +310,71 @@ function command_demo() {
   fi
 
   # Run Java directly with application arguments
-  JAVA_CMD="java -cp \"$cp\" $JVM_OPTS -Dgosh.home=\"demo\" -Djava.util.logging.config.file=\"${logconf}\" ${MAIN_CLASS}"
+  JAVA_CMD="java -cp \"$cp\" $JVM_OPTS -Dgosh.home=\"demo\" -Djava.util.logging.config.file=\"${logconf}\" ${MAIN_CLASS} --terminal=${terminal_type} --demo=${DEMO_CLASS}"
 
   # Add each application argument individually
   for arg in $APP_ARGS; do
     JAVA_CMD="$JAVA_CMD \"$arg\""
   done
 
+  echo $JAVA_CMD
+
   # Execute the command
   eval $JAVA_CMD
 }
+
+
+
+
 
 function command_example() {
   local example_name="$1"
   shift
 
   if [ -z "$example_name" ]; then
-    echo "Usage: $basename example <ExampleClassName> [options]"
+    echo "Usage: $basename example <ExampleClassName> [options] [web|swing]"
     echo "Available examples:"
     find demo/src/main/java/org/jline/demo/examples -name "*.java" | sed 's/.*\/\([^\/]*\)\.java/  \1/' | sort
+    echo ""
+    echo "Options:"
+    echo "  debug        Enable remote debugging"
+    echo "  debugs       Enable remote debugging with suspend"
+    echo "  jansi        Add Jansi support"
+    echo "  jna          Add JNA support"
+    echo "  ffm          Enable Foreign Function Memory (preview)"
+    echo "  web          Run example inside WebTerminal (http://localhost:8080)"
+    echo "  swing        Run example inside SwingTerminal (GUI window)"
+    echo ""
+    echo "Examples:"
+    echo "  $basename example AnsiColors web    - Run AnsiColors in WebTerminal"
+    echo "  $basename example Repl swing        - Run Repl in SwingTerminal"
     exit 1
   fi
 
-  # Set up classpath
+  # Set up common variables
   TARGETDIR="demo/target"
   cp="${TARGETDIR}/classes"
+  logconf="demo/etc/logging.properties"
+  JVM_OPTS=""
+  APP_ARGS=""
+  MAIN_CLASS="org.jline.demo.Launcher"
+  EXAMPLE_CLASS="org.jline.demo.examples.${example_name}"
+  terminal_type="system"
 
   # Add JLine jars
   if [ -d ${TARGETDIR}/lib ]; then
     cp=${cp}$(find ${TARGETDIR}/lib -name "jline-*.jar" -exec printf :{} ';')
   fi
 
+  # Check if the example class exists
+  if ! find demo/src/main/java/org/jline/demo/examples -name "${example_name}.java" | grep -q .; then
+    echo "Example class '${example_name}' not found."
+    echo "Available examples:"
+    find demo/src/main/java/org/jline/demo/examples -name "*.java" | sed 's/.*\/\([^\/]*\)\.java/  \1/' | sort
+    exit 1
+  fi
+
   # Process options
-  JVM_OPTS=""
   for arg in "$@"; do
     case ${arg} in
       'debug')
@@ -306,29 +389,51 @@ function command_example() {
       'jna')
         cp=${cp}$(find ${TARGETDIR}/lib -name "jna-*.jar" -exec printf :{} ';')
         ;;
+      'verbose')
+        logconf="demo/etc/logging-verbose.properties"
+        ;;
       'ffm')
         JVM_OPTS="${JVM_OPTS} --enable-preview --enable-native-access=ALL-UNNAMED"
         ;;
+      'web' | 'swing' | 'system')
+        terminal_type="$arg"
+        ;;
       *)
+        # Unknown option, assume it's a JVM option
         JVM_OPTS="${JVM_OPTS} ${arg}"
         ;;
     esac
   done
 
-  # Check if the example class exists
-  if ! find demo/src/main/java/org/jline/demo/examples -name "${example_name}.java" | grep -q .; then
-    echo "Example class '${example_name}' not found."
-    echo "Available examples:"
-    find demo/src/main/java/org/jline/demo/examples -name "*.java" | sed 's/.*\/\([^\/]*\)\.java/  \1/' | sort
-    exit 1
+  # Check if JDK version supports --enable-native-access
+  java_version=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | cut -d. -f1)
+  if [ "$java_version" -ge 16 ] 2>/dev/null; then
+    # Only add if not already present
+    if [[ "$JVM_OPTS" != *"--enable-native-access=ALL-UNNAMED"* ]]; then
+      JVM_OPTS="${JVM_OPTS} --enable-native-access=ALL-UNNAMED"
+    fi
   fi
 
-  # Run the example
-  echo "Running example: org.jline.demo.examples.${example_name}"
+  # Launch the example
+  echo "Launching ${MAIN_CLASS}..."
   echo "Classpath: $cp"
   echo "JVM options: $JVM_OPTS"
+  if [ -n "$APP_ARGS" ]; then
+    echo "Application arguments: $APP_ARGS"
+  fi
 
-  java -cp "$cp" $JVM_OPTS org.jline.demo.examples.${example_name}
+  # Run Java directly with application arguments
+  JAVA_CMD="java -cp \"$cp\" $JVM_OPTS -Dgosh.home=\"demo\" -Djava.util.logging.config.file=\"${logconf}\" ${MAIN_CLASS} --terminal=${terminal_type} --demo=${EXAMPLE_CLASS}"
+
+  # Add each application argument individually
+  for arg in $APP_ARGS; do
+    JAVA_CMD="$JAVA_CMD \"$arg\""
+  done
+
+  echo $JAVA_CMD
+
+  # Execute the command
+  eval $JAVA_CMD
 }
 
 function command_graal() {
