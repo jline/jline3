@@ -33,6 +33,11 @@ public abstract class AbstractWindow extends AbstractComponent implements Window
     public AbstractWindow(String title, Component component) {
         this.title = title;
         this.component = component;
+        // Initialize behaviors after all fields are set to avoid this-escape warning
+        initializeBehaviors();
+    }
+
+    private void initializeBehaviors() {
         this.setBehaviors(EnumSet.of(Behavior.CloseButton));
     }
 

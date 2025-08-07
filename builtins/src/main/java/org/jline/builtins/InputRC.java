@@ -28,6 +28,8 @@ import org.jline.reader.LineReader;
  */
 public final class InputRC {
 
+    private InputRC() {}
+
     /**
      * Configures a LineReader from an inputrc file at the specified URL.
      *

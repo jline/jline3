@@ -297,7 +297,7 @@ public class SyntaxHighlighter {
         return currentTheme;
     }
 
-    public void setParser(Parser parser) {
+    void setParser(Parser parser) {
         this.parser = parser;
     }
 
@@ -780,6 +780,8 @@ public class SyntaxHighlighter {
     }
 
     protected static class RuleSplitter {
+        protected RuleSplitter() {}
+
         protected static List<String> split(String s) {
             List<String> out = new ArrayList<>();
             if (s.length() == 0) {

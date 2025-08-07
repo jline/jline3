@@ -68,6 +68,13 @@ import static org.jline.utils.AttributedStyle.MASK;
  */
 public abstract class AttributedCharSequence implements CharSequence {
 
+    /**
+     * Default constructor.
+     */
+    public AttributedCharSequence() {
+        // Default constructor
+    }
+
     public static final int TRUE_COLORS = 0x1000000;
     private static final int HIGH_COLORS = 0x7FFF;
 

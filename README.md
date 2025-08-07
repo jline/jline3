@@ -88,6 +88,62 @@ JLine is organized into several modules:
 - **jline-remote-ssh**: SSH server support
 - **jline-remote-telnet**: Telnet server support
 
+## JPMS (Java Platform Module System) Support
+
+JLine provides full support for JPMS starting with version 4.0. The following modules are proper JPMS modules with `module-info.java`:
+
+### ✅ JPMS Modules (with module-info.java)
+
+| Module | Artifact ID | Module Name | Description |
+|--------|-------------|-------------|-------------|
+| **Core Modules** | | | |
+| Native | `jline-native` | `org.jline.nativ` | Native library loading |
+| Terminal | `jline-terminal` | `org.jline.terminal` | Core terminal functionality |
+| Terminal FFM | `jline-terminal-ffm` | `org.jline.terminal.ffm` | FFM-based terminal (JDK 22+) |
+| Terminal JNA | `jline-terminal-jna` | `org.jline.terminal.jna` | JNA-based terminal |
+| Terminal JNI | `jline-terminal-jni` | `org.jline.terminal.jni` | JNI-based terminal |
+| Reader | `jline-reader` | `org.jline.reader` | Line editing and reading |
+| Style | `jline-style` | `org.jline.style` | Styling and coloring |
+| **Extended Modules** | | | |
+| Builtins | `jline-builtins` | `org.jline.builtins` | Built-in commands |
+| Console UI | `jline-console-ui` | `org.jline.console.ui` | Interactive UI components |
+| Console | `jline-console` | `org.jline.console` | Console framework |
+| Jansi Core | `jline-jansi-core` | `org.jline.jansi.core` | ANSI support |
+| Curses | `jline-curses` | `org.jline.curses` | Curses-like UI components |
+
+### ❌ Non-JPMS Modules (automatic modules)
+
+These modules remain as automatic modules for compatibility:
+
+| Module | Artifact ID | Reason |
+|--------|-------------|---------|
+| Terminal Jansi | `jline-terminal-jansi` | Legacy compatibility |
+| Groovy | `jline-groovy` | Groovy integration |
+| Remote SSH | `jline-remote-ssh` | SSH server support |
+| Remote Telnet | `jline-remote-telnet` | Telnet server support |
+| Demo | `jline-demo` | Example applications |
+| Graal | `jline-graal` | GraalVM native image support |
+
+### 🎯 Usage with JPMS
+
+When using JLine in a modular application, add the required modules to your `module-info.java`:
+
+```java
+module your.application {
+    requires org.jline.terminal;
+    requires org.jline.reader;
+    requires org.jline.style;        // Optional: for styling
+    requires org.jline.builtins;     // Optional: for built-in commands
+    requires org.jline.console;      // Optional: for console framework
+    requires org.jline.console.ui;   // Optional: for UI components
+}
+```
+
+**Note**: The FFM terminal provider (`jline-terminal-ffm`) requires JDK 22+ and native access permissions:
+```bash
+java --enable-native-access=org.jline.terminal.ffm your.application
+```
+
 ## Documentation
 
 - [Website](https://jline.org)

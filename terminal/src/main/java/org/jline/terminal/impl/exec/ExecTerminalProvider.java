@@ -63,6 +63,13 @@ import static org.jline.terminal.TerminalBuilder.PROP_REDIRECT_PIPE_CREATION_MOD
  */
 public class ExecTerminalProvider implements TerminalProvider {
 
+    /**
+     * Default constructor.
+     */
+    public ExecTerminalProvider() {
+        // Default constructor
+    }
+
     private static boolean warned;
 
     /**
@@ -543,7 +550,7 @@ public class ExecTerminalProvider implements TerminalProvider {
                             .equals(t.getClass().getName())
                     && !warned) {
                 Log.warn(
-                        "The ExecTerminalProvider requires the JVM options: '--add-opens java.base/java.lang=ALL-UNNAMED'");
+                        "The ExecTerminalProvider requires the JVM options: '--add-opens java.base/java.lang=org.jline.terminal'");
                 warned = true;
             }
             // ignore
@@ -617,7 +624,7 @@ public class ExecTerminalProvider implements TerminalProvider {
     /**
      * Reflection based file descriptor creator.
      * This requires the following option
-     *   --add-opens java.base/java.lang=ALL-UNNAMED
+     *   --add-opens java.base/java.lang=org.jline.terminal
      */
     static class ReflectionRedirectPipeCreator implements RedirectPipeCreator {
         private final Constructor<ProcessBuilder.Redirect> constructor;

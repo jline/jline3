@@ -23,5 +23,12 @@ import org.jline.reader.ParsedLine;
 public final class NullCompleter implements Completer {
     public static final NullCompleter INSTANCE = new NullCompleter();
 
+    /**
+     * Creates a new NullCompleter.
+     */
+    public NullCompleter() {
+        // Default constructor
+    }
+
     public void complete(LineReader reader, final ParsedLine line, final List<Candidate> candidates) {}
 }

@@ -57,6 +57,13 @@ import java.util.Map;
  */
 public class Levenshtein {
 
+    /**
+     * Private constructor to prevent instantiation.
+     */
+    private Levenshtein() {
+        // Utility class
+    }
+
     public static int distance(CharSequence lhs, CharSequence rhs) {
         return distance(lhs, rhs, 1, 1, 1, 1);
     }

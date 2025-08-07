@@ -45,6 +45,13 @@ import org.jline.utils.AttributedStyle;
 @Deprecated
 public class FileNameCompleter implements Completer {
 
+    /**
+     * Creates a new FileNameCompleter.
+     */
+    public FileNameCompleter() {
+        // Default constructor
+    }
+
     public void complete(LineReader reader, ParsedLine commandLine, final List<Candidate> candidates) {
         assert commandLine != null;
         assert candidates != null;

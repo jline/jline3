@@ -74,6 +74,8 @@ import org.jline.utils.StyleResolver;
 @SuppressWarnings("resource")
 public class PosixCommands {
 
+    private PosixCommands() {}
+
     /**
      * Context for command execution, providing I/O streams and current directory.
      */

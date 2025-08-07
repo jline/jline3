@@ -100,7 +100,7 @@
         <graal.plugin.version>21.2.0</graal.plugin.version>
         <palantir.version>2.73.0</palantir.version>
 
-        <surefire.argLine>--add-opens java.base/java.io=ALL-UNNAMED</surefire.argLine>
+        <surefire.argLine>--add-opens java.base/java.io=org.jline.nativ --add-opens java.base/java.io=org.jline.terminal</surefire.argLine>
     </properties>
 
     <dependencyManagement>
@@ -322,11 +322,26 @@
                         <showWarnings>true</showWarnings>
                         <release>${java.release.version}</release>
                         <compilerArgs>
-                            <arg>-Xlint:all,-options,-processing</arg>
+                            <arg>-Xlint:all,-options,-processing,-restricted</arg>
                             <arg>-Werror</arg>
                         </compilerArgs>
                         <fork>true</fork>
                     </configuration>
+                    <executions>
+                        <execution>
+                            <id>default-testCompile</id>
+                            <goals>
+                                <goal>testCompile</goal>
+                            </goals>
+                            <phase>test-compile</phase>
+                            <configuration>
+                                <compilerArgs>
+                                    <arg>-Xlint:all,-options,-processing,-exports,-restricted,-missing-explicit-ctor</arg>
+                                    <!-- Remove -Werror for test compilation -->
+                                </compilerArgs>
+                            </configuration>
+                        </execution>
+                    </executions>
                 </plugin>
 
                 <plugin>

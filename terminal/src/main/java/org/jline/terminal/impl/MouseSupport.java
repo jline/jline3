@@ -63,6 +63,13 @@ import org.jline.utils.InputStreamReader;
 public class MouseSupport {
 
     /**
+     * Private constructor to prevent instantiation.
+     */
+    private MouseSupport() {
+        // Utility class
+    }
+
+    /**
      * Checks if the terminal supports mouse tracking.
      *
      * <p>

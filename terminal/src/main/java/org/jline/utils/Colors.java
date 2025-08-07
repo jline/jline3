@@ -46,6 +46,13 @@ import static org.jline.terminal.TerminalBuilder.PROP_COLOR_DISTANCE;
  */
 public class Colors {
 
+    /**
+     * Private constructor to prevent instantiation.
+     */
+    private Colors() {
+        // Utility class
+    }
+
     // @spotless:off
 
     /**

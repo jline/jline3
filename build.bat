@@ -217,7 +217,7 @@ if "%~1"=="--help" (
 ) else if "%~1"=="verbose" (
     set "logconf=demo\etc\logging-verbose.properties"
 ) else if "%~1"=="ffm" (
-    set "JVM_OPTS=!JVM_OPTS! --enable-preview --enable-native-access=ALL-UNNAMED"
+    set "JVM_OPTS=!JVM_OPTS! --enable-preview --enable-native-access=org.jline.terminal.ffm"
 ) else if "%~1"=="ssh" (
     :: Process SSH option for gogo
     if "%demo_type%"=="gogo" (
@@ -325,7 +325,7 @@ if "%java_version:~1,1%"=="." set "java_version=%java_version:~0,1%"
 if not defined java_version set "java_version=8"
 :: Add --enable-native-access only for Java 16+
 echo %java_version% | findstr /C:"16" /C:"17" /C:"18" /C:"19" /C:"20" /C:"21" /C:"22" >nul
-if not errorlevel 1 set "JVM_OPTS=%JVM_OPTS% --enable-native-access=ALL-UNNAMED"
+if not errorlevel 1 set "JVM_OPTS=%JVM_OPTS% --enable-native-access=org.jline.terminal.ffm"
 
 :: Launch the demo
 echo Launching %MAIN_CLASS%...
@@ -377,7 +377,7 @@ if "%~1"=="debug" (
         set "cp=!cp!;%%i"
     )
 ) else if "%~1"=="ffm" (
-    set "JVM_OPTS=!JVM_OPTS! --enable-preview --enable-native-access=ALL-UNNAMED"
+    set "JVM_OPTS=!JVM_OPTS! --enable-preview --enable-native-access=org.jline.terminal.ffm"
 ) else (
     set "JVM_OPTS=!JVM_OPTS! %~1"
 )

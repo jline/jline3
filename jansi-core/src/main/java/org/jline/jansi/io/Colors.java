@@ -16,6 +16,13 @@ package org.jline.jansi.io;
 public class Colors {
 
     /**
+     * Creates a new Colors.
+     */
+    public Colors() {
+        // Default constructor
+    }
+
+    /**
      * Default 256 colors palette
      */
     public static final int[] DEFAULT_COLORS_256 = org.jline.utils.Colors.DEFAULT_COLORS_256;

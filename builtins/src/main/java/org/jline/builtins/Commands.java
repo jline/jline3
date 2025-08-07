@@ -74,6 +74,8 @@ import static org.jline.builtins.SyntaxHighlighter.*;
  */
 public class Commands {
 
+    private Commands() {}
+
     /**
      * Implements a terminal multiplexer similar to tmux.
      *

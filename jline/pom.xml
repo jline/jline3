@@ -136,6 +136,7 @@
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
                                     <includes>**/*.java</includes>
+                                    <excludes>**/module-info.java</excludes>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
@@ -145,6 +146,7 @@
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
                                     <includes>**/*.java</includes>
+                                    <excludes>**/module-info.java</excludes>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
@@ -154,6 +156,7 @@
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
                                     <includes>**/*.java</includes>
+                                    <excludes>**/module-info.java</excludes>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
@@ -163,6 +166,7 @@
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
                                     <includes>**/*.java</includes>
+                                    <excludes>**/module-info.java</excludes>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
@@ -172,6 +176,7 @@
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
                                     <includes>**/*.java</includes>
+                                    <excludes>**/module-info.java</excludes>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
@@ -181,6 +186,7 @@
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
                                     <includes>**/*.java</includes>
+                                    <excludes>**/module-info.java</excludes>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
@@ -190,6 +196,7 @@
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
                                     <includes>**/*.java</includes>
+                                    <excludes>**/module-info.java</excludes>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
@@ -199,6 +206,7 @@
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
                                     <includes>**/*.java</includes>
+                                    <excludes>**/module-info.java</excludes>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
@@ -208,6 +216,7 @@
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
                                     <includes>**/*.java</includes>
+                                    <excludes>**/module-info.java</excludes>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
@@ -217,6 +226,7 @@
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
                                     <includes>**/*.java</includes>
+                                    <excludes>**/module-info.java</excludes>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
@@ -226,6 +236,7 @@
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
                                     <includes>**/*.java</includes>
+                                    <excludes>**/module-info.java</excludes>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
@@ -235,6 +246,7 @@
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
                                     <includes>**/*.java</includes>
+                                    <excludes>**/module-info.java</excludes>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
@@ -244,6 +256,7 @@
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
                                     <includes>**/*.java</includes>
+                                    <excludes>**/module-info.java</excludes>
                                 </artifactItem>
 
                                 <!-- resources -->

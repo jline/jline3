@@ -32,6 +32,13 @@ import java.io.FileDescriptor;
 @SuppressWarnings("unused")
 public class JLineLibrary {
 
+    /**
+     * Private constructor to prevent instantiation.
+     */
+    private JLineLibrary() {
+        // Utility class
+    }
+
     static {
         JLineNativeLoader.initialize();
     }

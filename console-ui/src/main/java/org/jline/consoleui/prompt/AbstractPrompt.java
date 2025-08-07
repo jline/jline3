@@ -410,7 +410,14 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
     }
 
     @SuppressWarnings("serial")
-    protected static class ExpandableChoiceException extends RuntimeException {}
+    protected static class ExpandableChoiceException extends RuntimeException {
+        /**
+         * Creates a new ExpandableChoiceException.
+         */
+        public ExpandableChoiceException() {
+            // Default constructor
+        }
+    }
 
     protected static class ConfirmPrompt extends AbstractPrompt<ListItemIF> {
         private enum Operation {

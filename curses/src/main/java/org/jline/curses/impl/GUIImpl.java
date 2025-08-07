@@ -46,6 +46,11 @@ public class GUIImpl implements GUI {
                         st);
             }
         };
+        // Initialize background after all fields are set to avoid this-escape warning
+        initializeBackground();
+    }
+
+    private void initializeBackground() {
         this.background.setGUI(this);
         this.background.setBehaviors(EnumSet.of(Component.Behavior.NoDecoration, Component.Behavior.FullScreen));
     }

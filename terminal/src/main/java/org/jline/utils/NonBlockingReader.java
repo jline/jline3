@@ -44,6 +44,14 @@ import java.io.Reader;
  * </p>
  */
 public abstract class NonBlockingReader extends Reader {
+
+    /**
+     * Default constructor.
+     */
+    public NonBlockingReader() {
+        // Default constructor
+    }
+
     public static final int EOF = -1;
     public static final int READ_EXPIRED = -2;
 

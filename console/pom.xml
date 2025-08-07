@@ -28,6 +28,10 @@
         <dependency>
             <artifactId>jline-style</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-console-ui</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.googlecode.juniversalchardet</groupId>
@@ -56,7 +60,7 @@
                         <id>default-compile</id>
                         <configuration>
                             <compilerArgs>
-                                <arg>-Xlint:all,-options</arg>
+                                <arg>-Xlint:all,-options,-restricted</arg>
                                 <arg>-Werror</arg>
                             </compilerArgs>
                         </configuration>

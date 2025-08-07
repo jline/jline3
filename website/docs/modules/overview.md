@@ -6,6 +6,10 @@ sidebar_position: 1
 
 JLine is organized into several modules, each providing specific functionality. This modular architecture allows you to include only the components you need in your application, reducing dependencies and improving maintainability.
 
+:::info JPMS Support
+JLine 4.0+ provides full support for the Java Platform Module System (JPMS). See the [JPMS Support](./jpms.md) page for detailed information about which modules are JPMS-compatible and how to use them in modular applications.
+:::
+
 ## Core Modules
 
 JLine's core functionality is provided by these essential modules:
@@ -115,5 +119,16 @@ To use these modules in your Maven project, add the appropriate dependencies:
     <version>%%JLINE_VERSION%%</version>
 </dependency>
 ```
+
+## JPMS Module Status
+
+JLine 4.0+ includes full JPMS support for most modules:
+
+- **✅ JPMS Modules**: `jline-terminal`, `jline-reader`, `jline-style`, `jline-builtins`, `jline-console`, `jline-console-ui`, `jline-native`, `jline-terminal-ffm`, `jline-terminal-jna`, `jline-terminal-jni`, `jline-jansi-core`, `jline-curses`
+- **❌ Automatic Modules**: `jline-terminal-jansi`, `jline-groovy`, `jline-remote-ssh`, `jline-remote-telnet`, `jline-demo`, `jline-graal`
+
+For detailed JPMS usage information, see the [JPMS Support](./jpms.md) documentation.
+
+---
 
 The following sections provide detailed documentation for each of these modules.

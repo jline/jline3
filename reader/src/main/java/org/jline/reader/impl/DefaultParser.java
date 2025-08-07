@@ -97,6 +97,13 @@ public class DefaultParser implements Parser {
     private String regexCommand = "[:]?[a-zA-Z]+[a-zA-Z0-9_-]*";
     private int commandGroup = 4;
 
+    /**
+     * Creates a new DefaultParser.
+     */
+    public DefaultParser() {
+        // Default constructor
+    }
+
     //
     // Chainable setters
     //

@@ -17,6 +17,13 @@ import java.nio.charset.StandardCharsets;
 @SuppressWarnings("unused")
 public class Kernel32 {
 
+    /**
+     * Private constructor to prevent instantiation.
+     */
+    private Kernel32() {
+        // Utility class
+    }
+
     static {
         if (JLineNativeLoader.initialize()) {
             init();
@@ -54,6 +61,13 @@ public class Kernel32 {
      * http://msdn.microsoft.com/en-us/library/ms686311%28VS.85%29.aspx
      */
     public static class SMALL_RECT {
+        /**
+         * Default constructor.
+         */
+        public SMALL_RECT() {
+            // Default constructor
+        }
+
         static {
             if (JLineNativeLoader.initialize()) {
                 init();
@@ -94,6 +108,13 @@ public class Kernel32 {
 
     public static class COORD {
 
+        /**
+         * Default constructor.
+         */
+        public COORD() {
+            // Default constructor
+        }
+
         static {
             if (JLineNativeLoader.initialize()) {
                 init();
@@ -119,6 +140,13 @@ public class Kernel32 {
      * http://msdn.microsoft.com/en-us/library/ms682093%28VS.85%29.aspx
      */
     public static class CONSOLE_SCREEN_BUFFER_INFO {
+
+        /**
+         * Default constructor.
+         */
+        public CONSOLE_SCREEN_BUFFER_INFO() {
+            // Default constructor
+        }
 
         static {
             if (JLineNativeLoader.initialize()) {
@@ -239,6 +267,13 @@ public class Kernel32 {
      */
     public static class CHAR_INFO {
 
+        /**
+         * Default constructor.
+         */
+        public CHAR_INFO() {
+            // Default constructor
+        }
+
         static {
             JLineNativeLoader.initialize();
             init();
@@ -266,6 +301,13 @@ public class Kernel32 {
      * see: http://msdn.microsoft.com/en-us/library/ms684166(v=VS.85).aspx
      */
     public static class KEY_EVENT_RECORD {
+
+        /**
+         * Default constructor.
+         */
+        public KEY_EVENT_RECORD() {
+            // Default constructor
+        }
 
         static {
             if (JLineNativeLoader.initialize()) {
@@ -308,6 +350,13 @@ public class Kernel32 {
      * see: http://msdn.microsoft.com/en-us/library/ms684239(v=VS.85).aspx
      */
     public static class MOUSE_EVENT_RECORD {
+
+        /**
+         * Default constructor.
+         */
+        public MOUSE_EVENT_RECORD() {
+            // Default constructor
+        }
 
         static {
             if (JLineNativeLoader.initialize()) {
@@ -358,6 +407,13 @@ public class Kernel32 {
      */
     public static class WINDOW_BUFFER_SIZE_RECORD {
 
+        /**
+         * Default constructor.
+         */
+        public WINDOW_BUFFER_SIZE_RECORD() {
+            // Default constructor
+        }
+
         static {
             if (JLineNativeLoader.initialize()) {
                 init();
@@ -379,6 +435,13 @@ public class Kernel32 {
      * see: http://msdn.microsoft.com/en-us/library/ms683149(v=VS.85).aspx
      */
     public static class FOCUS_EVENT_RECORD {
+        /**
+         * Default constructor.
+         */
+        public FOCUS_EVENT_RECORD() {
+            // Default constructor
+        }
+
         static {
             if (JLineNativeLoader.initialize()) {
                 init();
@@ -395,6 +458,13 @@ public class Kernel32 {
      * see: http://msdn.microsoft.com/en-us/library/ms684213(v=VS.85).aspx
      */
     public static class MENU_EVENT_RECORD {
+        /**
+         * Default constructor.
+         */
+        public MENU_EVENT_RECORD() {
+            // Default constructor
+        }
+
         static {
             if (JLineNativeLoader.initialize()) {
                 init();
@@ -411,6 +481,13 @@ public class Kernel32 {
      * see: http://msdn.microsoft.com/en-us/library/ms683499(v=VS.85).aspx
      */
     public static class INPUT_RECORD {
+
+        /**
+         * Default constructor.
+         */
+        public INPUT_RECORD() {
+            // Default constructor
+        }
 
         static {
             if (JLineNativeLoader.initialize()) {
