@@ -65,14 +65,7 @@
             <artifactId>jline-terminal-jni</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <artifactId>jline-terminal-jansi</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <artifactId>jline-terminal-jna</artifactId>
-            <scope>test</scope>
-        </dependency>
+
         <dependency>
             <artifactId>jline-terminal-ffm</artifactId>
             <scope>test</scope>
@@ -151,26 +144,6 @@
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
                                     <artifactId>jline-terminal-ffm</artifactId>
-                                    <classifier>sources</classifier>
-                                    <type>jar</type>
-                                    <overWrite>false</overWrite>
-                                    <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
-                                    <includes>**/*.java</includes>
-                                    <excludes>**/module-info.java</excludes>
-                                </artifactItem>
-                                <artifactItem>
-                                    <groupId>org.jline</groupId>
-                                    <artifactId>jline-terminal-jansi</artifactId>
-                                    <classifier>sources</classifier>
-                                    <type>jar</type>
-                                    <overWrite>false</overWrite>
-                                    <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
-                                    <includes>**/*.java</includes>
-                                    <excludes>**/module-info.java</excludes>
-                                </artifactItem>
-                                <artifactItem>
-                                    <groupId>org.jline</groupId>
-                                    <artifactId>jline-terminal-jna</artifactId>
                                     <classifier>sources</classifier>
                                     <type>jar</type>
                                     <overWrite>false</overWrite>
@@ -279,22 +252,6 @@
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
                                     <artifactId>jline-terminal-ffm</artifactId>
-                                    <type>jar</type>
-                                    <overWrite>false</overWrite>
-                                    <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
-                                    <excludes>**/*.class</excludes>
-                                </artifactItem>
-                                <artifactItem>
-                                    <groupId>org.jline</groupId>
-                                    <artifactId>jline-terminal-jansi</artifactId>
-                                    <type>jar</type>
-                                    <overWrite>false</overWrite>
-                                    <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
-                                    <excludes>**/*.class</excludes>
-                                </artifactItem>
-                                <artifactItem>
-                                    <groupId>org.jline</groupId>
-                                    <artifactId>jline-terminal-jna</artifactId>
                                     <type>jar</type>
                                     <overWrite>false</overWrite>
                                     <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>

@@ -336,7 +336,7 @@ public class StyleResolver {
         }
     }
 
-    // TODO: consider simplify and always using StyleColor, for now for compat with other bits leaving syntax complexity
+    // TODO: consider simplify color handling, for now for compat with other bits leaving syntax complexity
 
     /**
      * Apply color styles specification.

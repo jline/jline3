@@ -93,12 +93,6 @@ import static org.jline.terminal.TerminalBuilder.PROP_DISABLE_ALTERNATE_CHARSET;
 public class LineReaderImpl implements LineReader, Flushable {
     public static final char NULL_MASK = 0;
 
-    /**
-     * @deprecated use {@link #DEFAULT_TAB_WIDTH} and {@link #getTabWidth()}
-     */
-    @Deprecated
-    public static final int TAB_WIDTH = 4;
-
     public static final int DEFAULT_TAB_WIDTH = 4;
 
     public static final String DEFAULT_WORDCHARS = "*?_-.[]~=/&;!#$%^(){}<>";

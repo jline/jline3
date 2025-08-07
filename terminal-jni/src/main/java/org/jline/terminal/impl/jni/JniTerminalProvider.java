@@ -143,51 +143,6 @@ public class JniTerminalProvider implements TerminalProvider {
         }
     }
 
-    @SuppressWarnings("deprecation")
-    @Deprecated
-    @Override
-    public Terminal sysTerminal(
-            String name,
-            String type,
-            boolean ansiPassThrough,
-            Charset encoding,
-            Charset stdinEncoding,
-            Charset stdoutEncoding,
-            Charset stderrEncoding,
-            boolean nativeSignals,
-            Terminal.SignalHandler signalHandler,
-            boolean paused,
-            SystemStream systemStream)
-            throws IOException {
-        if (OSUtils.IS_WINDOWS) {
-            return winSysTerminal(
-                    name,
-                    type,
-                    ansiPassThrough,
-                    encoding,
-                    stdinEncoding,
-                    stdoutEncoding,
-                    stderrEncoding,
-                    nativeSignals,
-                    signalHandler,
-                    paused,
-                    systemStream);
-        } else {
-            return posixSysTerminal(
-                    name,
-                    type,
-                    ansiPassThrough,
-                    encoding,
-                    stdinEncoding,
-                    stdoutEncoding,
-                    stderrEncoding,
-                    nativeSignals,
-                    signalHandler,
-                    paused,
-                    systemStream);
-        }
-    }
-
     public Terminal winSysTerminal(
             String name,
             String type,
@@ -301,28 +256,6 @@ public class JniTerminalProvider implements TerminalProvider {
         Pty pty = open(attributes, size);
         return new PosixPtyTerminal(
                 name, type, pty, in, out, encoding, inputEncoding, outputEncoding, signalHandler, paused);
-    }
-
-    @SuppressWarnings("deprecation")
-    @Deprecated
-    @Override
-    public Terminal newTerminal(
-            String name,
-            String type,
-            InputStream in,
-            OutputStream out,
-            Charset encoding,
-            Charset stdinEncoding,
-            Charset stdoutEncoding,
-            Charset stderrEncoding,
-            Terminal.SignalHandler signalHandler,
-            boolean paused,
-            Attributes attributes,
-            Size size)
-            throws IOException {
-        Pty pty = open(attributes, size);
-        return new PosixPtyTerminal(
-                name, type, pty, in, out, encoding, stdinEncoding, stdoutEncoding, signalHandler, paused);
     }
 
     @Override

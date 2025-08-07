@@ -191,54 +191,9 @@ public class ExecTerminalProvider implements TerminalProvider {
      * @param systemStream the system stream to connect to
      * @return a new terminal connected to the specified system stream
      * @throws IOException if an I/O error occurs
-     * @deprecated Use {@link #sysTerminal(String, String, boolean, Charset, Charset, Charset, boolean, Terminal.SignalHandler, boolean, SystemStream)} instead
-     */
-    @SuppressWarnings("deprecation")
-    @Deprecated
-    @Override
-    public Terminal sysTerminal(
-            String name,
-            String type,
-            boolean ansiPassThrough,
-            Charset encoding,
-            Charset stdinEncoding,
-            Charset stdoutEncoding,
-            Charset stderrEncoding,
-            boolean nativeSignals,
-            Terminal.SignalHandler signalHandler,
-            boolean paused,
-            SystemStream systemStream)
-            throws IOException {
-        if (OSUtils.IS_WINDOWS) {
-            return winSysTerminal(
-                    name,
-                    type,
-                    ansiPassThrough,
-                    encoding,
-                    stdinEncoding,
-                    stdoutEncoding,
-                    stderrEncoding,
-                    nativeSignals,
-                    signalHandler,
-                    paused,
-                    systemStream);
-        } else {
-            return posixSysTerminal(
-                    name,
-                    type,
-                    ansiPassThrough,
-                    encoding,
-                    stdinEncoding,
-                    stdoutEncoding,
-                    stderrEncoding,
-                    nativeSignals,
-                    signalHandler,
-                    paused,
-                    systemStream);
-        }
-    }
-
-    /**
+     *
+     *
+     * /**
      * Creates a terminal connected to a system stream on Windows.
      *
      * <p>
@@ -449,41 +404,9 @@ public class ExecTerminalProvider implements TerminalProvider {
      * @param size the initial terminal size
      * @return a new terminal connected to the specified streams
      * @throws IOException if an I/O error occurs
-     * @deprecated Use {@link #newTerminal(String, String, InputStream, OutputStream, Charset, Charset, Charset, Terminal.SignalHandler, boolean, Attributes, Size)} instead
-     */
-    @SuppressWarnings("deprecation")
-    @Deprecated
-    @Override
-    public Terminal newTerminal(
-            String name,
-            String type,
-            InputStream in,
-            OutputStream out,
-            Charset encoding,
-            Charset stdinEncoding,
-            Charset stdoutEncoding,
-            Charset stderrEncoding,
-            Terminal.SignalHandler signalHandler,
-            boolean paused,
-            Attributes attributes,
-            Size size)
-            throws IOException {
-        return new ExternalTerminal(
-                this,
-                name,
-                type,
-                in,
-                out,
-                encoding,
-                stdinEncoding,
-                stdoutEncoding,
-                signalHandler,
-                paused,
-                attributes,
-                size);
-    }
-
-    /**
+     *
+     *
+     * /**
      * Checks if the specified system stream is available on this platform.
      *
      * <p>

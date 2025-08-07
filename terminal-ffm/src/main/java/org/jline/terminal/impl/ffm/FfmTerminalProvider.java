@@ -85,55 +85,6 @@ public class FfmTerminalProvider implements TerminalProvider {
         }
     }
 
-    @SuppressWarnings("deprecation")
-    @Deprecated
-    @Override
-    public Terminal sysTerminal(
-            String name,
-            String type,
-            boolean ansiPassThrough,
-            Charset encoding,
-            Charset stdinEncoding,
-            Charset stdoutEncoding,
-            Charset stderrEncoding,
-            boolean nativeSignals,
-            Terminal.SignalHandler signalHandler,
-            boolean paused,
-            SystemStream systemStream)
-            throws IOException {
-        if (OSUtils.IS_WINDOWS) {
-            // Use the appropriate output encoding based on the system stream
-            Charset outputEncoding = systemStream == SystemStream.Error ? stderrEncoding : stdoutEncoding;
-            return NativeWinSysTerminal.createTerminal(
-                    this,
-                    systemStream,
-                    name,
-                    type,
-                    ansiPassThrough,
-                    encoding,
-                    stdinEncoding,
-                    outputEncoding,
-                    nativeSignals,
-                    signalHandler,
-                    paused);
-        } else {
-            Pty pty = new FfmNativePty(
-                    this,
-                    systemStream,
-                    -1,
-                    null,
-                    0,
-                    FileDescriptor.in,
-                    systemStream == SystemStream.Output ? 1 : 2,
-                    systemStream == SystemStream.Output ? FileDescriptor.out : FileDescriptor.err,
-                    CLibrary.ttyName(0));
-            // Use the appropriate output encoding based on the system stream
-            Charset outputEncoding = systemStream == SystemStream.Error ? stderrEncoding : stdoutEncoding;
-            return new PosixSysTerminal(
-                    name, type, pty, encoding, stdinEncoding, outputEncoding, nativeSignals, signalHandler);
-        }
-    }
-
     @Override
     public Terminal newTerminal(
             String name,
@@ -151,28 +102,6 @@ public class FfmTerminalProvider implements TerminalProvider {
         Pty pty = CLibrary.openpty(this, attributes, size);
         return new PosixPtyTerminal(
                 name, type, pty, in, out, encoding, inputEncoding, outputEncoding, signalHandler, paused);
-    }
-
-    @SuppressWarnings("deprecation")
-    @Deprecated
-    @Override
-    public Terminal newTerminal(
-            String name,
-            String type,
-            InputStream in,
-            OutputStream out,
-            Charset encoding,
-            Charset stdinEncoding,
-            Charset stdoutEncoding,
-            Charset stderrEncoding,
-            Terminal.SignalHandler signalHandler,
-            boolean paused,
-            Attributes attributes,
-            Size size)
-            throws IOException {
-        Pty pty = CLibrary.openpty(this, attributes, size);
-        return new PosixPtyTerminal(
-                name, type, pty, in, out, encoding, stdinEncoding, stdoutEncoding, signalHandler, paused);
     }
 
     @Override

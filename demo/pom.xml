@@ -29,12 +29,6 @@
             <artifactId>jline-terminal-jni</artifactId>
         </dependency>
         <dependency>
-            <artifactId>jline-terminal-jansi</artifactId>
-        </dependency>
-        <dependency>
-            <artifactId>jline-terminal-jna</artifactId>
-        </dependency>
-        <dependency>
             <artifactId>jline-reader</artifactId>
         </dependency>
         <dependency>
