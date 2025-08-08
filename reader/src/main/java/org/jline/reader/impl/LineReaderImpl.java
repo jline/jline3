@@ -1266,10 +1266,10 @@ public class LineReaderImpl implements LineReader, Flushable {
             Status status = Status.getStatus(terminal, false);
             if (status != null) {
                 status.resize(size);
-                status.reset();
+              //  status.reset();
             }
-            terminal.puts(Capability.carriage_return);
-            terminal.puts(Capability.clr_eos);
+           // terminal.puts(Capability.carriage_return);
+           // terminal.puts(Capability.clr_eos);
             redrawLine();
             redisplay();
         } else if (signal == Signal.CONT) {
