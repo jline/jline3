@@ -2054,18 +2054,17 @@ public class PosixCommands {
      * Get POSIX file permissions from a file, with Windows executable handling.
      */
     private static Set<PosixFilePermission> getPermissionsFromFile(Path f) {
+        Set<PosixFilePermission> perms = new HashSet<>();
         try {
-            Set<PosixFilePermission> perms = Files.getPosixFilePermissions(f);
-            if (OSUtils.IS_WINDOWS && isWindowsExecutable(f.getFileName().toString())) {
-                perms = new HashSet<>(perms);
-                perms.add(PosixFilePermission.OWNER_EXECUTE);
-                perms.add(PosixFilePermission.GROUP_EXECUTE);
-                perms.add(PosixFilePermission.OTHERS_EXECUTE);
-            }
-            return perms;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            perms = Files.getPosixFilePermissions(f);
+        } catch (IOException | UnsupportedOperationException ignore) {
         }
+        if (OSUtils.IS_WINDOWS && isWindowsExecutable(f.getFileName().toString())) {
+            perms.add(PosixFilePermission.OWNER_EXECUTE);
+            perms.add(PosixFilePermission.GROUP_EXECUTE);
+            perms.add(PosixFilePermission.OTHERS_EXECUTE);
+        }
+        return perms;
     }
 
     /**
