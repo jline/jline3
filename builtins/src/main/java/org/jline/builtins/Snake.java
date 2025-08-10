@@ -77,12 +77,35 @@ public class Snake {
         }
     }
 
+    public enum ColorMode {
+        CLASSIC,
+        RAINBOW
+    }
+
+    public enum WallsMode {
+        NONE,
+        BORDER,
+        RANDOM
+    }
+
+    public enum Difficulty {
+        SLOW(200),
+        NORMAL(150),
+        FAST(100);
+        final long delay;
+
+        Difficulty(long d) {
+            this.delay = d;
+        }
+    }
+
     private enum Operation {
         UP,
         DOWN,
         LEFT,
         RIGHT,
         PAUSE,
+        MENU,
         QUIT,
         NONE
     }
@@ -109,28 +132,101 @@ public class Snake {
         }
     }
 
+    // Config
+    private ColorMode colorMode = ColorMode.RAINBOW;
+    private WallsMode wallsMode = WallsMode.BORDER;
+    private Difficulty difficulty = Difficulty.NORMAL;
+    private boolean wrapAround = false;
+
+    // Walls
+    /**
+     * Optional start configuration setters
+     */
+    public Snake colorMode(ColorMode cm) {
+        this.colorMode = cm;
+        return this;
+    }
+
+    public Snake wallsMode(WallsMode wm) {
+        this.wallsMode = wm;
+        return this;
+    }
+
+    public Snake difficulty(Difficulty d) {
+        this.difficulty = d;
+        this.gameDelay = d.delay;
+        return this;
+    }
+
+    public Snake wrapAround(boolean w) {
+        this.wrapAround = w;
+        return this;
+    }
+
+    private List<Point> walls = new ArrayList<>();
+
     private final Terminal terminal;
     private final Display display;
     private final Size size = new Size();
     private final Random random = new Random();
 
+    // Effects
+    private int eatEffectFrames = 0;
+    private Point lastEatPos = new Point(0, 0);
+
     // Game state
     private List<Point> snake;
     private Direction direction;
     private Point food;
+
+    private void buildWalls() {
+        walls.clear();
+        if (wallsMode == WallsMode.NONE) return;
+        if (wallsMode == WallsMode.BORDER) {
+            for (int x = 0; x < gameWidth; x++) {
+                walls.add(new Point(x, 0));
+                walls.add(new Point(x, gameHeight - 1));
+            }
+            for (int y = 0; y < gameHeight; y++) {
+                walls.add(new Point(0, y));
+                walls.add(new Point(gameWidth - 1, y));
+            }
+        } else if (wallsMode == WallsMode.RANDOM) {
+            int count = Math.max(5, (gameWidth * gameHeight) / 40);
+            for (int i = 0; i < count; i++) {
+                walls.add(new Point(random.nextInt(gameWidth), random.nextInt(gameHeight)));
+            }
+        }
+    }
+
     private int score;
     private boolean gameOver;
+
+    private AttributedStyle tailStyle(int idx) {
+        if (colorMode == ColorMode.RAINBOW) {
+            int base = (idx * 20) % 360;
+            int r = (int) (Math.max(0, Math.min(255, Math.abs(((base + 0) % 360) - 180) - 60)) * 4.25);
+            int g = (int) (Math.max(0, Math.min(255, Math.abs(((base + 120) % 360) - 180) - 60)) * 4.25);
+            int b = (int) (Math.max(0, Math.min(255, Math.abs(((base + 240) % 360) - 180) - 60)) * 4.25);
+            return AttributedStyle.DEFAULT.foreground(r, g, b);
+        } else {
+            return AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN);
+        }
+    }
+
     private boolean paused;
     private boolean running;
 
     // Game area dimensions (excluding borders)
+    // Timing
+    private long gameDelay = Difficulty.NORMAL.delay;
+
     private int gameWidth;
     private int gameHeight;
     private int gameStartX = 2; // Leave space for border
     private int gameStartY = 3; // Leave space for border and header
 
-    // Game timing
-    private static final long GAME_DELAY = 150; // milliseconds between moves
+    // Removed fixed delay; using configurable difficulty instead
 
     public Snake(Terminal terminal) {
         this.terminal = terminal;
@@ -151,7 +247,30 @@ public class Snake {
         running = true;
 
         updateGameDimensions();
+        buildWalls();
         spawnFood();
+        // center start
+        // Color helpers for tails
+        java.util.function.IntFunction<AttributedStyle> tailColor = idx -> {
+            if (colorMode == ColorMode.RAINBOW) {
+                int base = (idx * 20) % 360;
+                int r = (int) (Math.max(0, Math.min(255, Math.abs(((base + 0) % 360) - 180) - 60)) * 4.25);
+                int g = (int) (Math.max(0, Math.min(255, Math.abs(((base + 120) % 360) - 180) - 60)) * 4.25);
+                int b = (int) (Math.max(0, Math.min(255, Math.abs(((base + 240) % 360) - 180) - 60)) * 4.25);
+                return AttributedStyle.DEFAULT.foreground(r, g, b);
+            } else {
+                return AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN);
+            }
+        };
+
+        Point head = snake.get(0);
+        head.x = Math.max(1, gameWidth / 2);
+        head.y = Math.max(1, gameHeight / 2);
+        // adjust rest
+        for (int i = 1; i < snake.size(); i++) {
+            snake.get(i).x = head.x - i;
+            snake.get(i).y = head.y;
+        }
     }
 
     private void updateGameDimensions() {
@@ -169,7 +288,7 @@ public class Snake {
     private void spawnFood() {
         do {
             food = new Point(random.nextInt(gameWidth), random.nextInt(gameHeight));
-        } while (snake.contains(food));
+        } while (snake.contains(food) || walls.contains(food));
     }
 
     public void run() throws IOException {
@@ -195,7 +314,7 @@ public class Snake {
 
                 if (!paused) {
                     long now = System.currentTimeMillis();
-                    if (now - lastUpdate >= GAME_DELAY) {
+                    if (now - lastUpdate >= gameDelay) {
                         updateGame();
                         lastUpdate = now;
                     }
@@ -203,7 +322,7 @@ public class Snake {
 
                 // Handle input with timeout
                 long timeToNextUpdate =
-                        paused ? Long.MAX_VALUE : Math.max(1, GAME_DELAY - (System.currentTimeMillis() - lastUpdate));
+                        paused ? Long.MAX_VALUE : Math.max(1, gameDelay - (System.currentTimeMillis() - lastUpdate));
 
                 int ch = bindingReader.peekCharacter(timeToNextUpdate);
                 if (ch != NonBlockingReader.READ_EXPIRED && ch != -1) {
@@ -253,6 +372,7 @@ public class Snake {
 
         // Control keys
         keyMap.bind(Operation.PAUSE, "p", "P", " ");
+        keyMap.bind(Operation.MENU, "m", "M", "o", "O");
         keyMap.bind(Operation.QUIT, "q", "Q", KeyMap.ctrl('C'));
 
         // Default to NONE for unbound keys
@@ -281,6 +401,9 @@ public class Snake {
             case PAUSE:
                 paused = !paused;
                 break;
+            case MENU:
+                showMenu();
+                break;
             case QUIT:
                 running = false;
                 break;
@@ -292,16 +415,42 @@ public class Snake {
 
         // Calculate new head position
         Point head = snake.get(0);
+        // Color helpers for tails
+        java.util.function.IntFunction<AttributedStyle> tailColor = idx -> {
+            if (colorMode == ColorMode.RAINBOW) {
+                int base = (idx * 20) % 360;
+                int r = (int) (Math.max(0, Math.min(255, Math.abs(((base + 0) % 360) - 180) - 60)) * 4.25);
+                int g = (int) (Math.max(0, Math.min(255, Math.abs(((base + 120) % 360) - 180) - 60)) * 4.25);
+                int b = (int) (Math.max(0, Math.min(255, Math.abs(((base + 240) % 360) - 180) - 60)) * 4.25);
+                return AttributedStyle.DEFAULT.foreground(r, g, b);
+            } else {
+                return AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN);
+            }
+        };
+
         Point newHead = new Point(head.x + direction.dx, head.y + direction.dy);
 
-        // Check wall collision
+        // Wall collision or wrap-around
         if (newHead.x < 0 || newHead.x >= gameWidth || newHead.y < 0 || newHead.y >= gameHeight) {
-            gameOver = true;
-            return;
+            if (wrapAround) {
+                if (newHead.x < 0) newHead.x = gameWidth - 1;
+                if (newHead.x >= gameWidth) newHead.x = 0;
+                if (newHead.y < 0) newHead.y = gameHeight - 1;
+                if (newHead.y >= gameHeight) newHead.y = 0;
+            } else {
+                gameOver = true;
+                return;
+            }
         }
 
         // Check self collision
         if (snake.contains(newHead)) {
+            gameOver = true;
+            return;
+        }
+
+        // Check walls collision
+        if (walls.contains(newHead)) {
             gameOver = true;
             return;
         }
@@ -312,6 +461,8 @@ public class Snake {
         // Check food collision
         if (newHead.equals(food)) {
             score += 10;
+            eatEffectFrames = 6;
+            lastEatPos = new Point(food.x, food.y);
             spawnFood();
         } else {
             // Remove tail if no food eaten
@@ -332,6 +483,13 @@ public class Snake {
             }
         }
 
+        // Place walls
+        for (Point w : walls) {
+            if (w.x >= 0 && w.x < gameWidth && w.y >= 0 && w.y < gameHeight) {
+                board[w.y][w.x] = '█';
+            }
+        }
+
         // Place snake
         for (int i = 0; i < snake.size(); i++) {
             Point p = snake.get(i);
@@ -347,6 +505,21 @@ public class Snake {
 
         // Build header
         AttributedStringBuilder header = new AttributedStringBuilder();
+        // Eating effect: highlight around the eaten pill
+        if (eatEffectFrames > 0) {
+            int radius = 1 + (6 - eatEffectFrames) / 2;
+            for (int dy = -radius; dy <= radius; dy++) {
+                for (int dx = -radius; dx <= radius; dx++) {
+                    int xx = lastEatPos.x + dx;
+                    int yy = lastEatPos.y + dy;
+                    if (xx >= 0 && xx < gameWidth && yy >= 0 && yy < gameHeight) {
+                        if (board[yy][xx] == ' ') board[yy][xx] = '.'; // sparkle
+                    }
+                }
+            }
+            eatEffectFrames--;
+        }
+
         header.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.GREEN));
         header.append("🐍 JLine Snake Game");
         header.style(AttributedStyle.DEFAULT);
@@ -385,19 +558,36 @@ public class Snake {
             for (int x = 0; x < gameWidth; x++) {
                 char ch = board[y][x];
                 if (ch == '@') {
-                    // Snake head - green
-                    line.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.GREEN));
+                    // Snake head - bright color
+                    line.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.YELLOW));
                     line.append(ch);
                     line.style(AttributedStyle.DEFAULT);
                 } else if (ch == '#') {
-                    // Snake body - bright green
-                    line.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN));
+                    // Snake body - gradient/rainbow
+                    int idxFromHead = 0;
+                    // find index from head by scanning snake list
+                    for (int si = 1; si < snake.size(); si++) {
+                        if (snake.get(si).x == x && snake.get(si).y == y) {
+                            idxFromHead = si;
+                            break;
+                        }
+                    }
+                    line.style(tailStyle(idxFromHead));
                     line.append(ch);
                     line.style(AttributedStyle.DEFAULT);
                 } else if (ch == '*') {
-                    // Food - red
+                    // Food - red blinking-ish (bold)
                     line.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.RED));
                     line.append(ch);
+                    line.style(AttributedStyle.DEFAULT);
+                } else if (ch == '█') {
+                    // Walls
+                    line.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE));
+                    line.append(ch);
+                    line.style(AttributedStyle.DEFAULT);
+                } else if (ch == '.') {
+                    line.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.MAGENTA));
+                    line.append('*');
                     line.style(AttributedStyle.DEFAULT);
                 } else {
                     line.append(ch);
@@ -425,6 +615,73 @@ public class Snake {
         lines.add(footer.toAttributedString());
 
         display.update(lines, -1);
+    }
+
+    private void showMenu() {
+        List<AttributedString> lines = new ArrayList<>();
+        lines.add(new AttributedString(""));
+        AttributedStringBuilder title = new AttributedStringBuilder();
+        title.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.CYAN));
+        title.append("Snake Options");
+        lines.add(title.toAttributedString());
+        lines.add(new AttributedString(""));
+
+        lines.add(new AttributedString("  1) Color Mode: " + colorMode));
+        lines.add(new AttributedString("  2) Walls Mode:  " + wallsMode));
+        lines.add(new AttributedString("  3) Difficulty:  " + difficulty));
+        lines.add(new AttributedString("  4) Wrap Around: " + (wrapAround ? "ON" : "OFF")));
+        lines.add(new AttributedString(""));
+        lines.add(new AttributedString("  Use keys 1-4 to toggle options, ESC to exit menu"));
+
+        display.update(lines, 0);
+
+        // Simple key handling for options
+        try {
+            terminal.handle(Terminal.Signal.WINCH, null);
+            terminal.enterRawMode();
+            NonBlockingReader reader = terminal.reader();
+            int ch;
+            while ((ch = reader.read(1000)) != -1) {
+                if (ch == 27) { // ESC
+                    break;
+                } else if (ch == '1') {
+                    colorMode = (colorMode == ColorMode.CLASSIC) ? ColorMode.RAINBOW : ColorMode.CLASSIC;
+                } else if (ch == '2') {
+                    switch (wallsMode) {
+                        case NONE:
+                            wallsMode = WallsMode.BORDER;
+                            break;
+                        case BORDER:
+                            wallsMode = WallsMode.RANDOM;
+                            break;
+                        case RANDOM:
+                            wallsMode = WallsMode.NONE;
+                            break;
+                    }
+                    buildWalls();
+                } else if (ch == '3') {
+                    switch (difficulty) {
+                        case SLOW:
+                            difficulty = Difficulty.NORMAL;
+                            break;
+                        case NORMAL:
+                            difficulty = Difficulty.FAST;
+                            break;
+                        case FAST:
+                            difficulty = Difficulty.SLOW;
+                            break;
+                    }
+                    gameDelay = difficulty.delay;
+                } else if (ch == '4') {
+                    wrapAround = !wrapAround;
+                }
+                // Refresh menu with updated options
+                showMenu();
+                return;
+            }
+        } catch (IOException e) {
+            // ignore
+        }
     }
 
     private void displayGameOver() {
@@ -490,6 +747,7 @@ public class Snake {
         if (food.x >= gameWidth || food.y >= gameHeight) {
             spawnFood();
         }
+        buildWalls();
     }
 
     private void handleInterrupt(Terminal.Signal signal) {
