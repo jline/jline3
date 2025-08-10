@@ -360,8 +360,9 @@ public class Snake {
                     }
 
                     // Handle input with timeout
-                    long timeToNextUpdate =
-                            paused ? Long.MAX_VALUE : Math.max(1, gameDelay - (System.currentTimeMillis() - lastUpdate));
+                    long timeToNextUpdate = paused
+                            ? Long.MAX_VALUE
+                            : Math.max(1, gameDelay - (System.currentTimeMillis() - lastUpdate));
 
                     int ch = bindingReader.peekCharacter(timeToNextUpdate);
                     if (ch != NonBlockingReader.READ_EXPIRED && ch != -1) {
@@ -630,6 +631,8 @@ public class Snake {
                     board[yy][xx] = ','; // halo
                 }
             }
+        }
+
         // Crash animation overlay
         if (crashFrames > 0 && crashPos != null) {
             int radius = 1 + (CRASH_ANIM_FRAMES - crashFrames) / 2;
