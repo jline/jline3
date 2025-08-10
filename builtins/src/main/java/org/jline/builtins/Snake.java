@@ -224,6 +224,15 @@ public class Snake {
         }
     }
 
+    private long currentDelay() {
+        // Compensate for terminal cells being taller than wide: horizontal moves look slower.
+        // Speed up when moving LEFT/RIGHT to match perceived vertical speed.
+        if (direction == Direction.LEFT || direction == Direction.RIGHT) {
+            return Math.max(20L, (long) (gameDelay * 0.67));
+        }
+        return gameDelay;
+    }
+
     private void setCrash(Point p) {
         gameOver = true;
         crashPos = new Point(Math.max(0, Math.min(gameWidth - 1, p.x)), Math.max(0, Math.min(gameHeight - 1, p.y)));
@@ -353,7 +362,8 @@ public class Snake {
 
                     if (!paused) {
                         long now = System.currentTimeMillis();
-                        if (now - lastUpdate >= gameDelay) {
+                        long delay = currentDelay();
+                        if (now - lastUpdate >= delay) {
                             updateGame();
                             lastUpdate = now;
                         }
@@ -362,7 +372,7 @@ public class Snake {
                     // Handle input with timeout
                     long timeToNextUpdate = paused
                             ? Long.MAX_VALUE
-                            : Math.max(1, gameDelay - (System.currentTimeMillis() - lastUpdate));
+                            : Math.max(1, currentDelay() - (System.currentTimeMillis() - lastUpdate));
 
                     int ch = bindingReader.peekCharacter(timeToNextUpdate);
                     if (ch != NonBlockingReader.READ_EXPIRED && ch != -1) {
@@ -387,16 +397,11 @@ public class Snake {
 
                 // Show game over screen and wait for action
                 if (gameOver) {
-                    displayGameOver();
-                    Operation op = bindingReader.readBinding(keyMap);
-                    if (op == Operation.RESET) {
+                    boolean again = displayGameOverAndAsk();
+                    if (again) {
                         initializeGame();
                         continue outer;
-                    } else if (op == Operation.QUIT) {
-                        running = false;
-                        break;
                     } else {
-                        // any other key exits
                         running = false;
                         break;
                     }
@@ -925,6 +930,55 @@ public class Snake {
         lines.add(instructions.toAttributedString());
 
         display.update(lines, -1);
+    }
+
+    private boolean displayGameOverAndAsk() {
+        // Reuse displayGameOver layout plus a question line
+        List<AttributedString> lines = new ArrayList<>();
+        int centerY = size.getRows() / 2;
+        for (int i = 0; i < centerY - 4; i++) {
+            lines.add(new AttributedString(""));
+        }
+        AttributedStringBuilder gameOverTitle = new AttributedStringBuilder();
+        String title = "🐍 GAME OVER 🐍";
+        int titlePadding = Math.max(0, (size.getColumns() - title.length()) / 2);
+        for (int i = 0; i < titlePadding; i++) gameOverTitle.append(" ");
+        gameOverTitle.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.RED));
+        gameOverTitle.append(title);
+        lines.add(gameOverTitle.toAttributedString());
+        lines.add(new AttributedString(""));
+
+        AttributedStringBuilder scoreMsg = new AttributedStringBuilder();
+        String scoreText = "Final Score: " + score + " | Snake Length: " + snake.size();
+        int scorePadding = Math.max(0, (size.getColumns() - scoreText.length()) / 2);
+        for (int i = 0; i < scorePadding; i++) scoreMsg.append(" ");
+        scoreMsg.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.YELLOW));
+        scoreMsg.append(scoreText);
+        lines.add(scoreMsg.toAttributedString());
+        lines.add(new AttributedString(""));
+
+        String ask = "Play again? [Y/n]  (R=Reset, Q=Quit)";
+        AttributedStringBuilder askMsg = new AttributedStringBuilder();
+        int askPadding = Math.max(0, (size.getColumns() - ask.length()) / 2);
+        for (int i = 0; i < askPadding; i++) askMsg.append(" ");
+        askMsg.style(AttributedStyle.DEFAULT.faint());
+        askMsg.append(ask);
+        lines.add(askMsg.toAttributedString());
+        display.update(lines, -1);
+
+        try {
+            NonBlockingReader reader = terminal.reader();
+            while (true) {
+                int ch = reader.read(0);
+                if (ch == -1) break;
+                if (ch == 'y' || ch == 'Y' || ch == '\r' || ch == '\n') return true;
+                if (ch == 'n' || ch == 'N' || ch == 'q' || ch == 'Q') return false;
+                if (ch == 'r' || ch == 'R') return true; // treat reset as play again
+            }
+        } catch (IOException e) {
+            // ignore
+        }
+        return false;
     }
 
     private void handleResize(Terminal.Signal signal) {
