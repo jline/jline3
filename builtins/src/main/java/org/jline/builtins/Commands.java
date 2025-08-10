@@ -1995,6 +1995,9 @@ public class Commands {
             "Controls:",
             "  Arrow keys, WASD              Move snake",
             "  P, Space                      Pause/Resume",
+            "  H                              Help overlay (toggle)",
+            "  R                              Reset",
+            "  M                              Menu",
             "  Q, Ctrl+C                    Quit game"
         };
 

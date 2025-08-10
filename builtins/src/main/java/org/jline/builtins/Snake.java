@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.prefs.Preferences;
 
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
@@ -99,6 +100,8 @@ public class Snake {
         }
     }
 
+    private static final int CRASH_ANIM_FRAMES = 8;
+
     private enum Operation {
         UP,
         DOWN,
@@ -106,6 +109,8 @@ public class Snake {
         RIGHT,
         PAUSE,
         MENU,
+        HELP,
+        RESET,
         QUIT,
         NONE
     }
@@ -170,9 +175,20 @@ public class Snake {
     private final Size size = new Size();
     private final Random random = new Random();
 
+    // Persistence
+    private Preferences prefs;
+    private int highScore = 0;
+    private boolean newHighAchieved = false;
+
     // Effects
     private int eatEffectFrames = 0;
     private Point lastEatPos = new Point(0, 0);
+    private int headPulseTick = 0;
+    private int crashFrames = 0;
+    private Point crashPos = null;
+
+    // UI state
+    private boolean helpOverlay = false;
 
     // Game state
     private List<Point> snake;
@@ -195,6 +211,33 @@ public class Snake {
             int count = Math.max(5, (gameWidth * gameHeight) / 40);
             for (int i = 0; i < count; i++) {
                 walls.add(new Point(random.nextInt(gameWidth), random.nextInt(gameHeight)));
+            }
+        }
+    }
+
+    private void beep() {
+        try {
+            terminal.puts(Capability.bell);
+            terminal.flush();
+        } catch (Exception ignore) {
+            // ignore if terminal does not support bell
+        }
+    }
+
+    private void setCrash(Point p) {
+        gameOver = true;
+        crashPos = new Point(Math.max(0, Math.min(gameWidth - 1, p.x)), Math.max(0, Math.min(gameHeight - 1, p.y)));
+        crashFrames = CRASH_ANIM_FRAMES;
+        beep();
+        if (score > highScore) {
+            highScore = score;
+            newHighAchieved = true;
+            if (prefs != null) {
+                try {
+                    prefs.putInt("highScore", highScore);
+                } catch (Exception ignore) {
+                    // ignore
+                }
             }
         }
     }
@@ -231,6 +274,8 @@ public class Snake {
     public Snake(Terminal terminal) {
         this.terminal = terminal;
         this.display = new Display(terminal, true);
+        this.prefs = Preferences.userNodeForPackage(Snake.class);
+        this.highScore = this.prefs.getInt("highScore", 0);
         initializeGame();
     }
 
@@ -245,23 +290,14 @@ public class Snake {
         gameOver = false;
         paused = false;
         running = true;
+        headPulseTick = 0;
+        crashFrames = 0;
+        crashPos = null;
+        newHighAchieved = false;
 
         updateGameDimensions();
         buildWalls();
         spawnFood();
-        // center start
-        // Color helpers for tails
-        java.util.function.IntFunction<AttributedStyle> tailColor = idx -> {
-            if (colorMode == ColorMode.RAINBOW) {
-                int base = (idx * 20) % 360;
-                int r = (int) (Math.max(0, Math.min(255, Math.abs(((base + 0) % 360) - 180) - 60)) * 4.25);
-                int g = (int) (Math.max(0, Math.min(255, Math.abs(((base + 120) % 360) - 180) - 60)) * 4.25);
-                int b = (int) (Math.max(0, Math.min(255, Math.abs(((base + 240) % 360) - 180) - 60)) * 4.25);
-                return AttributedStyle.DEFAULT.foreground(r, g, b);
-            } else {
-                return AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN);
-            }
-        };
 
         Point head = snake.get(0);
         head.x = Math.max(1, gameWidth / 2);
@@ -307,35 +343,66 @@ public class Snake {
             KeyMap<Operation> keyMap = createKeyMap();
             BindingReader bindingReader = new BindingReader(terminal.reader());
 
-            long lastUpdate = System.currentTimeMillis();
+            outer:
+            while (running) {
+                long lastUpdate = System.currentTimeMillis();
+                gameOver = false;
 
-            while (running && !gameOver) {
-                display();
+                while (running && !gameOver) {
+                    display();
 
-                if (!paused) {
-                    long now = System.currentTimeMillis();
-                    if (now - lastUpdate >= gameDelay) {
-                        updateGame();
-                        lastUpdate = now;
+                    if (!paused) {
+                        long now = System.currentTimeMillis();
+                        if (now - lastUpdate >= gameDelay) {
+                            updateGame();
+                            lastUpdate = now;
+                        }
+                    }
+
+                    // Handle input with timeout
+                    long timeToNextUpdate =
+                            paused ? Long.MAX_VALUE : Math.max(1, gameDelay - (System.currentTimeMillis() - lastUpdate));
+
+                    int ch = bindingReader.peekCharacter(timeToNextUpdate);
+                    if (ch != NonBlockingReader.READ_EXPIRED && ch != -1) {
+                        Operation op = bindingReader.readBinding(keyMap, null, false);
+                        handleInput(op);
                     }
                 }
 
-                // Handle input with timeout
-                long timeToNextUpdate =
-                        paused ? Long.MAX_VALUE : Math.max(1, gameDelay - (System.currentTimeMillis() - lastUpdate));
-
-                int ch = bindingReader.peekCharacter(timeToNextUpdate);
-                if (ch != NonBlockingReader.READ_EXPIRED && ch != -1) {
-                    Operation op = bindingReader.readBinding(keyMap, null, false);
-                    handleInput(op);
+                // Crash animation frames (if any)
+                if (crashFrames > 0) {
+                    long frameDelay = Math.max(50, gameDelay / 2);
+                    while (crashFrames > 0) {
+                        display();
+                        crashFrames--;
+                        try {
+                            Thread.sleep(frameDelay);
+                        } catch (InterruptedException ignore) {
+                            // ignore
+                        }
+                    }
                 }
-            }
 
-            // Show game over screen
-            if (gameOver) {
-                displayGameOver();
-                // Wait for any key to exit
-                bindingReader.readBinding(keyMap);
+                // Show game over screen and wait for action
+                if (gameOver) {
+                    displayGameOver();
+                    Operation op = bindingReader.readBinding(keyMap);
+                    if (op == Operation.RESET) {
+                        initializeGame();
+                        continue outer;
+                    } else if (op == Operation.QUIT) {
+                        running = false;
+                        break;
+                    } else {
+                        // any other key exits
+                        running = false;
+                        break;
+                    }
+                } else {
+                    // not game over, but loop ended
+                    break;
+                }
             }
 
         } finally {
@@ -373,6 +440,8 @@ public class Snake {
         // Control keys
         keyMap.bind(Operation.PAUSE, "p", "P", " ");
         keyMap.bind(Operation.MENU, "m", "M", "o", "O");
+        keyMap.bind(Operation.HELP, "h", "H");
+        keyMap.bind(Operation.RESET, "r", "R");
         keyMap.bind(Operation.QUIT, "q", "Q", KeyMap.ctrl('C'));
 
         // Default to NONE for unbound keys
@@ -403,6 +472,12 @@ public class Snake {
                 break;
             case MENU:
                 showMenu();
+                break;
+            case HELP:
+                helpOverlay = !helpOverlay;
+                break;
+            case RESET:
+                initializeGame();
                 break;
             case QUIT:
                 running = false;
@@ -438,20 +513,20 @@ public class Snake {
                 if (newHead.y < 0) newHead.y = gameHeight - 1;
                 if (newHead.y >= gameHeight) newHead.y = 0;
             } else {
-                gameOver = true;
+                setCrash(newHead);
                 return;
             }
         }
 
         // Check self collision
         if (snake.contains(newHead)) {
-            gameOver = true;
+            setCrash(newHead);
             return;
         }
 
         // Check walls collision
         if (walls.contains(newHead)) {
-            gameOver = true;
+            setCrash(newHead);
             return;
         }
 
@@ -463,11 +538,15 @@ public class Snake {
             score += 10;
             eatEffectFrames = 6;
             lastEatPos = new Point(food.x, food.y);
+            beep();
             spawnFood();
         } else {
             // Remove tail if no food eaten
             snake.remove(snake.size() - 1);
         }
+
+        // advance head pulse
+        headPulseTick = (headPulseTick + 1) % 12;
     }
 
     private void display() {
@@ -530,6 +609,56 @@ public class Snake {
         header.append(" | Length: ");
         header.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.CYAN));
         header.append(String.valueOf(snake.size()));
+        header.style(AttributedStyle.DEFAULT);
+        header.append(" | High: ");
+        if (newHighAchieved) {
+            header.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.GREEN));
+        } else {
+            header.style(AttributedStyle.DEFAULT.bold());
+        }
+        header.append(String.valueOf(highScore));
+        header.style(AttributedStyle.DEFAULT);
+        // Head glow pulse: apply a faint halo around head
+        Point head = snake.isEmpty() ? new Point(0, 0) : snake.get(0);
+        int pulseRadius = (headPulseTick / 3) % 2 + 1; // 1..2
+        for (int dy = -pulseRadius; dy <= pulseRadius; dy++) {
+            for (int dx = -pulseRadius; dx <= pulseRadius; dx++) {
+                if (dx == 0 && dy == 0) continue;
+                int xx = head.x + dx;
+                int yy = head.y + dy;
+                if (xx >= 0 && xx < gameWidth && yy >= 0 && yy < gameHeight && board[yy][xx] == ' ') {
+                    board[yy][xx] = ','; // halo
+                }
+            }
+        // Crash animation overlay
+        if (crashFrames > 0 && crashPos != null) {
+            int radius = 1 + (CRASH_ANIM_FRAMES - crashFrames) / 2;
+            for (int dy = -radius; dy <= radius; dy++) {
+                for (int dx = -radius; dx <= radius; dx++) {
+                    int xx = crashPos.x + dx;
+                    int yy = crashPos.y + dy;
+                    if (xx >= 0 && xx < gameWidth && yy >= 0 && yy < gameHeight) {
+                        board[yy][xx] = 'x';
+                    }
+                }
+            }
+        }
+
+        // Precompute help overlay box if needed
+        boolean showHelp = helpOverlay;
+        int boxWidth = Math.max(10, Math.min(gameWidth - 4, 40));
+        String[] helpLines = new String[] {
+            " How to play ",
+            "Move  : Arrow keys or WASD",
+            "Pause : P or Space",
+            "Reset : R",
+            "Help  : H (toggle)",
+            "Menu  : M (options)",
+            "Quit  : Q or Ctrl+C"
+        };
+        int boxHeight = helpLines.length + 2;
+        int boxY0 = (gameHeight - boxHeight) / 2;
+        int boxX0 = (gameWidth - boxWidth) / 2;
 
         if (paused) {
             header.style(AttributedStyle.DEFAULT);
@@ -556,11 +685,65 @@ public class Snake {
             line.append("│");
 
             for (int x = 0; x < gameWidth; x++) {
+                // Help overlay has priority over board content
+                if (showHelp && y >= boxY0 && y < boxY0 + boxHeight && x >= boxX0 && x < boxX0 + boxWidth) {
+                    int li = y - boxY0;
+                    int ci = x - boxX0;
+                    if (li == 0) {
+                        // top border
+                        if (ci == 0) {
+                            line.append("┌");
+                        } else if (ci == boxWidth - 1) {
+                            line.append("┐");
+                        } else {
+                            line.append("─");
+                        }
+                    } else if (li == boxHeight - 1) {
+                        // bottom border
+                        if (ci == 0) {
+                            line.append("└");
+                        } else if (ci == boxWidth - 1) {
+                            line.append("┘");
+                        } else {
+                            line.append("─");
+                        }
+                    } else if (ci == 0 || ci == boxWidth - 1) {
+                        line.append("│");
+                    } else {
+                        // inside: render help text centered
+                        int textIdx = li - 1;
+                        String text = helpLines[textIdx];
+                        int avail = boxWidth - 2;
+                        int start = Math.max(0, (avail - text.length()) / 2);
+                        int pos = ci - 1;
+                        if (pos >= start && pos < start + text.length()) {
+                            char tch = text.charAt(pos - start);
+                            if (textIdx == 0) {
+                                line.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.CYAN));
+                                line.append(tch);
+                                line.style(AttributedStyle.DEFAULT);
+                            } else {
+                                line.style(AttributedStyle.DEFAULT.faint());
+                                line.append(tch);
+                                line.style(AttributedStyle.DEFAULT);
+                            }
+                        } else {
+                            line.append(' ');
+                        }
+                    }
+                    continue;
+                }
+
                 char ch = board[y][x];
                 if (ch == '@') {
                     // Snake head - bright color
                     line.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.YELLOW));
                     line.append(ch);
+                    line.style(AttributedStyle.DEFAULT);
+                } else if (ch == ',') {
+                    // glow halo
+                    line.style(AttributedStyle.DEFAULT.faint().foreground(AttributedStyle.YELLOW));
+                    line.append('·');
                     line.style(AttributedStyle.DEFAULT);
                 } else if (ch == '#') {
                     // Snake body - gradient/rainbow
@@ -584,6 +767,11 @@ public class Snake {
                     // Walls
                     line.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE));
                     line.append(ch);
+                    line.style(AttributedStyle.DEFAULT);
+                } else if (ch == 'x') {
+                    // Crash animation
+                    line.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.RED));
+                    line.append('X');
                     line.style(AttributedStyle.DEFAULT);
                 } else if (ch == '.') {
                     line.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.MAGENTA));
@@ -611,7 +799,7 @@ public class Snake {
         lines.add(new AttributedString(""));
         AttributedStringBuilder footer = new AttributedStringBuilder();
         footer.style(AttributedStyle.DEFAULT.faint());
-        footer.append("Controls: Arrow keys/WASD=Move, P=Pause, Q=Quit");
+        footer.append("Controls: Arrow/WASD=Move  P=Pause  H=Help  R=Reset  M=Menu  Q=Quit");
         lines.add(footer.toAttributedString());
 
         display.update(lines, -1);
@@ -724,7 +912,7 @@ public class Snake {
 
         // Instructions
         AttributedStringBuilder instructions = new AttributedStringBuilder();
-        String instructText = "Press any key to exit...";
+        String instructText = "R=Reset  Q=Quit  Any other key exits";
         int instructPadding = Math.max(0, (size.getColumns() - instructText.length()) / 2);
         for (int i = 0; i < instructPadding; i++) {
             instructions.append(" ");
