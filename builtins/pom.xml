@@ -25,6 +25,10 @@
             <artifactId>jline-reader</artifactId>
         </dependency>
         <dependency>
+            <artifactId>jline-terminal</artifactId>
+        </dependency>
+
+        <dependency>
             <artifactId>jline-style</artifactId>
         </dependency>
 
