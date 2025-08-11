@@ -193,16 +193,8 @@ public class Status {
             // We need to scroll up to grow the status bar
             terminal.puts(Capability.save_cursor);
             terminal.puts(Capability.cursor_address, scrollRegion, 0);
-           /// bug : this causes for every resizing whinch to the scrollregion or cursor to move in uwanted direction
-            // for (int i = newScrollRegion; i < scrollRegion; i++) {
-           //     terminal.puts(Capability.cursor_down);
-           // }
             terminal.puts(Capability.change_scroll_region, 0, newScrollRegion);
             terminal.puts(Capability.restore_cursor);
-            /// bug : this causes for every resizing whinch to the scrollregion or cursor to move in uwanted direction
-            // for (int i = newScrollRegion; i < scrollRegion; i++) {
-            //    terminal.puts(Capability.cursor_up);
-           // }
             scrollRegion = newScrollRegion;
         } else if (newScrollRegion > scrollRegion) {
             terminal.puts(Capability.save_cursor);
