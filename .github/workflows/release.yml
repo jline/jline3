@@ -24,7 +24,7 @@ jobs:
     steps:
 
       - name: Checkout ${{ github.ref_name }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0          # Full history for git describe
           ref: ${{ github.ref }}  # Ensures we're on the exact tag when triggered by tag push
