@@ -51,7 +51,9 @@ public class SystemRegistryImpl implements SystemRegistry {
         FLIP,
         NAMED,
         AND,
-        OR
+        OR,
+        REDIRECT,
+        APPEND
     }
 
     private static final Class<?>[] BUILTIN_REGISTRIES = {Builtins.class, ConsoleEngineImpl.class};
@@ -83,6 +85,8 @@ public class SystemRegistryImpl implements SystemRegistry {
         pipeName.put(Pipe.NAMED, "|");
         pipeName.put(Pipe.AND, "&&");
         pipeName.put(Pipe.OR, "||");
+        pipeName.put(Pipe.REDIRECT, ">");
+        pipeName.put(Pipe.APPEND, ">>");
         commandExecute.put("exit", new CommandMethods(this::exit, this::exitCompleter));
         commandExecute.put("help", new CommandMethods(this::help, this::helpCompleter));
     }
@@ -684,9 +688,10 @@ public class SystemRegistryImpl implements SystemRegistry {
                 // find next pipe
                 //
                 for (int i = first; i < last; i++) {
-                    if (words.get(i).equals(">") || words.get(i).equals(">>")) {
+                    if (words.get(i).equals(pipeName.get(Pipe.REDIRECT))
+                            || words.get(i).equals(pipeName.get(Pipe.APPEND))) {
                         pipes.add(words.get(i));
-                        append = words.get(i).equals(">>");
+                        append = words.get(i).equals(pipeName.get(Pipe.APPEND));
                         if (i + 1 >= last) {
                             throw new IllegalArgumentException();
                         }
@@ -729,8 +734,8 @@ public class SystemRegistryImpl implements SystemRegistry {
                         if (variable != null || pipeSource != null) {
                             pipes.add(words.get(i));
                         } else if (pipes.size() > 0
-                                && (pipes.get(pipes.size() - 1).equals(">")
-                                        || pipes.get(pipes.size() - 1).equals(">>"))) {
+                                && (pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.REDIRECT))
+                                        || pipes.get(pipes.size() - 1).equals(pipeName.get(Pipe.APPEND)))) {
                             pipes.remove(pipes.size() - 1);
                             out.get(out.size() - 1).setPipe(words.get(i));
                             skipPipe = true;
@@ -1773,7 +1778,8 @@ public class SystemRegistryImpl implements SystemRegistry {
                 for (String name : names.namedPipes()) {
                     candidates.add(new Candidate(name, name, null, null, null, null, true));
                 }
-            } else if (enclosed && pWord.equals(">") || pWord.equals(">>")) {
+            } else if (enclosed && pWord.equals(pipeName.get(Pipe.REDIRECT))
+                    || pWord.equals(pipeName.get(Pipe.APPEND))) {
                 Completer c = new FilesCompleter(workDir);
                 c.complete(reader, commandLine, candidates);
             } else {
@@ -1864,7 +1870,7 @@ public class SystemRegistryImpl implements SystemRegistry {
             Map<String, List<String>> customPipes =
                     consoleEngine() != null ? consoleEngine().getPipes() : new HashMap<>();
             for (String a : args) {
-                if (isPipe(a, customPipes.keySet()) || a.contains(">") || a.contains(">>")) {
+                if (isPipe(a, customPipes.keySet())) {
                     return true;
                 }
             }
@@ -1895,9 +1901,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                 for (int i = pipeId + 1; i < args.size(); i++) {
                     String arg = args.get(i);
                     if (!isPipe(arg) && !namedPipes().contains(arg) && !arg.matches("\\d+") && redirectPipe != i - 1) {
-                        if (arg.equals(">") || arg.equals(">>")) {
-                            redirectPipe = i;
-                        } else if (arg.matches("\\w+(\\(\\))?")) {
+                        if (arg.matches("\\w+(\\(\\))?")) {
                             addValues(arg);
                         } else if (arg.matches("--\\w+(=.*|)$") && arg.length() > 4) {
                             int idx = arg.indexOf('=');
@@ -1914,6 +1918,8 @@ public class SystemRegistryImpl implements SystemRegistry {
                             sb.append(arg);
                             sb.append(" ");
                         }
+                    } else if (arg.equals(pipeName.get(Pipe.REDIRECT)) || arg.equals(pipeName.get(Pipe.APPEND))) {
+                        redirectPipe = i;
                     } else {
                         redirectPipe = -1;
                     }
