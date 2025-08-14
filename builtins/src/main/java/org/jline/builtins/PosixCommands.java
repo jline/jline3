@@ -1428,6 +1428,7 @@ public class PosixCommands {
                                     Matcher matcher2 = p2.matcher(line);
                                     int cur = 0;
                                     while (matcher2.find()) {
+                                        applyStyle(sbl, colors, "se");
                                         sbl.append(line, cur, matcher2.start());
                                         applyStyle(sbl, colors, "ms");
                                         sbl.append(line, matcher2.start(), matcher2.end());
@@ -1438,9 +1439,14 @@ public class PosixCommands {
                                 } else {
                                     sbl.append(line);
                                 }
-                                lineMatch = before + 1;
+                                while (lineMatch > after && !lines.isEmpty()) {
+                                    context.out().println(lines.remove(0));
+                                    lineMatch--;
+                                }
+                                lineMatch = Math.min(before, lines.size()) + after + 1;
                             }
                         } else if (lineMatch > 0) {
+                            context.out().println(lines.remove(0));
                             lineMatch--;
                             if (sources.size() > 1) {
                                 if (colored) {
@@ -1461,6 +1467,9 @@ public class PosixCommands {
                                     applyStyle(sbl, colors, "se");
                                 }
                                 sbl.append("-");
+                            }
+                            if (colored) {
+                                applyStyle(sbl, colors, "se");
                             }
                             sbl.append(line);
                         } else {
@@ -1483,6 +1492,9 @@ public class PosixCommands {
                                     applyStyle(sbl, colors, "se");
                                 }
                                 sbl.append("-");
+                            }
+                            if (colored) {
+                                applyStyle(sbl, colors, "se");
                             }
                             sbl.append(line);
                             while (lines.size() > before) {
@@ -1507,7 +1519,7 @@ public class PosixCommands {
                         } else {
                             firstPrint = false;
                         }
-                        for (int i = 0; i < lineMatch + after && i < lines.size(); i++) {
+                        for (int i = 0; i < lineMatch && i < lines.size(); i++) {
                             context.out().println(lines.get(i));
                         }
                     }
