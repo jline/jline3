@@ -125,6 +125,60 @@ public class PosixCommandsTest {
     }
 
     @Test
+    void testLsGlob1() throws Exception {
+        // Skip test on platforms that don't support POSIX file attributes
+        Assumptions.assumeTrue(isPosixSupported(), "POSIX file attributes not supported on this platform");
+
+        // Create test files
+        Files.createFile(tempDir.resolve("file1.txt"));
+        Files.createFile(tempDir.resolve("file2.txt"));
+        Files.createDirectory(tempDir.resolve("subdir"));
+
+        PosixCommands.ls(context, new String[] {"ls", "fi*.txt"});
+
+        String output = out.toString();
+        assertTrue(output.contains("file1.txt"), output);
+        assertTrue(output.contains("file2.txt"), output);
+        assertFalse(output.contains("subdir"), output);
+    }
+
+    @Test
+    void testLsGlob2() throws Exception {
+        // Skip test on platforms that don't support POSIX file attributes
+        Assumptions.assumeTrue(isPosixSupported(), "POSIX file attributes not supported on this platform");
+
+        // Create test files
+        Files.createFile(tempDir.resolve("file1.txt"));
+        Files.createFile(tempDir.resolve("file2.txt"));
+        Files.createDirectory(tempDir.resolve("subdir"));
+
+        PosixCommands.ls(context, new String[] {"ls", "file?.txt"});
+
+        String output = out.toString();
+        assertTrue(output.contains("file1.txt"), output);
+        assertTrue(output.contains("file2.txt"), output);
+        assertFalse(output.contains("subdir"), output);
+    }
+
+    @Test
+    void testLsGlob3() throws Exception {
+        // Skip test on platforms that don't support POSIX file attributes
+        Assumptions.assumeTrue(isPosixSupported(), "POSIX file attributes not supported on this platform");
+
+        // Create test files
+        Files.createFile(tempDir.resolve("file1.txt"));
+        Files.createFile(tempDir.resolve("file2.txt"));
+        Files.createDirectory(tempDir.resolve("subdir"));
+
+        PosixCommands.ls(context, new String[] {"ls", "*1.txt"});
+
+        String output = out.toString();
+        assertTrue(output.contains("file1.txt"), output);
+        assertFalse(output.contains("file2.txt"), output);
+        assertFalse(output.contains("subdir"), output);
+    }
+
+    @Test
     void testLsLongFormat() throws Exception {
         // Skip test on platforms that don't support POSIX file attributes
         Assumptions.assumeTrue(isPosixSupported(), "POSIX file attributes not supported on this platform");

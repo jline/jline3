@@ -9,6 +9,7 @@
 package org.jline.builtins;
 
 import java.io.*;
+import java.net.MalformedURLException;
 import java.nio.file.*;
 import java.nio.file.attribute.FileTime;
 import java.nio.file.attribute.PosixFilePermission;
@@ -387,14 +388,23 @@ public class PosixCommands {
         if (args.isEmpty()) {
             args = Collections.singletonList("-");
         }
-        Path cwd = context.currentDir();
+        List<InputStream> expanded = new ArrayList<>();
         for (String arg : args) {
-            InputStream is;
             if ("-".equals(arg)) {
-                is = context.in();
+                expanded.add(context.in());
             } else {
-                is = cwd.toUri().resolve(arg).toURL().openStream();
+                expanded.addAll(maybeExpandGlob(context, arg).stream()
+                        .map(p -> {
+                            try {
+                                return p.toUri().toURL().openStream();
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        })
+                        .collect(Collectors.toList()));
             }
+        }
+        for (InputStream is : expanded) {
             cat(context, new BufferedReader(new InputStreamReader(is)), opt.isSet("n"));
         }
     }
@@ -940,24 +950,16 @@ public class PosixCommands {
         for (String arg : opt.args()) {
             if ("-".equals(arg)) {
                 sources.add(new Source.StdInSource(context.in()));
-            } else if (arg.contains("*") || arg.contains("?")) {
-                PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + arg);
-                try (Stream<Path> pathStream = Files.walk(context.currentDir())) {
-                    pathStream.filter(pathMatcher::matches).forEach(p -> {
-                        try {
-                            sources.add(new Source.URLSource(p.toUri().toURL(), p.toString()));
-                        } catch (Exception e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
-                }
             } else {
-                try {
-                    Path path = context.currentDir().resolve(arg);
-                    sources.add(new Source.URLSource(path.toUri().toURL(), arg));
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
+                sources.addAll(maybeExpandGlob(context, arg).stream()
+                        .map(p -> {
+                            try {
+                                return new URLSource(p.toUri().toURL(), p.toString());
+                            } catch (MalformedURLException e) {
+                                throw new RuntimeException(e);
+                            }
+                        })
+                        .collect(Collectors.toList()));
             }
         }
 
@@ -1381,8 +1383,9 @@ public class PosixCommands {
             if ("-".equals(arg)) {
                 sources.add(new GrepSource(context.in(), "(standard input)"));
             } else {
-                Path path = context.currentDir().resolve(arg);
-                sources.add(new GrepSource(path, arg));
+                sources.addAll(maybeExpandGlob(context, arg).stream()
+                        .map(gp -> new GrepSource(gp, gp.toString()))
+                        .collect(Collectors.toList()));
             }
         }
         boolean match = false;
@@ -1819,7 +1822,9 @@ public class PosixCommands {
         if (opt.args().isEmpty()) {
             expanded.add(currentDir);
         } else {
-            opt.args().forEach(s -> expanded.add(currentDir.resolve(s)));
+            opt.args().forEach(s -> {
+                expanded.addAll(maybeExpandGlob(context, s));
+            });
         }
         boolean listAll = opt.isSet("a");
         Predicate<Path> filter = p -> listAll
@@ -1886,6 +1891,38 @@ public class PosixCommands {
                         .map(p -> new PathEntry(p, path))
                         .sorted());
             }
+        }
+    }
+
+    private static List<Path> maybeExpandGlob(Context context, String s) {
+        if (s.contains("*") || s.contains("?")) {
+            return expandGlob(context, s);
+        }
+        return Collections.singletonList(context.currentDir().resolve(s));
+    }
+
+    private static List<Path> expandGlob(Context context, String pattern) {
+        Path path = Path.of(pattern);
+
+        Path base;
+        String globPart;
+
+        if (path.isAbsolute()) {
+            base = path.getParent();
+            globPart = path.getFileName().toString();
+        } else {
+            base = context.currentDir();
+            globPart = pattern;
+        }
+
+        PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + globPart);
+
+        try {
+            return Files.list(base)
+                    .filter(p -> matcher.matches(p.getFileName()))
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
