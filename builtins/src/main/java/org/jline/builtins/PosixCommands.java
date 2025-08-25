@@ -1542,14 +1542,14 @@ public class PosixCommands {
      */
     public static void sort(Context context, String[] argv) throws Exception {
         final String[] usage = {
-            "sort -  writes sorted standard input to standard output.",
+            "sort -  writes sorted concatenation of files or standard input.",
             "Usage: sort [OPTIONS] [FILES]",
             "  -? --help                    show help",
             "  -f --ignore-case             fold lower case to upper case characters",
             "  -r --reverse                 reverse the result of comparisons",
             "  -u --unique                  output only the first of an equal run",
             "  -t --field-separator=SEP     use SEP instead of non-blank to blank transition",
-            "  -b --ignore-leading-blanks   ignore leading blancks",
+            "  -b --ignore-leading-blanks   ignore leading blanks",
             "     --numeric-sort            compare according to string numerical value",
             "  -k --key=KEY                 fields to use for sorting separated by whitespaces"
         };
