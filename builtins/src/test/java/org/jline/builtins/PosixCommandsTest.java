@@ -245,10 +245,186 @@ public class PosixCommandsTest {
         PosixCommands.grep(context, new String[] {"grep", "hello", "test.txt"});
 
         String output = normalizeLineEndings(out.toString());
+        expectNonEmpty(output);
         // Should contain lines with "hello"
         assertTrue(output.contains("hello"), "Output should contain 'hello': " + output);
-        // Should not be empty
+    }
+
+    @Test
+    void testGrepFruit1() throws Exception {
+        makeFruitFile("test.txt");
+
+        PosixCommands.grep(context, new String[] {"grep", "a", "test.txt"});
+
+        String output = normalizeLineEndings(out.toString());
+        expectNonEmpty(output);
+        expectAll(output, "apple", "banana", "date");
+        expectNone(output, "cherry", "elderberry");
+    }
+
+    @Test
+    void testGrepFruit2() throws Exception {
+        makeFruitFile("test.txt");
+
+        PosixCommands.grep(context, new String[] {"grep", "err", "test.txt"});
+
+        String output = normalizeLineEndings(out.toString());
+        expectNonEmpty(output);
+        expectAll(output, "cherry", "elderberry");
+        expectNone(output, "apple", "banana", "date");
+    }
+
+    @Test
+    void testGrepFruit3() throws Exception {
+        makeFruitFile("test.txt");
+
+        PosixCommands.grep(context, new String[] {"grep", "-B1", "date", "test.txt"});
+
+        String output = normalizeLineEndings(out.toString());
+        expectNonEmpty(output);
+        expectAll(output, "cherry", "date");
+        expectNone(output, "apple", "banana", "elderberry");
+    }
+
+    @Test
+    void testGrepFruit4() throws Exception {
+        makeFruitFile("test.txt");
+
+        PosixCommands.grep(context, new String[] {"grep", "-A1", "date", "test.txt"});
+
+        String output = normalizeLineEndings(out.toString());
+        expectNonEmpty(output);
+        expectAll(output, "date", "elderberry");
+        expectNone(output, "apple", "banana", "cherry");
+    }
+
+    @Test
+    void testGrepFruit5() throws Exception {
+        makeFruitFile("test.txt");
+
+        PosixCommands.grep(context, new String[] {"grep", "-C1", "date", "test.txt"});
+
+        String output = normalizeLineEndings(out.toString());
+        expectNonEmpty(output);
+        expectAll(output, "cherry", "date", "elderberry");
+        expectNone(output, "apple", "banana");
+    }
+
+    @Test
+    void testGrepFruit6() throws Exception {
+        makeFruitFile("test.txt");
+
+        PosixCommands.grep(context, new String[] {"grep", "a.*e", "test.txt"});
+
+        String output = normalizeLineEndings(out.toString());
+        expectNonEmpty(output);
+        expectAll(output, "apple", "date");
+        expectNone(output, "banana", "cherry", "elderberry");
+    }
+
+    @Test
+    void testGrepFruit7() throws Exception {
+        makeFruitFile("test.txt");
+
+        PosixCommands.grep(context, new String[] {"grep", "-C1", "ch", "test.txt"});
+
+        String output = normalizeLineEndings(out.toString());
+        expectNonEmpty(output);
+        expectAll(output, "banana", "cherry", "date");
+        expectNone(output, "apple", "elderberry");
+    }
+
+    @Test
+    void testGrepFruit8() throws Exception {
+        makeFruitFile("test.txt");
+
+        PosixCommands.grep(context, new String[] {"grep", "-B2", "app", "test.txt"});
+
+        String output = normalizeLineEndings(out.toString());
+        expectNonEmpty(output);
+        expectAll(output, "apple");
+        expectNone(output, "banana", "cherry", "date", "elderberry");
+    }
+
+    @Test
+    void testGrepFruit9() throws Exception {
+        makeFruitFile("test.txt");
+
+        PosixCommands.grep(context, new String[] {"grep", "-A2", "app", "test.txt"});
+
+        String output = normalizeLineEndings(out.toString());
+        expectNonEmpty(output);
+        expectAll(output, "apple", "banana", "cherry");
+        expectNone(output, "date", "elderberry");
+    }
+
+    @Test
+    void testGrepFruit10() throws Exception {
+        makeFruitFile("test.txt");
+
+        PosixCommands.grep(context, new String[] {"grep", "-B2", "eld", "test.txt"});
+
+        String output = normalizeLineEndings(out.toString());
+        expectNonEmpty(output);
+        expectAll(output, "cherry", "date", "elderberry");
+        expectNone(output, "apple", "banana");
+    }
+
+    @Test
+    void testGrepFruit11() throws Exception {
+        makeFruitFile("test.txt");
+
+        PosixCommands.grep(context, new String[] {"grep", "-A2", "eld", "test.txt"});
+
+        String output = normalizeLineEndings(out.toString());
+        expectNonEmpty(output);
+        expectAll(output, "elderberry");
+        expectNone(output, "apple", "banana", "cherry", "date");
+    }
+
+    @Test
+    void testGrepFruit12() throws Exception {
+        makeFruitFile("test.txt");
+
+        PosixCommands.grep(context, new String[] {"grep", "a[pn]", "test.txt"});
+
+        String output = normalizeLineEndings(out.toString());
+        expectNonEmpty(output);
+        expectAll(output, "apple", "banana");
+        expectNone(output, "cherry", "date", "elderberry");
+    }
+
+    @Test
+    void testGrepFruit13() throws Exception {
+        makeFruitFile("test.txt");
+
+        PosixCommands.grep(context, new String[] {"grep", "a(p|n)", "test.txt"});
+
+        String output = normalizeLineEndings(out.toString());
+        expectNonEmpty(output);
+        expectAll(output, "apple", "banana");
+        expectNone(output, "cherry", "date", "elderberry");
+    }
+
+    private void makeFruitFile(String name) throws IOException {
+        Path file = tempDir.resolve(name);
+        Files.write(file, "apple\nbanana\ncherry\ndate\nelderberry\n".getBytes());
+    }
+
+    private static void expectNonEmpty(String output) {
         assertFalse(output.trim().isEmpty(), "Output should not be empty");
+    }
+
+    private static void expectAll(String output, String... fruits) {
+        Arrays.stream(fruits).forEach(fruit -> {
+            assertTrue(output.contains(fruit), "Output should contain '" + fruit + "': " + output);
+        });
+    }
+
+    private static void expectNone(String output, String... fruits) {
+        Arrays.stream(fruits).forEach(fruit -> {
+            assertFalse(output.contains(fruit), "Output should not contain '" + fruit + "': " + output);
+        });
     }
 
     // ========================================
