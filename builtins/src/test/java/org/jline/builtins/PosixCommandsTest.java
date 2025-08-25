@@ -119,6 +119,8 @@ public class PosixCommandsTest {
         PosixCommands.ls(context, new String[] {"ls"});
 
         String output = out.toString();
+        assertTrue(output.startsWith(".\n"));
+        assertTrue(output.contains("..\n"));
         assertTrue(output.contains("file1.txt"));
         assertTrue(output.contains("file2.txt"));
         assertTrue(output.contains("subdir"));

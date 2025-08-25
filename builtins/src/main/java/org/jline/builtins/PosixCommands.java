@@ -1648,7 +1648,13 @@ public class PosixCommands {
 
             public PathEntry(Path abs, Path root) {
                 this.abs = abs;
-                this.path = abs.startsWith(root) ? root.relativize(abs) : abs;
+                try {
+                    this.path = Files.isSameFile(abs, root)
+                            ? Paths.get(".")
+                            : abs.startsWith(root) ? root.relativize(abs) : abs;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
                 this.attributes = readAttributes(abs);
             }
 
