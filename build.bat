@@ -62,8 +62,6 @@ if "%demo_type%"=="" (
     echo   --help       Show help message
     echo   debug        Enable remote debugging
     echo   debugs       Enable remote debugging with suspend
-    echo   jansi        Add Jansi support
-    echo   jna          Add JNA support
     echo   verbose      Enable verbose logging
     echo   ffm          Enable Foreign Function Memory ^(preview^)
     echo.
@@ -155,8 +153,6 @@ if "%~1"=="--help" (
         echo   remote       Add remote support ^(SSH and Telnet^)
         echo   debug        Enable remote debugging
         echo   debugs       Enable remote debugging with suspend
-        echo   jansi        Add Jansi support
-        echo   jna          Add JNA support
         echo   verbose      Enable verbose logging
         echo   ffm          Enable Foreign Function Memory ^(preview^)
         echo.
@@ -169,8 +165,6 @@ if "%~1"=="--help" (
         echo                Use --mask= ^(empty^) for no masking
         echo   debug        Enable remote debugging
         echo   debugs       Enable remote debugging with suspend
-        echo   jansi        Add Jansi support
-        echo   jna          Add JNA support
         echo   verbose      Enable verbose logging
         echo   ffm          Enable Foreign Function Memory ^(preview^)
         echo.
@@ -181,12 +175,9 @@ if "%~1"=="--help" (
         echo   --help       Show this help message
         echo   debug        Enable remote debugging
         echo   debugs       Enable remote debugging with suspend
-        echo   jansi        Add Jansi support ^(recommended for Windows^)
-        echo   jna          Add JNA support ^(alternative for Windows^)
         echo   verbose      Enable verbose logging
         echo   ffm          Enable Foreign Function Memory ^(preview^)
         echo.
-        echo Note: On Windows, either Jansi or JNA library must be included in classpath.
         echo To test with a dumb terminal, use: set TERM=dumb ^& %~n0 demo consoleui
     ) else (
         echo Usage: %~n0 demo %demo_type% [options]
@@ -194,8 +185,6 @@ if "%~1"=="--help" (
         echo   --help       Show this help message
         echo   debug        Enable remote debugging
         echo   debugs       Enable remote debugging with suspend
-        echo   jansi        Add Jansi support
-        echo   jna          Add JNA support
         echo   verbose      Enable verbose logging
         echo   ffm          Enable Foreign Function Memory ^(preview^)
         echo.
@@ -206,14 +195,6 @@ if "%~1"=="--help" (
     set "JVM_OPTS=!JVM_OPTS! -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
 ) else if "%~1"=="debugs" (
     set "JVM_OPTS=!JVM_OPTS! -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005"
-) else if "%~1"=="jansi" (
-    for /f "tokens=*" %%i in ('dir /b /s "%TARGETDIR%\lib\jansi-*.jar"') do (
-        set "cp=!cp!;%%i"
-    )
-) else if "%~1"=="jna" (
-    for /f "tokens=*" %%i in ('dir /b /s "%TARGETDIR%\lib\jna-*.jar"') do (
-        set "cp=!cp!;%%i"
-    )
 ) else if "%~1"=="verbose" (
     set "logconf=demo\etc\logging-verbose.properties"
 ) else if "%~1"=="ffm" (
@@ -341,11 +322,21 @@ goto :eof
 :example
 set "example_name=%~1"
 if "%example_name%"=="" (
-    echo Usage: %~n0 example ^<ExampleClassName^> [options]
+    echo Usage: %~n0 example ^<ExampleClassName^> [options] [-- app_args]
     echo Available examples:
     for /f "tokens=*" %%i in ('dir /b /s demo\src\main\java\org\jline\demo\examples\*.java') do (
         for /f "tokens=* delims=" %%j in ("%%~ni") do echo   %%j
     )
+    echo.
+    echo Options:
+    echo   --help       Show this help message
+    echo   debug        Enable remote debugging
+    echo   debugs       Enable remote debugging with suspend
+    echo   ffm          Enable Foreign Function Memory ^(preview^)
+    echo.
+    echo Use -- to separate JVM options from application arguments:
+    echo   %~n0 example SixelExample debug -- --force-enable
+    echo   %~n0 example SixelExample -- --test-image
     exit /b 1
 )
 
@@ -360,26 +351,56 @@ if exist "%TARGETDIR%\lib" (
     )
 )
 
-:: Process options
+:: Process options and separate JVM options from application arguments
 set "JVM_OPTS="
+set "APP_ARGS="
+set "parsing_app_args=false"
+
 :process_args
 if "%~1"=="" goto :run_example
-if "%~1"=="debug" (
+
+:: Check for -- separator
+if "%~1"=="--" (
+    set "parsing_app_args=true"
+    shift
+    goto :process_args
+)
+
+:: If we're parsing app args, add to APP_ARGS
+if "!parsing_app_args!"=="true" (
+    set "APP_ARGS=!APP_ARGS! %~1"
+    shift
+    goto :process_args
+)
+
+:: Process JVM options and build options
+if "%~1"=="--help" (
+    echo Usage: %~n0 example %example_name% [options] [-- app_args]
+    echo Options:
+    echo   --help       Show this help message
+    echo   debug        Enable remote debugging
+    echo   debugs       Enable remote debugging with suspend
+    echo   ffm          Enable Foreign Function Memory ^(preview^)
+    echo.
+    echo Use -- to separate JVM options from application arguments:
+    echo   %~n0 example %example_name% debug -- --force-enable
+    echo   %~n0 example %example_name% -- --test-image
+    exit /b 0
+) else if "%~1"=="debug" (
     set "JVM_OPTS=!JVM_OPTS! -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
 ) else if "%~1"=="debugs" (
     set "JVM_OPTS=!JVM_OPTS! -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005"
-) else if "%~1"=="jansi" (
-    for /f "tokens=*" %%i in ('dir /b /s "%TARGETDIR%\lib\jansi-*.jar"') do (
-        set "cp=!cp!;%%i"
-    )
-) else if "%~1"=="jna" (
-    for /f "tokens=*" %%i in ('dir /b /s "%TARGETDIR%\lib\jna-*.jar"') do (
-        set "cp=!cp!;%%i"
-    )
 ) else if "%~1"=="ffm" (
     set "JVM_OPTS=!JVM_OPTS! --enable-preview --enable-native-access=org.jline.terminal.ffm"
 ) else (
-    set "JVM_OPTS=!JVM_OPTS! %~1"
+    :: Check if argument starts with - (likely an app argument)
+    set "arg=%~1"
+    if "!arg:~0,1!"=="-" (
+        set "APP_ARGS=!APP_ARGS! %~1"
+    ) else (
+        :: Other arguments are treated as JVM options for backward compatibility
+        set "JVM_OPTS=!JVM_OPTS! %~1"
+    )
 )
 shift
 goto :process_args
@@ -404,8 +425,10 @@ if not defined found (
 echo Running example: org.jline.demo.examples.%example_name%
 echo Classpath: %cp%
 echo JVM options: %JVM_OPTS%
+if defined APP_ARGS echo Application arguments: %APP_ARGS%
 
-java -cp "%cp%" %JVM_OPTS% org.jline.demo.examples.%example_name%
+:: Run Java directly with application arguments
+java -cp "%cp%" %JVM_OPTS% org.jline.demo.examples.%example_name% %APP_ARGS%
 goto :eof
 
 :rebuild
