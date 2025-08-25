@@ -393,7 +393,7 @@ public class PosixCommands {
             if ("-".equals(arg)) {
                 expanded.add(context.in());
             } else {
-                expanded.addAll(maybeExpandGlob(context, arg).stream()
+                maybeExpandGlob(context, arg)
                         .map(p -> {
                             try {
                                 return p.toUri().toURL().openStream();
@@ -401,7 +401,7 @@ public class PosixCommands {
                                 throw new RuntimeException(e);
                             }
                         })
-                        .collect(Collectors.toList()));
+                        .forEach(expanded::add);
             }
         }
         for (InputStream is : expanded) {
@@ -951,7 +951,7 @@ public class PosixCommands {
             if ("-".equals(arg)) {
                 sources.add(new Source.StdInSource(context.in()));
             } else {
-                sources.addAll(maybeExpandGlob(context, arg).stream()
+                maybeExpandGlob(context, arg)
                         .map(p -> {
                             try {
                                 return new URLSource(p.toUri().toURL(), p.toString());
@@ -959,7 +959,7 @@ public class PosixCommands {
                                 throw new RuntimeException(e);
                             }
                         })
-                        .collect(Collectors.toList()));
+                        .forEach(sources::add);
             }
         }
 
@@ -1383,9 +1383,9 @@ public class PosixCommands {
             if ("-".equals(arg)) {
                 sources.add(new GrepSource(context.in(), "(standard input)"));
             } else {
-                sources.addAll(maybeExpandGlob(context, arg).stream()
+                maybeExpandGlob(context, arg)
                         .map(gp -> new GrepSource(gp, gp.toString()))
-                        .collect(Collectors.toList()));
+                        .forEach(sources::add);
             }
         }
         boolean match = false;
@@ -1822,9 +1822,7 @@ public class PosixCommands {
         if (opt.args().isEmpty()) {
             expanded.add(currentDir);
         } else {
-            opt.args().forEach(s -> {
-                expanded.addAll(maybeExpandGlob(context, s));
-            });
+            opt.args().stream().flatMap(s -> maybeExpandGlob(context, s)).forEach(expanded::add);
         }
         boolean listAll = opt.isSet("a");
         Predicate<Path> filter = p -> listAll
@@ -1894,11 +1892,11 @@ public class PosixCommands {
         }
     }
 
-    private static List<Path> maybeExpandGlob(Context context, String s) {
+    private static Stream<Path> maybeExpandGlob(Context context, String s) {
         if (s.contains("*") || s.contains("?")) {
-            return expandGlob(context, s);
+            return expandGlob(context, s).stream();
         }
-        return Collections.singletonList(context.currentDir().resolve(s));
+        return Stream.of(context.currentDir().resolve(s));
     }
 
     private static List<Path> expandGlob(Context context, String pattern) {
