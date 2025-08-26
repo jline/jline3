@@ -307,6 +307,45 @@ public class PosixCommandsTest {
     }
 
     @Test
+    void testGrepCount0() throws Exception {
+        makeFruitFile("fruit.txt");
+
+        PosixCommands.grep(context, new String[] {"grep", "-c", "apple", "fruit.txt"});
+
+        String output = normalizeLineEndings(out.toString());
+        expectNonEmpty(output);
+        assertEquals("1\n", output, "Output should be '1'");
+    }
+
+    @Test
+    void testGrepCount1() throws Exception {
+        makeFruitFile("fruit.txt");
+        Path file = tempDir.resolve("phones.txt");
+        Files.write(file, "apple\nandroid\n".getBytes());
+
+        PosixCommands.grep(context, new String[] {"grep", "-c", "apple", "fruit.txt", "phones.txt"});
+
+        String output = normalizeLineEndings(out.toString());
+        expectNonEmpty(output);
+        assertTrue(output.contains("phones.txt:1"), "Output should contain 'phones.txt:1': " + output);
+        assertTrue(output.contains("fruit.txt:1"), "Output should contain 'fruit.txt:1': " + output);
+    }
+
+    @Test
+    void testGrepCount2() throws Exception {
+        makeFruitFile("fruit.txt");
+        Path file = tempDir.resolve("phones.txt");
+        Files.write(file, "apple\nandroid\n".getBytes());
+
+        PosixCommands.grep(context, new String[] {"grep", "-c", "-z", "erry", "fruit.txt", "phones.txt"});
+
+        String output = normalizeLineEndings(out.toString());
+        expectNonEmpty(output);
+        assertTrue(output.contains("fruit.txt:2"), "Output should contain 'fruit.txt:2': " + output);
+        assertFalse(output.contains("phones.txt"), "Output should not contain 'phones.txt': " + output);
+    }
+
+    @Test
     void testGrepFruit1() throws Exception {
         makeFruitFile("test.txt");
 

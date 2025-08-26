@@ -1303,6 +1303,9 @@ public class PosixCommands {
             "  -w --word-regexp         Select only whole words",
             "  -x --line-regexp         Select only whole lines",
             "  -c --count               Only print a count of matching lines per file",
+            "  -z --zero                When used with -c, don't print a count of zero",
+            "  -H --with-filename       Display filename header for each file (defaults to true if multiple files are given)",
+            "  -h --no-filename         Do not display filename header",
             "     --color=WHEN          Use markers to distinguish the matching string, may be `always', `never' or `auto'",
             "  -B --before-context=NUM  Print NUM lines of leading context before matching lines",
             "  -A --after-context=NUM   Print NUM lines of trailing context after matching lines",
@@ -1348,6 +1351,7 @@ public class PosixCommands {
             before = contextLines;
         }
         boolean count = opt.isSet("count");
+        boolean zero = opt.isSet("zero");
         boolean quiet = opt.isSet("quiet");
         boolean invert = opt.isSet("invert-match");
         boolean lineNumber = opt.isSet("line-number");
@@ -1388,6 +1392,12 @@ public class PosixCommands {
                         .forEach(sources::add);
             }
         }
+        boolean filenameHeader = sources.size() > 1;
+        if (opt.isSet("with-filename")) {
+            filenameHeader = true;
+        } else if (opt.isSet("no-filename")) {
+            filenameHeader = false;
+        }
         boolean match = false;
         for (GrepSource src : sources) {
             List<String> lines = new ArrayList<>();
@@ -1407,7 +1417,7 @@ public class PosixCommands {
                         if (matches) {
                             nb++;
                             if (!count && !quiet) {
-                                if (sources.size() > 1) {
+                                if (filenameHeader) {
                                     if (colored) {
                                         applyStyle(sbl, colors, "fn");
                                     }
@@ -1451,7 +1461,7 @@ public class PosixCommands {
                         } else if (lineMatch > 0) {
                             context.out().println(lines.remove(0));
                             lineMatch--;
-                            if (sources.size() > 1) {
+                            if (filenameHeader) {
                                 if (colored) {
                                     applyStyle(sbl, colors, "fn");
                                 }
@@ -1476,7 +1486,7 @@ public class PosixCommands {
                             }
                             sbl.append(line);
                         } else {
-                            if (sources.size() > 1) {
+                            if (filenameHeader) {
                                 if (colored) {
                                     applyStyle(sbl, colors, "fn");
                                 }
@@ -1527,10 +1537,25 @@ public class PosixCommands {
                         }
                     }
                     if (count) {
-                        context.out().println(nb);
+                        if (nb != 0 || !zero) {
+                            AttributedStringBuilder sbl = new AttributedStringBuilder();
+                            if (filenameHeader) {
+                                if (colored) {
+                                    applyStyle(sbl, colors, "fn");
+                                }
+                                sbl.append(src.getName());
+                                if (colored) {
+                                    applyStyle(sbl, colors, "se");
+                                }
+                                sbl.append(":");
+                            }
+                            sbl.append(Integer.toString(nb));
+                            context.out().println(sbl.toAnsi(context.terminal()));
+                        }
                     }
                     match |= nb > 0;
                 }
+                context.out().flush();
             }
         }
     }
