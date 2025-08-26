@@ -9,7 +9,6 @@
 package org.jline.builtins;
 
 import java.io.*;
-import java.net.MalformedURLException;
 import java.nio.file.*;
 import java.nio.file.attribute.FileTime;
 import java.nio.file.attribute.PosixFilePermission;
@@ -35,8 +34,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.jline.builtins.Options.HelpException;
+import org.jline.builtins.Source.InputStreamSource;
+import org.jline.builtins.Source.PathSource;
 import org.jline.builtins.Source.StdInSource;
-import org.jline.builtins.Source.URLSource;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
@@ -388,24 +388,18 @@ public class PosixCommands {
         if (args.isEmpty()) {
             args = Collections.singletonList("-");
         }
-        List<InputStream> expanded = new ArrayList<>();
+        List<Source> sources = new ArrayList<>();
         for (String arg : args) {
             if ("-".equals(arg)) {
-                expanded.add(context.in());
+                sources.add(new StdInSource(context.in()));
             } else {
                 maybeExpandGlob(context, arg)
-                        .map(p -> {
-                            try {
-                                return p.toUri().toURL().openStream();
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        })
-                        .forEach(expanded::add);
+                        .map(p -> new PathSource(p, p.toString()))
+                        .forEach(sources::add);
             }
         }
-        for (InputStream is : expanded) {
-            cat(context, new BufferedReader(new InputStreamReader(is)), opt.isSet("n"));
+        for (Source s : sources) {
+            cat(context, new BufferedReader(new InputStreamReader(s.read())), opt.isSet("n"));
         }
     }
 
@@ -949,16 +943,10 @@ public class PosixCommands {
         }
         for (String arg : opt.args()) {
             if ("-".equals(arg)) {
-                sources.add(new Source.StdInSource(context.in()));
+                sources.add(new StdInSource(context.in()));
             } else {
                 maybeExpandGlob(context, arg)
-                        .map(p -> {
-                            try {
-                                return new URLSource(p.toUri().toURL(), p.toString());
-                            } catch (MalformedURLException e) {
-                                throw new RuntimeException(e);
-                            }
-                        })
+                        .map(p -> new PathSource(p, p.toString()))
                         .forEach(sources::add);
             }
         }
@@ -1016,19 +1004,22 @@ public class PosixCommands {
             "  -c --bytes                   Print byte counts",
             "  -m --chars                   Print character counts",
             "  -w --words                   Print word counts",
+            "     --total=WHEN              Print total counts, WHEN=auto|always|never|only",
         };
         Options opt = parseOptions(context, usage, argv);
 
         List<Source> sources = new ArrayList<>();
-        if (opt.args().isEmpty()) {
-            opt.args().add("-");
+        List<String> args = opt.args();
+        if (args.isEmpty()) {
+            args = Collections.singletonList("-");
         }
-        for (String arg : opt.args()) {
+        for (String arg : args) {
             if ("-".equals(arg)) {
-                sources.add(new StdInSource(context.in()));
+                sources.add(new InputStreamSource(context.in(), false, "(standard input)"));
             } else {
-                sources.add(
-                        new URLSource(context.currentDir().resolve(arg).toUri().toURL(), arg));
+                maybeExpandGlob(context, arg)
+                        .map(p -> new PathSource(p, p.toString()))
+                        .forEach(sources::add);
             }
         }
 
@@ -1036,6 +1027,31 @@ public class PosixCommands {
         boolean showWords = opt.isSet("words");
         boolean showChars = opt.isSet("chars");
         boolean showBytes = opt.isSet("bytes");
+        boolean only = false;
+        boolean total = sources.size() > 1;
+        String totalOpt = opt.isSet("total") ? opt.get("total") : "auto";
+        switch (totalOpt) {
+            case "always":
+            case "yes":
+            case "force":
+                total = true;
+                break;
+            case "never":
+            case "no":
+            case "none":
+                total = false;
+                break;
+            case "only":
+                only = true;
+                break;
+            case "auto":
+            case "tty":
+            case "if-tty":
+                total = context.isTty();
+                break;
+            default:
+                throw new IllegalArgumentException("invalid argument '" + totalOpt + "' for '--total'");
+        }
 
         // If no options specified, show all
         if (!showLines && !showWords && !showChars && !showBytes) {
@@ -1069,6 +1085,7 @@ public class PosixCommands {
             totalChars += chars;
             totalBytes += bytes;
 
+            if (only) continue;
             // Print results for this file
             StringBuilder result = new StringBuilder();
             if (showLines) result.append(String.format("%8d", lines));
@@ -1078,10 +1095,11 @@ public class PosixCommands {
             result.append(" ").append(source.getName());
 
             context.out().println(result);
+            context.out().flush();
         }
 
         // Print totals if multiple files
-        if (sources.size() > 1) {
+        if (total) {
             StringBuilder result = new StringBuilder();
             if (showLines) result.append(String.format("%8d", totalLines));
             if (showWords) result.append(String.format("%8d", totalWords));
@@ -1098,16 +1116,22 @@ public class PosixCommands {
      */
     public static void head(Context context, String[] argv) throws Exception {
         final String[] usage = {
-            "head - display first lines of files",
-            "Usage: head [-n lines | -c bytes] [file ...]",
+            "head - display first lines of files or standard input",
+            "Usage: head [-n lines | -c bytes] [-q | -v] [file ...]",
             "  -? --help                    Show help",
             "  -n --lines=LINES             Print line counts",
             "  -c --bytes=BYTES             Print byte counts",
+            "  -q --quiet                   Never output filename headers",
+            "  -v --verbose                 Always output filename headers",
         };
         Options opt = parseOptions(context, usage, argv);
 
         if (opt.isSet("lines") && opt.isSet("bytes")) {
-            throw new IllegalArgumentException("usage: head [-n # | -c #] [file ...]");
+            throw new IllegalArgumentException("usage: head [-n # | -c #] [-q | -v] [file ...]");
+        }
+
+        if (opt.isSet("quiet") && opt.isSet("verbose")) {
+            throw new IllegalArgumentException("usage: head [-n # | -c #] [-q | -v] [file ...]");
         }
 
         int nbLines = Integer.MAX_VALUE;
@@ -1124,23 +1148,34 @@ public class PosixCommands {
         if (args.isEmpty()) {
             args = Collections.singletonList("-");
         }
+        List<Source> sources = new ArrayList<>();
+        for (String arg : args) {
+            if ("-".equals(arg)) {
+                sources.add(new InputStreamSource(context.in(), false, "(standard input)"));
+            } else {
+                maybeExpandGlob(context, arg)
+                        .map(p -> new PathSource(p, p.toString()))
+                        .forEach(sources::add);
+            }
+        }
+
+        boolean filenameHeader = sources.size() > 1;
+        if (opt.isSet("verbose")) {
+            filenameHeader = true;
+        } else if (opt.isSet("quiet")) {
+            filenameHeader = false;
+        }
 
         boolean first = true;
-        for (String arg : args) {
-            if (!first && args.size() > 1) {
-                context.out().println();
-            }
-            if (args.size() > 1) {
-                context.out().println("==> " + arg + " <==");
-            }
-
-            InputStream is;
-            if ("-".equals(arg)) {
-                is = context.in();
-            } else {
-                is = context.currentDir().resolve(arg).toUri().toURL().openStream();
+        for (Source s : sources) {
+            if (filenameHeader) {
+                if (!first) {
+                    context.out().println();
+                }
+                context.out().println("==> " + s.getName() + " <==");
             }
 
+            InputStream is = s.read();
             if (nbLines != Integer.MAX_VALUE) {
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
                     String line;
@@ -1167,18 +1202,24 @@ public class PosixCommands {
      */
     public static void tail(Context context, String[] argv) throws Exception {
         final String[] usage = {
-            "tail - display last lines of files",
-            "Usage: tail [-f] [-q] [-c # | -n #] [file ...]",
+            "tail - display last lines of files or standard input",
+            "Usage: tail [-f] [-q] [-c bytes | -n lines] [file ...]",
             "  -? --help                    Show help",
             "  -f --follow                  Do not stop at end of file",
             "  -F --FOLLOW                  Follow and check for file renaming or rotation",
             "  -n --lines=LINES             Number of lines to print",
             "  -c --bytes=BYTES             Number of bytes to print",
+            "  -q --quiet                   Never output filename headers",
+            "  -v --verbose                 Always output filename headers",
         };
         Options opt = parseOptions(context, usage, argv);
 
         if (opt.isSet("lines") && opt.isSet("bytes")) {
-            throw new IllegalArgumentException("usage: tail [-f] [-q] [-c # | -n #] [file ...]");
+            throw new IllegalArgumentException("usage: tail [-f] [-q | -v] [-c # | -n #] [file ...]");
+        }
+
+        if (opt.isSet("quiet") && opt.isSet("verbose")) {
+            throw new IllegalArgumentException("usage: tail [-f] [-q | -v] [-c # | -n #] [file ...]");
         }
 
         int lines = opt.isSet("lines") ? opt.getNumber("lines") : 10;
@@ -1189,17 +1230,33 @@ public class PosixCommands {
         if (args.isEmpty()) {
             args = Collections.singletonList("-");
         }
-
+        List<Source> sources = new ArrayList<>();
         for (String arg : args) {
-            if (args.size() > 1) {
-                context.out().println("==> " + arg + " <==");
+            if ("-".equals(arg)) {
+                sources.add(new InputStreamSource(context.in(), false, "(standard input)"));
+            } else {
+                maybeExpandGlob(context, arg)
+                        .map(p -> new PathSource(p, p.toString()))
+                        .forEach(sources::add);
+            }
+        }
+
+        boolean filenameHeader = sources.size() > 1;
+        if (opt.isSet("verbose")) {
+            filenameHeader = true;
+        } else if (opt.isSet("quiet")) {
+            filenameHeader = false;
+        }
+
+        for (Source s : sources) {
+            if (filenameHeader) {
+                context.out().println("==> " + s.getName() + " <==");
             }
 
-            if ("-".equals(arg)) {
-                // For stdin, just read and buffer
-                tailInputStream(context, context.in(), lines, bytes);
+            if (s.read() == context.in()) {
+                tailInputStream(context, s.read(), lines, bytes);
             } else {
-                Path path = context.currentDir().resolve(arg);
+                Path path = Paths.get(s.getName());
                 if (bytes > 0) {
                     tailFileBytes(context, path, bytes, follow);
                 } else {
@@ -1376,7 +1433,7 @@ public class PosixCommands {
                 colored ? (colorMap != null ? colorMap : getColorMap(DEFAULT_GREP_COLORS)) : Collections.emptyMap();
 
         if (args.isEmpty()) {
-            args.add("-");
+            args = Collections.singletonList("-");
         }
         List<GrepSource> sources = new ArrayList<>();
         for (String arg : args) {
@@ -1557,18 +1614,25 @@ public class PosixCommands {
         Options opt = parseOptions(context, usage, argv);
 
         List<String> args = opt.args();
+        if (args.isEmpty()) {
+            args = Collections.singletonList("-");
+        }
+        List<Source> sources = new ArrayList<>();
+        for (String arg : args) {
+            if ("-".equals(arg)) {
+                sources.add(new StdInSource(context.in()));
+            } else {
+                maybeExpandGlob(context, arg)
+                        .map(p -> new PathSource(p, p.toString()))
+                        .forEach(sources::add);
+            }
+        }
 
         List<String> lines = new ArrayList<>();
-        if (!args.isEmpty()) {
-            for (String filename : args) {
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(
-                        context.currentDir().toUri().resolve(filename).toURL().openStream()))) {
-                    readLines(reader, lines);
-                }
+        for (Source s : sources) {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(s.read()))) {
+                readLines(reader, lines);
             }
-        } else {
-            BufferedReader r = new BufferedReader(new InputStreamReader(context.in()));
-            readLines(r, lines);
         }
 
         String separator = opt.get("field-separator");
