@@ -42,6 +42,13 @@ import org.jline.terminal.Terminal;
  */
 public class KittyGraphics implements TerminalGraphics {
 
+    /**
+     * Creates a new KittyGraphics instance.
+     */
+    public KittyGraphics() {
+        // Default constructor
+    }
+
     private static final String KITTY_GRAPHICS_START = "\033_G";
     private static final String KITTY_GRAPHICS_END = "\033\\";
     private static final AtomicInteger imageIdCounter = new AtomicInteger(1);

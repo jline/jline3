@@ -40,6 +40,13 @@ import org.jline.terminal.Terminal;
  */
 public class ITerm2Graphics implements TerminalGraphics {
 
+    /**
+     * Creates a new ITerm2Graphics instance.
+     */
+    public ITerm2Graphics() {
+        // Default constructor
+    }
+
     private static final String ITERM2_IMAGE_START = "\033]1337;File=";
     private static final String ITERM2_IMAGE_END = "\007"; // BEL character
 

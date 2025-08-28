@@ -56,6 +56,13 @@ import static org.jline.terminal.TerminalBuilder.GRAPHICS_SIXEL_TIMEOUT;
  */
 public class SixelGraphics implements TerminalGraphics {
 
+    /**
+     * Creates a new SixelGraphics instance.
+     */
+    public SixelGraphics() {
+        // Default constructor
+    }
+
     private static final String DCS = "\u001bP"; // Device Control String
     private static final String ST = "\u001b\\"; // String Terminator
     private static final String SIXEL_INTRO = "0;1;q"; // Sixel introduction with parameters

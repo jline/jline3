@@ -24,6 +24,7 @@ module org.jline.terminal {
     requires org.jline.nativ;
     requires java.base;
     requires java.logging;
+    requires transitive java.desktop;
 
     // Export public API
     exports org.jline.terminal;
@@ -38,6 +39,9 @@ module org.jline.terminal {
 
     // Service provider interface - terminal providers implement this
     uses org.jline.terminal.spi.TerminalProvider;
+
+    // Service interface for graphics protocols
+    uses org.jline.terminal.impl.TerminalGraphics;
 
     // Open packages for reflection access needed by FileDescriptor manipulation
     // and internal terminal operations

@@ -31,6 +31,13 @@ import org.jline.terminal.Terminal;
  */
 public class DoubleSizeCharacters {
 
+    /**
+     * Creates a new DoubleSizeCharacters instance.
+     */
+    public DoubleSizeCharacters() {
+        // Default constructor
+    }
+
     // VT100 double-size character control sequences
     private static final String ESC = "\u001b";
     private static final String DOUBLE_HEIGHT_TOP = ESC + "#3";

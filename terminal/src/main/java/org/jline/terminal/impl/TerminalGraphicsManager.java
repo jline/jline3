@@ -41,6 +41,13 @@ import org.jline.terminal.Terminal;
  */
 public class TerminalGraphicsManager {
 
+    /**
+     * Creates a new TerminalGraphicsManager instance.
+     */
+    public TerminalGraphicsManager() {
+        // Default constructor
+    }
+
     private static final List<TerminalGraphics> AVAILABLE_PROTOCOLS = new ArrayList<>();
     private static TerminalGraphics.Protocol forcedProtocol = null;
 
