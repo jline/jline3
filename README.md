@@ -101,8 +101,6 @@ JLine provides full support for JPMS starting with version 4.0. The following mo
 | Native | `jline-native` | `org.jline.nativ` | Native library loading |
 | Terminal | `jline-terminal` | `org.jline.terminal` | Core terminal functionality |
 | Terminal FFM | `jline-terminal-ffm` | `org.jline.terminal.ffm` | FFM-based terminal (JDK 22+) |
-| Terminal JNA | `jline-terminal-jna` | `org.jline.terminal.jna` | JNA-based terminal |
-| Terminal JNI | `jline-terminal-jni` | `org.jline.terminal.jni` | JNI-based terminal |
 | Reader | `jline-reader` | `org.jline.reader` | Line editing and reading |
 | Style | `jline-style` | `org.jline.style` | Styling and coloring |
 | **Extended Modules** | | | |
