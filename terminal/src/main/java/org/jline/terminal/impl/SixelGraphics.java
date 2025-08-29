@@ -177,9 +177,9 @@ public class SixelGraphics implements TerminalGraphics {
         String terminalType = terminal.getType().toLowerCase(Locale.ROOT);
 
         // List of terminals known to support sixel
+        // Note: xterm variants removed due to false positives - many terminals
+        // set TERM to xterm variants but don't actually support Sixel
         Set<String> sixelTerminals = new HashSet<>(Arrays.asList(
-                "xterm",
-                "xterm-256color", // xterm since patch #359
                 "mintty", // mintty since 2.6.0
                 "foot", // foot since 1.2.0
                 "iterm2", // iTerm2 since 3.3.0
