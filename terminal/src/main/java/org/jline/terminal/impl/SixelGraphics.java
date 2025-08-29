@@ -65,7 +65,7 @@ public class SixelGraphics implements TerminalGraphics {
 
     private static final String DCS = "\u001bP"; // Device Control String
     private static final String ST = "\u001b\\"; // String Terminator
-    private static final String SIXEL_INTRO = "0;1;q"; // Sixel introduction with parameters
+    private static final String SIXEL_INTRO = "9;1;q"; // Sixel introduction with parameters
     private static final int MAX_COLORS = 256; // Maximum number of colors in palette
     private static final int DEFAULT_WIDTH = 800; // Default max width for images
     private static final int DEFAULT_HEIGHT = 480; // Default max height for images
@@ -146,7 +146,7 @@ public class SixelGraphics implements TerminalGraphics {
                 // Look for code "4" which indicates Sixel graphics support
                 // Response format: ESC[?1;2;4;6;9;15;18;21;22c
                 // Code "4" = Sixel graphics support
-                return response.contains(";4;") || response.contains(";4c") || response.endsWith("4c");
+                return response.contains(";4;") || response.contains(";4c");
             }
 
             return null; // Detection failed/timed out
@@ -177,9 +177,9 @@ public class SixelGraphics implements TerminalGraphics {
         String terminalType = terminal.getType().toLowerCase(Locale.ROOT);
 
         // List of terminals known to support sixel
+        // Note: xterm variants removed due to false positives - many terminals
+        // set TERM to xterm variants but don't actually support Sixel
         Set<String> sixelTerminals = new HashSet<>(Arrays.asList(
-                "xterm",
-                "xterm-256color", // xterm since patch #359
                 "mintty", // mintty since 2.6.0
                 "foot", // foot since 1.2.0
                 "iterm2", // iTerm2 since 3.3.0
@@ -231,14 +231,9 @@ public class SixelGraphics implements TerminalGraphics {
             }
         }
 
-        // Check for XTerm with sixel support
-        if (termEnv != null && termEnv.startsWith("xterm")) {
-            // XTerm supports sixel since patch #359
-            // Unfortunately, there's no reliable way to detect the patch level
-            // from environment variables alone
-            // For now, assume modern xterm installations support sixel
-            return true;
-        }
+        // Note: We used to check for XTerm with sixel support here, but this caused
+        // too many false positives since many terminals set TERM to xterm variants
+        // but don't actually support Sixel. Runtime detection should handle real xterm.
 
         // Check if terminal type is in our known list
         return sixelTerminals.contains(terminalType);
@@ -407,8 +402,8 @@ public class SixelGraphics implements TerminalGraphics {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         // Start with DCS sequence and Sixel introduction
-        // Parameters: 0;1;q means:
-        // - 0: Pixel aspect ratio 1:1
+        // Parameters: 9;1;q means:
+        // - 9: Pixel aspect ratio 1:1 (9 = 2:1 horizontal to 1:1 vertical)
         // - 1: Background color is set to black
         // - q: Sixel mode
         baos.write((DCS + SIXEL_INTRO).getBytes(StandardCharsets.US_ASCII));
