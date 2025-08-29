@@ -21,6 +21,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.TimeZone;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -275,81 +276,106 @@ public class PosixCommands {
         List<String> args = opt.args();
         StringBuilder buf = new StringBuilder();
         if (args != null) {
+            int totalLength = args.stream().mapToInt(String::length).sum() + args.size() - 1;
+            buf = new StringBuilder(totalLength * 2);
+
             for (String arg : args) {
                 if (buf.length() > 0) buf.append(' ');
-                // Process escape sequences
-                for (int i = 0; i < arg.length(); i++) {
-                    int c = arg.charAt(i);
-                    int ch;
-                    if (c == '\\') {
-                        c = i < arg.length() - 1 ? arg.charAt(++i) : '\\';
-                        switch (c) {
-                            case 'a':
-                                buf.append('\u0007');
-                                break;
-                            case 'n':
-                                buf.append('\n');
-                                break;
-                            case 't':
-                                buf.append('\t');
-                                break;
-                            case 'r':
-                                buf.append('\r');
-                                break;
-                            case '\\':
-                                buf.append('\\');
-                                break;
-                            case '0':
-                            case '1':
-                            case '2':
-                            case '3':
-                            case '4':
-                            case '5':
-                            case '6':
-                            case '7':
-                            case '8':
-                            case '9':
-                                ch = 0;
-                                for (int j = 0; j < 3; j++) {
-                                    c = i < arg.length() - 1 ? arg.charAt(++i) : -1;
-                                    if (c >= 0) {
-                                        ch = ch * 8 + (c - '0');
-                                    }
-                                }
-                                buf.append((char) ch);
-                                break;
-                            case 'u':
-                                ch = 0;
-                                for (int j = 0; j < 4; j++) {
-                                    c = i < arg.length() - 1 ? arg.charAt(++i) : -1;
-                                    if (c >= 0) {
-                                        if (c >= 'A' && c <= 'Z') {
-                                            ch = ch * 16 + (c - 'A' + 10);
-                                        } else if (c >= 'a' && c <= 'z') {
-                                            ch = ch * 16 + (c - 'a' + 10);
-                                        } else if (c >= '0' && c <= '9') {
-                                            ch = ch * 16 + (c - '0');
-                                        } else {
-                                            break;
-                                        }
-                                    }
-                                }
-                                buf.append((char) ch);
-                                break;
-                            default:
-                                buf.append((char) c);
-                                break;
-                        }
-                    } else {
-                        buf.append((char) c);
-                    }
-                }
+                processEscapeSequences(arg, buf);
             }
         }
         if (opt.isSet("n")) {
             context.out().print(buf);
         } else {
             context.out().println(buf);
+        }
+    }
+
+    /**
+     * Process escape sequences in echo command.
+     */
+    private static void processEscapeSequences(String arg, StringBuilder buf) {
+        final int length = arg.length();
+        for (int i = 0; i < length; i++) {
+            char c = arg.charAt(i);
+            if (c == '\\' && i + 1 < length) {
+                char nextChar = arg.charAt(++i);
+                switch (nextChar) {
+                    case 'a':
+                        buf.append('\u0007'); // Bell
+                        break;
+                    case 'n':
+                        buf.append('\n');
+                        break;
+                    case 't':
+                        buf.append('\t');
+                        break;
+                    case 'r':
+                        buf.append('\r');
+                        break;
+                    case '\\':
+                        buf.append('\\');
+                        break;
+                    case '0':
+                    case '1':
+                    case '2':
+                    case '3':
+                    case '4':
+                    case '5':
+                    case '6':
+                    case '7':
+                    case '8':
+                    case '9':
+                        // Octal escape sequence
+                        int octalValue = nextChar - '0';
+                        for (int j = 0; j < 2 && i + 1 < length; j++) {
+                            char octalChar = arg.charAt(i + 1);
+                            switch (octalChar) {
+                                case '0': case '1': case '2': case '3':
+                                case '4': case '5': case '6': case '7':
+                                    octalValue = (octalValue << 3) + (octalChar - '0');
+                                    i++;
+                                    break;
+                                default:
+                                    j = 2; // Break outer loop
+                                    break;
+                            }
+                        }
+                        buf.append((char) octalValue);
+                        break;
+                    case 'u':
+                        // Unicode escape sequence
+                        int unicodeValue = 0;
+                        for (int j = 0; j < 4 && i + 1 < length; j++) {
+                            char hexChar = arg.charAt(i + 1);
+                            int hexDigit;
+                            switch (hexChar) {
+                                case '0': case '1': case '2': case '3': case '4':
+                                case '5': case '6': case '7': case '8': case '9':
+                                    hexDigit = hexChar - '0';
+                                    break;
+                                case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
+                                    hexDigit = hexChar - 'A' + 10;
+                                    break;
+                                case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
+                                    hexDigit = hexChar - 'a' + 10;
+                                    break;
+                                default:
+                                    j = 4; // Break outer loop
+                                    continue;
+                            }
+                            unicodeValue = (unicodeValue << 4) + hexDigit;
+                            i++;
+                        }
+                        buf.append((char) unicodeValue);
+                        break;
+                    default:
+                        buf.append(nextChar);
+                        break;
+                }
+            } else {
+                buf.append(c);
+            }
         }
     }
 
@@ -550,169 +576,115 @@ public class PosixCommands {
         context.out().println(formatter.format(input));
     }
 
+    private static final Map<String, String> DATE_FORMAT_CACHE = new ConcurrentHashMap<>();
+    private static final Map<Character, String> UNIX_TO_JAVA_FORMAT_MAP;
+
+    static {
+        Map<Character, String> formatMap = new HashMap<>();
+        formatMap.put('a', "EEE"); // Abbreviated weekday name
+        formatMap.put('A', "EEEE"); // Full weekday name
+        formatMap.put('b', "MMM"); // Abbreviated month name
+        formatMap.put('B', "MMMM"); // Full month name
+        formatMap.put('c', "EEE MMM d HH:mm:ss yyyy"); // Complete date and time
+        formatMap.put('C', "yy"); // Century (year/100) as 2-digit number
+        formatMap.put('d', "dd"); // Day of month as 2-digit number
+        formatMap.put('D', "MM/dd/yy"); // Date in MM/dd/yy format
+        formatMap.put('e', "d"); // Day of month as number (1-31)
+        formatMap.put('F', "yyyy-MM-dd"); // Date in ISO 8601 format
+        formatMap.put('G', "YYYY"); // ISO week-based year
+        formatMap.put('g', "YY"); // ISO week-based year (2 digits)
+        formatMap.put('H', "HH"); // Hour (24-hour format)
+        formatMap.put('h', "MMM"); // Same as %b
+        formatMap.put('I', "hh"); // Hour (12-hour format)
+        formatMap.put('j', "DDD"); // Day of year
+        formatMap.put('k', "H"); // Hour (24-hour, space-padded)
+        formatMap.put('l', "h"); // Hour (12-hour, space-padded)
+        formatMap.put('M', "mm"); // Minute
+        formatMap.put('m', "MM"); // Month as number
+        formatMap.put('N', "SSS"); // Nanoseconds
+        formatMap.put('n', "\n"); // Newline
+        formatMap.put('P', "a"); // AM/PM in lowercase
+        formatMap.put('p', "a"); // AM/PM
+        formatMap.put('r', "hh:mm:ss a"); // 12-hour time
+        formatMap.put('R', "HH:mm"); // 24-hour time (hours:minutes)
+        formatMap.put('S', "ss"); // Second
+        formatMap.put('s', "X"); // Seconds since epoch
+        formatMap.put('T', "HH:mm:ss"); // 24-hour time
+        formatMap.put('t', "\t"); // Tab character
+        formatMap.put('U', "ww"); // Week number (Sunday first)
+        formatMap.put('u', "u"); // Day of week (1=Monday)
+        formatMap.put('V', "ww"); // ISO week number
+        formatMap.put('v', "d-MMM-yyyy"); // Date in d-MMM-yyyy format
+        formatMap.put('W', "ww"); // Week number (Monday first)
+        formatMap.put('w', "e"); // Day of week (0=Sunday)
+        formatMap.put('X', "HH:mm:ss"); // Time representation
+        formatMap.put('x', "MM/dd/yy"); // Date representation
+        formatMap.put('Y', "yyyy"); // Year with century
+        formatMap.put('y', "yy"); // Year without century
+        formatMap.put('Z', "zzz"); // Time zone name
+        formatMap.put('z', "Z"); // Time zone offset
+        formatMap.put('%', "%"); // Literal %
+        // Handle special cases from original implementation
+        formatMap.put('+', "EEE MMM d HH:mm:ss yyyy"); // Same as %c
+        UNIX_TO_JAVA_FORMAT_MAP = Collections.unmodifiableMap(formatMap);
+    }
+
     /**
      * Convert Unix date format to Java SimpleDateFormat.
      */
     private static String toJavaDateFormat(String format) {
-        // transform Unix format to Java SimpleDateFormat (if required)
-        StringBuilder sb = new StringBuilder();
-        boolean quote = false;
+        return DATE_FORMAT_CACHE.computeIfAbsent(format, PosixCommands::convertUnixToJavaFormat);
+    }
+
+    /**
+     * Convert Unix format to Java format.
+     */
+    private static String convertUnixToJavaFormat(String format) {
+        if (format == null || format.isEmpty()) {
+            return format;
+        }
+
+        StringBuilder sb = new StringBuilder(format.length() * 2); // Pre-size for efficiency
+        boolean inQuotes = false;
+
         for (int i = 0; i < format.length(); i++) {
             char c = format.charAt(i);
-            if (c == '%') {
-                if (i + 1 < format.length()) {
-                    if (quote) {
+
+            if (c == '%' && i + 1 < format.length()) {
+                char nextChar = format.charAt(i + 1);
+                String javaPattern = UNIX_TO_JAVA_FORMAT_MAP.get(nextChar);
+                if (javaPattern != null) {
+                    boolean needsQuotes = nextChar == 'n' || nextChar == 't' || nextChar == '%';
+                    if (inQuotes != needsQuotes) {
                         sb.append('\'');
-                        quote = false;
+                        inQuotes = !inQuotes;
                     }
-                    c = format.charAt(++i);
-                    switch (c) {
-                        case '+':
-                        case 'A':
-                            sb.append("MMM EEE d HH:mm:ss yyyy");
-                            break;
-                        case 'a':
-                            sb.append("EEE");
-                            break;
-                        case 'B':
-                            sb.append("MMMMMMM");
-                            break;
-                        case 'b':
-                            sb.append("MMM");
-                            break;
-                        case 'C':
-                            sb.append("yy");
-                            break;
-                        case 'c':
-                            sb.append("MMM EEE d HH:mm:ss yyyy");
-                            break;
-                        case 'D':
-                            sb.append("MM/dd/yy");
-                            break;
-                        case 'd':
-                            sb.append("dd");
-                            break;
-                        case 'e':
-                            sb.append("dd");
-                            break;
-                        case 'F':
-                            sb.append("yyyy-MM-dd");
-                            break;
-                        case 'G':
-                            sb.append("YYYY");
-                            break;
-                        case 'g':
-                            sb.append("YY");
-                            break;
-                        case 'H':
-                            sb.append("HH");
-                            break;
-                        case 'h':
-                            sb.append("MMM");
-                            break;
-                        case 'I':
-                            sb.append("hh");
-                            break;
-                        case 'j':
-                            sb.append("DDD");
-                            break;
-                        case 'k':
-                            sb.append("HH");
-                            break;
-                        case 'l':
-                            sb.append("hh");
-                            break;
-                        case 'M':
-                            sb.append("mm");
-                            break;
-                        case 'm':
-                            sb.append("MM");
-                            break;
-                        case 'N':
-                            sb.append("S");
-                            break;
-                        case 'n':
-                            sb.append("\n");
-                            break;
-                        case 'P':
-                            sb.append("aa");
-                            break;
-                        case 'p':
-                            sb.append("aa");
-                            break;
-                        case 'r':
-                            sb.append("hh:mm:ss aa");
-                            break;
-                        case 'R':
-                            sb.append("HH:mm");
-                            break;
-                        case 'S':
-                            sb.append("ss");
-                            break;
-                        case 's':
-                            sb.append("S");
-                            break;
-                        case 'T':
-                            sb.append("HH:mm:ss");
-                            break;
-                        case 't':
-                            sb.append("\t");
-                            break;
-                        case 'U':
-                            sb.append("w");
-                            break;
-                        case 'u':
-                            sb.append("u");
-                            break;
-                        case 'V':
-                            sb.append("W");
-                            break;
-                        case 'v':
-                            sb.append("dd-MMM-yyyy");
-                            break;
-                        case 'W':
-                            sb.append("w");
-                            break;
-                        case 'w':
-                            sb.append("u");
-                            break;
-                        case 'X':
-                            sb.append("HH:mm:ss");
-                            break;
-                        case 'x':
-                            sb.append("MM/dd/yy");
-                            break;
-                        case 'Y':
-                            sb.append("yyyy");
-                            break;
-                        case 'y':
-                            sb.append("yy");
-                            break;
-                        case 'Z':
-                            sb.append("z");
-                            break;
-                        case 'z':
-                            sb.append("X");
-                            break;
-                        case '%':
-                            sb.append("%");
-                            break;
-                    }
+                    sb.append(javaPattern);
+                    i++; // Skip the next character as we've processed the pattern
                 } else {
-                    if (!quote) {
+                    // Unknown pattern, treat as literal
+                    if (!inQuotes) {
                         sb.append('\'');
+                        inQuotes = true;
                     }
                     sb.append(c);
-                    sb.append('\'');
                 }
             } else {
-                if ((c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z') && !quote) {
+                // Regular character - check if we need quotes for letters
+                boolean needsQuotes = Character.isLetter(c);
+                if (inQuotes != needsQuotes) {
                     sb.append('\'');
-                    quote = true;
+                    inQuotes = !inQuotes;
                 }
                 sb.append(c);
             }
         }
+
+        // Close quotes if still open
+        if (inQuotes) {
+            sb.append('\'');
+        }
+
         return sb.toString();
     }
 
@@ -1119,7 +1091,7 @@ public class PosixCommands {
         } else if (opt.isSet("bytes")) {
             nbBytes = opt.getNumber("bytes");
         } else {
-            nbLines = 10; // default
+            nbLines = DEFAULT_HEAD_LINES;
         }
         List<Source> sources = getSources(context, opt.args());
         for (Source src : sources) {
@@ -1132,7 +1104,7 @@ public class PosixCommands {
                 context.out().println("==> " + src.getName() + " <==");
             }
             try (InputStream is = src.read()) {
-                byte[] buf = new byte[1024];
+                byte[] buf = new byte[DEFAULT_BUFFER_SIZE];
                 int nb;
                 do {
                     nb = is.read(buf);
@@ -1171,7 +1143,7 @@ public class PosixCommands {
             throw new IllegalArgumentException("usage: tail [-f] [-q] [-c # | -n #] [file ...]");
         }
 
-        int lines = opt.isSet("lines") ? opt.getNumber("lines") : 10;
+        int lines = opt.isSet("lines") ? opt.getNumber("lines") : DEFAULT_TAIL_LINES;
         int bytes = opt.isSet("bytes") ? opt.getNumber("bytes") : -1;
         boolean follow = opt.isSet("follow") || opt.isSet("FOLLOW");
 
@@ -1631,7 +1603,7 @@ public class PosixCommands {
         List<String> lines = new ArrayList<>();
         for (Source source : getSources(context, opt.args())) {
             try (BufferedReader reader = source.reader()) {
-                readLines(reader, lines);
+                lines.addAll(reader.lines().collect(Collectors.toList()));
             }
         }
 
@@ -1819,18 +1791,17 @@ public class PosixCommands {
                 }
                 if (opt.isSet("h")) {
                     long bytes = length.longValue();
-                    if (bytes < 1000) {
+                    if (bytes < SIZE_THRESHOLD) {
                         return bytes + "B";
                     }
-                    String[] units = {"B", "K", "M", "T"};
                     double size = bytes;
                     int unitIndex = 0;
-                    while (size >= 1000 && unitIndex < units.length - 1) {
+                    while (size >= SIZE_THRESHOLD && unitIndex < SIZE_UNITS.length - 1) {
                         size /= 1024;
                         unitIndex++;
                     }
-                    String format = (size < 10 && bytes > 1000) ? "%.1f" : "%.0f";
-                    return String.format(format, size) + units[unitIndex];
+                    String format = (size < 10 && bytes > SIZE_THRESHOLD) ? "%.1f" : "%.0f";
+                    return String.format(format, size) + SIZE_UNITS[unitIndex];
                 } else {
                     return length.toString();
                 }
@@ -2033,24 +2004,22 @@ public class PosixCommands {
         }
     }
 
-    /**
-     * Read lines from a BufferedReader into a list.
-     */
-    private static void readLines(BufferedReader reader, List<String> lines) throws IOException {
-        String line;
-        while ((line = reader.readLine()) != null) {
-            lines.add(line);
-        }
-    }
-
-    // Color constants and helper methods
     public static final String DEFAULT_LS_COLORS = "dr=1;91:ex=1;92:sl=1;96:ot=34;43";
     public static final String DEFAULT_GREP_COLORS = "mt=1;31:fn=35:ln=32:se=36";
 
+    private static final int DEFAULT_BUFFER_SIZE = 8192;
+    private static final int DEFAULT_HEAD_LINES = 10;
+    private static final int DEFAULT_TAIL_LINES = 10;
+    private static final String[] SIZE_UNITS = {"B", "K", "M", "G", "T", "P"};
+    private static final long SIZE_THRESHOLD = 1000L;
+
+    private static final LinkOption[] EMPTY_LINK_OPTIONS = new LinkOption[0];
     private static final LinkOption[] NO_FOLLOW_OPTIONS = new LinkOption[] {LinkOption.NOFOLLOW_LINKS};
     private static final List<String> WINDOWS_EXECUTABLE_EXTENSIONS =
-            Collections.unmodifiableList(Arrays.asList(".bat", ".exe", ".cmd"));
-    private static final LinkOption[] EMPTY_LINK_OPTIONS = new LinkOption[0];
+            List.of(".bat", ".exe", ".cmd");
+
+    private static final Pattern COLOR_FORMAT_PATTERN =
+            Pattern.compile("[a-z]{2}=[0-9]*(;[0-9]+)*(:[a-z]{2}=[0-9]*(;[0-9]+)*)*");
 
     /**
      * Get color map for ls command.
@@ -2067,7 +2036,7 @@ public class PosixCommands {
         if (str.isEmpty()) {
             return Collections.emptyMap();
         }
-        String sep = str.matches("[a-z]{2}=[0-9]*(;[0-9]+)*(:[a-z]{2}=[0-9]*(;[0-9]+)*)*") ? ":" : " ";
+        String sep = COLOR_FORMAT_PATTERN.matcher(str).matches() ? ":" : " ";
         return Arrays.stream(str.split(sep))
                 .collect(Collectors.toMap(s -> s.substring(0, s.indexOf('=')), s -> s.substring(s.indexOf('=') + 1)));
     }
@@ -2086,7 +2055,7 @@ public class PosixCommands {
         if (str == null) {
             str = def;
         }
-        String sep = str.matches("[a-z]{2}=[0-9]*(;[0-9]+)*(:[a-z]{2}=[0-9]*(;[0-9]+)*)*") ? ":" : " ";
+        String sep = COLOR_FORMAT_PATTERN.matcher(str).matches() ? ":" : " ";
         return Arrays.stream(str.split(sep))
                 .collect(Collectors.toMap(s -> s.substring(0, s.indexOf('=')), s -> s.substring(s.indexOf('=') + 1)));
     }
