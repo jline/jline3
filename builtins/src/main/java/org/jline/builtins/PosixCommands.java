@@ -327,47 +327,11 @@ public class PosixCommands {
                     case '8':
                     case '9':
                         // Octal escape sequence
-                        int octalValue = nextChar - '0';
-                        for (int j = 0; j < 2 && i + 1 < length; j++) {
-                            char octalChar = arg.charAt(i + 1);
-                            switch (octalChar) {
-                                case '0': case '1': case '2': case '3':
-                                case '4': case '5': case '6': case '7':
-                                    octalValue = (octalValue << 3) + (octalChar - '0');
-                                    i++;
-                                    break;
-                                default:
-                                    j = 2; // Break outer loop
-                                    break;
-                            }
-                        }
-                        buf.append((char) octalValue);
+                        i += parseOctalSequence(arg, i, length, buf, nextChar);
                         break;
                     case 'u':
                         // Unicode escape sequence
-                        int unicodeValue = 0;
-                        for (int j = 0; j < 4 && i + 1 < length; j++) {
-                            char hexChar = arg.charAt(i + 1);
-                            int hexDigit;
-                            switch (hexChar) {
-                                case '0': case '1': case '2': case '3': case '4':
-                                case '5': case '6': case '7': case '8': case '9':
-                                    hexDigit = hexChar - '0';
-                                    break;
-                                case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
-                                    hexDigit = hexChar - 'A' + 10;
-                                    break;
-                                case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
-                                    hexDigit = hexChar - 'a' + 10;
-                                    break;
-                                default:
-                                    j = 4; // Break outer loop
-                                    continue;
-                            }
-                            unicodeValue = (unicodeValue << 4) + hexDigit;
-                            i++;
-                        }
-                        buf.append((char) unicodeValue);
+                        i += parseUnicodeSequence(arg, i + 1, length, buf);
                         break;
                     default:
                         buf.append(nextChar);
@@ -377,6 +341,68 @@ public class PosixCommands {
                 buf.append(c);
             }
         }
+    }
+
+    /**
+     * Parse unicode escape sequence (\\uXXXX).
+     * @return number of characters consumed from input
+     */
+    private static int parseUnicodeSequence(String arg, int startIndex, int length, StringBuilder buf) {
+        int unicodeValue = 0;
+        int consumed = 0;
+
+        for (int j = 0; j < 4 && startIndex + consumed < length; j++) {
+            char hexChar = arg.charAt(startIndex + consumed);
+            int hexDigit;
+            switch (hexChar) {
+                case '0': case '1': case '2': case '3': case '4':
+                case '5': case '6': case '7': case '8': case '9':
+                    hexDigit = hexChar - '0';
+                    break;
+                case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
+                    hexDigit = hexChar - 'A' + 10;
+                    break;
+                case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
+                    hexDigit = hexChar - 'a' + 10;
+                    break;
+                default:
+                    // Invalid hex digit, stop parsing
+                    buf.append((char) unicodeValue);
+                    return consumed;
+            }
+            unicodeValue = (unicodeValue << 4) + hexDigit;
+            consumed++;
+        }
+
+        buf.append((char) unicodeValue);
+        return consumed;
+    }
+
+    /**
+     * Parse octal escape sequence (\\nnn).
+     * @return number of characters consumed from input
+     */
+    private static int parseOctalSequence(String arg, int startIndex, int length, StringBuilder buf, char firstDigit) {
+        int octalValue = firstDigit - '0';
+        int consumed = 0;
+
+        for (int j = 0; j < 2 && startIndex + 1 + consumed < length; j++) {
+            char octalChar = arg.charAt(startIndex + 1 + consumed);
+            switch (octalChar) {
+                case '0': case '1': case '2': case '3':
+                case '4': case '5': case '6': case '7':
+                    octalValue = (octalValue << 3) + (octalChar - '0');
+                    consumed++;
+                    break;
+                default:
+                    // Invalid octal digit, stop parsing
+                    buf.append((char) octalValue);
+                    return consumed;
+            }
+        }
+
+        buf.append((char) octalValue);
+        return consumed;
     }
 
     /**
