@@ -63,9 +63,7 @@ public class SixelGraphicsTest {
 
     @Test
     public void testTerminalDetection() {
-        // Test known sixel-supporting terminals
-        assertTrue(SixelGraphics.isSixelSupported(createMockTerminal("xterm")));
-        assertTrue(SixelGraphics.isSixelSupported(createMockTerminal("xterm-256color")));
+        // Test known sixel-supporting terminals (excluding xterm variants due to false positives)
         assertTrue(SixelGraphics.isSixelSupported(createMockTerminal("mintty")));
         assertTrue(SixelGraphics.isSixelSupported(createMockTerminal("foot")));
         assertTrue(SixelGraphics.isSixelSupported(createMockTerminal("iterm2")));
@@ -73,7 +71,9 @@ public class SixelGraphicsTest {
         assertTrue(SixelGraphics.isSixelSupported(createMockTerminal("mlterm")));
         assertTrue(SixelGraphics.isSixelSupported(createMockTerminal("wezterm")));
 
-        // Test terminals that don't support sixel
+        // Test terminals that don't support sixel (including xterm variants without runtime detection)
+        assertFalse(SixelGraphics.isSixelSupported(createMockTerminal("xterm")));
+        assertFalse(SixelGraphics.isSixelSupported(createMockTerminal("xterm-256color")));
         assertFalse(SixelGraphics.isSixelSupported(createMockTerminal("dumb")));
         assertFalse(SixelGraphics.isSixelSupported(createMockTerminal("vt100")));
         assertFalse(SixelGraphics.isSixelSupported(createMockTerminal("unknown")));
@@ -94,7 +94,7 @@ public class SixelGraphicsTest {
         String sixelData = SixelGraphics.convertToSixel(image);
 
         // Verify the basic structure
-        assertTrue(sixelData.startsWith("\u001bP0;1;q"), "Should start with DCS and sixel intro");
+        assertTrue(sixelData.startsWith("\u001bP9;1;q"), "Should start with DCS and sixel intro");
         assertTrue(sixelData.endsWith("\u001b\\"), "Should end with ST");
         assertTrue(sixelData.contains("#"), "Should contain color definitions");
     }
@@ -111,7 +111,7 @@ public class SixelGraphicsTest {
         String sixelData = SixelGraphics.convertToSixel(image);
 
         // Verify basic structure
-        assertTrue(sixelData.startsWith("\u001bP0;1;q"));
+        assertTrue(sixelData.startsWith("\u001bP9;1;q"));
         assertTrue(sixelData.endsWith("\u001b\\"));
 
         // Should contain color definition for red
@@ -134,7 +134,7 @@ public class SixelGraphicsTest {
         // Force enable sixel support
         SixelGraphics.setSixelSupportOverride(true);
 
-        Terminal terminal = createMockTerminal("xterm");
+        Terminal terminal = createMockTerminal("mintty"); // Use a terminal that actually supports sixel
         BufferedImage image = new BufferedImage(10, 10, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = image.createGraphics();
         g.setColor(Color.BLUE);
@@ -159,7 +159,7 @@ public class SixelGraphicsTest {
         String sixelData = SixelGraphics.convertToSixel(largeImage);
 
         // Should still produce valid sixel data
-        assertTrue(sixelData.startsWith("\u001bP0;1;q"));
+        assertTrue(sixelData.startsWith("\u001bP9;1;q"));
         assertTrue(sixelData.endsWith("\u001b\\"));
     }
 
@@ -187,7 +187,7 @@ public class SixelGraphicsTest {
         String sixelData = SixelGraphics.convertToSixel(image);
 
         // Verify structure
-        assertTrue(sixelData.startsWith("\u001bP0;1;q"), "Should start with proper DCS sequence");
+        assertTrue(sixelData.startsWith("\u001bP9;1;q"), "Should start with proper DCS sequence");
         assertTrue(sixelData.endsWith("\u001b\\"), "Should end with ST");
         assertTrue(sixelData.contains("#"), "Should contain color definitions");
 
@@ -205,7 +205,7 @@ public class SixelGraphicsTest {
         String sixelData = SixelGraphics.convertToSixel(image);
 
         // Should still produce valid sixel data
-        assertTrue(sixelData.startsWith("\u001bP0;1;q"));
+        assertTrue(sixelData.startsWith("\u001bP9;1;q"));
         assertTrue(sixelData.endsWith("\u001b\\"));
     }
 
