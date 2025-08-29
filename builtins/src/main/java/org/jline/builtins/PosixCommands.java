@@ -355,14 +355,32 @@ public class PosixCommands {
             char hexChar = arg.charAt(startIndex + consumed);
             int hexDigit;
             switch (hexChar) {
-                case '0': case '1': case '2': case '3': case '4':
-                case '5': case '6': case '7': case '8': case '9':
+                case '0':
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                case '8':
+                case '9':
                     hexDigit = hexChar - '0';
                     break;
-                case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
+                case 'A':
+                case 'B':
+                case 'C':
+                case 'D':
+                case 'E':
+                case 'F':
                     hexDigit = hexChar - 'A' + 10;
                     break;
-                case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
+                case 'a':
+                case 'b':
+                case 'c':
+                case 'd':
+                case 'e':
+                case 'f':
                     hexDigit = hexChar - 'a' + 10;
                     break;
                 default:
@@ -389,8 +407,14 @@ public class PosixCommands {
         for (int j = 0; j < 2 && startIndex + 1 + consumed < length; j++) {
             char octalChar = arg.charAt(startIndex + 1 + consumed);
             switch (octalChar) {
-                case '0': case '1': case '2': case '3':
-                case '4': case '5': case '6': case '7':
+                case '0':
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
                     octalValue = (octalValue << 3) + (octalChar - '0');
                     consumed++;
                     break;
@@ -2041,8 +2065,7 @@ public class PosixCommands {
 
     private static final LinkOption[] EMPTY_LINK_OPTIONS = new LinkOption[0];
     private static final LinkOption[] NO_FOLLOW_OPTIONS = new LinkOption[] {LinkOption.NOFOLLOW_LINKS};
-    private static final List<String> WINDOWS_EXECUTABLE_EXTENSIONS =
-            List.of(".bat", ".exe", ".cmd");
+    private static final List<String> WINDOWS_EXECUTABLE_EXTENSIONS = List.of(".bat", ".exe", ".cmd");
 
     private static final Pattern COLOR_FORMAT_PATTERN =
             Pattern.compile("[a-z]{2}=[0-9]*(;[0-9]+)*(:[a-z]{2}=[0-9]*(;[0-9]+)*)*");
