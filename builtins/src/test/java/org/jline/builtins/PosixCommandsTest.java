@@ -196,6 +196,29 @@ public class PosixCommandsTest {
     }
 
     @Test
+    void testLsOneEntryPerLine() throws Exception {
+        // Skip test on platforms that don't support POSIX file attributes
+        Assumptions.assumeTrue(isPosixSupported(), "POSIX file attributes not supported on this platform");
+
+        // Create test files
+        Files.createFile(tempDir.resolve("file1.txt"));
+        Files.createFile(tempDir.resolve("file2.txt"));
+        Files.createFile(tempDir.resolve("file3.txt"));
+
+        // Test -1 option (one entry per line)
+        PosixCommands.ls(context, new String[] {"ls", "-1"});
+
+        String output = out.toString();
+        assertTrue(output.contains("file1.txt"));
+        assertTrue(output.contains("file2.txt"));
+        assertTrue(output.contains("file3.txt"));
+
+        // Verify that each file is on its own line
+        String[] lines = output.trim().split("\\r?\\n");
+        assertTrue(lines.length >= 3, "Should have at least 3 lines for 3 files");
+    }
+
+    @Test
     void testCatWithFiles() throws Exception {
         // Create test files
         Path file1 = tempDir.resolve("file1.txt");
