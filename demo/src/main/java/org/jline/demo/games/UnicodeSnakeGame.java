@@ -93,6 +93,11 @@ public class UnicodeSnakeGame {
             return x == p.x && y == p.y;
         }
 
+        @Override
+        public int hashCode() {
+            return x * 31 + y;
+        }
+
         Point move(Direction dir) {
             return new Point(x + dir.dx, y + dir.dy);
         }
@@ -183,12 +188,10 @@ public class UnicodeSnakeGame {
                     if (direction != Direction.UP) direction = Direction.DOWN;
                     break;
                 case 'a':
-                case 'A':
                 case 68: // Left arrow
                     if (direction != Direction.RIGHT) direction = Direction.LEFT;
                     break;
                 case 'd':
-                case 'D':
                 case 67: // Right arrow
                     if (direction != Direction.LEFT) direction = Direction.RIGHT;
                     break;

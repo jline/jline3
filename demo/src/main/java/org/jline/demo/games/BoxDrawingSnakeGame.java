@@ -97,6 +97,11 @@ public class BoxDrawingSnakeGame {
             return x == p.x && y == p.y;
         }
 
+        @Override
+        public int hashCode() {
+            return x * 31 + y;
+        }
+
         Point move(Direction dir) {
             return new Point(x + dir.dx, y + dir.dy);
         }
