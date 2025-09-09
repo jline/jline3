@@ -329,7 +329,7 @@ Windows has some specific challenges for terminal applications:
    **Solution**: Use Windows Terminal or ConEmu for better Unicode support, or set an appropriate code page:
 
    ```java
-   // Set UTF-8 code page (requires JNA)
+   // Set UTF-8 code page (using external command)
    if (System.getProperty("os.name").toLowerCase().contains("win")) {
        try {
            new ProcessBuilder("cmd", "/c", "chcp", "65001").inheritIO().start().waitFor();
