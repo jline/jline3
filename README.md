@@ -8,7 +8,9 @@ JLine is a Java library for handling console input. It's similar to [GNU Readlin
 
 ## Requirements
 
-- **Java 11 or higher**: JLine requires Java 11 as the minimum runtime version
+- **Java 11 or higher**: JLine 4.x requires Java 11 as the minimum runtime version
+- **Maven 4.0 or higher**: JLine 4.x requires Maven 4.0+ for building from source
+- **Note**: JLine 3.x supports Java 8+ and Maven 3.x+, but JLine 4.x requires Java 11+ and Maven 4.0+
 
 ## Features
 
@@ -30,14 +32,14 @@ JLine is a Java library for handling console input. It's similar to [GNU Readlin
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline</artifactId>
-    <version>3.30.0</version>
+    <version>4.0.0</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```groovy
-implementation 'org.jline:jline:3.30.0'
+implementation 'org.jline:jline:4.0.0'
 ```
 
 ## Quick Start
