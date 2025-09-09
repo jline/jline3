@@ -1981,7 +1981,7 @@ public class PosixCommands {
     }
 
     private static Stream<Path> maybeExpandGlob(Context context, String arg) {
-        if (arg.contains("*") || arg.contains("?")) {
+        if (arg.contains("*") || arg.contains("?") || arg.contains("{")) {
             return expandGlob(context, arg).stream();
         }
         return Stream.of(context.currentDir().resolve(arg));
@@ -1989,23 +1989,39 @@ public class PosixCommands {
 
     private static List<Path> expandGlob(Context context, String pattern) {
         Path path = Path.of(pattern);
-
         Path base;
         String globPart;
 
         if (path.isAbsolute()) {
-            base = path.getParent();
-            globPart = path.getFileName().toString();
+            Path nonGlobPrefix = path;
+            StringBuilder globPartBuilder = new StringBuilder();
+            boolean hasGlob = false;
+            for (Path part : path) {
+                String partStr = part.toString();
+                if (partStr.contains("*") || partStr.contains("?") || partStr.contains("{")) {
+                    hasGlob = true;
+                    break;
+                }
+                nonGlobPrefix = nonGlobPrefix.getParent() != null ? nonGlobPrefix.getParent() : nonGlobPrefix;
+                globPartBuilder.insert(0, partStr + "/");
+            }
+            if (!hasGlob) {
+                return Collections.singletonList(path);
+            }
+            base = path.getRoot().resolve(globPartBuilder.toString());
+            globPart = pattern.substring(path.getRoot().toString().length());
         } else {
             base = context.currentDir();
             globPart = pattern;
         }
 
         PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + globPart);
-
         try {
-            return Files.list(base)
-                    .filter(p -> matcher.matches(p.getFileName()))
+            return Files.walk(base)
+                    .filter(filePath -> {
+                        Path relativePath = base.relativize(filePath);
+                        return matcher.matches(relativePath);
+                    })
                     .collect(Collectors.toList());
         } catch (IOException e) {
             throw new RuntimeException(e);
