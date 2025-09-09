@@ -217,8 +217,8 @@ public class Display {
         int numLines = Math.min(rows, Math.max(oldLines.size(), newLines.size()));
         boolean wrapNeeded = false;
         while (lineIndex < numLines) {
-            AttributedString oldLine = lineIndex < oldLines.size() ? oldLines.get(lineIndex) : AttributedString.NEWLINE;
-            AttributedString newLine = lineIndex < newLines.size() ? newLines.get(lineIndex) : AttributedString.NEWLINE;
+            AttributedString oldLine = lineIndex < oldLines.size() ? oldLines.get(lineIndex) : AttributedString.EMPTY;
+            AttributedString newLine = lineIndex < newLines.size() ? newLines.get(lineIndex) : AttributedString.EMPTY;
             currentPos = lineIndex * columns1;
             int curCol = currentPos;
             int oldLength = oldLine.length();
@@ -239,7 +239,7 @@ public class Display {
                 if (newLength == 0 || newLine.isHidden(0)) {
                     // go to next line column zero
                     rawPrint(' ');
-                    terminal.puts(Capability.key_backspace);
+                    terminal.puts(Capability.cursor_left);
                 } else {
                     AttributedString firstChar = newLine.substring(0, 1);
                     // go to next line column one
@@ -340,7 +340,7 @@ public class Display {
                 if (this.wrapAtEol) {
                     if (!fullScreen || (fullScreen && lineIndex < numLines)) {
                         rawPrint(' ');
-                        terminal.puts(Capability.key_backspace);
+                        terminal.puts(Capability.cursor_left);
                         cursorPos++;
                     }
                 } else {
