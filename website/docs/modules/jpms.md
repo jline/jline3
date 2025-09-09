@@ -183,19 +183,19 @@ When using Maven or Gradle, you can depend on individual modules:
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-terminal</artifactId>
-    <version>4.0.0</version>
+    <version>%%JLINE_VERSION%%</version>
 </dependency>
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-reader</artifactId>
-    <version>4.0.0</version>
+    <version>%%JLINE_VERSION%%</version>
 </dependency>
 ```
 
 #### Gradle
 ```groovy
-implementation 'org.jline:jline-terminal:4.0.0'
-implementation 'org.jline:jline-reader:4.0.0'
+implementation 'org.jline:jline-terminal:%%JLINE_VERSION%%'
+implementation 'org.jline:jline-reader:%%JLINE_VERSION%%'
 ```
 
 ## Migration from JLine 3.x
@@ -224,17 +224,17 @@ When migrating from JLine 3.x to 4.x in a modular application:
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-terminal</artifactId>
-    <version>4.0.0</version>
+    <version>%%JLINE_VERSION%%</version>
 </dependency>
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-reader</artifactId>
-    <version>4.0.0</version>
+    <version>%%JLINE_VERSION%%</version>
 </dependency>
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-terminal-jni</artifactId>
-    <version>4.0.0</version>
+    <version>%%JLINE_VERSION%%</version>
 </dependency>
 ```
 

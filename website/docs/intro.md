@@ -26,7 +26,12 @@ JLine enhances your command-line applications with:
 
 ## Requirements
 
-JLine requires **Java 11 or higher** as the minimum runtime version.
+JLine 4.x requires **Java 11 or higher** as the minimum runtime version.
+
+:::note Version Requirements
+- **JLine 3.x**: Supports Java 8+, Maven 3.x+
+- **JLine 4.x**: Requires Java 11+, Maven 4.0+
+:::
 
 ## Installation
 

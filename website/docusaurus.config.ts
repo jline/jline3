@@ -6,7 +6,7 @@ import path from 'path';
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 // JLine version - update this when releasing a new version
-const jlineVersion = '3.30.0';
+const jlineVersion = '4.0.0';
 
 // Define build output directory - only used for production builds
 // We'll set this via CLI for development server
