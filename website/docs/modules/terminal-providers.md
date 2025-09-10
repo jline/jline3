@@ -8,23 +8,29 @@ import CodeSnippet from '@site/src/components/CodeSnippet';
 
 JLine supports multiple terminal providers, each with its own characteristics and capabilities. This allows JLine to work across different platforms and environments.
 
+:::note JLine 4.x Changes
+JLine 4.x has removed the **JNA** and **Jansi** providers. These providers are no longer available and have been replaced by more modern alternatives.
+
+The recommended providers for JLine 4.x are **JNI** (for maximum compatibility) and **FFM** (for best performance on Java 22+).
+:::
+
 ## Provider Selection
 
 JLine can automatically select the best terminal provider for your environment, or you can explicitly specify which provider to use:
 
 <CodeSnippet name="ProviderSelectionExample" />
 
-## JNA Provider
+## ~~JNA Provider~~ (Removed in JLine 4.x)
 
-The JNA (Java Native Access) provider uses JNA to access native terminal functionality:
+:::danger Removed in JLine 4.x
+The JNA (Java Native Access) provider has been **removed** in JLine 4.x. Use the **JNI** or **FFM** providers instead for native terminal functionality.
+:::
 
-<CodeSnippet name="JnaTerminalExample" />
+## ~~Jansi Provider~~ (Removed in JLine 4.x)
 
-## Jansi Provider
-
-The Jansi provider uses the Jansi library to provide ANSI support on Windows:
-
-<CodeSnippet name="JansiTerminalExample" />
+:::danger Removed in JLine 4.x
+The Jansi provider has been **removed** in JLine 4.x. Use the **JNI** or **FFM** providers instead for ANSI support and terminal functionality.
+:::
 
 ## FFM Provider
 

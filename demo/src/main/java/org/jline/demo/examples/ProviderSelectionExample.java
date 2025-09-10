@@ -24,24 +24,28 @@ public class ProviderSelectionExample {
         Terminal autoTerminal = TerminalBuilder.builder().system(true).build();
         System.out.println("Auto-selected provider: " + autoTerminal.getClass().getSimpleName());
 
-        // Explicitly specify the JNA provider
-        Terminal jnaTerminal = TerminalBuilder.builder()
+        // Explicitly specify the JNI provider (recommended for maximum compatibility)
+        Terminal jniTerminal = TerminalBuilder.builder()
                 .system(true)
-                .provider("jna") // Explicitly select JNA provider
+                .provider("jni") // Explicitly select JNI provider
                 .build();
-        System.out.println("JNA provider: " + jnaTerminal.getClass().getSimpleName());
+        System.out.println("JNI provider: " + jniTerminal.getClass().getSimpleName());
 
-        // Explicitly specify the Jansi provider
-        Terminal jansiTerminal = TerminalBuilder.builder()
-                .system(true)
-                .provider("jansi") // Explicitly select Jansi provider
-                .build();
-        System.out.println("Jansi provider: " + jansiTerminal.getClass().getSimpleName());
+        // Explicitly specify the FFM provider (recommended for Java 22+)
+        try {
+            Terminal ffmTerminal = TerminalBuilder.builder()
+                    .system(true)
+                    .provider("ffm") // Explicitly select FFM provider
+                    .build();
+            System.out.println("FFM provider: " + ffmTerminal.getClass().getSimpleName());
+            ffmTerminal.close();
+        } catch (Exception e) {
+            System.out.println("FFM provider not available: " + e.getMessage());
+        }
 
         // Close the terminals
         autoTerminal.close();
-        jnaTerminal.close();
-        jansiTerminal.close();
+        jniTerminal.close();
     }
     // SNIPPET_END: ProviderSelectionExample
 }
