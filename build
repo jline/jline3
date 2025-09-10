@@ -22,7 +22,7 @@ function usage {
     echo "usage: $basename <command> [options]"
     echo ""
     echo "Available commands:"
-    echo "  demo <type>           Run a demo (gogo, repl, password)"
+    echo "  demo <type>           Run a demo (gogo, repl, password, snake)"
     echo "  example <className>   Run an example from org.jline.demo.examples"
     echo "  rebuild               Clean and install the project"
     echo "  license-check         Check license headers"
@@ -64,6 +64,7 @@ function command_demo() {
     echo "  gogo      - Run the Gogo shell demo"
     echo "  repl      - Run the REPL demo"
     echo "  password  - Run the password demo"
+    echo "  snake     - Run the Snake game demo"
     echo "  consoleui - Run the ConsoleUI demo (deprecated)"
     echo "  prompt    - Run the new Prompt API demo"
     echo "Options:"
@@ -139,6 +140,9 @@ function command_demo() {
         cp=${cp}$(find ${TARGETDIR}/lib -name "jline-prompt-*.jar" -exec printf :{} ';')
       fi
       MAIN_CLASS="org.jline.demo.examples.PromptDynamicExample"
+      ;;
+    "snake")
+      MAIN_CLASS="org.jline.demo.SnakeDemo"
       ;;
     *)
       echo "Unknown demo type: $demo_type"
