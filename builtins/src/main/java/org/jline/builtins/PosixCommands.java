@@ -1980,35 +1980,58 @@ public class PosixCommands {
         }
     }
 
-    private static Stream<Path> maybeExpandGlob(Context context, String arg) {
-        if (arg.contains("*") || arg.contains("?")) {
-            return expandGlob(context, arg).stream();
-        }
-        return Stream.of(context.currentDir().resolve(arg));
-    }
+    private static Stream<Path> maybeExpandGlob(Context context, String pattern) {
+        int idxStar = pattern.indexOf('*');
+        int idxQuestion = pattern.indexOf('?');
+        int idxBrace = pattern.indexOf('{');
 
-    private static List<Path> expandGlob(Context context, String pattern) {
-        Path path = Path.of(pattern);
+        // Find the first occurrence of any glob character (ignore -1 values)
+        int idx = -1;
+        if (idxStar >= 0) idx = idx < 0 ? idxStar : Math.min(idx, idxStar);
+        if (idxQuestion >= 0) idx = idx < 0 ? idxQuestion : Math.min(idx, idxQuestion);
+        if (idxBrace >= 0) idx = idx < 0 ? idxBrace : Math.min(idx, idxBrace);
+
+        if (idx < 0) {
+            return Stream.of(context.currentDir().resolve(pattern));
+        }
 
         Path base;
         String globPart;
 
-        if (path.isAbsolute()) {
-            base = path.getParent();
-            globPart = path.getFileName().toString();
-        } else {
+        int sep = pattern.substring(0, idx).lastIndexOf(File.separatorChar);
+        if (sep < 0) {
             base = context.currentDir();
             globPart = pattern;
+        } else {
+            base = context.currentDir().resolve(pattern.substring(0, sep));
+            globPart = pattern.substring(sep + 1);
         }
+
+        // Handle POSIX ** semantics: ** should match 0 or more directories, but Java's ** matches 1 or more
+        // Transform **/ to {**/,} to handle both zero and one-or-more directory cases
+        // Note: This may create nested braces for invalid patterns like {src/**,test}, which correctly throws
+        // PatternSyntaxException
+        globPart = globPart.replaceAll("\\*\\*/", "{**/,}");
 
         PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + globPart);
 
-        try {
-            return Files.list(base)
-                    .filter(p -> matcher.matches(p.getFileName()))
+        // Use recursive walk for all patterns - it handles both simple and complex cases correctly
+        // Use try-with-resources to ensure the stream is properly closed
+        try (Stream<Path> walkStream = Files.walk(base)) {
+            List<Path> matches = walkStream
+                    .filter(p -> !p.equals(base)) // Exclude the base directory itself
+                    .filter(p -> {
+                        Path relativePath = base.relativize(p);
+                        // Check if any of our matchers match this path
+                        return matcher.matches(relativePath);
+                    })
                     .collect(Collectors.toList());
+
+            // If no matches found, return empty stream (don't return the original pattern)
+            return matches.stream();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            // If there's an IO error (e.g., directory doesn't exist), return empty stream
+            return Stream.empty();
         }
     }
 
