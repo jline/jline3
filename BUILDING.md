@@ -7,7 +7,7 @@ This document provides instructions for building JLine from source.
 * Maven 4.0+ (JLine 4.x requires Maven 4.0+)
 * Java 11+ at runtime (JLine 4.x requires Java 11+)
 * Java 22+ at build time
-* GNU Nano at test time
+* GNU Nano at test time (when testing on Linux)
 * Graal 23.1+ (for native-image builds)
 
 ## Basic Build Instructions
