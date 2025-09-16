@@ -65,6 +65,7 @@ const sidebars: SidebarsConfig = {
         'modules/builtins',
         'modules/style',
         'modules/terminal-providers',
+        'modules/jpms',
         'modules/repl-console',
       ],
     },
