@@ -23,6 +23,7 @@ module org.jline.builtins {
     requires java.base;
     requires java.logging;
     requires java.management;
+    requires java.prefs;
 
     // JLine dependencies
     requires transitive org.jline.terminal;
