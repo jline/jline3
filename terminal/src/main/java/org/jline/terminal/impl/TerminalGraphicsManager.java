@@ -17,6 +17,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.ServiceLoader;
+import java.util.concurrent.CompletableFuture;
 
 import org.jline.terminal.Terminal;
 
@@ -50,6 +51,12 @@ public class TerminalGraphicsManager {
 
     private static final List<TerminalGraphics> AVAILABLE_PROTOCOLS = new ArrayList<>();
     private static TerminalGraphics.Protocol forcedProtocol = null;
+
+    // Image cache for performance optimization
+    private static final ImageCache imageCache = new ImageCache();
+
+    // Animation support
+    private static boolean animationSupportEnabled = true;
 
     static {
         // Register built-in protocols
@@ -243,5 +250,113 @@ public class TerminalGraphicsManager {
                 .orElseThrow(
                         () -> new UnsupportedOperationException("No graphics protocol supported by this terminal"));
         protocol.displayImage(terminal, inputStream, options);
+    }
+
+    // ========== Image Cache Support ==========
+
+    /**
+     * Displays an image using the cache for improved performance.
+     *
+     * @param terminal the terminal to display the image on
+     * @param imageFile the image file to display
+     * @throws IOException if an I/O error occurs
+     * @throws UnsupportedOperationException if no graphics protocol is supported
+     */
+    public static void displayImageCached(Terminal terminal, File imageFile) throws IOException {
+        displayImageCached(terminal, imageFile, new TerminalGraphics.ImageOptions());
+    }
+
+    /**
+     * Displays an image using the cache for improved performance.
+     *
+     * @param terminal the terminal to display the image on
+     * @param imageFile the image file to display
+     * @param options display options for the image
+     * @throws IOException if an I/O error occurs
+     * @throws UnsupportedOperationException if no graphics protocol is supported
+     */
+    public static void displayImageCached(Terminal terminal, File imageFile, TerminalGraphics.ImageOptions options)
+            throws IOException {
+        TerminalGraphics protocol = getBestProtocol(terminal)
+                .orElseThrow(
+                        () -> new UnsupportedOperationException("No graphics protocol supported by this terminal"));
+
+        // Load image from cache
+        BufferedImage image = imageCache.getImage(imageFile);
+        protocol.displayImage(terminal, image, options);
+    }
+
+    /**
+     * Gets the image cache instance.
+     *
+     * @return the image cache
+     */
+    public static ImageCache getImageCache() {
+        return imageCache;
+    }
+
+    /**
+     * Clears the image cache.
+     */
+    public static void clearImageCache() {
+        imageCache.clear();
+    }
+
+    // ========== Animation Support ==========
+
+    /**
+     * Checks if animation support is enabled.
+     *
+     * @return true if animation support is enabled
+     */
+    public static boolean isAnimationSupportEnabled() {
+        return animationSupportEnabled;
+    }
+
+    /**
+     * Enables or disables animation support.
+     *
+     * @param enabled true to enable animation support
+     */
+    public static void setAnimationSupportEnabled(boolean enabled) {
+        animationSupportEnabled = enabled;
+    }
+
+    /**
+     * Displays an animated image if animation support is enabled.
+     *
+     * @param terminal the terminal to display the image on
+     * @param imageFile the animated image file to display
+     * @return a CompletableFuture containing the animation controller
+     * @throws IOException if an I/O error occurs
+     * @throws UnsupportedOperationException if no graphics protocol is supported or animation is disabled
+     */
+    public static CompletableFuture<AnimatedImageSupport.AnimationController> displayAnimatedImage(
+            Terminal terminal, File imageFile) throws IOException {
+        return displayAnimatedImage(terminal, imageFile, new TerminalGraphics.ImageOptions());
+    }
+
+    /**
+     * Displays an animated image if animation support is enabled.
+     *
+     * @param terminal the terminal to display the image on
+     * @param imageFile the animated image file to display
+     * @param options display options for the image
+     * @return a CompletableFuture containing the animation controller
+     * @throws IOException if an I/O error occurs
+     * @throws UnsupportedOperationException if no graphics protocol is supported or animation is disabled
+     */
+    public static CompletableFuture<AnimatedImageSupport.AnimationController> displayAnimatedImage(
+            Terminal terminal, File imageFile, TerminalGraphics.ImageOptions options) throws IOException {
+
+        if (!animationSupportEnabled) {
+            throw new UnsupportedOperationException("Animation support is disabled");
+        }
+
+        TerminalGraphics protocol = getBestProtocol(terminal)
+                .orElseThrow(
+                        () -> new UnsupportedOperationException("No graphics protocol supported by this terminal"));
+
+        return AnimatedImageSupport.displayAnimatedImage(terminal, protocol, imageFile, options);
     }
 }

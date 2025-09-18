@@ -19,11 +19,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import javax.imageio.ImageIO;
 
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.impl.AnimatedImageSupport;
 import org.jline.terminal.impl.DoubleSizeCharacters;
+import org.jline.terminal.impl.ImageCache;
 import org.jline.terminal.impl.SixelGraphics;
 import org.jline.terminal.impl.TerminalGraphics;
 import org.jline.terminal.impl.TerminalGraphicsManager;
@@ -358,13 +361,176 @@ public class TerminalGraphicsExample {
     }
 
     /**
+     * Demonstrates cached image display for improved performance.
+     */
+    public static void demonstrateCachedImages(Terminal terminal) throws IOException {
+        terminal.writer().println("=== Cached Image Display Demo ===");
+        terminal.writer().println("This demo shows how image caching improves performance for repeated displays.");
+        terminal.writer().flush();
+
+        // Create a test image file
+        BufferedImage testImage = createTestImage();
+        File tempFile = File.createTempFile("jline_test", ".png");
+        tempFile.deleteOnExit();
+        ImageIO.write(testImage, "png", tempFile);
+
+        // Display cache statistics
+        ImageCache cache = TerminalGraphicsManager.getImageCache();
+        terminal.writer().println("Initial cache state: " + cache.getStats());
+
+        // Display the same image multiple times to demonstrate caching
+        long startTime = System.currentTimeMillis();
+        for (int i = 0; i < 3; i++) {
+            terminal.writer().println("Display #" + (i + 1) + " (cached):");
+            TerminalGraphicsManager.displayImageCached(terminal, tempFile);
+            terminal.writer().println("Cache state: " + cache.getStats());
+            Thread.sleep(1000);
+        }
+        long cachedTime = System.currentTimeMillis() - startTime;
+
+        terminal.writer().println("Cached displays took: " + cachedTime + "ms");
+        terminal.writer().println("Final cache state: " + cache.getStats());
+        terminal.flush();
+    }
+
+    /**
+     * Demonstrates animated image support.
+     */
+    public static void demonstrateAnimatedImages(Terminal terminal, File animatedImageFile) throws IOException {
+        terminal.writer().println("=== Animated Image Demo ===");
+        terminal.writer().println("This demo shows how to display animated GIF images in the terminal.");
+        terminal.writer().flush();
+
+        if (!TerminalGraphicsManager.isAnimationSupportEnabled()) {
+            terminal.writer().println("Animation support is disabled. Enabling...");
+            TerminalGraphicsManager.setAnimationSupportEnabled(true);
+        }
+
+        try {
+            // Display animated image
+            terminal.writer().println("Starting animation (press Ctrl+C to stop)...");
+            terminal.flush();
+
+            var controllerFuture = TerminalGraphicsManager.displayAnimatedImage(terminal, animatedImageFile);
+            var controller = controllerFuture.get();
+
+            // Let it play for a while
+            Thread.sleep(10000);
+
+            // Demonstrate pause/resume
+            terminal.writer().println("Pausing animation...");
+            controller.pause();
+            Thread.sleep(2000);
+
+            terminal.writer().println("Resuming animation...");
+            controller.resume();
+            Thread.sleep(5000);
+
+            // Stop animation
+            controller.stop();
+            terminal.writer().println("Animation stopped.");
+
+        } catch (InterruptedException | ExecutionException e) {
+            terminal.writer().println("Error displaying animated image: " + e.getMessage());
+        }
+
+        terminal.flush();
+    }
+
+    /**
+     * Creates a simple animated test image programmatically.
+     */
+    public static File createAnimatedTestImage() throws IOException {
+        // Create a simple animated GIF with multiple frames
+        File tempFile = File.createTempFile("jline_animated_test", ".gif");
+        tempFile.deleteOnExit();
+
+        // For this demo, we'll create a static image since creating animated GIFs
+        // programmatically is complex. In practice, users would provide their own GIF files.
+        BufferedImage testImage = createTestImage();
+        ImageIO.write(testImage, "gif", tempFile);
+
+        return tempFile;
+    }
+
+    /**
+     * Demonstrates performance comparison between cached and non-cached image display.
+     */
+    public static void demonstratePerformanceComparison(Terminal terminal) throws IOException {
+        terminal.writer().println("=== Performance Comparison Demo ===");
+        terminal.writer().println("Comparing cached vs non-cached image display performance.");
+        terminal.writer().flush();
+
+        // Create test image
+        BufferedImage testImage = createTestImage();
+        File tempFile = File.createTempFile("jline_perf_test", ".png");
+        tempFile.deleteOnExit();
+        ImageIO.write(testImage, "png", tempFile);
+
+        // Clear cache first
+        TerminalGraphicsManager.clearImageCache();
+
+        // Test non-cached performance (first load)
+        long startTime = System.currentTimeMillis();
+        TerminalGraphicsManager.displayImageCached(terminal, tempFile);
+        long firstLoadTime = System.currentTimeMillis() - startTime;
+
+        // Test cached performance (subsequent loads)
+        startTime = System.currentTimeMillis();
+        for (int i = 0; i < 5; i++) {
+            TerminalGraphicsManager.displayImageCached(terminal, tempFile);
+        }
+        long cachedLoadTime = System.currentTimeMillis() - startTime;
+
+        terminal.writer().println("First load (cache miss): " + firstLoadTime + "ms");
+        terminal.writer().println("5 cached loads: " + cachedLoadTime + "ms");
+        terminal.writer().println("Average cached load: " + (cachedLoadTime / 5.0) + "ms");
+        terminal.writer().println("Performance improvement: " +
+            String.format("%.1fx", (double) firstLoadTime / (cachedLoadTime / 5.0)));
+
+        ImageCache cache = TerminalGraphicsManager.getImageCache();
+        terminal.writer().println("Final cache state: " + cache.getStats());
+        terminal.flush();
+    }
+
+    /**
      * Main method to demonstrate terminal graphics and double-size characters.
      */
     public static void main(String[] args) {
         try (Terminal terminal = TerminalBuilder.builder().build()) {
             // Check for command line arguments
             if (args.length > 0) {
-                if (args[0].equals("--force-enable")) {
+                if (args[0].equals("--cache-demo")) {
+                    // Demonstrate image caching
+                    demonstrateCachedImages(terminal);
+                    return;
+                } else if (args[0].equals("--animated-demo")) {
+                    // Demonstrate animated images
+                    if (args.length < 2) {
+                        terminal.writer().println("Usage: --animated-demo <gif_file_path>");
+                        terminal.writer().println("Creating test animated image...");
+                        File testAnimated = createAnimatedTestImage();
+                        demonstrateAnimatedImages(terminal, testAnimated);
+                    } else {
+                        demonstrateAnimatedImages(terminal, new File(args[1]));
+                    }
+                    return;
+                } else if (args[0].equals("--performance-demo")) {
+                    // Demonstrate performance comparison
+                    demonstratePerformanceComparison(terminal);
+                    return;
+                } else if (args[0].equals("--cache-stats")) {
+                    // Show cache statistics
+                    ImageCache cache = TerminalGraphicsManager.getImageCache();
+                    terminal.writer().println("Image Cache Statistics:");
+                    terminal.writer().println(cache.getStats());
+                    return;
+                } else if (args[0].equals("--clear-cache")) {
+                    // Clear image cache
+                    TerminalGraphicsManager.clearImageCache();
+                    terminal.writer().println("Image cache cleared.");
+                    return;
+                } else if (args[0].equals("--force-enable")) {
                     // Force enable sixel support for testing
                     SixelGraphics.setSixelSupportOverride(true);
                     terminal.writer().println("Forced sixel support enabled");
@@ -460,6 +626,13 @@ public class TerminalGraphicsExample {
                 terminal.writer().println("Terminal does not support any graphics protocols");
                 listSupportedTerminals(terminal);
                 terminal.writer().println("\nCommand line options:");
+                terminal.writer().println("Enhanced Features:");
+                terminal.writer().println("  --cache-demo       Demonstrate image caching for improved performance");
+                terminal.writer().println("  --animated-demo [gif] Display animated GIF images (provide path or use test image)");
+                terminal.writer().println("  --performance-demo Compare cached vs non-cached image display performance");
+                terminal.writer().println("  --cache-stats      Show current image cache statistics");
+                terminal.writer().println("  --clear-cache      Clear the image cache");
+                terminal.writer().println("\nBasic Features:");
                 terminal.writer().println("  --force-enable     Override detection and force enable sixel support");
                 terminal.writer().println("  --force-disable    Override detection and force disable sixel support");
                 terminal.writer().println("  --demo-override    Demonstrate the override feature");
