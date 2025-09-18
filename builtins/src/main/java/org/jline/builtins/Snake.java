@@ -92,11 +92,43 @@ public class Snake {
     public enum Difficulty {
         SLOW(200),
         NORMAL(150),
-        FAST(100);
+        FAST(100),
+        EXTREME(50);
         final long delay;
 
         Difficulty(long d) {
             this.delay = d;
+        }
+    }
+
+    public enum PowerUpType {
+        SPEED_BOOST("⚡", "Speed Boost", AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW)),
+        DOUBLE_POINTS("💎", "Double Points", AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN)),
+        SHRINK("🔸", "Shrink Snake", AttributedStyle.DEFAULT.foreground(AttributedStyle.MAGENTA)),
+        INVINCIBLE("🛡", "Invincible", AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN));
+
+        final String symbol;
+        final String name;
+        final AttributedStyle style;
+
+        PowerUpType(String symbol, String name, AttributedStyle style) {
+            this.symbol = symbol;
+            this.name = name;
+            this.style = style;
+        }
+    }
+
+    private static class PowerUp {
+        Point position;
+        PowerUpType type;
+        int duration;
+        int remainingTime;
+
+        PowerUp(Point position, PowerUpType type, int duration) {
+            this.position = position;
+            this.type = type;
+            this.duration = duration;
+            this.remainingTime = duration;
         }
     }
 
@@ -195,6 +227,19 @@ public class Snake {
     private Direction direction;
     private Point food;
 
+    // Power-ups
+    private List<PowerUp> activePowerUps = new ArrayList<>();
+    private PowerUp currentPowerUp = null;
+    private int powerUpSpawnCounter = 0;
+    private boolean doublePointsActive = false;
+    private boolean invincibleActive = false;
+    private int speedBoostFrames = 0;
+
+    // Achievements
+    private int totalPowerUpsCollected = 0;
+    private int maxLengthAchieved = 0;
+    private boolean speedDemonAchieved = false;
+
     private void buildWalls() {
         walls.clear();
         if (wallsMode == WallsMode.NONE) return;
@@ -225,12 +270,19 @@ public class Snake {
     }
 
     private long currentDelay() {
+        long baseDelay = gameDelay;
+
+        // Apply speed boost if active
+        if (speedBoostFrames > 0) {
+            baseDelay = Math.max(20L, baseDelay / 2);
+        }
+
         // Compensate for terminal cells being taller than wide: horizontal moves look slower.
         // Speed up when moving LEFT/RIGHT to match perceived vertical speed.
         if (direction == Direction.LEFT || direction == Direction.RIGHT) {
-            return Math.max(20L, (long) (gameDelay * 0.67));
+            return Math.max(20L, (long) (baseDelay * 0.67));
         }
-        return gameDelay;
+        return baseDelay;
     }
 
     private void setCrash(Point p) {
@@ -304,6 +356,14 @@ public class Snake {
         crashPos = null;
         newHighAchieved = false;
 
+        // Reset power-up states
+        activePowerUps.clear();
+        currentPowerUp = null;
+        powerUpSpawnCounter = 0;
+        doublePointsActive = false;
+        invincibleActive = false;
+        speedBoostFrames = 0;
+
         updateGameDimensions();
         buildWalls();
         spawnFood();
@@ -333,7 +393,86 @@ public class Snake {
     private void spawnFood() {
         do {
             food = new Point(random.nextInt(gameWidth), random.nextInt(gameHeight));
-        } while (snake.contains(food) || walls.contains(food));
+        } while (snake.contains(food) || walls.contains(food) || isPowerUpAt(food));
+    }
+
+    private boolean isPowerUpAt(Point point) {
+        return activePowerUps.stream().anyMatch(p -> p.position.equals(point));
+    }
+
+    private void spawnPowerUp() {
+        if (activePowerUps.size() >= 2) return; // Limit active power-ups
+
+        Point position;
+        do {
+            position = new Point(random.nextInt(gameWidth), random.nextInt(gameHeight));
+        } while (snake.contains(position) || walls.contains(position) ||
+                 position.equals(food) || isPowerUpAt(position));
+
+        PowerUpType type = PowerUpType.values()[random.nextInt(PowerUpType.values().length)];
+        int duration = 300 + random.nextInt(200); // 5-8 seconds at 60fps
+        activePowerUps.add(new PowerUp(position, type, duration));
+    }
+
+    private void updatePowerUps() {
+        // Update power-up spawn counter
+        powerUpSpawnCounter++;
+        if (powerUpSpawnCounter > 600 && random.nextInt(100) < 5) { // 5% chance every 10 seconds
+            spawnPowerUp();
+            powerUpSpawnCounter = 0;
+        }
+
+        // Update active power-ups
+        activePowerUps.removeIf(powerUp -> {
+            powerUp.remainingTime--;
+            return powerUp.remainingTime <= 0;
+        });
+
+        // Update active effects
+        if (speedBoostFrames > 0) {
+            speedBoostFrames--;
+        }
+
+        if (currentPowerUp != null) {
+            currentPowerUp.remainingTime--;
+            if (currentPowerUp.remainingTime <= 0) {
+                deactivatePowerUp(currentPowerUp);
+                currentPowerUp = null;
+            }
+        }
+    }
+
+    private void activatePowerUp(PowerUpType type) {
+        switch (type) {
+            case SPEED_BOOST:
+                speedBoostFrames = 300; // 5 seconds
+                break;
+            case DOUBLE_POINTS:
+                doublePointsActive = true;
+                currentPowerUp = new PowerUp(null, type, 600); // 10 seconds
+                break;
+            case SHRINK:
+                if (snake.size() > 3) {
+                    snake.remove(snake.size() - 1);
+                    snake.remove(snake.size() - 1);
+                }
+                break;
+            case INVINCIBLE:
+                invincibleActive = true;
+                currentPowerUp = new PowerUp(null, type, 300); // 5 seconds
+                break;
+        }
+    }
+
+    private void deactivatePowerUp(PowerUp powerUp) {
+        switch (powerUp.type) {
+            case DOUBLE_POINTS:
+                doublePointsActive = false;
+                break;
+            case INVINCIBLE:
+                invincibleActive = false;
+                break;
+        }
     }
 
     public void run() throws IOException {
@@ -494,6 +633,9 @@ public class Snake {
     private void updateGame() {
         if (paused || gameOver) return;
 
+        // Update power-ups
+        updatePowerUps();
+
         // Calculate new head position
         Point head = snake.get(0);
         // Color helpers for tails
@@ -524,14 +666,14 @@ public class Snake {
             }
         }
 
-        // Check self collision
-        if (snake.contains(newHead)) {
+        // Check self collision (unless invincible)
+        if (!invincibleActive && snake.contains(newHead)) {
             setCrash(newHead);
             return;
         }
 
-        // Check walls collision
-        if (walls.contains(newHead)) {
+        // Check walls collision (unless invincible)
+        if (!invincibleActive && walls.contains(newHead)) {
             setCrash(newHead);
             return;
         }
@@ -540,19 +682,46 @@ public class Snake {
         snake.add(0, newHead);
 
         // Check food collision
+        boolean ateFood = false;
         if (newHead.equals(food)) {
-            score += 10;
+            int points = doublePointsActive ? 20 : 10;
+            score += points;
             eatEffectFrames = 6;
             lastEatPos = new Point(food.x, food.y);
             beep();
             spawnFood();
-        } else {
+            ateFood = true;
+        }
+
+        // Check power-up collision
+        PowerUp collectedPowerUp = null;
+        for (PowerUp powerUp : activePowerUps) {
+            if (powerUp.position.equals(newHead)) {
+                collectedPowerUp = powerUp;
+                break;
+            }
+        }
+
+        if (collectedPowerUp != null) {
+            activePowerUps.remove(collectedPowerUp);
+            activatePowerUp(collectedPowerUp.type);
+            totalPowerUpsCollected++;
+            beep();
+        }
+
+        if (!ateFood) {
             // Remove tail if no food eaten
             snake.remove(snake.size() - 1);
         }
 
         // advance head pulse
         headPulseTick = (headPulseTick + 1) % 12;
+
+        // Track achievements
+        maxLengthAchieved = Math.max(maxLengthAchieved, snake.size());
+        if (difficulty == Difficulty.EXTREME && snake.size() >= 20) {
+            speedDemonAchieved = true;
+        }
     }
 
     private void display() {
@@ -586,6 +755,14 @@ public class Snake {
         // Place food
         if (food.x >= 0 && food.x < gameWidth && food.y >= 0 && food.y < gameHeight) {
             board[food.y][food.x] = '*';
+        }
+
+        // Place power-ups
+        for (PowerUp powerUp : activePowerUps) {
+            Point p = powerUp.position;
+            if (p.x >= 0 && p.x < gameWidth && p.y >= 0 && p.y < gameHeight) {
+                board[p.y][p.x] = powerUp.type.symbol.charAt(0);
+            }
         }
 
         // Build header
@@ -623,6 +800,24 @@ public class Snake {
             header.style(AttributedStyle.DEFAULT.bold());
         }
         header.append(String.valueOf(highScore));
+        header.style(AttributedStyle.DEFAULT);
+
+        // Show active power-up effects
+        if (speedBoostFrames > 0) {
+            header.append(" | ");
+            header.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.YELLOW));
+            header.append("⚡SPEED");
+        }
+        if (doublePointsActive) {
+            header.append(" | ");
+            header.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.CYAN));
+            header.append("💎x2");
+        }
+        if (invincibleActive) {
+            header.append(" | ");
+            header.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.GREEN));
+            header.append("🛡SHIELD");
+        }
         header.style(AttributedStyle.DEFAULT);
         // Head glow pulse: apply a faint halo around head
         Point head = snake.isEmpty() ? new Point(0, 0) : snake.get(0);
