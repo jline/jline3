@@ -1,0 +1,78 @@
+## ---------------------------------------------------------------------------
+## Python syntax
+## ---------------------------------------------------------------------------
+
+syntax "Python" "\.(py|pyw)$"
+header "^#!.*/(env +)?python[0-9.]*( |$)"
+magic "Python script"
+comment "#"
+
+# Keywords
+color brightblue "\<(and|as|assert|async|await|break|class|continue|def|del|elif|else|except|finally|for|from|global|if|import|in|is|lambda|nonlocal|not|or|pass|raise|return|try|while|with|yield)\>"
+
+# Built-in functions
+color cyan "\<(abs|all|any|ascii|bin|bool|bytearray|bytes|callable|chr|classmethod|compile|complex|delattr|dict|dir|divmod|enumerate|eval|exec|filter|float|format|frozenset|getattr|globals|hasattr|hash|help|hex|id|input|int|isinstance|issubclass|iter|len|list|locals|map|max|memoryview|min|next|object|oct|open|ord|pow|print|property|range|repr|reversed|round|set|setattr|slice|sorted|staticmethod|str|sum|super|tuple|type|vars|zip)\>"
+
+# Built-in constants
+color yellow "\<(False|None|True)\>"
+color yellow "\<(__debug__|__doc__|__file__|__name__|__package__)\>"
+
+# Built-in exceptions
+color red "\<(ArithmeticError|AssertionError|AttributeError|BaseException|BlockingIOError|BrokenPipeError|BufferError|BytesWarning|ChildProcessError|ConnectionAbortedError|ConnectionError|ConnectionRefusedError|ConnectionResetError|DeprecationWarning|EOFError|Ellipsis|EnvironmentError|Exception|FileExistsError|FileNotFoundError|FloatingPointError|FutureWarning|GeneratorExit|IOError|ImportError|ImportWarning|IndentationError|IndexError|InterruptedError|IsADirectoryError|KeyError|KeyboardInterrupt|LookupError|MemoryError|ModuleNotFoundError|NameError|NotADirectoryError|NotImplemented|NotImplementedError|OSError|OverflowError|PendingDeprecationWarning|PermissionError|ProcessLookupError|RecursionError|ReferenceError|ResourceWarning|RuntimeError|RuntimeWarning|StopAsyncIteration|StopIteration|SyntaxError|SyntaxWarning|SystemError|SystemExit|TabError|TimeoutError|TypeError|UnboundLocalError|UnicodeDecodeError|UnicodeEncodeError|UnicodeError|UnicodeTranslateError|UnicodeWarning|UserWarning|ValueError|Warning|ZeroDivisionError)\>"
+
+# Decorators
+color brightmagenta "@[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*"
+
+# Numbers
+color brightyellow "\<[0-9]+[jJ]?\>"
+color brightyellow "\<0[xX][0-9A-Fa-f]+[lL]?\>"
+color brightyellow "\<0[oO][0-7]+[lL]?\>"
+color brightyellow "\<0[bB][01]+[lL]?\>"
+color brightyellow "\<[0-9]*\.[0-9]+([eE][+-]?[0-9]+)?[jJ]?\>"
+color brightyellow "\<[0-9]+[eE][+-]?[0-9]+[jJ]?\>"
+
+# Single-quoted strings
+color green "'([^'\\]|\\.)*'"
+color green "u'([^'\\]|\\.)*'"
+color green "r'([^'\\]|\\.)*'"
+color green "b'([^'\\]|\\.)*'"
+color green "f'([^'\\]|\\.)*'"
+
+# Double-quoted strings
+color green "\"([^\"\\]|\\.)*\""
+color green "u\"([^\"\\]|\\.)*\""
+color green "r\"([^\"\\]|\\.)*\""
+color green "b\"([^\"\\]|\\.)*\""
+color green "f\"([^\"\\]|\\.)*\""
+
+# Triple-quoted strings (multi-line)
+color green start="'''|\"\"\"" end="'''|\"\"\""
+color green start="u'''|u\"\"\"" end="'''|\"\"\""
+color green start="r'''|r\"\"\"" end="'''|\"\"\""
+color green start="b'''|b\"\"\"" end="'''|\"\"\""
+color green start="f'''|f\"\"\"" end="'''|\"\"\""
+
+# Comments
+color brightred "#.*"
+
+# Class names
+color brightcyan "\<class +[A-Za-z_][A-Za-z0-9_]*"
+
+# Function names
+color brightcyan "\<def +[A-Za-z_][A-Za-z0-9_]*"
+
+# Special method names
+color brightmagenta "\<__(init|new|del|repr|str|bytes|format|lt|le|eq|ne|gt|ge|hash|bool|getattr|getattribute|setattr|delattr|dir|get|set|delete|set_name|init_subclass|call|len|length_hint|getitem|setitem|delitem|missing|iter|reversed|contains|add|sub|mul|matmul|truediv|floordiv|mod|divmod|pow|lshift|rshift|and|xor|or|neg|pos|abs|invert|complex|int|float|index|round|trunc|floor|ceil|enter|exit|await|aiter|anext|aenter|aexit)__\>"
+
+# Self and cls
+color brightred "\<(self|cls)\>"
+
+# Operators
+color yellow "[+\-*/%=<>!&|^~]"
+color yellow "\<(and|or|not|in|is)\>"
+
+# Parentheses, brackets, braces
+color magenta "[()[\]{}]"
+
+# Trailing whitespace
+color ,green "[[:space:]]+$"
