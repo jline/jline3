@@ -293,6 +293,7 @@ public final class TerminalBuilder {
     private boolean nativeSignals = true;
     private Terminal.SignalHandler signalHandler = Terminal.SignalHandler.SIG_DFL;
     private boolean paused = false;
+    private ClassLoader classLoader;
 
     private TerminalBuilder() {}
 
@@ -610,6 +611,17 @@ public final class TerminalBuilder {
      */
     public TerminalBuilder paused(boolean paused) {
         this.paused = paused;
+        return this;
+    }
+
+    /**
+     * Changes the classloader which will be used to load the terminal
+     * providers.
+     * @param classLoader the new classloader
+     * @return The builder
+     */
+    public TerminalBuilder classLoader(ClassLoader classLoader) {
+        this.classLoader = classLoader;
         return this;
     }
 
@@ -1001,7 +1013,7 @@ public final class TerminalBuilder {
         }
         if (doLoad) {
             try {
-                TerminalProvider prov = TerminalProvider.load(name);
+                TerminalProvider prov = TerminalProvider.load(name, classLoader);
                 prov.isSystemStream(SystemStream.Output);
                 providers.add(prov);
             } catch (Throwable t) {
@@ -1096,7 +1108,7 @@ public final class TerminalBuilder {
      * build tool uses a <code>LineReader</code> to implement an interactive shell.
      * One of its supported commands is <code>console</code> which invokes
      * the scala REPL. The scala REPL also uses a <code>LineReader</code> and it
-     * is necessary to override the {@link Terminal} used by the the REPL to
+     * is necessary to override the {@link Terminal} used by the REPL to
      * share the same {@link Terminal} instance used by sbt.
      *
      * <p>

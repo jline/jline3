@@ -191,8 +191,8 @@ public interface TerminalProvider {
      * </p>
      *
      * <p>
-     * Each provider resource file should contain a {@code class} property that
-     * specifies the fully qualified name of the provider implementation class.
+     * If {@code overrideClassloader} is specified, that classloader will be
+     * used instead.
      * </p>
      *
      * @param name the name of the provider to load
@@ -200,7 +200,39 @@ public interface TerminalProvider {
      * @throws IOException if the provider cannot be loaded
      */
     static TerminalProvider load(String name) throws IOException {
-        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        return load(name, null);
+    }
+
+    /**
+     * Loads a terminal provider with the specified name.
+     *
+     * <p>
+     * This method loads a terminal provider implementation based on its name.
+     * Provider implementations are discovered through the Java ServiceLoader
+     * mechanism, looking for resource files in the classpath at
+     * {@code META-INF/services/org/jline/terminal/provider/[name]}.
+     * </p>
+     *
+     * <p>
+     * If {@code overrideClassloader} is specified, that classloader will be
+     * used instead.
+     * </p>
+     *
+     * <p>
+     * Each provider resource file should contain a {@code class} property that
+     * specifies the fully qualified name of the provider implementation class.
+     * </p>
+     *
+     * @param name the name of the provider to load
+     * @param overrideClassloader {@link ClassLoader} providers will be loaded with
+     * @return the loaded terminal provider
+     * @throws IOException if the provider cannot be loaded
+     */
+    static TerminalProvider load(String name, ClassLoader overrideClassloader) throws IOException {
+        ClassLoader cl = overrideClassloader;
+        if (cl == null) {
+            cl = Thread.currentThread().getContextClassLoader();
+        }
         if (cl == null) {
             cl = TerminalProvider.class.getClassLoader();
         }
