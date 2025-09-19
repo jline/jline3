@@ -48,13 +48,33 @@ jobs:
             ${{ runner.os }}-maven-${{ matrix.java }}-
             ${{ runner.os }}-maven-
 
+      - name: Cache mvx tools
+        uses: actions/cache@v4
+        with:
+          path: ~/.mvx/tools
+          key: ${{ runner.os }}-mvx-tools-${{ hashFiles('.mvx/config.json5', '.mvx/mvx.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-mvx-tools-
+
+
+
       - name: Build with maven
-        run: ./mvnw --no-transfer-progress verify
+        run: ./mvx mvn -- --no-transfer-progress verify
+        env:
+          MVX_USE_SYSTEM_JAVA: true
+          MVX_PARALLEL_DOWNLOADS: 1
+          MVX_DOWNLOAD_TIMEOUT: 300
+          MVX_HTTP_TIMEOUT: 300
         if: matrix.os != 'windows-latest'
 
       - name: Build with maven
         run: |
           set PATH=%JAVA_HOME%\bin;C:\Windows\System32\WindowsPowerShell\v1.0\
-          mvnw.cmd --no-transfer-progress verify
+          mvx.cmd mvn -- --no-transfer-progress verify
+        env:
+          MVX_USE_SYSTEM_JAVA: true
+          MVX_PARALLEL_DOWNLOADS: 1
+          MVX_DOWNLOAD_TIMEOUT: 300
+          MVX_HTTP_TIMEOUT: 300
         shell: cmd
         if: matrix.os == 'windows-latest'

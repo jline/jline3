@@ -4,10 +4,9 @@ This document provides instructions for building JLine from source.
 
 ## Requirements
 
-* Maven 4.0+ (JLine 4.x requires Maven 4.0+)
-* Java 11+ at runtime (JLine 4.x requires Java 11+)
-* Java 22+ at build time
-* Graal 23.1+ (for native-image builds)
+* JLine 4.x requires Java 11+ at runtime
+
+JLine uses [mvx](https://gnodet.github.io/mvx/) for build environment management, which automatically downloads and manages the required tools.
 
 ## Basic Build Instructions
 
@@ -16,7 +15,7 @@ Check out and build:
 ```sh
 git clone git://github.com/jline/jline3.git
 cd jline3
-./build rebuild
+./mvx rebuild
 ```
 
 ## Build Results
@@ -71,10 +70,10 @@ To run the demos, simply use one of the following commands after having built JL
 
 ```sh
 # Gogo terminal
-./build demo
+./mvx demo
 
 # Groovy REPL
-./build repl
+./mvx demo repl
 ```
 
 ## Website
@@ -86,10 +85,11 @@ JLine includes a documentation website built with Docusaurus. The website includ
 To build the website:
 
 ```sh
-./build website
+./mvx website build
 ```
 
 This will:
+
 1. Extract code snippets from example classes to the target directory
 2. Build the website
 
@@ -100,14 +100,44 @@ All generated files (build output, snippets, node_modules) will be placed in the
 For development with live reloading (includes extracting code snippets):
 
 ```sh
-./build website-dev
+./mvx website-dev
 ```
 
-To preview the already built website (after running `./build website`):
+To serve the already built website:
 
 ```sh
-./build website-serve
+./mvx website-serve
 ```
+
+Note: Both `website-dev` and `website-serve` automatically install dependencies if needed.
+
+## Running Demos
+
+JLine includes interactive demos and examples to showcase different features. These work on both Unix/Linux/macOS and Windows.
+
+All demos are run using the unified `./mvx demo` command:
+
+```sh
+# Show available demos and examples
+./mvx demo
+
+# Run built-in demos
+./mvx demo gogo      # Gogo shell demo
+./mvx demo repl      # REPL demo with Groovy
+./mvx demo password  # Password masking demo
+./mvx demo consoleui # ConsoleUI demo (deprecated)
+./mvx demo prompt    # New Prompt API demo
+./mvx demo graal     # GraalVM native demo
+
+# Run example classes (from org.jline.demo.examples)
+./mvx demo JLineExample
+./mvx demo BasicTerminalCreation
+./mvx demo PromptDynamicExample
+./mvx demo MouseEventHandlingExample
+# ... and many more (139 total examples available)
+```
+
+The demo command automatically detects whether you're requesting a built-in demo or an example class, providing a unified interface for all demonstrations.
 
 ### Deployment
 
@@ -120,13 +150,13 @@ The website is automatically deployed to jline.org when changes are pushed to th
 Build Graal native-image demo:
 
 ```sh
-./build rebuild -Pnative-image
+./mvx rebuild -Pnative-image
 ```
 
 Run the Graal native image:
 
 ```sh
-./build graal
+./mvx graal
 ```
 
 ### Building Native Libraries
@@ -154,13 +184,11 @@ JLine's build includes several Maven profiles:
 * `bundle` - Builds the main bundle jars (default)
 * `native-image` - Builds the Graal native image demo
 * `javadoc` - Generates Javadoc
-* `license-check` - Checks license headers
-* `license-format` - Formats license headers
 
 Example:
 
 ```sh
-./build rebuild -Pjavadoc
+./mvx rebuild -Pjavadoc
 ```
 
 ## Continuous Integration
@@ -172,16 +200,17 @@ JLine uses GitHub Actions for continuous integration. The build configuration is
 To create a release:
 
 ```sh
-./build release <version> <next-version>
+./mvx run release <version> <next-version>
 ```
 
 For example:
 
 ```sh
-./build release 3.30.0 3.30.1-SNAPSHOT
+./mvx run release 3.30.0 3.30.1-SNAPSHOT
 ```
 
 This will:
+
 1. Update the version to the release version
 2. Tag the release
 3. Deploy the release artifacts
