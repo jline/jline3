@@ -26,7 +26,17 @@ There is only a single system terminal for a given JVM, the one that has been us
 
 The easiest way to obtain such a `Terminal` object in JLine is by using the `TerminalBuilder` class:
 
-<CodeSnippet name="BasicTerminalCreation" />
+```java
+Terminal terminal = TerminalBuilder.terminal();
+```
+
+or
+
+```java
+Terminal terminal = TerminalBuilder.builder()
+                    .system(true)
+                    .build();
+```
 
 The `TerminalBuilder` will figure out the current Operating System and which actual `Terminal` implementation to use. Note that on the Windows platform you need to have either Jansi or JNA library in your classpath.
 
@@ -56,7 +66,27 @@ Virtual terminals are used when there's no OS terminal to wrap. A common use cas
 
 Those terminals can be created using the following pattern:
 
-<CodeSnippet name="VirtualTerminalCreation" />
+```java
+Terminal terminal = TerminalBuilder.builder()
+                    .system(false)
+                    .streams(input, output)
+                    .build();
+```
+
+The builder can also be given the initial size and attributes of the terminal if they are known:
+
+```java
+int columns = ...;
+int rows = ...;
+Attributes attributes = new Attributes();
+// set attributes...
+Terminal terminal = TerminalBuilder.builder()
+                    .system(false)
+                    .streams(input, output)
+                    .size(new Size(columns, rows))
+                    .attributes(attributes)
+                    .build();
+```
 
 ## Terminal Signals
 
@@ -68,7 +98,12 @@ JLine terminals support signals. Signals can be raised and handled very easily.
 
 System terminals can be built to intercept the native signals and forward them to the default handler.
 
-<CodeSnippet name="TerminalSignalHandling" />
+```java
+Terminal terminal = TerminalBuilder.builder()
+                    .system(true)
+                    .signalHandler(Terminal.SignalHandler.SIG_IGN)
+                    .build();
+```
 
 The LineReader does support signals and handle them accordingly.
 
@@ -113,7 +148,6 @@ The `TerminalBuilder` supports various options for customizing the terminal:
 | size | | x | Initial size of the terminal |
 | nativeSignals | x | | Handle JVM signals from the system terminal through the created terminal |
 | signalHandler | x | | Default signal handler |
-| classLoader | x | x | Custom classloader for loading terminal providers, defaults to context classloader |
 
 ## Terminal Types
 
@@ -128,18 +162,6 @@ JLine has available the following terminal types:
 | Windows/ConEmu | windows-conemu |
 | Windows/cmd | windows, windows-256color, windows-vtp |
 | xterm | xterm, xterm-256color |
-
-## Custom ClassLoaders
-
-In some environments, such as plugin systems, OSGi containers, or applications with custom classloaders, JLine may not be able to find terminal providers using the default classloader resolution. In these cases, you can specify a custom classloader:
-
-<CodeSnippet name="CustomClassLoaderTerminal" />
-
-This is particularly useful when:
-- Your application uses a custom classloader architecture
-- JLine is loaded in a different classloader than your application
-- You're working with plugin systems or modular applications
-- You encounter "Unable to find terminal provider" errors
 
 ## Pseudo-Terminals (PTY)
 

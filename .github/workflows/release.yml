@@ -55,7 +55,7 @@ jobs:
           MAVEN_USER: ${{ secrets.MAVEN_USER }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
         run: |
-          ./mvnw -B deploy -Dnjord.autoPublish -Pbundle,javadoc,format-check,sign -s .github/release-settings.xml 
+          ./mvx mvn -- -B deploy -Dnjord.autoPublish -Pbundle,javadoc,format-check,sign -s .github/release-settings.xml
 
       - name: Post release
         env:
@@ -94,7 +94,7 @@ jobs:
             exit 1
           fi          
           
-          name=$(./mvnw -q -DforceStdout --raw-streams help:evaluate -N -Dexpression=project.name)
+          name=$(./mvx mvn -- -q -DforceStdout --raw-streams help:evaluate -N -Dexpression=project.name)
           version=${{ steps.version.outputs.version }}
           echo "Creating release \"$name $version\" from tag"
           gh release create $version --verify-tag --notes-from-tag --title "$name $version"

@@ -56,54 +56,6 @@ The Dumb terminal is a fallback option that provides basic terminal functionalit
 
 <CodeSnippet name="DumbTerminalExample" />
 
-## Custom ClassLoader Support
-
-JLine 4.x introduces support for custom classloaders when loading terminal providers. This is essential for applications that use custom classloader architectures, such as:
-
-- Plugin systems and modular applications
-- OSGi containers
-- Application servers with custom classloading
-- Environments where JLine is loaded in a different classloader
-
-### Using Custom ClassLoaders
-
-You can specify a custom classloader when building a terminal:
-
-<CodeSnippet name="CustomClassLoaderTerminal" />
-
-### Common Use Cases
-
-**Plugin Systems**: When your application loads JLine as part of a plugin or module:
-
-<CodeSnippet name="PluginClassLoaderTerminal" />
-
-**OSGi Environments**: When working in OSGi containers:
-
-<CodeSnippet name="OSGiClassLoaderTerminal" />
-
-### Troubleshooting ClassLoader Issues
-
-If you encounter "Unable to find terminal provider" errors, it's often due to classloader issues. Try:
-
-1. **Check your classloader**: Ensure JLine and its providers are accessible from your classloader
-2. **Use custom classloader**: Explicitly set the classloader that can access JLine providers
-3. **Verify provider availability**: Check that the required terminal providers are in your classpath
-4. **Enable debug logging**: Use JLine's logging to see which providers are being attempted
-
-### Advanced ClassLoader Scenarios
-
-**Custom Module Systems**: When working with custom module systems or frameworks:
-
-<CodeSnippet name="ModuleSystemClassLoaderTerminal" />
-
-**Testing with Mock ClassLoaders**: For unit testing scenarios:
-
-<CodeSnippet name="TestClassLoaderTerminal" />
-
-**Fallback Strategy**: Implement a robust fallback strategy:
-
-<CodeSnippet name="FallbackClassLoaderStrategy" />
-
 ## Best Practices
 
 When working with terminal providers in JLine, consider these best practices:

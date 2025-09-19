@@ -96,7 +96,7 @@
         <findbugs.version>3.0.2</findbugs.version>
         <groovy.version>5.0.1</groovy.version>
         <ivy.version>2.5.3</ivy.version>
-        <graal.version>25.0.0</graal.version>
+        <graal.version>24.2.2</graal.version>
         <graal.plugin.version>21.2.0</graal.plugin.version>
         <palantir.version>2.74.0</palantir.version>
 
@@ -351,67 +351,6 @@
                 </plugin>
 
                 <plugin>
-                    <groupId>com.mycila</groupId>
-                    <artifactId>license-maven-plugin</artifactId>
-                    <version>5.0.0</version>
-                    <configuration>
-                        <encoding>UTF-8</encoding>
-                        <strictCheck>true</strictCheck>
-                        <useDefaultExcludes>false</useDefaultExcludes>
-                        <header>${project.basedir}/header.txt</header>
-                        <aggregate>true</aggregate>
-                        <includes>
-                            <include>**/pom.xml</include>
-                            <include>**/*.xml</include>
-                            <include>**/*.xsd</include>
-                            <include>**/*.xjb</include>
-                            <include>**/*.properties</include>
-                            <include>**/*.ini</include>
-                            <include>**/*.java</include>
-                            <include>**/*.groovy</include>
-                            <include>**/*.scala</include>
-                            <include>**/*.aj</include>
-                            <include>**/*.js</include>
-                            <include>**/*.css</include>
-                            <include>**/*.help</include>
-                            <include>**/*.proto</include>
-                            <include>**/*.sm</include>
-                            <include>**/*.bat</include>
-                            <include>**/*.xsl</include>
-                            <include>**/*.html</include>
-                            <include>**/*.vm</include>
-                            <include>**/*.md</include>
-                            <include>**/*.sh</include>
-                            <include>**/*.bash</include>
-                            <include>**/*.rb</include>
-                        </includes>
-                        <excludes>
-                            <exclude>**/target/**</exclude>
-                            <exclude>**/.*/**</exclude>
-                            <exclude>**/dependency-reduced-pom.xml</exclude>
-                            <exclude>**/nbactions*.xml</exclude>
-                            <exclude>**/nb-configuration.xml</exclude>
-                            <exclude>**/atlassian-ide-plugin.xml</exclude>
-                            <exclude>**/release.properties</exclude>
-                            <exclude>**/META-INF/services/**</exclude>
-                        </excludes>
-                        <mapping>
-                            <aj>JAVADOC_STYLE</aj>
-                            <groovy>SLASHSTAR_STYLE</groovy>
-                            <help>SCRIPT_STYLE</help>
-                            <ini>SCRIPT_STYLE</ini>
-                            <java>SLASHSTAR_STYLE</java>
-                            <md>XML_STYLE</md>
-                            <proto>DOUBLESLASH_STYLE</proto>
-                            <scala>SLASHSTAR_STYLE</scala>
-                            <sm>DOUBLESLASH_STYLE</sm>
-                            <vm>VELOCITY_STYLE</vm>
-                            <xjb>XML_STYLE</xjb>
-                        </mapping>
-                    </configuration>
-                </plugin>
-
-                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-gpg-plugin</artifactId>
                     <version>3.2.8</version>
@@ -659,20 +598,6 @@
                         </executions>
                     </plugin>
                 </plugins>
-            </build>
-        </profile>
-
-        <profile>
-            <id>license-check</id>
-            <build>
-                <defaultGoal>com.mycila:license-maven-plugin:check</defaultGoal>
-            </build>
-        </profile>
-
-        <profile>
-            <id>license-format</id>
-            <build>
-                <defaultGoal>com.mycila:license-maven-plugin:format</defaultGoal>
             </build>
         </profile>
 
