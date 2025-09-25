@@ -32,6 +32,40 @@ public class HistorySearchTest extends ReaderTestSupport {
     }
 
     @Test
+    public void testBackspaceAndRetypeGivesSameResult() throws Exception {
+        setupHistory();
+
+        assertLine("faddle", new TestBuffer()
+                .ctrl('R')
+                .append("f")
+                .back()
+                .append("f")
+                .enter(), false);
+    }
+
+    @Test
+    public void testSearchTermModificationResetsPosition() throws Exception {
+        setupHistory();
+
+        var navigateToSecond = new TestBuffer()
+                .ctrl('R')
+                .append("f")
+                .ctrl('R')
+                .enter();
+
+        assertLine("fiddle", navigateToSecond, false);
+
+        var modifySearchTerm = new TestBuffer()
+                .ctrl('R')
+                .append("f")
+                .ctrl('R')
+                .append("i")
+                .enter();
+
+        assertLine("fiddle", modifySearchTerm, false);
+    }
+
+    @Test
     public void testCaseInsensitive() throws Exception {
         setupHistory();
         reader.setOpt(LineReader.Option.CASE_INSENSITIVE_SEARCH);

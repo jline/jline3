@@ -2720,7 +2720,6 @@ public class LineReaderImpl implements LineReader, Flushable {
         redisplay();
         try {
             while (true) {
-                int prevSearchIndex = searchIndex;
                 Binding operation = readBinding(getKeys(), terminators);
                 String ref = (operation instanceof Reference) ? ((Reference) operation).name() : "";
                 boolean next = false;
@@ -2740,10 +2739,12 @@ public class LineReaderImpl implements LineReader, Flushable {
                     case BACKWARD_DELETE_CHAR:
                         if (searchTerm.length() > 0) {
                             searchTerm.deleteCharAt(searchTerm.length() - 1);
+                            searchIndex = -1;
                         }
                         break;
                     case SELF_INSERT:
                         searchTerm.append(getLastBinding());
+                        searchIndex = -1;
                         break;
                     default:
                         // Set buffer and cursor position to the found string.
