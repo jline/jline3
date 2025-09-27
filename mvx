@@ -316,7 +316,7 @@ find_mvx_binary() {
 
     # Need to download
     if [ "$verbosity" = "verbose" ]; then
-        echo "mvx $version not found, downloading..."
+        echo "mvx $version not found, downloading..." >&2
     fi
 
     ensure_dir "$cache_dir"
@@ -346,14 +346,14 @@ find_mvx_binary() {
         echo "Error: Failed to download mvx binary from $download_url" >&2
 
         # Provide helpful guidance for development version
-        if [ "$version" = "dev" ] || [ "$version" = "main" ]; then
+        if [ "$version" = "dev" ]; then
             echo "" >&2
             echo "💡 You're using the development version, but no 'dev' binary is available." >&2
             echo "   To use mvx in development mode, you need to build it locally:" >&2
             echo "" >&2
             echo "   1. Clone and build mvx:" >&2
             echo "      git clone https://github.com/gnodet/mvx.git" >&2
-            echo "      cd mvx && make build" >&2
+            echo "      cd mvx && ./mvx build" >&2
             echo "" >&2
             echo "   2. The build automatically installs to ~/.mvx/dev/mvx" >&2
             echo "      All projects using 'mvxVersion=dev' will use this binary" >&2
@@ -419,37 +419,37 @@ main() {
         echo "Requested version: $MVX_VERSION"
     fi
 
-    # Check for local binaries first, regardless of version
-    # This allows development version "dev" to work
+    # Check for local development binaries only when explicitly using dev version
+    if [ "$MVX_VERSION" = "dev" ]; then
+        # 1. Check project-specific development binary
+        local local_binaries="./mvx-dev"
+        if [ "$platform" = "windows-amd64" ]; then
+            local_binaries="./mvx-dev.exe"
+        fi
 
-    # 1. Check project-specific development binary
-    local local_binaries="./mvx-dev"
-    if [ "$platform" = "windows-amd64" ]; then
-        local_binaries="./mvx-dev.exe"
-    fi
+        for local_binary in $local_binaries; do
+            if [ -f "$local_binary" ] && [ -x "$local_binary" ]; then
+                if [ "$verbosity" = "verbose" ]; then
+                    echo "Using project-specific development binary: $local_binary"
+                    echo ""
+                fi
+                exec "$local_binary" "$@"
+            fi
+        done
 
-    for local_binary in $local_binaries; do
-        if [ -f "$local_binary" ] && [ -x "$local_binary" ]; then
+        # 2. Check global development binary (shared across all projects)
+        local global_dev_binary="$home_dir/.mvx/dev/mvx"
+        if [ "$platform" = "windows-amd64" ]; then
+            global_dev_binary="$home_dir/.mvx/dev/mvx.exe"
+        fi
+
+        if [ -f "$global_dev_binary" ] && [ -x "$global_dev_binary" ]; then
             if [ "$verbosity" = "verbose" ]; then
-                echo "Using project-specific development binary: $local_binary"
+                echo "Using global development binary: $global_dev_binary"
                 echo ""
             fi
-            exec "$local_binary" "$@"
+            exec "$global_dev_binary" "$@"
         fi
-    done
-
-    # 2. Check global development binary (shared across all projects)
-    local global_dev_binary="$home_dir/.mvx/dev/mvx"
-    if [ "$platform" = "windows-amd64" ]; then
-        global_dev_binary="$home_dir/.mvx/dev/mvx.exe"
-    fi
-
-    if [ -f "$global_dev_binary" ] && [ -x "$global_dev_binary" ]; then
-        if [ "$verbosity" = "verbose" ]; then
-            echo "Using global development binary: $global_dev_binary"
-            echo ""
-        fi
-        exec "$global_dev_binary" "$@"
     fi
 
     # No local binary found, proceed with version resolution and download
