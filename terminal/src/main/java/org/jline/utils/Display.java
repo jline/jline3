@@ -397,7 +397,10 @@ public class Display {
     }
 
     private int cost(Capability cap) {
-        return cost.computeIfAbsent(cap, this::computeCost);
+        if (!cost.containsKey(cap)) {
+            return cost.put(cap, computeCost(cap));
+        }
+        return cost.get(cap);
     }
 
     private int computeCost(Capability cap) {
