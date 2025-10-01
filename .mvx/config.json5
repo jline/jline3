@@ -42,16 +42,19 @@
       script: "mvn clean",
     },
 
-
-
-    "website dev": {
-      description: "Start the website development server with live reloading",
-      script: "echo Installing dependencies && cd website && npm install && npm run start-with-snippets",
+    "website-build": {
+      description: "Build website",
+      script: "cd website && npm install && npm run build",
     },
 
-    "website serve": {
+    "website-dev": {
+      description: "Start the website development server with live reloading",
+      script: "cd website && npm install && npm run start-with-snippets",
+    },
+
+    "website-serve": {
       description: "Serve the built website (ensures dependencies are installed)",
-      script: "echo Installing dependencies && cd website && npm install && npm run serve",
+      script: "cd website && npm install && npm run serve",
     },
 
     demo: {

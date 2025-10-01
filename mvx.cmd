@@ -65,25 +65,27 @@ if "%VERBOSITY%"=="verbose" (
     echo Requested version: %MVX_VERSION_TO_USE%
 )
 
-rem Check for local development binary first - always check regardless of version
-if exist ".\mvx-dev.exe" (
-    if "%VERBOSITY%"=="verbose" (
-        echo Using local development binary: .\mvx-dev.exe
-        echo.
+rem Check for local development binaries only when explicitly using dev version
+if "%MVX_VERSION_TO_USE%"=="dev" (
+    if exist ".\mvx-dev.exe" (
+        if "%VERBOSITY%"=="verbose" (
+            echo Using local development binary: .\mvx-dev.exe
+            echo.
+        )
+        ".\mvx-dev.exe" %*
+        goto :eof
     )
-    ".\mvx-dev.exe" %*
-    goto :eof
-)
 
-rem Check for global development binary (shared across all projects)
-set GLOBAL_DEV_BINARY=%HOME_DIR%\.mvx\dev\mvx.exe
-if exist "%GLOBAL_DEV_BINARY%" (
-    if "%VERBOSITY%"=="verbose" (
-        echo Using global development binary: %GLOBAL_DEV_BINARY%
-        echo.
+    rem Check for global development binary (shared across all projects)
+    set GLOBAL_DEV_BINARY=%HOME_DIR%\.mvx\dev\mvx.exe
+    if exist "%GLOBAL_DEV_BINARY%" (
+        if "%VERBOSITY%"=="verbose" (
+            echo Using global development binary: %GLOBAL_DEV_BINARY%
+            echo.
+        )
+        "%GLOBAL_DEV_BINARY%" %*
+        goto :eof
     )
-    "%GLOBAL_DEV_BINARY%" %*
-    goto :eof
 )
 
 rem Resolve version (handle "latest")
@@ -119,8 +121,8 @@ rem Construct download URL
 set BINARY_NAME=mvx-windows-amd64.exe
 set DOWNLOAD_URL_FULL=%DOWNLOAD_URL_TO_USE%/download/v%RESOLVED_VERSION%/%BINARY_NAME%
 
-echo Downloading mvx %RESOLVED_VERSION% for windows-amd64... >&2
-echo Downloading from: %DOWNLOAD_URL_FULL% >&2
+echo Downloading mvx %RESOLVED_VERSION% for windows-amd64...
+echo Downloading from: %DOWNLOAD_URL_FULL%
 
 rem Download using PowerShell (available on Windows 7+ with .NET 4.0+)
 powershell -Command "& {[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%DOWNLOAD_URL_FULL%' -OutFile '%CACHED_BINARY%' -UseBasicParsing}"
