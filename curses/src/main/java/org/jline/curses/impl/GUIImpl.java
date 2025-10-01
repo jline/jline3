@@ -21,6 +21,18 @@ import org.jline.utils.AttributedStyle;
 import org.jline.utils.Display;
 import org.jline.utils.InfoCmp;
 
+/**
+ * Implementation of the GUI interface for the curses library.
+ *
+ * <p>This class manages the terminal-based GUI, handling windows, events, and display updates.
+ * It provides thread-safe access to the underlying Display instance by synchronizing access
+ * between the main event loop and signal handlers (such as window resize events).</p>
+ *
+ * <p><b>Threading Model:</b> The GUI runs primarily on a single thread (the main event loop),
+ * but signal handlers may be invoked from different threads. All access to the Display instance
+ * is synchronized using the {@code displayLock} to prevent concurrent modification exceptions
+ * and ensure consistent terminal output.</p>
+ */
 public class GUIImpl implements GUI {
 
     private final Terminal terminal;
@@ -31,6 +43,13 @@ public class GUIImpl implements GUI {
     private Display display;
     private final Map<Class<?>, Renderer> renderers = new HashMap<>();
     private Theme theme = new DefaultTheme();
+
+    /**
+     * Lock to synchronize access to the Display instance.
+     * This prevents concurrent modification exceptions when signal handlers
+     * (like WINCH) access the display from different threads.
+     */
+    private final Object displayLock = new Object();
 
     public GUIImpl(Terminal terminal) {
         this.terminal = terminal;
@@ -135,7 +154,9 @@ public class GUIImpl implements GUI {
         display = new Display(terminal, true);
 
         try {
-            onResize();
+            synchronized (displayLock) {
+                onResize();
+            }
             while (!windows.isEmpty()) {
                 Event event = bindingReader.readBinding(map);
                 switch (event) {
@@ -168,11 +189,16 @@ public class GUIImpl implements GUI {
 
     private void handle(Terminal.Signal signal) {
         if (signal == Terminal.Signal.WINCH) {
-            onResize();
+            // Synchronize access to display to prevent concurrent modification
+            // when signal handler runs on a different thread
+            synchronized (displayLock) {
+                onResize();
+            }
         }
     }
 
     private void onResize() {
+        // Note: This method should only be called while holding displayLock
         org.jline.terminal.Size sz = terminal.getSize();
         size = new Size(sz.getColumns(), sz.getRows());
         display.resize(sz.getRows(), sz.getColumns());
@@ -222,9 +248,11 @@ public class GUIImpl implements GUI {
     }
 
     protected void redraw() {
-        VirtualScreen screen = new VirtualScreen(size.w(), size.h());
-        background.draw(screen);
-        windows.forEach(w -> w.draw(screen));
-        display.update(screen.lines(), -1, true);
+        synchronized (displayLock) {
+            VirtualScreen screen = new VirtualScreen(size.w(), size.h());
+            background.draw(screen);
+            windows.forEach(w -> w.draw(screen));
+            display.update(screen.lines(), -1, true);
+        }
     }
 }

@@ -26,6 +26,19 @@
  * <li>Mouse and keyboard event handling</li>
  * <li>Theming and styling support</li>
  * </ul>
+ *
+ * <h2>Thread Safety</h2>
+ * <p>
+ * The curses GUI implementation handles threading internally to ensure safe operation
+ * when signal handlers (such as window resize events) are triggered from different threads.
+ * The GUI uses synchronization to coordinate access to the underlying Display instance,
+ * preventing concurrent modification exceptions and ensuring consistent terminal output.
+ * </p>
+ * <p>
+ * Applications using the curses module should generally interact with GUI components
+ * from a single thread (typically the main thread), while the library handles
+ * signal-driven events safely in the background.
+ * </p>
  */
 module org.jline.curses {
     // Core Java platform
