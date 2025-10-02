@@ -15,6 +15,8 @@ import java.util.EnumSet;
  */
 public class KeyParser {
 
+    private KeyParser() {}
+
     /**
      * Parses a raw input sequence into a KeyEvent.
      *
