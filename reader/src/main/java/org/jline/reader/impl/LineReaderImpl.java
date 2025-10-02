@@ -220,6 +220,7 @@ public class LineReaderImpl implements LineReader, Flushable {
     protected boolean searchFailing;
     protected boolean searchBackward;
     protected int searchIndex = -1;
+    protected Deque<Integer> searchIndexStack = null; // Stack to track search depth
     protected boolean doAutosuggestion;
 
     // Reading buffers
@@ -2713,6 +2714,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         searchTerm = new StringBuffer();
         searchBackward = backward;
         searchFailing = false;
+        searchIndexStack = new ArrayDeque<>(); // Initialize the stack
         post = () -> new AttributedString((searchFailing ? "failing" + " " : "")
                 + (searchBackward ? "bck-i-search" : "fwd-i-search")
                 + ": " + searchTerm + "_");
@@ -2720,10 +2722,12 @@ public class LineReaderImpl implements LineReader, Flushable {
         redisplay();
         try {
             while (true) {
-                int prevSearchIndex = searchIndex;
                 Binding operation = readBinding(getKeys(), terminators);
                 String ref = (operation instanceof Reference) ? ((Reference) operation).name() : "";
                 boolean next = false;
+                boolean clearedFailingState = false;
+                boolean poppedFromStack = false;
+
                 switch (ref) {
                     case SEND_BREAK:
                         beep();
@@ -2738,12 +2742,33 @@ public class LineReaderImpl implements LineReader, Flushable {
                         next = true;
                         break;
                     case BACKWARD_DELETE_CHAR:
-                        if (searchTerm.length() > 0) {
+                        // Handle backspace with zsh-like behavior
+                        if (searchFailing) {
+                            // If last search failed, clear failing state and stay at current position
+                            searchFailing = false;
+                            clearedFailingState = true;
+                            // Don't do anything else - just clear the failing state
+                        } else if (!searchIndexStack.isEmpty()) {
+                            // Navigate back to previous search depth
+                            searchIndex = searchIndexStack.pop();
+                            poppedFromStack = true;
+                            // Re-search to update the buffer
+                            next = false; // Don't search for next, just update display
+                        } else if (searchTerm.length() > 0) {
+                            // Delete last character of search term
                             searchTerm.deleteCharAt(searchTerm.length() - 1);
+                            // Clear the stack when modifying search term
+                            searchIndexStack.clear();
+                        } else {
+                            // Search term is empty, restore original buffer
+                            buf.copyFrom(originalBuffer);
+                            searchIndex = -1;
                         }
                         break;
                     case SELF_INSERT:
                         searchTerm.append(getLastBinding());
+                        // Clear the stack when typing new characters
+                        searchIndexStack.clear();
                         break;
                     default:
                         // Set buffer and cursor position to the found string.
@@ -2755,69 +2780,111 @@ public class LineReaderImpl implements LineReader, Flushable {
                 }
 
                 // print the search status
-                String pattern = doGetSearchPattern();
-                if (pattern.length() == 0) {
-                    buf.copyFrom(originalBuffer);
-                    searchFailing = false;
-                } else {
-                    boolean caseInsensitive = isSet(Option.CASE_INSENSITIVE_SEARCH);
-                    Pattern pat = Pattern.compile(
-                            pattern,
-                            caseInsensitive ? Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE : Pattern.UNICODE_CASE);
-                    Pair<Integer, Integer> pair = null;
-                    if (searchBackward) {
-                        boolean nextOnly = next;
-                        pair = matches(pat, buf.toString(), searchIndex).stream()
-                                .filter(p -> nextOnly ? p.v < buf.cursor() : p.v <= buf.cursor())
-                                .max(Comparator.comparing(Pair::getV))
-                                .orElse(null);
-                        if (pair == null) {
-                            pair = StreamSupport.stream(
-                                            Spliterators.spliteratorUnknownSize(
-                                                    history.reverseIterator(
-                                                            searchIndex < 0 ? history.last() : searchIndex - 1),
-                                                    Spliterator.ORDERED),
-                                            false)
-                                    .flatMap(e -> matches(pat, e.line(), e.index()).stream())
+                // Special handling for backspace when navigating back in stack
+                if (poppedFromStack) {
+                    // Just update the display with the popped index
+                    String pattern = doGetSearchPattern();
+                    if (!pattern.isEmpty()) {
+                        boolean caseInsensitive = isSet(Option.CASE_INSENSITIVE_SEARCH);
+                        Pattern pat = Pattern.compile(
+                                pattern,
+                                caseInsensitive
+                                        ? Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE
+                                        : Pattern.UNICODE_CASE);
+                        // Find the match at the current searchIndex
+                        Pair<Integer, Integer> pair = null;
+                        if (searchIndex >= 0) {
+                            pair = matches(pat, history.get(searchIndex), searchIndex).stream()
+                                    .findFirst()
+                                    .orElse(null);
+                        } else {
+                            pair = matches(pat, originalBuffer.toString(), -1).stream()
                                     .findFirst()
                                     .orElse(null);
                         }
-                    } else {
-                        boolean nextOnly = next;
-                        pair = matches(pat, buf.toString(), searchIndex).stream()
-                                .filter(p -> nextOnly ? p.v > buf.cursor() : p.v >= buf.cursor())
-                                .min(Comparator.comparing(Pair::getV))
-                                .orElse(null);
-                        if (pair == null) {
-                            pair = StreamSupport.stream(
-                                            Spliterators.spliteratorUnknownSize(
-                                                    history.iterator(
-                                                            (searchIndex < 0 ? history.last() : searchIndex) + 1),
-                                                    Spliterator.ORDERED),
-                                            false)
-                                    .flatMap(e -> matches(pat, e.line(), e.index()).stream())
-                                    .findFirst()
-                                    .orElse(null);
-                            if (pair == null && searchIndex >= 0) {
-                                pair = matches(pat, originalBuffer.toString(), -1).stream()
-                                        .min(Comparator.comparing(Pair::getV))
-                                        .orElse(null);
+                        if (pair != null) {
+                            buf.clear();
+                            if (searchIndex >= 0) {
+                                buf.write(history.get(searchIndex));
+                            } else {
+                                buf.write(originalBuffer.toString());
                             }
+                            buf.cursor(pair.v);
+                            searchFailing = false;
                         }
                     }
-                    if (pair != null) {
-                        searchIndex = pair.u;
-                        buf.clear();
-                        if (searchIndex >= 0) {
-                            buf.write(history.get(searchIndex));
-                        } else {
-                            buf.write(originalBuffer.toString());
-                        }
-                        buf.cursor(pair.v);
+                } else if (!clearedFailingState) {
+                    // Normal search logic (skip if we just cleared the failing state)
+                    String pattern = doGetSearchPattern();
+                    if (pattern.isEmpty()) {
+                        buf.copyFrom(originalBuffer);
                         searchFailing = false;
                     } else {
-                        searchFailing = true;
-                        beep();
+                        boolean caseInsensitive = isSet(Option.CASE_INSENSITIVE_SEARCH);
+                        Pattern pat = Pattern.compile(
+                                pattern,
+                                caseInsensitive
+                                        ? Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE
+                                        : Pattern.UNICODE_CASE);
+                        Pair<Integer, Integer> pair;
+                        if (searchBackward) {
+                            boolean nextOnly = next;
+                            pair = matches(pat, buf.toString(), searchIndex).stream()
+                                    .filter(p -> nextOnly ? p.v < buf.cursor() : p.v <= buf.cursor())
+                                    .max(Comparator.comparing(Pair::getV))
+                                    .orElse(null);
+                            if (pair == null) {
+                                pair = StreamSupport.stream(
+                                                Spliterators.spliteratorUnknownSize(
+                                                        history.reverseIterator(
+                                                                searchIndex < 0 ? history.last() : searchIndex - 1),
+                                                        Spliterator.ORDERED),
+                                                false)
+                                        .flatMap(e -> matches(pat, e.line(), e.index()).stream())
+                                        .findFirst()
+                                        .orElse(null);
+                            }
+                        } else {
+                            boolean nextOnly = next;
+                            pair = matches(pat, buf.toString(), searchIndex).stream()
+                                    .filter(p -> nextOnly ? p.v > buf.cursor() : p.v >= buf.cursor())
+                                    .min(Comparator.comparing(Pair::getV))
+                                    .orElse(null);
+                            if (pair == null) {
+                                pair = StreamSupport.stream(
+                                                Spliterators.spliteratorUnknownSize(
+                                                        history.iterator(
+                                                                (searchIndex < 0 ? history.last() : searchIndex) + 1),
+                                                        Spliterator.ORDERED),
+                                                false)
+                                        .flatMap(e -> matches(pat, e.line(), e.index()).stream())
+                                        .findFirst()
+                                        .orElse(null);
+                                if (pair == null && searchIndex >= 0) {
+                                    pair = matches(pat, originalBuffer.toString(), -1).stream()
+                                            .min(Comparator.comparing(Pair::getV))
+                                            .orElse(null);
+                                }
+                            }
+                        }
+                        if (pair != null) {
+                            // Push current index to stack when navigating to a new position
+                            if (next && searchIndex != -1 && pair.u != searchIndex) {
+                                searchIndexStack.push(searchIndex);
+                            }
+                            searchIndex = pair.u;
+                            buf.clear();
+                            if (searchIndex >= 0) {
+                                buf.write(history.get(searchIndex));
+                            } else {
+                                buf.write(originalBuffer.toString());
+                            }
+                            buf.cursor(pair.v);
+                            searchFailing = false;
+                        } else {
+                            searchFailing = true;
+                            beep();
+                        }
                     }
                 }
                 redisplay();
@@ -2831,6 +2898,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         } finally {
             searchTerm = null;
             searchIndex = -1;
+            searchIndexStack = null;
             post = null;
         }
     }
