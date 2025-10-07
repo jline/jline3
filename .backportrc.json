@@ -11,7 +11,7 @@
   "branchLabelMapping": {
     "^backport-to-3.x$": "jline-3.x"
   },
-  "prTitle": "[{targetBranch}] {commitMessages}",
+  "prTitle": "[{{targetBranch}}] {{commitMessages}}",
   "autoAssign": true,
   "autoMerge": false,
   "autoMergeMethod": "squash",
