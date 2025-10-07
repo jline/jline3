@@ -56,7 +56,7 @@ public interface TerminalProvider {
      * <p>
      * The provider name is a unique identifier that can be used to request this
      * specific provider when creating terminals. Common provider names include
-     * "ffm", "jni", "jansi", "jna", "exec", and "dumb".
+     * "ffm", "jni", "jansi", "exec", and "dumb".
      * </p>
      *
      * @return the name of this terminal provider

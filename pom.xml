@@ -84,7 +84,6 @@
         <native.image.skip>true</native.image.skip>
         <automatic.module.name />
 
-        <jna.version>5.17.0</jna.version>
         <jansi.version>2.4.2</jansi.version>
         <juniversalchardet.version>1.0.3</juniversalchardet.version>
         <sshd.version>2.16.0</sshd.version>
@@ -110,12 +109,6 @@
                 <groupId>org.fusesource.jansi</groupId>
                 <artifactId>jansi</artifactId>
                 <version>${jansi.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>net.java.dev.jna</groupId>
-                <artifactId>jna</artifactId>
-                <version>${jna.version}</version>
             </dependency>
 
             <dependency>

@@ -32,7 +32,6 @@ These modules have complete `module-info.java` descriptors with proper exports, 
 | **Terminal Providers** | | | | |
 | Terminal JNI | `jline-terminal-jni` | `org.jline.terminal.jni` | 11+ | **Recommended**: Java Native Interface provider |
 | Terminal FFM | `jline-terminal-ffm` | `org.jline.terminal.ffm` | 22+ | **Recommended**: Foreign Function Memory API provider |
-| Terminal JNA | `jline-terminal-jna` | `org.jline.terminal.jna` | 11+ | Java Native Access provider |
 | **Extended Functionality** | | | | |
 | Builtins | `jline-builtins` | `org.jline.builtins` | 11+ | Built-in shell commands (ls, cat, etc.) |
 | Console UI | `jline-console-ui` | `org.jline.console.ui` | 11+ | Interactive UI components (deprecated) |
@@ -89,7 +88,6 @@ module your.application {
     // Terminal providers (choose one or more)
     requires org.jline.terminal.jni; // JNI-based (recommended)
     requires org.jline.terminal.ffm; // FFM-based (recommended, JDK 22+)
-    requires org.jline.terminal.jna; // JNA-based (alternative)
 }
 ```
 
@@ -258,8 +256,6 @@ module your.application {
 
 - **Recommended**: Use `org.jline.terminal.jni` (no external dependencies, works on JDK 11+)
 - **Best performance**: Use `org.jline.terminal.ffm` on JDK 22+
-- **Alternative**: Use `org.jline.terminal.jna` (requires JNA dependency)
-- **Deprecated**: Avoid `org.jline.terminal.jansi` (use JNI instead)
 
 ### Dependency Scope
 
@@ -330,7 +326,7 @@ For existing applications, consider a phased approach:
 **Problem**: No terminal provider found, falling back to dumb terminal.
 
 **Solutions**:
-- Include at least one terminal provider module (jna, jni, or ffm)
+- Include at least one terminal provider module (jni, or ffm)
 - Verify provider JARs are on module path or classpath
 - Check that provider modules are not excluded by your build tool
 
