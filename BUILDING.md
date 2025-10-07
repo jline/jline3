@@ -141,7 +141,7 @@ The demo command automatically detects whether you're requesting a built-in demo
 
 ### Deployment
 
-The website is automatically deployed to jline.org when changes are pushed to the master branch.
+The website is automatically deployed to jline.org when changes are pushed to the jline-3.x branch.
 
 ## Advanced Build Options
 

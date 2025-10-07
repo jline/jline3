@@ -2,7 +2,7 @@ name: Website
 
 on:
   push:
-    branches: [master]
+    branches: [jline-3.x]
     paths:
       - 'website/**'
   workflow_dispatch:
