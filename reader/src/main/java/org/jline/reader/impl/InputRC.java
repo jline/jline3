@@ -441,7 +441,7 @@ public final class InputRC {
         }
 
         for (LineReader.Option option : LineReader.Option.values()) {
-            if (option.name().toLowerCase(Locale.ENGLISH).replace('_', '-').equals(val)) {
+            if (option.name().toLowerCase(Locale.ENGLISH).replace('_', '-').equals(key)) {
                 if ("on".equalsIgnoreCase(val)) {
                     reader.setOpt(option);
                 } else if ("off".equalsIgnoreCase(val)) {
