@@ -142,7 +142,6 @@ The `TerminalBuilder` supports various options for customizing the terminal:
 | encoding | x | x | Encoding of the terminal, defaults to `Charset.defaultCharset().name()` |
 | system | x | x | Forces or prohibits the use of a system terminal |
 | streams | | x | Use the given streams for the input / output streams of the terminal |
-| jna | x | x | Allow or prohibits using JNA based terminals, defaults to whether the JNA library is available or not |
 | dumb | x | | Creates a dumb terminal if known terminals are not supported, else an exception is thrown |
 | attributes | | x | Initial attributes of the terminal |
 | size | | x | Initial size of the terminal |

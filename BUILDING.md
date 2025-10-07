@@ -45,7 +45,6 @@ The fine-grained bundles are located at:
 ```
 terminal/target/jline-terminal-${jline.version}.jar
 terminal-jansi/target/jline-jansi-${jline.version}.jar
-terminal-jna/target/jline-jna-${jline.version}.jar
 terminal-jni/target/jline-jni-${jline.version}.jar
 terminal-ffm/target/jline-ffm-${jline.version}.jar
 native/target/jline-native-${jline.version}.jar
