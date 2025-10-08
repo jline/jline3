@@ -57,7 +57,7 @@ When releasing a new version of JLine, update the version in `docusaurus.config.
 
 ```javascript
 // JLine version - update this when releasing a new version
-const jlineVersion = '3.31.0'; // Updated version
+const jlineVersion = '%%JLINE_VERSION%%'; // Updated version
 ```
 
 The build process will automatically use the new version when replacing the placeholders.

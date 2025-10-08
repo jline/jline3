@@ -1,0 +1,93 @@
+## ---------------------------------------------------------------------------
+## Shell script syntax
+## ---------------------------------------------------------------------------
+
+syntax "Shell" "\.(sh|bash|zsh)$"
+header "^#!.*/(env +)?(ba)?sh( |$)"
+magic "shell script"
+comment "#"
+
+# Keywords and built-ins
+color brightblue "\<(case|do|done|elif|else|esac|fi|for|function|if|in|select|then|time|until|while)\>"
+color brightblue "\<(break|continue|exit|return)\>"
+
+# Built-in commands
+color cyan "\<(alias|bg|bind|builtin|caller|cd|command|compgen|complete|compopt|declare|dirs|disown|echo|enable|eval|exec|export|fc|fg|getopts|hash|help|history|jobs|kill|let|local|logout|mapfile|popd|printf|pushd|pwd|read|readarray|readonly|set|shift|shopt|source|suspend|test|times|trap|type|typeset|ulimit|umask|unalias|unset|wait)\>"
+
+# Common external commands
+color green "\<(awk|cat|chmod|chown|cp|cut|date|dd|df|diff|du|find|grep|head|ln|ls|mkdir|mv|ps|rm|rmdir|sed|sort|tail|tar|touch|tr|wc|which|xargs)\>"
+
+# Conditionals and tests
+color yellow "\<(test|\[|\])\>"
+color yellow "(\-eq|\-ne|\-lt|\-le|\-gt|\-ge|\-ef|\-nt|\-ot)"
+color yellow "(\-d|\-e|\-f|\-g|\-h|\-k|\-p|\-r|\-s|\-t|\-u|\-w|\-x|\-O|\-G|\-L|\-S|\-N)"
+color yellow "(\-z|\-n)"
+
+# Variables
+color brightred "\$\{[#!]?[0-9A-Za-z_!@#$*?-]+\}"
+color brightred "\$[0-9A-Za-z_!@#$*?-]+"
+color brightred "\$\{[#!]?[0-9A-Za-z_!@#$*?-]+(\[[^]]*\])?\}"
+
+# Special variables
+color brightmagenta "\$[0-9@*#?$!-]"
+color brightmagenta "\$\{[0-9@*#?$!-]\}"
+
+# Environment variables (common ones)
+color brightcyan "\<(PATH|HOME|USER|SHELL|PWD|OLDPWD|PS1|PS2|PS3|PS4|IFS|LANG|LC_ALL|TERM|EDITOR|PAGER)\>"
+
+# String literals
+color green "\"([^\"\\\\]|\\\\.)*\""
+color green "'([^'\\\\]|\\\\.)*'"
+
+# Escaped characters in double quotes
+color brightyellow "\\\\[\"\\\\$`]" 
+
+# Command substitution
+color yellow "`[^`]*`"
+color yellow "\$\([^)]*\)"
+
+# Arithmetic expansion
+color yellow "\$\(\([^)]*\)\)"
+
+# Process substitution
+color yellow "<\([^)]*\)"
+color yellow ">\([^)]*\)"
+
+# Redirections
+color brightmagenta "[0-9]*[<>]&?[0-9]*"
+color brightmagenta "[0-9]*>>[&]?[0-9]*"
+color brightmagenta "[0-9]*<<-?"
+
+# Pipes
+color brightmagenta "\|"
+
+# Background processes
+color brightmagenta "&"
+
+# Logical operators
+color yellow "&&|\|\|"
+
+# Globbing patterns
+color brightcyan "\*|\?|\[[^]]*\]|\{[^}]*\}"
+
+# Function definitions
+color brightcyan "^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*[[:space:]]*\(\)"
+
+# Comments
+color brightred "#.*"
+
+# Shebang
+color brightmagenta "^#!.*"
+
+# Here documents
+color green start="<<[[:space:]]*['\"]?[A-Za-z_][A-Za-z0-9_]*['\"]?" end="^[A-Za-z_][A-Za-z0-9_]*$"
+
+# Numbers
+color brightyellow "\<[0-9]+\>"
+
+# Options (starting with -)
+color cyan "\<-[A-Za-z0-9][A-Za-z0-9]*"
+color cyan "\<--[A-Za-z0-9][A-Za-z0-9-]*"
+
+# Trailing whitespace
+color ,green "[[:space:]]+$"

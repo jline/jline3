@@ -1,0 +1,25 @@
+{
+  "repoOwner": "jline",
+  "repoName": "jline3",
+  "targetBranchChoices": [
+    {
+      "name": "jline-3.x",
+      "checked": true
+    }
+  ],
+  "targetPRLabels": ["backport"],
+  "branchLabelMapping": {
+    "^backport-to-3.x$": "jline-3.x"
+  },
+  "prTitle": "[{{targetBranch}}] {{commitMessages}}",
+  "autoAssign": true,
+  "autoMerge": false,
+  "autoMergeMethod": "squash",
+  "cherryPickOptions": "--strategy=recursive --strategy-option=theirs",
+  "gitHostname": "github.com",
+  "fork": false,
+  "publishStatusCommentOnSuccess": true,
+  "publishStatusCommentOnFailure": true,
+  "publishStatusCommentOnAbort": true
+}
+

@@ -9,6 +9,7 @@ on:
     # branches to consider in the event; optional, defaults to all
     branches:
       - master
+      - jline-3.x
   # pull_request event is required only for autolabeler
   pull_request:
     # Only following types are handled by the action, but one can default to all as well
@@ -36,10 +37,17 @@ jobs:
       #    echo "GHE_HOST=${GITHUB_SERVER_URL##https:\/\/}" >> $GITHUB_ENV
 
       # Drafts your next Release notes as Pull Requests are merged into "master"
-      - uses: release-drafter/release-drafter@v6
-        # (Optional) specify config name to use, relative to .github/. Default: release-drafter.yml
-        # with:
-        #   config-name: my-config.yml
-        #   disable-autolabeler: true
+      - name: Run release drafter for master branch
+        if: github.ref == 'refs/heads/master'
+        uses: release-drafter/release-drafter@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Drafts your next Release notes as Pull Requests are merged into "jline-3.x"
+      - name: Run release drafter for jline-3.x branch
+        if: github.ref == 'refs/heads/jline-3.x'
+        uses: release-drafter/release-drafter@v6
+        with:
+          config-name: release-drafter-3x.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -47,7 +47,7 @@ These modules remain as automatic modules for backward compatibility and integra
 
 | Module | Artifact ID | Automatic Module Name | Reason for Automatic Module Status |
 |--------|-------------|----------------------|-------------------------------------|
-| Terminal Jansi | `jline-terminal-jansi` | `jline.terminal.jansi` | **Deprecated**: Legacy compatibility, use JNI provider instead |
+| ~~Terminal Jansi~~ | ~~`jline-terminal-jansi`~~ | ~~`jline.terminal.jansi`~~ | **Removed in JLine 4.x**: Use JNI or FFM provider instead |
 | Groovy | `jline-groovy` | `jline.groovy` | Integration with Groovy ecosystem, complex dependencies |
 | Remote SSH | `jline-remote-ssh` | `jline.remote.ssh` | SSH server functionality, Apache SSHD dependencies |
 | Remote Telnet | `jline-remote-telnet` | `jline.remote.telnet` | Telnet server functionality |
@@ -167,8 +167,8 @@ JLine uses a service provider interface (SPI) to automatically discover and sele
 
 1. **JNI** (`org.jline.terminal.jni`) - **Recommended**: Native performance, no external dependencies, no special permissions
 2. **FFM** (`org.jline.terminal.ffm`) - **Recommended**: Best performance, requires `--enable-native-access`, JDK 22+ only
-3. **JNA** (`org.jline.terminal.jna`) - Good compatibility, requires JNA dependency
-4. **Jansi** (`org.jline.terminal.jansi`) - **Deprecated**: Limited functionality, use JNI instead
+3. ~~**JNA** (`org.jline.terminal.jna`)~~ - **Removed in JLine 4.x**: Use JNI or FFM instead
+4. ~~**Jansi** (`org.jline.terminal.jansi`)~~ - **Removed in JLine 4.x**: Use JNI or FFM instead
 
 **Recommended providers**: Use **JNI** for maximum compatibility (no special setup) or **FFM** for best performance on JDK 22+.
 
@@ -183,19 +183,19 @@ When using Maven or Gradle, you can depend on individual modules:
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-terminal</artifactId>
-    <version>4.0.0</version>
+    <version>%%JLINE_VERSION%%</version>
 </dependency>
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-reader</artifactId>
-    <version>4.0.0</version>
+    <version>%%JLINE_VERSION%%</version>
 </dependency>
 ```
 
 #### Gradle
 ```groovy
-implementation 'org.jline:jline-terminal:4.0.0'
-implementation 'org.jline:jline-reader:4.0.0'
+implementation 'org.jline:jline-terminal:%%JLINE_VERSION%%'
+implementation 'org.jline:jline-reader:%%JLINE_VERSION%%'
 ```
 
 ## Migration from JLine 3.x
@@ -224,17 +224,17 @@ When migrating from JLine 3.x to 4.x in a modular application:
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-terminal</artifactId>
-    <version>4.0.0</version>
+    <version>%%JLINE_VERSION%%</version>
 </dependency>
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-reader</artifactId>
-    <version>4.0.0</version>
+    <version>%%JLINE_VERSION%%</version>
 </dependency>
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-terminal-jni</artifactId>
-    <version>4.0.0</version>
+    <version>%%JLINE_VERSION%%</version>
 </dependency>
 ```
 

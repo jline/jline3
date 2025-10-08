@@ -87,18 +87,18 @@
         <jna.version>5.17.0</jna.version>
         <jansi.version>2.4.2</jansi.version>
         <juniversalchardet.version>1.0.3</juniversalchardet.version>
-        <sshd.version>2.15.0</sshd.version>
+        <sshd.version>2.16.0</sshd.version>
         <easymock.version>5.6.0</easymock.version>
-        <junit.version>5.13.4</junit.version>
+        <junit.version>6.0.0</junit.version>
         <gogo.runtime.version>1.1.6</gogo.runtime.version>
         <gogo.jline.version>1.1.8</gogo.jline.version>
         <slf4j.version>2.0.17</slf4j.version>
         <findbugs.version>3.0.2</findbugs.version>
-        <groovy.version>4.0.28</groovy.version>
+        <groovy.version>5.0.1</groovy.version>
         <ivy.version>2.5.3</ivy.version>
-        <graal.version>24.2.2</graal.version>
+        <graal.version>25.0.0</graal.version>
         <graal.plugin.version>21.2.0</graal.plugin.version>
-        <palantir.version>2.73.0</palantir.version>
+        <palantir.version>2.74.0</palantir.version>
 
         <surefire.argLine>--add-opens java.base/java.io=org.jline.nativ --add-opens java.base/java.io=org.jline.terminal</surefire.argLine>
     </properties>
@@ -292,7 +292,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>3.5.3</version>
+                    <version>3.5.4</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.felix</groupId>
@@ -317,7 +317,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.14.0</version>
+                    <version>3.14.1</version>
                     <configuration>
                         <showWarnings>true</showWarnings>
                         <release>${java.release.version}</release>
@@ -347,68 +347,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>
-                    <version>3.6.0</version>
-                </plugin>
-
-                <plugin>
-                    <groupId>com.mycila</groupId>
-                    <artifactId>license-maven-plugin</artifactId>
-                    <version>5.0.0</version>
-                    <configuration>
-                        <encoding>UTF-8</encoding>
-                        <strictCheck>true</strictCheck>
-                        <useDefaultExcludes>false</useDefaultExcludes>
-                        <header>${project.basedir}/header.txt</header>
-                        <aggregate>true</aggregate>
-                        <includes>
-                            <include>**/pom.xml</include>
-                            <include>**/*.xml</include>
-                            <include>**/*.xsd</include>
-                            <include>**/*.xjb</include>
-                            <include>**/*.properties</include>
-                            <include>**/*.ini</include>
-                            <include>**/*.java</include>
-                            <include>**/*.groovy</include>
-                            <include>**/*.scala</include>
-                            <include>**/*.aj</include>
-                            <include>**/*.js</include>
-                            <include>**/*.css</include>
-                            <include>**/*.help</include>
-                            <include>**/*.proto</include>
-                            <include>**/*.sm</include>
-                            <include>**/*.bat</include>
-                            <include>**/*.xsl</include>
-                            <include>**/*.html</include>
-                            <include>**/*.vm</include>
-                            <include>**/*.md</include>
-                            <include>**/*.sh</include>
-                            <include>**/*.bash</include>
-                            <include>**/*.rb</include>
-                        </includes>
-                        <excludes>
-                            <exclude>**/target/**</exclude>
-                            <exclude>**/.*/**</exclude>
-                            <exclude>**/dependency-reduced-pom.xml</exclude>
-                            <exclude>**/nbactions*.xml</exclude>
-                            <exclude>**/nb-configuration.xml</exclude>
-                            <exclude>**/atlassian-ide-plugin.xml</exclude>
-                            <exclude>**/release.properties</exclude>
-                            <exclude>**/META-INF/services/**</exclude>
-                        </excludes>
-                        <mapping>
-                            <aj>JAVADOC_STYLE</aj>
-                            <groovy>SLASHSTAR_STYLE</groovy>
-                            <help>SCRIPT_STYLE</help>
-                            <ini>SCRIPT_STYLE</ini>
-                            <java>SLASHSTAR_STYLE</java>
-                            <md>XML_STYLE</md>
-                            <proto>DOUBLESLASH_STYLE</proto>
-                            <scala>SLASHSTAR_STYLE</scala>
-                            <sm>DOUBLESLASH_STYLE</sm>
-                            <vm>VELOCITY_STYLE</vm>
-                            <xjb>XML_STYLE</xjb>
-                        </mapping>
-                    </configuration>
+                    <version>3.6.1</version>
                 </plugin>
 
                 <plugin>
@@ -440,7 +379,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
-                    <version>3.11.2</version>
+                    <version>3.12.0</version>
                     <configuration>
                         <notimestamp>true</notimestamp>
                     </configuration>
@@ -449,13 +388,13 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-wrapper-plugin</artifactId>
-                    <version>3.3.2</version>
+                    <version>3.3.4</version>
                 </plugin>
 
                 <plugin>
                     <groupId>com.diffplug.spotless</groupId>
                     <artifactId>spotless-maven-plugin</artifactId>
-                    <version>2.46.1</version>
+                    <version>3.0.0</version>
                     <configuration>
                         <java>
                             <toggleOffOn />
@@ -659,20 +598,6 @@
                         </executions>
                     </plugin>
                 </plugins>
-            </build>
-        </profile>
-
-        <profile>
-            <id>license-check</id>
-            <build>
-                <defaultGoal>com.mycila:license-maven-plugin:check</defaultGoal>
-            </build>
-        </profile>
-
-        <profile>
-            <id>license-format</id>
-            <build>
-                <defaultGoal>com.mycila:license-maven-plugin:format</defaultGoal>
             </build>
         </profile>
 

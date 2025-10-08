@@ -8,7 +8,9 @@ JLine is a Java library for handling console input. It's similar to [GNU Readlin
 
 ## Requirements
 
-- **Java 11 or higher**: JLine requires Java 11 as the minimum runtime version
+- **Java 11 or higher**: JLine 4.x requires Java 11 as the minimum runtime version
+- **Maven 4.0 or higher**: JLine 4.x requires Maven 4.0+ for building from source
+- **Note**: JLine 3.x supports Java 8+ and Maven 3.x+, but JLine 4.x requires Java 11+ and Maven 4.0+
 
 ## Features
 
@@ -30,14 +32,14 @@ JLine is a Java library for handling console input. It's similar to [GNU Readlin
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline</artifactId>
-    <version>3.30.0</version>
+    <version>4.0.0</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```groovy
-implementation 'org.jline:jline:3.30.0'
+implementation 'org.jline:jline:4.0.0'
 ```
 
 ## Quick Start
@@ -101,8 +103,6 @@ JLine provides full support for JPMS starting with version 4.0. The following mo
 | Native | `jline-native` | `org.jline.nativ` | Native library loading |
 | Terminal | `jline-terminal` | `org.jline.terminal` | Core terminal functionality |
 | Terminal FFM | `jline-terminal-ffm` | `org.jline.terminal.ffm` | FFM-based terminal (JDK 22+) |
-| Terminal JNA | `jline-terminal-jna` | `org.jline.terminal.jna` | JNA-based terminal |
-| Terminal JNI | `jline-terminal-jni` | `org.jline.terminal.jni` | JNI-based terminal |
 | Reader | `jline-reader` | `org.jline.reader` | Line editing and reading |
 | Style | `jline-style` | `org.jline.style` | Styling and coloring |
 | **Extended Modules** | | | |

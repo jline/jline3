@@ -21,12 +21,17 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.TimeZone;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntBinaryOperator;
+import java.util.function.IntConsumer;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,8 +39,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.jline.builtins.Options.HelpException;
+import org.jline.builtins.Source.PathSource;
 import org.jline.builtins.Source.StdInSource;
-import org.jline.builtins.Source.URLSource;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
@@ -271,75 +276,12 @@ public class PosixCommands {
         List<String> args = opt.args();
         StringBuilder buf = new StringBuilder();
         if (args != null) {
+            int totalLength = args.stream().mapToInt(String::length).sum() + args.size() - 1;
+            buf = new StringBuilder(totalLength * 2);
+
             for (String arg : args) {
                 if (buf.length() > 0) buf.append(' ');
-                // Process escape sequences
-                for (int i = 0; i < arg.length(); i++) {
-                    int c = arg.charAt(i);
-                    int ch;
-                    if (c == '\\') {
-                        c = i < arg.length() - 1 ? arg.charAt(++i) : '\\';
-                        switch (c) {
-                            case 'a':
-                                buf.append('\u0007');
-                                break;
-                            case 'n':
-                                buf.append('\n');
-                                break;
-                            case 't':
-                                buf.append('\t');
-                                break;
-                            case 'r':
-                                buf.append('\r');
-                                break;
-                            case '\\':
-                                buf.append('\\');
-                                break;
-                            case '0':
-                            case '1':
-                            case '2':
-                            case '3':
-                            case '4':
-                            case '5':
-                            case '6':
-                            case '7':
-                            case '8':
-                            case '9':
-                                ch = 0;
-                                for (int j = 0; j < 3; j++) {
-                                    c = i < arg.length() - 1 ? arg.charAt(++i) : -1;
-                                    if (c >= 0) {
-                                        ch = ch * 8 + (c - '0');
-                                    }
-                                }
-                                buf.append((char) ch);
-                                break;
-                            case 'u':
-                                ch = 0;
-                                for (int j = 0; j < 4; j++) {
-                                    c = i < arg.length() - 1 ? arg.charAt(++i) : -1;
-                                    if (c >= 0) {
-                                        if (c >= 'A' && c <= 'Z') {
-                                            ch = ch * 16 + (c - 'A' + 10);
-                                        } else if (c >= 'a' && c <= 'z') {
-                                            ch = ch * 16 + (c - 'a' + 10);
-                                        } else if (c >= '0' && c <= '9') {
-                                            ch = ch * 16 + (c - '0');
-                                        } else {
-                                            break;
-                                        }
-                                    }
-                                }
-                                buf.append((char) ch);
-                                break;
-                            default:
-                                buf.append((char) c);
-                                break;
-                        }
-                    } else {
-                        buf.append((char) c);
-                    }
-                }
+                processEscapeSequences(arg, buf);
             }
         }
         if (opt.isSet("n")) {
@@ -347,6 +289,144 @@ public class PosixCommands {
         } else {
             context.out().println(buf);
         }
+    }
+
+    /**
+     * Process escape sequences in echo command.
+     */
+    private static void processEscapeSequences(String arg, StringBuilder buf) {
+        final int length = arg.length();
+        for (int i = 0; i < length; i++) {
+            char c = arg.charAt(i);
+            if (c == '\\' && i + 1 < length) {
+                char nextChar = arg.charAt(++i);
+                switch (nextChar) {
+                    case 'a':
+                        buf.append('\u0007'); // Bell
+                        break;
+                    case 'n':
+                        buf.append('\n');
+                        break;
+                    case 't':
+                        buf.append('\t');
+                        break;
+                    case 'r':
+                        buf.append('\r');
+                        break;
+                    case '\\':
+                        buf.append('\\');
+                        break;
+                    case '0':
+                    case '1':
+                    case '2':
+                    case '3':
+                    case '4':
+                    case '5':
+                    case '6':
+                    case '7':
+                    case '8':
+                    case '9':
+                        // Octal escape sequence
+                        i += parseOctalSequence(arg, i, length, buf, nextChar);
+                        break;
+                    case 'u':
+                        // Unicode escape sequence
+                        i += parseUnicodeSequence(arg, i + 1, length, buf);
+                        break;
+                    default:
+                        buf.append(nextChar);
+                        break;
+                }
+            } else {
+                buf.append(c);
+            }
+        }
+    }
+
+    /**
+     * Parse unicode escape sequence (\\uXXXX).
+     * @return number of characters consumed from input
+     */
+    private static int parseUnicodeSequence(String arg, int startIndex, int length, StringBuilder buf) {
+        int unicodeValue = 0;
+        int consumed = 0;
+
+        for (int j = 0; j < 4 && startIndex + consumed < length; j++) {
+            char hexChar = arg.charAt(startIndex + consumed);
+            int hexDigit;
+            switch (hexChar) {
+                case '0':
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                case '8':
+                case '9':
+                    hexDigit = hexChar - '0';
+                    break;
+                case 'A':
+                case 'B':
+                case 'C':
+                case 'D':
+                case 'E':
+                case 'F':
+                    hexDigit = hexChar - 'A' + 10;
+                    break;
+                case 'a':
+                case 'b':
+                case 'c':
+                case 'd':
+                case 'e':
+                case 'f':
+                    hexDigit = hexChar - 'a' + 10;
+                    break;
+                default:
+                    // Invalid hex digit, stop parsing
+                    buf.append((char) unicodeValue);
+                    return consumed;
+            }
+            unicodeValue = (unicodeValue << 4) + hexDigit;
+            consumed++;
+        }
+
+        buf.append((char) unicodeValue);
+        return consumed;
+    }
+
+    /**
+     * Parse octal escape sequence (\\nnn).
+     * @return number of characters consumed from input
+     */
+    private static int parseOctalSequence(String arg, int startIndex, int length, StringBuilder buf, char firstDigit) {
+        int octalValue = firstDigit - '0';
+        int consumed = 0;
+
+        for (int j = 0; j < 2 && startIndex + 1 + consumed < length; j++) {
+            char octalChar = arg.charAt(startIndex + 1 + consumed);
+            switch (octalChar) {
+                case '0':
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                    octalValue = (octalValue << 3) + (octalChar - '0');
+                    consumed++;
+                    break;
+                default:
+                    // Invalid octal digit, stop parsing
+                    buf.append((char) octalValue);
+                    return consumed;
+            }
+        }
+
+        buf.append((char) octalValue);
+        return consumed;
     }
 
     /**
@@ -383,26 +463,16 @@ public class PosixCommands {
         };
         Options opt = parseOptions(context, usage, argv);
 
-        List<String> args = opt.args();
-        if (args.isEmpty()) {
-            args = Collections.singletonList("-");
-        }
-        Path cwd = context.currentDir();
-        for (String arg : args) {
-            InputStream is;
-            if ("-".equals(arg)) {
-                is = context.in();
-            } else {
-                is = cwd.toUri().resolve(arg).toURL().openStream();
-            }
-            cat(context, new BufferedReader(new InputStreamReader(is)), opt.isSet("n"));
+        List<Source> expanded = getSources(context, opt.args());
+        for (Source src : expanded) {
+            cat(context, src.reader(), opt.isSet("n"));
         }
     }
 
     private static void cat(Context context, BufferedReader reader, boolean numbered) throws IOException {
         String line;
         int lineno = 1;
-        try {
+        try (reader) {
             while ((line = reader.readLine()) != null) {
                 if (numbered) {
                     context.out().printf("%6d\t%s%n", lineno++, line);
@@ -410,8 +480,6 @@ public class PosixCommands {
                     context.out().println(line);
                 }
             }
-        } finally {
-            reader.close();
         }
     }
 
@@ -558,169 +626,115 @@ public class PosixCommands {
         context.out().println(formatter.format(input));
     }
 
+    private static final Map<String, String> DATE_FORMAT_CACHE = new ConcurrentHashMap<>();
+    private static final Map<Character, String> UNIX_TO_JAVA_FORMAT_MAP;
+
+    static {
+        Map<Character, String> formatMap = new HashMap<>();
+        formatMap.put('a', "EEE"); // Abbreviated weekday name
+        formatMap.put('A', "EEEE"); // Full weekday name
+        formatMap.put('b', "MMM"); // Abbreviated month name
+        formatMap.put('B', "MMMM"); // Full month name
+        formatMap.put('c', "EEE MMM d HH:mm:ss yyyy"); // Complete date and time
+        formatMap.put('C', "yy"); // Century (year/100) as 2-digit number
+        formatMap.put('d', "dd"); // Day of month as 2-digit number
+        formatMap.put('D', "MM/dd/yy"); // Date in MM/dd/yy format
+        formatMap.put('e', "d"); // Day of month as number (1-31)
+        formatMap.put('F', "yyyy-MM-dd"); // Date in ISO 8601 format
+        formatMap.put('G', "YYYY"); // ISO week-based year
+        formatMap.put('g', "YY"); // ISO week-based year (2 digits)
+        formatMap.put('H', "HH"); // Hour (24-hour format)
+        formatMap.put('h', "MMM"); // Same as %b
+        formatMap.put('I', "hh"); // Hour (12-hour format)
+        formatMap.put('j', "DDD"); // Day of year
+        formatMap.put('k', "H"); // Hour (24-hour, space-padded)
+        formatMap.put('l', "h"); // Hour (12-hour, space-padded)
+        formatMap.put('M', "mm"); // Minute
+        formatMap.put('m', "MM"); // Month as number
+        formatMap.put('N', "SSS"); // Nanoseconds
+        formatMap.put('n', "\n"); // Newline
+        formatMap.put('P', "a"); // AM/PM in lowercase
+        formatMap.put('p', "a"); // AM/PM
+        formatMap.put('r', "hh:mm:ss a"); // 12-hour time
+        formatMap.put('R', "HH:mm"); // 24-hour time (hours:minutes)
+        formatMap.put('S', "ss"); // Second
+        formatMap.put('s', "X"); // Seconds since epoch
+        formatMap.put('T', "HH:mm:ss"); // 24-hour time
+        formatMap.put('t', "\t"); // Tab character
+        formatMap.put('U', "ww"); // Week number (Sunday first)
+        formatMap.put('u', "u"); // Day of week (1=Monday)
+        formatMap.put('V', "ww"); // ISO week number
+        formatMap.put('v', "d-MMM-yyyy"); // Date in d-MMM-yyyy format
+        formatMap.put('W', "ww"); // Week number (Monday first)
+        formatMap.put('w', "e"); // Day of week (0=Sunday)
+        formatMap.put('X', "HH:mm:ss"); // Time representation
+        formatMap.put('x', "MM/dd/yy"); // Date representation
+        formatMap.put('Y', "yyyy"); // Year with century
+        formatMap.put('y', "yy"); // Year without century
+        formatMap.put('Z', "zzz"); // Time zone name
+        formatMap.put('z', "Z"); // Time zone offset
+        formatMap.put('%', "%"); // Literal %
+        // Handle special cases from original implementation
+        formatMap.put('+', "EEE MMM d HH:mm:ss yyyy"); // Same as %c
+        UNIX_TO_JAVA_FORMAT_MAP = Collections.unmodifiableMap(formatMap);
+    }
+
     /**
      * Convert Unix date format to Java SimpleDateFormat.
      */
     private static String toJavaDateFormat(String format) {
-        // transform Unix format to Java SimpleDateFormat (if required)
-        StringBuilder sb = new StringBuilder();
-        boolean quote = false;
+        return DATE_FORMAT_CACHE.computeIfAbsent(format, PosixCommands::convertUnixToJavaFormat);
+    }
+
+    /**
+     * Convert Unix format to Java format.
+     */
+    private static String convertUnixToJavaFormat(String format) {
+        if (format == null || format.isEmpty()) {
+            return format;
+        }
+
+        StringBuilder sb = new StringBuilder(format.length() * 2); // Pre-size for efficiency
+        boolean inQuotes = false;
+
         for (int i = 0; i < format.length(); i++) {
             char c = format.charAt(i);
-            if (c == '%') {
-                if (i + 1 < format.length()) {
-                    if (quote) {
+
+            if (c == '%' && i + 1 < format.length()) {
+                char nextChar = format.charAt(i + 1);
+                String javaPattern = UNIX_TO_JAVA_FORMAT_MAP.get(nextChar);
+                if (javaPattern != null) {
+                    boolean needsQuotes = nextChar == 'n' || nextChar == 't' || nextChar == '%';
+                    if (inQuotes != needsQuotes) {
                         sb.append('\'');
-                        quote = false;
+                        inQuotes = !inQuotes;
                     }
-                    c = format.charAt(++i);
-                    switch (c) {
-                        case '+':
-                        case 'A':
-                            sb.append("MMM EEE d HH:mm:ss yyyy");
-                            break;
-                        case 'a':
-                            sb.append("EEE");
-                            break;
-                        case 'B':
-                            sb.append("MMMMMMM");
-                            break;
-                        case 'b':
-                            sb.append("MMM");
-                            break;
-                        case 'C':
-                            sb.append("yy");
-                            break;
-                        case 'c':
-                            sb.append("MMM EEE d HH:mm:ss yyyy");
-                            break;
-                        case 'D':
-                            sb.append("MM/dd/yy");
-                            break;
-                        case 'd':
-                            sb.append("dd");
-                            break;
-                        case 'e':
-                            sb.append("dd");
-                            break;
-                        case 'F':
-                            sb.append("yyyy-MM-dd");
-                            break;
-                        case 'G':
-                            sb.append("YYYY");
-                            break;
-                        case 'g':
-                            sb.append("YY");
-                            break;
-                        case 'H':
-                            sb.append("HH");
-                            break;
-                        case 'h':
-                            sb.append("MMM");
-                            break;
-                        case 'I':
-                            sb.append("hh");
-                            break;
-                        case 'j':
-                            sb.append("DDD");
-                            break;
-                        case 'k':
-                            sb.append("HH");
-                            break;
-                        case 'l':
-                            sb.append("hh");
-                            break;
-                        case 'M':
-                            sb.append("mm");
-                            break;
-                        case 'm':
-                            sb.append("MM");
-                            break;
-                        case 'N':
-                            sb.append("S");
-                            break;
-                        case 'n':
-                            sb.append("\n");
-                            break;
-                        case 'P':
-                            sb.append("aa");
-                            break;
-                        case 'p':
-                            sb.append("aa");
-                            break;
-                        case 'r':
-                            sb.append("hh:mm:ss aa");
-                            break;
-                        case 'R':
-                            sb.append("HH:mm");
-                            break;
-                        case 'S':
-                            sb.append("ss");
-                            break;
-                        case 's':
-                            sb.append("S");
-                            break;
-                        case 'T':
-                            sb.append("HH:mm:ss");
-                            break;
-                        case 't':
-                            sb.append("\t");
-                            break;
-                        case 'U':
-                            sb.append("w");
-                            break;
-                        case 'u':
-                            sb.append("u");
-                            break;
-                        case 'V':
-                            sb.append("W");
-                            break;
-                        case 'v':
-                            sb.append("dd-MMM-yyyy");
-                            break;
-                        case 'W':
-                            sb.append("w");
-                            break;
-                        case 'w':
-                            sb.append("u");
-                            break;
-                        case 'X':
-                            sb.append("HH:mm:ss");
-                            break;
-                        case 'x':
-                            sb.append("MM/dd/yy");
-                            break;
-                        case 'Y':
-                            sb.append("yyyy");
-                            break;
-                        case 'y':
-                            sb.append("yy");
-                            break;
-                        case 'Z':
-                            sb.append("z");
-                            break;
-                        case 'z':
-                            sb.append("X");
-                            break;
-                        case '%':
-                            sb.append("%");
-                            break;
-                    }
+                    sb.append(javaPattern);
+                    i++; // Skip the next character as we've processed the pattern
                 } else {
-                    if (!quote) {
+                    // Unknown pattern, treat as literal
+                    if (!inQuotes) {
                         sb.append('\'');
+                        inQuotes = true;
                     }
                     sb.append(c);
-                    sb.append('\'');
                 }
             } else {
-                if ((c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z') && !quote) {
+                // Regular character - check if we need quotes for letters
+                boolean needsQuotes = Character.isLetter(c);
+                if (inQuotes != needsQuotes) {
                     sb.append('\'');
-                    quote = true;
+                    inQuotes = !inQuotes;
                 }
                 sb.append(c);
             }
         }
+
+        // Close quotes if still open
+        if (inQuotes) {
+            sb.append('\'');
+        }
+
         return sb.toString();
     }
 
@@ -933,42 +947,13 @@ public class PosixCommands {
     public static void less(Context context, String[] argv) throws Exception {
         Options opt = parseOptions(context, Less.usage(), argv);
 
-        List<Source> sources = new ArrayList<>();
-        if (opt.args().isEmpty()) {
-            opt.args().add("-");
-        }
-        for (String arg : opt.args()) {
-            if ("-".equals(arg)) {
-                sources.add(new Source.StdInSource(context.in()));
-            } else if (arg.contains("*") || arg.contains("?")) {
-                PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + arg);
-                try (Stream<Path> pathStream = Files.walk(context.currentDir())) {
-                    pathStream.filter(pathMatcher::matches).forEach(p -> {
-                        try {
-                            sources.add(new Source.URLSource(p.toUri().toURL(), p.toString()));
-                        } catch (Exception e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
-                }
-            } else {
-                try {
-                    Path path = context.currentDir().resolve(arg);
-                    sources.add(new Source.URLSource(path.toUri().toURL(), arg));
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }
+        List<Source> sources = getSources(context, opt.args());
 
         if (!context.isTty()) {
             // Non-interactive mode - just cat the files
             for (Source source : sources) {
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(source.read()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        context.out().println(line);
-                    }
+                try (BufferedReader reader = source.reader()) {
+                    reader.lines().forEach(context.out()::println);
                 }
             }
             return;
@@ -1017,77 +1002,118 @@ public class PosixCommands {
         };
         Options opt = parseOptions(context, usage, argv);
 
-        List<Source> sources = new ArrayList<>();
-        if (opt.args().isEmpty()) {
-            opt.args().add("-");
-        }
-        for (String arg : opt.args()) {
-            if ("-".equals(arg)) {
-                sources.add(new StdInSource(context.in()));
-            } else {
-                sources.add(
-                        new URLSource(context.currentDir().resolve(arg).toUri().toURL(), arg));
-            }
-        }
+        List<Source> sources = getSources(context, opt.args());
 
         boolean showLines = opt.isSet("lines");
         boolean showWords = opt.isSet("words");
         boolean showChars = opt.isSet("chars");
         boolean showBytes = opt.isSet("bytes");
-
-        // If no options specified, show all
         if (!showLines && !showWords && !showChars && !showBytes) {
-            showLines = showWords = showBytes = true;
+            showLines = true;
+            showWords = true;
+            showBytes = true;
         }
+
+        StringBuilder formatBuilder = new StringBuilder();
+        boolean hasMultipleOutputs =
+                (showLines ? 1 : 0) + (showWords ? 1 : 0) + (showChars ? 1 : 0) + (showBytes ? 1 : 0) > 1;
+        if (showLines) {
+            formatBuilder.append(hasMultipleOutputs ? "%1$8d" : "%1$d");
+        }
+        if (showWords) {
+            formatBuilder.append(hasMultipleOutputs ? "%2$8d" : "%2$d");
+        }
+        if (showChars) {
+            formatBuilder.append(hasMultipleOutputs ? "%3$8d" : "%3$d");
+        }
+        if (showBytes) {
+            formatBuilder.append(hasMultipleOutputs ? "%4$8d" : "%4$d");
+        }
+        if (sources.size() > 1 || (sources.size() == 1 && sources.get(0).getName() != null)) {
+            formatBuilder.append("  %5$8s");
+        }
+        formatBuilder.append("%n");
+        String format = formatBuilder.toString();
 
         long totalLines = 0, totalWords = 0, totalChars = 0, totalBytes = 0;
 
         for (Source source : sources) {
-            long lines = 0, words = 0, chars = 0, bytes = 0;
+            try (InputStream is = source.read()) {
+                AtomicInteger lines = new AtomicInteger();
+                AtomicInteger bytes = new AtomicInteger();
+                AtomicInteger chars = new AtomicInteger();
+                AtomicInteger words = new AtomicInteger();
+                AtomicBoolean inWord = new AtomicBoolean();
+                AtomicBoolean lastNl = new AtomicBoolean(true);
+                InputStream isc = new FilterInputStream(is) {
+                    @Override
+                    public int read() throws IOException {
+                        int b = super.read();
+                        if (b >= 0) {
+                            bytes.incrementAndGet();
+                        }
+                        return b;
+                    }
 
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(source.read()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    lines++;
-                    chars += line.length() + 1; // +1 for newline
-                    bytes += line.getBytes().length + 1; // +1 for newline
-
-                    // Count words
-                    String[] wordArray = line.trim().split("\\s+");
-                    if (wordArray.length == 1 && wordArray[0].isEmpty()) {
-                        // Empty line
+                    @Override
+                    public int read(byte[] b, int off, int len) throws IOException {
+                        int nb = super.read(b, off, len);
+                        if (nb > 0) {
+                            bytes.addAndGet(nb);
+                        }
+                        return nb;
+                    }
+                };
+                IntConsumer consumer = cp -> {
+                    chars.incrementAndGet();
+                    boolean ws = Character.isWhitespace(cp);
+                    if (inWord.getAndSet(!ws) && ws) {
+                        words.incrementAndGet();
+                    }
+                    if (cp == '\n') {
+                        lines.incrementAndGet();
+                        lastNl.set(true);
                     } else {
-                        words += wordArray.length;
+                        lastNl.set(false);
+                    }
+                };
+                Reader reader = new InputStreamReader(isc);
+                while (true) {
+                    int h = reader.read();
+                    if (Character.isHighSurrogate((char) h)) {
+                        int l = reader.read();
+                        if (Character.isLowSurrogate((char) l)) {
+                            int cp = Character.toCodePoint((char) h, (char) l);
+                            consumer.accept(cp);
+                        } else {
+                            consumer.accept(h);
+                            if (l >= 0) {
+                                consumer.accept(l);
+                            } else {
+                                break;
+                            }
+                        }
+                    } else if (h >= 0) {
+                        consumer.accept(h);
+                    } else {
+                        break;
                     }
                 }
+                if (inWord.get()) {
+                    words.incrementAndGet();
+                }
+                if (!lastNl.get()) {
+                    lines.incrementAndGet();
+                }
+                context.out().printf(format, lines.get(), words.get(), chars.get(), bytes.get(), source.getName());
+                totalBytes += bytes.get();
+                totalChars += chars.get();
+                totalWords += words.get();
+                totalLines += lines.get();
             }
-
-            totalLines += lines;
-            totalWords += words;
-            totalChars += chars;
-            totalBytes += bytes;
-
-            // Print results for this file
-            StringBuilder result = new StringBuilder();
-            if (showLines) result.append(String.format("%8d", lines));
-            if (showWords) result.append(String.format("%8d", words));
-            if (showChars) result.append(String.format("%8d", chars));
-            if (showBytes) result.append(String.format("%8d", bytes));
-            result.append(" ").append(source.getName());
-
-            context.out().println(result);
         }
-
-        // Print totals if multiple files
         if (sources.size() > 1) {
-            StringBuilder result = new StringBuilder();
-            if (showLines) result.append(String.format("%8d", totalLines));
-            if (showWords) result.append(String.format("%8d", totalWords));
-            if (showChars) result.append(String.format("%8d", totalChars));
-            if (showBytes) result.append(String.format("%8d", totalBytes));
-            result.append(" total");
-
-            context.out().println(result);
+            context.out().printf(format, totalLines, totalWords, totalChars, totalBytes, "total");
         }
     }
 
@@ -1115,48 +1141,36 @@ public class PosixCommands {
         } else if (opt.isSet("bytes")) {
             nbBytes = opt.getNumber("bytes");
         } else {
-            nbLines = 10; // default
+            nbLines = DEFAULT_HEAD_LINES;
         }
-
-        List<String> args = opt.args();
-        if (args.isEmpty()) {
-            args = Collections.singletonList("-");
-        }
-
-        boolean first = true;
-        for (String arg : args) {
-            if (!first && args.size() > 1) {
-                context.out().println();
+        List<Source> sources = getSources(context, opt.args());
+        for (Source src : sources) {
+            int bytes = nbBytes;
+            int lines = nbLines;
+            if (sources.size() > 1) {
+                if (src != sources.get(0)) {
+                    context.out().println();
+                }
+                context.out().println("==> " + src.getName() + " <==");
             }
-            if (args.size() > 1) {
-                context.out().println("==> " + arg + " <==");
-            }
-
-            InputStream is;
-            if ("-".equals(arg)) {
-                is = context.in();
-            } else {
-                is = context.currentDir().resolve(arg).toUri().toURL().openStream();
-            }
-
-            if (nbLines != Integer.MAX_VALUE) {
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
-                    String line;
-                    int count = 0;
-                    while ((line = reader.readLine()) != null && count < nbLines) {
-                        context.out().println(line);
-                        count++;
+            try (InputStream is = src.read()) {
+                byte[] buf = new byte[DEFAULT_BUFFER_SIZE];
+                int nb;
+                do {
+                    nb = is.read(buf);
+                    if (nb > 0 && lines > 0 && bytes > 0) {
+                        nb = Math.min(nb, bytes);
+                        for (int i = 0; i < nb; i++) {
+                            if (buf[i] == '\n' && --lines <= 0) {
+                                nb = i + 1;
+                                break;
+                            }
+                        }
+                        bytes -= nb;
+                        context.out().write(buf, 0, nb);
                     }
-                }
-            } else {
-                byte[] buffer = new byte[nbBytes];
-                int bytesRead = is.read(buffer);
-                if (bytesRead > 0) {
-                    context.out().write(buffer, 0, bytesRead);
-                }
-                is.close();
+                } while (nb > 0 && lines > 0 && bytes > 0);
             }
-            first = false;
         }
     }
 
@@ -1179,110 +1193,179 @@ public class PosixCommands {
             throw new IllegalArgumentException("usage: tail [-f] [-q] [-c # | -n #] [file ...]");
         }
 
-        int lines = opt.isSet("lines") ? opt.getNumber("lines") : 10;
+        int lines = opt.isSet("lines") ? opt.getNumber("lines") : DEFAULT_TAIL_LINES;
         int bytes = opt.isSet("bytes") ? opt.getNumber("bytes") : -1;
         boolean follow = opt.isSet("follow") || opt.isSet("FOLLOW");
 
-        List<String> args = opt.args();
-        if (args.isEmpty()) {
-            args = Collections.singletonList("-");
-        }
+        AtomicReference<Object> lastPrinted = new AtomicReference<>();
+        WatchService watchService =
+                follow ? context.currentDir().getFileSystem().newWatchService() : null;
+        Set<Path> watched = new HashSet<>();
 
-        for (String arg : args) {
-            if (args.size() > 1) {
-                context.out().println("==> " + arg + " <==");
+        class Input implements Closeable {
+            final Source source;
+            Path path;
+            Reader reader;
+            StringBuilder buffer;
+            long ino;
+            long size;
+
+            Input(Source source) {
+                this.source = source;
+                this.buffer = new StringBuilder();
             }
 
-            if ("-".equals(arg)) {
-                // For stdin, just read and buffer
-                tailInputStream(context, context.in(), lines, bytes);
-            } else {
-                Path path = context.currentDir().resolve(arg);
-                if (bytes > 0) {
-                    tailFileBytes(context, path, bytes, follow);
+            public void open() {
+                if (reader == null) {
+                    try {
+                        InputStream is = source.read();
+                        if (source instanceof PathSource) {
+                            path = ((PathSource) source).getPath();
+                            if (opt.isSet("FOLLOW")) {
+                                try {
+                                    ino = (Long) Files.getAttribute(path, "unix:ino");
+                                } catch (Exception e) {
+                                    // Ignore
+                                }
+                            }
+                            size = Files.size(path);
+                        }
+                        reader = new InputStreamReader(is);
+                    } catch (IOException e) {
+                        // Ignore
+                    }
+                }
+            }
+
+            @Override
+            public void close() throws IOException {
+                if (reader != null) {
+                    try {
+                        reader.close();
+                    } finally {
+                        reader = null;
+                    }
+                }
+            }
+
+            public boolean tail() throws IOException {
+                open();
+                if (reader != null) {
+                    if (buffer != null) {
+                        char[] buf = new char[1024];
+                        int nb;
+                        while ((nb = reader.read(buf)) > 0) {
+                            buffer.append(buf, 0, nb);
+                            if (bytes > 0 && buffer.length() > bytes) {
+                                buffer.delete(0, buffer.length() - bytes);
+                            } else {
+                                int l = 0;
+                                int i = -1;
+                                while ((i = buffer.indexOf("\n", i + 1)) >= 0) {
+                                    l++;
+                                }
+                                if (l > lines) {
+                                    i = -1;
+                                    l = l - lines;
+                                    while (--l >= 0) {
+                                        i = buffer.indexOf("\n", i + 1);
+                                    }
+                                    buffer.delete(0, i + 1);
+                                }
+                            }
+                        }
+                        String toPrint = buffer.toString();
+                        print(toPrint);
+                        buffer = null;
+                        if (follow && path != null) {
+                            Path parent = path.getParent();
+                            if (!watched.contains(parent)) {
+                                parent.register(
+                                        watchService,
+                                        StandardWatchEventKinds.ENTRY_CREATE,
+                                        StandardWatchEventKinds.ENTRY_DELETE,
+                                        StandardWatchEventKinds.ENTRY_MODIFY);
+                                watched.add(parent);
+                            }
+                        }
+                        return follow;
+                    } else if (follow && path != null) {
+                        while (true) {
+                            long newSize = Files.size(path);
+                            if (size != newSize) {
+                                char[] buf = new char[1024];
+                                int nb;
+                                while ((nb = reader.read(buf)) > 0) {
+                                    print(new String(buf, 0, nb));
+                                }
+                                size = newSize;
+                            }
+                            if (opt.isSet("FOLLOW")) {
+                                long newIno = 0;
+                                try {
+                                    newIno = (Long) Files.getAttribute(path, "unix:ino");
+                                } catch (Exception e) {
+                                    // Ignore
+                                }
+                                if (ino != newIno) {
+                                    close();
+                                    open();
+                                    ino = newIno;
+                                    size = -1;
+                                    continue;
+                                }
+                            }
+                            break;
+                        }
+                        return true;
+                    } else {
+                        return false;
+                    }
                 } else {
-                    tailFileLines(context, path, lines, follow);
+                    Path parent = path.getParent();
+                    if (follow && !watched.contains(parent)) {
+                        parent.register(
+                                watchService,
+                                StandardWatchEventKinds.ENTRY_CREATE,
+                                StandardWatchEventKinds.ENTRY_DELETE,
+                                StandardWatchEventKinds.ENTRY_MODIFY);
+                        watched.add(parent);
+                    }
+                    return true;
                 }
             }
-        }
-    }
 
-    private static void tailInputStream(Context context, InputStream is, int lines, int bytes) throws IOException {
-        if (bytes > 0) {
-            // Read all and keep last bytes
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            byte[] buffer = new byte[8192];
-            int n;
-            while ((n = is.read(buffer)) != -1) {
-                baos.write(buffer, 0, n);
+            private void print(String toPrint) {
+                if (lastPrinted.get() != this && opt.args().size() > 1 && !opt.isSet("quiet")) {
+                    context.out().println();
+                    context.out().println("==> " + source.getName() + " <==");
+                }
+                context.out().print(toPrint);
+                lastPrinted.set(this);
             }
-            byte[] data = baos.toByteArray();
-            int start = Math.max(0, data.length - bytes);
-            context.out().write(data, start, data.length - start);
-        } else {
-            // Read all and keep last lines
-            List<String> allLines = new ArrayList<>();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    allLines.add(line);
+        }
+
+        List<Source> sources = getSources(context, opt.args());
+        List<Input> inputs = sources.stream().map(Input::new).collect(Collectors.toList());
+        try {
+            boolean cont = true;
+            while (cont) {
+                cont = false;
+                for (Input input : inputs) {
+                    cont |= input.tail();
+                }
+                if (cont && follow) {
+                    WatchKey key = watchService.take();
+                    key.pollEvents();
+                    key.reset();
                 }
             }
-            int start = Math.max(0, allLines.size() - lines);
-            for (int i = start; i < allLines.size(); i++) {
-                context.out().println(allLines.get(i));
+        } catch (InterruptedException e) {
+            // Ignore, this is the only way to quit
+        } finally {
+            for (Input input : inputs) {
+                input.close();
             }
-        }
-    }
-
-    private static void tailFileLines(Context context, Path path, int lines, boolean follow) throws IOException {
-        if (!Files.exists(path)) {
-            context.err().println("tail: " + path + ": No such file or directory");
-            return;
-        }
-
-        // Read last lines
-        List<String> lastLines = new ArrayList<>();
-        try (BufferedReader reader = Files.newBufferedReader(path)) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                lastLines.add(line);
-                if (lastLines.size() > lines) {
-                    lastLines.remove(0);
-                }
-            }
-        }
-
-        for (String line : lastLines) {
-            context.out().println(line);
-        }
-
-        // TODO: Implement follow mode with WatchService if needed
-        if (follow) {
-            context.err().println("tail: follow mode not yet implemented");
-        }
-    }
-
-    private static void tailFileBytes(Context context, Path path, int bytes, boolean follow) throws IOException {
-        if (!Files.exists(path)) {
-            context.err().println("tail: " + path + ": No such file or directory");
-            return;
-        }
-
-        try (RandomAccessFile raf = new RandomAccessFile(path.toFile(), "r")) {
-            long fileLength = raf.length();
-            long start = Math.max(0, fileLength - bytes);
-            raf.seek(start);
-
-            byte[] buffer = new byte[8192];
-            int n;
-            while ((n = raf.read(buffer)) != -1) {
-                context.out().write(buffer, 0, n);
-            }
-        }
-
-        if (follow) {
-            context.err().println("tail: follow mode not yet implemented");
         }
     }
 
@@ -1301,6 +1384,9 @@ public class PosixCommands {
             "  -w --word-regexp         Select only whole words",
             "  -x --line-regexp         Select only whole lines",
             "  -c --count               Only print a count of matching lines per file",
+            "  -z --zero                When used with -c, don't print a count of zero",
+            "  -H --with-filename       Display filename header for each file (defaults to true if multiple files are given)",
+            "  -h --no-filename         Do not display filename header",
             "     --color=WHEN          Use markers to distinguish the matching string, may be `always', `never' or `auto'",
             "  -B --before-context=NUM  Print NUM lines of leading context before matching lines",
             "  -A --after-context=NUM   Print NUM lines of trailing context after matching lines",
@@ -1346,6 +1432,7 @@ public class PosixCommands {
             before = contextLines;
         }
         boolean count = opt.isSet("count");
+        boolean zero = opt.isSet("zero");
         boolean quiet = opt.isSet("quiet");
         boolean invert = opt.isSet("invert-match");
         boolean lineNumber = opt.isSet("line-number");
@@ -1373,24 +1460,19 @@ public class PosixCommands {
         Map<String, String> colors =
                 colored ? (colorMap != null ? colorMap : getColorMap(DEFAULT_GREP_COLORS)) : Collections.emptyMap();
 
-        if (args.isEmpty()) {
-            args.add("-");
-        }
-        List<GrepSource> sources = new ArrayList<>();
-        for (String arg : args) {
-            if ("-".equals(arg)) {
-                sources.add(new GrepSource(context.in(), "(standard input)"));
-            } else {
-                Path path = context.currentDir().resolve(arg);
-                sources.add(new GrepSource(path, arg));
-            }
+        List<Source> sources = getSources(context, args);
+        boolean filenameHeader = sources.size() > 1;
+        if (opt.isSet("with-filename")) {
+            filenameHeader = true;
+        } else if (opt.isSet("no-filename")) {
+            filenameHeader = false;
         }
         boolean match = false;
-        for (GrepSource src : sources) {
+        for (Source src : sources) {
             List<String> lines = new ArrayList<>();
             boolean firstPrint = true;
             int nb = 0;
-            try (InputStream is = src.getInputStream()) {
+            try (InputStream is = src.read()) {
                 try (BufferedReader r = new BufferedReader(new InputStreamReader(is))) {
                     String line;
                     int lineno = 1;
@@ -1404,7 +1486,7 @@ public class PosixCommands {
                         if (matches) {
                             nb++;
                             if (!count && !quiet) {
-                                if (sources.size() > 1) {
+                                if (filenameHeader) {
                                     if (colored) {
                                         applyStyle(sbl, colors, "fn");
                                     }
@@ -1428,6 +1510,7 @@ public class PosixCommands {
                                     Matcher matcher2 = p2.matcher(line);
                                     int cur = 0;
                                     while (matcher2.find()) {
+                                        applyStyle(sbl, colors, "se");
                                         sbl.append(line, cur, matcher2.start());
                                         applyStyle(sbl, colors, "ms");
                                         sbl.append(line, matcher2.start(), matcher2.end());
@@ -1438,11 +1521,16 @@ public class PosixCommands {
                                 } else {
                                     sbl.append(line);
                                 }
-                                lineMatch = before + 1;
+                                while (lineMatch > after && !lines.isEmpty()) {
+                                    context.out().println(lines.remove(0));
+                                    lineMatch--;
+                                }
+                                lineMatch = Math.min(before, lines.size()) + after + 1;
                             }
                         } else if (lineMatch > 0) {
+                            context.out().println(lines.remove(0));
                             lineMatch--;
-                            if (sources.size() > 1) {
+                            if (filenameHeader) {
                                 if (colored) {
                                     applyStyle(sbl, colors, "fn");
                                 }
@@ -1461,10 +1549,13 @@ public class PosixCommands {
                                     applyStyle(sbl, colors, "se");
                                 }
                                 sbl.append("-");
+                            }
+                            if (colored) {
+                                applyStyle(sbl, colors, "se");
                             }
                             sbl.append(line);
                         } else {
-                            if (sources.size() > 1) {
+                            if (filenameHeader) {
                                 if (colored) {
                                     applyStyle(sbl, colors, "fn");
                                 }
@@ -1483,6 +1574,9 @@ public class PosixCommands {
                                     applyStyle(sbl, colors, "se");
                                 }
                                 sbl.append("-");
+                            }
+                            if (colored) {
+                                applyStyle(sbl, colors, "se");
                             }
                             sbl.append(line);
                             while (lines.size() > before) {
@@ -1507,15 +1601,30 @@ public class PosixCommands {
                         } else {
                             firstPrint = false;
                         }
-                        for (int i = 0; i < lineMatch + after && i < lines.size(); i++) {
+                        for (int i = 0; i < lineMatch && i < lines.size(); i++) {
                             context.out().println(lines.get(i));
                         }
                     }
                     if (count) {
-                        context.out().println(nb);
+                        if (nb != 0 || !zero) {
+                            AttributedStringBuilder sbl = new AttributedStringBuilder();
+                            if (filenameHeader) {
+                                if (colored) {
+                                    applyStyle(sbl, colors, "fn");
+                                }
+                                sbl.append(src.getName());
+                                if (colored) {
+                                    applyStyle(sbl, colors, "se");
+                                }
+                                sbl.append(":");
+                            }
+                            sbl.append(Integer.toString(nb));
+                            context.out().println(sbl.toAnsi(context.terminal()));
+                        }
                     }
                     match |= nb > 0;
                 }
+                context.out().flush();
             }
         }
     }
@@ -1527,33 +1636,25 @@ public class PosixCommands {
      */
     public static void sort(Context context, String[] argv) throws Exception {
         final String[] usage = {
-            "sort -  writes sorted standard input to standard output.",
+            "sort -  writes sorted concatenation of files or standard input.",
             "Usage: sort [OPTIONS] [FILES]",
             "  -? --help                    show help",
             "  -f --ignore-case             fold lower case to upper case characters",
             "  -r --reverse                 reverse the result of comparisons",
             "  -u --unique                  output only the first of an equal run",
             "  -t --field-separator=SEP     use SEP instead of non-blank to blank transition",
-            "  -b --ignore-leading-blanks   ignore leading blancks",
+            "  -b --ignore-leading-blanks   ignore leading blanks",
             "     --numeric-sort            compare according to string numerical value",
             "  -k --key=KEY                 fields to use for sorting separated by whitespaces"
         };
 
         Options opt = parseOptions(context, usage, argv);
 
-        List<String> args = opt.args();
-
         List<String> lines = new ArrayList<>();
-        if (!args.isEmpty()) {
-            for (String filename : args) {
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(
-                        context.currentDir().toUri().resolve(filename).toURL().openStream()))) {
-                    readLines(reader, lines);
-                }
+        for (Source source : getSources(context, opt.args())) {
+            try (BufferedReader reader = source.reader()) {
+                lines.addAll(reader.lines().collect(Collectors.toList()));
             }
-        } else {
-            BufferedReader r = new BufferedReader(new InputStreamReader(context.in()));
-            readLines(r, lines);
         }
 
         String separator = opt.get("field-separator");
@@ -1564,11 +1665,11 @@ public class PosixCommands {
         boolean unique = opt.isSet("unique");
         List<String> sortFields = opt.getList("key");
 
-        char sep = (separator == null || separator.length() == 0) ? '\0' : separator.charAt(0);
+        char sep = (separator == null || separator.isEmpty()) ? '\0' : separator.charAt(0);
         lines.sort(new SortComparator(caseInsensitive, reverse, ignoreBlanks, numeric, sep, sortFields));
         String last = null;
         for (String s : lines) {
-            if (!unique || last == null || !s.equals(last)) {
+            if (!unique || !s.equals(last)) {
                 context.out().println(s);
             }
             last = s;
@@ -1633,7 +1734,13 @@ public class PosixCommands {
 
             public PathEntry(Path abs, Path root) {
                 this.abs = abs;
-                this.path = abs.startsWith(root) ? root.relativize(abs) : abs;
+                try {
+                    this.path = Files.isSameFile(abs, root)
+                            ? Paths.get(".")
+                            : abs.startsWith(root) ? root.relativize(abs) : abs;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
                 this.attributes = readAttributes(abs);
             }
 
@@ -1708,76 +1815,46 @@ public class PosixCommands {
             }
 
             String longDisplay() {
-                String username;
-                if (attributes.containsKey("owner")) {
-                    username = Objects.toString(attributes.get("owner"), null);
-                } else {
-                    username = "owner";
-                }
-                if (username.length() > 8) {
-                    username = username.substring(0, 8);
-                } else {
-                    for (int i = username.length(); i < 8; i++) {
-                        username = username + " ";
-                    }
-                }
-                String group;
-                if (attributes.containsKey("group")) {
-                    group = Objects.toString(attributes.get("group"), null);
-                } else {
-                    group = "group";
-                }
-                if (group.length() > 8) {
-                    group = group.substring(0, 8);
-                } else {
-                    for (int i = group.length(); i < 8; i++) {
-                        group = group + " ";
-                    }
-                }
+                String username = Objects.toString(attributes.get("owner"), "owner");
+                String group = Objects.toString(attributes.get("group"), "group");
+                String size = formatSize();
+
+                @SuppressWarnings("unchecked")
+                Set<PosixFilePermission> perms = (Set<PosixFilePermission>) attributes.get("permissions");
+                String permissions = PosixFilePermissions.toString(
+                        perms != null ? perms : EnumSet.noneOf(PosixFilePermission.class));
+
+                String fileType = is("isDirectory") ? "d" : (is("isSymbolicLink") ? "l" : (is("isOther") ? "o" : "-"));
+                String linkCount = Objects.toString(attributes.get("nlink"), "1");
+                String modTime = toString((FileTime) attributes.get("lastModifiedTime"));
+                String fileName = display();
+
+                return String.format(
+                        "%s%s %3s %-8.8s %-8.8s %8s %s %s",
+                        fileType, permissions, linkCount, username, group, size, modTime, fileName);
+            }
+
+            private String formatSize() {
                 Number length = (Number) attributes.get("size");
                 if (length == null) {
                     length = 0L;
                 }
-                String lengthString;
                 if (opt.isSet("h")) {
-                    double l = length.longValue();
-                    String unit = "B";
-                    if (l >= 1000) {
-                        l /= 1024;
-                        unit = "K";
-                        if (l >= 1000) {
-                            l /= 1024;
-                            unit = "M";
-                            if (l >= 1000) {
-                                l /= 1024;
-                                unit = "T";
-                            }
-                        }
+                    long bytes = length.longValue();
+                    if (bytes < SIZE_THRESHOLD) {
+                        return bytes + "B";
                     }
-                    if (l < 10 && length.longValue() > 1000) {
-                        lengthString = String.format("%.1f", l) + unit;
-                    } else {
-                        lengthString = String.format("%3.0f", l) + unit;
+                    double size = bytes;
+                    int unitIndex = 0;
+                    while (size >= SIZE_THRESHOLD && unitIndex < SIZE_UNITS.length - 1) {
+                        size /= 1024;
+                        unitIndex++;
                     }
+                    String format = (size < 10 && bytes > SIZE_THRESHOLD) ? "%.1f" : "%.0f";
+                    return String.format(format, size) + SIZE_UNITS[unitIndex];
                 } else {
-                    lengthString = String.format("%1$8s", length);
+                    return length.toString();
                 }
-                @SuppressWarnings("unchecked")
-                Set<PosixFilePermission> perms = (Set<PosixFilePermission>) attributes.get("permissions");
-                if (perms == null) {
-                    perms = EnumSet.noneOf(PosixFilePermission.class);
-                }
-                // TODO: all fields should be padded to align
-                return (is("isDirectory") ? "d" : (is("isSymbolicLink") ? "l" : (is("isOther") ? "o" : "-")))
-                        + PosixFilePermissions.toString(perms) + " "
-                        + String.format(
-                                "%3s",
-                                (attributes.containsKey("nlink")
-                                        ? attributes.get("nlink").toString()
-                                        : "1"))
-                        + " " + username + " " + group + " " + lengthString + " "
-                        + toString((FileTime) attributes.get("lastModifiedTime"))
-                        + " " + display();
             }
 
             protected String toString(FileTime time) {
@@ -1819,7 +1896,7 @@ public class PosixCommands {
         if (opt.args().isEmpty()) {
             expanded.add(currentDir);
         } else {
-            opt.args().forEach(s -> expanded.add(currentDir.resolve(s)));
+            opt.args().stream().flatMap(s -> maybeExpandGlob(context, s)).forEach(expanded::add);
         }
         boolean listAll = opt.isSet("a");
         Predicate<Path> filter = p -> listAll
@@ -1859,7 +1936,7 @@ public class PosixCommands {
                 s.map(PathEntry::longDisplay).forEach(out::println);
             }
             // Column listing
-            else if (optCol) {
+            else {
                 toColumn(context, out, s.map(PathEntry::display), opt.isSet("x"));
             }
         };
@@ -1886,6 +1963,75 @@ public class PosixCommands {
                         .map(p -> new PathEntry(p, path))
                         .sorted());
             }
+        }
+    }
+
+    private static List<Source> getSources(Context context, List<String> args) {
+        return (args.isEmpty() ? Stream.of("-") : args.stream())
+                .flatMap(arg -> getSources(context, arg))
+                .collect(Collectors.toList());
+    }
+
+    private static Stream<? extends Source> getSources(Context context, String arg) {
+        if ("-".equals(arg)) {
+            return Stream.of(new StdInSource(context.in()));
+        } else {
+            return maybeExpandGlob(context, arg).map(path -> new PathSource(path, path.toString()));
+        }
+    }
+
+    private static Stream<Path> maybeExpandGlob(Context context, String pattern) {
+        int idxStar = pattern.indexOf('*');
+        int idxQuestion = pattern.indexOf('?');
+        int idxBrace = pattern.indexOf('{');
+
+        // Find the first occurrence of any glob character (ignore -1 values)
+        int idx = -1;
+        if (idxStar >= 0) idx = idx < 0 ? idxStar : Math.min(idx, idxStar);
+        if (idxQuestion >= 0) idx = idx < 0 ? idxQuestion : Math.min(idx, idxQuestion);
+        if (idxBrace >= 0) idx = idx < 0 ? idxBrace : Math.min(idx, idxBrace);
+
+        if (idx < 0) {
+            return Stream.of(context.currentDir().resolve(pattern));
+        }
+
+        Path base;
+        String globPart;
+
+        int sep = pattern.substring(0, idx).lastIndexOf(File.separatorChar);
+        if (sep < 0) {
+            base = context.currentDir();
+            globPart = pattern;
+        } else {
+            base = context.currentDir().resolve(pattern.substring(0, sep));
+            globPart = pattern.substring(sep + 1);
+        }
+
+        // Handle POSIX ** semantics: ** should match 0 or more directories, but Java's ** matches 1 or more
+        // Transform **/ to {**/,} to handle both zero and one-or-more directory cases
+        // Note: This may create nested braces for invalid patterns like {src/**,test}, which correctly throws
+        // PatternSyntaxException
+        globPart = globPart.replaceAll("\\*\\*/", "{**/,}");
+
+        PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + globPart);
+
+        // Use recursive walk for all patterns - it handles both simple and complex cases correctly
+        // Use try-with-resources to ensure the stream is properly closed
+        try (Stream<Path> walkStream = Files.walk(base)) {
+            List<Path> matches = walkStream
+                    .filter(p -> !p.equals(base)) // Exclude the base directory itself
+                    .filter(p -> {
+                        Path relativePath = base.relativize(p);
+                        // Check if any of our matchers match this path
+                        return matcher.matches(relativePath);
+                    })
+                    .collect(Collectors.toList());
+
+            // If no matches found, return empty stream (don't return the original pattern)
+            return matches.stream();
+        } catch (IOException e) {
+            // If there's an IO error (e.g., directory doesn't exist), return empty stream
+            return Stream.empty();
         }
     }
 
@@ -1931,31 +2077,21 @@ public class PosixCommands {
         }
     }
 
-    private static String formatHumanReadable(long bytes) {
-        if (bytes < 1024) return bytes + "B";
-        int exp = (int) (Math.log(bytes) / Math.log(1024));
-        String pre = "KMGTPE".charAt(exp - 1) + "";
-        return String.format("%.1f%s", bytes / Math.pow(1024, exp), pre);
-    }
-
-    /**
-     * Read lines from a BufferedReader into a list.
-     */
-    private static void readLines(BufferedReader reader, List<String> lines) throws IOException {
-        String line;
-        while ((line = reader.readLine()) != null) {
-            lines.add(line);
-        }
-    }
-
-    // Color constants and helper methods
     public static final String DEFAULT_LS_COLORS = "dr=1;91:ex=1;92:sl=1;96:ot=34;43";
     public static final String DEFAULT_GREP_COLORS = "mt=1;31:fn=35:ln=32:se=36";
 
-    private static final LinkOption[] NO_FOLLOW_OPTIONS = new LinkOption[] {LinkOption.NOFOLLOW_LINKS};
-    private static final List<String> WINDOWS_EXECUTABLE_EXTENSIONS =
-            Collections.unmodifiableList(Arrays.asList(".bat", ".exe", ".cmd"));
+    private static final int DEFAULT_BUFFER_SIZE = 8192;
+    private static final int DEFAULT_HEAD_LINES = 10;
+    private static final int DEFAULT_TAIL_LINES = 10;
+    private static final String[] SIZE_UNITS = {"B", "K", "M", "G", "T", "P"};
+    private static final long SIZE_THRESHOLD = 1000L;
+
     private static final LinkOption[] EMPTY_LINK_OPTIONS = new LinkOption[0];
+    private static final LinkOption[] NO_FOLLOW_OPTIONS = new LinkOption[] {LinkOption.NOFOLLOW_LINKS};
+    private static final List<String> WINDOWS_EXECUTABLE_EXTENSIONS = List.of(".bat", ".exe", ".cmd");
+
+    private static final Pattern COLOR_FORMAT_PATTERN =
+            Pattern.compile("[a-z]{2}=[0-9]*(;[0-9]+)*(:[a-z]{2}=[0-9]*(;[0-9]+)*)*");
 
     /**
      * Get color map for ls command.
@@ -1972,7 +2108,7 @@ public class PosixCommands {
         if (str.isEmpty()) {
             return Collections.emptyMap();
         }
-        String sep = str.matches("[a-z]{2}=[0-9]*(;[0-9]+)*(:[a-z]{2}=[0-9]*(;[0-9]+)*)*") ? ":" : " ";
+        String sep = COLOR_FORMAT_PATTERN.matcher(str).matches() ? ":" : " ";
         return Arrays.stream(str.split(sep))
                 .collect(Collectors.toMap(s -> s.substring(0, s.indexOf('=')), s -> s.substring(s.indexOf('=') + 1)));
     }
@@ -1991,7 +2127,7 @@ public class PosixCommands {
         if (str == null) {
             str = def;
         }
-        String sep = str.matches("[a-z]{2}=[0-9]*(;[0-9]+)*(:[a-z]{2}=[0-9]*(;[0-9]+)*)*") ? ":" : " ";
+        String sep = COLOR_FORMAT_PATTERN.matcher(str).matches() ? ":" : " ";
         return Arrays.stream(str.split(sep))
                 .collect(Collectors.toMap(s -> s.substring(0, s.indexOf('=')), s -> s.substring(s.indexOf('=') + 1)));
     }
@@ -2054,18 +2190,17 @@ public class PosixCommands {
      * Get POSIX file permissions from a file, with Windows executable handling.
      */
     private static Set<PosixFilePermission> getPermissionsFromFile(Path f) {
+        Set<PosixFilePermission> perms = new HashSet<>();
         try {
-            Set<PosixFilePermission> perms = Files.getPosixFilePermissions(f);
-            if (OSUtils.IS_WINDOWS && isWindowsExecutable(f.getFileName().toString())) {
-                perms = new HashSet<>(perms);
-                perms.add(PosixFilePermission.OWNER_EXECUTE);
-                perms.add(PosixFilePermission.GROUP_EXECUTE);
-                perms.add(PosixFilePermission.OTHERS_EXECUTE);
-            }
-            return perms;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            perms = Files.getPosixFilePermissions(f);
+        } catch (IOException | UnsupportedOperationException ignore) {
         }
+        if (OSUtils.IS_WINDOWS && isWindowsExecutable(f.getFileName().toString())) {
+            perms.add(PosixFilePermission.OWNER_EXECUTE);
+            perms.add(PosixFilePermission.GROUP_EXECUTE);
+            perms.add(PosixFilePermission.OTHERS_EXECUTE);
+        }
+        return perms;
     }
 
     /**
@@ -2085,12 +2220,12 @@ public class PosixCommands {
             fpPattern = Pattern.compile(fpRegex);
         }
 
-        private boolean caseInsensitive;
-        private boolean reverse;
-        private boolean ignoreBlanks;
-        private boolean numeric;
-        private char separator;
-        private List<Key> sortKeys;
+        private final boolean caseInsensitive;
+        private final boolean reverse;
+        private final boolean ignoreBlanks;
+        private final boolean numeric;
+        private final char separator;
+        private final List<Key> sortKeys;
 
         @SuppressWarnings("this-escape")
         public SortComparator(
@@ -2206,7 +2341,7 @@ public class PosixCommands {
 
         protected List<Integer> getFieldIndexes(String o) {
             List<Integer> fields = new ArrayList<>();
-            if (o.length() > 0) {
+            if (!o.isEmpty()) {
                 if (separator == '\0') {
                     fields.add(0);
                     for (int idx = 1; idx < o.length(); idx++) {
@@ -2336,39 +2471,6 @@ public class PosixCommands {
                     throw new IllegalArgumentException("Bad field syntax: " + str);
                 }
             }
-        }
-    }
-
-    /**
-     * Simple source abstraction for grep command.
-     */
-    private static class GrepSource {
-        private final InputStream inputStream;
-        private final Path path;
-        private final String name;
-
-        public GrepSource(InputStream inputStream, String name) {
-            this.inputStream = inputStream;
-            this.path = null;
-            this.name = name;
-        }
-
-        public GrepSource(Path path, String name) {
-            this.inputStream = null;
-            this.path = path;
-            this.name = name;
-        }
-
-        public InputStream getInputStream() throws IOException {
-            if (inputStream != null) {
-                return inputStream;
-            } else {
-                return path.toUri().toURL().openStream();
-            }
-        }
-
-        public String getName() {
-            return name;
         }
     }
 

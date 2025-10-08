@@ -51,6 +51,27 @@ import org.jline.utils.InfoCmp.Capability;
  * efficient terminal display management for features like command-line editing,
  * completion menus, and status messages.
  * </p>
+ *
+ * <h2>Thread Safety</h2>
+ * <p>
+ * <b>This class is NOT thread-safe</b> and must be accessed from a single thread or with
+ * external synchronization. The Display class maintains mutable state including cursor
+ * position, screen content, and terminal dimensions that can be corrupted by concurrent access.
+ * </p>
+ * <p>
+ * Components that use Display in multi-threaded environments (such as signal handlers for
+ * window resize events) must provide their own synchronization. For example, the LineReader
+ * uses a ReentrantLock to coordinate access between the main thread and signal handlers.
+ * </p>
+ * <p>
+ * <b>Warning:</b> Concurrent access to Display methods may result in:
+ * </p>
+ * <ul>
+ *   <li>ConcurrentModificationException</li>
+ *   <li>Corrupted terminal output</li>
+ *   <li>Inconsistent cursor positioning</li>
+ *   <li>Race conditions in screen updates</li>
+ * </ul>
  */
 public class Display {
 
@@ -217,8 +238,8 @@ public class Display {
         int numLines = Math.min(rows, Math.max(oldLines.size(), newLines.size()));
         boolean wrapNeeded = false;
         while (lineIndex < numLines) {
-            AttributedString oldLine = lineIndex < oldLines.size() ? oldLines.get(lineIndex) : AttributedString.NEWLINE;
-            AttributedString newLine = lineIndex < newLines.size() ? newLines.get(lineIndex) : AttributedString.NEWLINE;
+            AttributedString oldLine = lineIndex < oldLines.size() ? oldLines.get(lineIndex) : AttributedString.EMPTY;
+            AttributedString newLine = lineIndex < newLines.size() ? newLines.get(lineIndex) : AttributedString.EMPTY;
             currentPos = lineIndex * columns1;
             int curCol = currentPos;
             int oldLength = oldLine.length();
@@ -239,7 +260,7 @@ public class Display {
                 if (newLength == 0 || newLine.isHidden(0)) {
                     // go to next line column zero
                     rawPrint(' ');
-                    terminal.puts(Capability.key_backspace);
+                    terminal.puts(Capability.cursor_left);
                 } else {
                     AttributedString firstChar = newLine.substring(0, 1);
                     // go to next line column one
@@ -340,7 +361,7 @@ public class Display {
                 if (this.wrapAtEol) {
                     if (!fullScreen || (fullScreen && lineIndex < numLines)) {
                         rawPrint(' ');
-                        terminal.puts(Capability.key_backspace);
+                        terminal.puts(Capability.cursor_left);
                         cursorPos++;
                     }
                 } else {
