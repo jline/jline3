@@ -124,7 +124,7 @@ To use these modules in your Maven project, add the appropriate dependencies:
 
 JLine 4.0+ includes full JPMS support for most modules:
 
-- **✅ JPMS Modules**: `jline-terminal`, `jline-reader`, `jline-style`, `jline-builtins`, `jline-console`, `jline-console-ui`, `jline-native`, `jline-terminal-ffm`, `jline-terminal-jna`, `jline-terminal-jni`, `jline-jansi-core`, `jline-curses`
+- **✅ JPMS Modules**: `jline-terminal`, `jline-reader`, `jline-style`, `jline-builtins`, `jline-console`, `jline-console-ui`, `jline-native`, `jline-terminal-ffm`, `jline-terminal-jni`, `jline-jansi-core`, `jline-curses`
 - **❌ Automatic Modules**: `jline-terminal-jansi`, `jline-groovy`, `jline-remote-ssh`, `jline-remote-telnet`, `jline-demo`, `jline-graal`
 
 For detailed JPMS usage information, see the [JPMS Support](./jpms.md) documentation.

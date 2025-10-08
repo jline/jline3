@@ -27,11 +27,6 @@
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna</artifactId>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
             <groupId>com.googlecode.juniversalchardet</groupId>
             <artifactId>juniversalchardet</artifactId>
             <optional>true</optional>
