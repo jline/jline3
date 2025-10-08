@@ -108,4 +108,32 @@ public class OptionsTest {
         AttributedString as = HelpException.highlight(String.join("\n", usage), HelpException.defaultStyle());
         as.print(terminal);
     }
+
+    @Test
+    public void testSingleDigitOptions() {
+        // Test that single digit options like -1 are recognized as options, not arguments
+        final String[] usage = {
+            "ls - list files",
+            "Usage: ls [OPTIONS] [PATTERNS...]",
+            "  -? --help                show help",
+            "  -1                       list one entry per line",
+            "  -l                       long listing",
+            "  -a                       list entries starting with ."
+        };
+
+        // Test that -1 is recognized as an option
+        Options opt = Options.compile(usage).parse("ls -1".split("\\s"));
+        assertTrue(opt.isSet("1"), "Option -1 should be recognized as an option");
+        assertEquals(Arrays.asList("ls"), opt.args());
+
+        // Test that -1 combined with other options works
+        opt = Options.compile(usage).parse("ls -1a".split("\\s"));
+        assertTrue(opt.isSet("1"), "Option -1 should be recognized in combined options");
+        assertTrue(opt.isSet("a"), "Option -a should be recognized in combined options");
+
+        // Test that multi-digit negative numbers are still treated as arguments
+        opt = Options.compile(usage).parse("ls -123".split("\\s"));
+        assertFalse(opt.isSet("1"), "Multi-digit -123 should not be treated as option -1");
+        assertEquals(Arrays.asList("ls", "-123"), opt.args());
+    }
 }
