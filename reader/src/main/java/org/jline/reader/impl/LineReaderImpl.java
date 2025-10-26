@@ -683,7 +683,9 @@ public class LineReaderImpl implements LineReader, Flushable {
                 if (!dumb) {
                     terminal.puts(Capability.keypad_xmit);
                     if (isSet(Option.AUTO_FRESH_LINE)) callWidget(FRESH_LINE);
-                    if (isSet(Option.MOUSE)) terminal.trackMouse(Terminal.MouseTracking.Normal);
+                    // Disable terminal mouse tracking during input to allow text selection
+                    // The LineReader's mouse widget will still work through key bindings
+                    if (isSet(Option.MOUSE)) terminal.trackMouse(Terminal.MouseTracking.Off);
                     if (isSet(Option.BRACKETED_PASTE)) terminal.writer().write(BRACKETED_PASTE_ON);
                 } else if (isTerminalDumb() && maskingCallback != null) {
                     // Setup masking thread for dumb terminals when reading a password
@@ -2663,7 +2665,10 @@ public class LineReaderImpl implements LineReader, Flushable {
                 println();
             }
             terminal.puts(Capability.keypad_local);
-            terminal.trackMouse(Terminal.MouseTracking.Off);
+            // Re-enable terminal mouse tracking after input to allow cursor positioning
+            // This allows users to click to position the cursor between prompts
+            if (isSet(Option.MOUSE)) terminal.trackMouse(Terminal.MouseTracking.Button);
+            else terminal.trackMouse(Terminal.MouseTracking.Off);
             if (isSet(Option.BRACKETED_PASTE) && !isTerminalDumb())
                 terminal.writer().write(BRACKETED_PASTE_OFF);
             // Stop the masking thread if it was started for dumb terminals

@@ -25,9 +25,6 @@ public class LineReaderMouseExample {
         Terminal terminal = TerminalBuilder.builder().build();
 
         try {
-            // Enable mouse support
-            terminal.trackMouse(Terminal.MouseTracking.Normal);
-
             // Create a LineReader with mouse support
             LineReader reader = LineReaderBuilder.builder()
                     .terminal(terminal)
@@ -35,7 +32,9 @@ public class LineReaderMouseExample {
                     .build();
 
             System.out.println("Mouse support enabled in LineReader.");
-            System.out.println("Try clicking in the input line or using the mouse wheel.");
+            System.out.println("Features:");
+            System.out.println("  - Drag to select text for copy/paste");
+            System.out.println("  - Click to position cursor between prompts");
             System.out.println("Type 'exit' to quit.");
 
             // Read lines with mouse support
@@ -44,9 +43,6 @@ public class LineReaderMouseExample {
                 System.out.println("You entered: " + line);
             }
         } finally {
-            // Disable mouse tracking before exiting
-            terminal.trackMouse(Terminal.MouseTracking.Off);
-
             terminal.close();
         }
     }
