@@ -24,7 +24,12 @@
   commands: {
     build: {
       description: "Build the project",
-      script: "mvn clean install -V",
+      script: "mvn install -V",
+    },
+
+    format: {
+      description: "Format source files",
+      script: "mvn spotless:apply"
     },
 
     rebuild: {
