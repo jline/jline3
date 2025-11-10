@@ -8,9 +8,18 @@
  */
 package org.jline.prompt.impl;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
@@ -466,12 +475,7 @@ public class DefaultPrompter implements Prompter {
             display.update(out, size.cursorPos(cursorRow, column));
 
             // Read input like ConsolePrompt
-            InputOperation op;
-            try {
-                op = bindingReader.readBinding(keyMap);
-            } catch (org.jline.reader.UserInterruptException e) {
-                throw new UserInterruptException("User cancelled");
-            }
+            InputOperation op = bindingReader.readBinding(keyMap);
             switch (op) {
                 case INSERT:
                     String ch = bindingReader.getLastBinding();
@@ -650,12 +654,7 @@ public class DefaultPrompter implements Prompter {
             int column = startColumn + searchTerm.length();
             display.update(out, size.cursorPos(cursorRow, column));
 
-            InputOperation op;
-            try {
-                op = bindingReader.readBinding(keyMap);
-            } catch (org.jline.reader.UserInterruptException e) {
-                throw new UserInterruptException("User cancelled");
-            }
+            InputOperation op = bindingReader.readBinding(keyMap);
             switch (op) {
                 case INSERT:
                     String ch = bindingReader.getLastBinding();
@@ -728,12 +727,7 @@ public class DefaultPrompter implements Prompter {
         keyMap.bind(InputOperation.ESCAPE, "\u001b");
         keyMap.bind(InputOperation.CANCEL, "\u0003");
 
-        InputOperation op;
-        try {
-            op = bindingReader.readBinding(keyMap);
-        } catch (org.jline.reader.UserInterruptException e) {
-            throw new UserInterruptException("User cancelled");
-        }
+        InputOperation op = bindingReader.readBinding(keyMap);
         switch (op) {
             case EXIT:
                 // Launch editor
@@ -765,43 +759,42 @@ public class DefaultPrompter implements Prompter {
     private String launchEditor(EditorPrompt prompt) throws IOException, InterruptedException {
         try {
             // Create temporary file
-            java.io.File tempFile = java.io.File.createTempFile("jline_editor_", "." + prompt.getFileExtension());
+            File tempFile = File.createTempFile("jline_editor_", "." + prompt.getFileExtension());
             tempFile.deleteOnExit();
 
             // Write initial content if provided
             String initialText = prompt.getInitialText();
             if (initialText != null) {
-                try (java.io.FileWriter writer = new java.io.FileWriter(tempFile)) {
+                try (FileWriter writer = new FileWriter(tempFile)) {
                     writer.write(initialText);
                 }
             }
 
             // Use JLine's built-in Nano editor
             Class<?> nanoClass = Class.forName("org.jline.builtins.Nano");
-            java.lang.reflect.Constructor<?> constructor =
-                    nanoClass.getConstructor(org.jline.terminal.Terminal.class, java.nio.file.Path.class);
+            Constructor<?> constructor = nanoClass.getConstructor(Terminal.class, Path.class);
 
             Object nano =
                     constructor.newInstance(terminal, tempFile.getParentFile().toPath());
 
             // Configure nano options
             if (prompt.getTitle() != null) {
-                java.lang.reflect.Field titleField = nanoClass.getField("title");
+                Field titleField = nanoClass.getField("title");
                 titleField.set(nano, prompt.getTitle());
             }
 
-            java.lang.reflect.Field lineNumbersField = nanoClass.getField("printLineNumbers");
+            Field lineNumbersField = nanoClass.getField("printLineNumbers");
             lineNumbersField.setBoolean(nano, prompt.showLineNumbers());
 
-            java.lang.reflect.Field wrappingField = nanoClass.getField("wrapping");
+            Field wrappingField = nanoClass.getField("wrapping");
             wrappingField.setBoolean(nano, prompt.enableWrapping());
 
             // Get methods
-            java.lang.reflect.Method openMethod = nanoClass.getMethod("open", java.util.List.class);
-            java.lang.reflect.Method runMethod = nanoClass.getMethod("run");
+            Method openMethod = nanoClass.getMethod("open", List.class);
+            Method runMethod = nanoClass.getMethod("run");
 
             // Open the file and run the editor
-            openMethod.invoke(nano, java.util.Collections.singletonList(tempFile.getName()));
+            openMethod.invoke(nano, Collections.singletonList(tempFile.getName()));
             runMethod.invoke(nano);
 
             // Reset terminal state after editor
@@ -809,7 +802,7 @@ public class DefaultPrompter implements Prompter {
 
             // Read the result
             StringBuilder result = new StringBuilder();
-            try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(tempFile))) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(tempFile))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     if (result.length() > 0) {
@@ -1003,7 +996,7 @@ public class DefaultPrompter implements Prompter {
 
         @Override
         public List<String> words() {
-            return java.util.Collections.singletonList(word);
+            return Collections.singletonList(word);
         }
 
         @Override
@@ -1109,13 +1102,7 @@ public class DefaultPrompter implements Prompter {
             refreshListDisplay(header, prompt.getMessage(), items, selectRow, prompt);
 
             // Read user input using BindingReader
-            ListOperation op;
-            try {
-                op = bindingReader.readBinding(keyMap);
-            } catch (org.jline.reader.UserInterruptException e) {
-                throw new UserInterruptException("User cancelled");
-            }
-
+            ListOperation op = bindingReader.readBinding(keyMap);
             switch (op) {
                 case FORWARD_ONE_LINE:
                     selectRow = nextRow(selectRow, firstItemRow, items);
@@ -1190,13 +1177,7 @@ public class DefaultPrompter implements Prompter {
             refreshCheckboxDisplay(header, prompt.getMessage(), items, selectRow, selectedIds, prompt);
 
             // Read user input using BindingReader
-            CheckboxOperation op;
-            try {
-                op = bindingReader.readBinding(keyMap);
-            } catch (org.jline.reader.UserInterruptException e) {
-                throw new UserInterruptException("User cancelled");
-            }
-
+            CheckboxOperation op = bindingReader.readBinding(keyMap);
             switch (op) {
                 case FORWARD_ONE_LINE:
                     selectRow = nextRow(selectRow, firstItemRow, items);
@@ -1274,13 +1255,7 @@ public class DefaultPrompter implements Prompter {
 
         // Interactive selection loop
         while (true) {
-            ChoiceOperation op;
-            try {
-                op = bindingReader.readBinding(keyMap);
-            } catch (org.jline.reader.UserInterruptException e) {
-                throw new UserInterruptException("User cancelled");
-            }
-
+            ChoiceOperation op = bindingReader.readBinding(keyMap);
             switch (op) {
                 case INSERT:
                     // Check if the input character matches any choice key
@@ -1366,12 +1341,7 @@ public class DefaultPrompter implements Prompter {
             display.update(out, size.cursorPos(cursorRow, column));
 
             // Read input like ConsolePrompt
-            ConfirmOperation op;
-            try {
-                op = bindingReader.readBinding(keyMap);
-            } catch (org.jline.reader.UserInterruptException e) {
-                throw new UserInterruptException("User cancelled");
-            }
+            ConfirmOperation op = bindingReader.readBinding(keyMap);
             switch (op) {
                 case YES:
                     buffer = new StringBuilder("y");

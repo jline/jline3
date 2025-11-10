@@ -8,6 +8,8 @@
  */
 package org.jline.prompt;
 
+import org.jline.prompt.impl.DefaultNoResult;
+
 /**
  * A result that represents no result.
  */
@@ -16,5 +18,5 @@ public interface NoResult extends PromptResult<Prompt> {
     /**
      * Singleton instance of NoResult.
      */
-    NoResult INSTANCE = org.jline.prompt.impl.DefaultNoResult.INSTANCE;
+    NoResult INSTANCE = DefaultNoResult.INSTANCE;
 }
