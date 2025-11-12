@@ -411,7 +411,7 @@ public class Options {
                 needArg = null;
                 needOpt = null;
             } else if (!arg.startsWith("-")
-                    || (arg.length() > 1 && Character.isDigit(arg.charAt(1)))
+                    || (arg.length() > 2 && Character.isDigit(arg.charAt(1)) && Character.isDigit(arg.charAt(2)))
                     || "-".equals(oarg)) {
                 if (optionsFirst) endOpt = true;
                 xargs.add(oarg);
