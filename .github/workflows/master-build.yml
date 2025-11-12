@@ -59,7 +59,7 @@ jobs:
 
 
       - name: Build with maven
-        run: ./mvx mvn -- --no-transfer-progress verify
+        run: ./mvx mvn --no-transfer-progress verify
         env:
           MVX_USE_SYSTEM_JAVA: true
           MVX_PARALLEL_DOWNLOADS: 1
@@ -70,7 +70,7 @@ jobs:
       - name: Build with maven
         run: |
           set PATH=%JAVA_HOME%\bin;C:\Windows\System32\WindowsPowerShell\v1.0\
-          mvx.cmd mvn -- --no-transfer-progress verify
+          mvx.cmd mvn --no-transfer-progress verify
         env:
           MVX_USE_SYSTEM_JAVA: true
           MVX_PARALLEL_DOWNLOADS: 1
