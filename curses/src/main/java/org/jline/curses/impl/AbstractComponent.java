@@ -11,6 +11,7 @@ package org.jline.curses.impl;
 import java.util.EnumSet;
 
 import org.jline.curses.*;
+import org.jline.terminal.KeyEvent;
 import org.jline.terminal.MouseEvent;
 
 public abstract class AbstractComponent implements Component {
@@ -20,6 +21,7 @@ public abstract class AbstractComponent implements Component {
     private Position position;
     private boolean enabled;
     private boolean focused;
+    private boolean invalid = true; // Start as invalid to ensure initial draw
     private Container parent;
     private Renderer renderer;
     private Theme theme;
@@ -82,6 +84,22 @@ public abstract class AbstractComponent implements Component {
     @Override
     public void draw(Screen screen) {
         getRenderer().draw(screen, this);
+        // Mark as valid after drawing
+        invalid = false;
+    }
+
+    @Override
+    public void invalidate() {
+        invalid = true;
+        // Propagate invalidation to parent if needed
+        if (parent != null && parent instanceof AbstractComponent) {
+            ((AbstractComponent) parent).invalidate();
+        }
+    }
+
+    @Override
+    public boolean isInvalid() {
+        return invalid;
     }
 
     public Renderer getRenderer() {
@@ -150,11 +168,15 @@ public abstract class AbstractComponent implements Component {
     }
 
     void focused(boolean focused) {
-        this.focused = focused;
-        if (focused) {
-            this.onFocus();
-        } else {
-            this.onUnfocus();
+        if (this.focused != focused) {
+            this.focused = focused;
+            // Invalidate when focus changes to trigger visual update
+            invalidate();
+            if (focused) {
+                this.onFocus();
+            } else {
+                this.onUnfocus();
+            }
         }
     }
 
@@ -192,8 +214,12 @@ public abstract class AbstractComponent implements Component {
     protected abstract Size doGetPreferredSize();
 
     @Override
-    public void handleMouse(MouseEvent event) {}
+    public boolean handleMouse(MouseEvent event) {
+        return false; // Default: not handled
+    }
 
     @Override
-    public void handleInput(String input) {}
+    public boolean handleKey(KeyEvent event) {
+        return false; // Default: not handled
+    }
 }
