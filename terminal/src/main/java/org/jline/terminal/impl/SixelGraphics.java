@@ -70,8 +70,8 @@ public class SixelGraphics implements TerminalGraphics {
     private static final int DEFAULT_WIDTH = 800; // Default max width for images
     private static final int DEFAULT_HEIGHT = 480; // Default max height for images
 
-    // User override for sixel support
-    private static Boolean sixelSupportOverride = null;
+    // User override for sixel support (volatile for thread-safety)
+    private static volatile Boolean sixelSupportOverride = null;
 
     /**
      * Sets an override for sixel support detection.
@@ -284,10 +284,15 @@ public class SixelGraphics implements TerminalGraphics {
     /**
      * Converts a BufferedImage to Sixel format.
      *
-     * @param image the image to convert
+     * @param image the image to convert (must not be null)
      * @return a string containing the Sixel data
+     * @throws NullPointerException if image is null
      */
     public static String convertToSixel(BufferedImage image) throws IOException {
+        if (image == null) {
+            throw new NullPointerException("Image must not be null");
+        }
+
         // Resize the image if it's too large
         BufferedImage resizedImage = resizeImageIfNeeded(image);
 
@@ -403,9 +408,9 @@ public class SixelGraphics implements TerminalGraphics {
 
         // Start with DCS sequence and Sixel introduction
         // Parameters: 9;1;q means:
-        // - 9: Pixel aspect ratio 1:1 (9 = 2:1 horizontal to 1:1 vertical)
-        // - 1: Background color is set to black
-        // - q: Sixel mode
+        // - 9: Pixel aspect ratio for square pixels (1:1)
+        // - 1: Background color handling (0=device default, 1=no change, 2=set to 0)
+        // - q: Sixel mode indicator
         baos.write((DCS + SIXEL_INTRO).getBytes(StandardCharsets.US_ASCII));
 
         // Extract color palette

@@ -49,7 +49,7 @@ public class TerminalGraphicsManager {
     }
 
     private static final List<TerminalGraphics> AVAILABLE_PROTOCOLS = new ArrayList<>();
-    private static TerminalGraphics.Protocol forcedProtocol = null;
+    private static volatile TerminalGraphics.Protocol forcedProtocol = null;
 
     static {
         // Register built-in protocols

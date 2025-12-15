@@ -185,10 +185,13 @@ public final class TerminalBuilder {
     public static final String PROP_REDIRECT_PIPE_CREATION_MODE_DEFAULT =
             String.join(",", PROP_REDIRECT_PIPE_CREATION_MODE_REFLECTION, PROP_REDIRECT_PIPE_CREATION_MODE_NATIVE);
 
-    // Sixel properties
+    // Graphics protocol properties
     public static final String GRAPHICS_SIXEL_TIMEOUT = "org.jline.terminal.graphics.sixel.timeout";
     public static final String GRAPHICS_SIXEL_SUBSEQUENT_TIMEOUT =
             "org.jline.terminal.graphics.sixel.subsequent.timeout";
+    public static final String GRAPHICS_KITTY_TIMEOUT = "org.jline.terminal.graphics.kitty.timeout";
+    public static final String GRAPHICS_KITTY_SUBSEQUENT_TIMEOUT =
+            "org.jline.terminal.graphics.kitty.subsequent.timeout";
 
     //
     // Terminal output control
