@@ -9,6 +9,8 @@
 package org.jline.builtins;
 
 import java.io.*;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.*;
 import java.nio.file.attribute.FileTime;
 import java.nio.file.attribute.PosixFilePermission;
@@ -1979,9 +1981,9 @@ public class PosixCommands {
         } else if (arg.startsWith("jar:")) {
             // Handle JAR URLs - don't resolve them against current directory
             try {
-                java.net.URL url = new java.net.URL(arg);
+                URL url = new URL(arg);
                 return Stream.of(new URLSource(url, arg));
-            } catch (java.net.MalformedURLException e) {
+            } catch (MalformedURLException e) {
                 // Fall through to normal path handling
             }
         }

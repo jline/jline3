@@ -12,7 +12,11 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.file.*;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystemAlreadyExistsException;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 
 /**
@@ -120,7 +124,7 @@ public class ClasspathResourceUtil {
         FileSystem fs;
         try {
             fs = FileSystems.newFileSystem(jarURI, new HashMap<>());
-        } catch (java.nio.file.FileSystemAlreadyExistsException e) {
+        } catch (FileSystemAlreadyExistsException e) {
             // FileSystem already exists, use the existing one
             fs = FileSystems.getFileSystem(jarURI);
         }
