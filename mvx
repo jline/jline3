@@ -1,0 +1,481 @@
+#!/bin/bash
+
+##############################################################################
+# mvx Bootstrap Script
+#
+# This script acts as a bootstrap for mvx, automatically downloading and
+# caching the appropriate binary version for your platform.
+#
+# Similar to Maven Wrapper (mvnw), this allows projects to use mvx without
+# requiring users to install it separately.
+##############################################################################
+
+set -e
+
+# Default values
+DEFAULT_MVX_VERSION="latest"
+DEFAULT_DOWNLOAD_URL="https://github.com/gnodet/mvx/releases"
+
+# Determine the mvx version to use
+MVX_VERSION="${MVX_VERSION:-}"
+if [ -z "$MVX_VERSION" ]; then
+    if [ -f ".mvx/mvx.properties" ]; then
+        MVX_VERSION=$(grep "^mvxVersion=" ".mvx/mvx.properties" 2>/dev/null | cut -d'=' -f2 | tr -d ' \t\r\n' || echo "")
+    fi
+    if [ -z "$MVX_VERSION" ]; then
+        MVX_VERSION="$DEFAULT_MVX_VERSION"
+    fi
+fi
+
+# Determine download URL
+DOWNLOAD_URL="${MVX_DOWNLOAD_URL:-$DEFAULT_DOWNLOAD_URL}"
+
+# Detect platform and architecture
+detect_platform() {
+    local os arch
+    
+    case "$(uname -s)" in
+        Linux*)     os="linux" ;;
+        Darwin*)    os="darwin" ;;
+        CYGWIN*|MINGW*|MSYS*) os="windows" ;;
+        *)          os="linux" ;;  # Default fallback
+    esac
+    
+    case "$(uname -m)" in
+        x86_64|amd64)   arch="amd64" ;;
+        arm64|aarch64)  arch="arm64" ;;
+        *)              arch="amd64" ;;  # Default fallback
+    esac
+    
+    echo "${os}-${arch}"
+}
+
+# Get the user's home directory
+get_home_dir() {
+    if [ -n "$HOME" ]; then
+        echo "$HOME"
+    elif [ -n "$USERPROFILE" ]; then
+        echo "$USERPROFILE"
+    else
+        echo "."
+    fi
+}
+
+# Create directory if it doesn't exist
+ensure_dir() {
+    local dir="$1"
+    if [ ! -d "$dir" ]; then
+        mkdir -p "$dir"
+    fi
+}
+
+# Download file with progress
+download_file() {
+    local url="$1"
+    local output="$2"
+    local temp_file="${output}.tmp"
+
+    echo "Downloading from: $url" >&2
+
+    # Clean up any existing temp file
+    rm -f "$temp_file"
+
+    if command -v curl >/dev/null 2>&1; then
+        if ! curl -fsSL --progress-bar -o "$temp_file" "$url"; then
+            rm -f "$temp_file"
+            return 1
+        fi
+    elif command -v wget >/dev/null 2>&1; then
+        if ! wget -q --show-progress -O "$temp_file" "$url"; then
+            rm -f "$temp_file"
+            return 1
+        fi
+    else
+        echo "Error: Neither curl nor wget is available for downloading" >&2
+        return 1
+    fi
+
+    # Verify the download was successful and file exists
+    if [ ! -f "$temp_file" ] || [ ! -s "$temp_file" ]; then
+        echo "Error: Download failed or file is empty" >&2
+        rm -f "$temp_file"
+        return 1
+    fi
+
+    # Move temp file to final location
+    if ! mv "$temp_file" "$output"; then
+        echo "Error: Failed to move downloaded file to final location" >&2
+        rm -f "$temp_file"
+        return 1
+    fi
+
+    return 0
+}
+
+# Get the latest version from GitHub API
+get_latest_version() {
+    local api_url="https://api.github.com/repos/gnodet/mvx/releases/latest"
+    local version=""
+
+    if command -v curl >/dev/null 2>&1; then
+        version=$(curl -fsSL "$api_url" 2>/dev/null | grep '"tag_name":' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/' | sed 's/^v//' || echo "")
+    elif command -v wget >/dev/null 2>&1; then
+        version=$(wget -qO- "$api_url" 2>/dev/null | grep '"tag_name":' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/' | sed 's/^v//' || echo "")
+    else
+        echo "Error: Neither curl nor wget is available for version detection" >&2
+        return 1
+    fi
+
+    if [ -z "$version" ]; then
+        echo "Error: No releases found. Please specify a version in .mvx/mvx.properties" >&2
+        return 1
+    fi
+
+    echo "$version"
+}
+
+# Resolve version (handle "latest")
+resolve_version() {
+    local version="$1"
+
+    if [ "$version" = "latest" ]; then
+        echo "Resolving latest version..." >&2
+        version=$(get_latest_version)
+        if [ -z "$version" ]; then
+            echo "Error: Could not determine latest version" >&2
+            return 1
+        fi
+        echo "Latest version: $version" >&2
+    fi
+
+    echo "$version"
+}
+
+# Check if we should perform a daily update check
+should_check_for_updates() {
+    local home_dir="$1"
+    local mvx_dir="$home_dir/.mvx"
+    local last_check_file="$mvx_dir/last_check"
+
+    # If no last check file exists, we should check
+    if [ ! -f "$last_check_file" ]; then
+        return 0
+    fi
+
+    # Get last check timestamp
+    local last_check=$(cat "$last_check_file" 2>/dev/null || echo "0")
+    local current_time=$(date +%s)
+    local one_day=86400  # 24 hours in seconds
+
+    # Check if more than 24 hours have passed
+    if [ $((current_time - last_check)) -gt $one_day ]; then
+        return 0
+    fi
+
+    return 1
+}
+
+# Perform daily update check (non-blocking)
+check_for_updates() {
+    local home_dir="$1"
+    local current_version="$2"
+    local mvx_dir="$home_dir/.mvx"
+    local last_check_file="$mvx_dir/last_check"
+    local latest_version_file="$mvx_dir/latest_version"
+
+    ensure_dir "$mvx_dir"
+
+    # Update last check timestamp
+    date +%s > "$last_check_file"
+
+    # Get latest version (silently)
+    local latest_version=$(get_latest_version 2>/dev/null || echo "")
+
+    if [ -n "$latest_version" ]; then
+        echo "$latest_version" > "$latest_version_file"
+
+        # Compare versions and show notification if update available
+        if [ "$current_version" != "$latest_version" ] && [ "$current_version" != "latest" ]; then
+            echo "💡 mvx update available: $current_version → $latest_version"
+            echo "   Run './mvx update-bootstrap' to update"
+            echo ""
+        fi
+    fi
+}
+
+# Handle update-bootstrap command
+handle_update_bootstrap() {
+    local home_dir="$1"
+    local platform="$2"
+    local check_only="$3"
+
+    echo "🔍 Checking for mvx bootstrap updates..."
+
+    # Get latest version
+    local latest_version=$(get_latest_version)
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to get latest version" >&2
+        return 1
+    fi
+
+    # Get current version from properties file
+    local current_version=""
+    if [ -f ".mvx/mvx.properties" ]; then
+        current_version=$(grep "^mvxVersion=" ".mvx/mvx.properties" 2>/dev/null | cut -d'=' -f2 | tr -d ' \t\r\n' || echo "")
+    fi
+
+    if [ -z "$current_version" ]; then
+        echo "No current version found, will update to latest"
+    elif [ "$current_version" = "$latest_version" ]; then
+        echo "✅ Bootstrap scripts are already up to date (version $current_version)"
+        return 0
+    else
+        echo "📦 Update available: $current_version → $latest_version"
+    fi
+
+    if [ "$check_only" = "true" ]; then
+        if [ "$current_version" != "$latest_version" ]; then
+            echo "🆕 New version available: $latest_version"
+            echo "Run './mvx update-bootstrap' to update"
+        fi
+        return 0
+    fi
+
+    echo "⬇️  Downloading bootstrap scripts..."
+
+    local base_url="https://raw.githubusercontent.com/gnodet/mvx/v$latest_version"
+
+    # Download mvx script
+    echo "Downloading mvx script..."
+    if download_file "$base_url/mvx" "mvx.new"; then
+        mv "mvx.new" "mvx"
+        chmod +x "mvx"
+    else
+        echo "Error: Failed to download mvx script" >&2
+        return 1
+    fi
+
+    # Download mvx.cmd script
+    echo "Downloading mvx.cmd script..."
+    if download_file "$base_url/mvx.cmd" "mvx.cmd.new"; then
+        mv "mvx.cmd.new" "mvx.cmd"
+    else
+        echo "Error: Failed to download mvx.cmd script" >&2
+        return 1
+    fi
+
+    # Create .mvx directory if it doesn't exist
+    ensure_dir ".mvx"
+
+    # Update mvx.properties with new version
+    if [ -f ".mvx/mvx.properties" ]; then
+        # Update existing properties file
+        sed -i.bak "s/^mvxVersion=.*/mvxVersion=$latest_version/" ".mvx/mvx.properties" && rm -f ".mvx/mvx.properties.bak"
+    else
+        # Create new properties file
+        echo "Downloading mvx.properties..."
+        if download_file "$base_url/.mvx/mvx.properties" ".mvx/mvx.properties"; then
+            # Update the downloaded file with the specific version
+            sed -i.bak "s/^mvxVersion=.*/mvxVersion=$latest_version/" ".mvx/mvx.properties" && rm -f ".mvx/mvx.properties.bak"
+        else
+            # Create a minimal properties file if download fails
+            cat > ".mvx/mvx.properties" << EOF
+# mvx Configuration
+mvxVersion=$latest_version
+EOF
+        fi
+    fi
+
+    echo "✅ Bootstrap scripts updated successfully to version $latest_version"
+    echo "📝 Files updated:"
+    echo "  - mvx (Unix/Linux/macOS script)"
+    echo "  - mvx.cmd (Windows script)"
+    echo "  - .mvx/mvx.properties (version specification)"
+
+    return 0
+}
+
+# Find or download mvx binary (local binaries are checked in main() now)
+find_mvx_binary() {
+    local version="$1"
+    local platform="$2"
+    local home_dir="$3"
+    local verbosity="$4"
+
+    # Check cached version
+    local cache_dir="$home_dir/.mvx/versions/$version"
+    local cached_binary="$cache_dir/mvx"
+    if [ "$platform" = "windows-amd64" ]; then
+        cached_binary="$cache_dir/mvx.exe"
+    fi
+
+    if [ -f "$cached_binary" ] && [ -x "$cached_binary" ]; then
+        echo "$cached_binary"
+        return 0
+    fi
+
+    # Need to download
+    if [ "$verbosity" = "verbose" ]; then
+        echo "mvx $version not found, downloading..." >&2
+    fi
+
+    ensure_dir "$cache_dir"
+
+    # Construct download URL
+    local binary_name="mvx-$platform"
+    if [ "$platform" = "windows-amd64" ]; then
+        binary_name="mvx-$platform.exe"
+    fi
+
+    local download_url="$DOWNLOAD_URL/download/v$version/$binary_name"
+
+    echo "Downloading mvx $version for $platform..." >&2
+    if download_file "$download_url" "$cached_binary"; then
+        chmod +x "$cached_binary"
+
+        # Verify the binary is executable and exists
+        if [ ! -f "$cached_binary" ] || [ ! -x "$cached_binary" ]; then
+            echo "Error: Downloaded binary is not executable" >&2
+            rm -f "$cached_binary"
+            return 1
+        fi
+
+        echo "$cached_binary"
+        return 0
+    else
+        echo "Error: Failed to download mvx binary from $download_url" >&2
+
+        # Provide helpful guidance for development version
+        if [ "$version" = "dev" ]; then
+            echo "" >&2
+            echo "💡 You're using the development version, but no 'dev' binary is available." >&2
+            echo "   To use mvx in development mode, you need to build it locally:" >&2
+            echo "" >&2
+            echo "   1. Clone and build mvx:" >&2
+            echo "      git clone https://github.com/gnodet/mvx.git" >&2
+            echo "      cd mvx && ./mvx build" >&2
+            echo "" >&2
+            echo "   2. The build automatically installs to ~/.mvx/dev/mvx" >&2
+            echo "      All projects using 'mvxVersion=dev' will use this binary" >&2
+            echo "" >&2
+            echo "   3. Alternatively, copy to your project as 'mvx-dev':" >&2
+            echo "      cp ~/.mvx/dev/mvx /path/to/your/project/mvx-dev" >&2
+            echo "" >&2
+            echo "   Alternatively, use the latest stable release:" >&2
+            echo "      echo 'mvxVersion=latest' > .mvx/mvx.properties" >&2
+        fi
+
+        return 1
+    fi
+}
+
+# Check if verbose or quiet mode is requested
+check_verbosity() {
+    local verbose="false"
+    local quiet="false"
+
+    for arg in "$@"; do
+        case "$arg" in
+            -v|--verbose)
+                verbose="true"
+                ;;
+            -q|--quiet)
+                quiet="true"
+                ;;
+        esac
+    done
+
+    if [ "$quiet" = "true" ]; then
+        echo "quiet"
+    elif [ "$verbose" = "true" ]; then
+        echo "verbose"
+    else
+        echo "normal"
+    fi
+}
+
+# Main execution
+main() {
+    local platform home_dir resolved_version mvx_binary verbosity
+
+    platform=$(detect_platform)
+    home_dir=$(get_home_dir)
+    verbosity=$(check_verbosity "$@")
+
+    # Handle update-bootstrap command specially
+    if [ "$1" = "update-bootstrap" ]; then
+        local check_only="false"
+        if [ "$2" = "--check" ]; then
+            check_only="true"
+        fi
+        handle_update_bootstrap "$home_dir" "$platform" "$check_only"
+        exit $?
+    fi
+
+    # Only show bootstrap info in verbose mode
+    if [ "$verbosity" = "verbose" ]; then
+        echo "mvx"
+        echo "Platform: $platform"
+        echo "Requested version: $MVX_VERSION"
+    fi
+
+    # Check for local development binaries only when explicitly using dev version
+    if [ "$MVX_VERSION" = "dev" ]; then
+        # 1. Check project-specific development binary
+        local local_binaries="./mvx-dev"
+        if [ "$platform" = "windows-amd64" ]; then
+            local_binaries="./mvx-dev.exe"
+        fi
+
+        for local_binary in $local_binaries; do
+            if [ -f "$local_binary" ] && [ -x "$local_binary" ]; then
+                if [ "$verbosity" = "verbose" ]; then
+                    echo "Using project-specific development binary: $local_binary"
+                    echo ""
+                fi
+                exec "$local_binary" "$@"
+            fi
+        done
+
+        # 2. Check global development binary (shared across all projects)
+        local global_dev_binary="$home_dir/.mvx/dev/mvx"
+        if [ "$platform" = "windows-amd64" ]; then
+            global_dev_binary="$home_dir/.mvx/dev/mvx.exe"
+        fi
+
+        if [ -f "$global_dev_binary" ] && [ -x "$global_dev_binary" ]; then
+            if [ "$verbosity" = "verbose" ]; then
+                echo "Using global development binary: $global_dev_binary"
+                echo ""
+            fi
+            exec "$global_dev_binary" "$@"
+        fi
+    fi
+
+    # No local binary found, proceed with version resolution and download
+    resolved_version=$(resolve_version "$MVX_VERSION")
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
+
+    # Perform daily update check (non-blocking, only if not running update-bootstrap)
+    if should_check_for_updates "$home_dir"; then
+        check_for_updates "$home_dir" "$resolved_version" &
+    fi
+
+    mvx_binary=$(find_mvx_binary "$resolved_version" "$platform" "$home_dir" "$verbosity")
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
+
+    if [ "$verbosity" = "verbose" ]; then
+        echo "Using mvx binary: $mvx_binary"
+        echo ""
+    fi
+
+    # Execute mvx with all arguments
+    exec "$mvx_binary" "$@"
+}
+
+# Run main function with all arguments
+main "$@"

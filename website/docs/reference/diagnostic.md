@@ -11,20 +11,14 @@ When troubleshooting issues with JLine, especially when dealing with system term
 JLine provides a built-in diagnostic tool that can help identify issues with terminal detection and configuration. To run the JLine diagnostic tool, use the following command:
 
 ```bash
-java -cp jline-3.26.1.jar org.jline.terminal.impl.Diag
+java -cp jline-%%JLINE_VERSION%%.jar org.jline.terminal.impl.Diag
 ```
 
 This will output a full diagnosis for JLine. You may want to add some dependencies if you want specific providers to be loaded.
 
-## Jansi Diagnostic Tool
-
-If you're using Jansi with JLine, you can run the Jansi diagnostic tool to get information about both JLine and Jansi:
-
-```bash
-java -jar jansi-3.26.1.jar
-```
-
-This will output a full diagnosis for both JLine and Jansi.
+:::note JLine 4.x Changes
+The Jansi diagnostic tool is no longer available in JLine 4.x as the Jansi provider has been removed. Use the JLine diagnostic tool above to troubleshoot terminal issues.
+:::
 
 ## Output Example
 
@@ -58,11 +52,11 @@ FFM support not available: java.io.IOException: Unable to load terminal provider
 
 JnaSupport
 =================
-JNA support not available: java.io.IOException: Unable to load terminal provider jna: null
+JNA support not available: java.io.IOException: Unable to load terminal provider jna: Provider removed in JLine 4.x
 
 Jansi2Support
 =================
-Jansi 2 support not available: java.io.IOException: Unable to load terminal provider jansi: null
+Jansi 2 support not available: java.io.IOException: Unable to load terminal provider jansi: Provider removed in JLine 4.x
 
 JniSupport
 =================
@@ -96,11 +90,11 @@ The diagnostic output provides several sections of information:
 2. **OSUtils**: Indicates what type of operating system you're running on.
 
 3. **Provider Support**: Shows which terminal providers are available and working:
-   - FFM Support
-   - JNA Support
-   - Jansi2 Support
-   - JNI Support
+   - FFM Support (Java 22+)
+   - JNI Support (recommended)
    - Exec Support
+   - ~~JNA Support~~ (removed in JLine 4.x)
+   - ~~Jansi2 Support~~ (removed in JLine 4.x)
 
 4. **Terminal Information**: For each working provider, it shows:
    - Whether standard streams are available
@@ -112,7 +106,7 @@ The diagnostic output provides several sections of information:
 
 When troubleshooting issues with JLine, pay attention to:
 
-1. **Missing Providers**: If a provider you expect to be available shows "not available," check that you have the necessary dependencies on your classpath.
+1. **Missing Providers**: If a provider you expect to be available shows "not available," check that you have the necessary dependencies on your classpath. Note that **JNA** and **Jansi** providers have been removed in JLine 4.x - use **JNI** or **FFM** providers instead.
 
 2. **Stream Information**: If standard streams are not available or have unexpected names, this could indicate issues with how your application is launched.
 

@@ -8,23 +8,19 @@
  */
 package org.jline.builtins;
 
-import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.condition.EnabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -106,101 +102,77 @@ public class SyntaxHighlighterTest {
                 "^deb(-src)?\\s+.*(mirror\\+)?(ftp|https?|rsh|ssh|copy|file|in-toto|s3|spacewalk|tor):/\\S+|cdrom:\\[.+\\]/)\\s+\\S+");
     }
 
-    // Reads in all .nanorc files on the local machine and pushes those through NanorcParser.
-    // Using System.out here is a bit unorhodox, but we cannot really assert on content that's present on a
-    // local machine. Putting a set of .nanorc files into the code base would pull in GPL licensed elements.
+    // Test that validates parsing of nanorc files from test resources
     @ParameterizedTest
     @MethodSource
-    @EnabledOnOs(OS.LINUX)
     void processLocalNanorcFile(Path nanorcFile) throws Exception {
         Map<String, String> colorTheme = new HashMap<>();
         String fileName = nanorcFile.getFileName().toString().replaceAll("[.].*", "");
-        String syntaxName;
-        switch (fileName) {
-            case "debian":
-                syntaxName = "sources.list";
-                break;
-            case "objc":
-                syntaxName = "m";
-                break;
-            default:
-                syntaxName = fileName;
-        }
+        String syntaxName = fileName; // Use filename as syntax name for test files
+
         SyntaxHighlighter.NanorcParser nanorcParser =
                 new SyntaxHighlighter.NanorcParser(nanorcFile, syntaxName, "syntax", colorTheme);
-        nanorcParser.parse();
 
-        Iterator<String> sourceLines = Files.readAllLines(nanorcFile).stream()
-                .filter(line -> line.startsWith("color ") || line.startsWith("icolor "))
-                .iterator();
+        // Parse the nanorc file - this should not throw any exceptions
+        Assertions.assertDoesNotThrow(
+                () -> nanorcParser.parse(), "Failed to parse nanorc file: " + nanorcFile.getFileName());
 
-        nanorcParser.getHighlightRules().forEach((s, rules) -> {
-            System.out.println(s + " / " + syntaxName);
-            for (SyntaxHighlighter.HighlightRule rule : rules) {
-                System.out.println();
-                String sourceLine = sourceLines.hasNext() ? sourceLines.next() : "<oops>";
-                System.out.println("  Source line: " + sourceLine);
-                int i = sourceLine.indexOf(' ', sourceLine.indexOf(' ') + 1);
-                System.out.println("       source: " + sourceLine.substring(i + 1));
+        // Verify that parsing produced some highlight rules
+        Map<String, List<SyntaxHighlighter.HighlightRule>> highlightRules = nanorcParser.getHighlightRules();
+        Assertions.assertNotNull(highlightRules, "Highlight rules should not be null");
+        Assertions.assertFalse(
+                highlightRules.isEmpty(), "Should have produced highlight rules for: " + nanorcFile.getFileName());
+
+        // Verify that each rule has valid content
+        highlightRules.forEach((ruleKey, rules) -> {
+            Assertions.assertNotNull(rules, "Rule list should not be null for key: " + ruleKey);
+
+            // Skip empty NANORC rule list as it's expected to be empty by default
+            if ("NANORC".equals(ruleKey) && rules.isEmpty()) {
+                return;
+            }
+
+            Assertions.assertFalse(rules.isEmpty(), "Rule list should not be empty for key: " + ruleKey);
+
+            rules.forEach(rule -> {
+                Assertions.assertNotNull(rule, "Individual rule should not be null");
+                Assertions.assertNotNull(rule.getType(), "Rule type should not be null");
+
+                // Verify rule content based on type
                 switch (rule.getType()) {
                     case PATTERN:
-                        System.out.println("    processed:  " + rule.getPattern());
+                        Assertions.assertNotNull(rule.getPattern(), "Pattern rule should have a pattern");
+                        Assertions.assertNotNull(rule.getPattern().pattern(), "Pattern string should not be null");
+                        Assertions.assertFalse(
+                                rule.getPattern().pattern().isEmpty(), "Pattern string should not be empty");
                         break;
                     case START_END:
-                        System.out.println("    processed: " + rule.getStart() + " - " + rule.getEnd());
+                        Assertions.assertNotNull(rule.getStart(), "Start-end rule should have a start pattern");
+                        Assertions.assertNotNull(rule.getEnd(), "Start-end rule should have an end pattern");
                         break;
                     case PARSER_CONTINUE_AS:
-                        System.out.println("    processed: " + rule.getContinueAs());
+                        Assertions.assertNotNull(rule.getContinueAs(), "Continue-as rule should have continue pattern");
                         break;
                     case PARSER_START_WITH:
-                        System.out.println("    processed: " + rule.getStartWith());
+                        Assertions.assertNotNull(rule.getStartWith(), "Start-with rule should have start pattern");
                         break;
                 }
-            }
+            });
         });
     }
 
     static List<Path> processLocalNanorcFile() throws Exception {
-        try (Stream<Path> list = Files.list(Paths.get("/usr/share/nano"))
-                .filter(Files::isRegularFile)
-                .filter(p -> p.toString().endsWith(".nanorc"))) {
-            return list.collect(Collectors.toList());
-        }
-    }
+        URL resourceUrl = SyntaxHighlighterTest.class.getClassLoader().getResource("nano");
+        Assertions.assertNotNull(resourceUrl, "nano test resources directory not found");
 
-    // Code to extract highlight regexes from nanorc files
-    @SuppressWarnings("unused")
-    void dumpNanoRegexes() throws Exception {
-        try (Stream<Path> list = Files.list(Paths.get("/usr/share/nano")).filter(Files::isRegularFile)) {
-            list.forEach(p -> {
-                try {
-                    Files.readAllLines(p).stream()
-                            .filter(s -> s.startsWith("color"))
-                            .map(s -> {
-                                int i = s.indexOf(' ');
-                                if (i == -1) {
-                                    return null;
-                                }
-                                i = s.indexOf(' ', i + 1);
-                                if (i == -1) {
-                                    return null;
-                                }
-                                s = s.substring(i + 1).trim();
-                                if (s.startsWith("\"") && s.endsWith("\"")) {
-                                    return s.substring(1, s.length() - 1);
-                                }
-                                return null;
-                            })
-                            .filter(Objects::nonNull)
-                            .map(s -> s.replace("\\", "\\\\").replace("\"", "\\\""))
-                            .map(s -> '\"' + s + "\" ,")
-                            .sorted()
-                            .forEachOrdered(System.out::println);
-                    ;
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            });
+        Path nanoResourcesPath = Paths.get(resourceUrl.toURI());
+        try (Stream<Path> list = Files.list(nanoResourcesPath)
+                .filter(Files::isRegularFile)
+                .filter(p -> p.toString().endsWith(".nanorc"))
+                .sorted()) {
+            List<Path> nanorcFiles = list.collect(Collectors.toList());
+            Assertions.assertEquals(5, nanorcFiles.size(), "Expected exactly 5 .nanorc files in test resources");
+            return nanorcFiles;
         }
     }
 

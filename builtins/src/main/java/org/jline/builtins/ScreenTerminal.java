@@ -631,9 +631,9 @@ public class ScreenTerminal {
                     // DECBKM: Backarrow key
                     vt100_mode_backspace = state;
                     break;
-                    // ?98 : DECARSM: auto-resize
-                    // ?101 : DECCANSM: Conceal answerback message
-                    // ?109 : DECCAPSLK: caps lock
+                // ?98 : DECARSM: auto-resize
+                // ?101 : DECCANSM: Conceal answerback message
+                // ?109 : DECCAPSLK: caps lock
             }
         }
     }

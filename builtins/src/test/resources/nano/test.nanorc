@@ -1,0 +1,74 @@
+## ---------------------------------------------------------------------------
+## Comprehensive test syntax for nanorc features
+## ---------------------------------------------------------------------------
+
+syntax "Test" "\.(test|example)$"
+header "^#!/.*test"
+magic "test script"
+comment "#"
+
+# Test all color variants
+color red "red"
+color green "green" 
+color yellow "yellow"
+color blue "blue"
+color magenta "magenta"
+color cyan "cyan"
+color white "white"
+color black "black"
+
+# Test bright colors
+color brightred "brightred"
+color brightgreen "brightgreen"
+color brightyellow "brightyellow"
+color brightblue "brightblue"
+color brightmagenta "brightmagenta"
+color brightcyan "brightcyan"
+color brightwhite "brightwhite"
+
+# Test background colors
+color red,green "background"
+color white,blue "contrast"
+color ,yellow "background-only"
+
+# Test case-insensitive matching
+icolor cyan "\<(case|insensitive|test)\>"
+
+# Test start/end multi-line
+color green start="BEGIN" end="END"
+color blue start="/\*" end="\*/"
+
+# Test complex regex patterns
+color yellow "\<[0-9]+\.[0-9]+\.[0-9]+\>"
+color magenta "\b[A-Z]{2,}\b"
+color cyan "^[[:space:]]*[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*="
+
+# Test word boundaries and anchors
+color red "\<function\>"
+color blue "^#.*$"
+color green "end$"
+
+# Test character classes
+color yellow "[[:digit:]]+"
+color cyan "[[:alpha:]]+"
+color magenta "[[:alnum:]]+"
+color red "[[:space:]]+"
+
+# Test quantifiers
+color green "a+"
+color blue "b*"
+color yellow "c?"
+color cyan "d{2,4}"
+
+# Test alternation
+color red "(foo|bar|baz)"
+
+# Test escape sequences
+color yellow "\\n|\\t|\\r|\\\\"
+
+# Test special characters
+color magenta "[()[\]{}]"
+color cyan "[+\-*/%=<>!&|^~]"
+
+# Trailing whitespace
+color ,green "[[:space:]]+$"

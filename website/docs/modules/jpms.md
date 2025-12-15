@@ -32,7 +32,6 @@ These modules have complete `module-info.java` descriptors with proper exports, 
 | **Terminal Providers** | | | | |
 | Terminal JNI | `jline-terminal-jni` | `org.jline.terminal.jni` | 11+ | **Recommended**: Java Native Interface provider |
 | Terminal FFM | `jline-terminal-ffm` | `org.jline.terminal.ffm` | 22+ | **Recommended**: Foreign Function Memory API provider |
-| Terminal JNA | `jline-terminal-jna` | `org.jline.terminal.jna` | 11+ | Java Native Access provider |
 | **Extended Functionality** | | | | |
 | Builtins | `jline-builtins` | `org.jline.builtins` | 11+ | Built-in shell commands (ls, cat, etc.) |
 | Console UI | `jline-console-ui` | `org.jline.console.ui` | 11+ | Interactive UI components (deprecated) |
@@ -47,7 +46,7 @@ These modules remain as automatic modules for backward compatibility and integra
 
 | Module | Artifact ID | Automatic Module Name | Reason for Automatic Module Status |
 |--------|-------------|----------------------|-------------------------------------|
-| Terminal Jansi | `jline-terminal-jansi` | `jline.terminal.jansi` | **Deprecated**: Legacy compatibility, use JNI provider instead |
+| ~~Terminal Jansi~~ | ~~`jline-terminal-jansi`~~ | ~~`jline.terminal.jansi`~~ | **Removed in JLine 4.x**: Use JNI or FFM provider instead |
 | Groovy | `jline-groovy` | `jline.groovy` | Integration with Groovy ecosystem, complex dependencies |
 | Remote SSH | `jline-remote-ssh` | `jline.remote.ssh` | SSH server functionality, Apache SSHD dependencies |
 | Remote Telnet | `jline-remote-telnet` | `jline.remote.telnet` | Telnet server functionality |
@@ -89,7 +88,6 @@ module your.application {
     // Terminal providers (choose one or more)
     requires org.jline.terminal.jni; // JNI-based (recommended)
     requires org.jline.terminal.ffm; // FFM-based (recommended, JDK 22+)
-    requires org.jline.terminal.jna; // JNA-based (alternative)
 }
 ```
 
@@ -167,8 +165,8 @@ JLine uses a service provider interface (SPI) to automatically discover and sele
 
 1. **JNI** (`org.jline.terminal.jni`) - **Recommended**: Native performance, no external dependencies, no special permissions
 2. **FFM** (`org.jline.terminal.ffm`) - **Recommended**: Best performance, requires `--enable-native-access`, JDK 22+ only
-3. **JNA** (`org.jline.terminal.jna`) - Good compatibility, requires JNA dependency
-4. **Jansi** (`org.jline.terminal.jansi`) - **Deprecated**: Limited functionality, use JNI instead
+3. ~~**JNA** (`org.jline.terminal.jna`)~~ - **Removed in JLine 4.x**: Use JNI or FFM instead
+4. ~~**Jansi** (`org.jline.terminal.jansi`)~~ - **Removed in JLine 4.x**: Use JNI or FFM instead
 
 **Recommended providers**: Use **JNI** for maximum compatibility (no special setup) or **FFM** for best performance on JDK 22+.
 
@@ -183,19 +181,19 @@ When using Maven or Gradle, you can depend on individual modules:
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-terminal</artifactId>
-    <version>4.0.0</version>
+    <version>%%JLINE_VERSION%%</version>
 </dependency>
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-reader</artifactId>
-    <version>4.0.0</version>
+    <version>%%JLINE_VERSION%%</version>
 </dependency>
 ```
 
 #### Gradle
 ```groovy
-implementation 'org.jline:jline-terminal:4.0.0'
-implementation 'org.jline:jline-reader:4.0.0'
+implementation 'org.jline:jline-terminal:%%JLINE_VERSION%%'
+implementation 'org.jline:jline-reader:%%JLINE_VERSION%%'
 ```
 
 ## Migration from JLine 3.x
@@ -224,17 +222,17 @@ When migrating from JLine 3.x to 4.x in a modular application:
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-terminal</artifactId>
-    <version>4.0.0</version>
+    <version>%%JLINE_VERSION%%</version>
 </dependency>
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-reader</artifactId>
-    <version>4.0.0</version>
+    <version>%%JLINE_VERSION%%</version>
 </dependency>
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-terminal-jni</artifactId>
-    <version>4.0.0</version>
+    <version>%%JLINE_VERSION%%</version>
 </dependency>
 ```
 
@@ -258,8 +256,6 @@ module your.application {
 
 - **Recommended**: Use `org.jline.terminal.jni` (no external dependencies, works on JDK 11+)
 - **Best performance**: Use `org.jline.terminal.ffm` on JDK 22+
-- **Alternative**: Use `org.jline.terminal.jna` (requires JNA dependency)
-- **Deprecated**: Avoid `org.jline.terminal.jansi` (use JNI instead)
 
 ### Dependency Scope
 
@@ -330,7 +326,7 @@ For existing applications, consider a phased approach:
 **Problem**: No terminal provider found, falling back to dumb terminal.
 
 **Solutions**:
-- Include at least one terminal provider module (jna, jni, or ffm)
+- Include at least one terminal provider module (jni, or ffm)
 - Verify provider JARs are on module path or classpath
 - Check that provider modules are not excluded by your build tool
 

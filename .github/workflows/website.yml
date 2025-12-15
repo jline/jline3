@@ -2,7 +2,7 @@ name: Website
 
 on:
   push:
-    branches: [master]
+    branches: [jline-3.x]
     paths:
       - 'website/**'
   workflow_dispatch:
@@ -21,19 +21,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-          cache: npm
-          cache-dependency-path: website/package-lock.json
+        uses: actions/checkout@v6
       - name: Setup Pages
         uses: actions/configure-pages@v5
         with:
           enablement: true
       - name: Build website
-        run: ./build website
+        run: ./mvx website-build
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:

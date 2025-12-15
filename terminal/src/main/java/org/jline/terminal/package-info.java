@@ -78,7 +78,6 @@
  *   <li>jline-terminal-ffm - Foreign Function & Memory (Java 22+) based implementation</li>
  *   <li>jline-terminal-jni - JNI-based implementation</li>
  *   <li>jline-terminal-jansi - JANSI-based implementation</li>
- *   <li>jline-terminal-jna - JNA-based implementation</li>
  * </ul>
  *
  * <p>The Service Provider Interface (SPI) for terminal implementations is defined in the

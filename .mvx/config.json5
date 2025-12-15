@@ -1,0 +1,70 @@
+{
+  project: {
+    name: "jline",
+    description: "Java Console Library",
+  },
+
+  tools: {
+    java: {
+      version: "22",
+      distribution: "temurin",
+    },
+    maven: {
+      version: "4.0.0-rc-5",
+    },
+    node: {
+      version: "20",
+    },
+  },
+
+  environment: {
+    MAVEN_OPTS: "-Xmx2g",
+  },
+
+  commands: {
+    build: {
+      description: "Build the project",
+      script: "mvn install -V",
+    },
+
+    format: {
+      description: "Format source files",
+      script: "mvn spotless:apply"
+    },
+
+    rebuild: {
+      description: "Clean and install the project",
+      script: "mvn clean install",
+    },
+
+    test: {
+      description: "Run tests",
+      script: "mvn test -V",
+    },
+
+    clean: {
+      description: "Clean build artifacts",
+      script: "mvn clean",
+    },
+
+    "website-build": {
+      description: "Build website",
+      script: "cd website && npm install && npm run build",
+    },
+
+    "website-dev": {
+      description: "Start the website development server with live reloading",
+      script: "cd website && npm install && npm run start-with-snippets",
+    },
+
+    "website-serve": {
+      description: "Serve the built website (ensures dependencies are installed)",
+      script: "cd website && npm install && npm run serve",
+    },
+
+    demo: {
+      description: "Run a demo (built-in demos or any example class)",
+      script: ".mvx/demo.sh",
+    },
+  },
+}

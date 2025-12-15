@@ -64,7 +64,7 @@ public class DefaultPromptBuilder implements PromptBuilder {
     }
 
     @Override
-    public org.jline.prompt.TextBuilder createText() {
+    public TextBuilder createText() {
         return new DefaultTextBuilder(this);
     }
 

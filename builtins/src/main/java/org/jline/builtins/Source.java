@@ -8,10 +8,12 @@
  */
 package org.jline.builtins;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,6 +45,16 @@ public interface Source {
      * @throws IOException if an I/O error occurs
      */
     InputStream read() throws IOException;
+
+    /**
+     * Opens a buffered reader to read the content of this source.
+     *
+     * @return an buffered reader for reading the source content
+     * @throws IOException if an I/O error occurs
+     */
+    default BufferedReader reader() throws IOException {
+        return new BufferedReader(new InputStreamReader(read()));
+    }
 
     /**
      * Gets the number of lines in this source, if known.
@@ -98,6 +110,10 @@ public interface Source {
         public PathSource(Path path, String name) {
             this.path = Objects.requireNonNull(path);
             this.name = name;
+        }
+
+        public Path getPath() {
+            return path;
         }
 
         @Override
@@ -173,7 +189,7 @@ public interface Source {
         }
 
         public StdInSource(InputStream in) {
-            super(in, false, null);
+            super(in, false, "(standard input)");
         }
     }
 
