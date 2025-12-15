@@ -80,7 +80,11 @@ public class ClasspathResourceUtilTest {
             String content = Files.readString(resourcePath);
             assertTrue(content.contains("Welcome to the test JAR!"), "Content should match");
         } finally {
-            Files.deleteIfExists(tempJar);
+            // Note: We cannot delete the temp JAR while the FileSystem is open,
+            // but the FileSystem is managed by FileSystems and will be closed
+            // when the application exits. For this test, we accept that the temp
+            // file will remain until cleanup.
+            // In production code, callers should manage JAR resources carefully.
         }
     }
 }

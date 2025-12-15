@@ -79,6 +79,17 @@ public class ClasspathResourceUtil {
 
     /**
      * Converts a URL to a Path.
+     * <p>
+     * For file:// URLs, returns a Path directly to the file.
+     * For jar: URLs, opens the JAR FileSystem and returns a Path within it.
+     * The returned Path is valid as long as the underlying FileSystem remains open.
+     * </p>
+     * <p>
+     * Note: For jar: URLs, the FileSystem is created on first access and reused for
+     * subsequent accesses to the same JAR. The FileSystem will remain open for the
+     * lifetime of the application. Callers should not attempt to close the FileSystem
+     * as it may be shared with other code.
+     * </p>
      *
      * @param resource The URL to convert
      * @return The Path to the resource
@@ -106,7 +117,13 @@ public class ClasspathResourceUtil {
         // This is safer than stripping the jar: prefix, as it ensures the jar provider is used
         URI jarURI = URI.create(jarPart);
 
-        FileSystem fs = FileSystems.newFileSystem(jarURI, new HashMap<>());
+        FileSystem fs;
+        try {
+            fs = FileSystems.newFileSystem(jarURI, new HashMap<>());
+        } catch (java.nio.file.FileSystemAlreadyExistsException e) {
+            // FileSystem already exists, use the existing one
+            fs = FileSystems.getFileSystem(jarURI);
+        }
         return fs.getPath(entryName);
     }
 }
