@@ -41,6 +41,7 @@ import java.util.stream.Stream;
 import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.Source.PathSource;
 import org.jline.builtins.Source.StdInSource;
+import org.jline.builtins.Source.URLSource;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
@@ -1975,9 +1976,16 @@ public class PosixCommands {
     private static Stream<? extends Source> getSources(Context context, String arg) {
         if ("-".equals(arg)) {
             return Stream.of(new StdInSource(context.in()));
-        } else {
-            return maybeExpandGlob(context, arg).map(path -> new PathSource(path, path.toString()));
+        } else if (arg.startsWith("jar:")) {
+            // Handle JAR URLs - don't resolve them against current directory
+            try {
+                java.net.URL url = new java.net.URL(arg);
+                return Stream.of(new URLSource(url, arg));
+            } catch (java.net.MalformedURLException e) {
+                // Fall through to normal path handling
+            }
         }
+        return maybeExpandGlob(context, arg).map(path -> new PathSource(path, path.toString()));
     }
 
     private static Stream<Path> maybeExpandGlob(Context context, String pattern) {
