@@ -102,17 +102,11 @@ public class ClasspathResourceUtil {
         String entryName = s.substring(separator + 2);
         String jarPart = s.substring(0, separator);
 
-        // Extract the file URI from the jar URI
-        // jar:file:/path/to/file.jar -> file:/path/to/file.jar
-        String fileUriString;
-        if (jarPart.startsWith("jar:")) {
-            fileUriString = jarPart.substring(4);
-        } else {
-            fileUriString = jarPart;
-        }
-        URI fileURI = URI.create(fileUriString);
+        // Use the jar: URI directly with FileSystems.newFileSystem()
+        // This is safer than stripping the jar: prefix, as it ensures the jar provider is used
+        URI jarURI = URI.create(jarPart);
 
-        FileSystem fs = FileSystems.newFileSystem(fileURI, new HashMap<>());
+        FileSystem fs = FileSystems.newFileSystem(jarURI, new HashMap<>());
         return fs.getPath(entryName);
     }
 }
