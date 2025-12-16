@@ -9,6 +9,8 @@
 package org.jline.builtins;
 
 import java.io.*;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.*;
 import java.nio.file.attribute.FileTime;
 import java.nio.file.attribute.PosixFilePermission;
@@ -41,6 +43,7 @@ import java.util.stream.Stream;
 import org.jline.builtins.Options.HelpException;
 import org.jline.builtins.Source.PathSource;
 import org.jline.builtins.Source.StdInSource;
+import org.jline.builtins.Source.URLSource;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
@@ -1975,9 +1978,16 @@ public class PosixCommands {
     private static Stream<? extends Source> getSources(Context context, String arg) {
         if ("-".equals(arg)) {
             return Stream.of(new StdInSource(context.in()));
-        } else {
-            return maybeExpandGlob(context, arg).map(path -> new PathSource(path, path.toString()));
+        } else if (arg.startsWith("jar:")) {
+            // Handle JAR URLs - don't resolve them against current directory
+            try {
+                URL url = new URL(arg);
+                return Stream.of(new URLSource(url, arg));
+            } catch (MalformedURLException e) {
+                // Fall through to normal path handling
+            }
         }
+        return maybeExpandGlob(context, arg).map(path -> new PathSource(path, path.toString()));
     }
 
     private static Stream<Path> maybeExpandGlob(Context context, String pattern) {

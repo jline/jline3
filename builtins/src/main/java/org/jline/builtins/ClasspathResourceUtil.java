@@ -12,7 +12,11 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.file.*;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystemAlreadyExistsException;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 
 /**
@@ -79,6 +83,17 @@ public class ClasspathResourceUtil {
 
     /**
      * Converts a URL to a Path.
+     * <p>
+     * For file:// URLs, returns a Path directly to the file.
+     * For jar: URLs, opens the JAR FileSystem and returns a Path within it.
+     * The returned Path is valid as long as the underlying FileSystem remains open.
+     * </p>
+     * <p>
+     * Note: For jar: URLs, the FileSystem is created on first access and reused for
+     * subsequent accesses to the same JAR. The FileSystem will remain open for the
+     * lifetime of the application. Callers should not attempt to close the FileSystem
+     * as it may be shared with other code.
+     * </p>
      *
      * @param resource The URL to convert
      * @return The Path to the resource
@@ -100,9 +115,19 @@ public class ClasspathResourceUtil {
         String s = uri.toString();
         int separator = s.indexOf("!/");
         String entryName = s.substring(separator + 2);
-        URI fileURI = URI.create(s.substring(0, separator));
+        String jarPart = s.substring(0, separator);
 
-        FileSystem fs = FileSystems.newFileSystem(fileURI, new HashMap<>());
+        // Use the jar: URI directly with FileSystems.newFileSystem()
+        // This is safer than stripping the jar: prefix, as it ensures the jar provider is used
+        URI jarURI = URI.create(jarPart);
+
+        FileSystem fs;
+        try {
+            fs = FileSystems.newFileSystem(jarURI, new HashMap<>());
+        } catch (FileSystemAlreadyExistsException e) {
+            // FileSystem already exists, use the existing one
+            fs = FileSystems.getFileSystem(jarURI);
+        }
         return fs.getPath(entryName);
     }
 }
