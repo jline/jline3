@@ -1903,6 +1903,7 @@ public class PosixCommands {
         }
         boolean listAll = opt.isSet("a");
         Predicate<Path> filter = p -> listAll
+                || p.getFileName() == null // root
                 || p.getFileName().toString().equals(".")
                 || p.getFileName().toString().equals("..")
                 || !p.getFileName().toString().startsWith(".");
