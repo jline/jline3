@@ -97,7 +97,7 @@
         <ivy.version>2.5.3</ivy.version>
         <graal.version>25.0.1</graal.version>
         <graal.plugin.version>21.2.0</graal.plugin.version>
-        <palantir.version>2.83.0</palantir.version>
+        <palantir.version>2.85.0</palantir.version>
 
         <surefire.argLine>--add-opens java.base/java.io=org.jline.nativ --add-opens java.base/java.io=org.jline.terminal</surefire.argLine>
     </properties>
