@@ -95,7 +95,7 @@
         <findbugs.version>3.0.2</findbugs.version>
         <groovy.version>5.0.3</groovy.version>
         <ivy.version>2.5.3</ivy.version>
-        <graal.version>25.0.1</graal.version>
+        <graal.version>25.0.2</graal.version>
         <graal.plugin.version>21.2.0</graal.plugin.version>
         <palantir.version>2.83.0</palantir.version>
 
