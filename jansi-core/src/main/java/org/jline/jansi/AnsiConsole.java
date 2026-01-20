@@ -398,6 +398,9 @@ public class AnsiConsole {
      * it is actually uninstalled.
      */
     public static synchronized void systemUninstall() {
+        if (installed == 0) {
+            throw new IllegalStateException("Already uninstalled");
+        }
         installed--;
         if (installed == 0) {
             doUninstall();

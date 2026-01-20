@@ -9,12 +9,13 @@
 package org.jline.prompt.impl;
 
 import org.jline.prompt.PromptBuilder;
+import org.jline.prompt.TextBuilder;
 
 /**
  * Default implementation of TextBuilder.
  * This is now the native implementation that doesn't depend on console-ui.
  */
-public class DefaultTextBuilder implements org.jline.prompt.TextBuilder {
+public class DefaultTextBuilder implements TextBuilder {
 
     private final DefaultPromptBuilder parent;
     private String name;
@@ -36,7 +37,7 @@ public class DefaultTextBuilder implements org.jline.prompt.TextBuilder {
      * @param name the name
      * @return this builder
      */
-    public org.jline.prompt.TextBuilder name(String name) {
+    public TextBuilder name(String name) {
         this.name = name;
         return this;
     }
@@ -47,7 +48,7 @@ public class DefaultTextBuilder implements org.jline.prompt.TextBuilder {
      * @param text the text
      * @return this builder
      */
-    public org.jline.prompt.TextBuilder text(String text) {
+    public TextBuilder text(String text) {
         this.text = text;
         return this;
     }
@@ -58,7 +59,7 @@ public class DefaultTextBuilder implements org.jline.prompt.TextBuilder {
      * @param message the message
      * @return this builder
      */
-    public org.jline.prompt.TextBuilder message(String message) {
+    public TextBuilder message(String message) {
         this.message = message;
         return this;
     }

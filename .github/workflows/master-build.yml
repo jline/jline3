@@ -31,7 +31,7 @@ jobs:
         os: [ ubuntu-latest, ubuntu-22.04, windows-latest, macos-latest ]
         java: [ '22', '24' ]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Set up JDK ${{ matrix.java }}
         uses: actions/setup-java@v5
@@ -40,7 +40,7 @@ jobs:
           distribution: temurin
 
       - name: Cache Maven dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ matrix.java }}-${{ hashFiles('**/pom.xml') }}
@@ -49,7 +49,7 @@ jobs:
             ${{ runner.os }}-maven-
 
       - name: Cache mvx tools
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.mvx/tools
           key: ${{ runner.os }}-mvx-tools-${{ hashFiles('.mvx/config.json5', '.mvx/mvx.properties') }}
@@ -59,7 +59,7 @@ jobs:
 
 
       - name: Build with maven
-        run: ./mvx mvn -- --no-transfer-progress verify
+        run: ./mvx mvn --no-transfer-progress verify
         env:
           MVX_USE_SYSTEM_JAVA: true
           MVX_PARALLEL_DOWNLOADS: 1
@@ -70,7 +70,7 @@ jobs:
       - name: Build with maven
         run: |
           set PATH=%JAVA_HOME%\bin;C:\Windows\System32\WindowsPowerShell\v1.0\
-          mvx.cmd mvn -- --no-transfer-progress verify
+          mvx.cmd mvn --no-transfer-progress verify
         env:
           MVX_USE_SYSTEM_JAVA: true
           MVX_PARALLEL_DOWNLOADS: 1

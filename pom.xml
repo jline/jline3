@@ -84,21 +84,20 @@
         <native.image.skip>true</native.image.skip>
         <automatic.module.name />
 
-        <jna.version>5.17.0</jna.version>
         <jansi.version>2.4.2</jansi.version>
         <juniversalchardet.version>1.0.3</juniversalchardet.version>
         <sshd.version>2.16.0</sshd.version>
         <easymock.version>5.6.0</easymock.version>
-        <junit.version>6.0.0</junit.version>
+        <junit.version>6.0.1</junit.version>
         <gogo.runtime.version>1.1.6</gogo.runtime.version>
         <gogo.jline.version>1.1.8</gogo.jline.version>
         <slf4j.version>2.0.17</slf4j.version>
         <findbugs.version>3.0.2</findbugs.version>
-        <groovy.version>5.0.1</groovy.version>
+        <groovy.version>5.0.3</groovy.version>
         <ivy.version>2.5.3</ivy.version>
-        <graal.version>25.0.0</graal.version>
+        <graal.version>25.0.1</graal.version>
         <graal.plugin.version>21.2.0</graal.plugin.version>
-        <palantir.version>2.74.0</palantir.version>
+        <palantir.version>2.83.0</palantir.version>
 
         <surefire.argLine>--add-opens java.base/java.io=org.jline.nativ --add-opens java.base/java.io=org.jline.terminal</surefire.argLine>
     </properties>
@@ -110,12 +109,6 @@
                 <groupId>org.fusesource.jansi</groupId>
                 <artifactId>jansi</artifactId>
                 <version>${jansi.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>net.java.dev.jna</groupId>
-                <artifactId>jna</artifactId>
-                <version>${jna.version}</version>
             </dependency>
 
             <dependency>
@@ -272,17 +265,17 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
-                    <version>3.4.2</version>
+                    <version>3.5.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-source-plugin</artifactId>
-                    <version>3.3.1</version>
+                    <version>3.4.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-resources-plugin</artifactId>
-                    <version>3.3.1</version>
+                    <version>3.4.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -394,7 +387,7 @@
                 <plugin>
                     <groupId>com.diffplug.spotless</groupId>
                     <artifactId>spotless-maven-plugin</artifactId>
-                    <version>3.0.0</version>
+                    <version>3.1.0</version>
                     <configuration>
                         <java>
                             <toggleOffOn />

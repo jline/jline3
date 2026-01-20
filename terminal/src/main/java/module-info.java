@@ -17,7 +17,7 @@
  * Terminal providers are loaded via the standard ServiceLoader mechanism.
  * This module uses terminal provider implementations but does not provide
  * any concrete providers itself - those are provided by separate modules
- * like jline-terminal-jni, jline-terminal-jna, etc.
+ * like jline-terminal-jni, etc.
  */
 module org.jline.terminal {
     // Dependencies

@@ -10,7 +10,7 @@
       distribution: "temurin",
     },
     maven: {
-      version: "4.0.0-rc-4",
+      version: "4.0.0-rc-5",
     },
     node: {
       version: "20",
@@ -24,7 +24,12 @@
   commands: {
     build: {
       description: "Build the project",
-      script: "mvn clean install -V",
+      script: "mvn install -V",
+    },
+
+    format: {
+      description: "Format source files",
+      script: "mvn spotless:apply"
     },
 
     rebuild: {

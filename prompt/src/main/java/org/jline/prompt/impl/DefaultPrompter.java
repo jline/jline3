@@ -8,10 +8,18 @@
  */
 package org.jline.prompt.impl;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -19,19 +27,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
 import org.jline.prompt.*;
+import org.jline.reader.Binding;
 import org.jline.reader.Candidate;
 import org.jline.reader.CompletingParsedLine;
-import org.jline.reader.CompletionMatcher;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
+import org.jline.reader.Reference;
 import org.jline.reader.UserInterruptException;
-import org.jline.reader.impl.CompletionMatcherImpl;
-import org.jline.reader.impl.ReaderUtils;
+import org.jline.reader.Widget;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
@@ -70,6 +77,10 @@ public class DefaultPrompter implements Prompter {
 
     // First row where items start (after header and message)
     private int firstItemRow;
+
+    // Marker string to detect Escape key press in readLine
+    // Using a Unicode private use area character that's unlikely to be typed by users
+    private static final String ESCAPE_MARKER = "\uE000ESCAPE\uE000";
 
     /**
      * Create a new DefaultPrompter with the given terminal.
@@ -408,142 +419,71 @@ public class DefaultPrompter implements Prompter {
     private InputResult executeInputPrompt(List<AttributedString> header, InputPrompt prompt)
             throws IOException, UserInterruptException {
 
-        // Create prompt message using proper styling like ConsolePrompt
-        AttributedStringBuilder asb = createMessage(prompt.getMessage(), null);
+        // Display header using LineReader's printAbove method
+        if (header != null && !header.isEmpty()) {
+            for (AttributedString line : header) {
+                reader.printAbove(line);
+            }
+        }
 
+        // Create prompt message using proper styling
+        AttributedStringBuilder asb = createMessage(prompt.getMessage(), null);
         String defaultValue = prompt.getDefaultValue();
         if (defaultValue != null) {
             asb.append("(").append(defaultValue).append(") ");
         }
+        String promptString = asb.toAttributedString().toAnsi();
 
-        // Copy ConsolePrompt's exact behavior: use Display system with completion support
-        size.copy(terminal.getSize());
+        // Save original Escape binding and set up escape handling
+        KeyMap<Binding> mainKeyMap = reader.getKeyMaps().get(LineReader.MAIN);
+        Binding originalEscapeBinding = mainKeyMap.getBound("\u001b");
 
-        // Set up key bindings like ConsolePrompt
-        KeyMap<InputOperation> keyMap = new KeyMap<>();
-        bindInputKeys(keyMap);
-
-        StringBuilder buffer = new StringBuilder();
-        StringBuilder displayBuffer = new StringBuilder();
-        Character mask = prompt.getMask();
-        int startColumn = asb.columnLength();
-        int column = startColumn;
-
-        // Completion support like AbstractPrompt
-        List<Candidate> matches = new ArrayList<>();
-        CompletionMatcher completionMatcher = new CompletionMatcherImpl();
-        boolean tabCompletion = prompt.getCompleter() != null && reader != null;
-
-        while (true) {
-            // Handle completion like AbstractPrompt
-            boolean displayCandidates = true;
-            if (tabCompletion) {
-                List<Candidate> possible = new ArrayList<>();
-                CompletingWord completingWord = new CompletingWord(buffer.toString());
-                prompt.getCompleter().complete(reader, completingWord, possible);
-                Map<LineReader.Option, Boolean> options = new HashMap<>();
-                if (reader != null) {
-                    for (LineReader.Option option : LineReader.Option.values()) {
-                        options.put(option, reader.isSet(option));
-                    }
-                }
-                completionMatcher.compile(options, false, completingWord, false, 0, null);
-                matches = completionMatcher.matches(possible).stream()
-                        .sorted(Comparator.naturalOrder())
-                        .collect(Collectors.toList());
-                if (matches.size() > ReaderUtils.getInt(reader, LineReader.MENU_LIST_MAX, 10)) {
-                    displayCandidates = false;
-                }
-            }
-
-            // Build display with completion candidates like AbstractPrompt
-            List<AttributedString> out = buildInputDisplay(
-                    header, asb, buffer, displayBuffer, mask, matches, displayCandidates, startColumn);
-
-            // Update display
-            display.resize(size.getRows(), size.getColumns());
-            int cursorRow = out.size() - 1;
-            display.update(out, size.cursorPos(cursorRow, column));
-
-            // Read input like ConsolePrompt
-            InputOperation op;
+        // Create escape widget that sets marker and accepts line
+        Widget escapeWidget = () -> {
             try {
-                op = bindingReader.readBinding(keyMap);
-            } catch (org.jline.reader.UserInterruptException e) {
-                throw new UserInterruptException("User cancelled");
+                reader.getBuffer().clear();
+                reader.getBuffer().write(ESCAPE_MARKER, false);
+                reader.callWidget(LineReader.ACCEPT_LINE);
+                return true;
+            } catch (Exception e) {
+                return false;
             }
-            switch (op) {
-                case INSERT:
-                    String ch = bindingReader.getLastBinding();
-                    buffer.insert(column - startColumn, ch);
-                    if (mask != null) {
-                        displayBuffer.insert(column - startColumn, mask);
-                    } else {
-                        displayBuffer.insert(column - startColumn, ch);
-                    }
-                    column++;
-                    break;
+        };
+        reader.getWidgets().put("prompter-escape", escapeWidget);
+        mainKeyMap.bind(new Reference("prompter-escape"), "\u001b");
 
-                case BACKSPACE:
-                    if (column > startColumn) {
-                        buffer.deleteCharAt(column - startColumn - 1);
-                        displayBuffer.deleteCharAt(column - startColumn - 1);
-                        column--;
-                    }
-                    break;
+        try {
+            // Use LineReader to read the input
+            String input;
+            Character mask = prompt.getMask();
+            String buffer = defaultValue != null ? defaultValue : null;
 
-                case LEFT:
-                    if (column > startColumn) {
-                        column--;
-                    }
-                    break;
+            input = reader.readLine(promptString, null, mask, buffer);
 
-                case RIGHT:
-                    if (column < startColumn + displayBuffer.length()) {
-                        column++;
-                    }
-                    break;
-
-                case BEGINNING_OF_LINE:
-                    column = startColumn;
-                    break;
-
-                case END_OF_LINE:
-                    column = startColumn + displayBuffer.length();
-                    break;
-
-                case SELECT_CANDIDATE:
-                    if (tabCompletion && matches.size() < ReaderUtils.getInt(reader, LineReader.LIST_MAX, 50)) {
-                        String selected = selectCandidate(buffer.toString(), matches);
-                        if (selected != null) {
-                            buffer.setLength(0);
-                            buffer.append(selected);
-                            displayBuffer.setLength(0);
-                            if (mask == null) {
-                                displayBuffer.append(selected);
-                            } else {
-                                for (int i = 0; i < selected.length(); i++) {
-                                    displayBuffer.append(mask);
-                                }
-                            }
-                            column = startColumn + displayBuffer.length();
-                        }
-                    }
-                    break;
-
-                case EXIT:
-                    String input = buffer.toString();
-                    if (input.trim().isEmpty() && defaultValue != null) {
-                        input = defaultValue;
-                    }
-                    return new DefaultInputResult(input, input, prompt);
-
-                case ESCAPE:
-                    return null; // Go back to previous prompt
-
-                case CANCEL:
-                    throw new UserInterruptException("User cancelled");
+            // Check if Escape was pressed (marked by escape marker)
+            if (ESCAPE_MARKER.equals(input)) {
+                return null; // Go back to previous prompt
             }
+
+            // Handle empty input with default value
+            if (input.trim().isEmpty() && defaultValue != null) {
+                input = defaultValue;
+            }
+
+            return new DefaultInputResult(input, input, prompt);
+        } catch (UserInterruptException e) {
+            // Ctrl+C was pressed
+            throw e;
+        } finally {
+            // Restore original Escape binding
+            if (originalEscapeBinding != null) {
+                mainKeyMap.bind(originalEscapeBinding, "\u001b");
+            } else {
+                // Remove our binding if there was no original
+                mainKeyMap.unbind("\u001b");
+            }
+            // Remove the escape widget
+            reader.getWidgets().remove("prompter-escape");
         }
     }
 
@@ -650,12 +590,7 @@ public class DefaultPrompter implements Prompter {
             int column = startColumn + searchTerm.length();
             display.update(out, size.cursorPos(cursorRow, column));
 
-            InputOperation op;
-            try {
-                op = bindingReader.readBinding(keyMap);
-            } catch (org.jline.reader.UserInterruptException e) {
-                throw new UserInterruptException("User cancelled");
-            }
+            InputOperation op = bindingReader.readBinding(keyMap);
             switch (op) {
                 case INSERT:
                     String ch = bindingReader.getLastBinding();
@@ -728,12 +663,7 @@ public class DefaultPrompter implements Prompter {
         keyMap.bind(InputOperation.ESCAPE, "\u001b");
         keyMap.bind(InputOperation.CANCEL, "\u0003");
 
-        InputOperation op;
-        try {
-            op = bindingReader.readBinding(keyMap);
-        } catch (org.jline.reader.UserInterruptException e) {
-            throw new UserInterruptException("User cancelled");
-        }
+        InputOperation op = bindingReader.readBinding(keyMap);
         switch (op) {
             case EXIT:
                 // Launch editor
@@ -765,43 +695,42 @@ public class DefaultPrompter implements Prompter {
     private String launchEditor(EditorPrompt prompt) throws IOException, InterruptedException {
         try {
             // Create temporary file
-            java.io.File tempFile = java.io.File.createTempFile("jline_editor_", "." + prompt.getFileExtension());
+            File tempFile = File.createTempFile("jline_editor_", "." + prompt.getFileExtension());
             tempFile.deleteOnExit();
 
             // Write initial content if provided
             String initialText = prompt.getInitialText();
             if (initialText != null) {
-                try (java.io.FileWriter writer = new java.io.FileWriter(tempFile)) {
+                try (FileWriter writer = new FileWriter(tempFile)) {
                     writer.write(initialText);
                 }
             }
 
             // Use JLine's built-in Nano editor
             Class<?> nanoClass = Class.forName("org.jline.builtins.Nano");
-            java.lang.reflect.Constructor<?> constructor =
-                    nanoClass.getConstructor(org.jline.terminal.Terminal.class, java.nio.file.Path.class);
+            Constructor<?> constructor = nanoClass.getConstructor(Terminal.class, Path.class);
 
             Object nano =
                     constructor.newInstance(terminal, tempFile.getParentFile().toPath());
 
             // Configure nano options
             if (prompt.getTitle() != null) {
-                java.lang.reflect.Field titleField = nanoClass.getField("title");
+                Field titleField = nanoClass.getField("title");
                 titleField.set(nano, prompt.getTitle());
             }
 
-            java.lang.reflect.Field lineNumbersField = nanoClass.getField("printLineNumbers");
+            Field lineNumbersField = nanoClass.getField("printLineNumbers");
             lineNumbersField.setBoolean(nano, prompt.showLineNumbers());
 
-            java.lang.reflect.Field wrappingField = nanoClass.getField("wrapping");
+            Field wrappingField = nanoClass.getField("wrapping");
             wrappingField.setBoolean(nano, prompt.enableWrapping());
 
             // Get methods
-            java.lang.reflect.Method openMethod = nanoClass.getMethod("open", java.util.List.class);
-            java.lang.reflect.Method runMethod = nanoClass.getMethod("run");
+            Method openMethod = nanoClass.getMethod("open", List.class);
+            Method runMethod = nanoClass.getMethod("run");
 
             // Open the file and run the editor
-            openMethod.invoke(nano, java.util.Collections.singletonList(tempFile.getName()));
+            openMethod.invoke(nano, Collections.singletonList(tempFile.getName()));
             runMethod.invoke(nano);
 
             // Reset terminal state after editor
@@ -809,7 +738,7 @@ public class DefaultPrompter implements Prompter {
 
             // Read the result
             StringBuilder result = new StringBuilder();
-            try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(tempFile))) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(tempFile))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     if (result.length() > 0) {
@@ -1003,7 +932,7 @@ public class DefaultPrompter implements Prompter {
 
         @Override
         public List<String> words() {
-            return java.util.Collections.singletonList(word);
+            return Collections.singletonList(word);
         }
 
         @Override
@@ -1109,13 +1038,7 @@ public class DefaultPrompter implements Prompter {
             refreshListDisplay(header, prompt.getMessage(), items, selectRow, prompt);
 
             // Read user input using BindingReader
-            ListOperation op;
-            try {
-                op = bindingReader.readBinding(keyMap);
-            } catch (org.jline.reader.UserInterruptException e) {
-                throw new UserInterruptException("User cancelled");
-            }
-
+            ListOperation op = bindingReader.readBinding(keyMap);
             switch (op) {
                 case FORWARD_ONE_LINE:
                     selectRow = nextRow(selectRow, firstItemRow, items);
@@ -1190,13 +1113,7 @@ public class DefaultPrompter implements Prompter {
             refreshCheckboxDisplay(header, prompt.getMessage(), items, selectRow, selectedIds, prompt);
 
             // Read user input using BindingReader
-            CheckboxOperation op;
-            try {
-                op = bindingReader.readBinding(keyMap);
-            } catch (org.jline.reader.UserInterruptException e) {
-                throw new UserInterruptException("User cancelled");
-            }
-
+            CheckboxOperation op = bindingReader.readBinding(keyMap);
             switch (op) {
                 case FORWARD_ONE_LINE:
                     selectRow = nextRow(selectRow, firstItemRow, items);
@@ -1274,13 +1191,7 @@ public class DefaultPrompter implements Prompter {
 
         // Interactive selection loop
         while (true) {
-            ChoiceOperation op;
-            try {
-                op = bindingReader.readBinding(keyMap);
-            } catch (org.jline.reader.UserInterruptException e) {
-                throw new UserInterruptException("User cancelled");
-            }
-
+            ChoiceOperation op = bindingReader.readBinding(keyMap);
             switch (op) {
                 case INSERT:
                     // Check if the input character matches any choice key
@@ -1366,12 +1277,7 @@ public class DefaultPrompter implements Prompter {
             display.update(out, size.cursorPos(cursorRow, column));
 
             // Read input like ConsolePrompt
-            ConfirmOperation op;
-            try {
-                op = bindingReader.readBinding(keyMap);
-            } catch (org.jline.reader.UserInterruptException e) {
-                throw new UserInterruptException("User cancelled");
-            }
+            ConfirmOperation op = bindingReader.readBinding(keyMap);
             switch (op) {
                 case YES:
                     buffer = new StringBuilder("y");
