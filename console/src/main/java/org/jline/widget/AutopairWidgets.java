@@ -120,6 +120,12 @@ public class AutopairWidgets extends Widgets {
      * Widgets
      */
     public boolean autopairInsert() {
+        // Skip autopair logic during bracketed paste operations
+        if (reader.getRegionActive() == LineReader.RegionType.PASTE) {
+            callWidget(LineReader.SELF_INSERT);
+            return true;
+        }
+
         if (pairs.containsKey(lastBinding())) {
             if (canSkip(lastBinding())) {
                 callWidget(LineReader.FORWARD_CHAR);
@@ -137,6 +143,12 @@ public class AutopairWidgets extends Widgets {
     }
 
     public boolean autopairClose() {
+        // Skip autopair logic during bracketed paste operations
+        if (reader.getRegionActive() == LineReader.RegionType.PASTE) {
+            callWidget(LineReader.SELF_INSERT);
+            return true;
+        }
+
         if (pairs.containsValue(lastBinding()) && currChar().equals(lastBinding())) {
             callWidget(LineReader.FORWARD_CHAR);
         } else {
@@ -146,6 +158,12 @@ public class AutopairWidgets extends Widgets {
     }
 
     public boolean autopairDelete() {
+        // Skip autopair logic during bracketed paste operations
+        if (reader.getRegionActive() == LineReader.RegionType.PASTE) {
+            callWidget(LineReader.BACKWARD_DELETE_CHAR);
+            return true;
+        }
+
         if (pairs.containsKey(prevChar()) && pairs.get(prevChar()).equals(currChar()) && canDelete(prevChar())) {
             callWidget(LineReader.DELETE_CHAR);
         }
