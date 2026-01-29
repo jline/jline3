@@ -120,12 +120,20 @@ public class AutopairWidgets extends Widgets {
      * Widgets
      */
     public boolean autopairInsert() {
-        if (pairs.containsKey(lastBinding())) {
-            if (canSkip(lastBinding())) {
-                callWidget(LineReader.FORWARD_CHAR);
-            } else if (canPair(lastBinding())) {
+        String binding = lastBinding();
+        if (pairs.containsKey(binding)) {
+            // Do not autopair in multiline buffers (copy/paste and multi-line editing)
+            if (isMultiline()) {
                 callWidget(LineReader.SELF_INSERT);
-                putString(pairs.get(lastBinding()));
+                return true;
+            }
+            int cc = buffer().currChar();
+            boolean atEolOrNewline = (cc == -1 || cc == '\n');
+            if (canSkip(binding)) {
+                callWidget(LineReader.FORWARD_CHAR);
+            } else if (!atEolOrNewline && canPair(binding)) {
+                callWidget(LineReader.SELF_INSERT);
+                putString(pairs.get(binding));
                 callWidget(LineReader.BACKWARD_CHAR);
             } else {
                 callWidget(LineReader.SELF_INSERT);
@@ -206,8 +214,22 @@ public class AutopairWidgets extends Widgets {
         return getWidget(LineReader.ACCEPT_LINE).equals(TT_ACCEPT_LINE);
     }
 
+    private boolean isMultiline() {
+        Buffer buf = buffer();
+        return buf.toString().indexOf('\n') >= 0;
+    }
+
     private boolean canPair(String d) {
         if (balanced(d) && !nexToBoundary(d)) {
+            // Do not autopair in multiline buffers (common in copy/paste)
+            if (isMultiline()) {
+                return false;
+            }
+            int cc = buffer().currChar();
+            // Block at EOB/newline and when the next char is whitespace
+            if (cc == -1 || cc == '\n' || Character.isWhitespace(cc)) {
+                return false;
+            }
             return !d.equals(" ") || (!prevChar().equals(" ") && !currChar().equals(" "));
         }
         return false;
