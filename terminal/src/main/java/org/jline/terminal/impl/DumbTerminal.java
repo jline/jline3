@@ -157,9 +157,11 @@ public class DumbTerminal extends AbstractTerminal {
                 }
             }
         };
-        this.output = out;
-        this.reader = NonBlocking.nonBlocking(getName(), input, inputEncoding());
-        this.writer = new PrintWriter(new OutputStreamWriter(output, outputEncoding()));
+        this.output = new ClosedCheckingOutputStream(out, () -> closed);
+        NonBlockingInputStream wrappedInput = new ClosedCheckingInputStream(input, () -> closed);
+        NonBlockingReader baseReader = NonBlocking.nonBlocking(getName(), wrappedInput, inputEncoding());
+        this.reader = new ClosedCheckingReader(baseReader, () -> closed);
+        this.writer = new ClosedCheckingPrintWriter(new OutputStreamWriter(output, outputEncoding()), () -> closed);
         this.attributes = new Attributes();
         this.attributes.setControlChar(ControlChar.VERASE, (char) 127);
         this.attributes.setControlChar(ControlChar.VWERASE, (char) 23);
@@ -170,39 +172,73 @@ public class DumbTerminal extends AbstractTerminal {
     }
 
     public NonBlockingReader reader() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         return reader;
     }
 
     public PrintWriter writer() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         return writer;
     }
 
     @Override
     public InputStream input() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         return input;
     }
 
     @Override
     public OutputStream output() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         return output;
     }
 
     public Attributes getAttributes() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         return new Attributes(attributes);
     }
 
     public void setAttributes(Attributes attr) {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         attributes.copy(attr);
     }
 
     public Size getSize() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         Size sz = new Size();
         sz.copy(size);
         return sz;
     }
 
     public void setSize(Size sz) {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         size.copy(sz);
+    }
+
+    @Override
+    protected void doClose() throws IOException {
+        super.doClose();
+        try {
+            reader.close();
+        } finally {
+            writer.close();
+        }
     }
 
     @Override

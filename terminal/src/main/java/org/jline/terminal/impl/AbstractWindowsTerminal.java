@@ -183,12 +183,14 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
         super(name, type, encoding, inputEncoding, outputEncoding, signalHandler);
         this.provider = provider;
         this.systemStream = systemStream;
-        NonBlockingPumpReader reader = NonBlocking.nonBlockingPumpReader();
-        this.slaveInputPipe = reader.getWriter();
-        this.reader = reader;
-        this.input = NonBlocking.nonBlockingStream(reader, inputEncoding());
-        this.writer = new PrintWriter(writer);
-        this.output = new WriterOutputStream(writer, outputEncoding());
+        NonBlockingPumpReader baseReader = NonBlocking.nonBlockingPumpReader();
+        this.slaveInputPipe = baseReader.getWriter();
+        this.reader = new ClosedCheckingReader(baseReader, () -> closed);
+        NonBlockingInputStream baseInput = NonBlocking.nonBlockingStream(baseReader, inputEncoding());
+        this.input = new ClosedCheckingInputStream(baseInput, () -> closed);
+        this.writer = new ClosedCheckingPrintWriter(writer, () -> closed);
+        WriterOutputStream baseOutput = new WriterOutputStream(writer, outputEncoding());
+        this.output = new ClosedCheckingOutputStream(baseOutput, () -> closed);
         this.inConsole = inConsole;
         this.outConsole = outConsole;
         parseInfoCmp();
@@ -233,24 +235,39 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
     }
 
     public NonBlockingReader reader() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         return reader;
     }
 
     public PrintWriter writer() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         return writer;
     }
 
     @Override
     public InputStream input() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         return input;
     }
 
     @Override
     public OutputStream output() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         return output;
     }
 
     public Attributes getAttributes() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         int mode = getConsoleMode(inConsole);
         if ((mode & ENABLE_ECHO_INPUT) != 0) {
             attributes.setLocalFlag(Attributes.LocalFlag.ECHO, true);
@@ -262,6 +279,9 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
     }
 
     public void setAttributes(Attributes attr) {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         attributes.copy(attr);
         updateConsoleMode();
     }
@@ -291,6 +311,9 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
     }
 
     public void setSize(Size size) {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         throw new UnsupportedOperationException("Can not resize windows terminal");
     }
 

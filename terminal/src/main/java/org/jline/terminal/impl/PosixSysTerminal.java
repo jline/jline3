@@ -84,10 +84,13 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
             SignalHandler signalHandler)
             throws IOException {
         super(name, type, pty, encoding, inputEncoding, outputEncoding, signalHandler);
-        this.input = NonBlocking.nonBlocking(getName(), pty.getSlaveInput());
-        this.output = new FastBufferedOutputStream(pty.getSlaveOutput());
-        this.reader = NonBlocking.nonBlocking(getName(), input, inputEncoding());
-        this.writer = new PrintWriter(new OutputStreamWriter(output, outputEncoding()));
+        NonBlockingInputStream baseInput = NonBlocking.nonBlocking(getName(), pty.getSlaveInput());
+        this.input = new ClosedCheckingInputStream(baseInput, () -> closed);
+        OutputStream baseOutput = new FastBufferedOutputStream(pty.getSlaveOutput());
+        this.output = new ClosedCheckingOutputStream(baseOutput, () -> closed);
+        NonBlockingReader baseReader = NonBlocking.nonBlocking(getName(), baseInput, inputEncoding());
+        this.reader = new ClosedCheckingReader(baseReader, () -> closed);
+        this.writer = new ClosedCheckingPrintWriter(new OutputStreamWriter(baseOutput, outputEncoding()), () -> closed);
         parseInfoCmp();
         if (nativeSignals) {
             for (final Signal signal : Signal.values()) {
@@ -116,20 +119,32 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
     }
 
     public NonBlockingReader reader() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         return reader;
     }
 
     public PrintWriter writer() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         return writer;
     }
 
     @Override
     public InputStream input() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         return input;
     }
 
     @Override
     public OutputStream output() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         return output;
     }
 
