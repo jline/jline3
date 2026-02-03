@@ -94,6 +94,9 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
     }
 
     public Attributes getAttributes() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         try {
             return pty.getAttr();
         } catch (IOException e) {
@@ -102,6 +105,9 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
     }
 
     public void setAttributes(Attributes attr) {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         try {
             pty.setAttr(attr);
         } catch (IOException e) {
@@ -110,6 +116,9 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
     }
 
     public Size getSize() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         try {
             return pty.getSize();
         } catch (IOException e) {
@@ -118,6 +127,9 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
     }
 
     public void setSize(Size size) {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         try {
             pty.setSize(size);
         } catch (IOException e) {

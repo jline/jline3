@@ -117,10 +117,13 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
         this.out = Objects.requireNonNull(out);
         this.masterInput = pty.getMasterInput();
         this.masterOutput = pty.getMasterOutput();
-        this.input = new InputStreamWrapper(NonBlocking.nonBlocking(name, pty.getSlaveInput()));
-        this.output = pty.getSlaveOutput();
-        this.reader = NonBlocking.nonBlocking(name, input, inputEncoding());
-        this.writer = new PrintWriter(new OutputStreamWriter(output, outputEncoding()));
+        NonBlockingInputStream baseInput = NonBlocking.nonBlocking(name, pty.getSlaveInput());
+        this.input = new InputStreamWrapper(baseInput, () -> closed);
+        OutputStream baseOutput = pty.getSlaveOutput();
+        this.output = new ClosedCheckingOutputStream(baseOutput, () -> closed);
+        NonBlockingReader baseReader = NonBlocking.nonBlocking(name, baseInput, inputEncoding());
+        this.reader = new ClosedCheckingReader(baseReader, () -> closed);
+        this.writer = new ClosedCheckingPrintWriter(new OutputStreamWriter(baseOutput, outputEncoding()), () -> closed);
         parseInfoCmp();
         if (!paused) {
             resume();
@@ -128,18 +131,30 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
     }
 
     public InputStream input() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         return input;
     }
 
     public NonBlockingReader reader() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         return reader;
     }
 
     public OutputStream output() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         return output;
     }
 
     public PrintWriter writer() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         return writer;
     }
 
@@ -214,15 +229,17 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
     private static class InputStreamWrapper extends NonBlockingInputStream {
 
         private final NonBlockingInputStream in;
+        private final java.util.function.Supplier<Boolean> closedChecker;
         private volatile boolean closed;
 
-        protected InputStreamWrapper(NonBlockingInputStream in) {
+        protected InputStreamWrapper(NonBlockingInputStream in, java.util.function.Supplier<Boolean> closedChecker) {
             this.in = in;
+            this.closedChecker = closedChecker;
         }
 
         @Override
         public int read(long timeout, boolean isPeek) throws IOException {
-            if (closed) {
+            if (closed || closedChecker.get()) {
                 throw new ClosedException();
             }
             return in.read(timeout, isPeek);

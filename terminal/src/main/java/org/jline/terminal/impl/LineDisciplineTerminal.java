@@ -27,6 +27,7 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.NonBlocking;
+import org.jline.utils.NonBlockingInputStream;
 import org.jline.utils.NonBlockingPumpInputStream;
 import org.jline.utils.NonBlockingReader;
 
@@ -98,7 +99,8 @@ public class LineDisciplineTerminal extends AbstractTerminal {
     /*
      * Slave streams
      */
-    protected final NonBlockingPumpInputStream slaveInput;
+    protected final NonBlockingPumpInputStream slaveInputPump;
+    protected final NonBlockingInputStream slaveInput;
     protected final NonBlockingReader slaveReader;
     protected final PrintWriter slaveWriter;
     protected final OutputStream slaveOutput;
@@ -137,10 +139,15 @@ public class LineDisciplineTerminal extends AbstractTerminal {
         super(name, type, encoding, inputEncoding, outputEncoding, signalHandler);
         NonBlockingPumpInputStream input = NonBlocking.nonBlockingPumpInputStream(PIPE_SIZE);
         this.slaveInputPipe = input.getOutputStream();
-        this.slaveInput = input;
-        this.slaveReader = NonBlocking.nonBlocking(getName(), slaveInput, inputEncoding());
-        this.slaveOutput = new FilteringOutputStream();
-        this.slaveWriter = new PrintWriter(new OutputStreamWriter(slaveOutput, outputEncoding()));
+        this.slaveInputPump = input;
+        NonBlockingInputStream wrappedInput = new ClosedCheckingInputStream(input, () -> closed);
+        this.slaveInput = wrappedInput;
+        NonBlockingReader baseReader = NonBlocking.nonBlocking(getName(), wrappedInput, inputEncoding());
+        this.slaveReader = new ClosedCheckingReader(baseReader, () -> closed);
+        FilteringOutputStream filteringOutput = new FilteringOutputStream();
+        this.slaveOutput = new ClosedCheckingOutputStream(filteringOutput, () -> closed);
+        this.slaveWriter =
+                new ClosedCheckingPrintWriter(new OutputStreamWriter(filteringOutput, outputEncoding()), () -> closed);
         this.masterOutput = masterOutput;
         this.attributes = getDefaultTerminalAttributes();
         this.size = new Size(160, 50);
@@ -203,38 +210,62 @@ public class LineDisciplineTerminal extends AbstractTerminal {
     }
 
     public NonBlockingReader reader() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         return slaveReader;
     }
 
     public PrintWriter writer() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         return slaveWriter;
     }
 
     @Override
     public InputStream input() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         return slaveInput;
     }
 
     @Override
     public OutputStream output() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         return slaveOutput;
     }
 
     public Attributes getAttributes() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         return new Attributes(attributes);
     }
 
     public void setAttributes(Attributes attr) {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         attributes.copy(attr);
     }
 
     public Size getSize() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         Size sz = new Size();
         sz.copy(size);
         return sz;
     }
 
     public void setSize(Size sz) {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
         size.copy(sz);
     }
 
@@ -355,7 +386,7 @@ public class LineDisciplineTerminal extends AbstractTerminal {
     }
 
     protected void processIOException(IOException ioException) {
-        this.slaveInput.setIoException(ioException);
+        this.slaveInputPump.setIoException(ioException);
     }
 
     protected void doClose() throws IOException {

@@ -82,6 +82,7 @@ public abstract class AbstractTerminal implements TerminalExt {
     protected Status status;
     protected Runnable onClose;
     protected MouseTracking currentMouseTracking = MouseTracking.Off;
+    protected volatile boolean closed = false;
 
     public AbstractTerminal(String name, String type) throws IOException {
         this(name, type, null, SignalHandler.SIG_DFL);
@@ -157,6 +158,7 @@ public abstract class AbstractTerminal implements TerminalExt {
     }
 
     protected void doClose() throws IOException {
+        closed = true;
         if (status != null) {
             status.close();
         }
