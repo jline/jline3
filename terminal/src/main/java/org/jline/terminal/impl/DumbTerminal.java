@@ -157,11 +157,9 @@ public class DumbTerminal extends AbstractTerminal {
                 }
             }
         };
-        this.output = new ClosedCheckingOutputStream(out, () -> closed);
-        NonBlockingInputStream wrappedInput = new ClosedCheckingInputStream(input, () -> closed);
-        NonBlockingReader baseReader = NonBlocking.nonBlocking(getName(), wrappedInput, inputEncoding());
-        this.reader = new ClosedCheckingReader(baseReader, () -> closed);
-        this.writer = new ClosedCheckingPrintWriter(new OutputStreamWriter(output, outputEncoding()), () -> closed);
+        this.output = out;
+        this.reader = NonBlocking.nonBlocking(getName(), input, inputEncoding());
+        this.writer = new PrintWriter(new OutputStreamWriter(output, outputEncoding()));
         this.attributes = new Attributes();
         this.attributes.setControlChar(ControlChar.VERASE, (char) 127);
         this.attributes.setControlChar(ControlChar.VWERASE, (char) 23);

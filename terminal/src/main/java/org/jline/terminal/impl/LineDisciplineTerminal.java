@@ -140,14 +140,11 @@ public class LineDisciplineTerminal extends AbstractTerminal {
         NonBlockingPumpInputStream input = NonBlocking.nonBlockingPumpInputStream(PIPE_SIZE);
         this.slaveInputPipe = input.getOutputStream();
         this.slaveInputPump = input;
-        NonBlockingInputStream wrappedInput = new ClosedCheckingInputStream(input, () -> closed);
-        this.slaveInput = wrappedInput;
-        NonBlockingReader baseReader = NonBlocking.nonBlocking(getName(), wrappedInput, inputEncoding());
-        this.slaveReader = new ClosedCheckingReader(baseReader, () -> closed);
+        this.slaveInput = input;
+        this.slaveReader = NonBlocking.nonBlocking(getName(), slaveInput, inputEncoding());
         FilteringOutputStream filteringOutput = new FilteringOutputStream();
-        this.slaveOutput = new ClosedCheckingOutputStream(filteringOutput, () -> closed);
-        this.slaveWriter =
-                new ClosedCheckingPrintWriter(new OutputStreamWriter(filteringOutput, outputEncoding()), () -> closed);
+        this.slaveOutput = filteringOutput;
+        this.slaveWriter = new PrintWriter(new OutputStreamWriter(filteringOutput, outputEncoding()));
         this.masterOutput = masterOutput;
         this.attributes = getDefaultTerminalAttributes();
         this.size = new Size(160, 50);
