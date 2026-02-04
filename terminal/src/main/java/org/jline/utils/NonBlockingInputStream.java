@@ -54,6 +54,23 @@ public abstract class NonBlockingInputStream extends InputStream {
     public static final int READ_EXPIRED = -2;
 
     /**
+     * Flag indicating whether this input stream has been closed.
+     * Marked as volatile to ensure visibility across threads.
+     */
+    protected volatile boolean closed = false;
+
+    /**
+     * Checks if this input stream has been closed and throws an exception if it has.
+     *
+     * @throws ClosedException if this input stream has been closed
+     */
+    protected void checkClosed() throws IOException {
+        if (closed) {
+            throw new ClosedException();
+        }
+    }
+
+    /**
      * Reads the next byte of data from the input stream. The value byte is
      * returned as an <code>int</code> in the range <code>0</code> to
      * <code>255</code>. If no byte is available because the end of the stream
@@ -152,4 +169,15 @@ public abstract class NonBlockingInputStream extends InputStream {
     public void shutdown() {}
 
     public abstract int read(long timeout, boolean isPeek) throws IOException;
+
+    /**
+     * Closes this input stream and marks it as closed.
+     * Subsequent read operations will throw a ClosedException.
+     *
+     * @throws IOException if an I/O error occurs
+     */
+    @Override
+    public void close() throws IOException {
+        closed = true;
+    }
 }

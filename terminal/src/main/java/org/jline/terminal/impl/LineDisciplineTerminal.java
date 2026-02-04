@@ -392,14 +392,18 @@ public class LineDisciplineTerminal extends AbstractTerminal {
     protected void doClose() throws IOException {
         super.doClose();
         try {
-            slaveReader.close();
+            slaveInput.close();
         } finally {
             try {
-                slaveInputPipe.close();
+                slaveReader.close();
             } finally {
                 try {
+                    slaveInputPipe.close();
                 } finally {
-                    slaveWriter.close();
+                    try {
+                    } finally {
+                        slaveWriter.close();
+                    }
                 }
             }
         }

@@ -56,6 +56,23 @@ public abstract class NonBlockingReader extends Reader {
     public static final int READ_EXPIRED = -2;
 
     /**
+     * Flag indicating whether this reader has been closed.
+     * Marked as volatile to ensure visibility across threads.
+     */
+    protected volatile boolean closed = false;
+
+    /**
+     * Checks if this reader has been closed and throws an exception if it has.
+     *
+     * @throws ClosedException if this reader has been closed
+     */
+    protected void checkClosed() throws IOException {
+        if (closed) {
+            throw new ClosedException();
+        }
+    }
+
+    /**
      * Shuts down the thread that is handling blocking I/O.
      *
      * <p>
@@ -161,4 +178,15 @@ public abstract class NonBlockingReader extends Reader {
      * @throws IOException if anything wrong happens
      */
     protected abstract int read(long timeout, boolean isPeek) throws IOException;
+
+    /**
+     * Closes this reader and marks it as closed.
+     * Subsequent read operations will throw a ClosedException.
+     *
+     * @throws IOException if an I/O error occurs
+     */
+    @Override
+    public void close() throws IOException {
+        closed = true;
+    }
 }

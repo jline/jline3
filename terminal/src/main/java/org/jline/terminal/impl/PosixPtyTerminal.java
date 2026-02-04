@@ -117,13 +117,10 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
         this.out = Objects.requireNonNull(out);
         this.masterInput = pty.getMasterInput();
         this.masterOutput = pty.getMasterOutput();
-        NonBlockingInputStream baseInput = NonBlocking.nonBlocking(name, pty.getSlaveInput());
-        this.input = new InputStreamWrapper(baseInput, () -> closed);
-        OutputStream baseOutput = pty.getSlaveOutput();
-        this.output = new ClosedCheckingOutputStream(baseOutput, () -> closed);
-        NonBlockingReader baseReader = NonBlocking.nonBlocking(name, baseInput, inputEncoding());
-        this.reader = new ClosedCheckingReader(baseReader, () -> closed);
-        this.writer = new ClosedCheckingPrintWriter(new OutputStreamWriter(baseOutput, outputEncoding()), () -> closed);
+        this.input = NonBlocking.nonBlocking(name, pty.getSlaveInput());
+        this.output = pty.getSlaveOutput();
+        this.reader = NonBlocking.nonBlocking(name, input, inputEncoding());
+        this.writer = new PrintWriter(new OutputStreamWriter(output, outputEncoding()));
         parseInfoCmp();
         if (!paused) {
             resume();
@@ -161,6 +158,7 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
     @Override
     protected void doClose() throws IOException {
         super.doClose();
+        input.close();
         reader.close();
     }
 
@@ -223,31 +221,6 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
     public boolean paused() {
         synchronized (lock) {
             return paused;
-        }
-    }
-
-    private static class InputStreamWrapper extends NonBlockingInputStream {
-
-        private final NonBlockingInputStream in;
-        private final java.util.function.Supplier<Boolean> closedChecker;
-        private volatile boolean closed;
-
-        protected InputStreamWrapper(NonBlockingInputStream in, java.util.function.Supplier<Boolean> closedChecker) {
-            this.in = in;
-            this.closedChecker = closedChecker;
-        }
-
-        @Override
-        public int read(long timeout, boolean isPeek) throws IOException {
-            if (closed || closedChecker.get()) {
-                throw new ClosedException();
-            }
-            return in.read(timeout, isPeek);
-        }
-
-        @Override
-        public void close() throws IOException {
-            closed = true;
         }
     }
 

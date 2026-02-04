@@ -33,8 +33,6 @@ public class NonBlockingPumpReader extends NonBlockingReader {
 
     private final Writer writer;
 
-    private boolean closed;
-
     public NonBlockingPumpReader() {
         this(DEFAULT_BUFFER_SIZE);
     }
@@ -191,7 +189,7 @@ public class NonBlockingPumpReader extends NonBlockingReader {
         final ReentrantLock lock = this.lock;
         lock.lock();
         try {
-            this.closed = true;
+            super.close(); // Use base class closed field
             this.notEmpty.signalAll();
             this.notFull.signalAll();
         } finally {

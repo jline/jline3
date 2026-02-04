@@ -136,6 +136,7 @@ public abstract class AbstractPty implements Pty {
 
         @Override
         public int read(long timeout, boolean isPeek) throws IOException {
+            checkClosed();
             checkInterrupted();
             if (c != 0) {
                 int r = c;

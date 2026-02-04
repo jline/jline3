@@ -23,8 +23,6 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
 
     private final OutputStream output;
 
-    private boolean closed;
-
     private IOException ioException;
 
     public NonBlockingPumpInputStream() {
@@ -155,7 +153,7 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
 
     @Override
     public synchronized void close() throws IOException {
-        this.closed = true;
+        super.close(); // Use base class closed field
         notifyAll();
     }
 
