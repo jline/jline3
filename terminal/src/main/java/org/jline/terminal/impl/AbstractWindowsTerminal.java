@@ -233,39 +233,29 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
     }
 
     public NonBlockingReader reader() {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         return reader;
     }
 
     public PrintWriter writer() {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         return writer;
     }
 
     @Override
     public InputStream input() {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         return input;
     }
 
     @Override
     public OutputStream output() {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         return output;
     }
 
     public Attributes getAttributes() {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         int mode = getConsoleMode(inConsole);
         if ((mode & ENABLE_ECHO_INPUT) != 0) {
             attributes.setLocalFlag(Attributes.LocalFlag.ECHO, true);
@@ -277,9 +267,7 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
     }
 
     public void setAttributes(Attributes attr) {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         attributes.copy(attr);
         updateConsoleMode();
     }
@@ -309,9 +297,7 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
     }
 
     public void setSize(Size size) {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         throw new UnsupportedOperationException("Can not resize windows terminal");
     }
 

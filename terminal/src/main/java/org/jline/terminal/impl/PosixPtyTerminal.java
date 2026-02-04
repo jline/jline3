@@ -128,30 +128,22 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
     }
 
     public InputStream input() {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         return input;
     }
 
     public NonBlockingReader reader() {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         return reader;
     }
 
     public OutputStream output() {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         return output;
     }
 
     public PrintWriter writer() {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         return writer;
     }
 

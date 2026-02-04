@@ -345,6 +345,17 @@ public abstract class AbstractTerminal implements TerminalExt {
         }
     }
 
+    /**
+     * Checks if this terminal has been closed and throws an exception if it has.
+     *
+     * @throws IllegalStateException if this terminal has been closed
+     */
+    protected void checkClosed() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
+    }
+
     @Override
     public boolean canPauseResume() {
         return false;

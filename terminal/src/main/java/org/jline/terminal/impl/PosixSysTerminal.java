@@ -116,32 +116,24 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
     }
 
     public NonBlockingReader reader() {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         return reader;
     }
 
     public PrintWriter writer() {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         return writer;
     }
 
     @Override
     public InputStream input() {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         return input;
     }
 
     @Override
     public OutputStream output() {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         return output;
     }
 
