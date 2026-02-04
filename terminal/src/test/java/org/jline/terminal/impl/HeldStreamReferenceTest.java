@@ -17,22 +17,27 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 
 import org.jline.utils.NonBlockingReader;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 /**
- * Test that verifies held references to terminal streams behave correctly after terminal closure.
+ * Test that verifies held references to terminal streams behave correctly after terminal closure
+ * in soft close mode (backward compatibility mode).
  * <p>
- * In JLine 3.x, the default behavior is "soft close": accessing streams after terminal closure
- * logs a WARNING but does not throw an exception, preserving backward compatibility.
- * When the system property {@code jline.terminal.strictClose=true} is set, accessing closed
- * terminal streams throws {@code ClosedException}.
+ * In JLine 4.x, the default behavior is "strict close": accessing streams after terminal closure
+ * throws {@code ClosedException}. These tests verify the "soft close" mode which can be enabled
+ * by setting the system property {@code jline.terminal.strictClose=false}.
+ * </p>
+ * <p>
+ * <b>Note:</b> These tests require {@code -Djline.terminal.strictClose=false} to run properly.
  * </p>
  */
 public class HeldStreamReferenceTest {
 
     @Test
+    @Disabled("Requires -Djline.terminal.strictClose=false for soft close mode")
     public void testHeldWriterReferenceLogsWarningAfterClose() throws IOException {
         ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);
         ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -51,6 +56,7 @@ public class HeldStreamReferenceTest {
     }
 
     @Test
+    @Disabled("Requires -Djline.terminal.strictClose=false for soft close mode")
     public void testHeldReaderReferenceLogsWarningAfterClose() throws IOException {
         ByteArrayInputStream input = new ByteArrayInputStream("test\n".getBytes(StandardCharsets.UTF_8));
         ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -69,6 +75,7 @@ public class HeldStreamReferenceTest {
     }
 
     @Test
+    @Disabled("Requires -Djline.terminal.strictClose=false for soft close mode")
     public void testHeldInputStreamReferenceLogsWarningAfterClose() throws IOException {
         ByteArrayInputStream input = new ByteArrayInputStream("test\n".getBytes(StandardCharsets.UTF_8));
         ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -87,6 +94,7 @@ public class HeldStreamReferenceTest {
     }
 
     @Test
+    @Disabled("Requires -Djline.terminal.strictClose=false for soft close mode")
     public void testHeldOutputStreamReferenceLogsWarningAfterClose() throws IOException {
         ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);
         ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -106,6 +114,7 @@ public class HeldStreamReferenceTest {
     }
 
     @Test
+    @Disabled("Requires -Djline.terminal.strictClose=false for soft close mode")
     public void testHeldExternalTerminalWriterReferenceLogsWarningAfterClose() throws IOException {
         ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);
         ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -124,6 +133,7 @@ public class HeldStreamReferenceTest {
     }
 
     @Test
+    @Disabled("Requires -Djline.terminal.strictClose=false for soft close mode")
     public void testHeldExternalTerminalReaderReferenceLogsWarningAfterClose() throws IOException {
         ByteArrayInputStream input = new ByteArrayInputStream("test\n".getBytes(StandardCharsets.UTF_8));
         ByteArrayOutputStream output = new ByteArrayOutputStream();

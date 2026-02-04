@@ -58,7 +58,8 @@ public abstract class NonBlockingReader extends Reader {
     public static final int READ_EXPIRED = -2;
 
     private static final Logger LOG = Logger.getLogger(NonBlockingReader.class.getName());
-    private static final boolean STRICT_CLOSE = Boolean.getBoolean("jline.terminal.strictClose");
+    private static final boolean STRICT_CLOSE =
+            !"false".equalsIgnoreCase(System.getProperty("jline.terminal.strictClose", "true"));
 
     /**
      * Flag indicating whether this reader has been closed.
@@ -75,16 +76,17 @@ public abstract class NonBlockingReader extends Reader {
     /**
      * Checks if this reader has been closed.
      * <p>
-     * In JLine 3.x, this provides backward compatibility by default: when a closed reader
-     * is accessed, it logs a WARNING instead of throwing an exception. This allows
-     * existing code to continue working while alerting developers to the issue.
+     * In JLine 4.x, strict mode is enabled by default: when a closed reader is accessed,
+     * it throws a {@code ClosedException}. This ensures proper resource management and
+     * prevents use-after-close bugs.
      * </p>
      * <p>
-     * To enable strict mode (throwing ClosedException on access to closed readers),
-     * set the system property {@code jline.terminal.strictClose=true}.
+     * To disable strict mode and enable backward compatibility mode (logging a WARNING
+     * instead of throwing an exception), set the system property
+     * {@code jline.terminal.strictClose=false}.
      * </p>
      *
-     * @throws ClosedException if this reader has been closed and strict mode is enabled
+     * @throws ClosedException if this reader has been closed and strict mode is enabled (default)
      */
     protected void checkClosed() throws IOException {
         if (closed) {
