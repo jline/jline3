@@ -13,6 +13,8 @@ import java.io.Reader;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static org.jline.terminal.TerminalBuilder.PROP_STRICT_CLOSE;
+
 /**
  * A reader that provides non-blocking read operations.
  *
@@ -50,7 +52,7 @@ public abstract class NonBlockingReader extends Reader {
     public static final int READ_EXPIRED = -2;
 
     private static final Logger LOG = Logger.getLogger(NonBlockingReader.class.getName());
-    private static final boolean STRICT_CLOSE = Boolean.getBoolean("jline.terminal.strictClose");
+    private static final boolean STRICT_CLOSE = Boolean.getBoolean(PROP_STRICT_CLOSE);
 
     /**
      * Flag indicating whether this reader has been closed.

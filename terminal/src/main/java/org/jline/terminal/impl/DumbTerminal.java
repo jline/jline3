@@ -170,62 +170,46 @@ public class DumbTerminal extends AbstractTerminal {
     }
 
     public NonBlockingReader reader() {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         return reader;
     }
 
     public PrintWriter writer() {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         return writer;
     }
 
     @Override
     public InputStream input() {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         return input;
     }
 
     @Override
     public OutputStream output() {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         return output;
     }
 
     public Attributes getAttributes() {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         return new Attributes(attributes);
     }
 
     public void setAttributes(Attributes attr) {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         attributes.copy(attr);
     }
 
     public Size getSize() {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         Size sz = new Size();
         sz.copy(size);
         return sz;
     }
 
     public void setSize(Size sz) {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         size.copy(sz);
     }
 

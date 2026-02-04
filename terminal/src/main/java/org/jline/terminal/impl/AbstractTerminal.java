@@ -129,6 +129,21 @@ public abstract class AbstractTerminal implements TerminalExt {
         return status;
     }
 
+    /**
+     * Checks if this terminal has been closed and throws an exception if it has.
+     * <p>
+     * This method provides a centralized check for terminal closure, ensuring
+     * consistent error handling across all terminal operations.
+     * </p>
+     *
+     * @throws IllegalStateException if this terminal has been closed
+     */
+    protected void checkClosed() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
+        }
+    }
+
     public SignalHandler handle(Signal signal, SignalHandler handler) {
         Objects.requireNonNull(signal);
         Objects.requireNonNull(handler);

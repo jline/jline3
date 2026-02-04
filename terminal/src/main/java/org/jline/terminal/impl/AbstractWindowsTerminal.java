@@ -309,9 +309,7 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
     }
 
     public void setSize(Size size) {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         throw new UnsupportedOperationException("Can not resize windows terminal");
     }
 

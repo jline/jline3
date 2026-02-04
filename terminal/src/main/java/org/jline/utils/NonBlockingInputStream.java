@@ -13,6 +13,8 @@ import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static org.jline.terminal.TerminalBuilder.PROP_STRICT_CLOSE;
+
 /**
  * An input stream that supports non-blocking read operations with timeouts.
  *
@@ -49,7 +51,7 @@ public abstract class NonBlockingInputStream extends InputStream {
     public static final int READ_EXPIRED = -2;
 
     private static final Logger LOG = Logger.getLogger(NonBlockingInputStream.class.getName());
-    private static final boolean STRICT_CLOSE = Boolean.getBoolean("jline.terminal.strictClose");
+    private static final boolean STRICT_CLOSE = Boolean.getBoolean(PROP_STRICT_CLOSE);
 
     /**
      * Flag indicating whether this input stream has been closed.

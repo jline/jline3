@@ -127,9 +127,7 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
     }
 
     public void setSize(Size size) {
-        if (closed) {
-            throw new IllegalStateException("Terminal has been closed");
-        }
+        checkClosed();
         try {
             pty.setSize(size);
         } catch (IOException e) {

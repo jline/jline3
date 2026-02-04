@@ -173,6 +173,16 @@ public final class TerminalBuilder {
     public static final String PROP_COLOR_DISTANCE = "org.jline.utils.colorDistance";
     public static final String PROP_DISABLE_ALTERNATE_CHARSET = "org.jline.utils.disableAlternateCharset";
 
+    /**
+     * System property to control strict close mode for terminals and streams.
+     * <p>
+     * In JLine 3.x, soft mode is enabled by default for backward compatibility.
+     * When set to "true", accessing closed terminals or streams will throw a ClosedException.
+     * When set to "false" (default), a warning is logged instead.
+     * </p>
+     */
+    public static final String PROP_STRICT_CLOSE = "jline.terminal.strictClose";
+
     //
     // System properties controlling how FileDescriptor are create.
     // The value can be a comma separated list of defined mechanisms.
