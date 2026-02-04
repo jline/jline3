@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
  * In JLine 3.x, the default behavior is "soft close": accessing streams after terminal closure
  * logs a WARNING but does not throw an exception, preserving backward compatibility.
  * When the system property {@code jline.terminal.strictClose=true} is set, accessing closed
- * terminal streams throws {@code IllegalStateException}.
+ * terminal streams throws {@code ClosedException}.
  * </p>
  */
 public class HeldStreamReferenceTest {
