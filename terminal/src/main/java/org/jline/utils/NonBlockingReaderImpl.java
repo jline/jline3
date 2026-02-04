@@ -126,6 +126,7 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
      *   read timed out.
      */
     protected synchronized int read(long timeout, boolean isPeek) throws IOException {
+        checkClosed();
         /*
          * If the thread hit an IOException, we report it.
          */

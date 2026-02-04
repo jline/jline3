@@ -120,6 +120,7 @@ public class NonBlocking {
 
         @Override
         public int read(long timeout, boolean isPeek) throws IOException {
+            checkClosed();
             Timeout t = new Timeout(timeout);
             while (!bytes.hasRemaining() && !t.elapsed()) {
                 int c = reader.read(t.timeout());

@@ -68,6 +68,7 @@ public class NonBlockingPumpReader extends NonBlockingReader {
 
     @Override
     protected int read(long timeout, boolean isPeek) throws IOException {
+        checkClosed();
         final ReentrantLock lock = this.lock;
         lock.lock();
         try {

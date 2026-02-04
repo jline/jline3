@@ -10,6 +10,8 @@ package org.jline.utils;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * A reader that provides non-blocking read operations.
@@ -46,6 +48,54 @@ import java.io.Reader;
 public abstract class NonBlockingReader extends Reader {
     public static final int EOF = -1;
     public static final int READ_EXPIRED = -2;
+
+    private static final Logger LOG = Logger.getLogger(NonBlockingReader.class.getName());
+    private static final boolean STRICT_CLOSE = Boolean.getBoolean("jline.terminal.strictClose");
+
+    /**
+     * Flag indicating whether this reader has been closed.
+     * Marked as volatile to ensure visibility across threads.
+     */
+    protected volatile boolean closed = false;
+
+    /**
+     * Flag to track if a warning has been logged for this reader.
+     * Used to avoid log spam in soft close mode.
+     */
+    private boolean warningLogged = false;
+
+    /**
+     * Checks if this reader has been closed.
+     * <p>
+     * In JLine 3.x, this provides backward compatibility by default: when a closed reader
+     * is accessed, it logs a WARNING instead of throwing an exception. This allows
+     * existing code to continue working while alerting developers to the issue.
+     * </p>
+     * <p>
+     * To enable strict mode (throwing ClosedException on access to closed readers),
+     * set the system property {@code jline.terminal.strictClose=true}.
+     * </p>
+     *
+     * @throws ClosedException if this reader has been closed and strict mode is enabled
+     */
+    protected void checkClosed() throws IOException {
+        if (closed) {
+            if (STRICT_CLOSE) {
+                throw new ClosedException();
+            } else {
+                // Log warning only once per reader instance to avoid log spam
+                if (!warningLogged) {
+                    LOG.log(
+                            Level.WARNING,
+                            "Accessing a closed reader. "
+                                    + "This may indicate a resource management issue. "
+                                    + "Set -Djline.terminal.strictClose=true to make this an error.",
+                            new Throwable("Stack trace"));
+                    warningLogged = true;
+                }
+            }
+        }
+    }
 
     /**
      * Shuts down the thread that is handling blocking I/O.
@@ -153,4 +203,9 @@ public abstract class NonBlockingReader extends Reader {
      * @throws IOException if anything wrong happens
      */
     protected abstract int read(long timeout, boolean isPeek) throws IOException;
+
+    @Override
+    public void close() throws IOException {
+        this.closed = true;
+    }
 }

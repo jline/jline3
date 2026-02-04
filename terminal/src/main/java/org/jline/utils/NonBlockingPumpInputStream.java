@@ -85,6 +85,7 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
 
     @Override
     public synchronized int read(long timeout, boolean isPeek) throws IOException {
+        checkClosed();
         checkIoException();
         // Blocks until more input is available or the reader is closed.
         int res = wait(readBuffer, timeout);

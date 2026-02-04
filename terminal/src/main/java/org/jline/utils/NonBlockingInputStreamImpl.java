@@ -89,6 +89,7 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
      * @throws IOException if anything wrong happens
      */
     public synchronized int read(long timeout, boolean isPeek) throws IOException {
+        checkClosed();
         /*
          * If the thread hit an IOException, we report it.
          */
