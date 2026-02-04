@@ -142,9 +142,8 @@ public class LineDisciplineTerminal extends AbstractTerminal {
         this.slaveInputPump = input;
         this.slaveInput = input;
         this.slaveReader = NonBlocking.nonBlocking(getName(), slaveInput, inputEncoding());
-        FilteringOutputStream filteringOutput = new FilteringOutputStream();
-        this.slaveOutput = filteringOutput;
-        this.slaveWriter = new PrintWriter(new OutputStreamWriter(filteringOutput, outputEncoding()));
+        this.slaveOutput = new FilteringOutputStream();
+        this.slaveWriter = new PrintWriter(new OutputStreamWriter(slaveOutput, outputEncoding()));
         this.masterOutput = masterOutput;
         this.attributes = getDefaultTerminalAttributes();
         this.size = new Size(160, 50);
