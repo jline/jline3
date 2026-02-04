@@ -183,10 +183,10 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
         super(name, type, encoding, inputEncoding, outputEncoding, signalHandler);
         this.provider = provider;
         this.systemStream = systemStream;
-        NonBlockingPumpReader baseReader = NonBlocking.nonBlockingPumpReader();
-        this.slaveInputPipe = baseReader.getWriter();
-        this.reader = baseReader;
-        this.input = NonBlocking.nonBlockingStream(baseReader, inputEncoding());
+        NonBlockingPumpReader reader = NonBlocking.nonBlockingPumpReader();
+        this.slaveInputPipe = reader.getWriter();
+        this.reader = reader;
+        this.input = NonBlocking.nonBlockingStream(reader, inputEncoding());
         this.writer = new PrintWriter(writer);
         this.output = new WriterOutputStream(writer, outputEncoding());
         this.inConsole = inConsole;
