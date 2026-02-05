@@ -48,11 +48,19 @@ import static org.jline.terminal.TerminalBuilder.PROP_STRICT_CLOSE;
  * </p>
  */
 public abstract class NonBlockingReader extends Reader {
+
+    /**
+     * Default constructor.
+     * Initializes strict close mode based on the current value of the system property.
+     */
+    public NonBlockingReader() {
+        this.strictClose = Boolean.getBoolean(PROP_STRICT_CLOSE);
+    }
+
     public static final int EOF = -1;
     public static final int READ_EXPIRED = -2;
 
     private static final Logger LOG = Logger.getLogger(NonBlockingReader.class.getName());
-    private static final boolean STRICT_CLOSE = Boolean.getBoolean(PROP_STRICT_CLOSE);
 
     /**
      * Flag indicating whether this reader has been closed.
@@ -65,6 +73,14 @@ public abstract class NonBlockingReader extends Reader {
      * Used to avoid log spam in soft close mode.
      */
     private boolean warningLogged = false;
+
+    /**
+     * Flag indicating whether strict close mode is enabled for this reader.
+     * Determined at construction time from the system property.
+     * In strict mode, accessing a closed reader throws ClosedException.
+     * In soft mode, accessing a closed reader logs a warning.
+     */
+    private final boolean strictClose;
 
     /**
      * Checks if this reader has been closed.
@@ -82,7 +98,7 @@ public abstract class NonBlockingReader extends Reader {
      */
     protected void checkClosed() throws IOException {
         if (closed) {
-            if (STRICT_CLOSE) {
+            if (strictClose) {
                 throw new ClosedException();
             } else {
                 // Log warning only once per reader instance to avoid log spam
