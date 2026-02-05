@@ -17,7 +17,6 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 
 import org.jline.utils.NonBlockingReader;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -31,123 +30,157 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
  * by setting the system property {@code jline.terminal.strictClose=false}.
  * </p>
  * <p>
- * <b>Note:</b> These tests require {@code -Djline.terminal.strictClose=false} to run properly.
+ * Each test sets the system property before creating the terminal to enable soft close mode,
+ * then restores the default strict mode after the test completes.
  * </p>
  */
 public class HeldStreamReferenceTest {
 
     @Test
-    @Disabled("Requires -Djline.terminal.strictClose=false for soft close mode")
     public void testHeldWriterReferenceLogsWarningAfterClose() throws IOException {
-        ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        // Set soft close mode before creating the terminal
+        System.setProperty("jline.terminal.strictClose", "false");
+        try {
+            ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
 
-        DumbTerminal terminal = new DumbTerminal("test", "dumb", input, output, StandardCharsets.UTF_8);
+            DumbTerminal terminal = new DumbTerminal("test", "dumb", input, output, StandardCharsets.UTF_8);
 
-        // Get a reference to the writer before closing
-        PrintWriter writer = terminal.writer();
+            // Get a reference to the writer before closing
+            PrintWriter writer = terminal.writer();
 
-        // Close the terminal
-        terminal.close();
+            // Close the terminal
+            terminal.close();
 
-        // In soft close mode (default), the held reference should log a warning but not throw
-        assertDoesNotThrow(
-                () -> writer.println("test"), "Held writer reference should not throw in soft close mode (default)");
+            // In soft close mode, the held reference should log a warning but not throw
+            assertDoesNotThrow(
+                    () -> writer.println("test"), "Held writer reference should not throw in soft close mode");
+        } finally {
+            // Restore default strict close mode
+            System.setProperty("jline.terminal.strictClose", "true");
+        }
     }
 
     @Test
-    @Disabled("Requires -Djline.terminal.strictClose=false for soft close mode")
     public void testHeldReaderReferenceLogsWarningAfterClose() throws IOException {
-        ByteArrayInputStream input = new ByteArrayInputStream("test\n".getBytes(StandardCharsets.UTF_8));
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        // Set soft close mode before creating the terminal
+        System.setProperty("jline.terminal.strictClose", "false");
+        try {
+            ByteArrayInputStream input = new ByteArrayInputStream("test\n".getBytes(StandardCharsets.UTF_8));
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
 
-        DumbTerminal terminal = new DumbTerminal("test", "dumb", input, output, StandardCharsets.UTF_8);
+            DumbTerminal terminal = new DumbTerminal("test", "dumb", input, output, StandardCharsets.UTF_8);
 
-        // Get a reference to the reader before closing
-        NonBlockingReader reader = terminal.reader();
+            // Get a reference to the reader before closing
+            NonBlockingReader reader = terminal.reader();
 
-        // Close the terminal
-        terminal.close();
+            // Close the terminal
+            terminal.close();
 
-        // In soft close mode (default), the held reference should log a warning but not throw
-        assertDoesNotThrow(
-                () -> reader.read(100), "Held reader reference should not throw in soft close mode (default)");
+            // In soft close mode, the held reference should log a warning but not throw
+            assertDoesNotThrow(() -> reader.read(100), "Held reader reference should not throw in soft close mode");
+        } finally {
+            // Restore default strict close mode
+            System.setProperty("jline.terminal.strictClose", "true");
+        }
     }
 
     @Test
-    @Disabled("Requires -Djline.terminal.strictClose=false for soft close mode")
     public void testHeldInputStreamReferenceLogsWarningAfterClose() throws IOException {
-        ByteArrayInputStream input = new ByteArrayInputStream("test\n".getBytes(StandardCharsets.UTF_8));
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        // Set soft close mode before creating the terminal
+        System.setProperty("jline.terminal.strictClose", "false");
+        try {
+            ByteArrayInputStream input = new ByteArrayInputStream("test\n".getBytes(StandardCharsets.UTF_8));
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
 
-        DumbTerminal terminal = new DumbTerminal("test", "dumb", input, output, StandardCharsets.UTF_8);
+            DumbTerminal terminal = new DumbTerminal("test", "dumb", input, output, StandardCharsets.UTF_8);
 
-        // Get a reference to the input stream before closing
-        InputStream inputStream = terminal.input();
+            // Get a reference to the input stream before closing
+            InputStream inputStream = terminal.input();
 
-        // Close the terminal
-        terminal.close();
+            // Close the terminal
+            terminal.close();
 
-        // In soft close mode (default), the held reference should log a warning but not throw
-        assertDoesNotThrow(
-                () -> inputStream.read(), "Held input stream reference should not throw in soft close mode (default)");
+            // In soft close mode, the held reference should log a warning but not throw
+            assertDoesNotThrow(
+                    () -> inputStream.read(), "Held input stream reference should not throw in soft close mode");
+        } finally {
+            // Restore default strict close mode
+            System.setProperty("jline.terminal.strictClose", "true");
+        }
     }
 
     @Test
-    @Disabled("Requires -Djline.terminal.strictClose=false for soft close mode")
     public void testHeldOutputStreamReferenceLogsWarningAfterClose() throws IOException {
-        ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        // Set soft close mode before creating the terminal
+        System.setProperty("jline.terminal.strictClose", "false");
+        try {
+            ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
 
-        DumbTerminal terminal = new DumbTerminal("test", "dumb", input, output, StandardCharsets.UTF_8);
+            DumbTerminal terminal = new DumbTerminal("test", "dumb", input, output, StandardCharsets.UTF_8);
 
-        // Get a reference to the output stream before closing
-        OutputStream outputStream = terminal.output();
+            // Get a reference to the output stream before closing
+            OutputStream outputStream = terminal.output();
 
-        // Close the terminal
-        terminal.close();
+            // Close the terminal
+            terminal.close();
 
-        // In soft close mode (default), the held reference should log a warning but not throw
-        assertDoesNotThrow(
-                () -> outputStream.write(65),
-                "Held output stream reference should not throw in soft close mode (default)");
+            // In soft close mode, the held reference should log a warning but not throw
+            assertDoesNotThrow(
+                    () -> outputStream.write(65), "Held output stream reference should not throw in soft close mode");
+        } finally {
+            // Restore default strict close mode
+            System.setProperty("jline.terminal.strictClose", "true");
+        }
     }
 
     @Test
-    @Disabled("Requires -Djline.terminal.strictClose=false for soft close mode")
     public void testHeldExternalTerminalWriterReferenceLogsWarningAfterClose() throws IOException {
-        ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        // Set soft close mode before creating the terminal
+        System.setProperty("jline.terminal.strictClose", "false");
+        try {
+            ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
 
-        ExternalTerminal terminal = new ExternalTerminal("test", "ansi", input, output, StandardCharsets.UTF_8);
+            ExternalTerminal terminal = new ExternalTerminal("test", "ansi", input, output, StandardCharsets.UTF_8);
 
-        // Get a reference to the writer before closing
-        PrintWriter writer = terminal.writer();
+            // Get a reference to the writer before closing
+            PrintWriter writer = terminal.writer();
 
-        // Close the terminal
-        terminal.close();
+            // Close the terminal
+            terminal.close();
 
-        // In soft close mode (default), the held reference should log a warning but not throw
-        assertDoesNotThrow(
-                () -> writer.println("test"), "Held writer reference should not throw in soft close mode (default)");
+            // In soft close mode, the held reference should log a warning but not throw
+            assertDoesNotThrow(
+                    () -> writer.println("test"), "Held writer reference should not throw in soft close mode");
+        } finally {
+            // Restore default strict close mode
+            System.setProperty("jline.terminal.strictClose", "true");
+        }
     }
 
     @Test
-    @Disabled("Requires -Djline.terminal.strictClose=false for soft close mode")
     public void testHeldExternalTerminalReaderReferenceLogsWarningAfterClose() throws IOException {
-        ByteArrayInputStream input = new ByteArrayInputStream("test\n".getBytes(StandardCharsets.UTF_8));
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        // Set soft close mode before creating the terminal
+        System.setProperty("jline.terminal.strictClose", "false");
+        try {
+            ByteArrayInputStream input = new ByteArrayInputStream("test\n".getBytes(StandardCharsets.UTF_8));
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
 
-        ExternalTerminal terminal = new ExternalTerminal("test", "ansi", input, output, StandardCharsets.UTF_8);
+            ExternalTerminal terminal = new ExternalTerminal("test", "ansi", input, output, StandardCharsets.UTF_8);
 
-        // Get a reference to the reader before closing
-        NonBlockingReader reader = terminal.reader();
+            // Get a reference to the reader before closing
+            NonBlockingReader reader = terminal.reader();
 
-        // Close the terminal
-        terminal.close();
+            // Close the terminal
+            terminal.close();
 
-        // In soft close mode (default), the held reference should log a warning but not throw
-        assertDoesNotThrow(
-                () -> reader.read(100), "Held reader reference should not throw in soft close mode (default)");
+            // In soft close mode, the held reference should log a warning but not throw
+            assertDoesNotThrow(() -> reader.read(100), "Held reader reference should not throw in soft close mode");
+        } finally {
+            // Restore default strict close mode
+            System.setProperty("jline.terminal.strictClose", "true");
+        }
     }
 }
