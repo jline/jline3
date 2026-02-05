@@ -13,6 +13,8 @@ import java.io.Reader;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static org.jline.terminal.TerminalBuilder.PROP_STRICT_CLOSE;
+
 /**
  * A reader that provides non-blocking read operations.
  *
@@ -59,7 +61,7 @@ public abstract class NonBlockingReader extends Reader {
 
     private static final Logger LOG = Logger.getLogger(NonBlockingReader.class.getName());
     private static final boolean STRICT_CLOSE =
-            !"false".equalsIgnoreCase(System.getProperty("jline.terminal.strictClose", "true"));
+            !"false".equalsIgnoreCase(System.getProperty(PROP_STRICT_CLOSE, "true"));
 
     /**
      * Flag indicating whether this reader has been closed.
@@ -83,7 +85,7 @@ public abstract class NonBlockingReader extends Reader {
      * <p>
      * To disable strict mode and enable backward compatibility mode (logging a WARNING
      * instead of throwing an exception), set the system property
-     * {@code jline.terminal.strictClose=false}.
+     * {@link org.jline.terminal.TerminalBuilder#PROP_STRICT_CLOSE PROP_STRICT_CLOSE} to {@code false}.
      * </p>
      *
      * @throws ClosedException if this reader has been closed and strict mode is enabled (default)
@@ -99,7 +101,7 @@ public abstract class NonBlockingReader extends Reader {
                             Level.WARNING,
                             "Accessing a closed reader. "
                                     + "This may indicate a resource management issue. "
-                                    + "Set -Djline.terminal.strictClose=true to make this an error.",
+                                    + "Set -D" + PROP_STRICT_CLOSE + "=true to make this an error.",
                             new Throwable("Stack trace"));
                     warningLogged = true;
                 }

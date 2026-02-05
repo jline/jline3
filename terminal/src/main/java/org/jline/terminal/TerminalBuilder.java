@@ -164,6 +164,7 @@ public final class TerminalBuilder {
     public static final String PROP_NON_BLOCKING_READS = "org.jline.terminal.pty.nonBlockingReads";
     public static final String PROP_COLOR_DISTANCE = "org.jline.utils.colorDistance";
     public static final String PROP_DISABLE_ALTERNATE_CHARSET = "org.jline.utils.disableAlternateCharset";
+    public static final String PROP_STRICT_CLOSE = "jline.terminal.strictClose";
 
     //
     // System properties controlling how FileDescriptor are create.
