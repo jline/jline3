@@ -156,6 +156,12 @@ public class DumbTerminal extends AbstractTerminal {
                     return c;
                 }
             }
+
+            @Override
+            public void close() throws IOException {
+                super.close();
+                nbis.close();
+            }
         };
         this.output = out;
         this.reader = NonBlocking.nonBlocking(getName(), input, inputEncoding());

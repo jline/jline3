@@ -179,6 +179,7 @@ public class NonBlocking {
 
         @Override
         protected int read(long timeout, boolean isPeek) throws IOException {
+            checkClosed();
             Timeout t = new Timeout(timeout);
             while (!chars.hasRemaining() && !t.elapsed()) {
                 int b = input.read(t.timeout());

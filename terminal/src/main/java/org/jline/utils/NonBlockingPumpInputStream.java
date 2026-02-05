@@ -105,6 +105,7 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
         } else if (len == 0) {
             return 0;
         } else {
+            checkClosed();
             checkIoException();
             int res = wait(readBuffer, timeout);
             if (res >= 0) {
