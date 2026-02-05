@@ -158,10 +158,10 @@ public abstract class AbstractTerminal implements TerminalExt {
     }
 
     protected void doClose() throws IOException {
-        closed = true;
         if (status != null) {
             status.close();
         }
+        closed = true;
     }
 
     protected void echoSignal(Signal signal) {

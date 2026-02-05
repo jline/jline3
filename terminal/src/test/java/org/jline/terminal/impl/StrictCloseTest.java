@@ -89,4 +89,3 @@ public class StrictCloseTest {
                 "Held reader reference should throw ClosedException in strict mode");
     }
 }
-
