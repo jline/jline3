@@ -162,6 +162,11 @@ public class DumbTerminal extends AbstractTerminal {
                 super.close();
                 nbis.close();
             }
+
+            @Override
+            public void shutdown() {
+                nbis.shutdown();
+            }
         };
         this.output = out;
         this.reader = NonBlocking.nonBlocking(getName(), input, inputEncoding());
@@ -223,8 +228,10 @@ public class DumbTerminal extends AbstractTerminal {
     protected void doClose() throws IOException {
         super.doClose();
         try {
+            input.close();
             reader.close();
         } finally {
+            writer.flush();
             writer.close();
         }
     }
