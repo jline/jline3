@@ -17,7 +17,6 @@ import java.nio.charset.Charset;
 import java.util.Objects;
 
 import org.jline.terminal.spi.Pty;
-import org.jline.utils.ClosedException;
 import org.jline.utils.NonBlocking;
 import org.jline.utils.NonBlockingInputStream;
 import org.jline.utils.NonBlockingReader;

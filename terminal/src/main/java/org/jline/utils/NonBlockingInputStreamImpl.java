@@ -75,6 +75,7 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
          * The underlying input stream is closed first. This means that if the
          * I/O thread was blocked waiting on input, it will be woken for us.
          */
+        super.close();
         in.close();
         shutdown();
     }
