@@ -157,6 +157,7 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
 
     @Override
     public synchronized void close() throws IOException {
+        super.close();
         this.closed = true;
         notifyAll();
     }

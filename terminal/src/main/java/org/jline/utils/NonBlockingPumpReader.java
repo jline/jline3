@@ -189,6 +189,7 @@ public class NonBlockingPumpReader extends NonBlockingReader {
 
     @Override
     public void close() throws IOException {
+        super.close();
         final ReentrantLock lock = this.lock;
         lock.lock();
         try {

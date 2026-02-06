@@ -174,11 +174,17 @@ public final class TerminalBuilder {
     public static final String PROP_DISABLE_ALTERNATE_CHARSET = "org.jline.utils.disableAlternateCharset";
 
     /**
-     * System property to control strict close mode for terminals and streams.
+     * System property to control strict close mode for terminal streams.
      * <p>
      * In JLine 3.x, soft mode is enabled by default for backward compatibility.
-     * When set to "true", accessing closed terminals or streams will throw a ClosedException.
+     * When set to "true", accessing closed terminal streams (NonBlockingInputStream/NonBlockingReader)
+     * will throw a {@link org.jline.utils.ClosedException ClosedException}.
      * When set to "false" (default), a warning is logged instead.
+     * </p>
+     * <p>
+     * Note: Accessing terminal-level methods (like {@code terminal.writer()}) after closure
+     * always throws {@link IllegalStateException}, regardless of this property.
+     * This property only affects stream-level access (like {@code reader.read()}).
      * </p>
      */
     public static final String PROP_STRICT_CLOSE = "jline.terminal.strictClose";
