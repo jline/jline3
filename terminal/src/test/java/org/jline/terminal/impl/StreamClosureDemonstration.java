@@ -10,9 +10,11 @@ package org.jline.terminal.impl;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 
+import org.jline.utils.ClosedException;
 import org.jline.utils.NonBlockingReader;
 
 /**
@@ -73,7 +75,11 @@ public class StreamClosureDemonstration {
     }
 
     /**
-     * Demonstrates the enhanced behavior: held references also throw after terminal close.
+     * Demonstrates the enhanced behavior: held references also fail after terminal close.
+     * <p>
+     * Note: PrintWriter doesn't throw exceptions - it sets an error flag instead.
+     * NonBlockingReader throws ClosedException (an IOException) in strict mode.
+     * </p>
      */
     private static void demonstrateHeldReferenceBehavior() {
         System.out.println("DEMONSTRATION 2: Held stream references after terminal close");
@@ -98,23 +104,29 @@ public class StreamClosureDemonstration {
             terminal.close();
             System.out.println("✓ Terminal closed successfully");
 
-            // Try to use held writer reference - should now throw
-            try {
-                writer.println("This should fail");
-                System.out.println("✗ ERROR: Held writer reference should have thrown IllegalStateException!");
-            } catch (IllegalStateException e) {
-                System.out.println("✓ Held writer reference correctly throws: " + e.getMessage());
+            // Try to use held writer reference
+            // Note: PrintWriter doesn't throw exceptions - it just sets an error flag
+            // The underlying stream (NonBlockingReader wrapping the output) will throw,
+            // but PrintWriter swallows the exception
+            writer.println("This will silently fail");
+            writer.flush();
+            if (writer.checkError()) {
+                System.out.println("✓ Held writer reference has error flag set (PrintWriter doesn't throw)");
+            } else {
+                System.out.println("✗ ERROR: Held writer reference should have error flag set!");
             }
 
-            // Try to use held reader reference - should now throw
+            // Try to use held reader reference - should throw ClosedException (an IOException)
             try {
                 reader.read(100);
-                System.out.println("✗ ERROR: Held reader reference should have thrown IllegalStateException!");
-            } catch (IllegalStateException e) {
-                System.out.println("✓ Held reader reference correctly throws: " + e.getMessage());
+                System.out.println("✗ ERROR: Held reader reference should have thrown ClosedException!");
+            } catch (ClosedException e) {
+                System.out.println("✓ Held reader reference correctly throws ClosedException: " + e.getMessage());
+            } catch (IOException e) {
+                System.out.println("✓ Held reader reference correctly throws IOException: " + e.getMessage());
             }
 
-            System.out.println("\n" + "Summary: All held references correctly fail after terminal closure!");
+            System.out.println("\n" + "Summary: Held references correctly fail after terminal closure!");
 
         } catch (Exception e) {
             System.out.println("✗ Unexpected error: " + e.getMessage());
