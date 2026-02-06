@@ -192,10 +192,6 @@ public final class TerminalBuilder {
      *       (no warning, no exception)</li>
      * </ul>
      * <p>
-     * For backward compatibility, the old boolean values are also supported:
-     * {@code "true"} maps to {@code "strict"}, {@code "false"} maps to {@code "warn"}.
-     * </p>
-     * <p>
      * <b>Example:</b>
      * </p>
      * <pre>{@code
@@ -217,12 +213,6 @@ public final class TerminalBuilder {
      * @see org.jline.utils.NonBlockingReader
      */
     public static final String PROP_CLOSE_MODE = "jline.terminal.closeMode";
-
-    /**
-     * @deprecated Use {@link #PROP_CLOSE_MODE} instead. This constant is kept for backward compatibility.
-     */
-    @Deprecated
-    public static final String PROP_STRICT_CLOSE = "jline.terminal.strictClose";
 
     //
     // System properties controlling how FileDescriptor are create.
