@@ -197,11 +197,6 @@ public final class TerminalBuilder {
      *   <li><b>{@code "lenient"}</b> - Accessing closed streams is silently allowed (no warning, no exception)</li>
      * </ul>
      * <p>
-     * <b>Backward compatibility:</b> The old {@link #PROP_STRICT_CLOSE} property is still supported.
-     * If both properties are set, {@code PROP_CLOSE_MODE} takes precedence.
-     * Old boolean values map as follows: {@code "true"} → {@code "strict"}, {@code "false"} → {@code "warn"}.
-     * </p>
-     * <p>
      * <b>Example:</b>
      * </p>
      * <pre>{@code
@@ -222,12 +217,6 @@ public final class TerminalBuilder {
      * @since 3.28.0
      */
     public static final String PROP_CLOSE_MODE = "jline.terminal.closeMode";
-
-    /**
-     * @deprecated Use {@link #PROP_CLOSE_MODE} instead. This constant is kept for backward compatibility.
-     */
-    @Deprecated
-    public static final String PROP_STRICT_CLOSE = "jline.terminal.strictClose";
 
     //
     // System properties controlling how FileDescriptor are create.

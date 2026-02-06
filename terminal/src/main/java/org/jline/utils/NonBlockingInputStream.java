@@ -14,7 +14,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static org.jline.terminal.TerminalBuilder.PROP_CLOSE_MODE;
-import static org.jline.terminal.TerminalBuilder.PROP_STRICT_CLOSE;
 
 /**
  * An input stream that supports non-blocking read operations with timeouts.
@@ -58,12 +57,8 @@ public abstract class NonBlockingInputStream extends InputStream {
 
     /**
      * Parses the close mode from system properties.
-     * Checks both new (jline.terminal.closeMode) and old (jline.terminal.strictClose) properties
-     * for backward compatibility.
      */
-    @SuppressWarnings("deprecation")
     private static CloseMode parseCloseMode() {
-        // Check new property first
         String mode = System.getProperty(PROP_CLOSE_MODE);
         if (mode != null) {
             if ("strict".equalsIgnoreCase(mode)) {
@@ -73,13 +68,6 @@ public abstract class NonBlockingInputStream extends InputStream {
             } else if ("lenient".equalsIgnoreCase(mode)) {
                 return CloseMode.LENIENT;
             }
-        }
-
-        // Fall back to old property for backward compatibility
-        String strictClose = System.getProperty(PROP_STRICT_CLOSE);
-        if (strictClose != null) {
-            // "true" -> strict, "false" -> warn
-            return "false".equalsIgnoreCase(strictClose) ? CloseMode.WARN : CloseMode.STRICT;
         }
 
         // Default: warn for v3
