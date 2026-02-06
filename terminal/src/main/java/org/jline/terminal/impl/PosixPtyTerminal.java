@@ -149,11 +149,7 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
     @Override
     protected void doClose() throws IOException {
         super.doClose();
-        try {
-            input.close();
-        } finally {
-            reader.close();
-        }
+        reader.close();
     }
 
     @Override
