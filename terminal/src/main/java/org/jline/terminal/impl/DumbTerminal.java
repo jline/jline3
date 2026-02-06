@@ -229,10 +229,16 @@ public class DumbTerminal extends AbstractTerminal {
         super.doClose();
         try {
             input.close();
-            reader.close();
         } finally {
-            writer.flush();
-            writer.close();
+            try {
+                reader.close();
+            } finally {
+                try {
+                    writer.flush();
+                } finally {
+                    writer.close();
+                }
+            }
         }
     }
 

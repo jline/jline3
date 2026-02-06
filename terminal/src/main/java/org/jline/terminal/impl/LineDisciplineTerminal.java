@@ -380,10 +380,7 @@ public class LineDisciplineTerminal extends AbstractTerminal {
                 try {
                     slaveInputPipe.close();
                 } finally {
-                    try {
-                    } finally {
-                        slaveWriter.close();
-                    }
+                    slaveWriter.close();
                 }
             }
         }

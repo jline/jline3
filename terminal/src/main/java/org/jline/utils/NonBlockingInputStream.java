@@ -216,7 +216,13 @@ public abstract class NonBlockingInputStream extends InputStream {
 
     /**
      * Closes this input stream and marks it as closed.
-     * Subsequent read operations will throw a ClosedException.
+     * <p>
+     * Subsequent read operations will throw a {@link ClosedException} in strict mode
+     * (when {@link org.jline.terminal.TerminalBuilder#PROP_STRICT_CLOSE PROP_STRICT_CLOSE}
+     * is set to {@code true}, which is the default in JLine 4.x).
+     * In soft mode ({@code PROP_STRICT_CLOSE=false}), subsequent reads will log a warning
+     * but continue to operate.
+     * </p>
      *
      * @throws IOException if an I/O error occurs
      */

@@ -122,6 +122,7 @@ public class NonBlocking {
 
         @Override
         public void close() throws IOException {
+            super.close();
             reader.close();
         }
 
@@ -259,6 +260,7 @@ public class NonBlocking {
 
         @Override
         public void close() throws IOException {
+            super.close();
             input.close();
         }
     }
