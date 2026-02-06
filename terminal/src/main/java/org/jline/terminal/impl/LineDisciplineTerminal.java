@@ -27,7 +27,6 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.NonBlocking;
-import org.jline.utils.NonBlockingInputStream;
 import org.jline.utils.NonBlockingPumpInputStream;
 import org.jline.utils.NonBlockingReader;
 
@@ -99,8 +98,7 @@ public class LineDisciplineTerminal extends AbstractTerminal {
     /*
      * Slave streams
      */
-    protected final NonBlockingPumpInputStream slaveInputPump;
-    protected final NonBlockingInputStream slaveInput;
+    protected final NonBlockingPumpInputStream slaveInput;
     protected final NonBlockingReader slaveReader;
     protected final PrintWriter slaveWriter;
     protected final OutputStream slaveOutput;
@@ -139,9 +137,8 @@ public class LineDisciplineTerminal extends AbstractTerminal {
         super(name, type, encoding, inputEncoding, outputEncoding, signalHandler);
         NonBlockingPumpInputStream input = NonBlocking.nonBlockingPumpInputStream(PIPE_SIZE);
         this.slaveInputPipe = input.getOutputStream();
-        this.slaveInputPump = input;
         this.slaveInput = input;
-        this.slaveReader = NonBlocking.nonBlocking(getName(), input, inputEncoding());
+        this.slaveReader = NonBlocking.nonBlocking(getName(), slaveInput, inputEncoding());
         this.slaveOutput = new FilteringOutputStream();
         this.slaveWriter = new PrintWriter(new OutputStreamWriter(slaveOutput, outputEncoding()));
         this.masterOutput = masterOutput;
@@ -366,7 +363,7 @@ public class LineDisciplineTerminal extends AbstractTerminal {
     }
 
     protected void processIOException(IOException ioException) {
-        this.slaveInputPump.setIoException(ioException);
+        this.slaveInput.setIoException(ioException);
     }
 
     protected void doClose() throws IOException {
@@ -377,10 +374,7 @@ public class LineDisciplineTerminal extends AbstractTerminal {
             try {
                 slaveInputPipe.close();
             } finally {
-                try {
-                } finally {
-                    slaveWriter.close();
-                }
+                slaveWriter.close();
             }
         }
     }
