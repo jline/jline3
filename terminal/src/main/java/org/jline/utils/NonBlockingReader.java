@@ -13,6 +13,7 @@ import java.io.Reader;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static org.jline.terminal.TerminalBuilder.PROP_CLOSE_MODE;
 import static org.jline.terminal.TerminalBuilder.PROP_STRICT_CLOSE;
 
 /**
@@ -51,10 +52,40 @@ public abstract class NonBlockingReader extends Reader {
 
     /**
      * Default constructor.
-     * Initializes strict close mode based on the current value of the system property.
+     * Initializes close mode based on the current value of the system property.
      */
     public NonBlockingReader() {
-        this.strictClose = !"false".equalsIgnoreCase(System.getProperty(PROP_STRICT_CLOSE, "true"));
+        this.closeMode = parseCloseMode();
+    }
+
+    /**
+     * Parses the close mode from system properties.
+     * Checks both new (jline.terminal.closeMode) and old (jline.terminal.strictClose) properties
+     * for backward compatibility.
+     */
+    @SuppressWarnings("deprecation")
+    private static CloseMode parseCloseMode() {
+        // Check new property first
+        String mode = System.getProperty(PROP_CLOSE_MODE);
+        if (mode != null) {
+            if ("strict".equalsIgnoreCase(mode)) {
+                return CloseMode.STRICT;
+            } else if ("warn".equalsIgnoreCase(mode)) {
+                return CloseMode.WARN;
+            } else if ("lenient".equalsIgnoreCase(mode)) {
+                return CloseMode.LENIENT;
+            }
+        }
+
+        // Fall back to old property for backward compatibility
+        String strictClose = System.getProperty(PROP_STRICT_CLOSE);
+        if (strictClose != null) {
+            // "true" -> strict, "false" -> warn
+            return "false".equalsIgnoreCase(strictClose) ? CloseMode.WARN : CloseMode.STRICT;
+        }
+
+        // Default: strict for v4
+        return CloseMode.STRICT;
     }
 
     public static final int EOF = -1;
@@ -70,17 +101,27 @@ public abstract class NonBlockingReader extends Reader {
 
     /**
      * Flag to track if a warning has been logged for this reader.
-     * Used to avoid log spam in soft close mode.
+     * Used to avoid log spam in warn mode.
      */
     private boolean warningLogged = false;
 
     /**
-     * Flag indicating whether strict close mode is enabled for this reader.
+     * Close mode for this reader.
      * Determined at construction time from the system property.
-     * In strict mode, accessing a closed reader throws ClosedException.
-     * In soft mode, accessing a closed reader logs a warning.
      */
-    private final boolean strictClose;
+    private final CloseMode closeMode;
+
+    /**
+     * Enum representing the close mode behavior.
+     */
+    private enum CloseMode {
+        /** Throw ClosedException when accessing closed streams */
+        STRICT,
+        /** Log warning when accessing closed streams */
+        WARN,
+        /** Silently allow accessing closed streams */
+        LENIENT
+    }
 
     /**
      * Checks if this reader has been closed.
@@ -90,28 +131,37 @@ public abstract class NonBlockingReader extends Reader {
      * prevents use-after-close bugs.
      * </p>
      * <p>
-     * To disable strict mode and enable backward compatibility mode (logging a WARNING
-     * instead of throwing an exception), set the system property
-     * {@link org.jline.terminal.TerminalBuilder#PROP_STRICT_CLOSE PROP_STRICT_CLOSE} to {@code false}.
+     * The behavior can be controlled via the system property
+     * {@link org.jline.terminal.TerminalBuilder#PROP_CLOSE_MODE PROP_CLOSE_MODE}:
      * </p>
+     * <ul>
+     *   <li>{@code "strict"} - Throw {@code ClosedException} (default in JLine 4.x)</li>
+     *   <li>{@code "warn"} - Log a warning but continue (default in JLine 3.x)</li>
+     *   <li>{@code "lenient"} - Silently allow access (no warning, no exception)</li>
+     * </ul>
      *
      * @throws ClosedException if this reader has been closed and strict mode is enabled (default)
      */
     protected void checkClosed() throws IOException {
         if (closed) {
-            if (strictClose) {
-                throw new ClosedException();
-            } else {
-                // Log warning only once per reader instance to avoid log spam
-                if (!warningLogged) {
-                    LOG.log(
-                            Level.WARNING,
-                            "Accessing a closed reader. "
-                                    + "This may indicate a resource management issue. "
-                                    + "Set -D" + PROP_STRICT_CLOSE + "=true to make this an error.",
-                            new Throwable("Stack trace"));
-                    warningLogged = true;
-                }
+            switch (closeMode) {
+                case STRICT:
+                    throw new ClosedException();
+                case WARN:
+                    // Log warning only once per reader instance to avoid log spam
+                    if (!warningLogged) {
+                        LOG.log(
+                                Level.WARNING,
+                                "Accessing a closed reader. "
+                                        + "This may indicate a resource management issue. "
+                                        + "Set -D" + PROP_CLOSE_MODE + "=strict to make this an error.",
+                                new Throwable("Stack trace"));
+                        warningLogged = true;
+                    }
+                    break;
+                case LENIENT:
+                    // Silently allow access
+                    break;
             }
         }
     }
@@ -226,12 +276,14 @@ public abstract class NonBlockingReader extends Reader {
     /**
      * Closes this reader and marks it as closed.
      * <p>
-     * Subsequent read operations will throw a {@link ClosedException} in strict mode
-     * (when {@link org.jline.terminal.TerminalBuilder#PROP_STRICT_CLOSE PROP_STRICT_CLOSE}
-     * is set to {@code true}, which is the default in JLine 4.x).
-     * In soft mode ({@code PROP_STRICT_CLOSE=false}), subsequent reads will log a warning
-     * but continue to operate.
+     * Subsequent read operations behavior depends on the
+     * {@link org.jline.terminal.TerminalBuilder#PROP_CLOSE_MODE PROP_CLOSE_MODE} setting:
      * </p>
+     * <ul>
+     *   <li>{@code "strict"} - Throw {@link ClosedException} (default in JLine 4.x)</li>
+     *   <li>{@code "warn"} - Log a warning but continue (default in JLine 3.x)</li>
+     *   <li>{@code "lenient"} - Silently allow access</li>
+     * </ul>
      *
      * @throws IOException if an I/O error occurs
      */

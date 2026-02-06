@@ -23,14 +23,14 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 /**
  * Test that verifies held references to terminal streams behave correctly after terminal closure
- * in soft close mode (backward compatibility mode).
+ * in warn mode (backward compatibility mode).
  * <p>
- * In JLine 4.x, the default behavior is "strict close": accessing streams after terminal closure
- * throws {@code ClosedException}. These tests verify the "soft close" mode which can be enabled
- * by setting the system property {@code jline.terminal.strictClose=false}.
+ * In JLine 4.x, the default behavior is "strict" mode: accessing streams after terminal closure
+ * throws {@code ClosedException}. These tests verify the "warn" mode which can be enabled
+ * by setting the system property {@code jline.terminal.closeMode=warn}.
  * </p>
  * <p>
- * Each test sets the system property before creating the terminal to enable soft close mode,
+ * Each test sets the system property before creating the terminal to enable warn mode,
  * then restores the previous value after the test completes.
  * </p>
  */
@@ -38,9 +38,9 @@ public class HeldStreamReferenceTest {
 
     @Test
     public void testHeldWriterReferenceLogsWarningAfterClose() throws IOException {
-        // Save the previous value and set soft close mode before creating the terminal
-        String previousValue = System.getProperty("jline.terminal.strictClose");
-        System.setProperty("jline.terminal.strictClose", "false");
+        // Save the previous value and set warn mode before creating the terminal
+        String previousValue = System.getProperty("jline.terminal.closeMode");
+        System.setProperty("jline.terminal.closeMode", "warn");
         try {
             ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);
             ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -53,15 +53,14 @@ public class HeldStreamReferenceTest {
             // Close the terminal
             terminal.close();
 
-            // In soft close mode, the held reference should log a warning but not throw
-            assertDoesNotThrow(
-                    () -> writer.println("test"), "Held writer reference should not throw in soft close mode");
+            // In warn mode, the held reference should log a warning but not throw
+            assertDoesNotThrow(() -> writer.println("test"), "Held writer reference should not throw in warn mode");
         } finally {
             // Restore previous value
             if (previousValue != null) {
-                System.setProperty("jline.terminal.strictClose", previousValue);
+                System.setProperty("jline.terminal.closeMode", previousValue);
             } else {
-                System.clearProperty("jline.terminal.strictClose");
+                System.clearProperty("jline.terminal.closeMode");
             }
         }
     }
@@ -69,8 +68,8 @@ public class HeldStreamReferenceTest {
     @Test
     public void testHeldReaderReferenceLogsWarningAfterClose() throws IOException {
         // Save the previous value and set soft close mode before creating the terminal
-        String previousValue = System.getProperty("jline.terminal.strictClose");
-        System.setProperty("jline.terminal.strictClose", "false");
+        String previousValue = System.getProperty("jline.terminal.closeMode");
+        System.setProperty("jline.terminal.closeMode", "warn");
         try {
             ByteArrayInputStream input = new ByteArrayInputStream("test\n".getBytes(StandardCharsets.UTF_8));
             ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -88,9 +87,9 @@ public class HeldStreamReferenceTest {
         } finally {
             // Restore previous value
             if (previousValue != null) {
-                System.setProperty("jline.terminal.strictClose", previousValue);
+                System.setProperty("jline.terminal.closeMode", previousValue);
             } else {
-                System.clearProperty("jline.terminal.strictClose");
+                System.clearProperty("jline.terminal.closeMode");
             }
         }
     }
@@ -98,8 +97,8 @@ public class HeldStreamReferenceTest {
     @Test
     public void testHeldInputStreamReferenceLogsWarningAfterClose() throws IOException {
         // Save the previous value and set soft close mode before creating the terminal
-        String previousValue = System.getProperty("jline.terminal.strictClose");
-        System.setProperty("jline.terminal.strictClose", "false");
+        String previousValue = System.getProperty("jline.terminal.closeMode");
+        System.setProperty("jline.terminal.closeMode", "warn");
         try {
             ByteArrayInputStream input = new ByteArrayInputStream("test\n".getBytes(StandardCharsets.UTF_8));
             ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -118,9 +117,9 @@ public class HeldStreamReferenceTest {
         } finally {
             // Restore previous value
             if (previousValue != null) {
-                System.setProperty("jline.terminal.strictClose", previousValue);
+                System.setProperty("jline.terminal.closeMode", previousValue);
             } else {
-                System.clearProperty("jline.terminal.strictClose");
+                System.clearProperty("jline.terminal.closeMode");
             }
         }
     }
@@ -128,8 +127,8 @@ public class HeldStreamReferenceTest {
     @Test
     public void testHeldOutputStreamReferenceLogsWarningAfterClose() throws IOException {
         // Save the previous value and set soft close mode before creating the terminal
-        String previousValue = System.getProperty("jline.terminal.strictClose");
-        System.setProperty("jline.terminal.strictClose", "false");
+        String previousValue = System.getProperty("jline.terminal.closeMode");
+        System.setProperty("jline.terminal.closeMode", "warn");
         try {
             ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);
             ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -148,9 +147,9 @@ public class HeldStreamReferenceTest {
         } finally {
             // Restore previous value
             if (previousValue != null) {
-                System.setProperty("jline.terminal.strictClose", previousValue);
+                System.setProperty("jline.terminal.closeMode", previousValue);
             } else {
-                System.clearProperty("jline.terminal.strictClose");
+                System.clearProperty("jline.terminal.closeMode");
             }
         }
     }
@@ -158,8 +157,8 @@ public class HeldStreamReferenceTest {
     @Test
     public void testHeldExternalTerminalWriterReferenceLogsWarningAfterClose() throws IOException {
         // Save the previous value and set soft close mode before creating the terminal
-        String previousValue = System.getProperty("jline.terminal.strictClose");
-        System.setProperty("jline.terminal.strictClose", "false");
+        String previousValue = System.getProperty("jline.terminal.closeMode");
+        System.setProperty("jline.terminal.closeMode", "warn");
         try {
             ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);
             ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -178,9 +177,9 @@ public class HeldStreamReferenceTest {
         } finally {
             // Restore previous value
             if (previousValue != null) {
-                System.setProperty("jline.terminal.strictClose", previousValue);
+                System.setProperty("jline.terminal.closeMode", previousValue);
             } else {
-                System.clearProperty("jline.terminal.strictClose");
+                System.clearProperty("jline.terminal.closeMode");
             }
         }
     }
@@ -188,8 +187,8 @@ public class HeldStreamReferenceTest {
     @Test
     public void testHeldExternalTerminalReaderReferenceLogsWarningAfterClose() throws IOException {
         // Save the previous value and set soft close mode before creating the terminal
-        String previousValue = System.getProperty("jline.terminal.strictClose");
-        System.setProperty("jline.terminal.strictClose", "false");
+        String previousValue = System.getProperty("jline.terminal.closeMode");
+        System.setProperty("jline.terminal.closeMode", "warn");
         try {
             ByteArrayInputStream input = new ByteArrayInputStream("test\n".getBytes(StandardCharsets.UTF_8));
             ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -207,9 +206,9 @@ public class HeldStreamReferenceTest {
         } finally {
             // Restore previous value
             if (previousValue != null) {
-                System.setProperty("jline.terminal.strictClose", previousValue);
+                System.setProperty("jline.terminal.closeMode", previousValue);
             } else {
-                System.clearProperty("jline.terminal.strictClose");
+                System.clearProperty("jline.terminal.closeMode");
             }
         }
     }

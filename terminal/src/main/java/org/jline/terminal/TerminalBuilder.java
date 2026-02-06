@@ -184,11 +184,17 @@ public final class TerminalBuilder {
      * <b>Property values:</b>
      * </p>
      * <ul>
-     *   <li><b>{@code true}</b> (default in JLine 4.x): Strict mode - accessing closed streams
+     *   <li><b>{@code "strict"}</b> (default in JLine 4.x): Accessing closed streams
      *       throws {@link org.jline.utils.ClosedException}</li>
-     *   <li><b>{@code false}</b> (default in JLine 3.x): Soft mode - accessing closed streams
-     *       logs a warning but continues to operate (backward compatibility mode)</li>
+     *   <li><b>{@code "warn"}</b> (default in JLine 3.x): Accessing closed streams
+     *       logs a warning but continues to operate</li>
+     *   <li><b>{@code "lenient"}</b>: Accessing closed streams is silently allowed
+     *       (no warning, no exception)</li>
      * </ul>
+     * <p>
+     * For backward compatibility, the old boolean values are also supported:
+     * {@code "true"} maps to {@code "strict"}, {@code "false"} maps to {@code "warn"}.
+     * </p>
      * <p>
      * <b>Example:</b>
      * </p>
@@ -200,14 +206,22 @@ public final class TerminalBuilder {
      * // This always throws IllegalStateException (terminal-level):
      * terminal.reader();  // throws IllegalStateException
      *
-     * // This behavior depends on jline.terminal.strictClose (stream-level):
-     * reader.read();  // throws ClosedException if true, logs warning if false
+     * // This behavior depends on jline.terminal.closeMode (stream-level):
+     * reader.read();  // throws ClosedException in "strict" mode
+     *                 // logs warning in "warn" mode
+     *                 // silently continues in "lenient" mode
      * }</pre>
      *
      * @see org.jline.utils.ClosedException
      * @see org.jline.utils.NonBlockingInputStream
      * @see org.jline.utils.NonBlockingReader
      */
+    public static final String PROP_CLOSE_MODE = "jline.terminal.closeMode";
+
+    /**
+     * @deprecated Use {@link #PROP_CLOSE_MODE} instead. This constant is kept for backward compatibility.
+     */
+    @Deprecated
     public static final String PROP_STRICT_CLOSE = "jline.terminal.strictClose";
 
     //
