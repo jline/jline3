@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
  * <p>
  * In JLine 3.x, the default behavior is "soft close": accessing streams after terminal closure
  * logs a WARNING but does not throw an exception, preserving backward compatibility.
- * When the system property {@code jline.terminal.strictClose=true} is set, accessing closed
+ * When the system property {@code jline.terminal.closeMode=true} is set, accessing closed
  * terminal streams throws {@link org.jline.utils.ClosedException ClosedException} (an {@code IOException}).
  * </p>
  * <p>
@@ -49,9 +49,9 @@ public class HeldStreamReferenceTest {
         // Close the terminal
         terminal.close();
 
-        // In soft close mode (default), the held reference should log a warning but not throw
+        // In warn mode (default), the held reference should log a warning but not throw
         assertDoesNotThrow(
-                () -> writer.println("test"), "Held writer reference should not throw in soft close mode (default)");
+                () -> writer.println("test"), "Held writer reference should not throw in warn mode (default)");
     }
 
     @Test
@@ -67,9 +67,8 @@ public class HeldStreamReferenceTest {
         // Close the terminal
         terminal.close();
 
-        // In soft close mode (default), the held reference should log a warning but not throw
-        assertDoesNotThrow(
-                () -> reader.read(100), "Held reader reference should not throw in soft close mode (default)");
+        // In warn mode (default), the held reference should log a warning but not throw
+        assertDoesNotThrow(() -> reader.read(100), "Held reader reference should not throw in warn mode (default)");
     }
 
     @Test
@@ -85,9 +84,9 @@ public class HeldStreamReferenceTest {
         // Close the terminal
         terminal.close();
 
-        // In soft close mode (default), the held reference should log a warning but not throw
+        // In warn mode (default), the held reference should log a warning but not throw
         assertDoesNotThrow(
-                () -> inputStream.read(), "Held input stream reference should not throw in soft close mode (default)");
+                () -> inputStream.read(), "Held input stream reference should not throw in warn mode (default)");
     }
 
     @Test
@@ -103,10 +102,9 @@ public class HeldStreamReferenceTest {
         // Close the terminal
         terminal.close();
 
-        // In soft close mode (default), the held reference should log a warning but not throw
+        // In warn mode (default), the held reference should log a warning but not throw
         assertDoesNotThrow(
-                () -> outputStream.write(65),
-                "Held output stream reference should not throw in soft close mode (default)");
+                () -> outputStream.write(65), "Held output stream reference should not throw in warn mode (default)");
     }
 
     @Test
@@ -122,9 +120,9 @@ public class HeldStreamReferenceTest {
         // Close the terminal
         terminal.close();
 
-        // In soft close mode (default), the held reference should log a warning but not throw
+        // In warn mode (default), the held reference should log a warning but not throw
         assertDoesNotThrow(
-                () -> writer.println("test"), "Held writer reference should not throw in soft close mode (default)");
+                () -> writer.println("test"), "Held writer reference should not throw in warn mode (default)");
     }
 
     @Test
@@ -140,8 +138,7 @@ public class HeldStreamReferenceTest {
         // Close the terminal
         terminal.close();
 
-        // In soft close mode (default), the held reference should log a warning but not throw
-        assertDoesNotThrow(
-                () -> reader.read(100), "Held reader reference should not throw in soft close mode (default)");
+        // In warn mode (default), the held reference should log a warning but not throw
+        assertDoesNotThrow(() -> reader.read(100), "Held reader reference should not throw in warn mode (default)");
     }
 }
