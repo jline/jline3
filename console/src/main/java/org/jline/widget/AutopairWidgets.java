@@ -128,7 +128,7 @@ public class AutopairWidgets extends Widgets {
                 return true;
             }
             int cc = buffer().currChar();
-            boolean atEolOrNewline = (cc == -1 || cc == '\n');
+            boolean atEolOrNewline = (cc == 0 || cc == '\n');
             if (canSkip(binding)) {
                 callWidget(LineReader.FORWARD_CHAR);
             } else if (!atEolOrNewline && canPair(binding)) {
@@ -227,7 +227,7 @@ public class AutopairWidgets extends Widgets {
             }
             int cc = buffer().currChar();
             // Block at EOB/newline and when the next char is whitespace
-            if (cc == -1 || cc == '\n' || Character.isWhitespace(cc)) {
+            if (cc == 0 || cc == '\n' || Character.isWhitespace(cc)) {
                 return false;
             }
             return !d.equals(" ") || (!prevChar().equals(" ") && !currChar().equals(" "));
