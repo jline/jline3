@@ -116,20 +116,24 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
     }
 
     public NonBlockingReader reader() {
+        checkClosed();
         return reader;
     }
 
     public PrintWriter writer() {
+        checkClosed();
         return writer;
     }
 
     @Override
     public InputStream input() {
+        checkClosed();
         return input;
     }
 
     @Override
     public OutputStream output() {
+        checkClosed();
         return output;
     }
 
@@ -141,7 +145,6 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
             Signals.unregister(entry.getKey().name(), entry.getValue());
         }
         super.doClose();
-        // Do not call reader.close()
-        reader.shutdown();
+        reader.close();
     }
 }

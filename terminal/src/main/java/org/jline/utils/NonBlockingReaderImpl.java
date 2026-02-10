@@ -78,6 +78,7 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
          * The underlying input stream is closed first. This means that if the
          * I/O thread was blocked waiting on input, it will be woken for us.
          */
+        super.close();
         in.close();
         shutdown();
     }
@@ -126,6 +127,7 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
      *   read timed out.
      */
     protected synchronized int read(long timeout, boolean isPeek) throws IOException {
+        checkClosed();
         /*
          * If the thread hit an IOException, we report it.
          */

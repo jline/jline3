@@ -10,6 +10,10 @@ package org.jline.utils;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import static org.jline.terminal.TerminalBuilder.PROP_CLOSE_MODE;
 
 /**
  * An input stream that supports non-blocking read operations with timeouts.
@@ -43,8 +47,110 @@ import java.io.InputStream;
  */
 public abstract class NonBlockingInputStream extends InputStream {
 
+    /**
+     * Default constructor.
+     * Initializes close mode based on the current value of the system property.
+     */
+    public NonBlockingInputStream() {
+        this.closeMode = parseCloseMode();
+    }
+
+    /**
+     * Parses the close mode from system properties.
+     */
+    private static CloseMode parseCloseMode() {
+        String mode = System.getProperty(PROP_CLOSE_MODE);
+        if (mode != null) {
+            if ("strict".equalsIgnoreCase(mode)) {
+                return CloseMode.STRICT;
+            } else if ("warn".equalsIgnoreCase(mode)) {
+                return CloseMode.WARN;
+            } else if ("lenient".equalsIgnoreCase(mode)) {
+                return CloseMode.LENIENT;
+            }
+        }
+
+        // Default: warn for v3
+        return CloseMode.WARN;
+    }
+
     public static final int EOF = -1;
     public static final int READ_EXPIRED = -2;
+
+    private static final Logger LOG = Logger.getLogger(NonBlockingInputStream.class.getName());
+
+    /**
+     * Flag indicating whether this input stream has been closed.
+     * Marked as volatile to ensure visibility across threads.
+     */
+    protected volatile boolean closed = false;
+
+    /**
+     * Flag to track if a warning has been logged for this input stream.
+     * Used to avoid log spam in warn mode.
+     */
+    private boolean warningLogged = false;
+
+    /**
+     * Close mode for this input stream.
+     * Determined at construction time from the system property.
+     */
+    private final CloseMode closeMode;
+
+    /**
+     * Enum representing the close mode behavior.
+     */
+    private enum CloseMode {
+        /** Throw ClosedException when accessing closed streams */
+        STRICT,
+        /** Log warning when accessing closed streams */
+        WARN,
+        /** Silently allow accessing closed streams */
+        LENIENT
+    }
+
+    /**
+     * Checks if this input stream has been closed.
+     * <p>
+     * In JLine 3.x, warn mode is enabled by default: when a closed input stream is accessed,
+     * it logs a WARNING instead of throwing an exception. This allows existing code to
+     * continue working while alerting developers to the issue.
+     * </p>
+     * <p>
+     * The behavior can be controlled via the system property
+     * {@link org.jline.terminal.TerminalBuilder#PROP_CLOSE_MODE PROP_CLOSE_MODE}:
+     * </p>
+     * <ul>
+     *   <li>{@code "strict"} - Throw {@code ClosedException}</li>
+     *   <li>{@code "warn"} - Log a warning but continue (default in JLine 3.x)</li>
+     *   <li>{@code "lenient"} - Silently allow access (no warning, no exception)</li>
+     * </ul>
+     *
+     * @throws ClosedException if this input stream has been closed and strict mode is enabled
+     */
+    protected void checkClosed() throws IOException {
+        if (closed) {
+            switch (closeMode) {
+                case STRICT:
+                    throw new ClosedException();
+                case WARN:
+                    // Log warning only once per input stream instance to avoid log spam
+                    if (!warningLogged) {
+                        LOG.log(
+                                Level.WARNING,
+                                "Accessing a closed input stream. "
+                                        + "This may indicate a resource management issue. "
+                                        + "Set -D" + PROP_CLOSE_MODE + "=strict to make this an error.",
+                                new Throwable("Stack trace"));
+                        warningLogged = true;
+                    }
+                    break;
+                case LENIENT:
+                    // Silently allow access
+                    break;
+            }
+        }
+    }
 
     /**
      * Reads the next byte of data from the input stream. The value byte is
@@ -145,4 +251,23 @@ public abstract class NonBlockingInputStream extends InputStream {
     public void shutdown() {}
 
     public abstract int read(long timeout, boolean isPeek) throws IOException;
+
+    /**
+     * Closes this input stream and marks it as closed.
+     * <p>
+     * Subsequent read operations behavior depends on the
+     * {@link org.jline.terminal.TerminalBuilder#PROP_CLOSE_MODE PROP_CLOSE_MODE} setting:
+     * </p>
+     * <ul>
+     *   <li>{@code "strict"} - Throw {@link ClosedException}</li>
+     *   <li>{@code "warn"} - Log a warning but continue (default in JLine 3.x)</li>
+     *   <li>{@code "lenient"} - Silently allow access</li>
+     * </ul>
+     *
+     * @throws IOException if an I/O error occurs
+     */
+    @Override
+    public void close() throws IOException {
+        this.closed = true;
+    }
 }

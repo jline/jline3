@@ -115,11 +115,13 @@ public class NonBlocking {
 
         @Override
         public void close() throws IOException {
+            super.close();
             reader.close();
         }
 
         @Override
         public int read(long timeout, boolean isPeek) throws IOException {
+            checkClosed();
             Timeout t = new Timeout(timeout);
             while (!bytes.hasRemaining() && !t.elapsed()) {
                 int c = reader.read(t.timeout());
@@ -178,6 +180,7 @@ public class NonBlocking {
 
         @Override
         protected int read(long timeout, boolean isPeek) throws IOException {
+            checkClosed();
             Timeout t = new Timeout(timeout);
             while (!chars.hasRemaining() && !t.elapsed()) {
                 int b = input.read(t.timeout());
@@ -250,6 +253,7 @@ public class NonBlocking {
 
         @Override
         public void close() throws IOException {
+            super.close();
             input.close();
         }
     }

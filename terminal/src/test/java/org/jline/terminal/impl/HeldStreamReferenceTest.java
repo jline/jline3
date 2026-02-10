@@ -1,0 +1,144 @@
+/*
+ * Copyright (c) 2002-2025, the original author(s).
+ *
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
+ *
+ * https://opensource.org/licenses/BSD-3-Clause
+ */
+package org.jline.terminal.impl;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+
+import org.jline.utils.NonBlockingReader;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
+/**
+ * Test that verifies held references to terminal streams behave correctly after terminal closure.
+ * <p>
+ * In JLine 3.x, the default behavior is "soft close": accessing streams after terminal closure
+ * logs a WARNING but does not throw an exception, preserving backward compatibility.
+ * When the system property {@code jline.terminal.closeMode=true} is set, accessing closed
+ * terminal streams throws {@link org.jline.utils.ClosedException ClosedException} (an {@code IOException}).
+ * </p>
+ * <p>
+ * Note: Accessing terminal-level methods (like {@code terminal.writer()}) after closure
+ * always throws {@link IllegalStateException}, regardless of the system property.
+ * </p>
+ */
+public class HeldStreamReferenceTest {
+
+    @Test
+    public void testHeldWriterReferenceLogsWarningAfterClose() throws IOException {
+        ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        DumbTerminal terminal = new DumbTerminal("test", "dumb", input, output, StandardCharsets.UTF_8);
+
+        // Get a reference to the writer before closing
+        PrintWriter writer = terminal.writer();
+
+        // Close the terminal
+        terminal.close();
+
+        // In warn mode (default), the held reference should log a warning but not throw
+        assertDoesNotThrow(
+                () -> writer.println("test"), "Held writer reference should not throw in warn mode (default)");
+    }
+
+    @Test
+    public void testHeldReaderReferenceLogsWarningAfterClose() throws IOException {
+        ByteArrayInputStream input = new ByteArrayInputStream("test\n".getBytes(StandardCharsets.UTF_8));
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        DumbTerminal terminal = new DumbTerminal("test", "dumb", input, output, StandardCharsets.UTF_8);
+
+        // Get a reference to the reader before closing
+        NonBlockingReader reader = terminal.reader();
+
+        // Close the terminal
+        terminal.close();
+
+        // In warn mode (default), the held reference should log a warning but not throw
+        assertDoesNotThrow(() -> reader.read(100), "Held reader reference should not throw in warn mode (default)");
+    }
+
+    @Test
+    public void testHeldInputStreamReferenceLogsWarningAfterClose() throws IOException {
+        ByteArrayInputStream input = new ByteArrayInputStream("test\n".getBytes(StandardCharsets.UTF_8));
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        DumbTerminal terminal = new DumbTerminal("test", "dumb", input, output, StandardCharsets.UTF_8);
+
+        // Get a reference to the input stream before closing
+        InputStream inputStream = terminal.input();
+
+        // Close the terminal
+        terminal.close();
+
+        // In warn mode (default), the held reference should log a warning but not throw
+        assertDoesNotThrow(
+                () -> inputStream.read(), "Held input stream reference should not throw in warn mode (default)");
+    }
+
+    @Test
+    public void testHeldOutputStreamReferenceLogsWarningAfterClose() throws IOException {
+        ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        DumbTerminal terminal = new DumbTerminal("test", "dumb", input, output, StandardCharsets.UTF_8);
+
+        // Get a reference to the output stream before closing
+        OutputStream outputStream = terminal.output();
+
+        // Close the terminal
+        terminal.close();
+
+        // In warn mode (default), the held reference should log a warning but not throw
+        assertDoesNotThrow(
+                () -> outputStream.write(65), "Held output stream reference should not throw in warn mode (default)");
+    }
+
+    @Test
+    public void testHeldExternalTerminalWriterReferenceLogsWarningAfterClose() throws IOException {
+        ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        ExternalTerminal terminal = new ExternalTerminal("test", "ansi", input, output, StandardCharsets.UTF_8);
+
+        // Get a reference to the writer before closing
+        PrintWriter writer = terminal.writer();
+
+        // Close the terminal
+        terminal.close();
+
+        // In warn mode (default), the held reference should log a warning but not throw
+        assertDoesNotThrow(
+                () -> writer.println("test"), "Held writer reference should not throw in warn mode (default)");
+    }
+
+    @Test
+    public void testHeldExternalTerminalReaderReferenceLogsWarningAfterClose() throws IOException {
+        ByteArrayInputStream input = new ByteArrayInputStream("test\n".getBytes(StandardCharsets.UTF_8));
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        ExternalTerminal terminal = new ExternalTerminal("test", "ansi", input, output, StandardCharsets.UTF_8);
+
+        // Get a reference to the reader before closing
+        NonBlockingReader reader = terminal.reader();
+
+        // Close the terminal
+        terminal.close();
+
+        // In warn mode (default), the held reference should log a warning but not throw
+        assertDoesNotThrow(() -> reader.read(100), "Held reader reference should not throw in warn mode (default)");
+    }
+}
