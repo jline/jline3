@@ -82,6 +82,7 @@ public abstract class AbstractTerminal implements TerminalExt {
     protected Status status;
     protected Runnable onClose;
     protected MouseTracking currentMouseTracking = MouseTracking.Off;
+    protected volatile boolean closed = false;
 
     public AbstractTerminal(String name, String type) throws IOException {
         this(name, type, null, SignalHandler.SIG_DFL);
@@ -160,6 +161,7 @@ public abstract class AbstractTerminal implements TerminalExt {
         if (status != null) {
             status.close();
         }
+        closed = true;
     }
 
     protected void echoSignal(Signal signal) {
@@ -340,6 +342,17 @@ public abstract class AbstractTerminal implements TerminalExt {
     protected void checkInterrupted() throws InterruptedIOException {
         if (Thread.interrupted()) {
             throw new InterruptedIOException();
+        }
+    }
+
+    /**
+     * Checks if this terminal has been closed and throws an exception if it has.
+     *
+     * @throws IllegalStateException if this terminal has been closed
+     */
+    protected void checkClosed() {
+        if (closed) {
+            throw new IllegalStateException("Terminal has been closed");
         }
     }
 

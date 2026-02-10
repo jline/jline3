@@ -233,24 +233,29 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
     }
 
     public NonBlockingReader reader() {
+        checkClosed();
         return reader;
     }
 
     public PrintWriter writer() {
+        checkClosed();
         return writer;
     }
 
     @Override
     public InputStream input() {
+        checkClosed();
         return input;
     }
 
     @Override
     public OutputStream output() {
+        checkClosed();
         return output;
     }
 
     public Attributes getAttributes() {
+        checkClosed();
         int mode = getConsoleMode(inConsole);
         if ((mode & ENABLE_ECHO_INPUT) != 0) {
             attributes.setLocalFlag(Attributes.LocalFlag.ECHO, true);
@@ -262,6 +267,7 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
     }
 
     public void setAttributes(Attributes attr) {
+        checkClosed();
         attributes.copy(attr);
         updateConsoleMode();
     }
@@ -291,6 +297,7 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
     }
 
     public void setSize(Size size) {
+        checkClosed();
         throw new UnsupportedOperationException("Can not resize windows terminal");
     }
 

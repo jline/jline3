@@ -75,6 +75,7 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
          * The underlying input stream is closed first. This means that if the
          * I/O thread was blocked waiting on input, it will be woken for us.
          */
+        super.close(); // Mark as closed in base class
         in.close();
         shutdown();
     }
@@ -89,6 +90,9 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
      * @throws IOException if anything wrong happens
      */
     public synchronized int read(long timeout, boolean isPeek) throws IOException {
+        // Check if this input stream has been closed
+        checkClosed();
+
         /*
          * If the thread hit an IOException, we report it.
          */

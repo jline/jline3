@@ -11,6 +11,8 @@ package org.jline.terminal.impl;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FilterInputStream;
+import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -78,17 +80,13 @@ public class DumbTerminalProvider implements TerminalProvider {
             boolean paused,
             SystemStream systemStream)
             throws IOException {
+        // For system terminals, wrap the streams in non-closeable wrappers
+        // to prevent closing the underlying FileDescriptors when the terminal is closed
+        InputStream in = new NonCloseableInputStream(new FileInputStream(FileDescriptor.in));
+        OutputStream out = new NonCloseableOutputStream(
+                new FileOutputStream(systemStream == SystemStream.Error ? FileDescriptor.err : FileDescriptor.out));
         return new DumbTerminal(
-                this,
-                systemStream,
-                name,
-                type,
-                new FileInputStream(FileDescriptor.in),
-                new FileOutputStream(systemStream == SystemStream.Error ? FileDescriptor.err : FileDescriptor.out),
-                encoding,
-                inputEncoding,
-                outputEncoding,
-                signalHandler);
+                this, systemStream, name, type, in, out, encoding, inputEncoding, outputEncoding, signalHandler);
     }
 
     @Override
@@ -126,5 +124,36 @@ public class DumbTerminalProvider implements TerminalProvider {
     @Override
     public String toString() {
         return "TerminalProvider[" + name() + "]";
+    }
+
+    /**
+     * Wrapper that prevents closing the underlying input stream.
+     * Used for system streams (System.in) to prevent closing the FileDescriptor.
+     */
+    private static class NonCloseableInputStream extends FilterInputStream {
+        NonCloseableInputStream(InputStream in) {
+            super(in);
+        }
+
+        @Override
+        public void close() throws IOException {
+            // Do not close the underlying stream
+        }
+    }
+
+    /**
+     * Wrapper that prevents closing the underlying output stream.
+     * Used for system streams (System.out/err) to prevent closing the FileDescriptor.
+     */
+    private static class NonCloseableOutputStream extends FilterOutputStream {
+        NonCloseableOutputStream(OutputStream out) {
+            super(out);
+        }
+
+        @Override
+        public void close() throws IOException {
+            // Flush but do not close the underlying stream
+            flush();
+        }
     }
 }

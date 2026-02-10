@@ -203,38 +203,46 @@ public class LineDisciplineTerminal extends AbstractTerminal {
     }
 
     public NonBlockingReader reader() {
+        checkClosed();
         return slaveReader;
     }
 
     public PrintWriter writer() {
+        checkClosed();
         return slaveWriter;
     }
 
     @Override
     public InputStream input() {
+        checkClosed();
         return slaveInput;
     }
 
     @Override
     public OutputStream output() {
+        checkClosed();
         return slaveOutput;
     }
 
     public Attributes getAttributes() {
+        checkClosed();
         return new Attributes(attributes);
     }
 
     public void setAttributes(Attributes attr) {
+        checkClosed();
         attributes.copy(attr);
     }
 
     public Size getSize() {
+        checkClosed();
         Size sz = new Size();
         sz.copy(size);
         return sz;
     }
 
     public void setSize(Size sz) {
+        checkClosed();
         size.copy(sz);
     }
 
@@ -366,10 +374,7 @@ public class LineDisciplineTerminal extends AbstractTerminal {
             try {
                 slaveInputPipe.close();
             } finally {
-                try {
-                } finally {
-                    slaveWriter.close();
-                }
+                slaveWriter.close();
             }
         }
     }

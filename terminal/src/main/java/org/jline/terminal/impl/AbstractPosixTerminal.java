@@ -94,6 +94,7 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
     }
 
     public Attributes getAttributes() {
+        checkClosed();
         try {
             return pty.getAttr();
         } catch (IOException e) {
@@ -102,6 +103,7 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
     }
 
     public void setAttributes(Attributes attr) {
+        checkClosed();
         try {
             pty.setAttr(attr);
         } catch (IOException e) {
@@ -110,6 +112,7 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
     }
 
     public Size getSize() {
+        checkClosed();
         try {
             return pty.getSize();
         } catch (IOException e) {
@@ -118,6 +121,7 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
     }
 
     public void setSize(Size size) {
+        checkClosed();
         try {
             pty.setSize(size);
         } catch (IOException e) {

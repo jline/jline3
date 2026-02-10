@@ -23,8 +23,6 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
 
     private final OutputStream output;
 
-    private boolean closed;
-
     private IOException ioException;
 
     public NonBlockingPumpInputStream() {
@@ -85,6 +83,7 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
 
     @Override
     public synchronized int read(long timeout, boolean isPeek) throws IOException {
+        checkClosed();
         checkIoException();
         // Blocks until more input is available or the reader is closed.
         int res = wait(readBuffer, timeout);
@@ -104,6 +103,7 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
         } else if (len == 0) {
             return 0;
         } else {
+            checkClosed();
             checkIoException();
             int res = wait(readBuffer, timeout);
             if (res >= 0) {
@@ -155,7 +155,7 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
 
     @Override
     public synchronized void close() throws IOException {
-        this.closed = true;
+        super.close(); // Use base class closed field
         notifyAll();
     }
 

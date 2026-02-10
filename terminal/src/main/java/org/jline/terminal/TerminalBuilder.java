@@ -165,6 +165,55 @@ public final class TerminalBuilder {
     public static final String PROP_COLOR_DISTANCE = "org.jline.utils.colorDistance";
     public static final String PROP_DISABLE_ALTERNATE_CHARSET = "org.jline.utils.disableAlternateCharset";
 
+    /**
+     * System property to control terminal stream closure behavior.
+     * <p>
+     * This property controls what happens when code attempts to read from or write to
+     * terminal streams (reader, writer, input, output) after the terminal has been closed.
+     * </p>
+     * <p>
+     * <b>Two levels of closure enforcement:</b>
+     * </p>
+     * <ol>
+     *   <li><b>Terminal-level:</b> Calling methods on the terminal itself after {@code close()}
+     *       always throws {@link IllegalStateException}, regardless of this property.</li>
+     *   <li><b>Stream-level:</b> Using held references to streams obtained before {@code close()}
+     *       is controlled by this property.</li>
+     * </ol>
+     * <p>
+     * <b>Property values:</b>
+     * </p>
+     * <ul>
+     *   <li><b>{@code "strict"}</b> (default in JLine 4.x): Accessing closed streams
+     *       throws {@link org.jline.utils.ClosedException}</li>
+     *   <li><b>{@code "warn"}</b> (default in JLine 3.x): Accessing closed streams
+     *       logs a warning but continues to operate</li>
+     *   <li><b>{@code "lenient"}</b>: Accessing closed streams is silently allowed
+     *       (no warning, no exception)</li>
+     * </ul>
+     * <p>
+     * <b>Example:</b>
+     * </p>
+     * <pre>{@code
+     * Terminal terminal = TerminalBuilder.terminal();
+     * NonBlockingReader reader = terminal.reader();  // Get reference before close
+     * terminal.close();
+     *
+     * // This always throws IllegalStateException (terminal-level):
+     * terminal.reader();  // throws IllegalStateException
+     *
+     * // This behavior depends on jline.terminal.closeMode (stream-level):
+     * reader.read();  // throws ClosedException in "strict" mode
+     *                 // logs warning in "warn" mode
+     *                 // silently continues in "lenient" mode
+     * }</pre>
+     *
+     * @see org.jline.utils.ClosedException
+     * @see org.jline.utils.NonBlockingInputStream
+     * @see org.jline.utils.NonBlockingReader
+     */
+    public static final String PROP_CLOSE_MODE = "jline.terminal.closeMode";
+
     //
     // System properties controlling how FileDescriptor are create.
     // The value can be a comma separated list of defined mechanisms.

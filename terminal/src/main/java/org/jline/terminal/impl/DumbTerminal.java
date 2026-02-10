@@ -156,6 +156,17 @@ public class DumbTerminal extends AbstractTerminal {
                     return c;
                 }
             }
+
+            @Override
+            public void close() throws IOException {
+                super.close();
+                nbis.close();
+            }
+
+            @Override
+            public void shutdown() {
+                nbis.shutdown();
+            }
         };
         this.output = out;
         this.reader = NonBlocking.nonBlocking(getName(), input, inputEncoding());
@@ -170,39 +181,61 @@ public class DumbTerminal extends AbstractTerminal {
     }
 
     public NonBlockingReader reader() {
+        checkClosed();
         return reader;
     }
 
     public PrintWriter writer() {
+        checkClosed();
         return writer;
     }
 
     @Override
     public InputStream input() {
+        checkClosed();
         return input;
     }
 
     @Override
     public OutputStream output() {
+        checkClosed();
         return output;
     }
 
     public Attributes getAttributes() {
+        checkClosed();
         return new Attributes(attributes);
     }
 
     public void setAttributes(Attributes attr) {
+        checkClosed();
         attributes.copy(attr);
     }
 
     public Size getSize() {
+        checkClosed();
         Size sz = new Size();
         sz.copy(size);
         return sz;
     }
 
     public void setSize(Size sz) {
+        checkClosed();
         size.copy(sz);
+    }
+
+    @Override
+    protected void doClose() throws IOException {
+        super.doClose();
+        try {
+            reader.close();
+        } finally {
+            try {
+                writer.flush();
+            } finally {
+                writer.close();
+            }
+        }
     }
 
     @Override

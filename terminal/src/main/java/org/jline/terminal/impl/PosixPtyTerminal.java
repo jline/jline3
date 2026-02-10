@@ -17,7 +17,6 @@ import java.nio.charset.Charset;
 import java.util.Objects;
 
 import org.jline.terminal.spi.Pty;
-import org.jline.utils.ClosedException;
 import org.jline.utils.NonBlocking;
 import org.jline.utils.NonBlockingInputStream;
 import org.jline.utils.NonBlockingReader;
@@ -117,7 +116,7 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
         this.out = Objects.requireNonNull(out);
         this.masterInput = pty.getMasterInput();
         this.masterOutput = pty.getMasterOutput();
-        this.input = new InputStreamWrapper(NonBlocking.nonBlocking(name, pty.getSlaveInput()));
+        this.input = NonBlocking.nonBlocking(name, pty.getSlaveInput());
         this.output = pty.getSlaveOutput();
         this.reader = NonBlocking.nonBlocking(name, input, inputEncoding());
         this.writer = new PrintWriter(new OutputStreamWriter(output, outputEncoding()));
@@ -128,18 +127,22 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
     }
 
     public InputStream input() {
+        checkClosed();
         return input;
     }
 
     public NonBlockingReader reader() {
+        checkClosed();
         return reader;
     }
 
     public OutputStream output() {
+        checkClosed();
         return output;
     }
 
     public PrintWriter writer() {
+        checkClosed();
         return writer;
     }
 
@@ -208,29 +211,6 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
     public boolean paused() {
         synchronized (lock) {
             return paused;
-        }
-    }
-
-    private static class InputStreamWrapper extends NonBlockingInputStream {
-
-        private final NonBlockingInputStream in;
-        private volatile boolean closed;
-
-        protected InputStreamWrapper(NonBlockingInputStream in) {
-            this.in = in;
-        }
-
-        @Override
-        public int read(long timeout, boolean isPeek) throws IOException {
-            if (closed) {
-                throw new ClosedException();
-            }
-            return in.read(timeout, isPeek);
-        }
-
-        @Override
-        public void close() throws IOException {
-            closed = true;
         }
     }
 
