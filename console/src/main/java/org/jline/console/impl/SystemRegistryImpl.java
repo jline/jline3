@@ -717,6 +717,7 @@ public class SystemRegistryImpl implements SystemRegistry {
                             }
                             pipe = words.get(i + 1);
                             if (!pipe.matches("\\w+") || !customPipes.containsKey(pipe)) {
+                                if (consoleOption("ignoreUnknownPipes", false)) break;
                                 throw new IllegalArgumentException("Unknown or illegal pipe name: " + pipe);
                             }
                         }
