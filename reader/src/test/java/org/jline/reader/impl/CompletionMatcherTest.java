@@ -13,8 +13,10 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.jline.reader.*;
+import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class CompletionMatcherTest {
@@ -24,6 +26,12 @@ public class CompletionMatcherTest {
         Parser parser = new DefaultParser();
         completionMatcher.compile(
                 new HashMap<>(), false, LineReaderImpl.wrap(parser.parse(line, line.length())), true, 0, "");
+        return completionMatcher;
+    }
+
+    private CompletionMatcher compileCompletionMatcher(ParsedLine line, boolean prefix) {
+        CompletionMatcher completionMatcher = new CompletionMatcherImpl();
+        completionMatcher.compile(new HashMap<>(), prefix, LineReaderImpl.wrap(line), true, 0, "");
         return completionMatcher;
     }
 
@@ -43,5 +51,30 @@ public class CompletionMatcherTest {
         Candidate candidate = completionMatcher.exactMatch();
         assertEquals("foo", (candidate != null ? candidate.value() : null), "Exact match");
         assertEquals("foo", completionMatcher.getCommonPrefix(), "Common prefix");
+    }
+
+    @Test
+    public void testEmptyWordWithNonZeroCursor() {
+        // Test for issue #1565: StringIndexOutOfBoundsException when word is empty but wordCursor > 0
+        List<Candidate> candidates = Arrays.asList(new Candidate("foo"), new Candidate("bar"));
+
+        // Create a ParsedLine with empty word but wordCursor = 1
+        ParsedLine line = new ArgumentCompleter.ArgumentLine("", 1);
+
+        // This should not throw StringIndexOutOfBoundsException
+        assertDoesNotThrow(() -> {
+            CompletionMatcher completionMatcher = compileCompletionMatcher(line, false);
+            List<Candidate> matches = completionMatcher.matches(candidates);
+            // With empty word, we should get all candidates
+            assertEquals(2, matches.size(), "Should match all candidates with empty word");
+        });
+
+        // Also test with prefix mode
+        assertDoesNotThrow(() -> {
+            CompletionMatcher completionMatcher = compileCompletionMatcher(line, true);
+            List<Candidate> matches = completionMatcher.matches(candidates);
+            // With empty word in prefix mode, we should get all candidates
+            assertEquals(2, matches.size(), "Should match all candidates with empty word in prefix mode");
+        });
     }
 }
