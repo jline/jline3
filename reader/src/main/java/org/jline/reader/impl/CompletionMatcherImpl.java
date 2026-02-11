@@ -128,8 +128,8 @@ public class CompletionMatcherImpl implements CompletionMatcher {
         // TODO: glob completion
         String wd = line.word();
         String wdi = caseInsensitive ? wd.toLowerCase() : wd;
-        String wp = wdi.substring(0, line.wordCursor());
         if (prefix) {
+            String wp = wdi.substring(0, Math.min(line.wordCursor(), wdi.length()));
             matchers = new ArrayList<>(Arrays.asList(
                     simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).startsWith(wp)),
                     simpleMatcher(s -> (caseInsensitive ? s.toLowerCase() : s).contains(wp))));
@@ -142,7 +142,8 @@ public class CompletionMatcherImpl implements CompletionMatcher {
             exact = s -> caseInsensitive ? s.equalsIgnoreCase(wd) : s.equals(wd);
         } else {
             if (LineReader.Option.COMPLETE_IN_WORD.isSet(options)) {
-                String ws = wdi.substring(line.wordCursor());
+                String wp = wdi.substring(0, Math.min(line.wordCursor(), wdi.length()));
+                String ws = wdi.substring(Math.min(line.wordCursor(), wdi.length()));
                 Pattern p1 = Pattern.compile(Pattern.quote(wp) + ".*" + Pattern.quote(ws) + ".*");
                 Pattern p2 = Pattern.compile(".*" + Pattern.quote(wp) + ".*" + Pattern.quote(ws) + ".*");
                 matchers = new ArrayList<>(Arrays.asList(
