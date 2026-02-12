@@ -315,7 +315,7 @@
                         <showWarnings>true</showWarnings>
                         <release>${java.release.version}</release>
                         <compilerArgs>
-                            <arg>-Xlint:all,-options,-processing,-restricted</arg>
+                            <arg>-Xlint:all,-options,-processing,-restricted,-requires-automatic,-requires-transitive-automatic</arg>
                             <arg>-Werror</arg>
                         </compilerArgs>
                         <fork>true</fork>
