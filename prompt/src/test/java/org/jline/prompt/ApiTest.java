@@ -33,6 +33,10 @@ public class ApiTest {
         assertNotNull(InputPrompt.class);
         assertNotNull(ConfirmPrompt.class);
         assertNotNull(TextPrompt.class);
+        assertNotNull(PasswordPrompt.class);
+        assertNotNull(NumberPrompt.class);
+        assertNotNull(SearchPrompt.class);
+        assertNotNull(EditorPrompt.class);
 
         // Test item interfaces
         assertNotNull(ListItem.class);
@@ -47,6 +51,8 @@ public class ApiTest {
         assertNotNull(InputResult.class);
         assertNotNull(ConfirmResult.class);
         assertNotNull(NoResult.class);
+        assertNotNull(SearchResult.class);
+        assertNotNull(EditorResult.class);
 
         // Test factory
         assertNotNull(PrompterFactory.class);
@@ -61,6 +67,15 @@ public class ApiTest {
         assertTrue(Prompt.class.isAssignableFrom(InputPrompt.class));
         assertTrue(Prompt.class.isAssignableFrom(ConfirmPrompt.class));
         assertTrue(Prompt.class.isAssignableFrom(TextPrompt.class));
+        assertTrue(Prompt.class.isAssignableFrom(PasswordPrompt.class));
+        assertTrue(Prompt.class.isAssignableFrom(NumberPrompt.class));
+        assertTrue(Prompt.class.isAssignableFrom(SearchPrompt.class));
+        assertTrue(Prompt.class.isAssignableFrom(EditorPrompt.class));
+
+        // Test that PasswordPrompt extends InputPrompt
+        assertTrue(InputPrompt.class.isAssignableFrom(PasswordPrompt.class));
+        // Test that NumberPrompt extends InputPrompt
+        assertTrue(InputPrompt.class.isAssignableFrom(NumberPrompt.class));
 
         // Test that item interfaces extend PromptItem
         assertTrue(PromptItem.class.isAssignableFrom(ListItem.class));
@@ -75,6 +90,8 @@ public class ApiTest {
         assertTrue(PromptResult.class.isAssignableFrom(InputResult.class));
         assertTrue(PromptResult.class.isAssignableFrom(ConfirmResult.class));
         assertTrue(PromptResult.class.isAssignableFrom(NoResult.class));
+        assertTrue(PromptResult.class.isAssignableFrom(SearchResult.class));
+        assertTrue(PromptResult.class.isAssignableFrom(EditorResult.class));
     }
 
     @Test
@@ -86,6 +103,22 @@ public class ApiTest {
         assertNotNull(ChoiceBuilder.class);
         assertNotNull(ConfirmBuilder.class);
         assertNotNull(TextBuilder.class);
+        assertNotNull(PasswordBuilder.class);
+        assertNotNull(NumberBuilder.class);
+        assertNotNull(SearchBuilder.class);
+        assertNotNull(EditorBuilder.class);
+
+        // Test that all builders extend BaseBuilder
+        assertTrue(BaseBuilder.class.isAssignableFrom(InputBuilder.class));
+        assertTrue(BaseBuilder.class.isAssignableFrom(ListBuilder.class));
+        assertTrue(BaseBuilder.class.isAssignableFrom(CheckboxBuilder.class));
+        assertTrue(BaseBuilder.class.isAssignableFrom(ChoiceBuilder.class));
+        assertTrue(BaseBuilder.class.isAssignableFrom(ConfirmBuilder.class));
+        assertTrue(BaseBuilder.class.isAssignableFrom(TextBuilder.class));
+        assertTrue(BaseBuilder.class.isAssignableFrom(PasswordBuilder.class));
+        assertTrue(BaseBuilder.class.isAssignableFrom(NumberBuilder.class));
+        assertTrue(BaseBuilder.class.isAssignableFrom(SearchBuilder.class));
+        assertTrue(BaseBuilder.class.isAssignableFrom(EditorBuilder.class));
     }
 
     @Test

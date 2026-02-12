@@ -10,24 +10,17 @@ package org.jline.prompt;
 
 /**
  * Builder interface for number prompts.
+ *
+ * <p>
+ * NumberBuilder extends {@link BaseBuilder} to provide a consistent fluent API
+ * for creating number prompts. The name() and message() methods are inherited
+ * from BaseBuilder, ensuring API consistency across all prompt types.
+ * </p>
+ *
+ * @see BaseBuilder
+ * @see NumberPrompt
  */
-public interface NumberBuilder extends PromptBuilder {
-
-    /**
-     * Set the name of the prompt.
-     *
-     * @param name the name
-     * @return this builder
-     */
-    NumberBuilder name(String name);
-
-    /**
-     * Set the message to display.
-     *
-     * @param message the message
-     * @return this builder
-     */
-    NumberBuilder message(String message);
+public interface NumberBuilder extends BaseBuilder<NumberBuilder> {
 
     /**
      * Set the default value.
@@ -76,11 +69,4 @@ public interface NumberBuilder extends PromptBuilder {
      * @return this builder
      */
     NumberBuilder outOfRangeMessage(String message);
-
-    /**
-     * Add the number prompt to the builder.
-     *
-     * @return the parent builder
-     */
-    PromptBuilder addPrompt();
 }

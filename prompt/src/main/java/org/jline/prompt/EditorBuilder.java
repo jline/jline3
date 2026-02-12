@@ -10,24 +10,17 @@ package org.jline.prompt;
 
 /**
  * Builder interface for editor prompts.
+ *
+ * <p>
+ * EditorBuilder extends {@link BaseBuilder} to provide a consistent fluent API
+ * for creating editor prompts. The name() and message() methods are inherited
+ * from BaseBuilder, ensuring API consistency across all prompt types.
+ * </p>
+ *
+ * @see BaseBuilder
+ * @see EditorPrompt
  */
-public interface EditorBuilder extends PromptBuilder {
-
-    /**
-     * Set the name of the prompt.
-     *
-     * @param name the name
-     * @return this builder
-     */
-    EditorBuilder name(String name);
-
-    /**
-     * Set the message to display.
-     *
-     * @param message the message
-     * @return this builder
-     */
-    EditorBuilder message(String message);
+public interface EditorBuilder extends BaseBuilder<EditorBuilder> {
 
     /**
      * Set the initial text for the editor.
@@ -68,11 +61,4 @@ public interface EditorBuilder extends PromptBuilder {
      * @return this builder
      */
     EditorBuilder enableWrapping(boolean enableWrapping);
-
-    /**
-     * Add the editor prompt to the builder.
-     *
-     * @return the parent builder
-     */
-    PromptBuilder addPrompt();
 }

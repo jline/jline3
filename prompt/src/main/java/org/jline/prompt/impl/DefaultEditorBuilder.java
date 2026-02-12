@@ -8,8 +8,6 @@
  */
 package org.jline.prompt.impl;
 
-import java.util.List;
-
 import org.jline.prompt.*;
 
 /**
@@ -78,66 +76,5 @@ public class DefaultEditorBuilder implements EditorBuilder {
                 name, message, initialText, fileExtension, title, showLineNumbers, enableWrapping);
         parent.addPrompt(prompt);
         return parent;
-    }
-
-    // Delegate methods from PromptBuilder
-    @Override
-    public List<Prompt> build() {
-        return parent.build();
-    }
-
-    @Override
-    public void addPrompt(Prompt prompt) {
-        parent.addPrompt(prompt);
-    }
-
-    @Override
-    public InputBuilder createInputPrompt() {
-        return parent.createInputPrompt();
-    }
-
-    @Override
-    public ListBuilder createListPrompt() {
-        return parent.createListPrompt();
-    }
-
-    @Override
-    public ChoiceBuilder createChoicePrompt() {
-        return parent.createChoicePrompt();
-    }
-
-    @Override
-    public CheckboxBuilder createCheckboxPrompt() {
-        return parent.createCheckboxPrompt();
-    }
-
-    @Override
-    public ConfirmBuilder createConfirmPrompt() {
-        return parent.createConfirmPrompt();
-    }
-
-    @Override
-    public TextBuilder createText() {
-        return parent.createText();
-    }
-
-    @Override
-    public PasswordBuilder createPasswordPrompt() {
-        return parent.createPasswordPrompt();
-    }
-
-    @Override
-    public NumberBuilder createNumberPrompt() {
-        return parent.createNumberPrompt();
-    }
-
-    @Override
-    public <T> SearchBuilder<T> createSearchPrompt() {
-        return parent.createSearchPrompt();
-    }
-
-    @Override
-    public EditorBuilder createEditorPrompt() {
-        return parent.createEditorPrompt();
     }
 }
