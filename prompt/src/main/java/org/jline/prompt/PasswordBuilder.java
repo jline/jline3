@@ -10,24 +10,17 @@ package org.jline.prompt;
 
 /**
  * Builder interface for password prompts.
+ *
+ * <p>
+ * PasswordBuilder extends {@link BaseBuilder} to provide a consistent fluent API
+ * for creating password prompts. The name() and message() methods are inherited
+ * from BaseBuilder, ensuring API consistency across all prompt types.
+ * </p>
+ *
+ * @see BaseBuilder
+ * @see PasswordPrompt
  */
-public interface PasswordBuilder extends PromptBuilder {
-
-    /**
-     * Set the name of the prompt.
-     *
-     * @param name the name
-     * @return this builder
-     */
-    PasswordBuilder name(String name);
-
-    /**
-     * Set the message to display.
-     *
-     * @param message the message
-     * @return this builder
-     */
-    PasswordBuilder message(String message);
+public interface PasswordBuilder extends BaseBuilder<PasswordBuilder> {
 
     /**
      * Set the default value.
@@ -52,11 +45,4 @@ public interface PasswordBuilder extends PromptBuilder {
      * @return this builder
      */
     PasswordBuilder showMask(boolean showMask);
-
-    /**
-     * Add the password prompt to the builder.
-     *
-     * @return the parent builder
-     */
-    PromptBuilder addPrompt();
 }

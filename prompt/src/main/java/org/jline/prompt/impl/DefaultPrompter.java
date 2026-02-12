@@ -12,6 +12,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOError;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -34,6 +35,7 @@ import org.jline.prompt.*;
 import org.jline.reader.Binding;
 import org.jline.reader.Candidate;
 import org.jline.reader.CompletingParsedLine;
+import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.Reference;
@@ -248,8 +250,8 @@ public class DefaultPrompter implements Prompter {
             throw new IllegalStateException("Terminal is not in raw mode! Maybe Prompter is closed?");
         }
 
-        // Initialize header from input
-        this.header = headerIn;
+        // Initialize header from input - make a mutable copy to allow adding results
+        this.header = new ArrayList<>(headerIn);
 
         boolean backward = false;
         for (int i = resultMap.isEmpty() ? 0 : resultMap.size() - 1; i < promptList.size(); i++) {
@@ -299,7 +301,8 @@ public class DefaultPrompter implements Prompter {
                 }
 
                 resultMap.put(prompt.getName(), result);
-            } catch (UserInterruptException e) {
+            } catch (UserInterruptException | EndOfFileException | IOError e) {
+                // Propagate terminal control exceptions (Ctrl+C, EOF, IO errors)
                 throw e;
             } catch (Exception e) {
                 // Log error and continue
@@ -370,12 +373,18 @@ public class DefaultPrompter implements Prompter {
      */
     protected PromptResult<? extends Prompt> promptElement(
             List<AttributedString> header, Prompt prompt, PromptResult<? extends Prompt> oldResult)
-            throws UserInterruptException {
+            throws UserInterruptException, EndOfFileException {
         try {
             // Header is managed by individual prompt methods
             return executePrompt(header, prompt);
         } catch (UserInterruptException e) {
             // Propagate Ctrl+C to exit the whole demo
+            throw e;
+        } catch (EndOfFileException e) {
+            // Propagate EOF to signal end of input
+            throw e;
+        } catch (IOError e) {
+            // Propagate IO errors as they indicate terminal issues
             throw e;
         } catch (Exception e) {
             terminal.writer().println("Error: " + e.getMessage());
@@ -549,12 +558,12 @@ public class DefaultPrompter implements Prompter {
         }
     }
 
-    private PromptResult<SearchPrompt<?>> executeSearchPrompt(List<AttributedString> header, SearchPrompt<?> prompt)
+    private <T> SearchResult<T> executeSearchPrompt(List<AttributedString> header, SearchPrompt<T> prompt)
             throws IOException, UserInterruptException {
 
         // Create a dynamic input prompt that searches as the user types
         StringBuilder searchTerm = new StringBuilder();
-        List<?> currentResults = new ArrayList<>();
+        List<T> currentResults = new ArrayList<>();
         int selectedIndex = 0;
 
         // Create prompt message
@@ -619,15 +628,9 @@ public class DefaultPrompter implements Prompter {
 
                 case EXIT:
                     if (!currentResults.isEmpty() && selectedIndex < currentResults.size()) {
-                        Object selected = currentResults.get(selectedIndex);
-                        @SuppressWarnings("unchecked")
-                        String value = ((Function<Object, String>) prompt.getValueFunction()).apply(selected);
-                        return new AbstractPromptResult<SearchPrompt<?>>(prompt) {
-                            @Override
-                            public String getResult() {
-                                return value;
-                            }
-                        };
+                        T selected = currentResults.get(selectedIndex);
+                        String value = prompt.getValueFunction().apply(selected);
+                        return new DefaultSearchResult<>(value, prompt);
                     }
                     break;
 
@@ -640,7 +643,7 @@ public class DefaultPrompter implements Prompter {
         }
     }
 
-    private PromptResult<EditorPrompt> executeEditorPrompt(List<AttributedString> header, EditorPrompt prompt)
+    private EditorResult executeEditorPrompt(List<AttributedString> header, EditorPrompt prompt)
             throws IOException, UserInterruptException {
 
         // Display the prompt message
@@ -669,12 +672,7 @@ public class DefaultPrompter implements Prompter {
                 // Launch editor
                 try {
                     String result = launchEditor(prompt);
-                    return new AbstractPromptResult<EditorPrompt>(prompt) {
-                        @Override
-                        public String getResult() {
-                            return result;
-                        }
-                    };
+                    return new DefaultEditorResult(result, prompt);
                 } catch (Exception e) {
                     terminal.writer().println("Error launching editor: " + e.getMessage());
                     terminal.flush();
@@ -733,7 +731,7 @@ public class DefaultPrompter implements Prompter {
             openMethod.invoke(nano, Collections.singletonList(tempFile.getName()));
             runMethod.invoke(nano);
 
-            // Reset terminal state after editor
+            // Nano restores terminal attributes but leaves keypad in transmit mode
             terminal.flush();
 
             // Read the result
@@ -877,7 +875,17 @@ public class DefaultPrompter implements Prompter {
     }
 
     /**
-     * Select candidate like AbstractPrompt.
+     * Select candidate from completion list.
+     *
+     * <p>
+     * Currently auto-selects the first candidate when multiple candidates are available.
+     * Future enhancement: Implement interactive selection UI allowing users to navigate
+     * and choose from multiple candidates using arrow keys, similar to shell completion.
+     * </p>
+     *
+     * @param buffer the current input buffer
+     * @param candidates the list of completion candidates
+     * @return the selected candidate value, or the buffer if no candidates
      */
     private String selectCandidate(String buffer, List<Candidate> candidates) {
         if (candidates.isEmpty()) {
@@ -885,8 +893,8 @@ public class DefaultPrompter implements Prompter {
         } else if (candidates.size() == 1) {
             return candidates.get(0).value();
         }
-        // For now, just return the first candidate
-        // TODO: Implement interactive candidate selection
+        // Auto-select first candidate when multiple are available
+        // Future: Add interactive selection UI for multiple candidates
         return candidates.get(0).value();
     }
 
@@ -1353,8 +1361,12 @@ public class DefaultPrompter implements Prompter {
     private void close() throws IOException {
         if (terminalInRawMode()) {
             // Update display with final header state
-            int cursor = (terminal.getWidth() + 1) * header.size();
-            display.update(header, cursor);
+            try {
+                int cursor = (terminal.getWidth() + 1) * header.size();
+                display.update(header, cursor);
+            } catch (ArithmeticException e) {
+                // Ignore division by zero errors in display update (can happen with test terminals)
+            }
             terminal.setAttributes(attributes);
             terminal.puts(keypad_local);
             terminal.writer().println();
@@ -1380,7 +1392,7 @@ public class DefaultPrompter implements Prompter {
         map.bind(ListOperation.BACKWARD_ONE_LINE, "y", ctrl('Y'), key(terminal, key_up));
 
         // Bind action keys
-        map.bind(ListOperation.EXIT, "\r");
+        map.bind(ListOperation.EXIT, "\r", "\n");
         map.bind(ListOperation.ESCAPE, esc()); // Escape goes back to previous prompt
         map.bind(ListOperation.CANCEL, ctrl('C')); // Ctrl+C cancels
 
@@ -1497,7 +1509,7 @@ public class DefaultPrompter implements Prompter {
         // Bind toggle key
         map.bind(CheckboxOperation.TOGGLE, " ");
         // Bind action keys
-        map.bind(CheckboxOperation.EXIT, "\r");
+        map.bind(CheckboxOperation.EXIT, "\r", "\n");
         map.bind(CheckboxOperation.ESCAPE, esc()); // Escape goes back to previous prompt
         map.bind(CheckboxOperation.CANCEL, ctrl('C')); // Ctrl+C cancels
 
@@ -1610,7 +1622,7 @@ public class DefaultPrompter implements Prompter {
             map.bind(ChoiceOperation.INSERT, Character.toString(i));
         }
         // Bind action keys
-        map.bind(ChoiceOperation.EXIT, "\r");
+        map.bind(ChoiceOperation.EXIT, "\r", "\n");
         map.bind(ChoiceOperation.CANCEL, esc());
         map.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
     }

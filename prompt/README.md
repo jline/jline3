@@ -20,12 +20,12 @@ The JLine Prompt API provides a clean, interface-based approach for creating int
 ### Basic Example
 
 ```java
-// Create a ConsoleUI instance
+// Create a Prompter instance
 Terminal terminal = TerminalBuilder.builder().build();
 Prompter prompter = PrompterFactory.create(terminal);
 
 // Create a prompt builder
-PromptBuilder promptBuilder = prompter.getPromptBuilder();
+PromptBuilder promptBuilder = prompter.newBuilder();
 
 // Add prompts
 promptBuilder.createListPrompt()
@@ -45,12 +45,16 @@ Map<String, PromptResult> result = prompter.prompt(header, promptBuilder.build()
 
 ### Supported Prompt Types
 
-- **Input Prompt**: Text input with optional masking, completion, and validation
+- **Input Prompt**: Text input with optional completion and validation
+- **Password Prompt**: Masked text input for sensitive data
+- **Number Prompt**: Numeric input with range validation and decimal control
 - **List Prompt**: Single selection from a list of options
 - **Checkbox Prompt**: Multiple selection from a list of options
 - **Choice Prompt**: Single selection with keyboard shortcuts
 - **Confirm Prompt**: Yes/No confirmation
 - **Text Prompt**: Display text without requiring input
+- **Search Prompt**: Interactive search with dynamic filtering
+- **Editor Prompt**: Full-screen text editor using JLine's built-in Nano editor
 
 ### Configuration
 
@@ -61,8 +65,20 @@ The API supports platform-specific defaults:
 You can customize these by providing your own configuration:
 
 ```java
-Prompter.Config config = new DefaultPrompter.DefaultConfig("->", "[ ]", "[x]", "[-]");
-Prompter prompter = PrompterFactory.create(terminal, config);
+// Use platform defaults
+PrompterConfig config = PrompterConfig.defaults();
+
+// Or create a custom configuration
+PrompterConfig customConfig = PrompterConfig.custom(
+    "->",   // indicator
+    "[ ]",  // unchecked box
+    "[x]",  // checked box
+    "[-]",  // unavailable item
+    null,   // style resolver (optional)
+    false   // cancellable first prompt
+);
+
+Prompter prompter = PrompterFactory.create(terminal, customConfig);
 ```
 
 ## Examples

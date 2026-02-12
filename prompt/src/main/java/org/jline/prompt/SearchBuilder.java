@@ -13,24 +13,18 @@ import java.util.function.Function;
 
 /**
  * Builder interface for search prompts.
+ *
+ * <p>
+ * SearchBuilder extends {@link BaseBuilder} to provide a consistent fluent API
+ * for creating search prompts. The name() and message() methods are inherited
+ * from BaseBuilder, ensuring API consistency across all prompt types.
+ * </p>
+ *
+ * @param <T> the type of items being searched
+ * @see BaseBuilder
+ * @see SearchPrompt
  */
-public interface SearchBuilder<T> extends PromptBuilder {
-
-    /**
-     * Set the name of the prompt.
-     *
-     * @param name the name
-     * @return this builder
-     */
-    SearchBuilder<T> name(String name);
-
-    /**
-     * Set the message to display.
-     *
-     * @param message the message
-     * @return this builder
-     */
-    SearchBuilder<T> message(String message);
+public interface SearchBuilder<T> extends BaseBuilder<SearchBuilder<T>> {
 
     /**
      * Set the search function.
@@ -79,11 +73,4 @@ public interface SearchBuilder<T> extends PromptBuilder {
      * @return this builder
      */
     SearchBuilder<T> maxResults(int maxResults);
-
-    /**
-     * Add the search prompt to the builder.
-     *
-     * @return the parent builder
-     */
-    PromptBuilder addPrompt();
 }
