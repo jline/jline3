@@ -301,14 +301,9 @@ public class DefaultPrompter implements Prompter {
                 }
 
                 resultMap.put(prompt.getName(), result);
-            } catch (UserInterruptException e) {
+            } catch (UserInterruptException | EndOfFileException | IOError e) {
+                // Propagate terminal control exceptions (Ctrl+C, EOF, IO errors)
                 throw e;
-            } catch (EndOfFileException e) {
-                // EOF encountered - stop prompting
-                throw new IOException("End of input reached", e);
-            } catch (IOError e) {
-                // IO error - stop prompting
-                throw new IOException("IO error during prompt", e);
             } catch (Exception e) {
                 // Log error and continue
                 terminal.writer().println("Error executing prompt '" + prompt.getName() + "': " + e.getMessage());
@@ -736,7 +731,7 @@ public class DefaultPrompter implements Prompter {
             openMethod.invoke(nano, Collections.singletonList(tempFile.getName()));
             runMethod.invoke(nano);
 
-            // Nano now properly restores the terminal state including keypad mode
+            // Nano restores terminal attributes but leaves keypad in transmit mode
             terminal.flush();
 
             // Read the result
