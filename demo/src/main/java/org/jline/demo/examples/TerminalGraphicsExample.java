@@ -45,27 +45,27 @@ import org.jline.terminal.impl.TerminalGraphicsManager;
  * <p>Usage examples:</p>
  * <pre>
  * # Display the default test image using the best available protocol
- * java SixelExample
+ * java TerminalGraphicsExample
  *
  * # Force enable Sixel support (for testing)
- * java SixelExample --force-enable
+ * java TerminalGraphicsExample --force-enable
  *
  * # Display a test image
- * java SixelExample --test-image
+ * java TerminalGraphicsExample --test-image
  *
  * # Display double-size characters
- * java SixelExample --double-size
+ * java TerminalGraphicsExample --double-size
  *
  * # Create a banner with text
- * java SixelExample --banner "Hello World"
+ * java TerminalGraphicsExample --banner "Hello World"
  *
  * # Force use of a specific protocol
- * java SixelExample --protocol kitty
- * java SixelExample --protocol iterm2
- * java SixelExample --protocol sixel
+ * java TerminalGraphicsExample --protocol kitty
+ * java TerminalGraphicsExample --protocol iterm2
+ * java TerminalGraphicsExample --protocol sixel
  *
  * # Show supported protocols for this terminal
- * java SixelExample --list-protocols
+ * java TerminalGraphicsExample --list-protocols
  * </pre>
  */
 public class TerminalGraphicsExample {
