@@ -121,12 +121,14 @@ public class SixelGraphics implements TerminalGraphics {
     private static Boolean detectSixelSupportRuntime(Terminal terminal) {
         // Skip runtime detection for terminals we know don't support Sixel
         // This prevents hanging and response leakage
+        // Note: We return null (not false) to allow fallback to static detection,
+        // since the environment variable might not match the actual terminal type
         String termProgram = System.getenv("TERM_PROGRAM");
         if ("com.mitchellh.ghostty".equals(termProgram)
                 || "ghostty".equals(termProgram)
                 || "kitty".equals(termProgram)
                 || "Apple_Terminal".equals(termProgram)) {
-            return false; // Definitely no Sixel support
+            return null; // Skip runtime detection, fall back to static detection
         }
 
         org.jline.terminal.Attributes originalAttributes = null;
@@ -191,6 +193,12 @@ public class SixelGraphics implements TerminalGraphics {
                 "xfce4-terminal" // xfce-terminal since commit 493a7a5
                 ));
 
+        // Check if terminal type is in our known list first
+        // This takes precedence over environment variables
+        if (sixelTerminals.contains(terminalType)) {
+            return true;
+        }
+
         // Check for environment variables that might indicate sixel support
         String termEnv = System.getenv("TERM");
         String termProgram = System.getenv("TERM_PROGRAM");
@@ -235,8 +243,7 @@ public class SixelGraphics implements TerminalGraphics {
         // too many false positives since many terminals set TERM to xterm variants
         // but don't actually support Sixel. Runtime detection should handle real xterm.
 
-        // Check if terminal type is in our known list
-        return sixelTerminals.contains(terminalType);
+        return false;
     }
 
     /**

@@ -49,15 +49,21 @@ TerminalGraphicsManager.displayImage(terminal, image, options);
 
 ## Protocol Detection
 
-JLine uses intelligent runtime detection to determine which graphics protocols are supported:
+JLine uses a combination of runtime and static detection to determine which graphics protocols are supported:
 
-### Runtime Detection Methods
+### Detection Methods
 
-1. **Sixel Detection**: Sends Device Attributes query (`ESC[c`) and looks for code "4"
-2. **Kitty Detection**: Sends Kitty graphics protocol query and checks for valid response
-3. **Static Detection**: Falls back to environment variable and terminal type checking
+1. **Sixel Detection**:
+   - **Runtime**: Sends Device Attributes query (`ESC[c`) and looks for code "4"
+   - **Static**: Falls back to environment variable and terminal type checking
+   - **Raw Mode Protection**: Uses raw mode to prevent escape sequences from being displayed as visible text
 
-**Raw Mode Protection**: All runtime detection uses raw mode to prevent escape sequences from being displayed as visible text in unsupported terminals.
+2. **Kitty Detection**:
+   - **Static Only**: Checks environment variables (`TERM_PROGRAM`, `KITTY_WINDOW_ID`, etc.) and terminal type
+   - No runtime query to avoid compatibility issues with some terminals
+
+3. **iTerm2 Detection**:
+   - **Static Only**: Checks environment variables (`TERM_PROGRAM`, `ITERM_SESSION_ID`, `LC_TERMINAL`, etc.)
 
 ### Checking Graphics Support
 
@@ -106,18 +112,18 @@ JLine uses configurable timeouts for runtime detection to prevent hanging in ter
 
 ```bash
 # Kitty graphics protocol detection timeouts
--Djline.terminal.graphics.kitty.timeout=100          # Initial timeout (default: 100ms)
--Djline.terminal.graphics.kitty.subsequent.timeout=25  # Subsequent chars (default: 25ms)
+-Dorg.jline.terminal.graphics.kitty.timeout=100          # Initial timeout (default: 100ms)
+-Dorg.jline.terminal.graphics.kitty.subsequent.timeout=25  # Subsequent chars (default: 25ms)
 
 # Sixel graphics protocol detection timeouts
--Djline.terminal.graphics.sixel.timeout=200          # Initial timeout (default: 200ms)
--Djline.terminal.graphics.sixel.subsequent.timeout=25  # Subsequent chars (default: 25ms)
+-Dorg.jline.terminal.graphics.sixel.timeout=200          # Initial timeout (default: 200ms)
+-Dorg.jline.terminal.graphics.sixel.subsequent.timeout=25  # Subsequent chars (default: 25ms)
 ```
 
 **Example usage:**
 ```bash
-java -Djline.terminal.graphics.kitty.timeout=50 \
-     -Djline.terminal.graphics.sixel.timeout=100 \
+java -Dorg.jline.terminal.graphics.kitty.timeout=50 \
+     -Dorg.jline.terminal.graphics.sixel.timeout=100 \
      MyApplication
 ```
 
@@ -201,11 +207,22 @@ See the `TerminalGraphicsExample` class for complete working examples:
 # List supported protocols
 ./build example TerminalGraphicsExample -- --list-protocols
 
-# Display an image
-./build example TerminalGraphicsExample -- --display-image path/to/image.png
+# Display an image file
+./build example TerminalGraphicsExample -- path/to/image.png
 
-# Display with custom size
-./build example TerminalGraphicsExample -- --display-image path/to/image.png --width 80 --height 40
+# Display a test image
+./build example TerminalGraphicsExample -- --test-image
+
+# Force use of a specific protocol
+./build example TerminalGraphicsExample -- --protocol kitty
+./build example TerminalGraphicsExample -- --protocol iterm2
+./build example TerminalGraphicsExample -- --protocol sixel
+
+# Demonstrate double-size characters
+./build example TerminalGraphicsExample -- --double-size
+
+# Create a banner
+./build example TerminalGraphicsExample -- --banner "Hello World"
 ```
 
 ## Troubleshooting

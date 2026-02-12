@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import javax.imageio.ImageIO;
 
@@ -290,6 +291,6 @@ public class ITerm2Graphics implements TerminalGraphics {
      * @return the base64-encoded string
      */
     private String base64Encode(String input) {
-        return Base64.getEncoder().encodeToString(input.getBytes());
+        return Base64.getEncoder().encodeToString(input.getBytes(StandardCharsets.UTF_8));
     }
 }
