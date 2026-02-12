@@ -94,11 +94,16 @@ public class TerminalGraphicsManager {
     /**
      * Registers a graphics protocol implementation.
      * The protocol list is automatically re-sorted by priority after registration.
+     * If a protocol of the same type is already registered, it will not be added again.
      *
      * @param protocol the protocol implementation to register
      */
     public static synchronized void registerProtocol(TerminalGraphics protocol) {
-        if (!AVAILABLE_PROTOCOLS.contains(protocol)) {
+        // Check if a protocol of the same type is already registered
+        boolean alreadyRegistered =
+                AVAILABLE_PROTOCOLS.stream().anyMatch(p -> p.getProtocol() == protocol.getProtocol());
+
+        if (!alreadyRegistered) {
             AVAILABLE_PROTOCOLS.add(protocol);
             // Re-sort to maintain priority ordering (highest first)
             AVAILABLE_PROTOCOLS.sort(

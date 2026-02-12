@@ -273,6 +273,9 @@ public class SixelGraphics implements TerminalGraphics {
      */
     public static void displayImageStatic(Terminal terminal, File file) throws IOException {
         BufferedImage image = ImageIO.read(file);
+        if (image == null) {
+            throw new IOException("Unable to read image file: unsupported format or invalid file");
+        }
         displayImageStatic(terminal, image);
     }
 
@@ -285,6 +288,9 @@ public class SixelGraphics implements TerminalGraphics {
      */
     public static void displayImageStatic(Terminal terminal, InputStream inputStream) throws IOException {
         BufferedImage image = ImageIO.read(inputStream);
+        if (image == null) {
+            throw new IOException("Unable to read image from stream: unsupported format or invalid data");
+        }
         displayImageStatic(terminal, image);
     }
 
@@ -624,6 +630,9 @@ public class SixelGraphics implements TerminalGraphics {
     @Override
     public void displayImage(Terminal terminal, File file, TerminalGraphics.ImageOptions options) throws IOException {
         BufferedImage image = ImageIO.read(file);
+        if (image == null) {
+            throw new IOException("Unable to read image file: unsupported format or invalid file");
+        }
         displayImage(terminal, image, options);
     }
 
@@ -631,6 +640,9 @@ public class SixelGraphics implements TerminalGraphics {
     public void displayImage(Terminal terminal, InputStream inputStream, TerminalGraphics.ImageOptions options)
             throws IOException {
         BufferedImage image = ImageIO.read(inputStream);
+        if (image == null) {
+            throw new IOException("Unable to read image from stream: unsupported format or invalid data");
+        }
         displayImage(terminal, image, options);
     }
 

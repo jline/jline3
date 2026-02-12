@@ -286,11 +286,11 @@ public class TerminalGraphicsTest {
         // Register the high-priority protocol
         TerminalGraphicsManager.registerProtocol(highPriorityProtocol);
 
-        // Verify it was added
+        // Verify it was NOT added (deduplication by Protocol enum)
         List<TerminalGraphics> protocols = TerminalGraphicsManager.getAvailableProtocols();
-        assertEquals(initialCount + 1, protocols.size(), "Protocol should be added");
+        assertEquals(initialCount, protocols.size(), "Protocol should not be added (duplicate KITTY)");
 
-        // Verify priority ordering is maintained (highest first)
+        // Verify priority ordering is still maintained (highest first)
         for (int i = 0; i < protocols.size() - 1; i++) {
             assertTrue(
                     protocols.get(i).getPriority() >= protocols.get(i + 1).getPriority(),
@@ -301,8 +301,12 @@ public class TerminalGraphicsTest {
                             + protocols.get(i + 1).getPriority());
         }
 
-        // Verify the high-priority protocol is first (or tied for first)
-        assertEquals(95, protocols.get(0).getPriority(), "Highest priority protocol should be first");
+        // Verify that attempting to register the same protocol again doesn't change the count
+        TerminalGraphicsManager.registerProtocol(highPriorityProtocol);
+        assertEquals(
+                initialCount,
+                TerminalGraphicsManager.getAvailableProtocols().size(),
+                "Duplicate registration should be ignored");
     }
 
     @Test

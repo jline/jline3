@@ -66,7 +66,7 @@ public class DoubleSizeCharacters {
      * @return true if the terminal supports double-size characters, false otherwise
      */
     public static boolean isDoubleSizeSupported(Terminal terminal) {
-        String terminalType = terminal.getType().toLowerCase();
+        String terminalType = terminal.getType().toLowerCase(java.util.Locale.ROOT);
 
         // Most VT100-compatible terminals support double-size characters
         return terminalType.contains("xterm")
