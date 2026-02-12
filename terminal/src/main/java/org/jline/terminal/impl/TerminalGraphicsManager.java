@@ -142,10 +142,11 @@ public class TerminalGraphicsManager {
      * @return the best available graphics protocol, or empty if none are supported
      */
     public static Optional<TerminalGraphics> getBestProtocol(Terminal terminal) {
-        // If a protocol is forced, try to find and return it
+        // If a protocol is forced, try to find and return it (but still check if supported)
         if (forcedProtocol != null) {
             return AVAILABLE_PROTOCOLS.stream()
                     .filter(p -> p.getProtocol() == forcedProtocol)
+                    .filter(protocol -> protocol.isSupported(terminal))
                     .findFirst();
         }
 

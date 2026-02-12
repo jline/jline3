@@ -201,8 +201,13 @@ public class TerminalGraphicsTest {
             TerminalGraphicsManager.forceProtocol(TerminalGraphics.Protocol.SIXEL);
 
             Optional<TerminalGraphics> protocol = TerminalGraphicsManager.getBestProtocol(terminal);
-            assertTrue(protocol.isPresent());
-            assertEquals(TerminalGraphics.Protocol.SIXEL, protocol.get().getProtocol());
+            // Note: Even when forced, the protocol must still be supported by the terminal
+            // If the protocol is returned, it must be the forced one
+            if (protocol.isPresent()) {
+                assertEquals(TerminalGraphics.Protocol.SIXEL, protocol.get().getProtocol());
+                // And it must actually be supported
+                assertTrue(protocol.get().isSupported(terminal));
+            }
 
             // Reset to automatic detection
             TerminalGraphicsManager.forceProtocol(null);
@@ -298,5 +303,41 @@ public class TerminalGraphicsTest {
 
         // Verify the high-priority protocol is first (or tied for first)
         assertEquals(95, protocols.get(0).getPriority(), "Highest priority protocol should be first");
+    }
+
+    @Test
+    void testForcedProtocolChecksIsSupported() throws IOException {
+        // Create a terminal for testing
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ByteArrayInputStream bais = new ByteArrayInputStream(new byte[0]);
+        Terminal terminal = TerminalBuilder.builder()
+                .streams(bais, baos)
+                .type("xterm-256color")
+                .build();
+
+        try {
+            // Force Kitty protocol
+            TerminalGraphicsManager.forceProtocol(TerminalGraphics.Protocol.KITTY);
+
+            // Get best protocol - should check isSupported even though protocol is forced
+            Optional<TerminalGraphics> protocol = TerminalGraphicsManager.getBestProtocol(terminal);
+
+            // Since this is a basic xterm terminal without Kitty support,
+            // getBestProtocol should return empty even though Kitty is forced
+            // (because isSupported should be checked)
+            // Note: This depends on KittyGraphics.isSupported() implementation
+            // If the terminal doesn't support Kitty, it should return empty
+
+            // The key point is that getBestProtocol should not return a protocol
+            // that isSupported() returns false for, even when forced
+            if (protocol.isPresent()) {
+                // If a protocol is returned, it must be supported
+                assertTrue(protocol.get().isSupported(terminal), "Forced protocol should still check isSupported()");
+            }
+        } finally {
+            // Clean up: reset forced protocol
+            TerminalGraphicsManager.forceProtocol(null);
+            terminal.close();
+        }
     }
 }
