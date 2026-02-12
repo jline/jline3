@@ -2199,7 +2199,9 @@ public class Nano implements Editor {
             if (!terminal.puts(Capability.exit_ca_mode)) {
                 terminal.puts(Capability.clear_screen);
             }
-            terminal.puts(Capability.keypad_local);
+            // Don't call keypad_local - leave keypad in xmit mode
+            // Most applications that use Nano (editors, prompters, TUIs) need keypad enabled.
+            // Leaving it enabled is harmless, but disabling it breaks arrow keys.
             terminal.flush();
             terminal.setAttributes(attributes);
             terminal.handle(Signal.WINCH, prevHandler);
