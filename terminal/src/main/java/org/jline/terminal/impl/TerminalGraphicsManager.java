@@ -17,6 +17,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.ServiceLoader;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.jline.terminal.Terminal;
 
@@ -48,7 +49,9 @@ public class TerminalGraphicsManager {
         // Default constructor
     }
 
-    private static final List<TerminalGraphics> AVAILABLE_PROTOCOLS = new ArrayList<>();
+    // Use CopyOnWriteArrayList for thread-safe reads without synchronization
+    // Writes (registerProtocol) are rare, reads (getBestProtocol) are frequent
+    private static final List<TerminalGraphics> AVAILABLE_PROTOCOLS = new CopyOnWriteArrayList<>();
     private static volatile TerminalGraphics.Protocol forcedProtocol = null;
     private static final boolean JAVA_DESKTOP_AVAILABLE;
 
@@ -90,12 +93,16 @@ public class TerminalGraphicsManager {
 
     /**
      * Registers a graphics protocol implementation.
+     * The protocol list is automatically re-sorted by priority after registration.
      *
      * @param protocol the protocol implementation to register
      */
-    public static void registerProtocol(TerminalGraphics protocol) {
+    public static synchronized void registerProtocol(TerminalGraphics protocol) {
         if (!AVAILABLE_PROTOCOLS.contains(protocol)) {
             AVAILABLE_PROTOCOLS.add(protocol);
+            // Re-sort to maintain priority ordering (highest first)
+            AVAILABLE_PROTOCOLS.sort(
+                    Comparator.comparingInt(TerminalGraphics::getPriority).reversed());
         }
     }
 

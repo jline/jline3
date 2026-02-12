@@ -231,4 +231,72 @@ public class TerminalGraphicsTest {
         assertEquals(Boolean.TRUE, options.getPreserveAspectRatio());
         assertEquals(Boolean.FALSE, options.getInline());
     }
+
+    @Test
+    void testDynamicProtocolRegistrationMaintainsPriorityOrder() throws IOException {
+        // Create a mock high-priority protocol
+        TerminalGraphics highPriorityProtocol = new TerminalGraphics() {
+            @Override
+            public Protocol getProtocol() {
+                return Protocol.KITTY; // Reuse existing enum
+            }
+
+            @Override
+            public boolean isSupported(Terminal terminal) {
+                return true;
+            }
+
+            @Override
+            public int getPriority() {
+                return 95; // Higher than Kitty's 90
+            }
+
+            @Override
+            public void displayImage(Terminal terminal, BufferedImage image) {}
+
+            @Override
+            public void displayImage(Terminal terminal, BufferedImage image, ImageOptions options) {}
+
+            @Override
+            public void displayImage(Terminal terminal, java.io.File file) {}
+
+            @Override
+            public void displayImage(Terminal terminal, java.io.File file, ImageOptions options) {}
+
+            @Override
+            public void displayImage(Terminal terminal, java.io.InputStream inputStream) {}
+
+            @Override
+            public void displayImage(Terminal terminal, java.io.InputStream inputStream, ImageOptions options) {}
+
+            @Override
+            public String convertImage(BufferedImage image, ImageOptions options) {
+                return "";
+            }
+        };
+
+        // Get initial protocol count
+        int initialCount = TerminalGraphicsManager.getAvailableProtocols().size();
+
+        // Register the high-priority protocol
+        TerminalGraphicsManager.registerProtocol(highPriorityProtocol);
+
+        // Verify it was added
+        List<TerminalGraphics> protocols = TerminalGraphicsManager.getAvailableProtocols();
+        assertEquals(initialCount + 1, protocols.size(), "Protocol should be added");
+
+        // Verify priority ordering is maintained (highest first)
+        for (int i = 0; i < protocols.size() - 1; i++) {
+            assertTrue(
+                    protocols.get(i).getPriority() >= protocols.get(i + 1).getPriority(),
+                    "Protocols should be sorted by priority (highest first). "
+                            + "Protocol at index " + i + " has priority "
+                            + protocols.get(i).getPriority()
+                            + " but protocol at index " + (i + 1) + " has priority "
+                            + protocols.get(i + 1).getPriority());
+        }
+
+        // Verify the high-priority protocol is first (or tied for first)
+        assertEquals(95, protocols.get(0).getPriority(), "Highest priority protocol should be first");
+    }
 }
