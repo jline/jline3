@@ -24,6 +24,10 @@ module org.jline.terminal {
     requires org.jline.nativ;
     requires java.base;
     requires java.logging;
+    // Optional dependency for terminal graphics support (BufferedImage, ImageIO, etc.)
+    // Graphics features will not be available if java.desktop is not present
+    // Using 'static transitive' to make it optional but still export types to consumers
+    requires static transitive java.desktop;
 
     // Export public API
     exports org.jline.terminal;
@@ -38,6 +42,9 @@ module org.jline.terminal {
 
     // Service provider interface - terminal providers implement this
     uses org.jline.terminal.spi.TerminalProvider;
+
+    // Service interface for graphics protocols
+    uses org.jline.terminal.impl.TerminalGraphics;
 
     // Open packages for reflection access needed by FileDescriptor manipulation
     // and internal terminal operations

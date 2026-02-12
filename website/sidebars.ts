@@ -48,6 +48,7 @@ const sidebars: SidebarsConfig = {
         'advanced/key-bindings',
         'advanced/widgets',
         'advanced/mouse-support',
+        'advanced/terminal-graphics',
         'advanced/terminal-size',
         'advanced/screen-clearing',
         'advanced/library-integration',
