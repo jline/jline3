@@ -50,22 +50,42 @@ public class TerminalGraphicsManager {
 
     private static final List<TerminalGraphics> AVAILABLE_PROTOCOLS = new ArrayList<>();
     private static volatile TerminalGraphics.Protocol forcedProtocol = null;
+    private static final boolean JAVA_DESKTOP_AVAILABLE;
 
     static {
-        // Register built-in protocols
-        registerProtocol(new KittyGraphics());
-        registerProtocol(new ITerm2Graphics());
-        registerProtocol(new SixelGraphics());
-
-        // Load additional protocols via ServiceLoader
-        ServiceLoader<TerminalGraphics> loader = ServiceLoader.load(TerminalGraphics.class);
-        for (TerminalGraphics protocol : loader) {
-            registerProtocol(protocol);
+        // Check if java.desktop module is available
+        boolean desktopAvailable = false;
+        try {
+            // Try to load a class from java.desktop to verify it's available
+            Class.forName("java.awt.image.BufferedImage");
+            desktopAvailable = true;
+        } catch (ClassNotFoundException | NoClassDefFoundError e) {
+            // java.desktop is not available - graphics features will be disabled
+            System.err.println("Warning: java.desktop module not available. Terminal graphics features are disabled.");
         }
+        JAVA_DESKTOP_AVAILABLE = desktopAvailable;
 
-        // Sort by priority (highest first)
-        AVAILABLE_PROTOCOLS.sort(
-                Comparator.comparingInt(TerminalGraphics::getPriority).reversed());
+        if (JAVA_DESKTOP_AVAILABLE) {
+            // Register built-in protocols only if java.desktop is available
+            try {
+                registerProtocol(new KittyGraphics());
+                registerProtocol(new ITerm2Graphics());
+                registerProtocol(new SixelGraphics());
+
+                // Load additional protocols via ServiceLoader
+                ServiceLoader<TerminalGraphics> loader = ServiceLoader.load(TerminalGraphics.class);
+                for (TerminalGraphics protocol : loader) {
+                    registerProtocol(protocol);
+                }
+
+                // Sort by priority (highest first)
+                AVAILABLE_PROTOCOLS.sort(
+                        Comparator.comparingInt(TerminalGraphics::getPriority).reversed());
+            } catch (NoClassDefFoundError e) {
+                // This shouldn't happen if the check above passed, but handle it gracefully
+                System.err.println("Error initializing graphics protocols: " + e.getMessage());
+            }
+        }
     }
 
     /**
@@ -96,6 +116,16 @@ public class TerminalGraphicsManager {
      */
     public static TerminalGraphics.Protocol getForcedProtocol() {
         return forcedProtocol;
+    }
+
+    /**
+     * Checks if the java.desktop module is available.
+     * Graphics features require java.desktop for AWT imaging types.
+     *
+     * @return true if java.desktop is available, false otherwise
+     */
+    public static boolean isJavaDesktopAvailable() {
+        return JAVA_DESKTOP_AVAILABLE;
     }
 
     /**
@@ -155,9 +185,13 @@ public class TerminalGraphicsManager {
      * @param terminal the terminal to display the image on
      * @param image the image to display
      * @throws IOException if an I/O error occurs
-     * @throws UnsupportedOperationException if no graphics protocol is supported
+     * @throws UnsupportedOperationException if no graphics protocol is supported or java.desktop is not available
      */
     public static void displayImage(Terminal terminal, BufferedImage image) throws IOException {
+        if (!JAVA_DESKTOP_AVAILABLE) {
+            throw new UnsupportedOperationException("Terminal graphics require java.desktop module. "
+                    + "Please ensure java.desktop is available in your runtime environment.");
+        }
         TerminalGraphics protocol = getBestProtocol(terminal)
                 .orElseThrow(
                         () -> new UnsupportedOperationException("No graphics protocol supported by this terminal"));
@@ -171,10 +205,14 @@ public class TerminalGraphicsManager {
      * @param image the image to display
      * @param options display options for the image
      * @throws IOException if an I/O error occurs
-     * @throws UnsupportedOperationException if no graphics protocol is supported
+     * @throws UnsupportedOperationException if no graphics protocol is supported or java.desktop is not available
      */
     public static void displayImage(Terminal terminal, BufferedImage image, TerminalGraphics.ImageOptions options)
             throws IOException {
+        if (!JAVA_DESKTOP_AVAILABLE) {
+            throw new UnsupportedOperationException("Terminal graphics require java.desktop module. "
+                    + "Please ensure java.desktop is available in your runtime environment.");
+        }
         TerminalGraphics protocol = getBestProtocol(terminal)
                 .orElseThrow(
                         () -> new UnsupportedOperationException("No graphics protocol supported by this terminal"));
@@ -187,9 +225,13 @@ public class TerminalGraphicsManager {
      * @param terminal the terminal to display the image on
      * @param file the image file to display
      * @throws IOException if an I/O error occurs
-     * @throws UnsupportedOperationException if no graphics protocol is supported
+     * @throws UnsupportedOperationException if no graphics protocol is supported or java.desktop is not available
      */
     public static void displayImage(Terminal terminal, File file) throws IOException {
+        if (!JAVA_DESKTOP_AVAILABLE) {
+            throw new UnsupportedOperationException("Terminal graphics require java.desktop module. "
+                    + "Please ensure java.desktop is available in your runtime environment.");
+        }
         TerminalGraphics protocol = getBestProtocol(terminal)
                 .orElseThrow(
                         () -> new UnsupportedOperationException("No graphics protocol supported by this terminal"));
@@ -203,10 +245,14 @@ public class TerminalGraphicsManager {
      * @param file the image file to display
      * @param options display options for the image
      * @throws IOException if an I/O error occurs
-     * @throws UnsupportedOperationException if no graphics protocol is supported
+     * @throws UnsupportedOperationException if no graphics protocol is supported or java.desktop is not available
      */
     public static void displayImage(Terminal terminal, File file, TerminalGraphics.ImageOptions options)
             throws IOException {
+        if (!JAVA_DESKTOP_AVAILABLE) {
+            throw new UnsupportedOperationException("Terminal graphics require java.desktop module. "
+                    + "Please ensure java.desktop is available in your runtime environment.");
+        }
         TerminalGraphics protocol = getBestProtocol(terminal)
                 .orElseThrow(
                         () -> new UnsupportedOperationException("No graphics protocol supported by this terminal"));
@@ -219,9 +265,13 @@ public class TerminalGraphicsManager {
      * @param terminal the terminal to display the image on
      * @param inputStream the input stream containing the image data
      * @throws IOException if an I/O error occurs
-     * @throws UnsupportedOperationException if no graphics protocol is supported
+     * @throws UnsupportedOperationException if no graphics protocol is supported or java.desktop is not available
      */
     public static void displayImage(Terminal terminal, InputStream inputStream) throws IOException {
+        if (!JAVA_DESKTOP_AVAILABLE) {
+            throw new UnsupportedOperationException("Terminal graphics require java.desktop module. "
+                    + "Please ensure java.desktop is available in your runtime environment.");
+        }
         TerminalGraphics protocol = getBestProtocol(terminal)
                 .orElseThrow(
                         () -> new UnsupportedOperationException("No graphics protocol supported by this terminal"));
@@ -235,10 +285,14 @@ public class TerminalGraphicsManager {
      * @param inputStream the input stream containing the image data
      * @param options display options for the image
      * @throws IOException if an I/O error occurs
-     * @throws UnsupportedOperationException if no graphics protocol is supported
+     * @throws UnsupportedOperationException if no graphics protocol is supported or java.desktop is not available
      */
     public static void displayImage(Terminal terminal, InputStream inputStream, TerminalGraphics.ImageOptions options)
             throws IOException {
+        if (!JAVA_DESKTOP_AVAILABLE) {
+            throw new UnsupportedOperationException("Terminal graphics require java.desktop module. "
+                    + "Please ensure java.desktop is available in your runtime environment.");
+        }
         TerminalGraphics protocol = getBestProtocol(terminal)
                 .orElseThrow(
                         () -> new UnsupportedOperationException("No graphics protocol supported by this terminal"));
