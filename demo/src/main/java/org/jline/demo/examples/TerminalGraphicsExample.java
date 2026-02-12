@@ -44,28 +44,24 @@ import org.jline.terminal.impl.TerminalGraphicsManager;
  *
  * <p>Usage examples:</p>
  * <pre>
- * # Display the default test image using the best available protocol
- * java TerminalGraphicsExample
+ * # Using mvx (use '--' to separate mvx flags from application arguments):
+ * ./mvx demo TerminalGraphicsExample
+ * ./mvx demo TerminalGraphicsExample -- --test-image
+ * ./mvx demo TerminalGraphicsExample -- --double-size
+ * ./mvx demo TerminalGraphicsExample -- --banner "Hello World"
+ * ./mvx demo TerminalGraphicsExample -- --protocol kitty
+ * ./mvx demo TerminalGraphicsExample -- --list-protocols
  *
- * # Force enable Sixel support (for testing)
- * java TerminalGraphicsExample --force-enable
- *
- * # Display a test image
- * java TerminalGraphicsExample --test-image
- *
- * # Display double-size characters
- * java TerminalGraphicsExample --double-size
- *
- * # Create a banner with text
- * java TerminalGraphicsExample --banner "Hello World"
- *
- * # Force use of a specific protocol
- * java TerminalGraphicsExample --protocol kitty
- * java TerminalGraphicsExample --protocol iterm2
- * java TerminalGraphicsExample --protocol sixel
- *
- * # Show supported protocols for this terminal
- * java TerminalGraphicsExample --list-protocols
+ * # Or using java directly:
+ * java org.jline.demo.examples.TerminalGraphicsExample
+ * java org.jline.demo.examples.TerminalGraphicsExample --force-enable
+ * java org.jline.demo.examples.TerminalGraphicsExample --test-image
+ * java org.jline.demo.examples.TerminalGraphicsExample --double-size
+ * java org.jline.demo.examples.TerminalGraphicsExample --banner "Hello World"
+ * java org.jline.demo.examples.TerminalGraphicsExample --protocol kitty
+ * java org.jline.demo.examples.TerminalGraphicsExample --protocol iterm2
+ * java org.jline.demo.examples.TerminalGraphicsExample --protocol sixel
+ * java org.jline.demo.examples.TerminalGraphicsExample --list-protocols
  * </pre>
  */
 public class TerminalGraphicsExample {
