@@ -1,6 +1,23 @@
 # Terminal Graphics
 
-JLine 3 provides comprehensive support for displaying images in modern terminals through multiple graphics protocols. This feature enables rich terminal applications that can display images, charts, and visual content directly in the terminal.
+:::info JLine 4.x Feature
+Terminal graphics support is a new feature in **JLine 4.x**. This feature is not available in JLine 3.x.
+:::
+
+JLine provides comprehensive support for displaying images in modern terminals through multiple graphics protocols. This feature enables rich terminal applications that can display images, charts, and visual content directly in the terminal.
+
+## Requirements
+
+Terminal graphics support requires the `java.desktop` module for image processing (BufferedImage, ImageIO, etc.). The module is marked as `static transitive` in JLine's module descriptor, which means:
+
+- **With java.desktop**: All graphics features work normally
+- **Without java.desktop**: JLine will still compile and run, but graphics features will be disabled with clear error messages
+
+To check if graphics features are available at runtime:
+
+```java
+boolean available = TerminalGraphicsManager.isJavaDesktopAvailable();
+```
 
 ## Overview
 
