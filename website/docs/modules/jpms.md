@@ -39,6 +39,8 @@ These modules have complete `module-info.java` descriptors with proper exports, 
 | Console | `jline-console` | `org.jline.console` | 11+ | High-level console framework |
 | Jansi Core | `jline-jansi-core` | `org.jline.jansi.core` | 11+ | JLine's ANSI implementation |
 | Curses | `jline-curses` | `org.jline.curses` | 11+ | Curses-like UI components |
+| **Remote Access** | | | | |
+| Remote Telnet | `jline-remote-telnet` | `org.jline.remote.telnet` | 11+ | Telnet server functionality |
 
 ### ❌ Automatic Modules
 
@@ -47,9 +49,8 @@ These modules remain as automatic modules for backward compatibility and integra
 | Module | Artifact ID | Automatic Module Name | Reason for Automatic Module Status |
 |--------|-------------|----------------------|-------------------------------------|
 | ~~Terminal Jansi~~ | ~~`jline-terminal-jansi`~~ | ~~`jline.terminal.jansi`~~ | **Removed in JLine 4.x**: Use JNI or FFM provider instead |
+| Remote SSH | `jline-remote-ssh` | `org.jline.remote.ssh` | Apache SSHD split package issues prevent proper JPMS support |
 | Groovy | `jline-groovy` | `jline.groovy` | Integration with Groovy ecosystem, complex dependencies |
-| Remote SSH | `jline-remote-ssh` | `jline.remote.ssh` | SSH server functionality, Apache SSHD dependencies |
-| Remote Telnet | `jline-remote-telnet` | `jline.remote.telnet` | Telnet server functionality |
 | Demo | `jline-demo` | `jline.demo` | Example applications, not intended for production use |
 | Graal | `jline-graal` | `jline.graal` | GraalVM native image support and configuration |
 
@@ -99,13 +100,14 @@ If you need functionality from automatic modules, you can still use them:
 module your.application {
     requires org.jline.terminal;
     requires org.jline.reader;
-    
-    // JPMS module
-    requires org.jline.curses;       // For curses UI
 
-    // Automatic modules (use artifact name as module name)
-    requires jline.groovy;           // For Groovy integration
-    requires jline.remote.ssh;       // For SSH server
+    // Additional JPMS modules
+    requires org.jline.curses;          // For curses UI
+    requires org.jline.remote.telnet;   // For Telnet server
+
+    // Automatic modules
+    requires org.jline.remote.ssh;      // For SSH server/client (automatic module)
+    requires jline.groovy;              // For Groovy integration
     // Note: jline.terminal.jansi is deprecated, use JNI provider instead
 }
 ```
