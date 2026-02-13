@@ -103,6 +103,8 @@ public class DumbTerminalProvider implements TerminalProvider {
             Attributes attributes,
             Size size)
             throws IOException {
+        // DumbTerminalProvider is only used for system terminals as a fallback.
+        // Non-system terminals with custom streams should use ExecTerminalProvider instead.
         throw new UnsupportedOperationException();
     }
 

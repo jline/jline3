@@ -8,11 +8,13 @@
  */
 package org.jline.terminal.spi;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
-import java.util.Properties;
+import java.nio.charset.StandardCharsets;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
@@ -183,43 +185,96 @@ public interface TerminalProvider {
     /**
      * Loads a terminal provider with the specified name.
      *
+     * <h2>Provider Discovery Mechanism</h2>
      * <p>
-     * This method loads a terminal provider implementation based on its name.
-     * Provider implementations are discovered through the Java ServiceLoader
-     * mechanism, looking for resource files in the classpath at
-     * {@code META-INF/services/org/jline/terminal/provider/[name]}.
+     * This method loads a terminal provider implementation based on its name by reading
+     * a provider-specific resource file at {@code META-INF/jline/providers/[name]} which
+     * contains the fully qualified class name of the provider implementation.
      * </p>
      *
      * <p>
-     * Each provider resource file should contain a {@code class} property that
-     * specifies the fully qualified name of the provider implementation class.
+     * This on-demand loading approach is used instead of {@link java.util.ServiceLoader}
+     * because it allows loading a specific provider by name without instantiating all
+     * available providers. This is critical for providers that may fail to initialize
+     * due to missing native libraries (JNI, FFM) or other platform-specific dependencies.
      * </p>
      *
-     * @param name the name of the provider to load
+     * <h2>Dual-Purpose Service Files</h2>
+     * <p>
+     * JLine maintains two types of service registration files:
+     * </p>
+     * <ul>
+     *   <li><b>{@code META-INF/services/org.jline.terminal.spi.TerminalProvider}</b> -
+     *       Standard Java SPI files required by jlink and JPMS module tools to discover
+     *       service implementations and establish proper module dependencies. These files
+     *       are not used at runtime by JLine.</li>
+     *   <li><b>{@code META-INF/jline/providers/[name]}</b> -
+     *       Provider-specific files used by this method for efficient runtime loading.
+     *       Each file contains the class name of a single provider and allows loading
+     *       by provider name without scanning all available providers.</li>
+     * </ul>
+     *
+     * <h2>File Format</h2>
+     * <p>
+     * The provider file format follows standard Java SPI conventions:
+     * </p>
+     * <ul>
+     *   <li>One fully qualified class name per line</li>
+     *   <li>Comments start with {@code #} and extend to end of line</li>
+     *   <li>Blank lines and whitespace are ignored</li>
+     * </ul>
+     *
+     * <p><b>Example:</b> {@code META-INF/jline/providers/ffm}</p>
+     * <pre>
+     * # JLine FFM Terminal Provider
+     * org.jline.terminal.impl.ffm.FfmTerminalProvider
+     * </pre>
+     *
+     * @param name the name of the provider to load (e.g., "ffm", "jni", "exec", "dumb")
      * @return the loaded terminal provider
-     * @throws IOException if the provider cannot be loaded
+     * @throws IOException if the provider cannot be loaded or is not found
      */
     static TerminalProvider load(String name) throws IOException {
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
         if (cl == null) {
             cl = TerminalProvider.class.getClassLoader();
         }
-        InputStream is = cl.getResourceAsStream("META-INF/services/org/jline/terminal/provider/" + name);
-        if (is != null) {
-            Properties props = new Properties();
-            try {
-                props.load(is);
-                String className = props.getProperty("class");
-                if (className == null) {
-                    throw new IOException("No class defined in terminal provider file " + name);
+
+        // Read the provider-specific resource file to get the class name.
+        // We use META-INF/jline/providers/{name} instead of ServiceLoader to avoid
+        // instantiating all providers when we only need one. This is critical because
+        // some providers (JNI, FFM) may fail to load due to missing native libraries.
+        String providerResource = "META-INF/jline/providers/" + name;
+        try (InputStream is = cl.getResourceAsStream(providerResource)) {
+            if (is != null) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    // Remove comments and trim whitespace
+                    int commentIndex = line.indexOf('#');
+                    if (commentIndex >= 0) {
+                        line = line.substring(0, commentIndex);
+                    }
+                    line = line.trim();
+
+                    // Skip empty lines
+                    if (line.isEmpty()) {
+                        continue;
+                    }
+
+                    // Found a provider class name, try to load it
+                    try {
+                        Class<?> providerClass = cl.loadClass(line);
+                        return (TerminalProvider) providerClass.getConstructor().newInstance();
+                    } catch (Exception e) {
+                        throw new IOException("Unable to load terminal provider " + name + ": " + e.getMessage(), e);
+                    }
                 }
-                Class<?> clazz = cl.loadClass(className);
-                return (TerminalProvider) clazz.getConstructor().newInstance();
-            } catch (Exception e) {
-                throw new IOException("Unable to load terminal provider " + name + ": " + e.getMessage(), e);
             }
-        } else {
-            throw new IOException("Unable to find terminal provider " + name);
+        } catch (IOException e) {
+            throw new IOException("Error reading provider resource file: " + e.getMessage(), e);
         }
+
+        throw new IOException("Unable to find terminal provider " + name);
     }
 }
