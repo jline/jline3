@@ -1,5 +1,6 @@
 {
   "resources": [
-    {"pattern": "META-INF/services/org/jline/terminal/provider/.*"}
+    {"pattern": "META-INF/services/org.jline.terminal.spi.TerminalProvider"},
+    {"pattern": "META-INF/jline/providers/ffm"}
   ]
 }

@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2022 the original author(s).
+# Copyright (C) 2026 the original author(s).
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,4 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-class = org.jline.terminal.impl.ffm.FfmTerminalProvider
+
+# Standard Java SPI file for jlink and JPMS module tools.
+#
+# This file is used by jlink and other JPMS tools to discover service
+# implementations and establish proper module dependencies. It is NOT
+# used at runtime by JLine - runtime loading uses the provider-specific
+# files in META-INF/jline/providers/{name} instead.
+#
+# See TerminalProvider.load() javadoc for details.
+org.jline.terminal.impl.jni.JniTerminalProvider
