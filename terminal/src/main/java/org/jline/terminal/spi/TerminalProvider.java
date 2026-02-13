@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
-import java.util.Properties;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
@@ -393,14 +392,14 @@ public interface TerminalProvider {
      *
      * <p>
      * This method loads a terminal provider implementation based on its name.
-     * Provider implementations are discovered through the Java ServiceLoader
-     * mechanism, looking for resource files in the classpath at
-     * {@code META-INF/services/org/jline/terminal/provider/[name]}.
+     * Provider implementations are discovered through the standard Java ServiceLoader
+     * mechanism, looking for service provider files in the classpath at
+     * {@code META-INF/services/org.jline.terminal.spi.TerminalProvider}.
      * </p>
      *
      * <p>
-     * Each provider resource file should contain a {@code class} property that
-     * specifies the fully qualified name of the provider implementation class.
+     * The provider is selected by matching the requested name against the
+     * {@link #name()} method of each available provider.
      * </p>
      *
      * @param name the name of the provider to load
@@ -412,22 +411,17 @@ public interface TerminalProvider {
         if (cl == null) {
             cl = TerminalProvider.class.getClassLoader();
         }
-        InputStream is = cl.getResourceAsStream("META-INF/services/org/jline/terminal/provider/" + name);
-        if (is != null) {
-            Properties props = new Properties();
-            try {
-                props.load(is);
-                String className = props.getProperty("class");
-                if (className == null) {
-                    throw new IOException("No class defined in terminal provider file " + name);
-                }
-                Class<?> clazz = cl.loadClass(className);
-                return (TerminalProvider) clazz.getConstructor().newInstance();
-            } catch (Exception e) {
-                throw new IOException("Unable to load terminal provider " + name + ": " + e.getMessage(), e);
+
+        // Use standard ServiceLoader to discover all providers
+        java.util.ServiceLoader<TerminalProvider> loader = java.util.ServiceLoader.load(TerminalProvider.class, cl);
+
+        // Find the provider with the matching name
+        for (TerminalProvider provider : loader) {
+            if (name.equals(provider.name())) {
+                return provider;
             }
-        } else {
-            throw new IOException("Unable to find terminal provider " + name);
         }
+
+        throw new IOException("Unable to find terminal provider " + name);
     }
 }
