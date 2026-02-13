@@ -17,6 +17,18 @@
  * The console module is designed to be the main entry point for applications
  * that want to provide a complete interactive command-line interface with
  * built-in commands, syntax highlighting, and advanced terminal features.
+ * <p>
+ * <h2>Public API Packages</h2>
+ * <ul>
+ * <li>{@code org.jline.console} - Core console interfaces and classes for command
+ *     registration, execution, and description</li>
+ * <li>{@code org.jline.console.impl} - Implementation classes including
+ *     {@link org.jline.console.impl.SystemRegistryImpl}, {@link org.jline.console.impl.Builtins},
+ *     and {@link org.jline.console.impl.ConsoleEngineImpl}</li>
+ * <li>{@code org.jline.widget} - Widget implementations for enhanced line reader
+ *     functionality including {@link org.jline.widget.TailTipWidgets},
+ *     {@link org.jline.widget.AutopairWidgets}, and {@link org.jline.widget.AutosuggestionWidgets}</li>
+ * </ul>
  */
 module org.jline.console {
     // Core Java platform
@@ -33,4 +45,12 @@ module org.jline.console {
 
     // Export public API
     exports org.jline.console;
+
+    // Export implementation classes that are part of the public API
+    // These classes are directly instantiated by users and referenced in documentation
+    exports org.jline.console.impl;
+
+    // Export widget classes that are part of the public API
+    // These widgets are documented and used by applications for enhanced line reader functionality
+    exports org.jline.widget;
 }

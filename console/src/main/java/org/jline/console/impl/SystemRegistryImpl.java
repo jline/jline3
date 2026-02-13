@@ -842,7 +842,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         return out;
     }
 
-    private static class ArgsParser {
+    static class ArgsParser {
         private int round = 0;
         private int curly = 0;
         private int square = 0;
@@ -1099,7 +1099,7 @@ public class SystemRegistryImpl implements SystemRegistry {
         return out;
     }
 
-    protected static class CommandData {
+    static class CommandData {
         private final String rawLine;
         private String command;
         private String[] args;

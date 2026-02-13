@@ -16,10 +16,6 @@
     <artifactId>jline-remote-telnet</artifactId>
     <name>JLine Remote Telnet</name>
 
-    <properties>
-        <automatic.module.name>org.jline.remote.telnet</automatic.module.name>
-    </properties>
-
     <dependencies>
         <dependency>
             <artifactId>jline-builtins</artifactId>
