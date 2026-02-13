@@ -38,6 +38,44 @@ The FFM (Foreign Function & Memory) provider uses Java's FFM API (available in J
 
 <CodeSnippet name="FfmTerminalExample" />
 
+:::warning FFM Requires Java 22+
+The FFM provider is compiled with Java 22 bytecode and requires Java 22 or later to run. If you're using Java 11-21 (JLine 4.x) or Java 8-21 (JLine 3.x), the FFM provider will be automatically skipped during provider selection, or you can use the `jdk8` classifier to exclude it entirely from your classpath.
+:::
+
+### Using the JDK8 Classifier
+
+If you're building your project with Java 11-21 (or Java 8-21 with JLine 3.x) and want to avoid Java 22 class files in your dependencies, use the `jdk8` classifier for the jline bundle:
+
+**Maven:**
+
+```xml
+<dependency>
+    <groupId>org.jline</groupId>
+    <artifactId>jline</artifactId>
+    <version>%%JLINE_VERSION%%</version>
+    <classifier>jdk8</classifier>
+</dependency>
+```
+
+**Gradle:**
+
+```groovy
+implementation 'org.jline:jline:%%JLINE_VERSION%%:jdk8'
+```
+
+The `jdk8` classifier artifact:
+
+- Excludes the `org.jline.terminal.impl.ffm.*` classes (compiled with Java 22)
+- Contains all other JLine functionality
+- Compatible with Java 11-21 (JLine 4.x) or Java 8-21 (JLine 3.x)
+- Automatically uses JNI or Exec providers for native terminal access
+
+This is particularly useful when:
+
+- Your build tools warn about class file version mismatches
+- You're targeting Java 21 or earlier
+- You need to avoid dependencies with newer bytecode versions
+
 ## JNI Provider
 
 The JNI (Java Native Interface) provider uses JNI to access native terminal functionality:

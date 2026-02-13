@@ -42,6 +42,35 @@ JLine is a Java library for handling console input. It's similar to [GNU Readlin
 implementation 'org.jline:jline:4.0.0'
 ```
 
+### Java 11-21 Compatibility (JDK8 Classifier)
+
+If you're using Java 11-21 (or Java 8+ with JLine 3.x) and need to avoid Java 22+ class files, use the `jdk8` classifier. This variant excludes the FFM (Foreign Function & Memory) terminal provider which requires Java 22+:
+
+**Maven:**
+
+```xml
+<dependency>
+    <groupId>org.jline</groupId>
+    <artifactId>jline</artifactId>
+    <version>4.0.0</version>
+    <classifier>jdk8</classifier>
+</dependency>
+```
+
+**Gradle:**
+
+```groovy
+implementation 'org.jline:jline:4.0.0:jdk8'
+```
+
+The `jdk8` classifier artifact:
+
+- Contains all JLine functionality
+- Excludes the FFM terminal provider (`org.jline.terminal.impl.ffm.*` classes compiled with Java 22)
+- Uses JNI or Exec providers for native terminal access instead
+- For JLine 4.x: Compatible with Java 11-21
+- For JLine 3.x: Compatible with Java 8-21
+
 ## Quick Start
 
 Here's a simple example to get you started:
