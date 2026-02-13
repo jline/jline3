@@ -22,9 +22,9 @@ Or Maven/Gradle build errors about Java 22 class files when targeting Java 21 or
 Classpath entry contains class files targeting Java 22 but project targets Java 21
 ```
 
-#### Solution: Use the JDK8 Classifier
+#### Solution: Use the JDK11 Classifier
 
-The standard `jline` bundle includes the FFM terminal provider which is compiled with Java 22. If you're using Java 11-21 (or Java 8-21 with JLine 3.x), use the `jdk8` classifier instead:
+The standard `jline` bundle includes the FFM terminal provider which is compiled with Java 22. If you're using Java 11-21, use the `jdk11` classifier instead:
 
 **Maven:**
 
@@ -33,17 +33,19 @@ The standard `jline` bundle includes the FFM terminal provider which is compiled
     <groupId>org.jline</groupId>
     <artifactId>jline</artifactId>
     <version>%%JLINE_VERSION%%</version>
-    <classifier>jdk8</classifier>
+    <classifier>jdk11</classifier>
 </dependency>
 ```
 
 **Gradle:**
 
 ```groovy
-implementation 'org.jline:jline:%%JLINE_VERSION%%:jdk8'
+implementation 'org.jline:jline:%%JLINE_VERSION%%:jdk11'
 ```
 
-The `jdk8` classifier artifact excludes the FFM terminal provider and is compatible with Java 11-21 for JLine 4.x (or Java 8-21 for JLine 3.x). You'll still have full JLine functionality using the JNI or Exec terminal providers instead.
+The `jdk11` classifier artifact excludes the FFM terminal provider and is compatible with Java 11-21. You'll still have full JLine functionality using the JNI or Exec terminal providers instead.
+
+**Note:** For JLine 3.x, use the `jdk8` classifier which is compatible with Java 8-21.
 
 ### Unable to Create a System Terminal
 

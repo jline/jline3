@@ -409,13 +409,13 @@
                         <id>default-jar</id>
                     </execution>
                     <execution>
-                        <id>jdk8</id>
+                        <id>jdk11</id>
                         <goals>
                             <goal>jar</goal>
                         </goals>
                         <phase>package</phase>
                         <configuration>
-                            <classifier>jdk8</classifier>
+                            <classifier>jdk11</classifier>
                             <excludes>**/ffm/*.class</excludes>
                         </configuration>
                     </execution>
