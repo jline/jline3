@@ -8,6 +8,45 @@ JLine is designed to work across different platforms and terminal environments, 
 
 ## Common Issues
 
+### Java Version Compatibility Issues
+
+If you encounter class file version errors or build warnings about incompatible bytecode versions:
+
+```
+java.lang.UnsupportedClassVersionError: org/jline/terminal/impl/ffm/FfmTerminalProvider has been compiled by a more recent version of the Java Runtime (class file version 66.0)
+```
+
+Or Maven/Gradle build errors about Java 22 class files when targeting Java 21 or earlier:
+
+```
+Classpath entry contains class files targeting Java 22 but project targets Java 21
+```
+
+#### Solution: Use the JDK11 Classifier
+
+The standard `jline` bundle includes the FFM terminal provider which is compiled with Java 22. If you're using Java 11-21, use the `jdk11` classifier instead:
+
+**Maven:**
+
+```xml
+<dependency>
+    <groupId>org.jline</groupId>
+    <artifactId>jline</artifactId>
+    <version>%%JLINE_VERSION%%</version>
+    <classifier>jdk11</classifier>
+</dependency>
+```
+
+**Gradle:**
+
+```groovy
+implementation 'org.jline:jline:%%JLINE_VERSION%%:jdk11'
+```
+
+The `jdk11` classifier artifact excludes the FFM terminal provider and is compatible with Java 11-21. You'll still have full JLine functionality using the JNI or Exec terminal providers instead.
+
+**Note:** For JLine 3.x, use the `jdk8` classifier which is compatible with Java 8-21.
+
 ### Unable to Create a System Terminal
 
 One of the most common issues is the "Unable to create a system terminal" error:

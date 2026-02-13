@@ -55,6 +55,39 @@ Or if you're using Gradle:
 implementation 'org.jline:jline:%%JLINE_VERSION%%'
 ```
 
+### Java 11-21 Compatibility (JDK11 Classifier)
+
+:::info JDK11 Classifier for Java 11-21
+If you're using Java 11-21 and encounter class file version errors (e.g., `UnsupportedClassVersionError` or build errors about Java 22 bytecode), use the `jdk11` classifier. This variant excludes the FFM terminal provider which requires Java 22+.
+
+Note: JLine 4.x requires Java 11+ as the minimum runtime version. For Java 8 support, use JLine 3.x with the `jdk8` classifier.
+:::
+
+**Maven:**
+
+```xml
+<dependency>
+    <groupId>org.jline</groupId>
+    <artifactId>jline</artifactId>
+    <version>%%JLINE_VERSION%%</version>
+    <classifier>jdk11</classifier>
+</dependency>
+```
+
+**Gradle:**
+
+```groovy
+implementation 'org.jline:jline:%%JLINE_VERSION%%:jdk11'
+```
+
+The `jdk11` classifier artifact:
+
+- Contains all JLine functionality
+- Excludes the FFM terminal provider (`org.jline.terminal.impl.ffm.*` classes compiled with Java 22)
+- Uses JNI or Exec providers for native terminal access instead
+- Compatible with Java 11-21
+- See [Terminal Providers](./modules/terminal-providers.md) for more information
+
 ## Basic Usage
 
 Here's a simple example to get you started with JLine:

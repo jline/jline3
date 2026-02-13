@@ -38,6 +38,53 @@ The FFM (Foreign Function & Memory) provider uses Java's FFM API (available in J
 
 <CodeSnippet name="FfmTerminalExample" />
 
+:::warning FFM Requires Java 22+ and Native Access
+The FFM provider is compiled with Java 22 bytecode and requires:
+
+- **Java 22 or later** to run
+- **Native access permissions** at runtime: `--enable-native-access=org.jline.terminal.ffm` (module path) or `--enable-native-access=ALL-UNNAMED` (classpath)
+
+If you're using Java 11-21, the FFM provider will be automatically skipped during provider selection, or you can use the `jdk11` classifier to exclude it entirely from your classpath.
+
+See [JPMS documentation](./jpms.md#terminal-providers) for more details on native access configuration.
+:::
+
+### Using the JDK11 Classifier
+
+If you're building your project with Java 11-21 and want to avoid Java 22 class files in your dependencies, use the `jdk11` classifier for the jline bundle:
+
+**Maven:**
+
+```xml
+<dependency>
+    <groupId>org.jline</groupId>
+    <artifactId>jline</artifactId>
+    <version>%%JLINE_VERSION%%</version>
+    <classifier>jdk11</classifier>
+</dependency>
+```
+
+**Gradle:**
+
+```groovy
+implementation 'org.jline:jline:%%JLINE_VERSION%%:jdk11'
+```
+
+The `jdk11` classifier artifact:
+
+- Excludes the `org.jline.terminal.impl.ffm.*` classes (compiled with Java 22)
+- Contains all other JLine functionality
+- Compatible with Java 11-21
+- Automatically uses JNI or Exec providers for native terminal access
+
+This is particularly useful when:
+
+- Your build tools warn about class file version mismatches
+- You're targeting Java 21 or earlier
+- You need to avoid dependencies with newer bytecode versions
+
+**Note:** For JLine 3.x, use the `jdk8` classifier which is compatible with Java 8-21.
+
 ## JNI Provider
 
 The JNI (Java Native Interface) provider uses JNI to access native terminal functionality:
