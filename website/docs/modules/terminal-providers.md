@@ -38,8 +38,15 @@ The FFM (Foreign Function & Memory) provider uses Java's FFM API (available in J
 
 <CodeSnippet name="FfmTerminalExample" />
 
-:::warning FFM Requires Java 22+
-The FFM provider is compiled with Java 22 bytecode and requires Java 22 or later to run. If you're using Java 11-21 (JLine 4.x) or Java 8-21 (JLine 3.x), the FFM provider will be automatically skipped during provider selection, or you can use the `jdk8` classifier to exclude it entirely from your classpath.
+:::warning FFM Requires Java 22+ and Native Access
+The FFM provider is compiled with Java 22 bytecode and requires:
+
+- **Java 22 or later** to run
+- **Native access permissions** at runtime: `--enable-native-access=org.jline.terminal.ffm` (module path) or `--enable-native-access=ALL-UNNAMED` (classpath)
+
+If you're using Java 11-21 (JLine 4.x) or Java 8-21 (JLine 3.x), the FFM provider will be automatically skipped during provider selection, or you can use the `jdk8` classifier to exclude it entirely from your classpath.
+
+See [JPMS documentation](./jpms.md#terminal-providers) for more details on native access configuration.
 :::
 
 ### Using the JDK8 Classifier
