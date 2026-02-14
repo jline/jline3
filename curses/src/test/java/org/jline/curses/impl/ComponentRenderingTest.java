@@ -8,8 +8,11 @@
  */
 package org.jline.curses.impl;
 
+import java.util.EnumSet;
+
 import org.jline.curses.Position;
 import org.jline.curses.Size;
+import org.jline.terminal.KeyEvent;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -257,5 +260,70 @@ public class ComponentRenderingTest {
         assertFalse(button.isPressed());
         button.setPressed(true);
         assertTrue(button.isPressed());
+    }
+
+    // handleKey tests
+
+    @Test
+    public void testInputHandleKeyCharacter() {
+        Input input = new Input("");
+        KeyEvent event = new KeyEvent('a', EnumSet.noneOf(KeyEvent.Modifier.class), "a");
+        assertTrue(input.handleKey(event));
+        assertEquals("a", input.getText());
+    }
+
+    @Test
+    public void testInputHandleKeyArrowLeft() {
+        Input input = new Input("ab");
+        input.setCursorPosition(2);
+        KeyEvent left = new KeyEvent(KeyEvent.Arrow.Left, EnumSet.noneOf(KeyEvent.Modifier.class), "\u001b[D");
+        assertTrue(input.handleKey(left));
+        assertEquals(1, input.getCursorPosition());
+    }
+
+    @Test
+    public void testInputHandleKeyBackspace() {
+        Input input = new Input("abc");
+        input.setCursorPosition(3);
+        KeyEvent backspace =
+                new KeyEvent(KeyEvent.Special.Backspace, EnumSet.noneOf(KeyEvent.Modifier.class), "\u007f");
+        assertTrue(input.handleKey(backspace));
+        assertEquals("ab", input.getText());
+    }
+
+    @Test
+    public void testInputHandleKeyNotEditableIgnored() {
+        Input input = new Input("abc");
+        input.setEditable(false);
+        KeyEvent event = new KeyEvent('x', EnumSet.noneOf(KeyEvent.Modifier.class), "x");
+        assertFalse(input.handleKey(event));
+        assertEquals("abc", input.getText());
+    }
+
+    @Test
+    public void testButtonHandleKeyEnter() {
+        Button button = new Button("OK");
+        boolean[] clicked = {false};
+        button.addClickListener(() -> clicked[0] = true);
+        KeyEvent enter = new KeyEvent(KeyEvent.Special.Enter, EnumSet.noneOf(KeyEvent.Modifier.class), "\r");
+        assertTrue(button.handleKey(enter));
+        assertTrue(clicked[0]);
+    }
+
+    @Test
+    public void testButtonHandleKeySpace() {
+        Button button = new Button("OK");
+        boolean[] clicked = {false};
+        button.addClickListener(() -> clicked[0] = true);
+        KeyEvent space = new KeyEvent(' ', EnumSet.noneOf(KeyEvent.Modifier.class), " ");
+        assertTrue(button.handleKey(space));
+        assertTrue(clicked[0]);
+    }
+
+    @Test
+    public void testButtonHandleKeyUnhandled() {
+        Button button = new Button("OK");
+        KeyEvent aKey = new KeyEvent('a', EnumSet.noneOf(KeyEvent.Modifier.class), "a");
+        assertFalse(button.handleKey(aKey));
     }
 }

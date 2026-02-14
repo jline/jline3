@@ -15,6 +15,7 @@ import org.jline.curses.Position;
 import org.jline.curses.Screen;
 import org.jline.curses.Size;
 import org.jline.curses.Theme;
+import org.jline.terminal.KeyEvent;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
@@ -651,6 +652,85 @@ public class TextArea extends AbstractComponent {
     }
 
     // Component implementation
+
+    @Override
+    public boolean handleKey(KeyEvent event) {
+        if (event.getType() == KeyEvent.Type.Character && !event.hasModifier(KeyEvent.Modifier.Alt)) {
+            if (event.hasModifier(KeyEvent.Modifier.Control)) {
+                switch (event.getCharacter()) {
+                    case 'a':
+                        moveCursorToLineStart();
+                        return true;
+                    case 'e':
+                        moveCursorToLineEnd();
+                        return true;
+                }
+            } else if (editable) {
+                if (hasSelection()) {
+                    deleteSelection();
+                }
+                insertChar(event.getCharacter());
+                return true;
+            }
+        } else if (event.getType() == KeyEvent.Type.Arrow) {
+            switch (event.getArrow()) {
+                case Up:
+                    moveCursorUp();
+                    return true;
+                case Down:
+                    moveCursorDown();
+                    return true;
+                case Left:
+                    moveCursorLeft();
+                    return true;
+                case Right:
+                    moveCursorRight();
+                    return true;
+            }
+        } else if (event.getType() == KeyEvent.Type.Special) {
+            switch (event.getSpecial()) {
+                case Enter:
+                    if (editable) {
+                        insertNewLine();
+                        return true;
+                    }
+                    break;
+                case Backspace:
+                    if (editable) {
+                        if (hasSelection()) {
+                            deleteSelection();
+                        } else {
+                            deleteCharBefore();
+                        }
+                        return true;
+                    }
+                    break;
+                case Delete:
+                    if (editable) {
+                        if (hasSelection()) {
+                            deleteSelection();
+                        } else {
+                            deleteCharAfter();
+                        }
+                        return true;
+                    }
+                    break;
+                case Home:
+                    moveCursorToLineStart();
+                    return true;
+                case End:
+                    moveCursorToLineEnd();
+                    return true;
+                case PageUp:
+                    scrollUp(getSize() != null ? getSize().h() : 10);
+                    return true;
+                case PageDown:
+                    scrollDown(getSize() != null ? getSize().h() : 10);
+                    return true;
+            }
+        }
+        return false;
+    }
 
     @Override
     protected void doDraw(Screen screen) {

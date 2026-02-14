@@ -11,8 +11,10 @@ package org.jline.curses.impl;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jline.curses.Position;
 import org.jline.curses.Screen;
 import org.jline.curses.Size;
+import org.jline.terminal.KeyEvent;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStyle;
 
@@ -174,12 +176,31 @@ public class Button extends AbstractComponent {
     }
 
     @Override
+    public boolean handleKey(KeyEvent event) {
+        if (event.getType() == KeyEvent.Type.Special) {
+            if (event.getSpecial() == KeyEvent.Special.Enter) {
+                click();
+                return true;
+            }
+        } else if (event.getType() == KeyEvent.Type.Character) {
+            if (event.getCharacter() == ' ') {
+                click();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
     protected void doDraw(Screen screen) {
         Size size = getSize();
-        if (size == null) {
+        Position pos = getScreenPosition();
+        if (size == null || pos == null) {
             return;
         }
 
+        int ox = pos.x();
+        int oy = pos.y();
         int width = size.w();
         int height = size.h();
 
@@ -194,7 +215,7 @@ public class Button extends AbstractComponent {
         }
 
         // Fill the button area with the background style
-        screen.fill(0, 0, width, height, style);
+        screen.fill(ox, oy, width, height, style);
 
         // Draw the button text centered
         if (!text.isEmpty() && width > 2 && height > 0) {
@@ -210,12 +231,12 @@ public class Button extends AbstractComponent {
             }
 
             AttributedString buttonText = new AttributedString(displayText, style);
-            screen.text(textX, textY, buttonText);
+            screen.text(ox + textX, oy + textY, buttonText);
         }
 
         // Draw button border (simple box)
         if (width > 1 && height > 1) {
-            drawBorder(screen, style);
+            drawBorder(screen, pos, style);
         }
     }
 
@@ -235,43 +256,45 @@ public class Button extends AbstractComponent {
      * @param screen the screen to draw on
      * @param style the style to use for the border
      */
-    private void drawBorder(Screen screen, AttributedStyle style) {
+    private void drawBorder(Screen screen, Position pos, AttributedStyle style) {
         Size size = getSize();
         if (size == null) {
             return;
         }
 
+        int ox = pos.x();
+        int oy = pos.y();
         int width = size.w();
         int height = size.h();
 
         // Draw corners and edges
-        String topLeft = "┌";
-        String topRight = "┐";
-        String bottomLeft = "└";
-        String bottomRight = "┘";
-        String horizontal = "─";
-        String vertical = "│";
+        String topLeft = "\u250c";
+        String topRight = "\u2510";
+        String bottomLeft = "\u2514";
+        String bottomRight = "\u2518";
+        String horizontal = "\u2500";
+        String vertical = "\u2502";
 
         // Top border
-        screen.text(0, 0, new AttributedString(topLeft, style));
+        screen.text(ox, oy, new AttributedString(topLeft, style));
         for (int x = 1; x < width - 1; x++) {
-            screen.text(x, 0, new AttributedString(horizontal, style));
+            screen.text(ox + x, oy, new AttributedString(horizontal, style));
         }
-        screen.text(width - 1, 0, new AttributedString(topRight, style));
+        screen.text(ox + width - 1, oy, new AttributedString(topRight, style));
 
         // Side borders
         for (int y = 1; y < height - 1; y++) {
-            screen.text(0, y, new AttributedString(vertical, style));
-            screen.text(width - 1, y, new AttributedString(vertical, style));
+            screen.text(ox, oy + y, new AttributedString(vertical, style));
+            screen.text(ox + width - 1, oy + y, new AttributedString(vertical, style));
         }
 
         // Bottom border
         if (height > 1) {
-            screen.text(0, height - 1, new AttributedString(bottomLeft, style));
+            screen.text(ox, oy + height - 1, new AttributedString(bottomLeft, style));
             for (int x = 1; x < width - 1; x++) {
-                screen.text(x, height - 1, new AttributedString(horizontal, style));
+                screen.text(ox + x, oy + height - 1, new AttributedString(horizontal, style));
             }
-            screen.text(width - 1, height - 1, new AttributedString(bottomRight, style));
+            screen.text(ox + width - 1, oy + height - 1, new AttributedString(bottomRight, style));
         }
     }
 }

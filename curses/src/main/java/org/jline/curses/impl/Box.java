@@ -29,7 +29,7 @@ public class Box extends AbstractComponent implements Container {
 
     public Box(String title, Curses.Border border, Component component, String shortcutKey) {
         this.title = title;
-        this.border = border;
+        this.border = border != null ? border : Curses.Border.Single;
         this.component = component;
         this.shortcutKey = shortcutKey;
         // Set parent after all fields are initialized to avoid this-escape warning

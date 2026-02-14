@@ -183,17 +183,15 @@ public class Menu extends AbstractComponent {
             char ch = event.getCharacter();
             if (ch == ' ' || ch == '\n' || ch == '\r') {
                 action = Action.Execute;
-            } else {
-                // Check for menu item shortcuts
-                for (SubMenu subMenu : contents) {
-                    for (MenuItem item : subMenu.getContents()) {
-                        String shortcut = item.getShortcut();
-                        if (shortcut != null && isShortcutMatch(event, shortcut)) {
-                            closeAndExecute(item);
-                            return true;
-                        }
-                    }
-                }
+            }
+        }
+
+        // Check for global shortcuts (function keys, chorded shortcuts, etc.)
+        if (action == null) {
+            MenuItem matched = matchShortcut(event);
+            if (matched != null) {
+                closeAndExecute(matched);
+                return true;
             }
         }
 
@@ -254,14 +252,18 @@ public class Menu extends AbstractComponent {
         }
     }
 
-    private boolean isShortcutMatch(KeyEvent event, String shortcut) {
-        // Simple shortcut matching - could be enhanced
-        if (shortcut.length() == 1) {
-            char shortcutChar = shortcut.toLowerCase().charAt(0);
-            char eventChar = Character.toLowerCase(event.getCharacter());
-            return shortcutChar == eventChar;
+    private MenuItem matchShortcut(KeyEvent event) {
+        if (global == null) {
+            return null;
         }
-        return false;
+        String raw = event.getRawSequence();
+        if (raw != null) {
+            Object bound = global.getBound(raw);
+            if (bound instanceof MenuItem) {
+                return (MenuItem) bound;
+            }
+        }
+        return null;
     }
 
     private void closeAndExecute(MenuItem item) {

@@ -16,6 +16,7 @@ import org.jline.curses.Position;
 import org.jline.curses.Screen;
 import org.jline.curses.Size;
 import org.jline.curses.Theme;
+import org.jline.terminal.KeyEvent;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStyle;
 
@@ -443,6 +444,64 @@ public class Input extends AbstractComponent {
                 System.err.println("Error in input change listener: " + e.getMessage());
             }
         }
+    }
+
+    @Override
+    public boolean handleKey(KeyEvent event) {
+        if (!editable) {
+            return false;
+        }
+        if (event.getType() == KeyEvent.Type.Character && !event.hasModifier(KeyEvent.Modifier.Alt)) {
+            if (event.hasModifier(KeyEvent.Modifier.Control)) {
+                switch (event.getCharacter()) {
+                    case 'a':
+                        selectAll();
+                        return true;
+                    case 'e':
+                        moveCursorToEnd();
+                        return true;
+                }
+            } else {
+                if (hasSelection()) {
+                    deleteSelection();
+                }
+                insertText(String.valueOf(event.getCharacter()));
+                return true;
+            }
+        } else if (event.getType() == KeyEvent.Type.Arrow) {
+            switch (event.getArrow()) {
+                case Left:
+                    moveCursorLeft();
+                    return true;
+                case Right:
+                    moveCursorRight();
+                    return true;
+            }
+        } else if (event.getType() == KeyEvent.Type.Special) {
+            switch (event.getSpecial()) {
+                case Backspace:
+                    if (hasSelection()) {
+                        deleteSelection();
+                    } else {
+                        deleteCharBefore();
+                    }
+                    return true;
+                case Delete:
+                    if (hasSelection()) {
+                        deleteSelection();
+                    } else {
+                        deleteCharAfter();
+                    }
+                    return true;
+                case Home:
+                    moveCursorToStart();
+                    return true;
+                case End:
+                    moveCursorToEnd();
+                    return true;
+            }
+        }
+        return false;
     }
 
     @Override

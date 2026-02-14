@@ -224,16 +224,15 @@ public String getShortcutKey() {
 
 ## Invalidation and Repaint
 
-The curses module uses an invalidation-based repaint system:
+The curses module tracks component validity through an invalidation system:
 
 - Components start as invalid (needing initial draw)
 - After `draw()`, a component becomes valid
 - Calling `invalidate()` marks a component for redraw
 - Invalidation propagates upward to parent containers
 - Focus changes automatically invalidate the component
-- Only invalid components are redrawn on the next render cycle
 
-This avoids unnecessary redrawing and enables efficient screen updates.
+Currently, `GUIImpl.redraw()` redraws the background and all windows on every render cycle. The invalidation state is available for components and custom renderers to skip unchanged subtrees, but the default render loop does not yet perform selective repainting. This is an area for future optimization.
 
 ## Theming
 
