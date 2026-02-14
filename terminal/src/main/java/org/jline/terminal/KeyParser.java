@@ -143,6 +143,10 @@ public class KeyParser {
             case "\u001b[6~":
                 return new KeyEvent(KeyEvent.Special.PageDown, EnumSet.noneOf(KeyEvent.Modifier.class), sequence);
 
+            // Backtab (Shift+Tab)
+            case "\u001b[Z":
+                return new KeyEvent(KeyEvent.Special.Tab, EnumSet.of(KeyEvent.Modifier.Shift), sequence);
+
             default:
                 // Try to parse modified keys (with Shift, Alt, Ctrl)
                 return parseModifiedAnsiSequence(sequence);

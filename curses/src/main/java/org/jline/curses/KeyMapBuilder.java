@@ -244,6 +244,12 @@ public class KeyMapBuilder {
         map.bind(
                 new InputEvent(new KeyEvent(KeyEvent.Special.Tab, EnumSet.noneOf(KeyEvent.Modifier.class), "\t")),
                 "\t");
+        // Backtab (Shift+Tab)
+        bindKey(
+                map,
+                terminal,
+                InfoCmp.Capability.key_btab,
+                new KeyEvent(KeyEvent.Special.Tab, EnumSet.of(KeyEvent.Modifier.Shift), "\u001b[Z"));
         map.bind(
                 new InputEvent(
                         new KeyEvent(KeyEvent.Special.Escape, EnumSet.noneOf(KeyEvent.Modifier.class), "\u001b")),

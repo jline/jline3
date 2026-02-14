@@ -8,7 +8,9 @@
  */
 package org.jline.curses.impl;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.List;
 
 import org.jline.curses.*;
 import org.jline.terminal.KeyEvent;
@@ -140,13 +142,47 @@ public abstract class AbstractWindow extends AbstractComponent implements Window
 
     @Override
     public boolean handleKey(KeyEvent event) {
-        // Handle 'q' key to close window
-        if (event.getType() == KeyEvent.Type.Character && event.getCharacter() == 'q') {
+        // Handle 'q' key to close window (only when no component is focused or focused didn't handle it)
+        if (event.getType() == KeyEvent.Type.Character
+                && !event.hasModifier(KeyEvent.Modifier.Alt)
+                && !event.hasModifier(KeyEvent.Modifier.Control)
+                && event.getCharacter() == 'q'
+                && focused == null) {
             close();
             return true;
         }
 
-        // First try the focused component
+        // Handle Tab / Shift+Tab for focus cycling
+        if (event.getType() == KeyEvent.Type.Special && event.getSpecial() == KeyEvent.Special.Tab) {
+            if (event.hasModifier(KeyEvent.Modifier.Shift)) {
+                focusPrevious();
+            } else {
+                focusNext();
+            }
+            return true;
+        }
+
+        // Check for Alt+letter shortcuts (search all nested containers)
+        if (component instanceof Container) {
+            if (tryFocusShortcut((Container) component, event)) {
+                return true;
+            }
+        }
+
+        // Handle 'q' to close when focused component doesn't handle it
+        if (event.getType() == KeyEvent.Type.Character
+                && !event.hasModifier(KeyEvent.Modifier.Alt)
+                && !event.hasModifier(KeyEvent.Modifier.Control)
+                && event.getCharacter() == 'q') {
+            // Let focused component try first
+            if (focused != null && focused.handleKey(event)) {
+                return true;
+            }
+            close();
+            return true;
+        }
+
+        // Try the focused component
         if (focused != null && focused.handleKey(event)) {
             return true;
         }
@@ -156,41 +192,65 @@ public abstract class AbstractWindow extends AbstractComponent implements Window
             return true;
         }
 
-        // If still not handled, check for shortcuts to focus other components
-        if (component instanceof Container) {
-            Container container = (Container) component;
-            if (tryFocusShortcut(container, event)) {
-                return true;
-            }
-        }
-
-        return false; // Not handled
-    }
-
-    private boolean tryFocusShortcut(Container container, KeyEvent event) {
-        // Check if any child component has a shortcut for this key event
-        for (Component child : container.getComponents()) {
-            String shortcutKey = child.getShortcutKey();
-            if (shortcutKey != null && isShortcutMatch(event, shortcutKey)) {
-                child.focus();
-                return true;
-            }
-            // Recursively check child containers
-            if (child instanceof Container && tryFocusShortcut((Container) child, event)) {
-                return true;
-            }
-        }
         return false;
     }
 
-    private boolean isShortcutMatch(KeyEvent event, String shortcutKey) {
-        // Check if the key event matches the shortcut (Alt+key)
-        if (event.getType() == KeyEvent.Type.Character
-                && event.hasModifier(KeyEvent.Modifier.Alt)
-                && shortcutKey.length() == 1) {
-            char expectedChar = shortcutKey.toLowerCase().charAt(0);
-            char actualChar = Character.toLowerCase(event.getCharacter());
-            return expectedChar == actualChar;
+    private void focusNext() {
+        List<Component> focusable = new ArrayList<>();
+        collectFocusable(component, focusable);
+        if (focusable.isEmpty()) {
+            return;
+        }
+        int idx = focused != null ? focusable.indexOf(focused) : -1;
+        int next = (idx + 1) % focusable.size();
+        focusable.get(next).focus();
+    }
+
+    private void focusPrevious() {
+        List<Component> focusable = new ArrayList<>();
+        collectFocusable(component, focusable);
+        if (focusable.isEmpty()) {
+            return;
+        }
+        int idx = focused != null ? focusable.indexOf(focused) : 0;
+        int prev = (idx - 1 + focusable.size()) % focusable.size();
+        focusable.get(prev).focus();
+    }
+
+    private void collectFocusable(Component comp, List<Component> result) {
+        if (comp == null) {
+            return;
+        }
+        if (comp instanceof Container) {
+            for (Component child : ((Container) comp).getComponents()) {
+                collectFocusable(child, result);
+            }
+        } else if (!comp.getBehaviors().contains(Behavior.NoFocus)) {
+            result.add(comp);
+        }
+    }
+
+    private boolean tryFocusShortcut(Container container, KeyEvent event) {
+        if (event.getType() != KeyEvent.Type.Character || !event.hasModifier(KeyEvent.Modifier.Alt)) {
+            return false;
+        }
+        char actualChar = Character.toLowerCase(event.getCharacter());
+        return tryFocusShortcutRecursive(container, actualChar);
+    }
+
+    private boolean tryFocusShortcutRecursive(Container container, char shortcutChar) {
+        for (Component child : container.getComponents()) {
+            String shortcutKey = child.getShortcutKey();
+            if (shortcutKey != null && shortcutKey.length() == 1) {
+                char expectedChar = shortcutKey.toLowerCase().charAt(0);
+                if (expectedChar == shortcutChar) {
+                    child.focus();
+                    return true;
+                }
+            }
+            if (child instanceof Container && tryFocusShortcutRecursive((Container) child, shortcutChar)) {
+                return true;
+            }
         }
         return false;
     }
