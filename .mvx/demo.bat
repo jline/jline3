@@ -14,6 +14,7 @@ if "%demo_name%"=="" (
   echo   password  - Run the password demo
   echo   consoleui - Run the ConsoleUI demo ^(deprecated^)
   echo   prompt    - Run the new Prompt API demo
+  echo   curses    - Run the Curses TUI demo
   echo   graal     - Run the GraalVM native demo
   echo.
   echo Options:
@@ -53,6 +54,7 @@ if "%demo_name%"=="repl" goto demo_repl
 if "%demo_name%"=="password" goto demo_password
 if "%demo_name%"=="consoleui" goto demo_consoleui
 if "%demo_name%"=="prompt" goto demo_prompt
+if "%demo_name%"=="curses" goto demo_curses
 if "%demo_name%"=="graal" goto demo_graal
 goto example
 
@@ -76,6 +78,10 @@ goto process_options
 set MAIN_CLASS=org.jline.demo.examples.PromptDynamicExample
 goto process_options
 
+:demo_curses
+set MAIN_CLASS=org.jline.demo.CursesDemo
+goto process_options
+
 :demo_graal
 echo Running GraalVM native demo
 graal\target\graal %*
@@ -88,7 +94,7 @@ REM Check if the example class exists
 if not exist demo\src\main\java\org\jline\demo\examples\%example_name%.java (
   echo Demo '%example_name%' not found.
   echo.
-  echo Available built-in demos: gogo, repl, password, consoleui, prompt, graal
+  echo Available built-in demos: gogo, repl, password, consoleui, prompt, curses, graal
   echo.
   echo Available example demos:
   for %%f in (demo\src\main\java\org\jline\demo\examples\*.java) do (
