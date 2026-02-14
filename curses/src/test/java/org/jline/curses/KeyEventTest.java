@@ -10,159 +10,118 @@ package org.jline.curses;
 
 import org.jline.terminal.KeyEvent;
 import org.jline.terminal.KeyParser;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Test class to verify that KeyEvent parsing and handling works correctly.
  */
 public class KeyEventTest {
 
-    public static void main(String[] args) {
-        KeyEventTest test = new KeyEventTest();
-        test.runTests();
-    }
-
-    public void runTests() {
-        System.out.println("Running KeyEvent Tests...");
-
-        try {
-            testCharacterKeys();
-            testArrowKeys();
-            testFunctionKeys();
-            testSpecialKeys();
-            testModifierKeys();
-            testUnknownKeys();
-
-            System.out.println("All tests passed!");
-        } catch (Exception e) {
-            System.err.println("Test failed: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    private void testCharacterKeys() {
-        System.out.println("Testing character keys...");
-
-        // Test regular character
+    @Test
+    public void testCharacterKey() {
         KeyEvent event = KeyParser.parse("a");
-        if (event.getType() != KeyEvent.Type.Character || event.getCharacter() != 'a') {
-            throw new RuntimeException("Expected character 'a', got: " + event);
-        }
-
-        // Test space
-        event = KeyParser.parse(" ");
-        if (event.getType() != KeyEvent.Type.Character || event.getCharacter() != ' ') {
-            throw new RuntimeException("Expected space character, got: " + event);
-        }
-
-        System.out.println("✓ Character keys test passed");
+        assertEquals(KeyEvent.Type.Character, event.getType());
+        assertEquals('a', event.getCharacter());
     }
 
-    private void testArrowKeys() {
-        System.out.println("Testing arrow keys...");
+    @Test
+    public void testSpaceCharacter() {
+        KeyEvent event = KeyParser.parse(" ");
+        assertEquals(KeyEvent.Type.Character, event.getType());
+        assertEquals(' ', event.getCharacter());
+    }
 
-        // Test arrow keys
+    @Test
+    public void testArrowUp() {
         KeyEvent up = KeyParser.parse("\u001b[A");
-        if (up.getType() != KeyEvent.Type.Arrow || up.getArrow() != KeyEvent.Arrow.Up) {
-            throw new RuntimeException("Expected Up arrow, got: " + up);
-        }
+        assertEquals(KeyEvent.Type.Arrow, up.getType());
+        assertEquals(KeyEvent.Arrow.Up, up.getArrow());
+    }
 
+    @Test
+    public void testArrowDown() {
         KeyEvent down = KeyParser.parse("\u001b[B");
-        if (down.getType() != KeyEvent.Type.Arrow || down.getArrow() != KeyEvent.Arrow.Down) {
-            throw new RuntimeException("Expected Down arrow, got: " + down);
-        }
+        assertEquals(KeyEvent.Type.Arrow, down.getType());
+        assertEquals(KeyEvent.Arrow.Down, down.getArrow());
+    }
 
+    @Test
+    public void testArrowRight() {
         KeyEvent right = KeyParser.parse("\u001b[C");
-        if (right.getType() != KeyEvent.Type.Arrow || right.getArrow() != KeyEvent.Arrow.Right) {
-            throw new RuntimeException("Expected Right arrow, got: " + right);
-        }
+        assertEquals(KeyEvent.Type.Arrow, right.getType());
+        assertEquals(KeyEvent.Arrow.Right, right.getArrow());
+    }
 
+    @Test
+    public void testArrowLeft() {
         KeyEvent left = KeyParser.parse("\u001b[D");
-        if (left.getType() != KeyEvent.Type.Arrow || left.getArrow() != KeyEvent.Arrow.Left) {
-            throw new RuntimeException("Expected Left arrow, got: " + left);
-        }
-
-        System.out.println("✓ Arrow keys test passed");
+        assertEquals(KeyEvent.Type.Arrow, left.getType());
+        assertEquals(KeyEvent.Arrow.Left, left.getArrow());
     }
 
-    private void testFunctionKeys() {
-        System.out.println("Testing function keys...");
-
-        // Test F1 key
+    @Test
+    public void testFunctionKeyF1() {
         KeyEvent f1 = KeyParser.parse("\u001bOP");
-        if (f1.getType() != KeyEvent.Type.Function || f1.getFunctionKey() != 1) {
-            throw new RuntimeException("Expected F1, got: " + f1);
-        }
+        assertEquals(KeyEvent.Type.Function, f1.getType());
+        assertEquals(1, f1.getFunctionKey());
+    }
 
-        // Test F12 key
+    @Test
+    public void testFunctionKeyF12() {
         KeyEvent f12 = KeyParser.parse("\u001b[24~");
-        if (f12.getType() != KeyEvent.Type.Function || f12.getFunctionKey() != 12) {
-            throw new RuntimeException("Expected F12, got: " + f12);
-        }
-
-        System.out.println("✓ Function keys test passed");
+        assertEquals(KeyEvent.Type.Function, f12.getType());
+        assertEquals(12, f12.getFunctionKey());
     }
 
-    private void testSpecialKeys() {
-        System.out.println("Testing special keys...");
-
-        // Test Enter
+    @Test
+    public void testSpecialEnter() {
         KeyEvent enter = KeyParser.parse("\r");
-        if (enter.getType() != KeyEvent.Type.Special || enter.getSpecial() != KeyEvent.Special.Enter) {
-            throw new RuntimeException("Expected Enter, got: " + enter);
-        }
+        assertEquals(KeyEvent.Type.Special, enter.getType());
+        assertEquals(KeyEvent.Special.Enter, enter.getSpecial());
+    }
 
-        // Test Tab
+    @Test
+    public void testSpecialTab() {
         KeyEvent tab = KeyParser.parse("\t");
-        if (tab.getType() != KeyEvent.Type.Special || tab.getSpecial() != KeyEvent.Special.Tab) {
-            throw new RuntimeException("Expected Tab, got: " + tab);
-        }
+        assertEquals(KeyEvent.Type.Special, tab.getType());
+        assertEquals(KeyEvent.Special.Tab, tab.getSpecial());
+    }
 
-        // Test Escape
+    @Test
+    public void testSpecialEscape() {
         KeyEvent escape = KeyParser.parse("\u001b");
-        if (escape.getType() != KeyEvent.Type.Special || escape.getSpecial() != KeyEvent.Special.Escape) {
-            throw new RuntimeException("Expected Escape, got: " + escape);
-        }
+        assertEquals(KeyEvent.Type.Special, escape.getType());
+        assertEquals(KeyEvent.Special.Escape, escape.getSpecial());
+    }
 
-        // Test Home
+    @Test
+    public void testSpecialHome() {
         KeyEvent home = KeyParser.parse("\u001b[H");
-        if (home.getType() != KeyEvent.Type.Special || home.getSpecial() != KeyEvent.Special.Home) {
-            throw new RuntimeException("Expected Home, got: " + home);
-        }
-
-        System.out.println("✓ Special keys test passed");
+        assertEquals(KeyEvent.Type.Special, home.getType());
+        assertEquals(KeyEvent.Special.Home, home.getSpecial());
     }
 
-    private void testModifierKeys() {
-        System.out.println("Testing modifier keys...");
-
-        // Test Alt+a
+    @Test
+    public void testModifierAlt() {
         KeyEvent altA = KeyParser.parse("\u001ba");
-        if (altA.getType() != KeyEvent.Type.Character
-                || altA.getCharacter() != 'a'
-                || !altA.hasModifier(KeyEvent.Modifier.Alt)) {
-            throw new RuntimeException("Expected Alt+a, got: " + altA);
-        }
-
-        // Test Ctrl+a
-        KeyEvent ctrlA = KeyParser.parse("\u0001");
-        if (ctrlA.getType() != KeyEvent.Type.Character
-                || ctrlA.getCharacter() != 'a'
-                || !ctrlA.hasModifier(KeyEvent.Modifier.Control)) {
-            throw new RuntimeException("Expected Ctrl+a, got: " + ctrlA);
-        }
-
-        System.out.println("✓ Modifier keys test passed");
+        assertEquals(KeyEvent.Type.Character, altA.getType());
+        assertEquals('a', altA.getCharacter());
+        assertTrue(altA.hasModifier(KeyEvent.Modifier.Alt));
     }
 
-    private void testUnknownKeys() {
-        System.out.println("Testing unknown keys...");
+    @Test
+    public void testModifierControl() {
+        KeyEvent ctrlA = KeyParser.parse("\u0001");
+        assertEquals(KeyEvent.Type.Character, ctrlA.getType());
+        assertEquals('a', ctrlA.getCharacter());
+        assertTrue(ctrlA.hasModifier(KeyEvent.Modifier.Control));
+    }
 
-        // Test unknown sequence
+    @Test
+    public void testUnknownSequence() {
         KeyEvent unknown = KeyParser.parse("\u001b[999~");
-        if (unknown.getType() != KeyEvent.Type.Unknown) {
-            throw new RuntimeException("Expected Unknown type, got: " + unknown);
-        }
-
-        System.out.println("✓ Unknown keys test passed");
+        assertEquals(KeyEvent.Type.Unknown, unknown.getType());
     }
 }

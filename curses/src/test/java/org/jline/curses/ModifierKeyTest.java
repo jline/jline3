@@ -10,197 +10,141 @@ package org.jline.curses;
 
 import org.jline.terminal.KeyEvent;
 import org.jline.terminal.KeyParser;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Test class to verify that simple keys and modifier keys are handled correctly.
  */
 public class ModifierKeyTest {
 
-    public static void main(String[] args) {
-        ModifierKeyTest test = new ModifierKeyTest();
-        test.runTests();
-    }
-
-    public void runTests() {
-        System.out.println("Running Modifier Key Tests...");
-
-        try {
-            testSimpleCharacterKeys();
-            testControlKeys();
-            testAltKeys();
-            testModifiedArrowKeys();
-            testModifiedFunctionKeys();
-            testModifiedSpecialKeys();
-
-            System.out.println("All tests passed!");
-        } catch (Exception e) {
-            System.err.println("Test failed: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    private void testSimpleCharacterKeys() {
-        System.out.println("Testing simple character keys...");
-
-        // Test regular letters
+    @Test
+    public void testSimpleLetterKey() {
         KeyEvent aKey = KeyParser.parse("a");
-        if (aKey.getType() != KeyEvent.Type.Character
-                || aKey.getCharacter() != 'a'
-                || !aKey.getModifiers().isEmpty()) {
-            throw new RuntimeException("Expected simple 'a' character, got: " + aKey);
-        }
+        assertEquals(KeyEvent.Type.Character, aKey.getType());
+        assertEquals('a', aKey.getCharacter());
+        assertTrue(aKey.getModifiers().isEmpty());
+    }
 
-        // Test numbers
+    @Test
+    public void testSimpleNumberKey() {
         KeyEvent oneKey = KeyParser.parse("1");
-        if (oneKey.getType() != KeyEvent.Type.Character
-                || oneKey.getCharacter() != '1'
-                || !oneKey.getModifiers().isEmpty()) {
-            throw new RuntimeException("Expected simple '1' character, got: " + oneKey);
-        }
+        assertEquals(KeyEvent.Type.Character, oneKey.getType());
+        assertEquals('1', oneKey.getCharacter());
+        assertTrue(oneKey.getModifiers().isEmpty());
+    }
 
-        // Test space
+    @Test
+    public void testSimpleSpaceKey() {
         KeyEvent spaceKey = KeyParser.parse(" ");
-        if (spaceKey.getType() != KeyEvent.Type.Character
-                || spaceKey.getCharacter() != ' '
-                || !spaceKey.getModifiers().isEmpty()) {
-            throw new RuntimeException("Expected simple space character, got: " + spaceKey);
-        }
-
-        System.out.println("✓ Simple character keys test passed");
+        assertEquals(KeyEvent.Type.Character, spaceKey.getType());
+        assertEquals(' ', spaceKey.getCharacter());
+        assertTrue(spaceKey.getModifiers().isEmpty());
     }
 
-    private void testControlKeys() {
-        System.out.println("Testing control keys...");
-
-        // Test Ctrl+A (ASCII 1)
+    @Test
+    public void testCtrlA() {
         KeyEvent ctrlA = KeyParser.parse("\u0001");
-        if (ctrlA.getType() != KeyEvent.Type.Character
-                || ctrlA.getCharacter() != 'a'
-                || !ctrlA.hasModifier(KeyEvent.Modifier.Control)) {
-            throw new RuntimeException("Expected Ctrl+A, got: " + ctrlA);
-        }
+        assertEquals(KeyEvent.Type.Character, ctrlA.getType());
+        assertEquals('a', ctrlA.getCharacter());
+        assertTrue(ctrlA.hasModifier(KeyEvent.Modifier.Control));
+    }
 
-        // Test Ctrl+C (ASCII 3)
+    @Test
+    public void testCtrlC() {
         KeyEvent ctrlC = KeyParser.parse("\u0003");
-        if (ctrlC.getType() != KeyEvent.Type.Character
-                || ctrlC.getCharacter() != 'c'
-                || !ctrlC.hasModifier(KeyEvent.Modifier.Control)) {
-            throw new RuntimeException("Expected Ctrl+C, got: " + ctrlC);
-        }
+        assertEquals(KeyEvent.Type.Character, ctrlC.getType());
+        assertEquals('c', ctrlC.getCharacter());
+        assertTrue(ctrlC.hasModifier(KeyEvent.Modifier.Control));
+    }
 
-        // Test Ctrl+Z (ASCII 26)
+    @Test
+    public void testCtrlZ() {
         KeyEvent ctrlZ = KeyParser.parse("\u001a");
-        if (ctrlZ.getType() != KeyEvent.Type.Character
-                || ctrlZ.getCharacter() != 'z'
-                || !ctrlZ.hasModifier(KeyEvent.Modifier.Control)) {
-            throw new RuntimeException("Expected Ctrl+Z, got: " + ctrlZ);
-        }
-
-        System.out.println("✓ Control keys test passed");
+        assertEquals(KeyEvent.Type.Character, ctrlZ.getType());
+        assertEquals('z', ctrlZ.getCharacter());
+        assertTrue(ctrlZ.hasModifier(KeyEvent.Modifier.Control));
     }
 
-    private void testAltKeys() {
-        System.out.println("Testing Alt keys...");
-
-        // Test Alt+A
+    @Test
+    public void testAltA() {
         KeyEvent altA = KeyParser.parse("\u001ba");
-        if (altA.getType() != KeyEvent.Type.Character
-                || altA.getCharacter() != 'a'
-                || !altA.hasModifier(KeyEvent.Modifier.Alt)) {
-            throw new RuntimeException("Expected Alt+A, got: " + altA);
-        }
+        assertEquals(KeyEvent.Type.Character, altA.getType());
+        assertEquals('a', altA.getCharacter());
+        assertTrue(altA.hasModifier(KeyEvent.Modifier.Alt));
+    }
 
-        // Test Alt+1
+    @Test
+    public void testAltNumber() {
         KeyEvent alt1 = KeyParser.parse("\u001b1");
-        if (alt1.getType() != KeyEvent.Type.Character
-                || alt1.getCharacter() != '1'
-                || !alt1.hasModifier(KeyEvent.Modifier.Alt)) {
-            throw new RuntimeException("Expected Alt+1, got: " + alt1);
-        }
-
-        System.out.println("✓ Alt keys test passed");
+        assertEquals(KeyEvent.Type.Character, alt1.getType());
+        assertEquals('1', alt1.getCharacter());
+        assertTrue(alt1.hasModifier(KeyEvent.Modifier.Alt));
     }
 
-    private void testModifiedArrowKeys() {
-        System.out.println("Testing modified arrow keys...");
-
-        // Test Shift+Up Arrow
+    @Test
+    public void testShiftUpArrow() {
         KeyEvent shiftUp = KeyParser.parse("\u001b[1;2A");
-        if (shiftUp.getType() != KeyEvent.Type.Arrow
-                || shiftUp.getArrow() != KeyEvent.Arrow.Up
-                || !shiftUp.hasModifier(KeyEvent.Modifier.Shift)) {
-            throw new RuntimeException("Expected Shift+Up Arrow, got: " + shiftUp);
-        }
+        assertEquals(KeyEvent.Type.Arrow, shiftUp.getType());
+        assertEquals(KeyEvent.Arrow.Up, shiftUp.getArrow());
+        assertTrue(shiftUp.hasModifier(KeyEvent.Modifier.Shift));
+    }
 
-        // Test Ctrl+Right Arrow
+    @Test
+    public void testCtrlRightArrow() {
         KeyEvent ctrlRight = KeyParser.parse("\u001b[1;5C");
-        if (ctrlRight.getType() != KeyEvent.Type.Arrow
-                || ctrlRight.getArrow() != KeyEvent.Arrow.Right
-                || !ctrlRight.hasModifier(KeyEvent.Modifier.Control)) {
-            throw new RuntimeException("Expected Ctrl+Right Arrow, got: " + ctrlRight);
-        }
+        assertEquals(KeyEvent.Type.Arrow, ctrlRight.getType());
+        assertEquals(KeyEvent.Arrow.Right, ctrlRight.getArrow());
+        assertTrue(ctrlRight.hasModifier(KeyEvent.Modifier.Control));
+    }
 
-        // Test Alt+Left Arrow
+    @Test
+    public void testAltLeftArrow() {
         KeyEvent altLeft = KeyParser.parse("\u001b[1;3D");
-        if (altLeft.getType() != KeyEvent.Type.Arrow
-                || altLeft.getArrow() != KeyEvent.Arrow.Left
-                || !altLeft.hasModifier(KeyEvent.Modifier.Alt)) {
-            throw new RuntimeException("Expected Alt+Left Arrow, got: " + altLeft);
-        }
+        assertEquals(KeyEvent.Type.Arrow, altLeft.getType());
+        assertEquals(KeyEvent.Arrow.Left, altLeft.getArrow());
+        assertTrue(altLeft.hasModifier(KeyEvent.Modifier.Alt));
+    }
 
-        // Test Shift+Alt+Down Arrow
+    @Test
+    public void testShiftAltDownArrow() {
         KeyEvent shiftAltDown = KeyParser.parse("\u001b[1;4B");
-        if (shiftAltDown.getType() != KeyEvent.Type.Arrow
-                || shiftAltDown.getArrow() != KeyEvent.Arrow.Down
-                || !shiftAltDown.hasModifier(KeyEvent.Modifier.Shift)
-                || !shiftAltDown.hasModifier(KeyEvent.Modifier.Alt)) {
-            throw new RuntimeException("Expected Shift+Alt+Down Arrow, got: " + shiftAltDown);
-        }
-
-        System.out.println("✓ Modified arrow keys test passed");
+        assertEquals(KeyEvent.Type.Arrow, shiftAltDown.getType());
+        assertEquals(KeyEvent.Arrow.Down, shiftAltDown.getArrow());
+        assertTrue(shiftAltDown.hasModifier(KeyEvent.Modifier.Shift));
+        assertTrue(shiftAltDown.hasModifier(KeyEvent.Modifier.Alt));
     }
 
-    private void testModifiedFunctionKeys() {
-        System.out.println("Testing modified function keys...");
-
-        // Test Ctrl+F1
+    @Test
+    public void testCtrlF1() {
         KeyEvent ctrlF1 = KeyParser.parse("\u001b[11;5~");
-        if (ctrlF1.getType() != KeyEvent.Type.Function
-                || ctrlF1.getFunctionKey() != 1
-                || !ctrlF1.hasModifier(KeyEvent.Modifier.Control)) {
-            throw new RuntimeException("Expected Ctrl+F1, got: " + ctrlF1);
-        }
-
-        // Test Shift+F12
-        KeyEvent shiftF12 = KeyParser.parse("\u001b[24;2~");
-        if (shiftF12.getType() != KeyEvent.Type.Function
-                || shiftF12.getFunctionKey() != 12
-                || !shiftF12.hasModifier(KeyEvent.Modifier.Shift)) {
-            throw new RuntimeException("Expected Shift+F12, got: " + shiftF12);
-        }
-
-        System.out.println("✓ Modified function keys test passed");
+        assertEquals(KeyEvent.Type.Function, ctrlF1.getType());
+        assertEquals(1, ctrlF1.getFunctionKey());
+        assertTrue(ctrlF1.hasModifier(KeyEvent.Modifier.Control));
     }
 
-    private void testModifiedSpecialKeys() {
-        System.out.println("Testing modified special keys...");
+    @Test
+    public void testShiftF12() {
+        KeyEvent shiftF12 = KeyParser.parse("\u001b[24;2~");
+        assertEquals(KeyEvent.Type.Function, shiftF12.getType());
+        assertEquals(12, shiftF12.getFunctionKey());
+        assertTrue(shiftF12.hasModifier(KeyEvent.Modifier.Shift));
+    }
 
-        // Test Ctrl+Delete
+    @Test
+    public void testCtrlDelete() {
         KeyEvent ctrlDel = KeyParser.parse("\u001b[3;5~");
-        if (ctrlDel.getType() != KeyEvent.Type.Special
-                || ctrlDel.getSpecial() != KeyEvent.Special.Delete
-                || !ctrlDel.hasModifier(KeyEvent.Modifier.Control)) {
-            throw new RuntimeException("Expected Ctrl+Delete, got: " + ctrlDel);
-        }
+        assertEquals(KeyEvent.Type.Special, ctrlDel.getType());
+        assertEquals(KeyEvent.Special.Delete, ctrlDel.getSpecial());
+        assertTrue(ctrlDel.hasModifier(KeyEvent.Modifier.Control));
+    }
 
-        // Test Shift+Insert
+    @Test
+    public void testShiftInsert() {
         KeyEvent shiftIns = KeyParser.parse("\u001b[2;2~");
-        if (shiftIns.getType() != KeyEvent.Type.Special
-                || shiftIns.getSpecial() != KeyEvent.Special.Insert
-                || !shiftIns.hasModifier(KeyEvent.Modifier.Shift)) {
-            throw new RuntimeException("Expected Shift+Insert, got: " + shiftIns);
-        }
-
-        System.out.println("✓ Modified special keys test passed");
+        assertEquals(KeyEvent.Type.Special, shiftIns.getType());
+        assertEquals(KeyEvent.Special.Insert, shiftIns.getSpecial());
+        assertTrue(shiftIns.hasModifier(KeyEvent.Modifier.Shift));
     }
 }
