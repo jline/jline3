@@ -8,6 +8,12 @@
  */
 package org.jline.demo;
 
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
 import java.util.Arrays;
 
 import org.jline.curses.*;
@@ -84,7 +90,8 @@ public class CursesDemo {
                                                         .key("A")
                                                         .item("Message", "M", null, this::showMessageDialog)
                                                         .item("Confirm", "C", null, this::showConfirmDialog)
-                                                        .item("Input", "I", null, this::showInputDialog),
+                                                        .item("Input", "I", null, this::showInputDialog)
+                                                        .item("Image", "G", null, this::showImageDialog),
                                                 submenu()
                                                         .name("Help")
                                                         .key("H")
@@ -346,6 +353,64 @@ public class CursesDemo {
         showInput(gui, "Input", "Enter your name:", (name) -> {
             statusLabel.setText("Hello, " + name + "!");
         });
+    }
+
+    private void showImageDialog() {
+        BufferedImage testImage = createTestImage();
+        ImageComponent imageComponent = new ImageComponent(testImage, "Terminal graphics not supported");
+        Dialog dialog = new Dialog("Image Demo", imageComponent);
+        gui.addWindow(dialog);
+    }
+
+    private static BufferedImage createTestImage() {
+        int width = 400;
+        int height = 150;
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = image.createGraphics();
+
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+        // Gradient background
+        for (int y = 0; y < height; y++) {
+            Color color = new Color(
+                    Math.max(0, Math.min(255, (int) (255 * y / (double) height))),
+                    Math.max(0, Math.min(255, (int) (255 * (1 - y / (double) height)))),
+                    Math.max(0, Math.min(255, (int) (128 + 127 * Math.sin(y * Math.PI / height)))));
+            g2d.setColor(color);
+            g2d.drawLine(0, y, width, y);
+        }
+
+        // Draw centered text
+        g2d.setColor(Color.WHITE);
+        Font titleFont = new Font("SansSerif", Font.BOLD, 24);
+        g2d.setFont(titleFont);
+        String titleText = "JLine Graphics Test";
+        FontMetrics titleMetrics = g2d.getFontMetrics(titleFont);
+        int titleX = (width - titleMetrics.stringWidth(titleText)) / 2;
+
+        Font subtitleFont = new Font("SansSerif", Font.PLAIN, 16);
+        g2d.setFont(subtitleFont);
+        String subtitleText = "Curses Image Component";
+        FontMetrics subtitleMetrics = g2d.getFontMetrics(subtitleFont);
+        int subtitleX = (width - subtitleMetrics.stringWidth(subtitleText)) / 2;
+
+        int totalTextHeight = titleMetrics.getHeight() + subtitleMetrics.getHeight() + 10;
+        int startY = (height - totalTextHeight) / 2;
+        int titleY = startY + titleMetrics.getAscent();
+        int subtitleY = titleY + titleMetrics.getDescent() + 10 + subtitleMetrics.getAscent();
+
+        g2d.setFont(titleFont);
+        g2d.drawString(titleText, titleX, titleY);
+        g2d.setFont(subtitleFont);
+        g2d.drawString(subtitleText, subtitleX, subtitleY);
+
+        // Border
+        g2d.setColor(Color.WHITE);
+        g2d.drawRect(10, 10, width - 20, height - 20);
+
+        g2d.dispose();
+        return image;
     }
 
     private void resetComponents() {

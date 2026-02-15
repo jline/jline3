@@ -44,6 +44,7 @@ public class GUIImpl implements GUI {
     private Display display;
     private final Map<Class<?>, Renderer> renderers = new HashMap<>();
     private Theme theme = new DefaultTheme();
+    private boolean hadImages = false;
 
     /**
      * Lock to synchronize access to the Display instance.
@@ -282,7 +283,26 @@ public class GUIImpl implements GUI {
             VirtualScreen screen = new VirtualScreen(size.w(), size.h());
             background.draw(screen);
             windows.forEach(w -> w.draw(screen));
+            boolean hasImages = !screen.getImages().isEmpty();
+            // Force a full redraw when image state changes so that stale
+            // image pixels from the graphics protocol layer are cleared
+            if (hadImages && !hasImages) {
+                display.clear();
+            }
             display.update(screen.lines(), -1, true);
+            // Render images after text display update
+            if (hasImages) {
+                // Save cursor position before image rendering
+                terminal.writer().write("\0337");
+                for (VirtualScreen.ImageEntry entry : screen.getImages()) {
+                    terminal.writer().write("\033[" + (entry.getY() + 1) + ";" + (entry.getX() + 1) + "H");
+                    terminal.writer().write(entry.getImageData());
+                }
+                // Restore cursor position so Display tracking stays in sync
+                terminal.writer().write("\0338");
+                terminal.flush();
+            }
+            hadImages = hasImages;
         }
     }
 }

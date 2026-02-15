@@ -44,6 +44,7 @@ module org.jline.curses {
     // Core Java platform
     requires java.base;
     requires java.logging;
+    requires static java.desktop;
 
     // JLine dependencies
     requires transitive org.jline.terminal;

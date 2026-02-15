@@ -27,10 +27,50 @@ import org.jline.utils.AttributedStyle;
  */
 public class VirtualScreen implements Screen {
 
+    /**
+     * Holds image data and its position on the screen.
+     */
+    public static class ImageEntry {
+        private final int x;
+        private final int y;
+        private final int w;
+        private final int h;
+        private final String imageData;
+
+        public ImageEntry(int x, int y, int w, int h, String imageData) {
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+            this.imageData = imageData;
+        }
+
+        public int getX() {
+            return x;
+        }
+
+        public int getY() {
+            return y;
+        }
+
+        public int getW() {
+            return w;
+        }
+
+        public int getH() {
+            return h;
+        }
+
+        public String getImageData() {
+            return imageData;
+        }
+    }
+
     private final int width;
     private final int height;
     private final char[] chars;
     private final long[] styles;
+    private final java.util.List<ImageEntry> images = new ArrayList<>();
     private int cursorX;
     private int cursorY;
     private boolean cursorVisible = true;
@@ -183,6 +223,22 @@ public class VirtualScreen implements Screen {
      */
     public boolean isCursorVisible() {
         return cursorVisible;
+    }
+
+    @Override
+    public void image(int x, int y, int w, int h, String imageData) {
+        images.add(new ImageEntry(x, y, w, h, imageData));
+        // Fill the area with spaces so the text display doesn't overwrite the image
+        fill(x, y, w, h, AttributedStyle.DEFAULT);
+    }
+
+    /**
+     * Gets the list of registered images.
+     *
+     * @return the list of image entries
+     */
+    public List<ImageEntry> getImages() {
+        return images;
     }
 
     public List<AttributedString> lines() {
