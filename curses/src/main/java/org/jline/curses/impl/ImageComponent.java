@@ -103,8 +103,12 @@ public class ImageComponent extends AbstractComponent {
 
         try {
             String imageData = getImageData(protocol.get(), size);
-            screen.image(pos.x(), pos.y(), size.w(), size.h(), imageData);
-        } catch (IOException e) {
+            if (imageData != null) {
+                screen.image(pos.x(), pos.y(), size.w(), size.h(), imageData);
+            } else {
+                drawFallback(screen, pos, size, bgStyle);
+            }
+        } catch (IOException | RuntimeException e) {
             drawFallback(screen, pos, size, bgStyle);
         }
     }
@@ -118,6 +122,9 @@ public class ImageComponent extends AbstractComponent {
         // the resulting image at its natural pixel size, filling the allocated cells.
         int targetW = size.w() * CELL_WIDTH_PX;
         int targetH = size.h() * CELL_HEIGHT_PX;
+        if (targetW <= 0 || targetH <= 0) {
+            return null;
+        }
         BufferedImage scaled = scaleImage(image, targetW, targetH);
         cachedImageData = graphics.convertImage(scaled, new TerminalGraphics.ImageOptions());
         cachedWidth = size.w();
@@ -129,7 +136,11 @@ public class ImageComponent extends AbstractComponent {
         if (src.getWidth() == targetW && src.getHeight() == targetH) {
             return src;
         }
-        BufferedImage scaled = new BufferedImage(targetW, targetH, src.getType());
+        int type = src.getType();
+        if (type == BufferedImage.TYPE_CUSTOM) {
+            type = BufferedImage.TYPE_INT_ARGB;
+        }
+        BufferedImage scaled = new BufferedImage(targetW, targetH, type);
         Graphics2D g = scaled.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         g.drawImage(src, 0, 0, targetW, targetH, null);

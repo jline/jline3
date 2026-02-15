@@ -228,8 +228,20 @@ public class VirtualScreen implements Screen {
     @Override
     public void image(int x, int y, int w, int h, String imageData) {
         images.add(new ImageEntry(x, y, w, h, imageData));
-        // Fill the area with spaces so the text display doesn't overwrite the image
-        fill(x, y, w, h, AttributedStyle.DEFAULT);
+        // Fill the area with spaces, preserving existing styles so the
+        // caller's background style is not overwritten
+        if (y < 0 || y >= height || x < 0 || x >= width) {
+            return;
+        }
+        int maxW = Math.min(w, width - x);
+        int maxH = Math.min(h, height - y);
+        for (int j = 0; j < maxH; j++) {
+            int p = (y + j) * width + x;
+            for (int i = 0; i < maxW; i++, p++) {
+                chars[p] = ' ';
+            }
+        }
+        dirty = true;
     }
 
     /**

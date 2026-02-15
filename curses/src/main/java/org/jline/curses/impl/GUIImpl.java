@@ -44,7 +44,7 @@ public class GUIImpl implements GUI {
     private Display display;
     private final Map<Class<?>, Renderer> renderers = new HashMap<>();
     private Theme theme = new DefaultTheme();
-    private boolean hadImages = false;
+    private java.util.List<VirtualScreen.ImageEntry> previousImages = java.util.Collections.emptyList();
 
     /**
      * Lock to synchronize access to the Display instance.
@@ -295,18 +295,18 @@ public class GUIImpl implements GUI {
             VirtualScreen screen = new VirtualScreen(size.w(), size.h());
             background.draw(screen);
             windows.forEach(w -> w.draw(screen));
-            boolean hasImages = !screen.getImages().isEmpty();
-            // Force a full redraw when image state changes so that stale
+            java.util.List<VirtualScreen.ImageEntry> currentImages = screen.getImages();
+            // Force a full redraw when the image set changes so that stale
             // image pixels from the graphics protocol layer are cleared
-            if (hadImages && !hasImages) {
+            if (!previousImages.isEmpty() && !imagesMatch(previousImages, currentImages)) {
                 display.clear();
             }
             display.update(screen.lines(), -1, true);
             // Render images after text display update
-            if (hasImages) {
+            if (!currentImages.isEmpty()) {
                 // Save cursor position before image rendering
                 terminal.writer().write("\0337");
-                for (VirtualScreen.ImageEntry entry : screen.getImages()) {
+                for (VirtualScreen.ImageEntry entry : currentImages) {
                     terminal.writer().write("\033[" + (entry.getY() + 1) + ";" + (entry.getX() + 1) + "H");
                     terminal.writer().write(entry.getImageData());
                 }
@@ -314,7 +314,26 @@ public class GUIImpl implements GUI {
                 terminal.writer().write("\0338");
                 terminal.flush();
             }
-            hadImages = hasImages;
+            previousImages = currentImages;
         }
+    }
+
+    private static boolean imagesMatch(
+            java.util.List<VirtualScreen.ImageEntry> a, java.util.List<VirtualScreen.ImageEntry> b) {
+        if (a.size() != b.size()) {
+            return false;
+        }
+        for (int i = 0; i < a.size(); i++) {
+            VirtualScreen.ImageEntry ea = a.get(i);
+            VirtualScreen.ImageEntry eb = b.get(i);
+            boolean matches = ea.getX() == eb.getX()
+                    && ea.getY() == eb.getY()
+                    && ea.getW() == eb.getW()
+                    && ea.getH() == eb.getH();
+            if (!matches) {
+                return false;
+            }
+        }
+        return true;
     }
 }
