@@ -256,11 +256,11 @@ public class Posix {
         InputStream in = terminal.input();
         OutputStream out = terminal.output();
 
-        // Save the current pipe and clear it before creating a child shell
-        // This requires org.apache.felix.gogo.runtime.Pipe.setCurrentPipe to be public
+        // Save the current pipe and clear it before creating a child shell.
+        // Use try/finally to ensure the pipe is always restored, even if
+        // session creation or signal handler setup throws.
         Object currentPipe = null;
         try {
-            // Try to use the public API if available (Felix Gogo Runtime 1.1.7+)
             Class<?> pipeClass = Class.forName("org.apache.felix.gogo.runtime.Pipe");
             Method setCurrentPipeMethod;
             try {
@@ -273,31 +273,33 @@ public class Posix {
             }
             currentPipe = setCurrentPipeMethod.invoke(null, (Object) null);
         } catch (Exception e) {
-            // Ignore exceptions - this is just an optimization
+            // Ignore - pipe clearing is best-effort
         }
-
-        CommandSession newSession = processor.createSession(in, out, out);
-        newSession.put(Shell.VAR_TERMINAL, terminal);
-        newSession.put(".tmux", session.get(".tmux"));
-        Context context = new Context() {
-            public String getProperty(String name) {
-                return System.getProperty(name);
-            }
-
-            public void exit() throws Exception {
-                terminal.close();
-            }
-        };
 
         // Register a signal handler for INT signal to properly propagate interruption.
         // Capture the shell thread reference because the signal callback may run on
         // a different (signal-dispatch) thread.
         Thread shellThread = Thread.currentThread();
-        Terminal.SignalHandler prevIntHandler = terminal.handle(Terminal.Signal.INT, signal -> {
-            shellThread.interrupt();
-        });
+        Terminal.SignalHandler prevIntHandler = null;
 
         try {
+            CommandSession newSession = processor.createSession(in, out, out);
+            newSession.put(Shell.VAR_TERMINAL, terminal);
+            newSession.put(".tmux", session.get(".tmux"));
+            Context context = new Context() {
+                public String getProperty(String name) {
+                    return System.getProperty(name);
+                }
+
+                public void exit() throws Exception {
+                    terminal.close();
+                }
+            };
+
+            prevIntHandler = terminal.handle(Terminal.Signal.INT, signal -> {
+                shellThread.interrupt();
+            });
+
             new Shell(context, processor).gosh(newSession, new String[] {"--login"});
         } catch (Exception e) {
             e.printStackTrace();
