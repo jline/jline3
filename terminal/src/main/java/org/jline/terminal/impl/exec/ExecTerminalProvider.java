@@ -503,10 +503,36 @@ public class ExecTerminalProvider implements TerminalProvider {
 
     public boolean isPosixSystemStream(SystemStream stream) {
         try {
-            Process p = new ProcessBuilder(OSUtils.TEST_COMMAND, "-t", Integer.toString(stream.ordinal()))
-                    .inheritIO()
-                    .start();
-            return p.waitFor() == 0;
+            ProcessBuilder pb = new ProcessBuilder(OSUtils.TEST_COMMAND, "-t", Integer.toString(stream.ordinal()));
+
+            if (OSUtils.IS_WINDOWS) {
+                // On Windows, avoid using inheritIO() to prevent the parent's
+                // stdin pipe from being closed when the subprocess terminates.
+                // Only inherit the specific stream being tested.
+                if (stream == SystemStream.Output) {
+                    pb.redirectInput(ProcessBuilder.Redirect.PIPE);
+                    pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+                    pb.redirectError(ProcessBuilder.Redirect.PIPE);
+                } else if (stream == SystemStream.Error) {
+                    pb.redirectInput(ProcessBuilder.Redirect.PIPE);
+                    pb.redirectOutput(ProcessBuilder.Redirect.PIPE);
+                    pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+                } else {
+                    pb.redirectInput(newDescriptor(FileDescriptor.in));
+                    pb.redirectOutput(ProcessBuilder.Redirect.PIPE);
+                    pb.redirectError(ProcessBuilder.Redirect.PIPE);
+                }
+            } else {
+                // On non-Windows platforms, we can use inheritIO() safely
+                pb.inheritIO();
+            }
+
+            Process p = pb.start();
+            try {
+                return p.waitFor() == 0;
+            } finally {
+                p.destroy();
+            }
         } catch (Throwable t) {
             Log.debug("ExecTerminalProvider failed 'test -t' for " + stream, t);
             // ignore
@@ -529,11 +555,17 @@ public class ExecTerminalProvider implements TerminalProvider {
     @Override
     public String systemStreamName(SystemStream stream) {
         try {
-            ProcessBuilder.Redirect input = stream == SystemStream.Input
-                    ? ProcessBuilder.Redirect.INHERIT
-                    : newDescriptor(stream == SystemStream.Output ? FileDescriptor.out : FileDescriptor.err);
-            Process p =
-                    new ProcessBuilder(OSUtils.TTY_COMMAND).redirectInput(input).start();
+            ProcessBuilder pb = new ProcessBuilder(OSUtils.TTY_COMMAND);
+
+            if (stream == SystemStream.Input) {
+                pb.redirectInput(
+                        OSUtils.IS_WINDOWS ? newDescriptor(FileDescriptor.in) : ProcessBuilder.Redirect.INHERIT);
+            } else {
+                pb.redirectInput(
+                        newDescriptor(stream == SystemStream.Output ? FileDescriptor.out : FileDescriptor.err));
+            }
+
+            Process p = pb.start();
             String result = ExecHelper.waitAndCapture(p);
             if (p.exitValue() == 0) {
                 return result.trim();
