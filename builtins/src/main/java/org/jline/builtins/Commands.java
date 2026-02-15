@@ -66,6 +66,7 @@ import static org.jline.builtins.SyntaxHighlighter.*;
  *   <li>setvar - Set line reader variables</li>
  *   <li>colors - View color tables and ANSI styles</li>
  *   <li>highlighter - Manage syntax highlighting themes</li>
+ *   <li>snake - Classic Snake game</li>
  * </ul>
  * <p>
  * These commands can be used to provide a familiar command-line interface in

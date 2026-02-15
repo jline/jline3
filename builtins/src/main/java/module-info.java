@@ -23,6 +23,7 @@ module org.jline.builtins {
     requires java.base;
     requires java.logging;
     requires java.management;
+    requires java.prefs;
 
     // GUI and HTTP server support for SwingTerminal and WebTerminal
     requires static java.desktop;

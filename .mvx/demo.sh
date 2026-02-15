@@ -13,6 +13,7 @@ if [ -z "$demo_name" ]; then
   echo "  password  - Run the password demo"
   echo "  consoleui - Run the ConsoleUI demo (deprecated)"
   echo "  prompt    - Run the new Prompt API demo"
+  echo "  snake     - Run the Snake game"
   echo "  curses    - Run the Curses TUI demo"
   echo "  graal     - Run the GraalVM native demo"
   echo ""
@@ -49,7 +50,7 @@ fi
 
 # Determine if this is a built-in demo or example class based on known demo types
 case "$demo_name" in
-  "gogo"|"repl"|"password"|"consoleui"|"prompt"|"curses"|"graal")
+  "gogo"|"repl"|"password"|"consoleui"|"prompt"|"snake"|"curses"|"graal")
     # This is a built-in demo
     case "$demo_name" in
       "gogo")
@@ -66,6 +67,9 @@ case "$demo_name" in
         ;;
       "prompt")
         MAIN_CLASS="org.jline.demo.examples.PromptDynamicExample"
+        ;;
+      "snake")
+        MAIN_CLASS="org.jline.demo.SnakeDemo"
         ;;
       "curses")
         MAIN_CLASS="org.jline.demo.CursesDemo"
