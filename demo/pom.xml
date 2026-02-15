@@ -241,7 +241,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <compilerArgs>
-                        <arg>-Xlint:all,-options,-processing,-restricted,-removal</arg>
+                        <arg>-Xlint:all,-options,-processing,-restricted,-removal,-classfile</arg>
                         <arg>-Werror</arg>
                     </compilerArgs>
                 </configuration>
