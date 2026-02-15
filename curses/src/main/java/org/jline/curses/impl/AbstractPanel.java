@@ -49,7 +49,12 @@ public abstract class AbstractPanel extends AbstractComponent implements Contain
 
     @Override
     protected void doDraw(Screen screen) {
-        getComponents().forEach(c -> c.draw(screen));
+        getComponents().forEach(c -> {
+            Size s = c.getSize();
+            if (s != null && s.w() > 0 && s.h() > 0) {
+                c.draw(screen);
+            }
+        });
     }
 
     @Override

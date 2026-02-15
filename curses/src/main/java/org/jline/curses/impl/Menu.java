@@ -127,17 +127,24 @@ public class Menu extends AbstractComponent {
 
     @Override
     public boolean handleMouse(MouseEvent event) {
-        int dx = event.getX() - getScreenPosition().x();
-        SubMenu sel = null;
-        for (SubMenu mc : getContents()) {
-            int l = 4 + mc.getName().length();
-            if (dx < l) {
-                sel = mc;
-                break;
+        if (event.getType() == MouseEvent.Type.Pressed || event.getType() == MouseEvent.Type.Dragged) {
+            int dx = event.getX() - getScreenPosition().x();
+            SubMenu sel = null;
+            for (SubMenu mc : getContents()) {
+                int l = 4 + mc.getName().length();
+                if (dx < l) {
+                    sel = mc;
+                    break;
+                }
+                dx -= l + 1;
             }
-            dx -= l + 1;
+            if (event.getType() == MouseEvent.Type.Dragged) {
+                // Drag should only switch, never toggle
+                selectNoToggle(sel);
+            } else {
+                select(sel);
+            }
         }
-        select(sel);
         return true; // Mouse event handled
     }
 
@@ -277,6 +284,17 @@ public class Menu extends AbstractComponent {
 
     private void select(SubMenu s) {
         if (s != selected) {
+            selectNoToggle(s);
+        } else if (s != null) {
+            // If clicking on the same submenu, close it (toggle behavior)
+            windows.get(selected).close();
+            selected = null;
+            invalidate();
+        }
+    }
+
+    private void selectNoToggle(SubMenu s) {
+        if (s != selected) {
             if (selected != null) {
                 windows.get(selected).close();
             }
@@ -284,12 +302,7 @@ public class Menu extends AbstractComponent {
             if (selected != null) {
                 getWindow().getGUI().addWindow(windows.get(selected));
             }
-            invalidate(); // Trigger repaint when selection changes
-        } else if (s != null) {
-            // If clicking on the same submenu, close it (toggle behavior)
-            windows.get(selected).close();
-            selected = null;
-            invalidate(); // Trigger repaint when selection changes
+            invalidate();
         }
     }
 
@@ -339,6 +352,8 @@ public class Menu extends AbstractComponent {
             if (s.h() <= 0 || s.w() <= 0) {
                 return;
             }
+            // Draw shadow behind the menu dropdown
+            screen.darken(p.x() + 2, p.y() + 1, s.w(), s.h(), getTheme().getStyle(".window.shadow"));
             getTheme().box(screen, p.x(), p.y(), s.w(), s.h(), Curses.Border.Single, ".menu.border");
             int y = p.y() + 1;
             int ws = 0;
@@ -424,31 +439,54 @@ public class Menu extends AbstractComponent {
 
         @Override
         public boolean handleMouse(MouseEvent event) {
-            if (event.getType() == MouseEvent.Type.Pressed && !isIn(event.getX(), event.getY())) {
-                close();
-                Menu.this.selected = null; // Reset selection when clicking outside submenu
-            } else {
-                Position p = getScreenPosition();
-                Size s = getSize();
-                int x = p.x() + 1;
-                int w = s.w() - 2;
-                int y = p.y() + 1;
-                if (x <= event.getX() && event.getX() <= x + w) {
-                    MenuItem clicked = null;
-                    for (MenuItem item : subMenu.getContents()) {
-                        if (event.getY() == y) {
-                            clicked = item;
-                            break;
-                        }
-                        y++;
-                    }
+            if (event.getType() == MouseEvent.Type.Pressed) {
+                if (!isIn(event.getX(), event.getY())) {
+                    close();
+                    Menu.this.selected = null;
+                } else {
+                    updateSelectedItem(event);
+                }
+            } else if (event.getType() == MouseEvent.Type.Dragged) {
+                if (isIn(event.getX(), event.getY())) {
+                    // Track selection while dragging through menu items
+                    updateSelectedItem(event);
+                } else if (Menu.this.isIn(event.getX(), event.getY())) {
+                    // Dragged back to the menu bar — forward to switch submenus
+                    Menu.this.handleMouse(event);
+                }
+            } else if (event.getType() == MouseEvent.Type.Released) {
+                if (isIn(event.getX(), event.getY())) {
+                    MenuItem clicked = getItemAt(event);
                     if (clicked != null && clicked != MenuItem.SEPARATOR) {
                         closeAndExecute(clicked);
                     }
                 }
-                super.handleMouse(event);
             }
             return true; // Mouse event handled
+        }
+
+        private void updateSelectedItem(MouseEvent event) {
+            MenuItem item = getItemAt(event);
+            if (item != null && item != MenuItem.SEPARATOR) {
+                selected = item;
+            }
+        }
+
+        private MenuItem getItemAt(MouseEvent event) {
+            Position p = getScreenPosition();
+            Size s = getSize();
+            int x = p.x() + 1;
+            int w = s.w() - 2;
+            int y = p.y() + 1;
+            if (x <= event.getX() && event.getX() <= x + w) {
+                for (MenuItem item : subMenu.getContents()) {
+                    if (event.getY() == y) {
+                        return item;
+                    }
+                    y++;
+                }
+            }
+            return null;
         }
 
         @Override

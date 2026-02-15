@@ -93,9 +93,16 @@ public class BorderPanel extends AbstractPanel {
                         .sum()
                 - max;
         if (diff < 0) {
+            // Excess space: grow Center (locs[0])
             h.put(locs[0], h.get(locs[0]) - diff);
         } else {
+            // Deficit: shrink Center (locs[0]) first, then edges from the end
+            int centerVal = h.get(locs[0]);
+            int centerShrink = Math.min(diff, centerVal);
+            h.put(locs[0], centerVal - centerShrink);
+            diff -= centerShrink;
             for (int idx = locs.length - 1; diff > 0; idx--) {
+                if (idx == 0) break;
                 int l = h.get(locs[idx]);
                 int nb = Math.min(diff, l);
                 h.put(locs[idx], l - nb);

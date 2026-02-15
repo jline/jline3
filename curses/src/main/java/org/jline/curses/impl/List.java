@@ -21,6 +21,7 @@ import org.jline.curses.Size;
 import org.jline.curses.Theme;
 import org.jline.keymap.KeyMap;
 import org.jline.terminal.KeyEvent;
+import org.jline.terminal.MouseEvent;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStyle;
@@ -526,6 +527,30 @@ public class List<T> extends AbstractComponent {
     }
 
     @Override
+    public boolean handleMouse(MouseEvent event) {
+        if (event.getType() == MouseEvent.Type.Pressed) {
+            Position pos = getScreenPosition();
+            if (pos == null) {
+                return false;
+            }
+            int row = event.getY() - pos.y();
+            int itemIndex = scrollOffset + row;
+            if (itemIndex >= 0 && itemIndex < items.size()) {
+                focusedIndex = itemIndex;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void resolveStyles() {
+        normalStyle = resolveStyle(".list.normal", normalStyle);
+        selectedStyle = resolveStyle(".list.selected", selectedStyle);
+        focusedStyle = resolveStyle(".list.focused", focusedStyle);
+        selectedFocusedStyle = resolveStyle(".list.selected.focused", selectedFocusedStyle);
+    }
+
+    @Override
     protected void doDraw(Screen screen) {
         Size size = getSize();
         if (size == null) {
@@ -537,11 +562,15 @@ public class List<T> extends AbstractComponent {
             return;
         }
 
-        int width = size.w();
+        resolveStyles();
+
         int height = size.h();
+        boolean needsScrollbar = items.size() > height;
+        int scrollbarWidth = needsScrollbar ? 1 : 0;
+        int width = size.w() - scrollbarWidth;
 
         // Clear the list area
-        screen.fill(pos.x(), pos.y(), width, height, normalStyle);
+        screen.fill(pos.x(), pos.y(), size.w(), height, normalStyle);
 
         // Draw visible items
         for (int row = 0; row < height && (scrollOffset + row) < items.size(); row++) {
@@ -554,16 +583,16 @@ public class List<T> extends AbstractComponent {
                 itemText = itemText.substring(0, Math.max(0, width - 3)) + "...";
             }
 
-            // Determine style
+            // Determine style - only show focus highlight when the component has focus
             AttributedStyle style = normalStyle;
             boolean isSelected = selectedIndices.contains(itemIndex);
-            boolean isFocused = (itemIndex == focusedIndex);
+            boolean isFocusedItem = (itemIndex == focusedIndex) && isFocused();
 
-            if (isSelected && isFocused) {
+            if (isSelected && isFocusedItem) {
                 style = selectedFocusedStyle;
             } else if (isSelected) {
                 style = selectedStyle;
-            } else if (isFocused) {
+            } else if (isFocusedItem) {
                 style = focusedStyle;
             }
 
@@ -574,6 +603,24 @@ public class List<T> extends AbstractComponent {
             if (!itemText.isEmpty()) {
                 AttributedString attributedText = new AttributedString(itemText, style);
                 screen.text(pos.x(), pos.y() + row, attributedText);
+            }
+        }
+
+        // Draw vertical scrollbar
+        if (needsScrollbar) {
+            int scrollX = pos.x() + size.w() - 1;
+            int totalItems = items.size();
+            int thumbSize = Math.max(1, (int) ((double) height * height / totalItems));
+            int thumbPos = (int) ((double) scrollOffset * (height - thumbSize) / Math.max(1, totalItems - height));
+            thumbPos = Math.max(0, Math.min(thumbPos, height - thumbSize));
+
+            for (int row = 0; row < height; row++) {
+                boolean isThumb = row >= thumbPos && row < thumbPos + thumbSize;
+                char ch = isThumb ? '\u2588' : '\u2591';
+                screen.text(
+                        scrollX,
+                        pos.y() + row,
+                        new AttributedString(String.valueOf(ch), isThumb ? focusedStyle : normalStyle));
             }
         }
     }

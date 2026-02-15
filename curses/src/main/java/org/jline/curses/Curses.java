@@ -9,6 +9,7 @@
 package org.jline.curses;
 
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.jline.curses.impl.*;
@@ -38,7 +39,51 @@ public class Curses {
         Right
     }
 
-    public static class GridConstraint implements Constraint {}
+    public static class GridConstraint implements Constraint {
+        private final int row;
+        private final int col;
+        private final int rowSpan;
+        private final int colSpan;
+
+        public GridConstraint() {
+            this(0, 0, 1, 1);
+        }
+
+        public GridConstraint(int row, int col) {
+            this(row, col, 1, 1);
+        }
+
+        public GridConstraint(int row, int col, int rowSpan, int colSpan) {
+            this.row = row;
+            this.col = col;
+            this.rowSpan = Math.max(1, rowSpan);
+            this.colSpan = Math.max(1, colSpan);
+        }
+
+        public int row() {
+            return row;
+        }
+
+        public int col() {
+            return col;
+        }
+
+        public int rowSpan() {
+            return rowSpan;
+        }
+
+        public int colSpan() {
+            return colSpan;
+        }
+    }
+
+    public static GridConstraint cell(int row, int col) {
+        return new GridConstraint(row, col);
+    }
+
+    public static GridConstraint cell(int row, int col, int rowSpan, int colSpan) {
+        return new GridConstraint(row, col, rowSpan, colSpan);
+    }
 
     public static GUI gui(Terminal terminal) {
         return new GUIImpl(terminal);
@@ -96,6 +141,101 @@ public class Curses {
 
     public static BoxBuilder box(String title, Border border) {
         return new BoxBuilder(title, border);
+    }
+
+    // New widget factory methods
+
+    public static Separator separator() {
+        return new Separator();
+    }
+
+    public static Separator separator(Separator.Orientation orientation) {
+        return new Separator(orientation);
+    }
+
+    public static Checkbox checkbox(String text) {
+        return new Checkbox(text);
+    }
+
+    public static RadioButton radioButton(String text) {
+        return new RadioButton(text);
+    }
+
+    public static RadioGroup radioGroup(RadioButton... buttons) {
+        return new RadioGroup(buttons);
+    }
+
+    public static ProgressBar progressBar() {
+        return new ProgressBar();
+    }
+
+    public static <T> ComboBox<T> comboBox() {
+        return new ComboBox<>();
+    }
+
+    // Dialog factory methods
+
+    public static void showMessage(GUI gui, String title, String message) {
+        Label label = new Label(message);
+        label.setWordWrap(true);
+        Button okButton = new Button("OK");
+
+        Container content = border().add(label, Location.Center)
+                .add(okButton, Location.Bottom)
+                .build();
+
+        Dialog dialog = new Dialog(title, content);
+        okButton.addClickListener(dialog::close);
+        gui.addWindow(dialog);
+    }
+
+    public static void showConfirm(GUI gui, String title, String message, Runnable onOk) {
+        Label label = new Label(message);
+        label.setWordWrap(true);
+        Button okButton = new Button("OK");
+        Button cancelButton = new Button("Cancel");
+
+        Container buttons =
+                grid().add(okButton, cell(0, 0)).add(cancelButton, cell(0, 1)).build();
+
+        Container content = border().add(label, Location.Center)
+                .add(buttons, Location.Bottom)
+                .build();
+
+        Dialog dialog = new Dialog(title, content);
+        okButton.addClickListener(() -> {
+            dialog.close();
+            if (onOk != null) {
+                onOk.run();
+            }
+        });
+        cancelButton.addClickListener(dialog::close);
+        gui.addWindow(dialog);
+    }
+
+    public static void showInput(GUI gui, String title, String prompt, Consumer<String> onOk) {
+        Label label = new Label(prompt);
+        Input input = new Input();
+        Button okButton = new Button("OK");
+        Button cancelButton = new Button("Cancel");
+
+        Container buttons =
+                grid().add(okButton, cell(0, 0)).add(cancelButton, cell(0, 1)).build();
+
+        Container content = border().add(label, Location.Top)
+                .add(input, Location.Center)
+                .add(buttons, Location.Bottom)
+                .build();
+
+        Dialog dialog = new Dialog(title, content);
+        okButton.addClickListener(() -> {
+            dialog.close();
+            if (onOk != null) {
+                onOk.accept(input.getText());
+            }
+        });
+        cancelButton.addClickListener(dialog::close);
+        gui.addWindow(dialog);
     }
 
     public interface ComponentBuilder<C extends Component> {

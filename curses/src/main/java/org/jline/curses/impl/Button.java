@@ -15,6 +15,7 @@ import org.jline.curses.Position;
 import org.jline.curses.Screen;
 import org.jline.curses.Size;
 import org.jline.terminal.KeyEvent;
+import org.jline.terminal.MouseEvent;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStyle;
 
@@ -176,6 +177,22 @@ public class Button extends AbstractComponent {
     }
 
     @Override
+    public boolean handleMouse(MouseEvent event) {
+        if (event.getType() == MouseEvent.Type.Pressed) {
+            pressed = true;
+            return true;
+        }
+        if (event.getType() == MouseEvent.Type.Released) {
+            if (pressed) {
+                pressed = false;
+                click();
+            }
+            return true;
+        }
+        return false;
+    }
+
+    @Override
     public boolean handleKey(KeyEvent event) {
         if (event.getType() == KeyEvent.Type.Special) {
             if (event.getSpecial() == KeyEvent.Special.Enter) {
@@ -191,6 +208,12 @@ public class Button extends AbstractComponent {
         return false;
     }
 
+    private void resolveStyles() {
+        normalStyle = resolveStyle(".button.normal", normalStyle);
+        focusedStyle = resolveStyle(".button.focused", focusedStyle);
+        pressedStyle = resolveStyle(".button.pressed", pressedStyle);
+    }
+
     @Override
     protected void doDraw(Screen screen) {
         Size size = getSize();
@@ -198,6 +221,8 @@ public class Button extends AbstractComponent {
         if (size == null || pos == null) {
             return;
         }
+
+        resolveStyles();
 
         int ox = pos.x();
         int oy = pos.y();

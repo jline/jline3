@@ -18,7 +18,7 @@ import org.jline.terminal.TerminalBuilder;
 import static org.jline.curses.Curses.*;
 
 /**
- * Interactive Curses Demo showcasing Phase 2 components.
+ * Interactive Curses Demo showcasing all TUI components.
  * Creates a proper curses GUI with windows and interactive components.
  */
 public class CursesDemo {
@@ -34,6 +34,7 @@ public class CursesDemo {
     Tree<String> fileTree;
     TextArea textArea;
     Label statusLabel;
+    ProgressBar progressBar;
 
     public static void main(String[] args) throws Exception {
         new CursesDemo().run();
@@ -42,7 +43,7 @@ public class CursesDemo {
     public void run() throws Exception {
         terminal = TerminalBuilder.terminal();
 
-        // Create the main window with all Phase 2 components
+        // Create the main window with all components
         createMainWindow();
 
         // Initialize the GUI and run it
@@ -52,10 +53,10 @@ public class CursesDemo {
     }
 
     private void createMainWindow() {
-        // Create Phase 2 components
+        // Create components
         createComponents();
 
-        window = window().title("JLine Curses Phase 2 Demo - Press 'q' to quit")
+        window = window().title("JLine Curses Demo - Press 'q' to quit")
                 .component(border().add(
                                 menu(
                                                 submenu()
@@ -68,6 +69,23 @@ public class CursesDemo {
                                                         .separator()
                                                         .item("Reset All", "R", "F5", this::resetComponents),
                                                 submenu()
+                                                        .name("Widgets")
+                                                        .key("W")
+                                                        .item("Checkbox Demo", "C", null, this::showCheckboxDemo)
+                                                        .item("Radio Demo", "R", null, this::showRadioDemo)
+                                                        .item("ComboBox Demo", "O", null, this::showComboBoxDemo)
+                                                        .item(
+                                                                "Progress Bar Demo",
+                                                                "P",
+                                                                null,
+                                                                this::showProgressBarDemo),
+                                                submenu()
+                                                        .name("Dialogs")
+                                                        .key("A")
+                                                        .item("Message", "M", null, this::showMessageDialog)
+                                                        .item("Confirm", "C", null, this::showConfirmDialog)
+                                                        .item("Input", "I", null, this::showInputDialog),
+                                                submenu()
                                                         .name("Help")
                                                         .key("H")
                                                         .item("About", "A", "F12", this::showAbout))
@@ -78,8 +96,7 @@ public class CursesDemo {
     }
 
     private Component createMainLayout() {
-        // Create a layout with Phase 2 components using border layout
-        // Add keyboard shortcuts for direct navigation to components
+        // Create a layout with components using border layout
         return border().add(
                         box("Input Component", Border.Single)
                                 .component(nameInput)
@@ -93,9 +110,9 @@ public class CursesDemo {
                                 .build(),
                         Location.Left)
                 .add(
-                        box("Table Component", Border.Single)
-                                .component(personTable)
-                                .key("T")
+                        box("Text Editor", Border.Single)
+                                .component(textArea)
+                                .key("E")
                                 .build(),
                         Location.Center)
                 .add(
@@ -104,7 +121,11 @@ public class CursesDemo {
                                 .key("R")
                                 .build(),
                         Location.Right)
-                .add(box("Status", Border.Single).component(statusLabel).build(), Location.Bottom)
+                .add(
+                        grid().add(progressBar, cell(0, 0))
+                                .add(statusLabel, cell(1, 0))
+                                .build(),
+                        Location.Bottom)
                 .build();
     }
 
@@ -151,18 +172,28 @@ public class CursesDemo {
         root.addChild(pictures);
         root.addChild(music);
 
-        // Create TextArea component
+        // Create TextArea component with line numbers
         textArea = new TextArea();
-        textArea.setText("Welcome to JLine Curses Phase 2!\n\n" + "This interactive demo showcases:\n"
-                + "• Input fields with placeholders\n"
-                + "• Lists with selection\n"
-                + "• Tables with sortable columns\n"
-                + "• Trees with hierarchical data\n"
-                + "• Text areas for editing\n\n"
+        textArea.setShowLineNumbers(true);
+        textArea.setText("Welcome to JLine Curses!\n\n" + "This interactive demo showcases:\n"
+                + "- Input fields with placeholders\n"
+                + "- Lists with selection\n"
+                + "- Tables with sortable columns\n"
+                + "- Trees with hierarchical data\n"
+                + "- Text areas with line numbers\n"
+                + "- Checkboxes and radio buttons\n"
+                + "- ComboBox dropdowns\n"
+                + "- Progress bars\n"
+                + "- Modal dialogs\n"
+                + "- Grid layout panels\n\n"
                 + "Use the menu to explore features!");
 
+        // Create ProgressBar
+        progressBar = progressBar();
+        progressBar.setValue(0.0);
+
         // Create Status label
-        statusLabel = new Label("Ready - Use F1-F5 for demos, 'q' to quit");
+        statusLabel = new Label("Ready - Use menus to explore demos, 'q' to quit");
         statusLabel.setAlignment(Label.Alignment.CENTER);
     }
 
@@ -192,6 +223,131 @@ public class CursesDemo {
         fileTree.setSelectedNode(fileTree.getRoot());
     }
 
+    private void showCheckboxDemo() {
+        Checkbox cb1 = checkbox("Enable notifications");
+        Checkbox cb2 = checkbox("Dark mode");
+        Checkbox cb3 = checkbox("Auto-save");
+        cb3.setChecked(true);
+
+        Label resultLabel = new Label("Select options above");
+        Runnable updateLabel = () -> {
+            StringBuilder sb = new StringBuilder("Selected: ");
+            if (cb1.isChecked()) sb.append("Notifications ");
+            if (cb2.isChecked()) sb.append("DarkMode ");
+            if (cb3.isChecked()) sb.append("AutoSave ");
+            resultLabel.setText(sb.toString());
+        };
+        cb1.addChangeListener(updateLabel);
+        cb2.addChangeListener(updateLabel);
+        cb3.addChangeListener(updateLabel);
+
+        Container content = grid().add(cb1, cell(0, 0))
+                .add(cb2, cell(1, 0))
+                .add(cb3, cell(2, 0))
+                .add(separator(), cell(3, 0))
+                .add(resultLabel, cell(4, 0))
+                .build();
+
+        Dialog dialog = new Dialog("Checkbox Demo", content);
+        gui.addWindow(dialog);
+    }
+
+    private void showRadioDemo() {
+        RadioButton rb1 = radioButton("Small");
+        RadioButton rb2 = radioButton("Medium");
+        RadioButton rb3 = radioButton("Large");
+        rb2.setSelected(true);
+        radioGroup(rb1, rb2, rb3);
+
+        Label resultLabel = new Label("Selected: Medium");
+        Runnable updateLabel = () -> {
+            if (rb1.isSelected()) resultLabel.setText("Selected: Small");
+            if (rb2.isSelected()) resultLabel.setText("Selected: Medium");
+            if (rb3.isSelected()) resultLabel.setText("Selected: Large");
+        };
+        rb1.addChangeListener(updateLabel);
+        rb2.addChangeListener(updateLabel);
+        rb3.addChangeListener(updateLabel);
+
+        Container content = grid().add(rb1, cell(0, 0))
+                .add(rb2, cell(1, 0))
+                .add(rb3, cell(2, 0))
+                .add(separator(), cell(3, 0))
+                .add(resultLabel, cell(4, 0))
+                .build();
+
+        Dialog dialog = new Dialog("Radio Button Demo", content);
+        gui.addWindow(dialog);
+    }
+
+    private void showComboBoxDemo() {
+        ComboBox<String> combo = comboBox();
+        combo.setItems(Arrays.asList("Red", "Green", "Blue", "Yellow", "Purple", "Orange"));
+        combo.setSelectedIndex(0);
+
+        Label resultLabel = new Label("Selected: Red");
+        combo.addChangeListener(() -> {
+            String item = combo.getSelectedItem();
+            resultLabel.setText("Selected: " + (item != null ? item : "none"));
+        });
+
+        Container content = grid().add(new Label("Choose a color:"), cell(0, 0))
+                .add(combo, cell(1, 0))
+                .add(separator(), cell(2, 0))
+                .add(resultLabel, cell(3, 0))
+                .build();
+
+        Dialog dialog = new Dialog("ComboBox Demo", content);
+        gui.addWindow(dialog);
+    }
+
+    private void showProgressBarDemo() {
+        ProgressBar pb = progressBar();
+        pb.setValue(0.4);
+
+        Button advanceButton = new Button("Advance +10%");
+        Button resetButton = new Button("Reset");
+
+        Label valueLabel = new Label("Progress: 40%");
+        advanceButton.addClickListener(() -> {
+            double newVal = Math.min(1.0, pb.getValue() + 0.1);
+            pb.setValue(newVal);
+            valueLabel.setText("Progress: " + (int) (newVal * 100) + "%");
+        });
+        resetButton.addClickListener(() -> {
+            pb.setValue(0.0);
+            valueLabel.setText("Progress: 0%");
+        });
+
+        Container buttons = grid().add(advanceButton, cell(0, 0))
+                .add(resetButton, cell(0, 1))
+                .build();
+
+        Container content = grid().add(pb, cell(0, 0))
+                .add(valueLabel, cell(1, 0))
+                .add(buttons, cell(2, 0))
+                .build();
+
+        Dialog dialog = new Dialog("Progress Bar Demo", content);
+        gui.addWindow(dialog);
+    }
+
+    private void showMessageDialog() {
+        showMessage(gui, "Information", "This is a message dialog.\nPress OK to close.");
+    }
+
+    private void showConfirmDialog() {
+        showConfirm(gui, "Confirm", "Do you want to proceed?", () -> {
+            statusLabel.setText("Confirmed!");
+        });
+    }
+
+    private void showInputDialog() {
+        showInput(gui, "Input", "Enter your name:", (name) -> {
+            statusLabel.setText("Hello, " + name + "!");
+        });
+    }
+
     private void resetComponents() {
         statusLabel.setText("All components reset to initial state.");
         nameInput.setText("John Doe");
@@ -199,17 +355,23 @@ public class CursesDemo {
         itemList.setSelectedIndex(0);
         personTable.setSelectedRow(0);
         fileTree.setSelectedNode(fileTree.getRoot());
-        textArea.setText("Welcome to JLine Curses Phase 2!\n\n" + "This interactive demo showcases:\n"
-                + "• Input fields with placeholders\n"
-                + "• Lists with selection\n"
-                + "• Tables with sortable columns\n"
-                + "• Trees with hierarchical data\n"
-                + "• Text areas for editing\n\n"
+        progressBar.setValue(0.0);
+        textArea.setText("Welcome to JLine Curses!\n\n" + "This interactive demo showcases:\n"
+                + "- Input fields with placeholders\n"
+                + "- Lists with selection\n"
+                + "- Tables with sortable columns\n"
+                + "- Trees with hierarchical data\n"
+                + "- Text areas with line numbers\n"
+                + "- Checkboxes and radio buttons\n"
+                + "- ComboBox dropdowns\n"
+                + "- Progress bars\n"
+                + "- Modal dialogs\n"
+                + "- Grid layout panels\n\n"
                 + "Use the menu to explore features!");
     }
 
     private void showAbout() {
-        statusLabel.setText("JLine Curses Phase 2 Demo - Showcasing enhanced TUI components!");
+        showMessage(gui, "About", "JLine Curses Demo\nShowcasing TUI components:\nWidgets, Dialogs, and Layouts");
     }
 
     // Helper class for table demo

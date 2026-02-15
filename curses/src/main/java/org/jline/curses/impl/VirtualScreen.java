@@ -147,6 +147,26 @@ public class VirtualScreen implements Screen {
         return new AttributedStyle(styles[y * width + x], 0);
     }
 
+    @Override
+    public void darken(int x, int y, int w, int h, AttributedStyle style) {
+        if (y < 0 || y >= height || x < 0 || x >= width) {
+            return;
+        }
+
+        int maxW = Math.min(w, width - x);
+        int maxH = Math.min(h, height - y);
+        long darkStyle = style.getStyle();
+
+        for (int j = 0; j < maxH; j++) {
+            int p = (y + j) * width + x;
+            for (int i = 0; i < maxW; i++, p++) {
+                // Preserve existing character, only change the style
+                styles[p] = darkStyle;
+            }
+        }
+        dirty = true;
+    }
+
     /**
      * Checks if the screen has been modified since the last refresh.
      *

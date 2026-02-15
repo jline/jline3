@@ -13,6 +13,7 @@ import java.util.EnumSet;
 import org.jline.curses.*;
 import org.jline.terminal.KeyEvent;
 import org.jline.terminal.MouseEvent;
+import org.jline.utils.AttributedStyle;
 
 public abstract class AbstractComponent implements Component {
 
@@ -122,6 +123,53 @@ public abstract class AbstractComponent implements Component {
 
     public void setTheme(Theme theme) {
         this.theme = theme;
+    }
+
+    /**
+     * Resolves a style from the theme, returning a fallback if the theme is not available.
+     *
+     * @param spec the style spec (e.g. ".button.normal")
+     * @param fallback the fallback style if theme is not available
+     * @return the resolved style
+     */
+    protected AttributedStyle resolveStyle(String spec, AttributedStyle fallback) {
+        try {
+            Theme t = getTheme();
+            if (t != null) {
+                return t.getStyle(spec);
+            }
+        } catch (Exception e) {
+            // Theme not available (no window/GUI)
+        }
+        return fallback;
+    }
+
+    /**
+     * Moves focus to the next or previous sibling component within the parent container.
+     * Useful for arrow-key navigation within groups of related components (checkboxes, radio buttons).
+     *
+     * @param dir +1 for next, -1 for previous
+     * @return true if focus was moved
+     */
+    protected boolean focusSibling(int dir) {
+        Container parent = getParent();
+        if (parent == null) {
+            return false;
+        }
+        java.util.List<Component> siblings = new java.util.ArrayList<>(parent.getComponents());
+        int idx = siblings.indexOf(this);
+        if (idx < 0) {
+            return false;
+        }
+        for (int i = 1; i < siblings.size(); i++) {
+            int next = (idx + dir * i + siblings.size()) % siblings.size();
+            Component sibling = siblings.get(next);
+            if (!sibling.getBehaviors().contains(Behavior.NoFocus)) {
+                sibling.focus();
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

@@ -21,6 +21,7 @@ import org.jline.curses.Size;
 import org.jline.curses.Theme;
 import org.jline.keymap.KeyMap;
 import org.jline.terminal.KeyEvent;
+import org.jline.terminal.MouseEvent;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStyle;
@@ -654,6 +655,35 @@ public class Table<T> extends AbstractComponent {
     }
 
     @Override
+    public boolean handleMouse(MouseEvent event) {
+        if (event.getType() == MouseEvent.Type.Pressed) {
+            Position pos = getScreenPosition();
+            if (pos == null) {
+                return false;
+            }
+            int row = event.getY() - pos.y();
+            // Account for header row
+            if (showHeaders) {
+                row -= 1;
+            }
+            int dataIndex = scrollRow + row;
+            if (dataIndex >= 0 && dataIndex < data.size()) {
+                focusedRow = dataIndex;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void resolveStyles() {
+        normalStyle = resolveStyle(".table.normal", normalStyle);
+        headerStyle = resolveStyle(".table.header", headerStyle);
+        selectedStyle = resolveStyle(".table.selected", selectedStyle);
+        focusedStyle = resolveStyle(".table.focused", focusedStyle);
+        selectedFocusedStyle = resolveStyle(".table.selected.focused", selectedFocusedStyle);
+    }
+
+    @Override
     protected void doDraw(Screen screen) {
         Size size = getSize();
         if (size == null) {
@@ -664,6 +694,8 @@ public class Table<T> extends AbstractComponent {
         if (pos == null) {
             return;
         }
+
+        resolveStyles();
 
         int width = size.w();
         int height = size.h();
@@ -735,7 +767,8 @@ public class Table<T> extends AbstractComponent {
      */
     private void drawDataRow(Screen screen, int row, int width, int dataIndex, T rowData, Position pos) {
         boolean isSelected = selectedRows.contains(dataIndex);
-        boolean isFocused = (dataIndex == focusedRow);
+        // Only show focus highlight when the component has focus
+        boolean isFocused = (dataIndex == focusedRow) && isFocused();
 
         AttributedStyle rowStyle = normalStyle;
         if (isSelected && isFocused) {

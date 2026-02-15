@@ -17,6 +17,7 @@ import org.jline.curses.Screen;
 import org.jline.curses.Size;
 import org.jline.curses.Theme;
 import org.jline.terminal.KeyEvent;
+import org.jline.terminal.MouseEvent;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStyle;
 
@@ -505,6 +506,32 @@ public class Input extends AbstractComponent {
     }
 
     @Override
+    public boolean handleMouse(MouseEvent event) {
+        if (event.getType() == MouseEvent.Type.Pressed) {
+            Position pos = getScreenPosition();
+            if (pos == null) {
+                return false;
+            }
+            int clickCol = event.getX() - pos.x();
+            int newPos = scrollOffset + clickCol;
+            cursorPosition = Math.max(0, Math.min(newPos, text.length()));
+            // Clear selection on click
+            selectionStart = -1;
+            selectionEnd = -1;
+            isSelecting = false;
+            return true;
+        }
+        return false;
+    }
+
+    private void resolveStyles() {
+        normalStyle = resolveStyle(".input.normal", normalStyle);
+        focusedStyle = resolveStyle(".input.focused", focusedStyle);
+        placeholderStyle = resolveStyle(".input.placeholder", placeholderStyle);
+        selectionStyle = resolveStyle(".input.selection", selectionStyle);
+    }
+
+    @Override
     protected void doDraw(Screen screen) {
         Size size = getSize();
         if (size == null) {
@@ -515,6 +542,8 @@ public class Input extends AbstractComponent {
         if (pos == null) {
             return;
         }
+
+        resolveStyles();
 
         int width = size.w();
         int height = size.h();

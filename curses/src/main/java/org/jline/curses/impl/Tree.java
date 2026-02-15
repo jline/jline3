@@ -18,6 +18,7 @@ import org.jline.curses.Size;
 import org.jline.curses.Theme;
 import org.jline.keymap.KeyMap;
 import org.jline.terminal.KeyEvent;
+import org.jline.terminal.MouseEvent;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStyle;
@@ -535,6 +536,54 @@ public class Tree<T> extends AbstractComponent {
     }
 
     @Override
+    public boolean handleMouse(MouseEvent event) {
+        if (event.getType() == MouseEvent.Type.Pressed) {
+            Position pos = getScreenPosition();
+            if (pos == null) {
+                return false;
+            }
+            int row = event.getY() - pos.y();
+            int nodeIndex = scrollOffset + row;
+            if (nodeIndex >= 0 && nodeIndex < visibleNodes.size()) {
+                TreeNode<T> node = visibleNodes.get(nodeIndex);
+                focusedNode = node;
+                // Check if the click is on the expansion icon
+                if (node.hasChildren()) {
+                    int clickCol = event.getX() - pos.x();
+                    int iconCol = getIconColumn(node);
+                    if (clickCol == iconCol) {
+                        if (node.isExpanded()) {
+                            collapseNode(node);
+                        } else {
+                            expandNode(node);
+                        }
+                    }
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private int getIconColumn(TreeNode<T> node) {
+        int level = node.getLevel();
+        // Each ancestor level takes 2 chars (branch + space)
+        int col = (level > 0) ? (level - 1) * 2 : 0;
+        // Node connector takes 2 chars (connector + horizontal line)
+        if (level > 0) {
+            col += 2;
+        }
+        return col;
+    }
+
+    private void resolveStyles() {
+        normalStyle = resolveStyle(".tree.normal", normalStyle);
+        selectedStyle = resolveStyle(".tree.selected", selectedStyle);
+        focusedStyle = resolveStyle(".tree.focused", focusedStyle);
+        selectedFocusedStyle = resolveStyle(".tree.selected.focused", selectedFocusedStyle);
+    }
+
+    @Override
     protected void doDraw(Screen screen) {
         Size size = getSize();
         if (size == null || root == null) {
@@ -545,6 +594,8 @@ public class Tree<T> extends AbstractComponent {
         if (pos == null) {
             return;
         }
+
+        resolveStyles();
 
         int width = size.w();
         int height = size.h();
@@ -564,14 +615,15 @@ public class Tree<T> extends AbstractComponent {
      */
     private void drawNode(Screen screen, int row, int width, TreeNode<T> node, Position pos) {
         boolean isSelected = (node == selectedNode);
-        boolean isFocused = (node == focusedNode);
+        // Only show focus highlight when the component has focus
+        boolean isFocusedItem = (node == focusedNode) && isFocused();
 
         AttributedStyle style = normalStyle;
-        if (isSelected && isFocused) {
+        if (isSelected && isFocusedItem) {
             style = selectedFocusedStyle;
         } else if (isSelected) {
             style = selectedStyle;
-        } else if (isFocused) {
+        } else if (isFocusedItem) {
             style = focusedStyle;
         }
 

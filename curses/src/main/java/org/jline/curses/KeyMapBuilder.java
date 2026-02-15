@@ -265,6 +265,9 @@ public class KeyMapBuilder {
         // Bind common Ctrl+letter combinations
         bindControlKeys(map);
 
+        // Bind Alt+letter combinations (ESC followed by letter)
+        bindAltKeys(map);
+
         // Space and other printable characters will be handled by the unicode handler
     }
 
@@ -289,6 +292,23 @@ public class KeyMapBuilder {
 
             EnumSet<KeyEvent.Modifier> modifiers = EnumSet.of(KeyEvent.Modifier.Control);
             KeyEvent keyEvent = new KeyEvent(c, modifiers, sequence);
+            map.bind(new InputEvent(keyEvent), sequence);
+        }
+    }
+
+    private static void bindAltKeys(KeyMap<InputEvent> map) {
+        // Bind Alt+a through Alt+z (ESC followed by letter)
+        for (char c = 'a'; c <= 'z'; c++) {
+            String sequence = "\u001b" + c;
+            EnumSet<KeyEvent.Modifier> modifiers = EnumSet.of(KeyEvent.Modifier.Alt);
+            KeyEvent keyEvent = new KeyEvent(c, modifiers, sequence);
+            map.bind(new InputEvent(keyEvent), sequence);
+        }
+        // Also bind Alt+uppercase letters
+        for (char c = 'A'; c <= 'Z'; c++) {
+            String sequence = "\u001b" + c;
+            EnumSet<KeyEvent.Modifier> modifiers = EnumSet.of(KeyEvent.Modifier.Alt, KeyEvent.Modifier.Shift);
+            KeyEvent keyEvent = new KeyEvent(Character.toLowerCase(c), modifiers, sequence);
             map.bind(new InputEvent(keyEvent), sequence);
         }
     }

@@ -27,4 +27,6 @@ public interface GUI {
     void run();
 
     Terminal getTerminal();
+
+    Window getActiveWindow();
 }

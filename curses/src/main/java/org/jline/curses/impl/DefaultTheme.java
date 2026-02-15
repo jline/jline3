@@ -36,29 +36,31 @@ public class DefaultTheme implements Theme {
 
     public DefaultTheme() {
         // Menu styles
-        styles.put("menu.text.normal", "fg:!white,bg:cyan");
-        styles.put("menu.key.normal", "fg:!yellow,bg:cyan");
+        styles.put("menu.text.normal", "fg:black,bg:white");
+        styles.put("menu.key.normal", "fg:!red,bg:white");
         styles.put("menu.text.selected", "fg:!white,bg:black");
-        styles.put("menu.key.selected", "fg:!yellow,bg:black");
-        styles.put("menu.border", "fg:!white,bg:cyan");
+        styles.put("menu.key.selected", "fg:!red,bg:black");
+        styles.put("menu.border", "fg:black,bg:white");
+        styles.put("menu.border.back", "fg:black,bg:white");
+        styles.put("menu.border.light", "fg:white,bg:white");
 
         // Window and background styles
         styles.put("background", "fg:black,bg:blue");
         styles.put("window.border", "fg:black,bg:white");
-        styles.put("window.border.focused", "fg:!yellow,bg:white");
+        styles.put("window.border.focused", "fg:!white,bg:white");
         styles.put("window.border.back", "fg:black,bg:white");
         styles.put("window.border.light", "fg:white,bg:white");
         styles.put("window.title", "fg:black,bg:white");
-        styles.put("window.title.focused", "fg:!yellow,bg:white");
-        styles.put("window.shadow", "fg:black,bg:black");
+        styles.put("window.title.focused", "fg:black,bg:white");
+        styles.put("window.shadow", "fg:!black,bg:black");
         styles.put("window.close", "fg:black,bg:white");
 
         // Box styles
         styles.put("box.border", "fg:black,bg:white");
-        styles.put("box.border.focused", "fg:!yellow,bg:white");
+        styles.put("box.border.focused", "fg:!white,bg:white");
         styles.put("box.title", "fg:black,bg:white");
-        styles.put("box.title.focused", "fg:!yellow,bg:white");
-        styles.put("box.key", "fg:!yellow,bg:white");
+        styles.put("box.title.focused", "fg:black,bg:white");
+        styles.put("box.key", "fg:!red,bg:white");
 
         // Input component
         styles.put("input.normal", "fg:black,bg:white");
@@ -69,8 +71,8 @@ public class DefaultTheme implements Theme {
         // List component
         styles.put("list.normal", "fg:black,bg:white");
         styles.put("list.selected", "fg:white,bg:blue");
-        styles.put("list.focused", "fg:black,bg:!white");
-        styles.put("list.selected.focused", "fg:white,bg:!blue");
+        styles.put("list.focused", "fg:black,bg:white,inverse");
+        styles.put("list.selected.focused", "fg:white,bg:blue,inverse");
 
         // Table component
         styles.put("table.normal", "fg:black,bg:white");
@@ -89,6 +91,39 @@ public class DefaultTheme implements Theme {
         styles.put("textarea.normal", "fg:black,bg:white");
         styles.put("textarea.focused", "fg:black,bg:white");
         styles.put("textarea.cursor", "fg:black,bg:white,inverse");
+        styles.put("textarea.linenumber", "fg:!black,bg:white");
+        styles.put("textarea.scrollbar.track", "fg:black,bg:white");
+        styles.put("textarea.scrollbar.thumb", "fg:!white,bg:black");
+
+        // Separator
+        styles.put("separator", "fg:black,bg:white");
+
+        // Checkbox
+        styles.put("checkbox.normal", "fg:black,bg:white");
+        styles.put("checkbox.focused", "fg:!white,bg:blue");
+
+        // RadioButton
+        styles.put("radio.normal", "fg:black,bg:white");
+        styles.put("radio.focused", "fg:!white,bg:blue");
+
+        // ProgressBar
+        styles.put("progress.filled", "fg:!green,bg:green");
+        styles.put("progress.empty", "fg:black,bg:white");
+        styles.put("progress.text", "fg:black,bg:white");
+
+        // ComboBox
+        styles.put("combo.normal", "fg:black,bg:white");
+        styles.put("combo.focused", "fg:!white,bg:blue");
+        styles.put("combo.dropdown", "fg:black,bg:white");
+        styles.put("combo.dropdown.selected", "fg:!white,bg:blue");
+
+        // Label
+        styles.put("label.normal", "fg:black,bg:white");
+
+        // Button
+        styles.put("button.normal", "fg:black,bg:white");
+        styles.put("button.focused", "fg:!white,bg:blue");
+        styles.put("button.pressed", "fg:!white,bg:!black");
 
         // Box drawing characters
         styles.put("box.chars.double", "╔═╗║ ║╚═╝");

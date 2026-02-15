@@ -134,8 +134,13 @@ public class Label extends AbstractComponent {
             return;
         }
 
+        AttributedStyle drawStyle = resolveStyle(".label.normal", style);
+
         int width = size.w();
         int height = size.h();
+
+        // Fill the entire label area with the background style
+        screen.fill(pos.x(), pos.y(), width, height, drawStyle);
 
         String[] lines = getDisplayLines(width);
 
@@ -146,7 +151,12 @@ public class Label extends AbstractComponent {
             }
 
             int x = calculateXPosition(line, width);
-            AttributedString attributedLine = new AttributedString(line, style);
+            // Clip line to component width
+            int maxLen = width - x;
+            if (line.length() > maxLen) {
+                line = line.substring(0, Math.max(0, maxLen));
+            }
+            AttributedString attributedLine = new AttributedString(line, drawStyle);
             screen.text(pos.x() + x, pos.y() + i, attributedLine);
         }
     }

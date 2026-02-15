@@ -84,4 +84,21 @@ public interface Screen {
      * @param visible true to show the cursor, false to hide it
      */
     void setCursorVisible(boolean visible);
+
+    /**
+     * Darkens a rectangular area, preserving existing characters but applying
+     * a dark style. This is used for window shadow effects where the content
+     * below should still be partially visible.
+     *
+     * <p>The default implementation falls back to {@link #fill} with the given style.</p>
+     *
+     * @param x the starting column position (0-based)
+     * @param y the starting row position (0-based)
+     * @param w the width of the area
+     * @param h the height of the area
+     * @param style the dark style to apply (typically black background with dim foreground)
+     */
+    default void darken(int x, int y, int w, int h, AttributedStyle style) {
+        fill(x, y, w, h, style);
+    }
 }

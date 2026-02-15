@@ -114,10 +114,16 @@ public class Box extends AbstractComponent implements Container {
             AttributedStyle borderStyle = getTheme().getStyle(borderStyleName);
             drawBorder(screen, pos, size, border, borderStyle);
 
-            // Draw title if present
+            // Draw title if present, clipped to box width
             if (title != null && !title.isEmpty()) {
                 AttributedString titleString = createTitleWithShortcut(focused);
-                screen.text(pos.x() + 2, pos.y(), titleString);
+                int maxTitleWidth = size.w() - 4; // 2 left + 2 right border
+                if (maxTitleWidth > 0) {
+                    if (titleString.length() > maxTitleWidth) {
+                        titleString = titleString.subSequence(0, maxTitleWidth);
+                    }
+                    screen.text(pos.x() + 2, pos.y(), titleString);
+                }
             }
         }
 

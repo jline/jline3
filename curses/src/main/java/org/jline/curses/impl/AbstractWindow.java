@@ -85,7 +85,14 @@ public abstract class AbstractWindow extends AbstractComponent implements Window
 
     @Override
     public Size getPreferredSize() {
-        return component != null ? component.getPreferredSize() : new Size(0, 0);
+        if (component == null) {
+            return new Size(0, 0);
+        }
+        Size sz = component.getPreferredSize();
+        if (getBehaviors().contains(Behavior.NoDecoration)) {
+            return sz;
+        }
+        return new Size(sz.w() + 2, sz.h() + 2);
     }
 
     @Override
@@ -231,11 +238,83 @@ public abstract class AbstractWindow extends AbstractComponent implements Window
     }
 
     private boolean tryFocusShortcut(Container container, KeyEvent event) {
-        if (event.getType() != KeyEvent.Type.Character || !event.hasModifier(KeyEvent.Modifier.Alt)) {
+        if (event.getType() != KeyEvent.Type.Character) {
             return false;
         }
-        char actualChar = Character.toLowerCase(event.getCharacter());
-        return tryFocusShortcutRecursive(container, actualChar);
+        // Standard Alt+letter (ESC+letter)
+        if (event.hasModifier(KeyEvent.Modifier.Alt)) {
+            char actualChar = Character.toLowerCase(event.getCharacter());
+            return tryFocusShortcutRecursive(container, actualChar);
+        }
+        // macOS Option key produces Unicode characters instead of ESC+letter.
+        // Map known Option+letter Unicode chars back to the original letter.
+        char mapped = mapMacOptionChar(event.getCharacter());
+        if (mapped != 0) {
+            return tryFocusShortcutRecursive(container, mapped);
+        }
+        return false;
+    }
+
+    /**
+     * Maps macOS Option+letter Unicode characters back to the original letter.
+     * On macOS, pressing Option+letter produces specific Unicode characters
+     * when the terminal is not configured to "Use Option as Meta key".
+     *
+     * @return the mapped lowercase letter, or 0 if no mapping found
+     */
+    private static char mapMacOptionChar(char ch) {
+        switch (ch) {
+            case 'å':
+                return 'a';
+            case '∫':
+                return 'b';
+            case 'ç':
+                return 'c';
+            case '∂':
+                return 'd';
+            // e: dead key (´)
+            case 'ƒ':
+                return 'f';
+            case '©':
+                return 'g';
+            case '˙':
+                return 'h';
+            // i: dead key (ˆ)
+            case '∆':
+                return 'j';
+            case '˚':
+                return 'k';
+            case '¬':
+                return 'l';
+            case 'µ':
+                return 'm';
+            // n: dead key (˜)
+            case 'ø':
+                return 'o';
+            case 'π':
+                return 'p';
+            case 'œ':
+                return 'q';
+            case '®':
+                return 'r';
+            case 'ß':
+                return 's';
+            case '†':
+                return 't';
+            // u: dead key (¨)
+            case '√':
+                return 'v';
+            case '∑':
+                return 'w';
+            case '≈':
+                return 'x';
+            case '¥':
+                return 'y';
+            case 'Ω':
+                return 'z';
+            default:
+                return 0;
+        }
     }
 
     private boolean tryFocusShortcutRecursive(Container container, char shortcutChar) {
@@ -257,11 +336,14 @@ public abstract class AbstractWindow extends AbstractComponent implements Window
 
     @Override
     public boolean handleMouse(MouseEvent event) {
-        // Check close button first
+        // Check close button - close on release (click)
         if (getBehaviors().contains(Behavior.CloseButton) && !getBehaviors().contains(Behavior.NoDecoration)) {
             Position pos = getScreenPosition();
-            if (event.getX() == pos.x() + getSize().w() - 2 && event.getY() == pos.y()) {
-                close();
+            boolean onCloseButton = event.getX() == pos.x() + getSize().w() - 2 && event.getY() == pos.y();
+            if (onCloseButton) {
+                if (event.getType() == MouseEvent.Type.Released) {
+                    close();
+                }
                 return true;
             }
         }
@@ -324,14 +406,15 @@ public abstract class AbstractWindow extends AbstractComponent implements Window
             AttributedStyle st = getTheme().getStyle(".window.border");
             screen.fill(pos.x(), pos.y(), getSize().w(), getSize().h(), st);
         } else {
-            screen.fill(
+            screen.darken(
                     pos.x() + 2,
                     pos.y() + 1,
                     getSize().w(),
                     getSize().h(),
                     getTheme().getStyle(".window.shadow"));
-            // Use focused border style if this window has focus
-            String borderStyleName = (focused != null) ? ".window.border.focused" : ".window.border";
+            // Use focused border style if this window is the active window in the GUI
+            boolean isActive = gui != null && gui.getActiveWindow() == this;
+            String borderStyleName = isActive ? ".window.border.focused" : ".window.border";
             getTheme()
                     .box(screen, pos.x(), pos.y(), getSize().w(), getSize().h(), Curses.Border.Double, borderStyleName);
             if (getBehaviors().contains(Behavior.CloseButton)) {
@@ -341,11 +424,18 @@ public abstract class AbstractWindow extends AbstractComponent implements Window
                         new AttributedString("x", getTheme().getStyle(".window.close")));
             }
             if (title != null) {
-                String titleStyleName = (focused != null) ? ".window.title.focused" : ".window.title";
-                screen.text(
-                        pos.x() + 3,
-                        pos.y(),
-                        new AttributedString(title, getTheme().getStyle(titleStyleName)));
+                String titleStyleName = isActive ? ".window.title.focused" : ".window.title";
+                int maxTitleWidth = getSize().w() - 5; // 3 left margin + 2 right (close button + border)
+                String displayTitle = title;
+                if (maxTitleWidth > 0 && displayTitle.length() > maxTitleWidth) {
+                    displayTitle = displayTitle.substring(0, maxTitleWidth);
+                }
+                if (maxTitleWidth > 0) {
+                    screen.text(
+                            pos.x() + 3,
+                            pos.y(),
+                            new AttributedString(displayTitle, getTheme().getStyle(titleStyleName)));
+                }
             }
             if (component != null) {
                 component.draw(screen);

@@ -16,6 +16,7 @@ import org.jline.curses.Screen;
 import org.jline.curses.Size;
 import org.jline.curses.Theme;
 import org.jline.terminal.KeyEvent;
+import org.jline.terminal.MouseEvent;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
@@ -43,6 +44,7 @@ public class TextArea extends AbstractComponent {
     private boolean editable = true;
     private boolean wordWrap = false;
     private int tabSize = 4;
+    private boolean showLineNumbers = false;
     // Styling - will be initialized from theme in setTheme()
     private AttributedStyle normalStyle = AttributedStyle.DEFAULT;
     private AttributedStyle cursorStyle = AttributedStyle.DEFAULT.inverse();
@@ -540,7 +542,7 @@ public class TextArea extends AbstractComponent {
         }
 
         int viewHeight = size.h();
-        int viewWidth = size.w();
+        int viewWidth = size.w() - getGutterWidth();
 
         // Vertical scrolling
         if (cursorRow < scrollRow) {
@@ -651,6 +653,33 @@ public class TextArea extends AbstractComponent {
         this.tabSize = Math.max(1, tabSize);
     }
 
+    /**
+     * Gets whether line numbers are shown.
+     *
+     * @return true if line numbers are shown
+     */
+    public boolean isShowLineNumbers() {
+        return showLineNumbers;
+    }
+
+    /**
+     * Sets whether line numbers are shown.
+     *
+     * @param showLineNumbers true to show line numbers
+     */
+    public void setShowLineNumbers(boolean showLineNumbers) {
+        this.showLineNumbers = showLineNumbers;
+    }
+
+    private int getGutterWidth() {
+        if (!showLineNumbers) {
+            return 0;
+        }
+        // Width = digits for max line number + 1 separator space
+        int digits = String.valueOf(lines.size()).length();
+        return digits + 1;
+    }
+
     // Component implementation
 
     @Override
@@ -733,6 +762,43 @@ public class TextArea extends AbstractComponent {
     }
 
     @Override
+    public boolean handleMouse(MouseEvent event) {
+        if (event.getType() == MouseEvent.Type.Pressed) {
+            Position pos = getScreenPosition();
+            Size size = getSize();
+            if (pos == null || size == null) {
+                return false;
+            }
+            int gutterWidth = getGutterWidth();
+            int clickRow = event.getY() - pos.y();
+            int clickCol = event.getX() - pos.x() - gutterWidth;
+            int newRow = scrollRow + clickRow;
+            int newCol = scrollCol + clickCol;
+            // Clamp to valid range
+            newRow = Math.max(0, Math.min(newRow, lines.size() - 1));
+            if (newRow >= 0 && newRow < lines.size()) {
+                newCol = Math.max(0, Math.min(newCol, lines.get(newRow).length()));
+            } else {
+                newCol = 0;
+            }
+            cursorRow = newRow;
+            cursorCol = newCol;
+            // Clear selection on click
+            selectionStart = null;
+            selectionEnd = null;
+            ensureCursorVisible();
+            return true;
+        }
+        return false;
+    }
+
+    private void resolveStyles() {
+        normalStyle = resolveStyle(".textarea.normal", normalStyle);
+        cursorStyle = resolveStyle(".textarea.cursor", cursorStyle);
+        selectionStyle = resolveStyle(".input.selection", selectionStyle);
+    }
+
+    @Override
     protected void doDraw(Screen screen) {
         Size size = getSize();
         if (size == null) {
@@ -744,14 +810,40 @@ public class TextArea extends AbstractComponent {
             return;
         }
 
-        int width = size.w();
+        resolveStyles();
+
+        int gutterWidth = getGutterWidth();
         int height = size.h();
+        boolean needsScrollbar = lines.size() > height;
+        int scrollbarWidth = needsScrollbar ? 1 : 0;
+        int width = size.w() - gutterWidth - scrollbarWidth;
+
+        if (width <= 0 || height <= 0) {
+            return;
+        }
 
         // Clear the area
-        screen.fill(pos.x(), pos.y(), width, height, normalStyle);
+        screen.fill(pos.x(), pos.y(), size.w(), height, normalStyle);
+
+        // Line number style
+        AttributedStyle lineNumberStyle = normalStyle;
+        if (showLineNumbers) {
+            try {
+                lineNumberStyle = getTheme().getStyle(".textarea.linenumber");
+            } catch (Exception e) {
+                // use normalStyle
+            }
+        }
 
         // Draw text lines
         for (int row = 0; row < height && (scrollRow + row) < lines.size(); row++) {
+            // Draw line numbers
+            if (showLineNumbers) {
+                int lineNum = scrollRow + row + 1;
+                String numStr = String.format("%" + (gutterWidth - 1) + "d ", lineNum);
+                screen.text(pos.x(), pos.y() + row, new AttributedString(numStr, lineNumberStyle));
+            }
+
             String line = getLine(scrollRow + row);
             if (line.length() > scrollCol) {
                 String visiblePart = line.substring(scrollCol);
@@ -777,8 +869,13 @@ public class TextArea extends AbstractComponent {
                     asb.append(visiblePart.charAt(col));
                 }
 
-                screen.text(pos.x(), pos.y() + row, asb.toAttributedString());
+                screen.text(pos.x() + gutterWidth, pos.y() + row, asb.toAttributedString());
             }
+        }
+
+        // Draw vertical scrollbar
+        if (needsScrollbar) {
+            drawScrollbar(screen, pos, size, height);
         }
 
         // Draw cursor if focused and within visible area
@@ -797,7 +894,37 @@ public class TextArea extends AbstractComponent {
 
             // Draw cursor
             AttributedString cursorStr = new AttributedString(String.valueOf(cursorChar), cursorStyle);
-            screen.text(pos.x() + screenCol, pos.y() + screenRow, cursorStr);
+            screen.text(pos.x() + gutterWidth + screenCol, pos.y() + screenRow, cursorStr);
+        }
+    }
+
+    private void drawScrollbar(Screen screen, Position pos, Size size, int height) {
+        AttributedStyle scrollTrackStyle;
+        AttributedStyle scrollThumbStyle;
+        try {
+            scrollTrackStyle = getTheme().getStyle(".textarea.scrollbar.track");
+        } catch (Exception e) {
+            scrollTrackStyle = normalStyle;
+        }
+        try {
+            scrollThumbStyle = getTheme().getStyle(".textarea.scrollbar.thumb");
+        } catch (Exception e) {
+            scrollThumbStyle = normalStyle.inverse();
+        }
+
+        int scrollX = pos.x() + size.w() - 1;
+        int totalLines = lines.size();
+
+        // Calculate thumb position and size
+        int thumbSize = Math.max(1, (int) ((double) height * height / totalLines));
+        int thumbPos = (int) ((double) scrollRow * (height - thumbSize) / Math.max(1, totalLines - height));
+        thumbPos = Math.max(0, Math.min(thumbPos, height - thumbSize));
+
+        for (int row = 0; row < height; row++) {
+            boolean isThumb = row >= thumbPos && row < thumbPos + thumbSize;
+            char ch = isThumb ? '\u2588' : '\u2591'; // █ or ░
+            AttributedStyle style = isThumb ? scrollThumbStyle : scrollTrackStyle;
+            screen.text(scrollX, pos.y() + row, new AttributedString(String.valueOf(ch), style));
         }
     }
 
@@ -809,7 +936,8 @@ public class TextArea extends AbstractComponent {
             maxWidth = Math.max(maxWidth, expandTabs(line).length());
         }
 
-        return new Size(Math.max(20, Math.min(80, maxWidth)), Math.max(3, Math.min(25, lines.size())));
+        return new Size(
+                Math.max(20, Math.min(80, maxWidth)) + getGutterWidth(), Math.max(3, Math.min(25, lines.size())));
     }
 
     /**

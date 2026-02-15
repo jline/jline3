@@ -49,7 +49,8 @@ public interface Component {
         NoDecoration,
         CloseButton,
         ManualLayout,
-        Popup
+        Popup,
+        Modal
     }
 
     boolean handleMouse(MouseEvent event);

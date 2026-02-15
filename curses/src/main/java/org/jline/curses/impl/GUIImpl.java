@@ -81,6 +81,11 @@ public class GUIImpl implements GUI {
     }
 
     @Override
+    public Window getActiveWindow() {
+        return activeWindow;
+    }
+
+    @Override
     public <C extends Component> Renderer getRenderer(Class<C> clazz) {
         return renderers.get(clazz);
     }
@@ -110,7 +115,7 @@ public class GUIImpl implements GUI {
         if (!window.getBehaviors().contains(Window.Behavior.NoFocus)) {
             activeWindow = window;
         }
-        // todo: refresh
+        layoutWindow(window);
     }
 
     @Override
@@ -208,12 +213,39 @@ public class GUIImpl implements GUI {
         background.setPosition(new Position(0, 0));
         background.setSize(size);
         for (Window window : windows) {
-            if (!window.getBehaviors().contains(Component.Behavior.ManualLayout)) {
-                window.setPosition(new Position(size.w() / 4, size.h() / 4));
-                window.setSize(new Size(size.w() / 2, size.h() / 2));
-            }
+            layoutWindow(window);
         }
+        display.clear();
         redraw();
+    }
+
+    private void layoutWindow(Window window) {
+        if (size == null || window.getBehaviors().contains(Component.Behavior.ManualLayout)) {
+            return;
+        }
+        int w, h, x, y;
+        if (window.getBehaviors().contains(Component.Behavior.Popup)) {
+            Size pref = window.getPreferredSize();
+            if (pref != null && pref.w() > 0 && pref.h() > 0) {
+                w = Math.min(pref.w(), size.w());
+                h = Math.min(pref.h(), size.h());
+            } else {
+                w = size.w() / 2;
+                h = size.h() / 2;
+            }
+            x = Math.max(0, (size.w() - w) / 2);
+            y = Math.max(0, (size.h() - h) / 2);
+        } else {
+            // Leave a small margin around regular windows to show the background
+            int marginX = Math.min(4, size.w() / 4);
+            int marginY = Math.min(2, size.h() / 4);
+            x = marginX;
+            y = marginY;
+            w = size.w() - 2 * marginX;
+            h = size.h() - 2 * marginY;
+        }
+        window.setPosition(new Position(x, y));
+        window.setSize(new Size(w, h));
     }
 
     protected void handleKey(KeyEvent event) {

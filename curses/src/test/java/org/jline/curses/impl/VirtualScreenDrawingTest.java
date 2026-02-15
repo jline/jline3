@@ -128,10 +128,10 @@ public class VirtualScreenDrawingTest {
         assertFalse(line0.trim().isEmpty(), "Top border should contain characters");
         assertFalse(line2.trim().isEmpty(), "Bottom border should contain characters");
 
-        // Should contain some part of the title (might be partially overwritten)
+        // Should contain some part of the title (might be clipped to fit)
         String topLine = lines.get(0).toString();
         assertTrue(
-                topLine.contains("Title") || topLine.contains("Test") || topLine.contains("tle"),
+                topLine.contains("Title") || topLine.contains("Titl") || topLine.contains("Tit"),
                 "Should contain some part of title");
     }
 
