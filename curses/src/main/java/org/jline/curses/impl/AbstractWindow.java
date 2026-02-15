@@ -25,6 +25,13 @@ public abstract class AbstractWindow extends AbstractComponent implements Window
     private GUI gui;
     private AbstractComponent focused;
 
+    // Drag state for title bar dragging
+    private boolean dragging;
+    private int dragStartX;
+    private int dragStartY;
+    private int dragOrigX;
+    private int dragOrigY;
+
     public AbstractWindow() {
         this(null, null);
     }
@@ -81,6 +88,15 @@ public abstract class AbstractWindow extends AbstractComponent implements Window
             component.setPosition(getRenderer().getComponentOffset());
             component.setSize(getRenderer().getComponentSize(size));
         }
+    }
+
+    /**
+     * Returns whether this window is currently being dragged by the title bar.
+     *
+     * @return true if a drag operation is in progress
+     */
+    public boolean isDragging() {
+        return dragging;
     }
 
     @Override
@@ -336,14 +352,50 @@ public abstract class AbstractWindow extends AbstractComponent implements Window
 
     @Override
     public boolean handleMouse(MouseEvent event) {
-        // Check close button - close on release (click)
-        if (getBehaviors().contains(Behavior.CloseButton) && !getBehaviors().contains(Behavior.NoDecoration)) {
-            Position pos = getScreenPosition();
-            boolean onCloseButton = event.getX() == pos.x() + getSize().w() - 2 && event.getY() == pos.y();
-            if (onCloseButton) {
-                if (event.getType() == MouseEvent.Type.Released) {
-                    close();
+        // Handle ongoing drag
+        if (dragging) {
+            if (event.getType() == MouseEvent.Type.Dragged) {
+                int dx = event.getX() - dragStartX;
+                int dy = event.getY() - dragStartY;
+                setPosition(new Position(dragOrigX + dx, dragOrigY + dy));
+                // Prevent automatic re-centering after manual move
+                if (!getBehaviors().contains(Behavior.ManualLayout)) {
+                    EnumSet<Behavior> behaviors = EnumSet.copyOf(getBehaviors());
+                    behaviors.add(Behavior.ManualLayout);
+                    setBehaviors(behaviors);
                 }
+                return true;
+            }
+            if (event.getType() == MouseEvent.Type.Released) {
+                dragging = false;
+                return true;
+            }
+        }
+
+        if (!getBehaviors().contains(Behavior.NoDecoration)) {
+            Position pos = getScreenPosition();
+
+            // Check close button - close on release (click)
+            if (getBehaviors().contains(Behavior.CloseButton)) {
+                boolean onCloseButton = event.getX() == pos.x() + getSize().w() - 2 && event.getY() == pos.y();
+                if (onCloseButton) {
+                    if (event.getType() == MouseEvent.Type.Released) {
+                        close();
+                    }
+                    return true;
+                }
+            }
+
+            // Start drag on title bar press
+            boolean onTitleBar = event.getY() == pos.y()
+                    && event.getX() >= pos.x()
+                    && event.getX() < pos.x() + getSize().w();
+            if (event.getType() == MouseEvent.Type.Pressed && onTitleBar) {
+                dragging = true;
+                dragStartX = event.getX();
+                dragStartY = event.getY();
+                dragOrigX = pos.x();
+                dragOrigY = pos.y();
                 return true;
             }
         }

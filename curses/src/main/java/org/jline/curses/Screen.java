@@ -101,4 +101,24 @@ public interface Screen {
     default void darken(int x, int y, int w, int h, AttributedStyle style) {
         fill(x, y, w, h, style);
     }
+
+    /**
+     * Registers an image to be displayed at the specified position.
+     *
+     * <p>The image data should be a pre-rendered escape sequence string
+     * (e.g., from {@code TerminalGraphics.convertImage()}). The position
+     * and size are specified in character cells.</p>
+     *
+     * <p>The default implementation is a no-op for screens that do not
+     * support graphical output.</p>
+     *
+     * @param x the column position (0-based)
+     * @param y the row position (0-based)
+     * @param w the width in character cells
+     * @param h the height in character cells
+     * @param imageData the pre-rendered image escape sequence
+     */
+    default void image(int x, int y, int w, int h, String imageData) {
+        // Default: no-op for non-graphical screens
+    }
 }
