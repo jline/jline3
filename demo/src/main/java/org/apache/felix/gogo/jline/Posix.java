@@ -262,8 +262,15 @@ public class Posix {
         try {
             // Try to use the public API if available (Felix Gogo Runtime 1.1.7+)
             Class<?> pipeClass = Class.forName("org.apache.felix.gogo.runtime.Pipe");
-            Method setCurrentPipeMethod = pipeClass.getMethod("setCurrentPipe", pipeClass);
-            // setCurrentPipe returns the previous pipe, so we can use it directly
+            Method setCurrentPipeMethod;
+            try {
+                // Try public API first (Felix Gogo Runtime 1.1.7+)
+                setCurrentPipeMethod = pipeClass.getMethod("setCurrentPipe", pipeClass);
+            } catch (NoSuchMethodException e1) {
+                // Fall back to private method on older versions
+                setCurrentPipeMethod = pipeClass.getDeclaredMethod("setCurrentPipe", pipeClass);
+                setCurrentPipeMethod.setAccessible(true);
+            }
             currentPipe = setCurrentPipeMethod.invoke(null, (Object) null);
         } catch (Exception e) {
             // Ignore exceptions - this is just an optimization
@@ -282,10 +289,12 @@ public class Posix {
             }
         };
 
-        // Register a signal handler for INT signal to properly propagate interruption
+        // Register a signal handler for INT signal to properly propagate interruption.
+        // Capture the shell thread reference because the signal callback may run on
+        // a different (signal-dispatch) thread.
+        Thread shellThread = Thread.currentThread();
         Terminal.SignalHandler prevIntHandler = terminal.handle(Terminal.Signal.INT, signal -> {
-            // Propagate the interrupt to the current thread
-            Thread.currentThread().interrupt();
+            shellThread.interrupt();
         });
 
         try {
@@ -302,7 +311,13 @@ public class Posix {
             if (currentPipe != null) {
                 try {
                     Class<?> pipeClass = Class.forName("org.apache.felix.gogo.runtime.Pipe");
-                    Method setCurrentPipeMethod = pipeClass.getMethod("setCurrentPipe", pipeClass);
+                    Method setCurrentPipeMethod;
+                    try {
+                        setCurrentPipeMethod = pipeClass.getMethod("setCurrentPipe", pipeClass);
+                    } catch (NoSuchMethodException e1) {
+                        setCurrentPipeMethod = pipeClass.getDeclaredMethod("setCurrentPipe", pipeClass);
+                        setCurrentPipeMethod.setAccessible(true);
+                    }
                     setCurrentPipeMethod.invoke(null, currentPipe);
                 } catch (Exception e) {
                     // Ignore exceptions during pipe restoration
