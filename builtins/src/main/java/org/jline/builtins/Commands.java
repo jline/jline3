@@ -1960,61 +1960,6 @@ public class Commands {
     }
 
     /**
-     * Implements the classic Snake game in the terminal.
-     * <p>
-     * This command provides a fully interactive Snake game with:
-     * </p>
-     * <ul>
-     *   <li>Arrow key or WASD controls for snake movement</li>
-     *   <li>Food collection and score tracking</li>
-     *   <li>Collision detection (walls and self)</li>
-     *   <li>Pause/resume functionality</li>
-     *   <li>Responsive terminal UI with borders and status</li>
-     * </ul>
-     * <p>
-     * Controls:
-     * </p>
-     * <ul>
-     *   <li>Arrow keys or WASD - Change snake direction</li>
-     *   <li>P or Space - Pause/Resume game</li>
-     *   <li>Q or Ctrl+C - Quit game</li>
-     * </ul>
-     *
-     * @param terminal the terminal to use for the game
-     * @param out the output stream (not used in fullscreen mode)
-     * @param err the error stream for error messages
-     * @param argv command arguments (currently unused)
-     * @throws Exception if an error occurs during game execution
-     */
-    public static void snake(Terminal terminal, PrintStream out, PrintStream err, String[] argv) throws Exception {
-        final String[] usage = {
-            "snake - classic Snake game",
-            "Usage: snake [OPTIONS]",
-            "  -? --help                     Show help",
-            "",
-            "Controls:",
-            "  Arrow keys, WASD              Move snake",
-            "  P, Space                      Pause/Resume",
-            "  H                              Help overlay (toggle)",
-            "  R                              Reset",
-            "  M                              Menu",
-            "  Q, Ctrl+C                    Quit game"
-        };
-
-        Options opt = Options.compile(usage).parse(argv);
-        if (opt.isSet("help")) {
-            throw new HelpException(opt.usage());
-        }
-
-        try {
-            Snake.main(terminal);
-        } catch (IOException e) {
-            err.println("Error running Snake game: " + e.getMessage());
-            throw e;
-        }
-    }
-
-    /**
      * Helper method to switch the syntax highlighting theme.
      *
      * @param err the error stream
