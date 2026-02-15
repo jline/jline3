@@ -49,8 +49,7 @@ public class PasswordMaskingDemo {
 
         try {
             // Build the terminal
-            TerminalBuilder builder = TerminalBuilder.builder();
-            Terminal terminal = builder.build();
+            Terminal terminal = TerminalBuilder.builder().build();
 
             boolean isDumb = ((TerminalExt) terminal).getProvider().name().equals(TerminalBuilder.PROP_PROVIDER_DUMB);
             if (isDumb) {

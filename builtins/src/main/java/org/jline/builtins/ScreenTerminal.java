@@ -505,8 +505,17 @@ public class ScreenTerminal {
         } else if (vt100_charset_is_graphical && ((c & 0xffe0) == 0x0060)) {
             c = vt100_charset_graph[c - 0x60];
         }
+        int charWidth = utf8_charwidth(c);
         poke(cy, cx, new long[] {attr | c});
-        cursor_right();
+
+        // For wide characters, fill the subsequent cells with a continuation marker
+        if (charWidth > 1) {
+            for (int i = 1; i < charWidth && cx + i < width; i++) {
+                poke(cy, cx + i, new long[] {attr | 0}); // Use null character as continuation marker
+            }
+        }
+
+        cursor_right(charWidth);
     }
 
     //
@@ -1588,7 +1597,7 @@ public class ScreenTerminal {
                             vt100_parse_func <<= 8;
                             vt100_parse_func += (char) c;
                         } else if (msb == 0x30 && vt100_parse_state == State.Csi) {
-                            vt100_parse_param += String.valueOf((char) c);
+                            vt100_parse_param += (char) c;
                         } else {
                             vt100_parse_func <<= 8;
                             vt100_parse_func += (char) c;
@@ -1617,6 +1626,13 @@ public class ScreenTerminal {
         }
     }
 
+    public synchronized boolean waitDirty(long timeout) throws InterruptedException {
+        if (!dirty.get()) {
+            wait(timeout);
+        }
+        return dirty.compareAndSet(true, false);
+    }
+
     protected synchronized void setDirty() {
         dirty.set(true);
         notifyAll();
@@ -1625,6 +1641,24 @@ public class ScreenTerminal {
     //
     // External interface
     //
+
+    /**
+     * Gets the terminal width in characters.
+     *
+     * @return the width in characters
+     */
+    public int getWidth() {
+        return width;
+    }
+
+    /**
+     * Gets the terminal height in characters.
+     *
+     * @return the height in characters
+     */
+    public int getHeight() {
+        return height;
+    }
 
     public synchronized boolean setSize(int w, int h) {
         if (w < 2 || w > 256 || h < 2 || h > 256) {
@@ -1730,152 +1764,152 @@ public class ScreenTerminal {
     }
 
     public synchronized String pipe(String d) {
-        String o = "";
+        StringBuilder o = new StringBuilder();
         for (char c : d.toCharArray()) {
             if (vt100_keyfilter_escape) {
                 vt100_keyfilter_escape = false;
                 if (vt100_mode_cursorkey) {
                     switch (c) {
                         case '~':
-                            o += "~";
+                            o.append("~");
                             break;
                         case 'A':
-                            o += "\u001bOA";
+                            o.append("\u001bOA");
                             break;
                         case 'B':
-                            o += "\u001bOB";
+                            o.append("\u001bOB");
                             break;
                         case 'C':
-                            o += "\u001bOC";
+                            o.append("\u001bOC");
                             break;
                         case 'D':
-                            o += "\u001bOD";
+                            o.append("\u001bOD");
                             break;
                         case 'F':
-                            o += "\u001bOF";
+                            o.append("\u001bOF");
                             break;
                         case 'H':
-                            o += "\u001bOH";
+                            o.append("\u001bOH");
                             break;
                         case '1':
-                            o += "\u001b[5~";
+                            o.append("\u001b[5~");
                             break;
                         case '2':
-                            o += "\u001b[6~";
+                            o.append("\u001b[6~");
                             break;
                         case '3':
-                            o += "\u001b[2~";
+                            o.append("\u001b[2~");
                             break;
                         case '4':
-                            o += "\u001b[3~";
+                            o.append("\u001b[3~");
                             break;
                         case 'a':
-                            o += "\u001bOP";
+                            o.append("\u001bOP");
                             break;
                         case 'b':
-                            o += "\u001bOQ";
+                            o.append("\u001bOQ");
                             break;
                         case 'c':
-                            o += "\u001bOR";
+                            o.append("\u001bOR");
                             break;
                         case 'd':
-                            o += "\u001bOS";
+                            o.append("\u001bOS");
                             break;
                         case 'e':
-                            o += "\u001b[15~";
+                            o.append("\u001b[15~");
                             break;
                         case 'f':
-                            o += "\u001b[17~";
+                            o.append("\u001b[17~");
                             break;
                         case 'g':
-                            o += "\u001b[18~";
+                            o.append("\u001b[18~");
                             break;
                         case 'h':
-                            o += "\u001b[19~";
+                            o.append("\u001b[19~");
                             break;
                         case 'i':
-                            o += "\u001b[20~";
+                            o.append("\u001b[20~");
                             break;
                         case 'j':
-                            o += "\u001b[21~";
+                            o.append("\u001b[21~");
                             break;
                         case 'k':
-                            o += "\u001b[23~";
+                            o.append("\u001b[23~");
                             break;
                         case 'l':
-                            o += "\u001b[24~";
+                            o.append("\u001b[24~");
                             break;
                     }
                 } else {
                     switch (c) {
                         case '~':
-                            o += "~";
+                            o.append("~");
                             break;
                         case 'A':
-                            o += "\u001b[A";
+                            o.append("\u001b[A");
                             break;
                         case 'B':
-                            o += "\u001b[B";
+                            o.append("\u001b[B");
                             break;
                         case 'C':
-                            o += "\u001b[C";
+                            o.append("\u001b[C");
                             break;
                         case 'D':
-                            o += "\u001b[D";
+                            o.append("\u001b[D");
                             break;
                         case 'F':
-                            o += "\u001b[F";
+                            o.append("\u001b[F");
                             break;
                         case 'H':
-                            o += "\u001b[H";
+                            o.append("\u001b[H");
                             break;
                         case '1':
-                            o += "\u001b[5~";
+                            o.append("\u001b[5~");
                             break;
                         case '2':
-                            o += "\u001b[6~";
+                            o.append("\u001b[6~");
                             break;
                         case '3':
-                            o += "\u001b[2~";
+                            o.append("\u001b[2~");
                             break;
                         case '4':
-                            o += "\u001b[3~";
+                            o.append("\u001b[3~");
                             break;
                         case 'a':
-                            o += "\u001bOP";
+                            o.append("\u001bOP");
                             break;
                         case 'b':
-                            o += "\u001bOQ";
+                            o.append("\u001bOQ");
                             break;
                         case 'c':
-                            o += "\u001bOR";
+                            o.append("\u001bOR");
                             break;
                         case 'd':
-                            o += "\u001bOS";
+                            o.append("\u001bOS");
                             break;
                         case 'e':
-                            o += "\u001b[15~";
+                            o.append("\u001b[15~");
                             break;
                         case 'f':
-                            o += "\u001b[17~";
+                            o.append("\u001b[17~");
                             break;
                         case 'g':
-                            o += "\u001b[18~";
+                            o.append("\u001b[18~");
                             break;
                         case 'h':
-                            o += "\u001b[19~";
+                            o.append("\u001b[19~");
                             break;
                         case 'i':
-                            o += "\u001b[20~";
+                            o.append("\u001b[20~");
                             break;
                         case 'j':
-                            o += "\u001b[21~";
+                            o.append("\u001b[21~");
                             break;
                         case 'k':
-                            o += "\u001b[23~";
+                            o.append("\u001b[23~");
                             break;
                         case 'l':
-                            o += "\u001b[24~";
+                            o.append("\u001b[24~");
                             break;
                     }
                 }
@@ -1883,23 +1917,23 @@ public class ScreenTerminal {
                 vt100_keyfilter_escape = true;
             } else if (c == 127) {
                 if (vt100_mode_backspace) {
-                    o += (char) 8;
+                    o.append((char) 8);
                 } else {
-                    o += (char) 127;
+                    o.append((char) 127);
                 }
             } else {
-                o += c;
+                o.append(c);
                 if (vt100_mode_lfnewline && c == 13) {
-                    o += (char) 10;
+                    o.append((char) 10);
                 }
             }
         }
-        return o;
+        return o.toString();
     }
 
     public synchronized boolean write(CharSequence d) {
         d.codePoints().forEachOrdered(c -> {
-            if (!vt100_write(c) && !dumb_write(c) && c <= 0xffff) {
+            if (!vt100_write(c) && !dumb_write(c)) {
                 dumb_echo(c);
             }
         });
@@ -1918,21 +1952,84 @@ public class ScreenTerminal {
         }
     }
 
-    public synchronized String dump(long timeout, boolean forceDump) throws InterruptedException {
+    /**
+     * Dumps the raw screen content into a flat array.
+     * The array must be at least {@code width * height} elements long.
+     *
+     * @param fullscreen destination array
+     * @param cursor     2-element array to receive cursor [x, y], or null
+     */
+    public synchronized void dump(long[] fullscreen, int[] cursor) {
+        int cx = Math.min(this.cx, width - 1);
+        int cy = this.cy;
+        for (int y = 0; y < height; y++) {
+            System.arraycopy(screen[y], 0, fullscreen, y * width, width);
+        }
+        if (cursor != null) {
+            cursor[0] = cx;
+            cursor[1] = cy;
+        }
+    }
+
+    public synchronized boolean dump(
+            long timeout,
+            boolean forceDump,
+            long[] fullscreen,
+            int ftop,
+            int fleft,
+            int fheight,
+            int fwidth,
+            int[] cursor)
+            throws InterruptedException {
         if (!dirty.get() && timeout > 0) {
             wait(timeout);
         }
         if (dirty.compareAndSet(true, false) || forceDump) {
+            dump(fullscreen, ftop, fleft, fheight, fwidth, cursor);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Waits for the screen to be dirty, then dumps the raw screen content.
+     *
+     * @param timeout   maximum time to wait in milliseconds
+     * @param forceDump if true, dump even if the screen is not dirty
+     * @param fullscreen destination array (must be at least width * height)
+     * @param cursor    2-element array to receive cursor [x, y], or null
+     * @return true if the screen was dumped
+     * @throws InterruptedException if interrupted
+     */
+    public synchronized boolean dump(long timeout, boolean forceDump, long[] fullscreen, int[] cursor)
+            throws InterruptedException {
+        if (!dirty.get() && timeout > 0) {
+            wait(timeout);
+        }
+        if (dirty.compareAndSet(true, false) || forceDump) {
+            dump(fullscreen, cursor);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public synchronized String dump(long timeout, boolean forceDump) throws InterruptedException {
+        int width = this.width;
+        int height = this.height;
+        long[] screen = new long[width * height];
+        int[] cursor = new int[2];
+        if (dump(timeout, forceDump, screen, 0, 0, height, width, cursor)) {
             StringBuilder sb = new StringBuilder();
             int prev_attr = -1;
-            int cx = Math.min(this.cx, width - 1);
-            int cy = this.cy;
+            int cx = cursor[0];
+            int cy = cursor[1];
             sb.append("<div><pre class='term'>");
             for (int y = 0; y < height; y++) {
-                int wx = 0;
                 for (int x = 0; x < width; x++) {
-                    long d = screen[y][x];
-                    int c = (int) (d & 0xffffffff);
+                    long d = screen[y * width + x];
+                    int c = (int) (d & 0xffffffffL);
                     int a = (int) (d >> 32);
                     if (cy == y && cx == x && vt100_mode_cursor) {
                         a = a & 0xfff0 | 0x000c;
@@ -1985,10 +2082,14 @@ public class ScreenTerminal {
                             sb.append("&gt;");
                             break;
                         default:
-                            wx += utf8_charwidth(c);
-                            if (wx <= width) {
-                                sb.append((char) c);
+                            // Skip continuation markers (null characters)
+                            if (c == 0) {
+                                // This is a continuation of a wide character, skip it
+                                break;
                             }
+                            // Use appendCodePoint for proper codepoint-to-char conversion
+                            // This handles Unicode characters beyond the BMP correctly
+                            sb.appendCodePoint(c);
                             break;
                     }
                 }
@@ -2004,7 +2105,10 @@ public class ScreenTerminal {
         StringBuilder sb = new StringBuilder();
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                sb.appendCodePoint((int) (screen[y][x] & 0xffffffffL));
+                int c = (int) (screen[y][x] & 0xffffffffL);
+                if (c != 0) {
+                    sb.appendCodePoint(c);
+                }
             }
             sb.append("\n");
         }

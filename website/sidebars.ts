@@ -56,6 +56,7 @@ const sidebars: SidebarsConfig = {
         'advanced/auto-indentation-pairing',
         'advanced/theme-system',
         'advanced/nano-less-customization',
+        'advanced/web-swing-terminals',
       ],
     },
     {
