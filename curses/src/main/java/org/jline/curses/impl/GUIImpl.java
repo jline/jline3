@@ -261,14 +261,26 @@ public class GUIImpl implements GUI {
         int x = event.getX();
         int y = event.getY();
         Window window = null;
-        if (activeWindow != null && activeWindow.getBehaviors().contains(Component.Behavior.Popup)) {
-            window = activeWindow;
-        } else {
+        // Route drag/release events to the window being dragged
+        if (event.getType() == MouseEvent.Type.Dragged || event.getType() == MouseEvent.Type.Released) {
             for (Iterator<Window> it = windows.descendingIterator(); it.hasNext(); ) {
                 Window w = it.next();
-                if (w.isIn(x, y)) {
+                if (w instanceof AbstractWindow && ((AbstractWindow) w).isDragging()) {
                     window = w;
                     break;
+                }
+            }
+        }
+        if (window == null) {
+            if (activeWindow != null && activeWindow.getBehaviors().contains(Component.Behavior.Popup)) {
+                window = activeWindow;
+            } else {
+                for (Iterator<Window> it = windows.descendingIterator(); it.hasNext(); ) {
+                    Window w = it.next();
+                    if (w.isIn(x, y)) {
+                        window = w;
+                        break;
+                    }
                 }
             }
         }
