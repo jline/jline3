@@ -11,7 +11,9 @@ package org.jline.curses.impl;
 import java.util.EnumSet;
 
 import org.jline.curses.*;
+import org.jline.terminal.KeyEvent;
 import org.jline.terminal.MouseEvent;
+import org.jline.utils.AttributedStyle;
 
 public abstract class AbstractComponent implements Component {
 
@@ -20,6 +22,7 @@ public abstract class AbstractComponent implements Component {
     private Position position;
     private boolean enabled;
     private boolean focused;
+    private boolean invalid = true; // Start as invalid to ensure initial draw
     private Container parent;
     private Renderer renderer;
     private Theme theme;
@@ -82,6 +85,22 @@ public abstract class AbstractComponent implements Component {
     @Override
     public void draw(Screen screen) {
         getRenderer().draw(screen, this);
+        // Mark as valid after drawing
+        invalid = false;
+    }
+
+    @Override
+    public void invalidate() {
+        invalid = true;
+        // Propagate invalidation to parent if needed
+        if (parent != null && parent instanceof AbstractComponent) {
+            ((AbstractComponent) parent).invalidate();
+        }
+    }
+
+    @Override
+    public boolean isInvalid() {
+        return invalid;
     }
 
     public Renderer getRenderer() {
@@ -104,6 +123,53 @@ public abstract class AbstractComponent implements Component {
 
     public void setTheme(Theme theme) {
         this.theme = theme;
+    }
+
+    /**
+     * Resolves a style from the theme, returning a fallback if the theme is not available.
+     *
+     * @param spec the style spec (e.g. ".button.normal")
+     * @param fallback the fallback style if theme is not available
+     * @return the resolved style
+     */
+    protected AttributedStyle resolveStyle(String spec, AttributedStyle fallback) {
+        try {
+            Theme t = getTheme();
+            if (t != null) {
+                return t.getStyle(spec);
+            }
+        } catch (Exception e) {
+            // Theme not available (no window/GUI)
+        }
+        return fallback;
+    }
+
+    /**
+     * Moves focus to the next or previous sibling component within the parent container.
+     * Useful for arrow-key navigation within groups of related components (checkboxes, radio buttons).
+     *
+     * @param dir +1 for next, -1 for previous
+     * @return true if focus was moved
+     */
+    protected boolean focusSibling(int dir) {
+        Container parent = getParent();
+        if (parent == null) {
+            return false;
+        }
+        java.util.List<Component> siblings = new java.util.ArrayList<>(parent.getComponents());
+        int idx = siblings.indexOf(this);
+        if (idx < 0) {
+            return false;
+        }
+        for (int i = 1; i < siblings.size(); i++) {
+            int next = (idx + dir * i + siblings.size()) % siblings.size();
+            Component sibling = siblings.get(next);
+            if (!sibling.getBehaviors().contains(Behavior.NoFocus)) {
+                sibling.focus();
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -150,11 +216,15 @@ public abstract class AbstractComponent implements Component {
     }
 
     void focused(boolean focused) {
-        this.focused = focused;
-        if (focused) {
-            this.onFocus();
-        } else {
-            this.onUnfocus();
+        if (this.focused != focused) {
+            this.focused = focused;
+            // Invalidate when focus changes to trigger visual update
+            invalidate();
+            if (focused) {
+                this.onFocus();
+            } else {
+                this.onUnfocus();
+            }
         }
     }
 
@@ -192,8 +262,12 @@ public abstract class AbstractComponent implements Component {
     protected abstract Size doGetPreferredSize();
 
     @Override
-    public void handleMouse(MouseEvent event) {}
+    public boolean handleMouse(MouseEvent event) {
+        return false; // Default: not handled
+    }
 
     @Override
-    public void handleInput(String input) {}
+    public boolean handleKey(KeyEvent event) {
+        return false; // Default: not handled
+    }
 }

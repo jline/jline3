@@ -39,26 +39,27 @@ public class BorderPanelTest {
         assertComponentSize(panel, "l", 0, 2, 2, 11);
         assertComponentSize(panel, "r", 13, 2, 3, 11);
 
+        // With deficit, Center shrinks first to preserve edges (Top/Bottom, Left/Right)
         panel.setSize(new Size(10, 10));
         assertComponentSize(panel, "t", 0, 0, 10, 2);
-        assertComponentSize(panel, "c", 2, 2, 6, 6);
-        assertComponentSize(panel, "b", 0, 8, 10, 2);
-        assertComponentSize(panel, "l", 0, 2, 2, 6);
-        assertComponentSize(panel, "r", 8, 2, 2, 6);
+        assertComponentSize(panel, "c", 2, 2, 5, 5);
+        assertComponentSize(panel, "b", 0, 7, 10, 3);
+        assertComponentSize(panel, "l", 0, 2, 2, 5);
+        assertComponentSize(panel, "r", 7, 2, 3, 5);
 
         panel.setSize(new Size(8, 8));
         assertComponentSize(panel, "t", 0, 0, 8, 2);
-        assertComponentSize(panel, "c", 2, 2, 6, 6);
-        assertComponentSize(panel, "b", 0, 8, 8, 0);
-        assertComponentSize(panel, "l", 0, 2, 2, 6);
-        assertComponentSize(panel, "r", 8, 2, 0, 6);
+        assertComponentSize(panel, "c", 2, 2, 3, 3);
+        assertComponentSize(panel, "b", 0, 5, 8, 3);
+        assertComponentSize(panel, "l", 0, 2, 2, 3);
+        assertComponentSize(panel, "r", 5, 2, 3, 3);
 
         panel.setSize(new Size(7, 7));
-        assertComponentSize(panel, "t", 0, 0, 7, 1);
-        assertComponentSize(panel, "c", 1, 1, 6, 6);
-        assertComponentSize(panel, "b", 0, 7, 7, 0);
-        assertComponentSize(panel, "l", 0, 1, 1, 6);
-        assertComponentSize(panel, "r", 7, 1, 0, 6);
+        assertComponentSize(panel, "t", 0, 0, 7, 2);
+        assertComponentSize(panel, "c", 2, 2, 2, 2);
+        assertComponentSize(panel, "b", 0, 4, 7, 3);
+        assertComponentSize(panel, "l", 0, 2, 2, 2);
+        assertComponentSize(panel, "r", 4, 2, 3, 2);
     }
 
     private void assertComponentSize(Container panel, String name, int x, int y, int w, int h) {

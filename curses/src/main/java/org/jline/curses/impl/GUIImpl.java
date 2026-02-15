@@ -15,6 +15,7 @@ import org.jline.curses.*;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
 import org.jline.terminal.Attributes;
+import org.jline.terminal.KeyEvent;
 import org.jline.terminal.MouseEvent;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStyle;
@@ -80,6 +81,11 @@ public class GUIImpl implements GUI {
     }
 
     @Override
+    public Window getActiveWindow() {
+        return activeWindow;
+    }
+
+    @Override
     public <C extends Component> Renderer getRenderer(Class<C> clazz) {
         return renderers.get(clazz);
     }
@@ -109,7 +115,7 @@ public class GUIImpl implements GUI {
         if (!window.getBehaviors().contains(Window.Behavior.NoFocus)) {
             activeWindow = window;
         }
-        // todo: refresh
+        layoutWindow(window);
     }
 
     @Override
@@ -131,10 +137,7 @@ public class GUIImpl implements GUI {
     @Override
     public void run() {
         BindingReader bindingReader = new BindingReader(terminal.reader());
-        KeyMap<Event> map = new KeyMap<>();
-        map.setNomatch(Event.Key);
-        map.setUnicode(Event.Key);
-        map.bind(Event.Mouse, KeyMap.key(terminal, InfoCmp.Capability.key_mouse));
+        KeyMap<InputEvent> map = KeyMapBuilder.createInputEventKeyMap(terminal);
 
         Attributes attributes = terminal.getAttributes();
         Attributes newAttr = new Attributes(attributes);
@@ -158,15 +161,20 @@ public class GUIImpl implements GUI {
                 onResize();
             }
             while (!windows.isEmpty()) {
-                Event event = bindingReader.readBinding(map);
-                switch (event) {
-                    case Key:
-                        handleInput(bindingReader.getLastBinding());
-                        break;
-                    case Mouse:
-                        handleMouse(
-                                terminal.readMouseEvent(bindingReader::readCharacter, bindingReader.getLastBinding()));
-                        break;
+                InputEvent inputEvent = bindingReader.readBinding(map);
+
+                // Handle special cases and unmatched input
+                if (inputEvent == null) {
+                    inputEvent = KeyMapBuilder.parseUnmatchedInput(bindingReader.getLastBinding());
+                } else if (inputEvent == KeyMapBuilder.UNICODE_HANDLER || inputEvent == KeyMapBuilder.NOMATCH_HANDLER) {
+                    // Parse the actual input for unicode/nomatch cases
+                    inputEvent = KeyMapBuilder.parseUnmatchedInput(bindingReader.getLastBinding());
+                }
+
+                if (inputEvent.isMouse()) {
+                    handleMouse(terminal.readMouseEvent(bindingReader::readCharacter, bindingReader.getLastBinding()));
+                } else {
+                    handleKey(inputEvent.getKeyEvent());
                 }
                 redraw();
             }
@@ -205,24 +213,46 @@ public class GUIImpl implements GUI {
         background.setPosition(new Position(0, 0));
         background.setSize(size);
         for (Window window : windows) {
-            if (!window.getBehaviors().contains(Component.Behavior.ManualLayout)) {
-                window.setPosition(new Position(size.w() / 4, size.h() / 4));
-                window.setSize(new Size(size.w() / 2, size.h() / 2));
-            }
+            layoutWindow(window);
         }
+        display.clear();
         redraw();
     }
 
-    enum Event {
-        Key,
-        Mouse
+    private void layoutWindow(Window window) {
+        if (size == null || window.getBehaviors().contains(Component.Behavior.ManualLayout)) {
+            return;
+        }
+        int w, h, x, y;
+        if (window.getBehaviors().contains(Component.Behavior.Popup)) {
+            Size pref = window.getPreferredSize();
+            if (pref != null && pref.w() > 0 && pref.h() > 0) {
+                w = Math.min(pref.w(), size.w());
+                h = Math.min(pref.h(), size.h());
+            } else {
+                w = size.w() / 2;
+                h = size.h() / 2;
+            }
+            x = Math.max(0, (size.w() - w) / 2);
+            y = Math.max(0, (size.h() - h) / 2);
+        } else {
+            // Leave a small margin around regular windows to show the background
+            int marginX = Math.min(4, size.w() / 4);
+            int marginY = Math.min(2, size.h() / 4);
+            x = marginX;
+            y = marginY;
+            w = size.w() - 2 * marginX;
+            h = size.h() - 2 * marginY;
+        }
+        window.setPosition(new Position(x, y));
+        window.setSize(new Size(w, h));
     }
 
-    protected void handleInput(String input) {
+    protected void handleKey(KeyEvent event) {
         if (activeWindow != null) {
-            activeWindow.handleInput(input);
+            activeWindow.handleKey(event);
         } else {
-            background.handleInput(input);
+            background.handleKey(event);
         }
     }
 

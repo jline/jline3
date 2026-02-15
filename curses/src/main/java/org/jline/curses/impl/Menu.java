@@ -19,6 +19,7 @@ import org.jline.curses.Screen;
 import org.jline.curses.Size;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
+import org.jline.terminal.KeyEvent;
 import org.jline.terminal.MouseEvent;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStringBuilder;
@@ -125,45 +126,84 @@ public class Menu extends AbstractComponent {
     }
 
     @Override
-    public void handleMouse(MouseEvent event) {
-        int dx = event.getX() - getScreenPosition().x();
-        SubMenu sel = null;
-        for (SubMenu mc : getContents()) {
-            int l = 4 + mc.getName().length();
-            if (dx < l) {
-                sel = mc;
-                break;
+    public boolean handleMouse(MouseEvent event) {
+        if (event.getType() == MouseEvent.Type.Pressed || event.getType() == MouseEvent.Type.Dragged) {
+            int dx = event.getX() - getScreenPosition().x();
+            SubMenu sel = null;
+            for (SubMenu mc : getContents()) {
+                int l = 4 + mc.getName().length();
+                if (dx < l) {
+                    sel = mc;
+                    break;
+                }
+                dx -= l + 1;
             }
-            dx -= l + 1;
+            if (event.getType() == MouseEvent.Type.Dragged) {
+                // Drag should only switch, never toggle
+                selectNoToggle(sel);
+            } else {
+                select(sel);
+            }
         }
-        select(sel);
+        return true; // Mouse event handled
     }
 
     @Override
-    public void handleInput(String input) {
+    public boolean handleKey(KeyEvent event) {
         if (keyMap == null) {
-            Terminal terminal = getWindow().getGUI().getTerminal();
-            keyMap = new KeyMap<>();
-            keyMap.bind(Action.Up, KeyMap.key(terminal, InfoCmp.Capability.key_up));
-            keyMap.bind(Action.Down, KeyMap.key(terminal, InfoCmp.Capability.key_down));
-            keyMap.bind(Action.Left, KeyMap.key(terminal, InfoCmp.Capability.key_left));
-            keyMap.bind(Action.Right, KeyMap.key(terminal, InfoCmp.Capability.key_right));
-            keyMap.bind(Action.Execute, KeyMap.key(terminal, InfoCmp.Capability.key_enter), " ", "\n", "\r");
-            keyMap.bind(Action.Close, KeyMap.esc());
-            global = new KeyMap<>();
-            for (SubMenu subMenu : contents) {
-                for (MenuItem item : subMenu.getContents()) {
-                    String s = item.getShortcut();
-                    if (s != null) {
-                        global.bind(item, KeyMap.translate(s));
-                    }
-                }
+            initializeKeyMaps();
+        }
+
+        // Handle key events directly based on KeyEvent type
+        Action action = null;
+
+        // Check for arrow keys
+        if (event.getType() == KeyEvent.Type.Arrow) {
+            switch (event.getArrow()) {
+                case Up:
+                    action = Action.Up;
+                    break;
+                case Down:
+                    action = Action.Down;
+                    break;
+                case Left:
+                    action = Action.Left;
+                    break;
+                case Right:
+                    action = Action.Right;
+                    break;
             }
         }
-        bindingReader.runMacro(input);
-        Object binding = bindingReader.readBinding(keyMap, windows.get(selected).keyMap);
-        if (binding instanceof Action) {
-            Action action = (Action) binding;
+        // Check for special keys
+        else if (event.getType() == KeyEvent.Type.Special) {
+            switch (event.getSpecial()) {
+                case Enter:
+                    action = Action.Execute;
+                    break;
+                case Escape:
+                    action = Action.Close;
+                    break;
+            }
+        }
+        // Check for character keys
+        else if (event.getType() == KeyEvent.Type.Character) {
+            char ch = event.getCharacter();
+            if (ch == ' ' || ch == '\n' || ch == '\r') {
+                action = Action.Execute;
+            }
+        }
+
+        // Check for global shortcuts (function keys, chorded shortcuts, etc.)
+        if (action == null) {
+            MenuItem matched = matchShortcut(event);
+            if (matched != null) {
+                closeAndExecute(matched);
+                return true;
+            }
+        }
+
+        // Execute the action if found
+        if (action != null) {
             switch (action) {
                 case Left:
                     select(contents.get((contents.indexOf(selected) + contents.size() - 1) % contents.size()));
@@ -184,6 +224,7 @@ public class Menu extends AbstractComponent {
                 case Close:
                     if (selected != null) {
                         windows.get(selected).close();
+                        selected = null; // Reset selection when submenu is closed with escape
                     }
                     break;
                 case Execute:
@@ -192,20 +233,67 @@ public class Menu extends AbstractComponent {
                     }
                     break;
             }
-        } else if (binding instanceof MenuItem) {
-            closeAndExecute((MenuItem) binding);
+            return true; // Action was handled
         }
+
+        return false; // Key not handled
+    }
+
+    private void initializeKeyMaps() {
+        Terminal terminal = getWindow().getGUI().getTerminal();
+        keyMap = new KeyMap<>();
+        keyMap.bind(Action.Up, KeyMap.key(terminal, InfoCmp.Capability.key_up));
+        keyMap.bind(Action.Down, KeyMap.key(terminal, InfoCmp.Capability.key_down));
+        keyMap.bind(Action.Left, KeyMap.key(terminal, InfoCmp.Capability.key_left));
+        keyMap.bind(Action.Right, KeyMap.key(terminal, InfoCmp.Capability.key_right));
+        keyMap.bind(Action.Execute, KeyMap.key(terminal, InfoCmp.Capability.key_enter), " ", "\n", "\r");
+        keyMap.bind(Action.Close, KeyMap.esc());
+        global = new KeyMap<>();
+        for (SubMenu subMenu : contents) {
+            for (MenuItem item : subMenu.getContents()) {
+                String s = item.getShortcut();
+                if (s != null) {
+                    global.bind(item, KeyMap.translate(s));
+                }
+            }
+        }
+    }
+
+    private MenuItem matchShortcut(KeyEvent event) {
+        if (global == null) {
+            return null;
+        }
+        String raw = event.getRawSequence();
+        if (raw != null) {
+            Object bound = global.getBound(raw);
+            if (bound instanceof MenuItem) {
+                return (MenuItem) bound;
+            }
+        }
+        return null;
     }
 
     private void closeAndExecute(MenuItem item) {
         MenuWindow w = windows.get(selected);
         w.close();
+        selected = null; // Reset selection when submenu closes
         if (item.getAction() != null) {
             item.getAction().run();
         }
     }
 
     private void select(SubMenu s) {
+        if (s != selected) {
+            selectNoToggle(s);
+        } else if (s != null) {
+            // If clicking on the same submenu, close it (toggle behavior)
+            windows.get(selected).close();
+            selected = null;
+            invalidate();
+        }
+    }
+
+    private void selectNoToggle(SubMenu s) {
         if (s != selected) {
             if (selected != null) {
                 windows.get(selected).close();
@@ -214,6 +302,7 @@ public class Menu extends AbstractComponent {
             if (selected != null) {
                 getWindow().getGUI().addWindow(windows.get(selected));
             }
+            invalidate();
         }
     }
 
@@ -263,6 +352,8 @@ public class Menu extends AbstractComponent {
             if (s.h() <= 0 || s.w() <= 0) {
                 return;
             }
+            // Draw shadow behind the menu dropdown
+            screen.darken(p.x() + 2, p.y() + 1, s.w(), s.h(), getTheme().getStyle(".window.shadow"));
             getTheme().box(screen, p.x(), p.y(), s.w(), s.h(), Curses.Border.Single, ".menu.border");
             int y = p.y() + 1;
             int ws = 0;
@@ -321,8 +412,8 @@ public class Menu extends AbstractComponent {
         }
 
         @Override
-        public void handleInput(String input) {
-            Menu.this.handleInput(input);
+        public boolean handleKey(KeyEvent event) {
+            return Menu.this.handleKey(event);
         }
 
         void up() {
@@ -343,33 +434,59 @@ public class Menu extends AbstractComponent {
                 }
             }
             selected = contents.get(idx);
+            invalidate(); // Trigger repaint when selection changes
         }
 
         @Override
-        public void handleMouse(MouseEvent event) {
-            if (event.getType() == MouseEvent.Type.Pressed && !isIn(event.getX(), event.getY())) {
-                close();
-            } else {
-                Position p = getScreenPosition();
-                Size s = getSize();
-                int x = p.x() + 1;
-                int w = s.w() - 2;
-                int y = p.y() + 1;
-                if (x <= event.getX() && event.getX() <= x + w) {
-                    MenuItem clicked = null;
-                    for (MenuItem item : subMenu.getContents()) {
-                        if (event.getY() == y) {
-                            clicked = item;
-                            break;
-                        }
-                        y++;
-                    }
+        public boolean handleMouse(MouseEvent event) {
+            if (event.getType() == MouseEvent.Type.Pressed) {
+                if (!isIn(event.getX(), event.getY())) {
+                    close();
+                    Menu.this.selected = null;
+                } else {
+                    updateSelectedItem(event);
+                }
+            } else if (event.getType() == MouseEvent.Type.Dragged) {
+                if (isIn(event.getX(), event.getY())) {
+                    // Track selection while dragging through menu items
+                    updateSelectedItem(event);
+                } else if (Menu.this.isIn(event.getX(), event.getY())) {
+                    // Dragged back to the menu bar — forward to switch submenus
+                    Menu.this.handleMouse(event);
+                }
+            } else if (event.getType() == MouseEvent.Type.Released) {
+                if (isIn(event.getX(), event.getY())) {
+                    MenuItem clicked = getItemAt(event);
                     if (clicked != null && clicked != MenuItem.SEPARATOR) {
                         closeAndExecute(clicked);
                     }
                 }
-                super.handleMouse(event);
             }
+            return true; // Mouse event handled
+        }
+
+        private void updateSelectedItem(MouseEvent event) {
+            MenuItem item = getItemAt(event);
+            if (item != null && item != MenuItem.SEPARATOR) {
+                selected = item;
+            }
+        }
+
+        private MenuItem getItemAt(MouseEvent event) {
+            Position p = getScreenPosition();
+            Size s = getSize();
+            int x = p.x() + 1;
+            int w = s.w() - 2;
+            int y = p.y() + 1;
+            if (x <= event.getX() && event.getX() <= x + w) {
+                for (MenuItem item : subMenu.getContents()) {
+                    if (event.getY() == y) {
+                        return item;
+                    }
+                    y++;
+                }
+            }
+            return null;
         }
 
         @Override
