@@ -293,6 +293,7 @@ public class LineReaderImpl implements LineReader, Flushable {
 
     protected boolean skipRedisplay;
     protected Display display;
+    protected int lastStatusSize;
 
     protected boolean overTyping = false;
 
@@ -1267,17 +1268,24 @@ public class LineReaderImpl implements LineReader, Flushable {
     protected synchronized void handleSignal(Signal signal) {
         doAutosuggestion = false;
         if (signal == Signal.WINCH) {
-            size.copy(terminal.getBufferSize());
-            display.resize(size.getRows(), size.getColumns());
-            Status status = Status.getStatus(terminal, false);
-            if (status != null) {
-                status.resize(size);
-                status.reset();
+            // Check if the character grid size actually changed.
+            // Pixel-level resizing can trigger SIGWINCH without changing
+            // the number of rows/columns.
+            Size newSize = terminal.getBufferSize();
+            if (newSize.getRows() != size.getRows() || newSize.getColumns() != size.getColumns()) {
+                // Recreate the display to reset cursor tracking. After a resize,
+                // the terminal has reflowed content and the old cursor position
+                // is no longer valid.
+                doDisplay();
+                Status status = Status.getStatus(terminal, false);
+                if (status != null) {
+                    status.resize(size);
+                }
+                // Position cursor at column 0 to match the new display's
+                // cursor assumption (cursorPos = 0).
+                terminal.puts(Capability.carriage_return);
+                redisplay();
             }
-            terminal.puts(Capability.carriage_return);
-            terminal.puts(Capability.clr_eos);
-            redrawLine();
-            redisplay();
         } else if (signal == Signal.CONT) {
             terminal.enterRawMode();
             size.copy(terminal.getBufferSize());
@@ -3947,6 +3955,14 @@ public class LineReaderImpl implements LineReader, Flushable {
             }
 
             Status status = Status.getStatus(terminal, false);
+            int currentStatusSize = status != null ? status.size() : 0;
+            if (currentStatusSize != lastStatusSize) {
+                // Status bar appeared, grew, or shrank (e.g. from a background
+                // thread). Content may have scrolled, invalidating cursor tracking.
+                terminal.puts(Capability.carriage_return);
+                doDisplay();
+                lastStatusSize = currentStatusSize;
+            }
             if (status != null) {
                 status.redraw();
             }

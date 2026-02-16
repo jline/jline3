@@ -117,7 +117,56 @@ public class Status {
 
     public void resize(Size size) {
         if (supported) {
+            int oldRows = display.rows;
+            int oldColumns = display.columns;
+
             display.resize(size.getRows(), size.getColumns());
+
+            // Only process if the character grid size actually changed
+            if (display.rows != oldRows || display.columns != oldColumns) {
+                int oldScrollRegion = scrollRegion;
+                display.reset();
+                int newRows = display.rows;
+
+                // Compute the scroll region that update() will expect, accounting
+                // for the current status lines and border. This prevents update()
+                // from entering the "growing" branch and scrolling content up
+                // unnecessarily — the status bar was already present before resize.
+                int effectiveLines = size(lines);
+                scrollRegion = Math.max(0, newRows - 1 - effectiveLines);
+
+                // Use a single save/restore to preserve cursor position across
+                // both cleanup and scroll region changes. change_scroll_region
+                // moves cursor to (0,0) on most terminals (DECSTBM spec).
+                terminal.puts(Capability.save_cursor);
+
+                // Clean up old status bar remnants:
+                // - When width decreases, old padded status text wraps to extra
+                //   lines above the status area during terminal reflow.
+                // - When height increases, old status lines remain at old position.
+                int clearStart = scrollRegion;
+                if (newRows > oldRows && oldScrollRegion < oldRows - 1) {
+                    clearStart = Math.min(clearStart, oldScrollRegion + 1);
+                }
+                if (effectiveLines > 0) {
+                    // Account for wrapped status lines when width decreased
+                    if (display.columns < oldColumns) {
+                        int wrappedPerLine = (oldColumns + display.columns - 1) / display.columns;
+                        int extraRows = (wrappedPerLine - 1) * effectiveLines;
+                        clearStart = Math.max(0, clearStart - extraRows);
+                    }
+                    for (int row = clearStart; row < newRows; row++) {
+                        terminal.puts(Capability.cursor_address, row, 0);
+                        terminal.puts(Capability.clr_eol);
+                    }
+                }
+
+                // Set the scroll region to match what update() expects.
+                // The terminal emulator resets it to full screen on resize,
+                // so we must re-establish the restricted region here.
+                terminal.puts(Capability.change_scroll_region, 0, scrollRegion);
+                terminal.puts(Capability.restore_cursor);
+            }
         }
     }
 

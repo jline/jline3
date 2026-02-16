@@ -8,10 +8,13 @@
  */
 package org.jline.demo.examples;
 
+import java.io.IOError;
 import java.util.Collections;
 
+import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
+import org.jline.reader.UserInterruptException;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.AttributedStringBuilder;
@@ -31,39 +34,52 @@ public class DynamicStatusExample {
         // Create a Status instance
         Status status = Status.getStatus(terminal);
 
-        // Start a background thread to update the status
-        new Thread(() -> {
-                    try {
-                        int taskCount = 0;
-                        while (true) {
-                            Thread.sleep(2000);
-                            taskCount = (taskCount + 1) % 10;
+        // Start a daemon thread to update the status
+        Thread statusThread = new Thread(() -> {
+            try {
+                int taskCount = 0;
+                while (!Thread.interrupted()) {
+                    Thread.sleep(2000);
+                    taskCount = (taskCount + 1) % 10;
 
-                            if (status != null) {
-                                status.update(Collections.singletonList(new AttributedStringBuilder()
-                                        .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE))
-                                        .append("Connected to server | ")
-                                        .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN))
-                                        .append(Integer.toString(taskCount))
-                                        .append(" tasks running")
-                                        .toAttributedString()));
-                            }
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                    if (status != null) {
+                        status.update(Collections.singletonList(new AttributedStringBuilder()
+                                .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE))
+                                .append("Connected to server | ")
+                                .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN))
+                                .append(Integer.toString(taskCount))
+                                .append(" tasks running")
+                                .toAttributedString()));
                     }
-                })
-                .start();
+                }
+            } catch (InterruptedException e) {
+                // thread stopping
+            }
+        });
+        statusThread.setDaemon(true);
+        statusThread.start();
 
         // Read input normally
         while (true) {
-            String line = reader.readLine("prompt> ");
-            System.out.println("You entered: " + line);
+            try {
+                String line = reader.readLine("prompt> ");
+                System.out.println("You entered: " + line);
 
-            if (line.equals("exit")) {
+                if (line.equals("exit")) {
+                    break;
+                }
+            } catch (UserInterruptException e) {
+                // Ctrl+C pressed, continue to next prompt
+            } catch (EndOfFileException e) {
+                // Ctrl+D pressed, exit
+                break;
+            } catch (IOError e) {
+                // Terminal I/O error (e.g., Ctrl+C on macOS can cause
+                // the PTY read to fail with EIO at the native level)
                 break;
             }
         }
+        terminal.close();
     }
     // SNIPPET_END: DynamicStatusExample
 }
