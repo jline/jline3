@@ -144,7 +144,7 @@ public class Status {
                 // - When width decreases, old padded status text wraps to extra
                 //   lines above the status area during terminal reflow.
                 // - When height increases, old status lines remain at old position.
-                int clearStart = scrollRegion;
+                int clearStart = scrollRegion + 1;
                 if (newRows > oldRows && oldScrollRegion < oldRows - 1) {
                     clearStart = Math.min(clearStart, oldScrollRegion + 1);
                 }
