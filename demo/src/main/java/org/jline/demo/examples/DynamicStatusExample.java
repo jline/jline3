@@ -79,6 +79,7 @@ public class DynamicStatusExample {
                 break;
             }
         }
+        statusThread.interrupt();
         terminal.close();
     }
     // SNIPPET_END: DynamicStatusExample
