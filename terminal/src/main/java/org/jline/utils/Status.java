@@ -116,7 +116,7 @@ public class Status {
     }
 
     public void resize(Size size) {
-        if (supported) {
+        if (supported && isValid(size)) {
             int oldRows = display.rows;
             int oldColumns = display.columns;
 
