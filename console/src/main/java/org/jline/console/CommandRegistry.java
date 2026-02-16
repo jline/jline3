@@ -13,6 +13,7 @@ import java.io.PrintStream;
 import java.util.*;
 
 import org.jline.reader.Candidate;
+import org.jline.reader.LineReader;
 import org.jline.reader.impl.completer.SystemCompleter;
 import org.jline.terminal.Terminal;
 
@@ -136,6 +137,17 @@ public interface CommandRegistry {
      *         in the terminal status bar.
      */
     CmdDesc commandDescription(List<String> args);
+
+    /**
+     * Sets the line reader for this command registry.
+     * <p>
+     * This method allows the registry to access the line reader for terminal interaction.
+     * Default implementation does nothing. Implementations that need access to the line
+     * reader should override this method.
+     *
+     * @param reader the line reader to set
+     */
+    default void setLineReader(LineReader reader) {}
 
     /**
      * Execute a command.

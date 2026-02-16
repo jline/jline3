@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, the original author(s).
+ * Copyright (c) 2026, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,14 +8,11 @@
  */
 package org.jline.demo.examples;
 
-import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.concurrent.Callable;
 
-import org.jline.reader.LineReader;
-import org.jline.reader.LineReaderBuilder;
-import org.jline.reader.ParsedLine;
-import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
+import org.jline.console.Shell;
+import org.jline.picocli.PicocliCommandRegistry;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -23,50 +20,32 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 /**
- * Example demonstrating integration of JLine with Picocli.
+ * Example demonstrating integration of JLine with Picocli using
+ * {@link PicocliCommandRegistry} and {@link Shell}.
  */
 public class PicocliJLineExample {
 
     // SNIPPET_START: PicocliJLineExample
     public static void main(String[] args) {
         try {
-            // Set up the terminal
-            Terminal terminal = TerminalBuilder.builder().system(true).build();
+            // Create the picocli command line with subcommands
+            CommandLine commandLine = new CommandLine(new TopCommand());
+            commandLine.addSubcommand("example", new MyCommand());
 
-            // Set up the line reader
-            LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
+            // Create a PicocliCommandRegistry and run via Shell.builder()
+            PicocliCommandRegistry registry = new PicocliCommandRegistry(commandLine);
 
-            // Create the command line parser
-            MyCommand myCommand = new MyCommand(terminal);
-            CommandLine cmd = new CommandLine(myCommand);
-
-            // Main interactive loop
-            while (true) {
-                String line = reader.readLine("example> ");
-
-                // Exit if requested
-                if (line.equalsIgnoreCase("exit") || line.equalsIgnoreCase("quit")) {
-                    break;
-                }
-
-                try {
-                    // Parse and execute the command
-                    ParsedLine pl = reader.getParser().parse(line, 0);
-                    String[] arguments = pl.words().toArray(new String[0]);
-                    cmd.execute(arguments);
-                } catch (Exception e) {
-                    terminal.writer().println("Error: " + e.getMessage());
-                    terminal.flush();
-                }
+            try (Shell shell =
+                    Shell.builder().prompt("example> ").commands(registry).build()) {
+                shell.run();
             }
-
-            terminal.writer().println("Goodbye!");
-            terminal.close();
-
-        } catch (IOException e) {
-            System.err.println("Error creating terminal: " + e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
+
+    @Command(name = "top", description = "Top-level command")
+    static class TopCommand {}
 
     // Define a command using Picocli annotations
     @Command(
@@ -75,30 +54,28 @@ public class PicocliJLineExample {
             version = "1.0",
             description = "Example command using JLine and Picocli")
     static class MyCommand implements Callable<Integer> {
-        private final Terminal terminal;
 
         @Option(
                 names = {"-c", "--count"},
                 description = "Number of times to repeat")
         private int count = 1;
 
-        @Parameters(index = "0", description = "The message to display")
+        @Parameters(index = "0", description = "The message to display", defaultValue = "")
         private String message;
 
-        public MyCommand(Terminal terminal) {
-            this.terminal = terminal;
-        }
+        @CommandLine.Spec
+        CommandLine.Model.CommandSpec spec;
 
         @Override
         public Integer call() {
-            if (message == null) {
-                terminal.writer().println("No message provided. Use --help for usage information.");
+            PrintWriter out = spec.commandLine().getOut();
+            if (message == null || message.isEmpty()) {
+                out.println("No message provided. Use --help for usage information.");
             } else {
                 for (int i = 0; i < count; i++) {
-                    terminal.writer().println(message);
+                    out.println(message);
                 }
             }
-            terminal.flush();
             return 0;
         }
     }
