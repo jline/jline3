@@ -1,0 +1,236 @@
+/*
+ * Copyright (c) 2026, the original author(s).
+ *
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
+ *
+ * https://opensource.org/licenses/BSD-3-Clause
+ */
+package org.jline.console.impl;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import org.jline.console.Pipeline;
+import org.jline.console.Pipeline.Operator;
+
+/**
+ * Parses a command line string into a {@link Pipeline}.
+ * <p>
+ * The parser recognizes the following operators:
+ * <ul>
+ *   <li>{@code |} -- pipe</li>
+ *   <li>{@code |;} -- flip pipe (output as argument)</li>
+ *   <li>{@code &&} -- conditional AND</li>
+ *   <li>{@code ||} -- conditional OR</li>
+ *   <li>{@code >} -- output redirect</li>
+ *   <li>{@code >>} -- output append</li>
+ *   <li>{@code &} at end of line -- background execution</li>
+ * </ul>
+ * <p>
+ * The parser respects quoting (single and double) and bracket nesting,
+ * so operators inside quoted strings or brackets are not treated as pipeline operators.
+ */
+public class PipelineParser {
+
+    /**
+     * Creates a new PipelineParser.
+     */
+    public PipelineParser() {}
+
+    /**
+     * Parses a command line into a {@link Pipeline}.
+     *
+     * @param line the command line to parse
+     * @return the parsed pipeline
+     */
+    public Pipeline parse(String line) {
+        if (line == null || line.trim().isEmpty()) {
+            return new DefaultPipeline(
+                    Collections.singletonList(new DefaultPipeline.DefaultStage("", null, null, false)), line, false);
+        }
+
+        String trimmed = line.trim();
+        boolean background = false;
+
+        // Check for background operator at end
+        if (trimmed.endsWith("&") && !trimmed.endsWith("&&")) {
+            background = true;
+            trimmed = trimmed.substring(0, trimmed.length() - 1).trim();
+        }
+
+        List<DefaultPipeline.DefaultStage> stages = new ArrayList<>();
+        List<Token> tokens = tokenize(trimmed);
+
+        if (tokens.isEmpty()) {
+            return new DefaultPipeline(
+                    Collections.singletonList(new DefaultPipeline.DefaultStage("", null, null, false)),
+                    line,
+                    background);
+        }
+
+        StringBuilder currentCmd = new StringBuilder();
+        for (int i = 0; i < tokens.size(); i++) {
+            Token token = tokens.get(i);
+            if (token.isOperator) {
+                Operator op = Operator.fromSymbol(token.value);
+                if (op == null) {
+                    // Unknown operator, treat as text
+                    currentCmd.append(token.value);
+                    continue;
+                }
+
+                String cmd = currentCmd.toString().trim();
+                currentCmd.setLength(0);
+
+                if (op == Operator.REDIRECT || op == Operator.APPEND) {
+                    // Next token should be the file path
+                    Path target = null;
+                    if (i + 1 < tokens.size()) {
+                        i++;
+                        target = Paths.get(tokens.get(i).value.trim());
+                    }
+                    stages.add(new DefaultPipeline.DefaultStage(cmd, op, target, op == Operator.APPEND));
+                } else {
+                    stages.add(new DefaultPipeline.DefaultStage(cmd, op, null, false));
+                }
+            } else {
+                if (currentCmd.length() > 0) {
+                    currentCmd.append(" ");
+                }
+                currentCmd.append(token.value);
+            }
+        }
+
+        // Add final stage
+        String remaining = currentCmd.toString().trim();
+        if (!remaining.isEmpty() || stages.isEmpty()) {
+            stages.add(new DefaultPipeline.DefaultStage(remaining, null, null, false));
+        }
+
+        return new DefaultPipeline(Collections.unmodifiableList(stages), line, background);
+    }
+
+    /**
+     * Tokenizes a command line into text and operator tokens.
+     * Respects quoting and bracket nesting.
+     */
+    private List<Token> tokenize(String line) {
+        List<Token> tokens = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        int i = 0;
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
+        int bracketDepth = 0; // (), [], {}
+
+        while (i < line.length()) {
+            char c = line.charAt(i);
+
+            // Handle escape
+            if (c == '\\' && i + 1 < line.length() && !inSingleQuote) {
+                current.append(c);
+                current.append(line.charAt(i + 1));
+                i += 2;
+                continue;
+            }
+
+            // Handle quotes
+            if (c == '\'' && !inDoubleQuote && bracketDepth == 0) {
+                inSingleQuote = !inSingleQuote;
+                current.append(c);
+                i++;
+                continue;
+            }
+            if (c == '"' && !inSingleQuote && bracketDepth == 0) {
+                inDoubleQuote = !inDoubleQuote;
+                current.append(c);
+                i++;
+                continue;
+            }
+
+            // Don't process operators inside quotes or brackets
+            if (inSingleQuote || inDoubleQuote) {
+                current.append(c);
+                i++;
+                continue;
+            }
+
+            // Track bracket depth
+            if (c == '(' || c == '[' || c == '{') {
+                bracketDepth++;
+                current.append(c);
+                i++;
+                continue;
+            }
+            if ((c == ')' || c == ']' || c == '}') && bracketDepth > 0) {
+                bracketDepth--;
+                current.append(c);
+                i++;
+                continue;
+            }
+            if (bracketDepth > 0) {
+                current.append(c);
+                i++;
+                continue;
+            }
+
+            // Check for operators (order matters: check longer operators first)
+            String op = matchOperator(line, i);
+            if (op != null) {
+                // Emit text token if we have accumulated text
+                if (current.length() > 0) {
+                    tokens.add(new Token(current.toString(), false));
+                    current.setLength(0);
+                }
+                tokens.add(new Token(op, true));
+                i += op.length();
+            } else {
+                current.append(c);
+                i++;
+            }
+        }
+
+        // Emit remaining text
+        if (current.length() > 0) {
+            tokens.add(new Token(current.toString(), false));
+        }
+
+        return tokens;
+    }
+
+    /**
+     * Tries to match a pipeline operator at the given position.
+     * Returns the matched operator string, or null.
+     */
+    private String matchOperator(String line, int pos) {
+        // Check two-character operators first
+        if (pos + 1 < line.length()) {
+            String two = line.substring(pos, pos + 2);
+            if (two.equals(">>") || two.equals("&&") || two.equals("||") || two.equals("|;")) {
+                return two;
+            }
+        }
+        // Single-character operators
+        char c = line.charAt(pos);
+        if (c == '|' || c == '>') {
+            return String.valueOf(c);
+        }
+        return null;
+    }
+
+    /**
+     * A token from tokenization -- either text or an operator.
+     */
+    private static class Token {
+        final String value;
+        final boolean isOperator;
+
+        Token(String value, boolean isOperator) {
+            this.value = value;
+            this.isOperator = isOperator;
+        }
+    }
+}
