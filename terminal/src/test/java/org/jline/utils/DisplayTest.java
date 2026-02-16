@@ -100,6 +100,11 @@ public class DisplayTest {
             return screen;
         }
 
+        public void resizeScreen(int cols, int rows) {
+            virtual.setSize(cols, rows);
+            setSize(new Size(cols, rows));
+        }
+
         private static class DelegateOutputStream extends OutputStream {
             OutputStream output;
 
