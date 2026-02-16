@@ -329,7 +329,10 @@ public class ScreenTerminal {
     }
 
     private void cursor_up(int n) {
-        cy = Math.max(scroll_area_y0, cy - n);
+        // When cursor is within scroll region, clamp to top margin.
+        // When cursor is outside scroll region, clamp to physical top (row 0).
+        int limit = (cy >= scroll_area_y0 && cy < scroll_area_y1) ? scroll_area_y0 : 0;
+        cy = Math.max(limit, cy - n);
         setDirty();
     }
 
@@ -338,7 +341,10 @@ public class ScreenTerminal {
     }
 
     private void cursor_down(int n) {
-        cy = Math.min(scroll_area_y1 - 1, cy + n);
+        // When cursor is within scroll region, clamp to bottom margin.
+        // When cursor is outside scroll region, clamp to physical bottom.
+        int limit = (cy >= scroll_area_y0 && cy < scroll_area_y1) ? scroll_area_y1 - 1 : height - 1;
+        cy = Math.min(limit, cy + n);
         setDirty();
     }
 
