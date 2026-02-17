@@ -9,9 +9,13 @@
 package org.jline.shell;
 
 import java.io.File;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Supplier;
 
 import org.jline.reader.*;
+import org.jline.shell.impl.DefaultJobManager;
 import org.jline.terminal.Terminal;
 
 /**
@@ -45,6 +49,7 @@ public class Shell implements AutoCloseable {
     private final Supplier<String> promptSupplier;
     private final Supplier<String> rightPromptSupplier;
     private final File initScript;
+    private final JobManager jobManager;
     private volatile boolean running;
 
     Shell(
@@ -54,7 +59,8 @@ public class Shell implements AutoCloseable {
             CommandDispatcher dispatcher,
             Supplier<String> promptSupplier,
             Supplier<String> rightPromptSupplier,
-            File initScript) {
+            File initScript,
+            JobManager jobManager) {
         this.terminal = terminal;
         this.ownTerminal = ownTerminal;
         this.reader = reader;
@@ -62,6 +68,7 @@ public class Shell implements AutoCloseable {
         this.promptSupplier = promptSupplier;
         this.rightPromptSupplier = rightPromptSupplier;
         this.initScript = initScript;
+        this.jobManager = jobManager;
     }
 
     /**
@@ -87,6 +94,9 @@ public class Shell implements AutoCloseable {
             dispatcher.initialize(initScript);
 
             while (running) {
+                // Print completed background job notifications
+                printCompletedJobs();
+
                 String line;
                 try {
                     String prompt = promptSupplier.get();
@@ -124,6 +134,34 @@ public class Shell implements AutoCloseable {
             }
         } finally {
             running = false;
+        }
+    }
+
+    /**
+     * Prints notifications for completed background jobs and removes them from the job list.
+     */
+    private void printCompletedJobs() {
+        if (jobManager == null) {
+            return;
+        }
+        List<Job> doneJobs = new ArrayList<>();
+        for (Job job : jobManager.jobs()) {
+            if (job.status() == Job.Status.Done) {
+                doneJobs.add(job);
+            }
+        }
+        if (!doneJobs.isEmpty()) {
+            PrintStream out = new PrintStream(terminal.output());
+            for (Job job : doneJobs) {
+                out.println("[" + job.id() + "]  Done           " + job.command());
+            }
+            // Remove done jobs after notification
+            if (jobManager instanceof DefaultJobManager) {
+                DefaultJobManager djm = (DefaultJobManager) jobManager;
+                for (Job job : doneJobs) {
+                    djm.removeJob(job);
+                }
+            }
         }
     }
 

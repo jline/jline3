@@ -104,6 +104,17 @@ public class DefaultJobManager implements JobManager {
         fireChange(job, previous, Job.Status.Done);
     }
 
+    /**
+     * Removes a job from the managed list.
+     *
+     * @param job the job to remove
+     */
+    public void removeJob(Job job) {
+        synchronized (managedJobs) {
+            managedJobs.remove(job);
+        }
+    }
+
     private void fireChange(Job job, Job.Status previous, Job.Status current) {
         for (JobListener listener : listeners) {
             listener.onChange(job, previous, current);

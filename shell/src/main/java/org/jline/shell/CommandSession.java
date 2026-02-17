@@ -28,7 +28,7 @@ public class CommandSession {
 
     private final Terminal terminal;
     private final InputStream in;
-    private final PrintStream out;
+    private PrintStream out;
     private final PrintStream err;
     private final Map<String, Object> variables;
     private Path workingDirectory;
@@ -98,6 +98,15 @@ public class CommandSession {
      */
     public PrintStream out() {
         return out;
+    }
+
+    /**
+     * Sets the output stream.
+     *
+     * @param out the new output stream
+     */
+    public void setOut(PrintStream out) {
+        this.out = out;
     }
 
     /**

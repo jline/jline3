@@ -12,6 +12,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
@@ -28,6 +29,13 @@ import org.jline.terminal.Terminal;
  * This dispatcher parses command lines using {@link PipelineParser}, resolves commands
  * from registered {@link CommandGroup}s, and executes pipeline stages with proper
  * pipe/redirect/conditional handling.
+ * <p>
+ * When a {@link JobManager} is configured, the dispatcher supports:
+ * <ul>
+ *   <li>Background execution via trailing {@code &}</li>
+ *   <li>Foreground job tracking</li>
+ *   <li>Built-in {@code jobs}, {@code fg}, {@code bg} commands</li>
+ * </ul>
  *
  * @see CommandDispatcher
  * @see PipelineParser
@@ -39,6 +47,7 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
     private final List<CommandGroup> groups = new ArrayList<>();
     private final PipelineParser pipelineParser = new PipelineParser();
     private final CommandSession session;
+    private final DefaultJobManager jobManager;
 
     /**
      * Creates a new dispatcher for the given terminal.
@@ -46,8 +55,25 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
      * @param terminal the terminal
      */
     public DefaultCommandDispatcher(Terminal terminal) {
+        this(terminal, null);
+    }
+
+    /**
+     * Creates a new dispatcher for the given terminal with optional job management.
+     * <p>
+     * When a non-null {@link JobManager} is provided, the dispatcher automatically
+     * registers {@link JobCommands} and supports background execution via trailing {@code &}.
+     *
+     * @param terminal the terminal
+     * @param jobManager the job manager, or null for no job control
+     */
+    public DefaultCommandDispatcher(Terminal terminal, JobManager jobManager) {
         this.terminal = terminal;
         this.session = new CommandSession(terminal);
+        this.jobManager = jobManager instanceof DefaultJobManager ? (DefaultJobManager) jobManager : null;
+        if (this.jobManager != null) {
+            groups.add(new JobCommands(jobManager));
+        }
     }
 
     @Override
@@ -76,12 +102,65 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
         if (line == null || line.trim().isEmpty()) {
             return null;
         }
+
+        // Check for background execution
+        String trimmed = line.trim();
+        if (jobManager != null && trimmed.endsWith("&")) {
+            String cmdLine = trimmed.substring(0, trimmed.length() - 1).trim();
+            if (cmdLine.isEmpty()) {
+                return null;
+            }
+            return executeBackground(cmdLine);
+        }
+
         Pipeline pipeline = pipelineParser.parse(line);
-        return execute(pipeline);
+        return executePipeline(pipeline, line.trim());
+    }
+
+    private Object executeBackground(String cmdLine) {
+        Pipeline pipeline = pipelineParser.parse(cmdLine);
+
+        // Extract command name for thread naming
+        String cmdName = cmdLine.split("\\s+", 2)[0];
+
+        AtomicReference<DefaultJob> jobRef = new AtomicReference<>();
+        Thread thread = new Thread(() -> {
+            try {
+                executePipelineStages(pipeline);
+            } catch (Exception e) {
+                PrintStream err = new PrintStream(terminal.output());
+                err.println("[" + jobRef.get().id() + "]  Error: " + e.getMessage());
+            } finally {
+                DefaultJob job = jobRef.get();
+                if (job != null) {
+                    jobManager.completeJob(job);
+                }
+            }
+        });
+
+        DefaultJob job = jobManager.createJob(cmdLine, thread);
+        job.setStatus(Job.Status.Background);
+        jobRef.set(job);
+        thread.setName("job-" + job.id() + "-" + cmdName);
+        thread.setDaemon(true);
+        thread.start();
+
+        PrintStream out = new PrintStream(terminal.output());
+        out.println("[" + job.id() + "]  " + cmdLine + " &");
+
+        return null;
+    }
+
+    private Object executePipeline(Pipeline pipeline, String line) throws Exception {
+        return executePipelineStages(pipeline);
     }
 
     @Override
     public Object execute(Pipeline pipeline) throws Exception {
+        return executePipelineStages(pipeline);
+    }
+
+    private Object executePipelineStages(Pipeline pipeline) throws Exception {
         List<Pipeline.Stage> stages = pipeline.stages();
         Object lastResult = null;
         String lastOutput = null;
@@ -128,9 +207,26 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
             }
 
             String[] args = argsStr.isEmpty() ? new String[0] : argsStr.split("\\s+");
+
+            // If this stage pipes into the next, capture stdout instead of printing to terminal
+            Operator op = stage.operator();
+            boolean captureOutput = (op == Operator.PIPE || op == Operator.FLIP);
+            ByteArrayOutputStream capture = null;
+            PrintStream originalOut = session.out();
+            if (captureOutput) {
+                capture = new ByteArrayOutputStream();
+                session.setOut(new PrintStream(capture));
+            }
+
             try {
                 lastResult = cmd.execute(session, args);
-                lastOutput = lastResult != null ? lastResult.toString() : null;
+                if (captureOutput) {
+                    session.out().flush();
+                    String captured = capture.toString().trim();
+                    lastOutput = captured.isEmpty() ? (lastResult != null ? lastResult.toString() : null) : captured;
+                } else {
+                    lastOutput = lastResult != null ? lastResult.toString() : null;
+                }
                 session.setLastExitCode(0);
             } catch (Exception e) {
                 session.setLastExitCode(1);
@@ -138,7 +234,6 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
                 lastOutput = null;
 
                 // Handle conditionals
-                Operator op = stage.operator();
                 if (op == Operator.AND) {
                     skip = true;
                     continue;
@@ -146,10 +241,13 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
                     throw e;
                 }
                 continue;
+            } finally {
+                if (captureOutput) {
+                    session.setOut(originalOut);
+                }
             }
 
             // Handle redirect/append
-            Operator op = stage.operator();
             if (op == Operator.REDIRECT || op == Operator.APPEND) {
                 if (stage.redirectTarget() != null && lastOutput != null) {
                     if (op == Operator.APPEND) {

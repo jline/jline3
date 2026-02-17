@@ -241,7 +241,11 @@ public class ShellBuilder {
         // Create or use provided dispatcher
         CommandDispatcher disp = this.dispatcher;
         if (disp == null) {
-            disp = new DefaultCommandDispatcher(term);
+            if (jobManager != null) {
+                disp = new DefaultCommandDispatcher(term, jobManager);
+            } else {
+                disp = new DefaultCommandDispatcher(term);
+            }
         }
 
         // Add groups to dispatcher
@@ -290,6 +294,6 @@ public class ShellBuilder {
             onReaderReady.accept(reader);
         }
 
-        return new Shell(term, ownTerminal, reader, disp, prompt, rightPromptSupplier, initScript);
+        return new Shell(term, ownTerminal, reader, disp, prompt, rightPromptSupplier, initScript, jobManager);
     }
 }
