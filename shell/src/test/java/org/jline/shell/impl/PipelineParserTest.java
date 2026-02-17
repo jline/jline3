@@ -9,6 +9,7 @@
 package org.jline.shell.impl;
 
 import java.nio.file.Paths;
+import java.util.Map;
 
 import org.jline.shell.Pipeline;
 import org.jline.shell.Pipeline.Operator;
@@ -206,6 +207,78 @@ public class PipelineParserTest {
         assertEquals(Operator.OR, Operator.fromSymbol("||"));
         assertEquals(Operator.REDIRECT, Operator.fromSymbol(">"));
         assertEquals(Operator.APPEND, Operator.fromSymbol(">>"));
+        assertEquals(Operator.SEQUENCE, Operator.fromSymbol(";"));
         assertNull(Operator.fromSymbol("???"));
+    }
+
+    @Test
+    void parseSequenceOperator() {
+        Pipeline pipeline = parser.parse("cmd1 ; cmd2");
+        assertEquals(2, pipeline.stages().size());
+        assertEquals("cmd1", pipeline.stages().get(0).commandLine());
+        assertEquals(Operator.SEQUENCE, pipeline.stages().get(0).operator());
+        assertEquals("cmd2", pipeline.stages().get(1).commandLine());
+        assertNull(pipeline.stages().get(1).operator());
+    }
+
+    @Test
+    void parseMultipleSequences() {
+        Pipeline pipeline = parser.parse("cmd1 ; cmd2 ; cmd3");
+        assertEquals(3, pipeline.stages().size());
+        assertEquals(Operator.SEQUENCE, pipeline.stages().get(0).operator());
+        assertEquals(Operator.SEQUENCE, pipeline.stages().get(1).operator());
+        assertNull(pipeline.stages().get(2).operator());
+    }
+
+    @Test
+    void parseSequenceWithPipe() {
+        Pipeline pipeline = parser.parse("cmd1 | cmd2 ; cmd3");
+        assertEquals(3, pipeline.stages().size());
+        assertEquals(Operator.PIPE, pipeline.stages().get(0).operator());
+        assertEquals(Operator.SEQUENCE, pipeline.stages().get(1).operator());
+    }
+
+    @Test
+    void customOperatorRegistration() {
+        PipelineParser custom = new PipelineParser(Map.of("==>", Operator.PIPE));
+        Pipeline pipeline = custom.parse("cmd1 ==> cmd2");
+        assertEquals(2, pipeline.stages().size());
+        assertEquals("cmd1", pipeline.stages().get(0).commandLine());
+        assertEquals(Operator.PIPE, pipeline.stages().get(0).operator());
+        assertEquals("cmd2", pipeline.stages().get(1).commandLine());
+    }
+
+    @Test
+    void customOperatorLongestMatch() {
+        PipelineParser custom = new PipelineParser(Map.of("=>", Operator.PIPE, "==>", Operator.FLIP));
+        Pipeline pipeline = custom.parse("cmd1 ==> cmd2");
+        assertEquals(2, pipeline.stages().size());
+        assertEquals(Operator.FLIP, pipeline.stages().get(0).operator());
+    }
+
+    @Test
+    void subclassOverrideMatchOperator() {
+        PipelineParser custom = new PipelineParser() {
+            @Override
+            protected String matchOperator(String line, int pos) {
+                // Custom: treat "::" as a pipe
+                if (pos + 1 < line.length() && line.substring(pos, pos + 2).equals("::")) {
+                    return "::";
+                }
+                return super.matchOperator(line, pos);
+            }
+        };
+        // "::" should be treated as an operator (but maps to null via fromSymbol,
+        // so it's treated as text in the current implementation)
+        Pipeline pipeline = custom.parse("cmd1 :: cmd2");
+        // Since "::" doesn't map to any Operator via fromSymbol, it becomes text
+        assertEquals(1, pipeline.stages().size());
+    }
+
+    @Test
+    void builderSequence() {
+        Pipeline pipeline = Pipeline.of("cmd1").sequence("cmd2").build();
+        assertEquals(2, pipeline.stages().size());
+        assertEquals(Operator.SEQUENCE, pipeline.stages().get(0).operator());
     }
 }

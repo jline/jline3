@@ -10,9 +10,7 @@ package org.jline.shell.impl;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import org.jline.shell.Pipeline;
 import org.jline.shell.Pipeline.Operator;
@@ -28,20 +26,44 @@ import org.jline.shell.Pipeline.Operator;
  *   <li>{@code ||} -- conditional OR</li>
  *   <li>{@code >} -- output redirect</li>
  *   <li>{@code >>} -- output append</li>
+ *   <li>{@code ;} -- sequence (statement separator)</li>
  *   <li>{@code &} at end of line -- background execution</li>
  * </ul>
  * <p>
  * The parser respects quoting (single and double) and bracket nesting,
  * so operators inside quoted strings or brackets are not treated as pipeline operators.
+ * <p>
+ * Subclasses can override {@link #matchOperator(String, int)} to customize operator
+ * matching, or provide custom operators via the {@link #PipelineParser(Map)} constructor.
  *
  * @since 4.0
  */
 public class PipelineParser {
 
+    private final Map<String, Operator> customOperators;
+
     /**
-     * Creates a new PipelineParser.
+     * Creates a new PipelineParser with default operators.
      */
-    public PipelineParser() {}
+    public PipelineParser() {
+        this.customOperators = Collections.emptyMap();
+    }
+
+    /**
+     * Creates a new PipelineParser with custom operator mappings.
+     * <p>
+     * Custom operators are checked first (longest-match), then built-in operators.
+     * This allows shells to define additional syntax like custom pipe operators.
+     *
+     * @param customOperators a map from operator symbol to {@link Operator}
+     */
+    public PipelineParser(Map<String, Operator> customOperators) {
+        // Sort by length descending for longest-match semantics
+        TreeMap<String, Operator> sorted =
+                new TreeMap<>(Comparator.comparingInt(String::length).reversed().thenComparing(s -> s));
+        sorted.putAll(customOperators);
+        this.customOperators = Collections.unmodifiableMap(new LinkedHashMap<>(sorted));
+    }
 
     /**
      * Parses a command line into a {@link Pipeline}.
@@ -78,7 +100,11 @@ public class PipelineParser {
         for (int i = 0; i < tokens.size(); i++) {
             Token token = tokens.get(i);
             if (token.isOperator) {
-                Operator op = Operator.fromSymbol(token.value);
+                // Check custom operators first, then built-in
+                Operator op = customOperators.get(token.value);
+                if (op == null) {
+                    op = Operator.fromSymbol(token.value);
+                }
                 if (op == null) {
                     // Unknown operator, treat as text
                     currentCmd.append(token.value);
@@ -205,9 +231,25 @@ public class PipelineParser {
 
     /**
      * Tries to match a pipeline operator at the given position.
-     * Returns the matched operator string, or null.
+     * Returns the matched operator string, or {@code null}.
+     * <p>
+     * Subclasses can override this method to customize operator matching.
+     * Custom operators registered via the constructor are checked first
+     * (longest-match), then built-in operators.
+     *
+     * @param line the full command line string
+     * @param pos the current position in the line
+     * @return the matched operator string, or null if no operator matches
      */
-    private String matchOperator(String line, int pos) {
+    protected String matchOperator(String line, int pos) {
+        // Check custom operators first (already sorted by length descending)
+        for (String symbol : customOperators.keySet()) {
+            if (pos + symbol.length() <= line.length()
+                    && line.substring(pos, pos + symbol.length()).equals(symbol)) {
+                return symbol;
+            }
+        }
+
         // Check two-character operators first
         if (pos + 1 < line.length()) {
             String two = line.substring(pos, pos + 2);
@@ -217,7 +259,7 @@ public class PipelineParser {
         }
         // Single-character operators
         char c = line.charAt(pos);
-        if (c == '|' || c == '>') {
+        if (c == '|' || c == '>' || c == ';') {
             return String.valueOf(c);
         }
         return null;
@@ -226,11 +268,19 @@ public class PipelineParser {
     /**
      * A token from tokenization -- either text or an operator.
      */
-    private static class Token {
-        final String value;
-        final boolean isOperator;
+    protected static class Token {
+        /** The token value. */
+        public final String value;
+        /** Whether this token represents an operator. */
+        public final boolean isOperator;
 
-        Token(String value, boolean isOperator) {
+        /**
+         * Creates a new token.
+         *
+         * @param value the token value
+         * @param isOperator whether this is an operator token
+         */
+        public Token(String value, boolean isOperator) {
             this.value = value;
             this.isOperator = isOperator;
         }

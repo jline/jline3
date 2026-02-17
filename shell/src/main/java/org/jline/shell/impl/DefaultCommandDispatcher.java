@@ -36,6 +36,9 @@ import org.jline.terminal.Terminal;
  *   <li>Foreground job tracking</li>
  *   <li>Built-in {@code jobs}, {@code fg}, {@code bg} commands</li>
  * </ul>
+ * <p>
+ * When an {@link AliasManager} is configured, the dispatcher expands aliases
+ * before pipeline parsing and automatically registers {@code alias}/{@code unalias} commands.
  *
  * @see CommandDispatcher
  * @see PipelineParser
@@ -45,9 +48,10 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
 
     private final Terminal terminal;
     private final List<CommandGroup> groups = new ArrayList<>();
-    private final PipelineParser pipelineParser = new PipelineParser();
+    private final PipelineParser pipelineParser;
     private final CommandSession session;
     private final DefaultJobManager jobManager;
+    private final AliasManager aliasManager;
 
     /**
      * Creates a new dispatcher for the given terminal.
@@ -55,24 +59,48 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
      * @param terminal the terminal
      */
     public DefaultCommandDispatcher(Terminal terminal) {
-        this(terminal, null);
+        this(terminal, null, null, null);
     }
 
     /**
      * Creates a new dispatcher for the given terminal with optional job management.
-     * <p>
-     * When a non-null {@link JobManager} is provided, the dispatcher automatically
-     * registers {@link JobCommands} and supports background execution via trailing {@code &}.
      *
      * @param terminal the terminal
      * @param jobManager the job manager, or null for no job control
      */
     public DefaultCommandDispatcher(Terminal terminal, JobManager jobManager) {
+        this(terminal, jobManager, null, null);
+    }
+
+    /**
+     * Creates a new dispatcher with all configuration options.
+     * <p>
+     * When a non-null {@link JobManager} is provided, the dispatcher automatically
+     * registers {@link JobCommands} and supports background execution via trailing {@code &}.
+     * <p>
+     * When a non-null {@link AliasManager} is provided, the dispatcher expands aliases
+     * before pipeline parsing and automatically registers {@link AliasCommands}.
+     * <p>
+     * When a non-null {@link PipelineParser} is provided, it is used instead of the
+     * default parser. This allows custom operator registration and subclass overrides.
+     *
+     * @param terminal the terminal
+     * @param jobManager the job manager, or null for no job control
+     * @param pipelineParser the pipeline parser, or null for the default parser
+     * @param aliasManager the alias manager, or null for no alias support
+     */
+    public DefaultCommandDispatcher(
+            Terminal terminal, JobManager jobManager, PipelineParser pipelineParser, AliasManager aliasManager) {
         this.terminal = terminal;
         this.session = new CommandSession(terminal);
+        this.pipelineParser = pipelineParser != null ? pipelineParser : new PipelineParser();
         this.jobManager = jobManager instanceof DefaultJobManager ? (DefaultJobManager) jobManager : null;
+        this.aliasManager = aliasManager;
         if (this.jobManager != null) {
             groups.add(new JobCommands(jobManager));
+        }
+        if (this.aliasManager != null) {
+            groups.add(new AliasCommands(aliasManager));
         }
     }
 
@@ -103,9 +131,15 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
             return null;
         }
 
+        // Expand aliases before parsing
+        String expanded = line;
+        if (aliasManager != null) {
+            expanded = aliasManager.expand(line);
+        }
+
         // Check for background execution
-        String trimmed = line.trim();
-        if (jobManager != null && trimmed.endsWith("&")) {
+        String trimmed = expanded.trim();
+        if (jobManager != null && trimmed.endsWith("&") && !trimmed.endsWith("&&")) {
             String cmdLine = trimmed.substring(0, trimmed.length() - 1).trim();
             if (cmdLine.isEmpty()) {
                 return null;
@@ -113,8 +147,8 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
             return executeBackground(cmdLine);
         }
 
-        Pipeline pipeline = pipelineParser.parse(line);
-        return executePipeline(pipeline, line.trim());
+        Pipeline pipeline = pipelineParser.parse(expanded);
+        return executePipeline(pipeline, expanded.trim());
     }
 
     private Object executeBackground(String cmdLine) {
@@ -164,7 +198,6 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
         List<Pipeline.Stage> stages = pipeline.stages();
         Object lastResult = null;
         String lastOutput = null;
-        boolean skip = false;
 
         for (int i = 0; i < stages.size(); i++) {
             Pipeline.Stage stage = stages.get(i);
@@ -174,12 +207,15 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
                 continue;
             }
 
-            if (skip) {
-                // Check if we should resume after a conditional
-                Pipeline.Stage prevStage = i > 0 ? stages.get(i - 1) : null;
-                if (prevStage != null && prevStage.operator() == Operator.OR) {
-                    skip = false;
-                } else {
+            // Determine if this stage should be skipped based on previous operator and exit code
+            if (i > 0) {
+                Operator prevOp = stages.get(i - 1).operator();
+                if (prevOp == Operator.AND && session.lastExitCode() != 0) {
+                    // AND: skip if previous failed
+                    continue;
+                }
+                if (prevOp == Operator.OR && session.lastExitCode() == 0) {
+                    // OR: skip if previous succeeded
                     continue;
                 }
             }
@@ -233,14 +269,11 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
                 lastResult = null;
                 lastOutput = null;
 
-                // Handle conditionals
-                if (op == Operator.AND) {
-                    skip = true;
+                // For conditionals and sequence, swallow the exception and continue
+                if (op == Operator.AND || op == Operator.OR || op == Operator.SEQUENCE) {
                     continue;
-                } else if (op != Operator.OR) {
-                    throw e;
                 }
-                continue;
+                throw e;
             } finally {
                 if (captureOutput) {
                     session.setOut(originalOut);
@@ -262,12 +295,9 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
                     lastResult = null;
                     lastOutput = null;
                 }
-            } else if (op == Operator.AND) {
-                // Success, continue to next
-                skip = false;
-            } else if (op == Operator.OR) {
-                // Success, skip OR branch
-                skip = true;
+            } else if (op == Operator.SEQUENCE) {
+                // Sequence: always continue, reset output for next independent command
+                lastOutput = null;
             }
         }
 

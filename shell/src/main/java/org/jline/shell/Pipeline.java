@@ -46,7 +46,9 @@ public interface Pipeline {
         /** Output redirection: write output to file ({@code >}) */
         REDIRECT(">"),
         /** Append redirection: append output to file ({@code >>}) */
-        APPEND(">>");
+        APPEND(">>"),
+        /** Sequence: execute next command unconditionally ({@code ;}) */
+        SEQUENCE(";");
 
         private final String symbol;
 

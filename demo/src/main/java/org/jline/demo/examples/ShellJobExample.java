@@ -12,13 +12,14 @@ import org.jline.reader.LineReader.Option;
 import org.jline.shell.CommandSession;
 import org.jline.shell.Shell;
 import org.jline.shell.impl.AbstractCommand;
+import org.jline.shell.impl.DefaultAliasManager;
 import org.jline.shell.impl.DefaultJobManager;
 import org.jline.shell.impl.SimpleCommandGroup;
 import org.jline.widget.TailTipWidgets;
 import org.jline.widget.TailTipWidgets.TipType;
 
 /**
- * Example demonstrating job control with background execution.
+ * Example demonstrating job control, aliases, built-in commands, and syntax highlighting.
  * <p>
  * Try these commands:
  * <pre>
@@ -28,6 +29,12 @@ import org.jline.widget.TailTipWidgets.TipType;
  *   jobs
  *   count 10 &amp;
  *   fg 2
+ *   alias ll=echo listing
+ *   ll
+ *   help
+ *   history
+ *   setopt INSERT_BRACKET
+ *   echo first ; echo second
  * </pre>
  */
 public class ShellJobExample {
@@ -131,7 +138,12 @@ public class ShellJobExample {
     public static void main(String[] args) throws Exception {
         try (Shell shell = Shell.builder()
                 .prompt("job-demo> ")
-                .jobManager(new DefaultJobManager())
+                .jobManager(new DefaultJobManager()) // HIGHLIGHT
+                .aliasManager(new DefaultAliasManager()) // HIGHLIGHT
+                .historyCommands(true) // HIGHLIGHT
+                .helpCommands(true) // HIGHLIGHT
+                .optionCommands(true) // HIGHLIGHT
+                .commandHighlighter(true) // HIGHLIGHT
                 .groups(new SimpleCommandGroup(
                         "demo", new EchoCommand(), new UpperCommand(), new SleepCommand(), new CountCommand()))
                 .option(Option.INSERT_BRACKET, true)

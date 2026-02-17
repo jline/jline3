@@ -102,6 +102,20 @@ public class PipelineBuilder {
     }
 
     /**
+     * Adds a sequence separator ({@code ;}) to the next command.
+     * The next command executes unconditionally after the previous one.
+     *
+     * @param command the next command
+     * @return this builder
+     */
+    public PipelineBuilder sequence(String command) {
+        stages.add(new DefaultPipeline.DefaultStage(currentCommand, Pipeline.Operator.SEQUENCE, null, false));
+        source.append(" ; ").append(command);
+        currentCommand = command;
+        return this;
+    }
+
+    /**
      * Adds an output redirection ({@code >}) to the specified file.
      *
      * @param file the file to redirect output to

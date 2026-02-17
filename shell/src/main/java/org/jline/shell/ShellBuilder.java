@@ -21,6 +21,7 @@ import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.Parser;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.shell.impl.DefaultCommandDispatcher;
+import org.jline.shell.impl.PipelineParser;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
@@ -59,6 +60,13 @@ public class ShellBuilder {
     private Consumer<LineReader> onReaderReady;
     private File initScript;
     private JobManager jobManager;
+    private PipelineParser pipelineParser;
+    private AliasManager aliasManager;
+    private boolean enableHistoryCommands;
+    private boolean enableHelpCommands;
+    private boolean enableOptionCommands;
+    private boolean enableCommandHighlighter;
+    private org.jline.reader.Highlighter highlighter;
 
     ShellBuilder() {}
 
@@ -221,6 +229,91 @@ public class ShellBuilder {
     }
 
     /**
+     * Sets a custom pipeline parser for the shell.
+     * <p>
+     * This allows custom operator registration and subclass overrides of operator matching.
+     *
+     * @param pipelineParser the pipeline parser
+     * @return this builder
+     */
+    public ShellBuilder pipelineParser(PipelineParser pipelineParser) {
+        this.pipelineParser = pipelineParser;
+        return this;
+    }
+
+    /**
+     * Sets the alias manager for the shell.
+     * <p>
+     * When set, aliases are expanded before pipeline parsing, and built-in
+     * {@code alias}/{@code unalias} commands are registered automatically.
+     *
+     * @param aliasManager the alias manager
+     * @return this builder
+     */
+    public ShellBuilder aliasManager(AliasManager aliasManager) {
+        this.aliasManager = aliasManager;
+        return this;
+    }
+
+    /**
+     * Enables or disables built-in history commands ({@code history}).
+     *
+     * @param enable true to enable
+     * @return this builder
+     */
+    public ShellBuilder historyCommands(boolean enable) {
+        this.enableHistoryCommands = enable;
+        return this;
+    }
+
+    /**
+     * Enables or disables built-in help commands ({@code help}).
+     *
+     * @param enable true to enable
+     * @return this builder
+     */
+    public ShellBuilder helpCommands(boolean enable) {
+        this.enableHelpCommands = enable;
+        return this;
+    }
+
+    /**
+     * Enables or disables built-in option commands ({@code setopt}, {@code unsetopt}, {@code setvar}).
+     *
+     * @param enable true to enable
+     * @return this builder
+     */
+    public ShellBuilder optionCommands(boolean enable) {
+        this.enableOptionCommands = enable;
+        return this;
+    }
+
+    /**
+     * Sets a custom highlighter for the shell's {@link org.jline.reader.LineReader}.
+     *
+     * @param highlighter the highlighter
+     * @return this builder
+     */
+    public ShellBuilder highlighter(org.jline.reader.Highlighter highlighter) {
+        this.highlighter = highlighter;
+        return this;
+    }
+
+    /**
+     * Enables or disables the built-in command-aware syntax highlighter.
+     * <p>
+     * When enabled, known commands are highlighted in bold and unknown commands
+     * are highlighted in red.
+     *
+     * @param enable true to enable
+     * @return this builder
+     */
+    public ShellBuilder commandHighlighter(boolean enable) {
+        this.enableCommandHighlighter = enable;
+        return this;
+    }
+
+    /**
      * Builds the {@link Shell} instance.
      * <p>
      * If no terminal is provided, a system terminal is created. If no dispatcher
@@ -241,11 +334,7 @@ public class ShellBuilder {
         // Create or use provided dispatcher
         CommandDispatcher disp = this.dispatcher;
         if (disp == null) {
-            if (jobManager != null) {
-                disp = new DefaultCommandDispatcher(term, jobManager);
-            } else {
-                disp = new DefaultCommandDispatcher(term);
-            }
+            disp = new DefaultCommandDispatcher(term, jobManager, pipelineParser, aliasManager);
         }
 
         // Add groups to dispatcher
@@ -259,15 +348,37 @@ public class ShellBuilder {
             p = new DefaultParser();
         }
 
+        // Determine highlighter
+        org.jline.reader.Highlighter hl = this.highlighter;
+        if (enableCommandHighlighter) {
+            org.jline.shell.impl.CommandHighlighter cmdHl = new org.jline.shell.impl.CommandHighlighter(disp, hl);
+            hl = cmdHl;
+        }
+
         // Build LineReader
         LineReaderBuilder readerBuilder =
                 LineReaderBuilder.builder().terminal(term).parser(p).completer(disp.completer());
+
+        if (hl != null) {
+            readerBuilder.highlighter(hl);
+        }
 
         if (historyFile != null) {
             readerBuilder.variable(LineReader.HISTORY_FILE, historyFile);
         }
 
         LineReader reader = readerBuilder.build();
+
+        // Add built-in command groups that need the reader
+        if (enableHistoryCommands) {
+            disp.addGroup(new org.jline.shell.impl.HistoryCommands(reader));
+        }
+        if (enableHelpCommands) {
+            disp.addGroup(new org.jline.shell.impl.HelpCommands(disp));
+        }
+        if (enableOptionCommands) {
+            disp.addGroup(new org.jline.shell.impl.OptionCommands(reader));
+        }
 
         // Apply variables
         for (Map.Entry<String, Object> entry : variables.entrySet()) {
