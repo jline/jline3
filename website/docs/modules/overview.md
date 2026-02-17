@@ -79,12 +79,23 @@ The `jline-console-ui` module provides interactive prompt components for console
 - Expandable choices (key-based answers with help)
 - Yes/No confirmation prompts
 
+### jline-components
+
+The `jline-components` module provides composable, output-only UI components for building polished terminal interfaces, inspired by [Ink](https://github.com/vadimdemedes/ink). It includes:
+
+- Flexbox-inspired layout engine with Box containers
+- Animated spinners with 25+ built-in frame sets
+- Progress bars with true-color gradient fills
+- Gradient-colored text with shimmer animation
+- Status messages, separators, and hyperlinks
+- 60fps animation framework with dirty tracking
+
 ## Module Dependencies
 
 The modules have the following dependency relationships:
 
 ```
-jline-terminal
+jline-terminal ←── jline-components
     ↑
 jline-reader
    ↑ ↑
@@ -108,20 +119,20 @@ To use these modules in your Maven project, add the appropriate dependencies:
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline</artifactId>
-    <version>%%JLINE_VERSION%%</version>
+    <version>4.0.0</version>
 </dependency>
 
 <!-- Or individual modules -->
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-builtins</artifactId>
-    <version>%%JLINE_VERSION%%</version>
+    <version>4.0.0</version>
 </dependency>
 
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-style</artifactId>
-    <version>%%JLINE_VERSION%%</version>
+    <version>4.0.0</version>
 </dependency>
 
 <dependency>
@@ -133,13 +144,19 @@ To use these modules in your Maven project, add the appropriate dependencies:
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-console</artifactId>
-    <version>%%JLINE_VERSION%%</version>
+    <version>4.0.0</version>
 </dependency>
 
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-console-ui</artifactId>
-    <version>%%JLINE_VERSION%%</version>
+    <version>4.0.0</version>
+</dependency>
+
+<dependency>
+    <groupId>org.jline</groupId>
+    <artifactId>jline-components</artifactId>
+    <version>4.0.0</version>
 </dependency>
 ```
 
@@ -147,7 +164,7 @@ To use these modules in your Maven project, add the appropriate dependencies:
 
 JLine 4.0+ includes full JPMS support for most modules:
 
-- **✅ JPMS Modules**: `jline-terminal`, `jline-reader`, `jline-style`, `jline-builtins`, `jline-shell`, `jline-console`, `jline-console-ui`, `jline-native`, `jline-terminal-ffm`, `jline-terminal-jni`, `jline-jansi-core`, `jline-curses`
+- **✅ JPMS Modules**: `jline-terminal`, `jline-reader`, `jline-style`, `jline-builtins`, `jline-shell`, `jline-console`, `jline-console-ui`, `jline-components`, `jline-native`, `jline-terminal-ffm`, `jline-terminal-jni`, `jline-jansi-core`, `jline-curses`
 - **❌ Automatic Modules**: `jline-terminal-jansi`, `jline-groovy`, `jline-remote-ssh`, `jline-remote-telnet`, `jline-demo`, `jline-graal`
 
 For detailed JPMS usage information, see the [JPMS Support](./jpms.md) documentation.

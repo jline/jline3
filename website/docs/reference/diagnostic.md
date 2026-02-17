@@ -11,7 +11,7 @@ When troubleshooting issues with JLine, especially when dealing with system term
 JLine provides a built-in diagnostic tool that can help identify issues with terminal detection and configuration. To run the JLine diagnostic tool, use the following command:
 
 ```bash
-java -cp jline-%%JLINE_VERSION%%.jar org.jline.terminal.impl.Diag
+java -cp jline-4.0.0.jar org.jline.terminal.impl.Diag
 ```
 
 This will output a full diagnosis for JLine. You may want to add some dependencies if you want specific providers to be loaded.

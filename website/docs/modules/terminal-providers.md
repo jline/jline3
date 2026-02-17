@@ -59,7 +59,7 @@ If you're building your project with Java 11-21 and want to avoid Java 22 class 
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline</artifactId>
-    <version>%%JLINE_VERSION%%</version>
+    <version>4.0.0</version>
     <classifier>jdk11</classifier>
 </dependency>
 ```
@@ -67,7 +67,7 @@ If you're building your project with Java 11-21 and want to avoid Java 22 class 
 **Gradle:**
 
 ```groovy
-implementation 'org.jline:jline:%%JLINE_VERSION%%:jdk11'
+implementation 'org.jline:jline:4.0.0:jdk11'
 ```
 
 The `jdk11` classifier artifact:

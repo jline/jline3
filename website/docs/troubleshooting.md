@@ -32,7 +32,7 @@ The standard `jline` bundle includes the FFM terminal provider which is compiled
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline</artifactId>
-    <version>%%JLINE_VERSION%%</version>
+    <version>4.0.0</version>
     <classifier>jdk11</classifier>
 </dependency>
 ```
@@ -40,7 +40,7 @@ The standard `jline` bundle includes the FFM terminal provider which is compiled
 **Gradle:**
 
 ```groovy
-implementation 'org.jline:jline:%%JLINE_VERSION%%:jdk11'
+implementation 'org.jline:jline:4.0.0:jdk11'
 ```
 
 The `jdk11` classifier artifact excludes the FFM terminal provider and is compatible with Java 11-21. You'll still have full JLine functionality using the JNI or Exec terminal providers instead.
@@ -70,14 +70,14 @@ This error occurs when JLine cannot initialize a terminal for the current enviro
    <dependency>
        <groupId>org.jline</groupId>
        <artifactId>jline-terminal-jni</artifactId>
-       <version>%%JLINE_VERSION%%</version>
+       <version>4.0.0</version>
    </dependency>
 
    <!-- For FFM support (recommended for Java 22+) -->
    <dependency>
        <groupId>org.jline</groupId>
        <artifactId>jline-terminal-ffm</artifactId>
-       <version>%%JLINE_VERSION%%</version>
+       <version>4.0.0</version>
    </dependency>
    ```
 
