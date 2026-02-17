@@ -18,6 +18,7 @@ import org.jline.terminal.Terminal;
  * This class provides access to the command name, arguments, terminal, and I/O streams
  * needed for command execution in the console environment.
  */
+@Deprecated(since = "4.0")
 public class CommandInput {
     /** The command name */
     String command;

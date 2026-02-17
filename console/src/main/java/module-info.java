@@ -39,6 +39,7 @@ module org.jline.console {
     // JLine dependencies
     requires transitive org.jline.terminal;
     requires transitive org.jline.reader;
+    requires transitive org.jline.shell;
     requires org.jline.style;
     requires transitive org.jline.builtins;
     requires org.jline.console.ui;

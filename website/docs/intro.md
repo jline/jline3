@@ -120,13 +120,16 @@ Now that you have a basic understanding of JLine, here's a recommended learning 
    - [Attributed strings](./advanced/attributed-strings.md)
    - [Mouse support](./advanced/mouse-support.md)
 
-6. **Modules**: Explore JLine's specialized modules:
+6. **Shell**: Build interactive command-line applications with the [Shell module](./shell-getting-started.md)
+   - Commands, pipelines, aliases, job control, syntax highlighting
+
+7. **Modules**: Explore JLine's specialized modules:
    - [Terminal providers](./modules/terminal-providers.md)
    - [Builtins](./modules/builtins.md)
    - [Style](./modules/style.md)
    - [Console](./modules/repl-console.md)
    - [Console UI](./modules/console-ui.md)
 
-7. **Troubleshooting**: Refer to the [troubleshooting guide](./troubleshooting.md) if you encounter issues
+8. **Troubleshooting**: Refer to the [troubleshooting guide](./troubleshooting.md) if you encounter issues
 
 JLine offers a rich set of features to create sophisticated command-line interfaces. The examples in this documentation will help you leverage these capabilities in your applications.

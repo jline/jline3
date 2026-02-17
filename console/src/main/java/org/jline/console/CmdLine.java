@@ -17,6 +17,7 @@ import java.util.List;
  * the part before and after the cursor, the parsed arguments, and the type of
  * description that should be displayed for the command.
  */
+@Deprecated(since = "4.0")
 public class CmdLine {
     /**
      * Enumeration specifying the type of description that should be displayed for the command.

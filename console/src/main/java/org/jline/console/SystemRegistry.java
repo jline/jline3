@@ -34,6 +34,7 @@ import org.jline.terminal.Terminal;
  *   <li>Managing console options and variables</li>
  * </ul>
  */
+@Deprecated(since = "4.0")
 public interface SystemRegistry extends CommandRegistry, ConsoleOptionGetter {
 
     /**

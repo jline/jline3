@@ -34,6 +34,7 @@ import org.jline.reader.Widget;
  * for specific scripting languages or execution environments.
  *
  */
+@Deprecated(since = "4.0")
 public interface ConsoleEngine extends CommandRegistry {
 
     /**

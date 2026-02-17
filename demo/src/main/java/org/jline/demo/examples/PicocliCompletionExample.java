@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, the original author(s).
+ * Copyright (c) 2026, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -8,76 +8,41 @@
  */
 package org.jline.demo.examples;
 
-import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import org.jline.reader.Completer;
-import org.jline.reader.LineReader;
-import org.jline.reader.LineReaderBuilder;
-import org.jline.reader.ParsedLine;
-import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
+import org.jline.picocli.PicocliCommandRegistry;
+import org.jline.shell.Shell;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
-import picocli.shell.jline3.PicocliJLineCompleter;
 
 /**
- * Example demonstrating integration of JLine with Picocli including tab completion.
+ * Example demonstrating integration of JLine with Picocli including tab completion,
+ * using {@link PicocliCommandRegistry} and {@link Shell}.
  */
 public class PicocliCompletionExample {
 
     // SNIPPET_START: PicocliCompletionExample
     public static void main(String[] args) {
         try {
-            // Set up the terminal
-            Terminal terminal = TerminalBuilder.builder().system(true).build();
+            // Create the command line parser with subcommands
+            CommandLine commandLine = new CommandLine(new RootCommand());
+            commandLine.addSubcommand("hello", new HelloCommand());
+            commandLine.addSubcommand("echo", new EchoCommand());
 
-            // Create the command line parser
-            RootCommand rootCommand = new RootCommand(terminal);
-            CommandLine commandLine = new CommandLine(rootCommand);
+            // Create a PicocliCommandRegistry -- tab completion is automatic
+            PicocliCommandRegistry registry = new PicocliCommandRegistry(commandLine);
 
-            // Add subcommands
-            commandLine.addSubcommand("hello", new HelloCommand(terminal));
-            commandLine.addSubcommand("echo", new EchoCommand(terminal));
-
-            // Create a completer for the command line
-            Completer completer = new PicocliJLineCompleter(commandLine.getCommandSpec());
-
-            // Set up the line reader with completion
-            LineReader reader = LineReaderBuilder.builder()
-                    .terminal(terminal)
-                    .completer(completer)
-                    .build();
-
-            // Main interactive loop
-            while (true) {
-                String line = reader.readLine("cli> ");
-
-                // Exit if requested
-                if (line.equalsIgnoreCase("exit") || line.equalsIgnoreCase("quit")) {
-                    break;
-                }
-
-                try {
-                    // Parse and execute the command
-                    ParsedLine pl = reader.getParser().parse(line, 0);
-                    String[] arguments = pl.words().toArray(new String[0]);
-                    commandLine.execute(arguments);
-                } catch (Exception e) {
-                    terminal.writer().println("Error: " + e.getMessage());
-                    terminal.flush();
-                }
+            // Shell.builder() wires completers, TailTipWidgets, and the REPL loop
+            try (Shell shell = Shell.builder().prompt("cli> ").groups(registry).build()) {
+                shell.run();
             }
-
-            terminal.writer().println("Goodbye!");
-            terminal.close();
-
-        } catch (IOException e) {
-            System.err.println("Error creating terminal: " + e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -87,43 +52,23 @@ public class PicocliCompletionExample {
             mixinStandardHelpOptions = true,
             version = "1.0",
             description = "Interactive CLI with JLine and Picocli")
-    static class RootCommand implements Callable<Integer> {
-        private final Terminal terminal;
-
-        public RootCommand(Terminal terminal) {
-            this.terminal = terminal;
-        }
-
-        @Override
-        public Integer call() {
-            terminal.writer().println("Use one of the available commands:");
-            terminal.writer().println("  hello - Say hello");
-            terminal.writer().println("  echo - Echo a message");
-            terminal.writer().println("  help - Show help");
-            terminal.writer().println("  exit - Exit the application");
-            terminal.flush();
-            return 0;
-        }
-    }
+    static class RootCommand {}
 
     // Hello command
     @Command(name = "hello", description = "Say hello")
     static class HelloCommand implements Callable<Integer> {
-        private final Terminal terminal;
+
+        @CommandLine.Spec
+        CommandLine.Model.CommandSpec spec;
 
         @Option(
                 names = {"-n", "--name"},
                 description = "Name to greet")
         private String name = "World";
 
-        public HelloCommand(Terminal terminal) {
-            this.terminal = terminal;
-        }
-
         @Override
         public Integer call() {
-            terminal.writer().println("Hello, " + name + "!");
-            terminal.flush();
+            spec.commandLine().getOut().println("Hello, " + name + "!");
             return 0;
         }
     }
@@ -131,7 +76,9 @@ public class PicocliCompletionExample {
     // Echo command
     @Command(name = "echo", description = "Echo a message")
     static class EchoCommand implements Callable<Integer> {
-        private final Terminal terminal;
+
+        @CommandLine.Spec
+        CommandLine.Model.CommandSpec spec;
 
         @Option(
                 names = {"-u", "--uppercase"},
@@ -141,22 +88,18 @@ public class PicocliCompletionExample {
         @Parameters(description = "Message to echo")
         private List<String> message;
 
-        public EchoCommand(Terminal terminal) {
-            this.terminal = terminal;
-        }
-
         @Override
         public Integer call() {
+            PrintWriter out = spec.commandLine().getOut();
             if (message == null || message.isEmpty()) {
-                terminal.writer().println("No message provided");
+                out.println("No message provided");
             } else {
                 String result = String.join(" ", message);
                 if (uppercase) {
                     result = result.toUpperCase();
                 }
-                terminal.writer().println(result);
+                out.println(result);
             }
-            terminal.flush();
             return 0;
         }
     }

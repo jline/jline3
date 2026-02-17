@@ -95,6 +95,7 @@
         <findbugs.version>3.0.2</findbugs.version>
         <groovy.version>5.0.4</groovy.version>
         <ivy.version>2.5.3</ivy.version>
+        <picocli.version>4.7.7</picocli.version>
         <graal.version>25.0.2</graal.version>
         <graal.plugin.version>21.2.0</graal.plugin.version>
         <palantir.version>2.87.0</palantir.version>
@@ -175,6 +176,12 @@
                 <groupId>org.graalvm.sdk</groupId>
                 <artifactId>graal-sdk</artifactId>
                 <version>${graal.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>info.picocli</groupId>
+                <artifactId>picocli</artifactId>
+                <version>${picocli.version}</version>
             </dependency>
 
             <dependency>
@@ -644,10 +651,12 @@
         <subproject>terminal-ffm</subproject>
         <subproject>terminal-jni</subproject>
         <subproject>reader</subproject>
+        <subproject>shell</subproject>
         <subproject>builtins</subproject>
         <subproject>console-ui</subproject>
         <subproject>prompt</subproject>
         <subproject>console</subproject>
+        <subproject>picocli</subproject>
         <subproject>groovy</subproject>
         <subproject>remote-ssh</subproject>
         <subproject>remote-telnet</subproject>

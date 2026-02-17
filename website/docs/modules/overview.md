@@ -43,14 +43,31 @@ The `jline-style` module provides a styling API for terminal output, allowing yo
 - Apply styles consistently across your application
 - Parse style definitions from configuration files
 
+### jline-shell
+
+The `jline-shell` module provides a clean, modern API for building interactive command-line applications. It defines:
+
+- `Command` and `AbstractCommand` — the core command abstraction
+- `CommandGroup` and `SimpleCommandGroup` — command organization and discovery
+- `CommandDispatcher` — command resolution, pipeline execution, and completion
+- `Shell` and `Shell.builder()` — a thin REPL loop with a fluent builder API
+- `Pipeline` and `PipelineParser` — extensible pipeline parsing and execution (`|`, `&&`, `||`, `;`, `>`, `>>`)
+- `JobManager` and `Job` — job control for foreground, background, and suspended commands
+- `AliasManager` — command alias system with parameter substitution and optional persistence
+- Built-in commands — `history`, `help`, `setopt`/`unsetopt`/`setvar` (opt-in via builder)
+- `CommandHighlighter` — command-aware syntax highlighting
+
+See the [jline-shell module page](./shell.md) for full details.
+
 ### jline-console
 
-The `jline-console` module provides a framework for building interactive console applications, including:
+The `jline-console` module provides the legacy framework for building interactive console applications. New applications should prefer `jline-shell`. It includes:
 
 - Command processing infrastructure
 - Command registration and discovery
 - Argument parsing
 - Help generation
+- Bridge adapters for interoperability with `jline-shell`
 
 ### jline-console-ui
 
@@ -70,12 +87,12 @@ The modules have the following dependency relationships:
 jline-terminal
     ↑
 jline-reader
-    ↑
+   ↑ ↑
+   |  jline-shell → jline-console (legacy bridge)
+   |
 jline-style
     ↑
 jline-builtins
-    ↑
-jline-console
     ↑
 jline-console-ui
 ```
@@ -109,6 +126,12 @@ To use these modules in your Maven project, add the appropriate dependencies:
 
 <dependency>
     <groupId>org.jline</groupId>
+    <artifactId>jline-shell</artifactId>
+    <version>%%JLINE_VERSION%%</version>
+</dependency>
+
+<dependency>
+    <groupId>org.jline</groupId>
     <artifactId>jline-console</artifactId>
     <version>%%JLINE_VERSION%%</version>
 </dependency>
@@ -124,7 +147,7 @@ To use these modules in your Maven project, add the appropriate dependencies:
 
 JLine 4.0+ includes full JPMS support for most modules:
 
-- **✅ JPMS Modules**: `jline-terminal`, `jline-reader`, `jline-style`, `jline-builtins`, `jline-console`, `jline-console-ui`, `jline-native`, `jline-terminal-ffm`, `jline-terminal-jni`, `jline-jansi-core`, `jline-curses`
+- **✅ JPMS Modules**: `jline-terminal`, `jline-reader`, `jline-style`, `jline-builtins`, `jline-shell`, `jline-console`, `jline-console-ui`, `jline-native`, `jline-terminal-ffm`, `jline-terminal-jni`, `jline-jansi-core`, `jline-curses`
 - **❌ Automatic Modules**: `jline-terminal-jansi`, `jline-groovy`, `jline-remote-ssh`, `jline-remote-telnet`, `jline-demo`, `jline-graal`
 
 For detailed JPMS usage information, see the [JPMS Support](./jpms.md) documentation.

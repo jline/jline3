@@ -61,9 +61,20 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'Shell',
+      items: [
+        'shell-getting-started',
+        'shell-commands',
+        'shell-picocli',
+        'shell-migration',
+      ],
+    },
+    {
+      type: 'category',
       label: 'Modules',
       items: [
         'modules/overview',
+        'modules/shell',
         'modules/builtins',
         'modules/style',
         'modules/terminal-providers',

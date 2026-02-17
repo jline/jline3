@@ -31,6 +31,7 @@ import org.jline.terminal.Terminal;
  * for specific domains or applications.
  *
  */
+@Deprecated(since = "4.0")
 public interface CommandRegistry {
 
     /**

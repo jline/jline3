@@ -19,6 +19,7 @@ import org.jline.utils.AttributedString;
  * argument descriptions, and option descriptions. It is used by the JLine Widgets
  * framework to display command help in the terminal.
  */
+@Deprecated(since = "4.0")
 public class CmdDesc {
     /** The main description of the command */
     private List<AttributedString> mainDesc;

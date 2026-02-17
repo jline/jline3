@@ -75,6 +75,10 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <artifactId>jline-shell</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <artifactId>jline-console</artifactId>
             <scope>test</scope>
         </dependency>
@@ -169,6 +173,16 @@
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
                                     <artifactId>jline-builtins</artifactId>
+                                    <classifier>sources</classifier>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                                    <includes>**/*.java</includes>
+                                    <excludes>**/module-info.java</excludes>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
+                                    <artifactId>jline-shell</artifactId>
                                     <classifier>sources</classifier>
                                     <type>jar</type>
                                     <overWrite>false</overWrite>
@@ -278,6 +292,14 @@
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.jline</groupId>
+                                    <artifactId>jline-shell</artifactId>
+                                    <type>jar</type>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+                                    <excludes>**/*.class</excludes>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.jline</groupId>
                                     <artifactId>jline-remote-ssh</artifactId>
                                     <type>jar</type>
                                     <overWrite>false</overWrite>
@@ -360,7 +382,7 @@
                                 <exclude>**/ffm/*.java</exclude>
                             </excludes>
                             <compilerArgs>
-                                <arg>-Xlint:all,-options</arg>
+                                <arg>-Xlint:all,-options,-deprecation</arg>
                                 <arg>-Werror</arg>
                             </compilerArgs>
                         </configuration>
@@ -376,7 +398,7 @@
                             </includes>
                             <release>22</release>
                             <compilerArgs>
-                                <arg>-Xlint:all,-options</arg>
+                                <arg>-Xlint:all,-options,-deprecation</arg>
                                 <arg>-Werror</arg>
                             </compilerArgs>
                         </configuration>
