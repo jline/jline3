@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.jline.terminal.Terminal;
-import org.jline.terminal.impl.AbstractWindowsTerminal;
 import org.jline.utils.InfoCmp.Capability;
 
 import static org.jline.terminal.TerminalBuilder.PROP_DISABLE_ALTERNATE_CHARSET;
@@ -181,10 +180,6 @@ public abstract class AttributedCharSequence implements CharSequence {
             Integer max_colors = terminal.getNumericCapability(Capability.max_colors);
             if (max_colors != null) {
                 colors = max_colors;
-            }
-            if (AbstractWindowsTerminal.TYPE_WINDOWS_256_COLOR.equals(terminal.getType())
-                    || AbstractWindowsTerminal.TYPE_WINDOWS_CONEMU.equals(terminal.getType())) {
-                forceMode = ForceMode.Force256Colors;
             }
             palette = terminal.getPalette();
             if (!DISABLE_ALTERNATE_CHARSET) {

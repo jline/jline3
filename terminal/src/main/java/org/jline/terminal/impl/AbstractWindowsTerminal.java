@@ -21,6 +21,7 @@ import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
+import org.jline.utils.AttributedCharSequence;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.Log;
@@ -495,6 +496,20 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
     public boolean trackFocus(boolean tracking) {
         focusTracking = tracking;
         return true;
+    }
+
+    @Override
+    protected void detectTrueColorSupport() {
+        super.detectTrueColorSupport();
+        Integer maxColors = ints.get(InfoCmp.Capability.max_colors);
+        if (maxColors != null && maxColors >= 256) {
+            return; // already sufficient
+        }
+        if (TYPE_WINDOWS_VTP.equals(getType())) {
+            ints.put(InfoCmp.Capability.max_colors, AttributedCharSequence.TRUE_COLORS);
+        } else if (TYPE_WINDOWS_256_COLOR.equals(getType()) || TYPE_WINDOWS_CONEMU.equals(getType())) {
+            ints.put(InfoCmp.Capability.max_colors, 256);
+        }
     }
 
     /**
