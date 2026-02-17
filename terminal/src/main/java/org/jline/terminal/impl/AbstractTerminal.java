@@ -28,6 +28,7 @@ import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.MouseEvent;
 import org.jline.terminal.spi.TerminalExt;
+import org.jline.utils.AttributedCharSequence;
 import org.jline.utils.ColorPalette;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp;
@@ -273,6 +274,30 @@ public abstract class AbstractTerminal implements TerminalExt {
             capabilities = InfoCmp.getDefaultInfoCmp("ansi");
         }
         InfoCmp.parseInfoCmp(capabilities, bools, ints, strings);
+        detectTrueColorSupport();
+    }
+
+    /**
+     * Detects true color support from environment variables and upgrades
+     * {@code max_colors} accordingly. Subclasses for remote terminals can
+     * override this to check the remote client's environment instead.
+     *
+     * @see <a href="https://gist.github.com/XVilka/8346728#true-color-detection">True Color detection</a>
+     */
+    protected void detectTrueColorSupport() {
+        Integer maxColors = ints.get(Capability.max_colors);
+        if (maxColors != null && maxColors >= 0x7FFF) {
+            return; // already true-color capable
+        }
+        String colorterm = System.getenv("COLORTERM");
+        if (colorterm != null) {
+            colorterm = colorterm.toLowerCase(java.util.Locale.ROOT);
+        }
+        if (colorterm != null && (colorterm.contains("truecolor") || colorterm.contains("24bit"))) {
+            ints.put(Capability.max_colors, AttributedCharSequence.TRUE_COLORS);
+        } else if (type != null && type.contains("-direct")) {
+            ints.put(Capability.max_colors, AttributedCharSequence.TRUE_COLORS);
+        }
     }
 
     @Override
