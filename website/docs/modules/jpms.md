@@ -38,6 +38,7 @@ These modules have complete `module-info.java` descriptors with proper exports, 
 | Prompt | `jline-prompt` | `org.jline.prompt` | 11+ | Modern prompt API for interactive applications |
 | Console | `jline-console` | `org.jline.console` | 11+ | High-level console framework |
 | Jansi Core | `jline-jansi-core` | `org.jline.jansi.core` | 11+ | JLine's ANSI implementation |
+| Widgets | `jline-components` | `org.jline.components` | 11+ | Composable output components (spinners, progress bars, etc.) |
 | Curses | `jline-curses` | `org.jline.curses` | 11+ | Curses-like UI components |
 | **Remote Access** | | | | |
 | Remote Telnet | `jline-remote-telnet` | `org.jline.remote.telnet` | 11+ | Telnet server functionality |
@@ -85,6 +86,7 @@ module your.application {
     requires org.jline.console;      // For console framework
     requires org.jline.prompt;       // For modern prompt API
     requires org.jline.console.ui;   // For legacy UI components (deprecated)
+    requires org.jline.components;      // For composable output components
 
     // Terminal providers (choose one or more)
     requires org.jline.terminal.jni; // JNI-based (recommended)
@@ -183,19 +185,19 @@ When using Maven or Gradle, you can depend on individual modules:
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-terminal</artifactId>
-    <version>%%JLINE_VERSION%%</version>
+    <version>4.0.0</version>
 </dependency>
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-reader</artifactId>
-    <version>%%JLINE_VERSION%%</version>
+    <version>4.0.0</version>
 </dependency>
 ```
 
 #### Gradle
 ```groovy
-implementation 'org.jline:jline-terminal:%%JLINE_VERSION%%'
-implementation 'org.jline:jline-reader:%%JLINE_VERSION%%'
+implementation 'org.jline:jline-terminal:4.0.0'
+implementation 'org.jline:jline-reader:4.0.0'
 ```
 
 ## Migration from JLine 3.x
@@ -224,17 +226,17 @@ When migrating from JLine 3.x to 4.x in a modular application:
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-terminal</artifactId>
-    <version>%%JLINE_VERSION%%</version>
+    <version>4.0.0</version>
 </dependency>
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-reader</artifactId>
-    <version>%%JLINE_VERSION%%</version>
+    <version>4.0.0</version>
 </dependency>
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-terminal-jni</artifactId>
-    <version>%%JLINE_VERSION%%</version>
+    <version>4.0.0</version>
 </dependency>
 ```
 
@@ -252,7 +254,8 @@ module your.application {
 
 - **Minimal applications**: Use only `org.jline.terminal` and `org.jline.reader`
 - **Shell applications**: Add `org.jline.builtins` for common commands (ls, cat, etc.)
-- **UI applications**: Add `org.jline.curses` for advanced UI components
+- **Inline UI**: Add `org.jline.components` for composable output components (spinners, progress bars, etc.)
+- **Full-screen UI**: Add `org.jline.curses` for full-screen TUI applications
 
 ### Terminal Provider Selection
 

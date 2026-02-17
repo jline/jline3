@@ -8,7 +8,7 @@ This document explains how version numbers are managed in the JLine documentatio
 
 ## Version Placeholders
 
-The JLine documentation uses a placeholder system to ensure that version numbers are consistent throughout the documentation. Instead of hardcoding version numbers, we use the placeholder `%%JLINE_VERSION%%` which is automatically replaced with the actual version during the build process.
+The JLine documentation uses a placeholder system to ensure that version numbers are consistent throughout the documentation. Instead of hardcoding version numbers, we use the placeholder `4.0.0` which is automatically replaced with the actual version during the build process.
 
 ### How It Works
 
@@ -19,17 +19,17 @@ The JLine documentation uses a placeholder system to ensure that version numbers
 const jlineVersion = '...';
 ```
 
-2. During the build process, all instances of `%%JLINE_VERSION%%` in the documentation files are replaced with the actual version.
+2. During the build process, all instances of `4.0.0` in the documentation files are replaced with the actual version.
 
 ## Using Version Placeholders
 
-When adding version numbers to the documentation, use the `%%JLINE_VERSION%%` placeholder instead of hardcoding the version:
+When adding version numbers to the documentation, use the `4.0.0` placeholder instead of hardcoding the version:
 
 ```xml
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline</artifactId>
-    <version>%%JLINE_VERSION%%</version>
+    <version>4.0.0</version>
 </dependency>
 ```
 
@@ -57,7 +57,7 @@ When releasing a new version of JLine, update the version in `docusaurus.config.
 
 ```javascript
 // JLine version - update this when releasing a new version
-const jlineVersion = '%%JLINE_VERSION%%'; // Updated version
+const jlineVersion = '4.0.0'; // Updated version
 ```
 
 The build process will automatically use the new version when replacing the placeholders.

@@ -43,7 +43,7 @@ Add JLine to your project using Maven:
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline</artifactId>
-    <version>%%JLINE_VERSION%%</version>
+    <version>4.0.0</version>
 </dependency>
 ```
 
@@ -52,7 +52,7 @@ Add JLine to your project using Maven:
 Or if you're using Gradle:
 
 ```groovy
-implementation 'org.jline:jline:%%JLINE_VERSION%%'
+implementation 'org.jline:jline:4.0.0'
 ```
 
 ### Java 11-21 Compatibility (JDK11 Classifier)
@@ -69,7 +69,7 @@ Note: JLine 4.x requires Java 11+ as the minimum runtime version. For Java 8 sup
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline</artifactId>
-    <version>%%JLINE_VERSION%%</version>
+    <version>4.0.0</version>
     <classifier>jdk11</classifier>
 </dependency>
 ```
@@ -77,7 +77,7 @@ Note: JLine 4.x requires Java 11+ as the minimum runtime version. For Java 8 sup
 **Gradle:**
 
 ```groovy
-implementation 'org.jline:jline:%%JLINE_VERSION%%:jdk11'
+implementation 'org.jline:jline:4.0.0:jdk11'
 ```
 
 The `jdk11` classifier artifact:
