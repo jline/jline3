@@ -51,8 +51,11 @@ The `jline-shell` module provides a clean, modern API for building interactive c
 - `CommandGroup` and `SimpleCommandGroup` — command organization and discovery
 - `CommandDispatcher` — command resolution, pipeline execution, and completion
 - `Shell` and `Shell.builder()` — a thin REPL loop with a fluent builder API
-- `Pipeline` — pipeline parsing and execution (`|`, `&&`, `||`, `>`, `>>`)
+- `Pipeline` and `PipelineParser` — extensible pipeline parsing and execution (`|`, `&&`, `||`, `;`, `>`, `>>`)
 - `JobManager` and `Job` — job control for foreground, background, and suspended commands
+- `AliasManager` — command alias system with parameter substitution and optional persistence
+- Built-in commands — `history`, `help`, `setopt`/`unsetopt`/`setvar` (opt-in via builder)
+- `CommandHighlighter` — command-aware syntax highlighting
 
 See the [jline-shell module page](./shell.md) for full details.
 
@@ -84,14 +87,12 @@ The modules have the following dependency relationships:
 jline-terminal
     ↑
 jline-reader
-    ↑
+   ↑ ↑
+   |  jline-shell → jline-console (legacy bridge)
+   |
 jline-style
     ↑
 jline-builtins
-    ↑
-jline-shell
-    ↑
-jline-console
     ↑
 jline-console-ui
 ```

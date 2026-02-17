@@ -75,7 +75,24 @@ shell.run();
 
 ## Pipeline Support
 
-The shell module includes pipeline parsing and execution with operators like `|` (pipe), `&&` (and), `||` (or), `>` (redirect), and `>>` (append).
+The shell module includes pipeline parsing and execution with operators like `|` (pipe), `|;` (flip), `&&` (and), `||` (or), `;` (sequence), `>` (redirect), `>>` (append), and `&` (background).
+
+The `PipelineParser` is extensible — register custom operators via its constructor, or subclass and override `matchOperator()` for full control.
+
+## Alias System
+
+The `AliasManager` interface and `DefaultAliasManager` implementation provide a command alias system with `$1`/`$2`/`$@` parameter substitution and optional file persistence. When configured, `alias` and `unalias` commands are automatically registered.
+
+## Built-in Commands
+
+The shell provides opt-in command groups via the builder:
+- `historyCommands(true)` — `history` command with list/search/clear/save
+- `helpCommands(true)` — `help` command listing all commands by group
+- `optionCommands(true)` — `setopt`/`unsetopt`/`setvar` for runtime LineReader configuration
+
+## Syntax Highlighting
+
+The `CommandHighlighter` highlights known commands in bold, unknown commands in red, and pipeline operators in cyan. Enable with `commandHighlighter(true)` on the builder, or provide a custom `Highlighter`.
 
 ## Job Management
 
