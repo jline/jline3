@@ -70,7 +70,6 @@ public class PicocliCommandRegistry implements CommandRegistry, CommandGroup {
         this.commandLine = Objects.requireNonNull(commandLine, "commandLine");
     }
 
-    @Override
     public void setLineReader(LineReader reader) {
         this.reader = reader;
     }

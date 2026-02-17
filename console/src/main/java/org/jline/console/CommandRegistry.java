@@ -13,7 +13,6 @@ import java.io.PrintStream;
 import java.util.*;
 
 import org.jline.reader.Candidate;
-import org.jline.reader.LineReader;
 import org.jline.reader.impl.completer.SystemCompleter;
 import org.jline.terminal.Terminal;
 
@@ -140,17 +139,6 @@ public interface CommandRegistry {
     CmdDesc commandDescription(List<String> args);
 
     /**
-     * Sets the line reader for this command registry.
-     * <p>
-     * This method allows the registry to access the line reader for terminal interaction.
-     * Default implementation does nothing. Implementations that need access to the line
-     * reader should override this method.
-     *
-     * @param reader the line reader to set
-     */
-    default void setLineReader(LineReader reader) {}
-
-    /**
      * Execute a command.
      * @param session the data of the current command session
      * @param command the name of the command
@@ -166,21 +154,23 @@ public interface CommandRegistry {
     /**
      * Class representing a command execution session.
      * <p>
-     * A CommandSession encapsulates the terminal and I/O streams
-     * used during command execution.
-     *
-     * @deprecated Use {@link org.jline.shell.CommandSession} instead, which provides
-     *             the enriched API with variables, working directory, exit code, and job support.
+     * A CommandSession encapsulates the terminal and I/O streams used for command execution.
+     * It provides access to the terminal, input stream, output stream, and error stream
+     * for the command being executed.
      */
-    @Deprecated(since = "4.0")
     class CommandSession {
+        /** The terminal for the command session */
         private final Terminal terminal;
+        /** The input stream for the command session */
         private final InputStream in;
+        /** The output stream for the command session */
         private final PrintStream out;
+        /** The error stream for the command session */
         private final PrintStream err;
 
         /**
          * Creates a new command session with the system's standard I/O streams.
+         * The terminal will be null in this case.
          */
         public CommandSession() {
             this.in = System.in;
@@ -191,8 +181,9 @@ public interface CommandRegistry {
 
         /**
          * Creates a new command session with the specified terminal.
+         * The I/O streams will be derived from the terminal.
          *
-         * @param terminal the terminal
+         * @param terminal the terminal for the command session
          */
         public CommandSession(Terminal terminal) {
             this(terminal, terminal.input(), new PrintStream(terminal.output()), new PrintStream(terminal.output()));
@@ -201,10 +192,10 @@ public interface CommandRegistry {
         /**
          * Creates a new command session with the specified terminal and I/O streams.
          *
-         * @param terminal the terminal
-         * @param in the input stream
-         * @param out the output stream
-         * @param err the error stream
+         * @param terminal the terminal for the command session
+         * @param in the input stream for the command session
+         * @param out the output stream for the command session
+         * @param err the error stream for the command session
          */
         public CommandSession(Terminal terminal, InputStream in, PrintStream out, PrintStream err) {
             this.terminal = terminal;
@@ -214,16 +205,16 @@ public interface CommandRegistry {
         }
 
         /**
-         * Returns the terminal.
+         * Returns the terminal for the command session.
          *
-         * @return the terminal, or null
+         * @return the terminal, or null if no terminal is associated with this session
          */
         public Terminal terminal() {
             return terminal;
         }
 
         /**
-         * Returns the input stream.
+         * Returns the input stream for the command session.
          *
          * @return the input stream
          */
@@ -232,7 +223,7 @@ public interface CommandRegistry {
         }
 
         /**
-         * Returns the output stream.
+         * Returns the output stream for the command session.
          *
          * @return the output stream
          */
@@ -241,7 +232,7 @@ public interface CommandRegistry {
         }
 
         /**
-         * Returns the error stream.
+         * Returns the error stream for the command session.
          *
          * @return the error stream
          */
