@@ -9,15 +9,13 @@
 package org.jline.demo.examples;
 
 import java.nio.file.Paths;
-import java.util.*;
 
-import org.jline.console.CommandInput;
-import org.jline.console.CommandMethods;
-import org.jline.console.CommandRegistry;
-import org.jline.console.Shell;
-import org.jline.console.impl.JlineCommandRegistry;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReader.Option;
+import org.jline.shell.CommandSession;
+import org.jline.shell.Shell;
+import org.jline.shell.impl.AbstractCommand;
+import org.jline.shell.impl.SimpleCommandGroup;
 
 /**
  * Example demonstrating how Shell.builder() eliminates REPL boilerplate.
@@ -27,62 +25,37 @@ import org.jline.reader.LineReader.Option;
 public class ShellBuilderExample {
 
     // SNIPPET_START: ShellBuilderExample
-    /**
-     * A simple command registry for the demo.
-     */
-    static class MyCommands extends JlineCommandRegistry implements CommandRegistry {
-        private LineReader reader;
-
-        @SuppressWarnings("this-escape")
-        MyCommands() {
-            super();
-            Map<String, CommandMethods> commandExecute = new HashMap<>();
-            commandExecute.put("echo", new CommandMethods(this::echo, this::defaultCompleter));
-            commandExecute.put("greet", new CommandMethods(this::greet, this::defaultCompleter));
-            registerCommands(commandExecute);
-        }
-
-        @Override
-        public void setLineReader(LineReader reader) {
-            this.reader = reader;
-        }
-
-        private void echo(CommandInput input) {
-            final String[] usage = {
-                "echo - echo arguments",
-                "Usage: echo [MESSAGE...]",
-                "  -? --help                       Displays command help"
-            };
-            try {
-                org.jline.builtins.Options opt = parseOptions(usage, input.args());
-                if (!opt.args().isEmpty()) {
-                    reader.getTerminal().writer().println(String.join(" ", opt.args()));
-                }
-            } catch (Exception e) {
-                saveException(e);
-            }
-        }
-
-        private void greet(CommandInput input) {
-            final String[] usage = {
-                "greet - greet someone",
-                "Usage: greet [NAME]",
-                "  -? --help                       Displays command help"
-            };
-            try {
-                org.jline.builtins.Options opt = parseOptions(usage, input.args());
-                String name = opt.args().isEmpty() ? "World" : opt.args().get(0);
-                reader.getTerminal().writer().println("Hello, " + name + "!");
-            } catch (Exception e) {
-                saveException(e);
-            }
-        }
-    }
-
     public static void main(String[] args) {
         try (Shell shell = Shell.builder()
                 .prompt("demo> ")
-                .commands(new MyCommands())
+                .groups(new SimpleCommandGroup(
+                        "demo",
+                        new AbstractCommand("echo") {
+                            @Override
+                            public String description() {
+                                return "Echo arguments to output";
+                            }
+
+                            @Override
+                            public Object execute(CommandSession session, String[] a) {
+                                String msg = String.join(" ", a);
+                                session.out().println(msg);
+                                return msg;
+                            }
+                        },
+                        new AbstractCommand("greet") {
+                            @Override
+                            public String description() {
+                                return "Greet someone";
+                            }
+
+                            @Override
+                            public Object execute(CommandSession session, String[] a) {
+                                String name = a.length > 0 ? a[0] : "World";
+                                session.out().println("Hello, " + name + "!");
+                                return null;
+                            }
+                        }))
                 .variable(LineReader.HISTORY_FILE, Paths.get(System.getProperty("user.home"), ".demo_history"))
                 .option(Option.INSERT_BRACKET, true)
                 .option(Option.DISABLE_EVENT_EXPANSION, true)

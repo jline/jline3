@@ -6,14 +6,14 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.console;
+package org.jline.shell;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.jline.console.impl.DefaultPipeline;
+import org.jline.shell.impl.DefaultPipeline;
 
 /**
  * Fluent builder for constructing {@link Pipeline} instances programmatically.
@@ -27,6 +27,7 @@ import org.jline.console.impl.DefaultPipeline;
  * </pre>
  *
  * @see Pipeline
+ * @since 4.0
  */
 public class PipelineBuilder {
 

@@ -24,6 +24,9 @@
             <artifactId>jline-console</artifactId>
         </dependency>
         <dependency>
+            <artifactId>jline-shell</artifactId>
+        </dependency>
+        <dependency>
             <groupId>info.picocli</groupId>
             <artifactId>picocli</artifactId>
         </dependency>

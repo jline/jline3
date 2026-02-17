@@ -12,8 +12,8 @@ import java.io.PrintWriter;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import org.jline.console.Shell;
 import org.jline.picocli.PicocliCommandRegistry;
+import org.jline.shell.Shell;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -38,8 +38,7 @@ public class PicocliCompletionExample {
             PicocliCommandRegistry registry = new PicocliCommandRegistry(commandLine);
 
             // Shell.builder() wires completers, TailTipWidgets, and the REPL loop
-            try (Shell shell =
-                    Shell.builder().prompt("cli> ").commands(registry).build()) {
+            try (Shell shell = Shell.builder().prompt("cli> ").groups(registry).build()) {
                 shell.run();
             }
         } catch (Exception e) {

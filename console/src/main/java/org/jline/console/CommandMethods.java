@@ -21,6 +21,7 @@ import org.jline.reader.Completer;
  * a completer compilation function. This allows commands to be registered with
  * both their execution logic and their completion logic in a single object.
  */
+@Deprecated(since = "4.0")
 public class CommandMethods {
     /** The function that executes the command */
     Function<CommandInput, ?> execute;

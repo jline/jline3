@@ -56,7 +56,7 @@
                 <configuration>
                     <showWarnings>true</showWarnings>
                     <compilerArgs>
-                        <arg>-Xlint:all,-options</arg>
+                        <arg>-Xlint:all,-options,-deprecation</arg>
                         <arg>-Werror</arg>
                     </compilerArgs>
                     <fork>true</fork>

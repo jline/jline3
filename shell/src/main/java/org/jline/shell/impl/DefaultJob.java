@@ -6,14 +6,16 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.console.impl;
+package org.jline.shell.impl;
 
-import org.jline.console.Job;
+import org.jline.shell.Job;
 
 /**
  * Default implementation of {@link Job}.
  * <p>
  * Wraps a {@link Thread} reference and tracks the job's lifecycle status.
+ *
+ * @since 4.0
  */
 public class DefaultJob implements Job {
 

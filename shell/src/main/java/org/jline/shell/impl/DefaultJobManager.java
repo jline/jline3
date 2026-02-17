@@ -6,7 +6,7 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.console.impl;
+package org.jline.shell.impl;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -14,14 +14,16 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.jline.console.Job;
-import org.jline.console.JobListener;
-import org.jline.console.JobManager;
+import org.jline.shell.Job;
+import org.jline.shell.JobListener;
+import org.jline.shell.JobManager;
 
 /**
  * Default implementation of {@link JobManager}.
  * <p>
  * Tracks jobs using an internal list and notifies registered listeners on status changes.
+ *
+ * @since 4.0
  */
 public class DefaultJobManager implements JobManager {
 

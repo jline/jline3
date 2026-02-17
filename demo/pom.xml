@@ -39,6 +39,9 @@
             <artifactId>jline-console</artifactId>
         </dependency>
         <dependency>
+            <artifactId>jline-shell</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.jline</groupId>
             <artifactId>jline-console-ui</artifactId>
         </dependency>
@@ -245,7 +248,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <compilerArgs>
-                        <arg>-Xlint:all,-options,-processing,-restricted,-removal,-classfile</arg>
+                        <arg>-Xlint:all,-options,-processing,-restricted,-removal,-classfile,-deprecation</arg>
                         <arg>-Werror</arg>
                     </compilerArgs>
                 </configuration>

@@ -6,16 +6,14 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.console;
+package org.jline.shell;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
-import java.util.function.Supplier;
 
-import org.jline.console.impl.DefaultJobManager;
 import org.jline.reader.LineReader;
-import org.jline.reader.impl.completer.SystemCompleter;
+import org.jline.shell.impl.AbstractCommand;
+import org.jline.shell.impl.SimpleCommandGroup;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.junit.jupiter.api.Test;
@@ -34,7 +32,7 @@ public class ShellBuilderTest {
         assertNotNull(shell);
         assertSame(terminal, shell.terminal());
         assertNotNull(shell.reader());
-        assertNotNull(shell.systemRegistry());
+        assertNotNull(shell.dispatcher());
         shell.close();
     }
 
@@ -81,73 +79,31 @@ public class ShellBuilderTest {
     }
 
     @Test
-    void builderAcceptsWorkDir() throws Exception {
+    void builderAcceptsCommandGroups() throws Exception {
         Terminal terminal = TerminalBuilder.builder().dumb(true).build();
-        Supplier<Path> workDir = () -> Paths.get("/tmp");
-        Shell shell = Shell.builder().terminal(terminal).workDir(workDir).build();
+        Command echo = new AbstractCommand("echo") {
+            @Override
+            public Object execute(CommandSession session, String[] args) {
+                return String.join(" ", args);
+            }
+        };
+        CommandGroup group = new SimpleCommandGroup("test", echo);
+        Shell shell = Shell.builder().terminal(terminal).groups(group).build();
         assertNotNull(shell);
+        assertNotNull(shell.dispatcher().findCommand("echo"));
         shell.close();
     }
 
     @Test
-    void builderAcceptsCommandRegistries() throws Exception {
+    void builderAcceptsOnReaderReady() throws Exception {
         Terminal terminal = TerminalBuilder.builder().dumb(true).build();
-        CommandRegistry registry = new SimpleTestRegistry();
-        Shell shell = Shell.builder().terminal(terminal).commands(registry).build();
+        boolean[] called = {false};
+        Shell shell = Shell.builder()
+                .terminal(terminal)
+                .onReaderReady(reader -> called[0] = true)
+                .build();
         assertNotNull(shell);
-        assertTrue(shell.systemRegistry().hasCommand("test-cmd"));
+        assertTrue(called[0]);
         shell.close();
-    }
-
-    @Test
-    void builderAcceptsJobManager() throws Exception {
-        Terminal terminal = TerminalBuilder.builder().dumb(true).build();
-        DefaultJobManager jobManager = new DefaultJobManager();
-        Shell shell = Shell.builder().terminal(terminal).jobManager(jobManager).build();
-        assertNotNull(shell);
-        shell.close();
-    }
-
-    @Test
-    void builderDisableTailTipWidgets() throws Exception {
-        Terminal terminal = TerminalBuilder.builder().dumb(true).build();
-        Shell shell = Shell.builder().terminal(terminal).tailTipWidgets(false).build();
-        assertNotNull(shell);
-        shell.close();
-    }
-
-    /**
-     * Simple command registry for testing.
-     */
-    private static class SimpleTestRegistry implements CommandRegistry {
-        @Override
-        public Set<String> commandNames() {
-            return Collections.singleton("test-cmd");
-        }
-
-        @Override
-        public Map<String, String> commandAliases() {
-            return Collections.emptyMap();
-        }
-
-        @Override
-        public List<String> commandInfo(String command) {
-            return Collections.singletonList("A test command");
-        }
-
-        @Override
-        public boolean hasCommand(String command) {
-            return "test-cmd".equals(command);
-        }
-
-        @Override
-        public SystemCompleter compileCompleters() {
-            return new SystemCompleter();
-        }
-
-        @Override
-        public CmdDesc commandDescription(List<String> args) {
-            return null;
-        }
     }
 }

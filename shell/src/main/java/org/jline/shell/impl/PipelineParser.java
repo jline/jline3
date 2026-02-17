@@ -6,7 +6,7 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.console.impl;
+package org.jline.shell.impl;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -14,8 +14,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.jline.console.Pipeline;
-import org.jline.console.Pipeline.Operator;
+import org.jline.shell.Pipeline;
+import org.jline.shell.Pipeline.Operator;
 
 /**
  * Parses a command line string into a {@link Pipeline}.
@@ -33,6 +33,8 @@ import org.jline.console.Pipeline.Operator;
  * <p>
  * The parser respects quoting (single and double) and bracket nesting,
  * so operators inside quoted strings or brackets are not treated as pipeline operators.
+ *
+ * @since 4.0
  */
 public class PipelineParser {
 

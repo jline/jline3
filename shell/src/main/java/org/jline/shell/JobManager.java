@@ -6,7 +6,7 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.console;
+package org.jline.shell;
 
 import java.util.List;
 
@@ -15,6 +15,8 @@ import java.util.List;
  * <p>
  * The job manager tracks running, suspended, and completed jobs and provides
  * methods for querying and listening to job state changes.
+ *
+ * @since 4.0
  */
 public interface JobManager {
 

@@ -6,7 +6,7 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.console;
+package org.jline.shell;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -27,6 +27,7 @@ import java.util.List;
  * building a pipeline.
  *
  * @see Pipeline.Operator
+ * @since 4.0
  */
 public interface Pipeline {
 

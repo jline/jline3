@@ -6,12 +6,12 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.console.impl;
+package org.jline.shell.impl;
 
 import java.nio.file.Path;
 import java.util.List;
 
-import org.jline.console.Pipeline;
+import org.jline.shell.Pipeline;
 
 /**
  * Default implementation of {@link Pipeline}.
@@ -19,6 +19,8 @@ import org.jline.console.Pipeline;
  * A pipeline is an ordered list of {@link Stage}s connected by {@link Operator}s.
  * Instances are immutable and created via {@link Pipeline#of(String)} or
  * {@link PipelineParser#parse(String)}.
+ *
+ * @since 4.0
  */
 public class DefaultPipeline implements Pipeline {
 

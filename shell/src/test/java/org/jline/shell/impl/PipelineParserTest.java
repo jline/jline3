@@ -6,12 +6,12 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.console.impl;
+package org.jline.shell.impl;
 
 import java.nio.file.Paths;
 
-import org.jline.console.Pipeline;
-import org.jline.console.Pipeline.Operator;
+import org.jline.shell.Pipeline;
+import org.jline.shell.Pipeline.Operator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

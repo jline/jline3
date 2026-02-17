@@ -6,13 +6,13 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.console.impl;
+package org.jline.shell.impl;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.jline.console.Job;
-import org.jline.console.JobListener;
+import org.jline.shell.Job;
+import org.jline.shell.JobListener;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

@@ -6,13 +6,15 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.console;
+package org.jline.shell;
 
 /**
  * Represents a job in the shell's job control system.
  * <p>
  * A job tracks the execution of a command, including its lifecycle status.
  * Jobs can be in foreground, background, suspended, or done states.
+ *
+ * @since 4.0
  */
 public interface Job {
 

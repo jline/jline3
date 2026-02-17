@@ -23,6 +23,10 @@
     <dependencies>
         <dependency>
             <groupId>org.jline</groupId>
+            <artifactId>jline-shell</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
             <artifactId>jline-builtins</artifactId>
         </dependency>
         <dependency>
@@ -60,7 +64,7 @@
                         <id>default-compile</id>
                         <configuration>
                             <compilerArgs>
-                                <arg>-Xlint:all,-options,-restricted</arg>
+                                <arg>-Xlint:all,-options,-restricted,-deprecation</arg>
                                 <arg>-Werror</arg>
                             </compilerArgs>
                         </configuration>

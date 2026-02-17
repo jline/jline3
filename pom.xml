@@ -651,6 +651,7 @@
         <subproject>terminal-ffm</subproject>
         <subproject>terminal-jni</subproject>
         <subproject>reader</subproject>
+        <subproject>shell</subproject>
         <subproject>builtins</subproject>
         <subproject>console-ui</subproject>
         <subproject>prompt</subproject>

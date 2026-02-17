@@ -14,12 +14,15 @@ import java.util.*;
 import org.jline.console.ArgDesc;
 import org.jline.console.CmdDesc;
 import org.jline.console.CommandRegistry;
+import org.jline.console.impl.DescriptionAdapter;
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.reader.impl.completer.SystemCompleter;
+import org.jline.shell.CommandDescription;
+import org.jline.shell.CommandGroup;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 
@@ -46,10 +49,16 @@ import picocli.CommandLine.Model.PositionalParamSpec;
  * shell.run();
  * </pre>
  */
-public class PicocliCommandRegistry implements CommandRegistry {
+@SuppressWarnings("deprecation")
+public class PicocliCommandRegistry implements CommandRegistry, CommandGroup {
 
     private final CommandLine commandLine;
     private LineReader reader;
+
+    @Override
+    public String name() {
+        return getClass().getSimpleName();
+    }
 
     /**
      * Creates a new registry wrapping the given picocli {@link CommandLine}.
@@ -209,6 +218,95 @@ public class PicocliCommandRegistry implements CommandRegistry {
         }
         int exitCode = sub.execute(argv);
         return exitCode;
+    }
+
+    // --- CommandGroup implementation ---
+
+    @Override
+    public Collection<org.jline.shell.Command> commands() {
+        List<org.jline.shell.Command> commands = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        for (Map.Entry<String, CommandLine> entry : commandLine.getSubcommands().entrySet()) {
+            String primaryName = entry.getValue().getCommandName();
+            if (seen.add(primaryName)) {
+                CommandLine sub = entry.getValue();
+                commands.add(new PicocliCommand(primaryName, sub));
+            }
+        }
+        return commands;
+    }
+
+    /**
+     * A {@link org.jline.shell.Command} wrapper around a picocli subcommand.
+     */
+    private class PicocliCommand implements org.jline.shell.Command {
+
+        private final String name;
+        private final CommandLine sub;
+
+        PicocliCommand(String name, CommandLine sub) {
+            this.name = name;
+            this.sub = sub;
+        }
+
+        @Override
+        public String name() {
+            return name;
+        }
+
+        @Override
+        public List<String> aliases() {
+            List<String> aliases = new ArrayList<>();
+            for (Map.Entry<String, CommandLine> entry :
+                    commandLine.getSubcommands().entrySet()) {
+                if (entry.getValue() == sub && !entry.getKey().equals(name)) {
+                    aliases.add(entry.getKey());
+                }
+            }
+            return aliases;
+        }
+
+        @Override
+        public String description() {
+            String[] desc = sub.getCommandSpec().usageMessage().description();
+            return desc.length > 0 ? desc[0] : "";
+        }
+
+        @Override
+        public CommandDescription describe(List<String> args) {
+            CmdDesc cmdDesc = commandDescription(args);
+            return DescriptionAdapter.toCommandDescription(cmdDesc);
+        }
+
+        @Override
+        public Object execute(org.jline.shell.CommandSession session, String[] args) throws Exception {
+            // Set output streams from session
+            Terminal terminal = session.terminal();
+            if (terminal != null) {
+                sub.setOut(new PrintWriter(terminal.output(), true));
+                sub.setErr(new PrintWriter(terminal.output(), true));
+            } else {
+                sub.setOut(new PrintWriter(session.out(), true));
+                sub.setErr(new PrintWriter(session.err(), true));
+            }
+            int exitCode = sub.execute(args);
+            return exitCode;
+        }
+
+        @Override
+        public List<Completer> completers() {
+            CommandSpec spec = sub.getCommandSpec();
+            List<String> completionStrings = new ArrayList<>();
+            for (OptionSpec option : spec.options()) {
+                for (String optName : option.names()) {
+                    completionStrings.add(optName);
+                }
+            }
+            for (String subName : sub.getSubcommands().keySet()) {
+                completionStrings.add(subName);
+            }
+            return List.of(new ArgumentCompleter(new StringsCompleter(completionStrings), NullCompleter.INSTANCE));
+        }
     }
 
     /**

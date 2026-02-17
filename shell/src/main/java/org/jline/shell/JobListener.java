@@ -6,10 +6,12 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.console;
+package org.jline.shell;
 
 /**
  * Listener for job status changes.
+ *
+ * @since 4.0
  */
 @FunctionalInterface
 public interface JobListener {

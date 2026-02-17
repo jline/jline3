@@ -18,6 +18,7 @@ import org.jline.utils.AttributedString;
  * This class stores the name of an argument and its description as a list of attributed strings,
  * which can include formatting and styling.
  */
+@Deprecated(since = "4.0")
 public class ArgDesc {
     /** The name of the argument */
     private final String name;

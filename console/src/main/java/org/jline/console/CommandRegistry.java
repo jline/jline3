@@ -10,7 +10,6 @@ package org.jline.console;
 
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.nio.file.Path;
 import java.util.*;
 
 import org.jline.reader.Candidate;
@@ -33,6 +32,7 @@ import org.jline.terminal.Terminal;
  * for specific domains or applications.
  *
  */
+@Deprecated(since = "4.0")
 public interface CommandRegistry {
 
     /**
@@ -166,46 +166,33 @@ public interface CommandRegistry {
     /**
      * Class representing a command execution session.
      * <p>
-     * A CommandSession encapsulates the terminal, I/O streams, environment variables,
-     * working directory, and other context used during command execution.
+     * A CommandSession encapsulates the terminal and I/O streams
+     * used during command execution.
+     *
+     * @deprecated Use {@link org.jline.shell.CommandSession} instead, which provides
+     *             the enriched API with variables, working directory, exit code, and job support.
      */
+    @Deprecated(since = "4.0")
     class CommandSession {
-        /** The terminal for the command session */
         private final Terminal terminal;
-        /** The input stream for the command session */
         private final InputStream in;
-        /** The output stream for the command session */
         private final PrintStream out;
-        /** The error stream for the command session */
         private final PrintStream err;
-        /** Session variables / environment */
-        private final Map<String, Object> variables;
-        /** Working directory */
-        private Path workingDirectory;
-        /** Exit code of the last executed command */
-        private int lastExitCode;
-        /** The current foreground job */
-        private Job foregroundJob;
-        /** Reference to the system registry */
-        private SystemRegistry systemRegistry;
 
         /**
          * Creates a new command session with the system's standard I/O streams.
-         * The terminal will be null in this case.
          */
         public CommandSession() {
             this.in = System.in;
             this.out = System.out;
             this.err = System.err;
             this.terminal = null;
-            this.variables = new LinkedHashMap<>();
         }
 
         /**
          * Creates a new command session with the specified terminal.
-         * The I/O streams will be derived from the terminal.
          *
-         * @param terminal the terminal for the command session
+         * @param terminal the terminal
          */
         public CommandSession(Terminal terminal) {
             this(terminal, terminal.input(), new PrintStream(terminal.output()), new PrintStream(terminal.output()));
@@ -214,30 +201,29 @@ public interface CommandRegistry {
         /**
          * Creates a new command session with the specified terminal and I/O streams.
          *
-         * @param terminal the terminal for the command session
-         * @param in the input stream for the command session
-         * @param out the output stream for the command session
-         * @param err the error stream for the command session
+         * @param terminal the terminal
+         * @param in the input stream
+         * @param out the output stream
+         * @param err the error stream
          */
         public CommandSession(Terminal terminal, InputStream in, PrintStream out, PrintStream err) {
             this.terminal = terminal;
             this.in = in;
             this.out = out;
             this.err = err;
-            this.variables = new LinkedHashMap<>();
         }
 
         /**
-         * Returns the terminal for the command session.
+         * Returns the terminal.
          *
-         * @return the terminal, or null if no terminal is associated with this session
+         * @return the terminal, or null
          */
         public Terminal terminal() {
             return terminal;
         }
 
         /**
-         * Returns the input stream for the command session.
+         * Returns the input stream.
          *
          * @return the input stream
          */
@@ -246,7 +232,7 @@ public interface CommandRegistry {
         }
 
         /**
-         * Returns the output stream for the command session.
+         * Returns the output stream.
          *
          * @return the output stream
          */
@@ -255,113 +241,12 @@ public interface CommandRegistry {
         }
 
         /**
-         * Returns the error stream for the command session.
+         * Returns the error stream.
          *
          * @return the error stream
          */
         public PrintStream err() {
             return err;
-        }
-
-        /**
-         * Returns the value of a session variable, or {@code null} if not set.
-         *
-         * @param name the variable name
-         * @return the variable value, or null
-         */
-        public Object get(String name) {
-            return variables.get(name);
-        }
-
-        /**
-         * Sets a session variable.
-         *
-         * @param name the variable name
-         * @param value the variable value
-         */
-        public void put(String name, Object value) {
-            variables.put(name, value);
-        }
-
-        /**
-         * Returns all session variables.
-         *
-         * @return unmodifiable view of the variables map
-         */
-        public Map<String, Object> variables() {
-            return Collections.unmodifiableMap(variables);
-        }
-
-        /**
-         * Returns the working directory for this session.
-         *
-         * @return the working directory, or null if not set
-         */
-        public Path workingDirectory() {
-            return workingDirectory;
-        }
-
-        /**
-         * Sets the working directory for this session.
-         *
-         * @param workingDirectory the working directory
-         */
-        public void setWorkingDirectory(Path workingDirectory) {
-            this.workingDirectory = workingDirectory;
-        }
-
-        /**
-         * Returns the exit code of the last executed command.
-         *
-         * @return the last exit code (0 for success)
-         */
-        public int lastExitCode() {
-            return lastExitCode;
-        }
-
-        /**
-         * Sets the exit code of the last executed command.
-         *
-         * @param lastExitCode the exit code
-         */
-        public void setLastExitCode(int lastExitCode) {
-            this.lastExitCode = lastExitCode;
-        }
-
-        /**
-         * Returns the current foreground job, or {@code null} if none.
-         *
-         * @return the foreground job, or null
-         */
-        public Job foregroundJob() {
-            return foregroundJob;
-        }
-
-        /**
-         * Sets the current foreground job.
-         *
-         * @param foregroundJob the foreground job
-         */
-        public void setForegroundJob(Job foregroundJob) {
-            this.foregroundJob = foregroundJob;
-        }
-
-        /**
-         * Returns the system registry for this session.
-         *
-         * @return the system registry, or null if not set
-         */
-        public SystemRegistry systemRegistry() {
-            return systemRegistry;
-        }
-
-        /**
-         * Sets the system registry for this session.
-         *
-         * @param systemRegistry the system registry
-         */
-        public void setSystemRegistry(SystemRegistry systemRegistry) {
-            this.systemRegistry = systemRegistry;
         }
     }
 }
