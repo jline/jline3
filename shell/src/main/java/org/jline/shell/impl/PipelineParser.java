@@ -18,51 +18,73 @@ import org.jline.shell.Pipeline.Operator;
 /**
  * Parses a command line string into a {@link Pipeline}.
  * <p>
- * The parser recognizes the following operators:
- * <ul>
- *   <li>{@code |} -- pipe</li>
- *   <li>{@code |;} -- flip pipe (output as argument)</li>
- *   <li>{@code &&} -- conditional AND</li>
- *   <li>{@code ||} -- conditional OR</li>
- *   <li>{@code >} -- output redirect</li>
- *   <li>{@code >>} -- output append</li>
- *   <li>{@code ;} -- sequence (statement separator)</li>
- *   <li>{@code &} at end of line -- background execution</li>
- * </ul>
+ * By default, the parser recognizes all operators defined in {@link Operator},
+ * using their default symbols. Custom symbol mappings can be provided via the
+ * {@link #PipelineParser(Map)} constructor to override default symbols:
+ * <pre>
+ * // Replace &gt; and &gt;&gt; with |&gt; and |&gt;&gt; (e.g. for Groovy)
+ * new PipelineParser(Map.of("|&gt;", Operator.REDIRECT, "|&gt;&gt;", Operator.APPEND))
+ * </pre>
+ * When a custom mapping targets an {@link Operator} that already has a default symbol,
+ * the default symbol is replaced. This allows languages where {@code >} has a different
+ * meaning to use alternative redirect syntax.
  * <p>
  * The parser respects quoting (single and double) and bracket nesting,
  * so operators inside quoted strings or brackets are not treated as pipeline operators.
  * <p>
  * Subclasses can override {@link #matchOperator(String, int)} to customize operator
- * matching, or provide custom operators via the {@link #PipelineParser(Map)} constructor.
+ * matching beyond what the constructor-based approach supports.
  *
  * @since 4.0
  */
 public class PipelineParser {
 
-    private final Map<String, Operator> customOperators;
+    /**
+     * The operator table: symbol to Operator, sorted by symbol length descending
+     * for longest-match semantics.
+     */
+    private final Map<String, Operator> operators;
 
     /**
-     * Creates a new PipelineParser with default operators.
+     * Creates a new PipelineParser with default operator symbols from {@link Operator}.
      */
     public PipelineParser() {
-        this.customOperators = Collections.emptyMap();
+        this(Collections.emptyMap());
     }
 
     /**
-     * Creates a new PipelineParser with custom operator mappings.
+     * Creates a new PipelineParser with custom operator symbol mappings.
      * <p>
-     * Custom operators are checked first (longest-match), then built-in operators.
-     * This allows shells to define additional syntax like custom pipe operators.
+     * Each entry maps a symbol string to an {@link Operator}. If a custom mapping
+     * targets an operator that already has a default symbol, the default symbol is
+     * removed and replaced by the custom one. For example:
+     * <pre>
+     * // "|&gt;" replaces "&gt;" for REDIRECT, "|&gt;&gt;" replaces "&gt;&gt;" for APPEND
+     * new PipelineParser(Map.of("|&gt;", Operator.REDIRECT, "|&gt;&gt;", Operator.APPEND))
+     * </pre>
+     * Operators not mentioned in the custom map keep their default symbols.
      *
      * @param customOperators a map from operator symbol to {@link Operator}
      */
     public PipelineParser(Map<String, Operator> customOperators) {
-        // Sort by length descending for longest-match semantics
+        // Collect which Operator values are overridden by custom mappings
+        Set<Operator> overridden = EnumSet.noneOf(Operator.class);
+        overridden.addAll(customOperators.values());
+
+        // Build the operator table: defaults first (excluding overridden), then custom
+        Map<String, Operator> table = new LinkedHashMap<>();
+        for (Operator op : Operator.values()) {
+            if (!overridden.contains(op)) {
+                table.put(op.symbol(), op);
+            }
+        }
+        table.putAll(customOperators);
+
+        // Sort by symbol length descending for longest-match semantics
         TreeMap<String, Operator> sorted =
                 new TreeMap<>(Comparator.comparingInt(String::length).reversed().thenComparing(s -> s));
-        sorted.putAll(customOperators);
-        this.customOperators = Collections.unmodifiableMap(new LinkedHashMap<>(sorted));
+        sorted.putAll(table);
+        this.operators = Collections.unmodifiableMap(new LinkedHashMap<>(sorted));
     }
 
     /**
@@ -100,11 +122,7 @@ public class PipelineParser {
         for (int i = 0; i < tokens.size(); i++) {
             Token token = tokens.get(i);
             if (token.isOperator) {
-                // Check custom operators first, then built-in
-                Operator op = customOperators.get(token.value);
-                if (op == null) {
-                    op = Operator.fromSymbol(token.value);
-                }
+                Operator op = operators.get(token.value);
                 if (op == null) {
                     // Unknown operator, treat as text
                     currentCmd.append(token.value);
@@ -135,7 +153,6 @@ public class PipelineParser {
                     stages.add(new DefaultPipeline.DefaultStage(cmd, null, null, false, inputFile));
                 } else if (op == Operator.HEREDOC) {
                     // Next token should be the delimiter; for now treat similarly to input redirect
-                    Path heredocFile = null;
                     if (i + 1 < tokens.size()) {
                         i++;
                         // HEREDOC is deferred to follow-up; store delimiter as-is for now
@@ -252,40 +269,20 @@ public class PipelineParser {
      * Tries to match a pipeline operator at the given position.
      * Returns the matched operator string, or {@code null}.
      * <p>
-     * Subclasses can override this method to customize operator matching.
-     * Custom operators registered via the constructor are checked first
-     * (longest-match), then built-in operators.
+     * The default implementation checks all operators in the operator table
+     * (longest-match first). Subclasses can override this method for
+     * fully custom matching logic.
      *
      * @param line the full command line string
      * @param pos the current position in the line
      * @return the matched operator string, or null if no operator matches
      */
     protected String matchOperator(String line, int pos) {
-        // Check custom operators first (already sorted by length descending)
-        for (String symbol : customOperators.keySet()) {
+        for (String symbol : operators.keySet()) {
             if (pos + symbol.length() <= line.length()
                     && line.substring(pos, pos + symbol.length()).equals(symbol)) {
                 return symbol;
             }
-        }
-
-        // Check two-character operators first
-        if (pos + 1 < line.length()) {
-            String two = line.substring(pos, pos + 2);
-            if (two.equals(">>")
-                    || two.equals("&&")
-                    || two.equals("||")
-                    || two.equals("|;")
-                    || two.equals("2>")
-                    || two.equals("&>")
-                    || two.equals("<<")) {
-                return two;
-            }
-        }
-        // Single-character operators
-        char c = line.charAt(pos);
-        if (c == '|' || c == '>' || c == ';' || c == '<') {
-            return String.valueOf(c);
         }
         return null;
     }
