@@ -22,6 +22,7 @@ import org.jline.reader.Parser;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.shell.impl.DefaultCommandDispatcher;
 import org.jline.shell.impl.PipelineParser;
+import org.jline.shell.impl.ScriptCommands;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
@@ -67,6 +68,10 @@ public class ShellBuilder {
     private boolean enableOptionCommands;
     private boolean enableCommandHighlighter;
     private org.jline.reader.Highlighter highlighter;
+    private LineExpander lineExpander;
+    private ScriptRunner scriptRunner;
+    private boolean enableScriptCommands;
+    private boolean enableVariableCommands;
 
     ShellBuilder() {}
 
@@ -314,6 +319,52 @@ public class ShellBuilder {
     }
 
     /**
+     * Sets the line expander for variable expansion.
+     * <p>
+     * The line expander is called after alias expansion and before pipeline parsing.
+     *
+     * @param lineExpander the line expander
+     * @return this builder
+     */
+    public ShellBuilder lineExpander(LineExpander lineExpander) {
+        this.lineExpander = lineExpander;
+        return this;
+    }
+
+    /**
+     * Sets the script runner for executing script files.
+     *
+     * @param scriptRunner the script runner
+     * @return this builder
+     */
+    public ShellBuilder scriptRunner(ScriptRunner scriptRunner) {
+        this.scriptRunner = scriptRunner;
+        return this;
+    }
+
+    /**
+     * Enables or disables built-in script commands ({@code source}, {@code .}).
+     *
+     * @param enable true to enable
+     * @return this builder
+     */
+    public ShellBuilder scriptCommands(boolean enable) {
+        this.enableScriptCommands = enable;
+        return this;
+    }
+
+    /**
+     * Enables or disables built-in variable commands ({@code set}, {@code unset}, {@code export}).
+     *
+     * @param enable true to enable
+     * @return this builder
+     */
+    public ShellBuilder variableCommands(boolean enable) {
+        this.enableVariableCommands = enable;
+        return this;
+    }
+
+    /**
      * Builds the {@link Shell} instance.
      * <p>
      * If no terminal is provided, a system terminal is created. If no dispatcher
@@ -334,7 +385,8 @@ public class ShellBuilder {
         // Create or use provided dispatcher
         CommandDispatcher disp = this.dispatcher;
         if (disp == null) {
-            disp = new DefaultCommandDispatcher(term, jobManager, pipelineParser, aliasManager);
+            disp = new DefaultCommandDispatcher(
+                    term, jobManager, pipelineParser, aliasManager, lineExpander, scriptRunner);
         }
 
         // Add groups to dispatcher
@@ -378,6 +430,12 @@ public class ShellBuilder {
         }
         if (enableOptionCommands) {
             disp.addGroup(new org.jline.shell.impl.OptionCommands(reader));
+        }
+        if (enableScriptCommands && scriptRunner != null) {
+            disp.addGroup(new ScriptCommands(scriptRunner, disp));
+        }
+        if (enableVariableCommands) {
+            disp.addGroup(new org.jline.shell.impl.VariableCommands());
         }
 
         // Apply variables

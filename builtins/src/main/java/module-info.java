@@ -35,6 +35,7 @@ module org.jline.builtins {
 
     // Optional dependencies
     requires static juniversalchardet;
+    requires static org.jline.shell;
 
     // Export public API
     exports org.jline.builtins;

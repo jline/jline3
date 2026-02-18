@@ -47,6 +47,14 @@ public interface Pipeline {
         REDIRECT(">"),
         /** Append redirection: append output to file ({@code >>}) */
         APPEND(">>"),
+        /** Input redirection: read stdin from file ({@code <}) */
+        INPUT_REDIRECT("<"),
+        /** Here-document: provide stdin inline ({@code <<}) */
+        HEREDOC("<<"),
+        /** Stderr redirection: redirect stderr to file ({@code 2>}) */
+        STDERR_REDIRECT("2>"),
+        /** Combined redirection: redirect both stdout and stderr to file ({@code &>}) */
+        COMBINED_REDIRECT("&>"),
         /** Sequence: execute next command unconditionally ({@code ;}) */
         SEQUENCE(";");
 
@@ -113,6 +121,15 @@ public interface Pipeline {
          * @return true if append
          */
         boolean isAppend();
+
+        /**
+         * Returns the input source path, if this stage has an INPUT_REDIRECT operator.
+         *
+         * @return the input source path, or null
+         */
+        default Path inputSource() {
+            return null;
+        }
     }
 
     /**

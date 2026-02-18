@@ -69,6 +69,7 @@ public class DefaultPipeline implements Pipeline {
         private final Operator operator;
         private final Path redirectTarget;
         private final boolean append;
+        private final Path inputSource;
 
         /**
          * Creates a new stage.
@@ -79,10 +80,25 @@ public class DefaultPipeline implements Pipeline {
          * @param append whether to append (for APPEND operator)
          */
         public DefaultStage(String commandLine, Operator operator, Path redirectTarget, boolean append) {
+            this(commandLine, operator, redirectTarget, append, null);
+        }
+
+        /**
+         * Creates a new stage with input source.
+         *
+         * @param commandLine the command line for this stage
+         * @param operator the operator following this stage (null for last stage)
+         * @param redirectTarget the redirect file (for REDIRECT/APPEND/STDERR_REDIRECT/COMBINED_REDIRECT operators)
+         * @param append whether to append (for APPEND operator)
+         * @param inputSource the input source file (for INPUT_REDIRECT operator)
+         */
+        public DefaultStage(
+                String commandLine, Operator operator, Path redirectTarget, boolean append, Path inputSource) {
             this.commandLine = commandLine;
             this.operator = operator;
             this.redirectTarget = redirectTarget;
             this.append = append;
+            this.inputSource = inputSource;
         }
 
         @Override
@@ -103,6 +119,11 @@ public class DefaultPipeline implements Pipeline {
         @Override
         public boolean isAppend() {
             return append;
+        }
+
+        @Override
+        public Path inputSource() {
+            return inputSource;
         }
 
         @Override

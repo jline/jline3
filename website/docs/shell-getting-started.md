@@ -42,6 +42,10 @@ The `Shell.builder()` API provides a fluent way to configure the shell:
 | `.optionCommands(true)` | Add `setopt`/`unsetopt`/`setvar` commands |
 | `.commandHighlighter(true)` | Enable command-aware syntax highlighting |
 | `.pipelineParser(parser)` | Custom pipeline parser with custom operators |
+| `.lineExpander(expander)` | Pluggable variable expansion (`$VAR`, `${VAR}`, `${VAR:-default}`, `~`) |
+| `.variableCommands(true)` | Add built-in `set`/`unset`/`export` commands |
+| `.scriptRunner(runner)` | Script file execution engine |
+| `.scriptCommands(true)` | Add built-in `source` / `.` commands |
 
 ## Next Steps
 

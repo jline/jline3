@@ -142,6 +142,46 @@ public class PipelineBuilder {
     }
 
     /**
+     * Adds an input redirection ({@code <}) from the specified file.
+     *
+     * @param file the file to read input from
+     * @return this builder
+     */
+    public PipelineBuilder inputRedirect(Path file) {
+        stages.add(new DefaultPipeline.DefaultStage(currentCommand, null, null, false, file));
+        source.append(" < ").append(file);
+        // Input redirect doesn't consume the current command for the next stage
+        currentCommand = null;
+        return this;
+    }
+
+    /**
+     * Adds a stderr redirection ({@code 2>}) to the specified file.
+     *
+     * @param file the file to redirect stderr to
+     * @return this builder
+     */
+    public PipelineBuilder stderrRedirect(Path file) {
+        stages.add(new DefaultPipeline.DefaultStage(currentCommand, Pipeline.Operator.STDERR_REDIRECT, file, false));
+        source.append(" 2> ").append(file);
+        currentCommand = null;
+        return this;
+    }
+
+    /**
+     * Adds a combined stdout+stderr redirection ({@code &>}) to the specified file.
+     *
+     * @param file the file to redirect both streams to
+     * @return this builder
+     */
+    public PipelineBuilder combinedRedirect(Path file) {
+        stages.add(new DefaultPipeline.DefaultStage(currentCommand, Pipeline.Operator.COMBINED_REDIRECT, file, false));
+        source.append(" &> ").append(file);
+        currentCommand = null;
+        return this;
+    }
+
+    /**
      * Marks this pipeline for background execution.
      *
      * @return this builder
