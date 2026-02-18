@@ -8,7 +8,10 @@
  */
 package org.jline.prompt.impl;
 
-import org.jline.prompt.*;
+import java.util.function.Function;
+
+import org.jline.prompt.EditorBuilder;
+import org.jline.prompt.PromptBuilder;
 
 /**
  * Default implementation of EditorBuilder.
@@ -23,6 +26,8 @@ public class DefaultEditorBuilder implements EditorBuilder {
     private String title;
     private boolean showLineNumbers = false;
     private boolean enableWrapping = false;
+    private Function<String, String> transformer;
+    private Function<String, String> filter;
 
     public DefaultEditorBuilder(PromptBuilder parent) {
         this.parent = parent;
@@ -71,9 +76,23 @@ public class DefaultEditorBuilder implements EditorBuilder {
     }
 
     @Override
+    public EditorBuilder transformer(Function<String, String> transformer) {
+        this.transformer = transformer;
+        return this;
+    }
+
+    @Override
+    public EditorBuilder filter(Function<String, String> filter) {
+        this.filter = filter;
+        return this;
+    }
+
+    @Override
     public PromptBuilder addPrompt() {
-        EditorPrompt prompt = new DefaultEditorPrompt(
+        DefaultEditorPrompt prompt = new DefaultEditorPrompt(
                 name, message, initialText, fileExtension, title, showLineNumbers, enableWrapping);
+        prompt.setTransformer(transformer);
+        prompt.setFilter(filter);
         parent.addPrompt(prompt);
         return parent;
     }

@@ -10,6 +10,7 @@ package org.jline.prompt.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import org.jline.prompt.ListBuilder;
 import org.jline.prompt.ListItem;
@@ -23,7 +24,7 @@ import org.jline.prompt.SeparatorItem;
  */
 public class DefaultListBuilder implements ListBuilder {
 
-    private final DefaultPromptBuilder parent;
+    private final PromptBuilder parent;
     private final List<ListItem> items = new ArrayList<>();
     private String name;
     private String message;
@@ -33,13 +34,15 @@ public class DefaultListBuilder implements ListBuilder {
     private String currentItemDisabledText;
     private int pageSize = 0;
     private boolean showPageIndicator = true;
+    private Function<String, String> transformer;
+    private Function<String, String> filter;
 
     /**
      * Create a new DefaultListBuilder with the given parent.
      *
      * @param parent the parent builder
      */
-    public DefaultListBuilder(DefaultPromptBuilder parent) {
+    public DefaultListBuilder(PromptBuilder parent) {
         this.parent = parent;
     }
 
@@ -49,6 +52,7 @@ public class DefaultListBuilder implements ListBuilder {
      * @param name the name
      * @return this builder
      */
+    @Override
     public ListBuilder name(String name) {
         this.name = name;
         return this;
@@ -60,6 +64,7 @@ public class DefaultListBuilder implements ListBuilder {
      * @param message the message
      * @return this builder
      */
+    @Override
     public ListBuilder message(String message) {
         this.message = message;
         return this;
@@ -161,13 +166,28 @@ public class DefaultListBuilder implements ListBuilder {
         items.add((ListItem) separatorItem);
     }
 
+    @Override
+    public ListBuilder transformer(Function<String, String> transformer) {
+        this.transformer = transformer;
+        return this;
+    }
+
+    @Override
+    public ListBuilder filter(Function<String, String> filter) {
+        this.filter = filter;
+        return this;
+    }
+
     /**
      * Add this prompt to the parent builder and return to the parent.
      *
      * @return the parent prompt builder
      */
+    @Override
     public PromptBuilder addPrompt() {
         DefaultListPrompt prompt = new DefaultListPrompt(name, message, items, pageSize, showPageIndicator);
+        prompt.setTransformer(transformer);
+        prompt.setFilter(filter);
         parent.addPrompt(prompt);
         return parent;
     }

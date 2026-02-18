@@ -113,6 +113,26 @@ public interface CheckboxBuilder extends BaseBuilder<CheckboxBuilder> {
     CheckboxBuilder showPageIndicator(boolean showPageIndicator);
 
     /**
+     * Set the minimum number of items that must be selected.
+     *
+     * @param min the minimum number of selections (0 for no minimum)
+     * @return this builder
+     */
+    default CheckboxBuilder minSelections(int min) {
+        return this;
+    }
+
+    /**
+     * Set the maximum number of items that can be selected.
+     *
+     * @param max the maximum number of selections (0 for no maximum)
+     * @return this builder
+     */
+    default CheckboxBuilder maxSelections(int max) {
+        return this;
+    }
+
+    /**
      * Create a new separator with no text.
      *
      * @return a separator builder

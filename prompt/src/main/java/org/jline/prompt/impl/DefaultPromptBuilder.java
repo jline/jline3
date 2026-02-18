@@ -11,7 +11,20 @@ package org.jline.prompt.impl;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.jline.prompt.*;
+import org.jline.prompt.CheckboxBuilder;
+import org.jline.prompt.ChoiceBuilder;
+import org.jline.prompt.ConfirmBuilder;
+import org.jline.prompt.EditorBuilder;
+import org.jline.prompt.InputBuilder;
+import org.jline.prompt.KeyPressBuilder;
+import org.jline.prompt.ListBuilder;
+import org.jline.prompt.NumberBuilder;
+import org.jline.prompt.PasswordBuilder;
+import org.jline.prompt.Prompt;
+import org.jline.prompt.PromptBuilder;
+import org.jline.prompt.SearchBuilder;
+import org.jline.prompt.TextBuilder;
+import org.jline.prompt.ToggleBuilder;
 
 /**
  * Default implementation of the PromptBuilder interface.
@@ -86,5 +99,15 @@ public class DefaultPromptBuilder implements PromptBuilder {
     @Override
     public EditorBuilder createEditorPrompt() {
         return new DefaultEditorBuilder(this);
+    }
+
+    @Override
+    public ToggleBuilder createTogglePrompt() {
+        return new DefaultToggleBuilder(this);
+    }
+
+    @Override
+    public KeyPressBuilder createKeyPressPrompt() {
+        return new DefaultKeyPressBuilder(this);
     }
 }

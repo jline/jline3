@@ -35,7 +35,7 @@ public class DefaultListResult extends AbstractPromptResult<ListPrompt> implemen
     }
 
     @Override
-    public String getResult() {
+    protected String getRawResult() {
         return selectedId;
     }
 

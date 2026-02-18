@@ -8,6 +8,8 @@
  */
 package org.jline.prompt;
 
+import java.util.function.Function;
+
 /**
  * Base interface for all prompt builders providing common configuration methods.
  *
@@ -54,6 +56,32 @@ package org.jline.prompt;
  * @since 3.30.0
  */
 public interface BaseBuilder<T extends BaseBuilder<T>> {
+
+    /**
+     * Set a transformer function that modifies how the answer is displayed
+     * after submission. This does not change the actual returned value.
+     * For example, a password prompt might transform the answer to "***".
+     *
+     * @param transformer the transformer function
+     * @return this builder instance for method chaining
+     */
+    @SuppressWarnings("unchecked")
+    default T transformer(Function<String, String> transformer) {
+        return (T) this;
+    }
+
+    /**
+     * Set a filter function that modifies the actual returned value.
+     * This changes the value stored in the result map.
+     * For example, trimming whitespace or converting to lowercase.
+     *
+     * @param filter the filter function
+     * @return this builder instance for method chaining
+     */
+    @SuppressWarnings("unchecked")
+    default T filter(Function<String, String> filter) {
+        return (T) this;
+    }
 
     /**
      * Set the unique identifier for this prompt.

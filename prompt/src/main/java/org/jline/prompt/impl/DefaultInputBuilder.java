@@ -21,7 +21,7 @@ import org.jline.reader.LineReader;
  */
 public class DefaultInputBuilder implements InputBuilder {
 
-    private final DefaultPromptBuilder parent;
+    private final PromptBuilder parent;
     private String name;
     private String message;
     private String defaultValue;
@@ -29,13 +29,15 @@ public class DefaultInputBuilder implements InputBuilder {
     private Completer completer;
     private LineReader lineReader;
     private Function<String, Boolean> validator;
+    private Function<String, String> transformer;
+    private Function<String, String> filter;
 
     /**
      * Create a new DefaultInputBuilder with the given parent.
      *
      * @param parent the parent builder
      */
-    public DefaultInputBuilder(DefaultPromptBuilder parent) {
+    public DefaultInputBuilder(PromptBuilder parent) {
         this.parent = parent;
     }
 
@@ -45,6 +47,7 @@ public class DefaultInputBuilder implements InputBuilder {
      * @param name the name
      * @return this builder
      */
+    @Override
     public InputBuilder name(String name) {
         this.name = name;
         return this;
@@ -56,6 +59,7 @@ public class DefaultInputBuilder implements InputBuilder {
      * @param message the message
      * @return this builder
      */
+    @Override
     public InputBuilder message(String message) {
         this.message = message;
         return this;
@@ -117,13 +121,40 @@ public class DefaultInputBuilder implements InputBuilder {
     }
 
     /**
+     * Set the transformer function.
+     *
+     * @param transformer the transformer
+     * @return this builder
+     */
+    @Override
+    public InputBuilder transformer(Function<String, String> transformer) {
+        this.transformer = transformer;
+        return this;
+    }
+
+    /**
+     * Set the filter function.
+     *
+     * @param filter the filter
+     * @return this builder
+     */
+    @Override
+    public InputBuilder filter(Function<String, String> filter) {
+        this.filter = filter;
+        return this;
+    }
+
+    /**
      * Add this prompt to the parent builder and return to the parent.
      *
      * @return the parent prompt builder
      */
+    @Override
     public PromptBuilder addPrompt() {
         DefaultInputPrompt prompt =
                 new DefaultInputPrompt(name, message, defaultValue, mask, completer, lineReader, validator);
+        prompt.setTransformer(transformer);
+        prompt.setFilter(filter);
         parent.addPrompt(prompt);
         return parent;
     }

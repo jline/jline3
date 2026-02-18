@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import org.jline.prompt.*;
 import org.jline.prompt.impl.*;
@@ -62,8 +63,7 @@ public class ImprovedDynamicPromptExample {
     /**
      * Creates a clean conditional survey using the DynamicPromptHelper utilities.
      */
-    private static java.util.function.Function<
-                    Map<String, ? extends PromptResult<? extends Prompt>>, List<? extends Prompt>>
+    private static Function<Map<String, ? extends PromptResult<? extends Prompt>>, List<? extends Prompt>>
             createCleanConditionalSurvey() {
 
         return chain(

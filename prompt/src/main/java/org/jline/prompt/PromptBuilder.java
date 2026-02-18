@@ -98,4 +98,22 @@ public interface PromptBuilder {
      * @return an editor prompt builder
      */
     EditorBuilder createEditorPrompt();
+
+    /**
+     * Create a builder for toggle prompts.
+     *
+     * @return a toggle prompt builder
+     */
+    default ToggleBuilder createTogglePrompt() {
+        throw new UnsupportedOperationException("Toggle prompts are not supported by this builder");
+    }
+
+    /**
+     * Create a builder for key press prompts.
+     *
+     * @return a key press prompt builder
+     */
+    default KeyPressBuilder createKeyPressPrompt() {
+        throw new UnsupportedOperationException("KeyPress prompts are not supported by this builder");
+    }
 }

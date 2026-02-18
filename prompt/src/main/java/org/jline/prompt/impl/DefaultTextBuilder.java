@@ -8,6 +8,8 @@
  */
 package org.jline.prompt.impl;
 
+import java.util.function.Function;
+
 import org.jline.prompt.PromptBuilder;
 import org.jline.prompt.TextBuilder;
 
@@ -17,17 +19,19 @@ import org.jline.prompt.TextBuilder;
  */
 public class DefaultTextBuilder implements TextBuilder {
 
-    private final DefaultPromptBuilder parent;
+    private final PromptBuilder parent;
     private String name;
     private String message;
     private String text;
+    private Function<String, String> transformer;
+    private Function<String, String> filter;
 
     /**
      * Create a new DefaultTextBuilder with the given parent.
      *
      * @param parent the parent builder
      */
-    public DefaultTextBuilder(DefaultPromptBuilder parent) {
+    public DefaultTextBuilder(PromptBuilder parent) {
         this.parent = parent;
     }
 
@@ -37,6 +41,7 @@ public class DefaultTextBuilder implements TextBuilder {
      * @param name the name
      * @return this builder
      */
+    @Override
     public TextBuilder name(String name) {
         this.name = name;
         return this;
@@ -59,16 +64,32 @@ public class DefaultTextBuilder implements TextBuilder {
      * @param message the message
      * @return this builder
      */
+    @Override
     public TextBuilder message(String message) {
         this.message = message;
+        return this;
+    }
+
+    @Override
+    public TextBuilder transformer(Function<String, String> transformer) {
+        this.transformer = transformer;
+        return this;
+    }
+
+    @Override
+    public TextBuilder filter(Function<String, String> filter) {
+        this.filter = filter;
         return this;
     }
 
     /**
      * Add this text to the parent builder.
      */
+    @Override
     public PromptBuilder addPrompt() {
         DefaultTextPrompt prompt = new DefaultTextPrompt(name, message, text);
+        prompt.setTransformer(transformer);
+        prompt.setFilter(filter);
         parent.addPrompt(prompt);
         return parent;
     }

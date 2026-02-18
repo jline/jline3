@@ -26,7 +26,7 @@ public class DefaultNoResult extends AbstractPromptResult<Prompt> implements NoR
     }
 
     @Override
-    public String getResult() {
+    protected String getRawResult() {
         return "NO_RESULT";
     }
 

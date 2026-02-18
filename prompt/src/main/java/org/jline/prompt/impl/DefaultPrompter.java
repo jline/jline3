@@ -14,10 +14,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOError;
 import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
+import org.jline.builtins.Nano;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
 import org.jline.prompt.*;
@@ -80,9 +77,8 @@ public class DefaultPrompter implements Prompter {
     // First row where items start (after header and message)
     private int firstItemRow;
 
-    // Marker string to detect Escape key press in readLine
-    // Using a Unicode private use area character that's unlikely to be typed by users
-    private static final String ESCAPE_MARKER = "\uE000ESCAPE\uE000";
+    // Sentinel exception used to signal Escape key press during readLine
+    private static final EndOfFileException ESCAPE_EOF = new EndOfFileException("escape");
 
     /**
      * Create a new DefaultPrompter with the given terminal.
@@ -126,6 +122,7 @@ public class DefaultPrompter implements Prompter {
         FORWARD_ONE_LINE,
         BACKWARD_ONE_LINE,
         INSERT,
+        BACKSPACE,
         EXIT,
         CANCEL,
         ESCAPE,
@@ -136,6 +133,8 @@ public class DefaultPrompter implements Prompter {
         FORWARD_ONE_LINE,
         BACKWARD_ONE_LINE,
         TOGGLE,
+        INSERT,
+        BACKSPACE,
         EXIT,
         CANCEL,
         ESCAPE,
@@ -146,7 +145,8 @@ public class DefaultPrompter implements Prompter {
         INSERT,
         EXIT,
         CANCEL,
-        ESCAPE
+        ESCAPE,
+        IGNORE
     }
 
     @Override
@@ -187,7 +187,7 @@ public class DefaultPrompter implements Prompter {
         Deque<Map<String, PromptResult<? extends Prompt>>> prevResults = new ArrayDeque<>();
         boolean cancellable = config.cancellableFirstPrompt();
 
-        header = new ArrayList<>(header);
+        header = header != null ? new ArrayList<>(header) : new ArrayList<>();
         try {
             open();
             // Get our first list of prompts
@@ -251,7 +251,7 @@ public class DefaultPrompter implements Prompter {
         }
 
         // Initialize header from input - make a mutable copy to allow adding results
-        this.header = new ArrayList<>(headerIn);
+        this.header = headerIn != null ? new ArrayList<>(headerIn) : new ArrayList<>();
 
         boolean backward = false;
         for (int i = resultMap.isEmpty() ? 0 : resultMap.size() - 1; i < promptList.size(); i++) {
@@ -290,14 +290,22 @@ public class DefaultPrompter implements Prompter {
                     // For text prompts, add all lines to header like console-ui Text.getLines()
                     TextPrompt textPrompt = (TextPrompt) prompt;
                     this.header.addAll(textPrompt.getLines());
+                } else if (prompt instanceof KeyPressPrompt) {
+                    // Key press prompts are transient, just add the message
+                    this.header.add(createMessage(prompt.getMessage(), "").toAttributedString());
                 } else {
-                    String resp = result.getResult();
-                    if (result instanceof ConfirmResult) {
-                        ConfirmResult cr = (ConfirmResult) result;
-                        resp = cr.getConfirmed() == ConfirmResult.ConfirmationValue.YES ? "Yes" : "No";
-                    }
-                    AttributedStringBuilder message = createMessage(prompt.getMessage(), resp);
+                    String resp = result.getDisplayResult();
+                    // Apply transformer for display (does not change actual value)
+                    Function<String, String> transformer = prompt.getTransformer();
+                    String displayResp = transformer != null ? transformer.apply(resp) : resp;
+                    AttributedStringBuilder message = createMessage(prompt.getMessage(), displayResp);
                     this.header.add(message.toAttributedString());
+                }
+
+                // Apply filter to the result value before storing
+                Function<String, String> filter = prompt.getFilter();
+                if (filter != null && result.getResult() != null && result instanceof AbstractPromptResult) {
+                    ((AbstractPromptResult<?>) result).applyFilter(filter.apply(result.getResult()));
                 }
 
                 resultMap.put(prompt.getName(), result);
@@ -324,7 +332,9 @@ public class DefaultPrompter implements Prompter {
             Map<String, PromptResult<? extends Prompt>> resultMap) {
         Map<String, PromptResult<? extends Prompt>> filtered = new HashMap<>();
         for (Map.Entry<String, PromptResult<? extends Prompt>> entry : resultMap.entrySet()) {
-            if (entry.getValue() != null && entry.getValue().getResult() != null) {
+            if (entry.getValue() != null
+                    && entry.getValue().getResult() != null
+                    && !(entry.getValue() instanceof NoResult)) {
                 filtered.put(entry.getKey(), entry.getValue());
             }
         }
@@ -420,6 +430,10 @@ public class DefaultPrompter implements Prompter {
             return executeConfirmPrompt(header, (ConfirmPrompt) prompt);
         } else if (prompt instanceof TextPrompt) {
             return executeTextPrompt(header, (TextPrompt) prompt);
+        } else if (prompt instanceof TogglePrompt) {
+            return executeTogglePrompt(header, (TogglePrompt) prompt);
+        } else if (prompt instanceof KeyPressPrompt) {
+            return executeKeyPressPrompt(header, (KeyPressPrompt) prompt);
         } else {
             throw new IllegalArgumentException("Unknown prompt type: " + prompt.getClass());
         }
@@ -447,32 +461,19 @@ public class DefaultPrompter implements Prompter {
         KeyMap<Binding> mainKeyMap = reader.getKeyMaps().get(LineReader.MAIN);
         Binding originalEscapeBinding = mainKeyMap.getBound("\u001b");
 
-        // Create escape widget that sets marker and accepts line
+        // Create escape widget that throws EndOfFileException to exit readLine
         Widget escapeWidget = () -> {
-            try {
-                reader.getBuffer().clear();
-                reader.getBuffer().write(ESCAPE_MARKER, false);
-                reader.callWidget(LineReader.ACCEPT_LINE);
-                return true;
-            } catch (Exception e) {
-                return false;
-            }
+            throw ESCAPE_EOF;
         };
         reader.getWidgets().put("prompter-escape", escapeWidget);
         mainKeyMap.bind(new Reference("prompter-escape"), "\u001b");
 
         try {
             // Use LineReader to read the input
-            String input;
             Character mask = prompt.getMask();
             String buffer = defaultValue != null ? defaultValue : null;
 
-            input = reader.readLine(promptString, null, mask, buffer);
-
-            // Check if Escape was pressed (marked by escape marker)
-            if (ESCAPE_MARKER.equals(input)) {
-                return null; // Go back to previous prompt
-            }
+            String input = reader.readLine(promptString, null, mask, buffer);
 
             // Handle empty input with default value
             if (input.trim().isEmpty() && defaultValue != null) {
@@ -480,6 +481,13 @@ public class DefaultPrompter implements Prompter {
             }
 
             return new DefaultInputResult(input, input, prompt);
+        } catch (EndOfFileException e) {
+            if (e == ESCAPE_EOF) {
+                // Escape was pressed — go back to previous prompt
+                return null;
+            }
+            // Real EOF (Ctrl+D) — propagate
+            throw e;
         } catch (UserInterruptException e) {
             // Ctrl+C was pressed
             throw e;
@@ -488,10 +496,8 @@ public class DefaultPrompter implements Prompter {
             if (originalEscapeBinding != null) {
                 mainKeyMap.bind(originalEscapeBinding, "\u001b");
             } else {
-                // Remove our binding if there was no original
                 mainKeyMap.unbind("\u001b");
             }
-            // Remove the escape widget
             reader.getWidgets().remove("prompter-escape");
         }
     }
@@ -595,7 +601,7 @@ public class DefaultPrompter implements Prompter {
                     header, asb, searchTerm.toString(), currentResults, selectedIndex, prompt, startColumn);
 
             display.resize(size.getRows(), size.getColumns());
-            int cursorRow = out.size() - 1;
+            int cursorRow = (header != null ? header.size() : 0);
             int column = startColumn + searchTerm.length();
             display.update(out, size.cursorPos(cursorRow, column));
 
@@ -663,8 +669,9 @@ public class DefaultPrompter implements Prompter {
         // Wait for user input
         KeyMap<InputOperation> keyMap = new KeyMap<>();
         keyMap.bind(InputOperation.EXIT, "\r", "\n");
-        keyMap.bind(InputOperation.ESCAPE, "\u001b");
-        keyMap.bind(InputOperation.CANCEL, "\u0003");
+        keyMap.bind(InputOperation.ESCAPE, esc());
+        keyMap.bind(InputOperation.CANCEL, ctrl('C'));
+        keyMap.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
 
         InputOperation op = bindingReader.readBinding(keyMap);
         switch (op) {
@@ -690,69 +697,45 @@ public class DefaultPrompter implements Prompter {
         }
     }
 
-    private String launchEditor(EditorPrompt prompt) throws IOException, InterruptedException {
-        try {
-            // Create temporary file
-            File tempFile = File.createTempFile("jline_editor_", "." + prompt.getFileExtension());
-            tempFile.deleteOnExit();
+    private String launchEditor(EditorPrompt prompt) throws IOException {
+        // Create temporary file
+        File tempFile = File.createTempFile("jline_editor_", "." + prompt.getFileExtension());
+        tempFile.deleteOnExit();
 
-            // Write initial content if provided
-            String initialText = prompt.getInitialText();
-            if (initialText != null) {
-                try (FileWriter writer = new FileWriter(tempFile)) {
-                    writer.write(initialText);
-                }
+        // Write initial content if provided
+        String initialText = prompt.getInitialText();
+        if (initialText != null) {
+            try (FileWriter writer = new FileWriter(tempFile)) {
+                writer.write(initialText);
             }
-
-            // Use JLine's built-in Nano editor
-            Class<?> nanoClass = Class.forName("org.jline.builtins.Nano");
-            Constructor<?> constructor = nanoClass.getConstructor(Terminal.class, Path.class);
-
-            Object nano =
-                    constructor.newInstance(terminal, tempFile.getParentFile().toPath());
-
-            // Configure nano options
-            if (prompt.getTitle() != null) {
-                Field titleField = nanoClass.getField("title");
-                titleField.set(nano, prompt.getTitle());
-            }
-
-            Field lineNumbersField = nanoClass.getField("printLineNumbers");
-            lineNumbersField.setBoolean(nano, prompt.showLineNumbers());
-
-            Field wrappingField = nanoClass.getField("wrapping");
-            wrappingField.setBoolean(nano, prompt.enableWrapping());
-
-            // Get methods
-            Method openMethod = nanoClass.getMethod("open", List.class);
-            Method runMethod = nanoClass.getMethod("run");
-
-            // Open the file and run the editor
-            openMethod.invoke(nano, Collections.singletonList(tempFile.getName()));
-            runMethod.invoke(nano);
-
-            // Nano restores terminal attributes but leaves keypad in transmit mode
-            terminal.flush();
-
-            // Read the result
-            StringBuilder result = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(new FileReader(tempFile))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    if (result.length() > 0) {
-                        result.append("\n");
-                    }
-                    result.append(line);
-                }
-            }
-
-            return result.toString();
-
-        } catch (ClassNotFoundException e) {
-            throw new IOException("JLine Nano editor not available. Please add jline-builtins to your classpath.", e);
-        } catch (Exception e) {
-            throw new IOException("Error launching JLine Nano editor: " + e.getMessage(), e);
         }
+
+        // Use JLine's built-in Nano editor
+        Nano nano = new Nano(terminal, tempFile.getParentFile().toPath());
+        if (prompt.getTitle() != null) {
+            nano.title = prompt.getTitle();
+        }
+        nano.printLineNumbers = prompt.showLineNumbers();
+        nano.wrapping = prompt.enableWrapping();
+
+        // Open the file and run the editor
+        nano.open(Collections.singletonList(tempFile.getName()));
+        nano.run();
+        terminal.flush();
+
+        // Read the result
+        StringBuilder result = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new FileReader(tempFile))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (result.length() > 0) {
+                    result.append("\n");
+                }
+                result.append(line);
+            }
+        }
+
+        return result.toString();
     }
 
     /**
@@ -979,6 +962,7 @@ public class DefaultPrompter implements Prompter {
     private enum ConfirmOperation {
         YES,
         NO,
+        TOGGLE,
         EXIT,
         CANCEL,
         ESCAPE
@@ -994,19 +978,20 @@ public class DefaultPrompter implements Prompter {
             keyMap.bind(InputOperation.INSERT, Character.toString(i));
         }
 
-        // Bind special keys like ConsolePrompt
+        // Bind special keys using terminal capabilities for portability
         keyMap.bind(InputOperation.BACKSPACE, "\b", "\u007f");
-        keyMap.bind(InputOperation.DELETE, "\u001b[3~");
+        keyMap.bind(InputOperation.DELETE, key(terminal, key_dc));
         keyMap.bind(InputOperation.EXIT, "\r", "\n");
-        keyMap.bind(InputOperation.CANCEL, "\u0003"); // Ctrl+C
-        keyMap.bind(InputOperation.ESCAPE, "\u001b"); // Escape key
-        keyMap.bind(InputOperation.LEFT, "\u001b[D");
-        keyMap.bind(InputOperation.RIGHT, "\u001b[C");
-        keyMap.bind(InputOperation.UP, "\u001b[A");
-        keyMap.bind(InputOperation.DOWN, "\u001b[B");
-        keyMap.bind(InputOperation.BEGINNING_OF_LINE, "\u0001"); // Ctrl+A
-        keyMap.bind(InputOperation.END_OF_LINE, "\u0005"); // Ctrl+E
+        keyMap.bind(InputOperation.CANCEL, ctrl('C'));
+        keyMap.bind(InputOperation.ESCAPE, esc());
+        keyMap.bind(InputOperation.LEFT, key(terminal, key_left));
+        keyMap.bind(InputOperation.RIGHT, key(terminal, key_right));
+        keyMap.bind(InputOperation.UP, key(terminal, key_up));
+        keyMap.bind(InputOperation.DOWN, key(terminal, key_down));
+        keyMap.bind(InputOperation.BEGINNING_OF_LINE, ctrl('A'));
+        keyMap.bind(InputOperation.END_OF_LINE, ctrl('E'));
         keyMap.bind(InputOperation.SELECT_CANDIDATE, "\t"); // Tab for completion
+        keyMap.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
     }
 
     /**
@@ -1016,74 +1001,118 @@ public class DefaultPrompter implements Prompter {
         keyMap.bind(ConfirmOperation.YES, "y", "Y");
         keyMap.bind(ConfirmOperation.NO, "n", "N");
         keyMap.bind(ConfirmOperation.EXIT, "\r", "\n");
-        keyMap.bind(ConfirmOperation.CANCEL, "\u0003"); // Ctrl+C
-        keyMap.bind(ConfirmOperation.ESCAPE, "\u001b"); // Escape key
+        keyMap.bind(ConfirmOperation.CANCEL, ctrl('C'));
+        keyMap.bind(ConfirmOperation.ESCAPE, esc());
+        keyMap.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
     }
 
     private ListResult executeListPrompt(List<AttributedString> header, ListPrompt prompt)
             throws IOException, UserInterruptException {
 
-        List<ListItem> items = prompt.getItems();
-        if (items.isEmpty()) {
+        List<ListItem> allItems = prompt.getItems();
+        if (allItems.isEmpty()) {
             return new DefaultListResult("", prompt);
         }
 
         // Initialize display
         resetDisplay();
-        firstItemRow = (header != null ? header.size() : 0) + 1; // Header + message line
         range = null;
-
-        // Find first selectable item
-        int selectRow = nextRow(firstItemRow - 1, firstItemRow, items);
 
         // Set up key bindings
         KeyMap<ListOperation> keyMap = new KeyMap<>();
         bindListKeys(keyMap);
 
+        // Filtering state
+        StringBuilder filterText = new StringBuilder();
+        List<ListItem> filteredItems = allItems;
+
+        // Find first selectable item
+        firstItemRow = (header != null ? header.size() : 0) + 1;
+        int selectRow = nextRow(firstItemRow - 1, firstItemRow, filteredItems);
+
         // Interactive selection loop
         while (true) {
+            // Build message with filter text
+            String message = prompt.getMessage();
+            if (filterText.length() > 0) {
+                message = prompt.getMessage() + " [" + filterText + "]";
+            }
+
             // Update display with current selection
-            refreshListDisplay(header, prompt.getMessage(), items, selectRow, prompt);
+            refreshListDisplay(header, message, filteredItems, selectRow, prompt);
 
             // Read user input using BindingReader
             ListOperation op = bindingReader.readBinding(keyMap);
             switch (op) {
                 case FORWARD_ONE_LINE:
-                    selectRow = nextRow(selectRow, firstItemRow, items);
+                    selectRow = nextRow(selectRow, firstItemRow, filteredItems);
                     break;
                 case BACKWARD_ONE_LINE:
-                    selectRow = prevRow(selectRow, firstItemRow, items);
+                    selectRow = prevRow(selectRow, firstItemRow, filteredItems);
                     break;
 
                 case INSERT:
-                    // Handle character-based selection (if items have keys)
                     String ch = bindingReader.getLastBinding();
-                    int id = 0;
-                    for (ListItem item : items) {
-                        if (item instanceof ChoiceItem) {
-                            ChoiceItem choiceItem = (ChoiceItem) item;
-                            if (!choiceItem.isDisabled()
-                                    && choiceItem.getKey() != null
-                                    && choiceItem.getKey().toString().equals(ch)) {
-                                selectRow = firstItemRow + id;
-                                break;
-                            }
-                        }
-                        id++;
+                    filterText.append(ch);
+                    filteredItems = filterItems(allItems, filterText.toString());
+                    range = null;
+                    if (!filteredItems.isEmpty()) {
+                        selectRow = nextRow(firstItemRow - 1, firstItemRow, filteredItems);
                     }
                     break;
+
+                case BACKSPACE:
+                    if (filterText.length() > 0) {
+                        filterText.deleteCharAt(filterText.length() - 1);
+                        filteredItems = filterItems(allItems, filterText.toString());
+                        range = null;
+                        if (!filteredItems.isEmpty()) {
+                            selectRow = nextRow(firstItemRow - 1, firstItemRow, filteredItems);
+                        }
+                    }
+                    break;
+
                 case EXIT:
-                    ListItem selectedItem = items.get(selectRow - firstItemRow);
-                    return new DefaultListResult(selectedItem.getName(), prompt);
+                    int listIdx = selectRow - firstItemRow;
+                    if (!filteredItems.isEmpty() && listIdx >= 0 && listIdx < filteredItems.size()) {
+                        ListItem selectedItem = filteredItems.get(listIdx);
+                        return new DefaultListResult(selectedItem.getName(), prompt);
+                    }
+                    break;
                 case ESCAPE:
-                    return null; // Go back to previous prompt
+                    if (filterText.length() > 0) {
+                        // First escape clears filter
+                        filterText.setLength(0);
+                        filteredItems = allItems;
+                        range = null;
+                        selectRow = nextRow(firstItemRow - 1, firstItemRow, filteredItems);
+                    } else {
+                        return null; // Second escape goes back
+                    }
+                    break;
                 case CANCEL:
                     throw new UserInterruptException("User cancelled");
                 case IGNORE:
-                    // Ignore unmatched keys (like console-ui behavior)
                     break;
             }
         }
+    }
+
+    private <T extends PromptItem> List<T> filterItems(List<T> items, String filter) {
+        if (filter == null || filter.isEmpty()) {
+            return items;
+        }
+        String lowerFilter = filter.toLowerCase();
+        List<T> filtered = new ArrayList<>();
+        for (T item : items) {
+            if (item instanceof SeparatorItem) {
+                continue; // Skip separators in filtered results
+            }
+            if (item.getText() != null && item.getText().toLowerCase().contains(lowerFilter)) {
+                filtered.add(item);
+            }
+        }
+        return filtered;
     }
 
     private CheckboxResult executeCheckboxPrompt(List<AttributedString> header, CheckboxPrompt prompt)
@@ -1092,24 +1121,32 @@ public class DefaultPrompter implements Prompter {
         List<CheckboxItem> items = prompt.getItems();
         Set<String> selectedIds = new HashSet<>();
 
-        // Initialize with initially checked items
+        // Initialize with initially checked items, respecting maxSelections
+        int maxSel = prompt.getMaxSelections();
         for (CheckboxItem item : items) {
             if (item.isInitiallyChecked()) {
-                selectedIds.add(item.getName());
+                if (maxSel <= 0 || selectedIds.size() < maxSel) {
+                    selectedIds.add(item.getName());
+                }
             }
         }
 
-        if (items.isEmpty()) {
+        List<CheckboxItem> allItems = items;
+        if (allItems.isEmpty()) {
             return new DefaultCheckboxResult(selectedIds, prompt);
         }
 
         // Initialize display
         resetDisplay();
-        firstItemRow = (header != null ? header.size() : 0) + 1; // Header + message line
+        firstItemRow = (header != null ? header.size() : 0) + 1;
         range = null;
 
+        // Filtering state
+        StringBuilder filterText = new StringBuilder();
+        List<CheckboxItem> filteredItems = allItems;
+
         // Find first selectable item
-        int selectRow = nextRow(firstItemRow - 1, firstItemRow, items);
+        int selectRow = nextRow(firstItemRow - 1, firstItemRow, filteredItems);
 
         // Set up key bindings
         KeyMap<CheckboxOperation> keyMap = new KeyMap<>();
@@ -1117,37 +1154,78 @@ public class DefaultPrompter implements Prompter {
 
         // Interactive selection loop
         while (true) {
+            // Build message with filter text
+            String message = prompt.getMessage();
+            if (filterText.length() > 0) {
+                message = prompt.getMessage() + " [" + filterText + "]";
+            }
+
             // Update display with current selection and checkbox states
-            refreshCheckboxDisplay(header, prompt.getMessage(), items, selectRow, selectedIds, prompt);
+            refreshCheckboxDisplay(header, message, filteredItems, selectRow, selectedIds, prompt);
 
             // Read user input using BindingReader
             CheckboxOperation op = bindingReader.readBinding(keyMap);
             switch (op) {
                 case FORWARD_ONE_LINE:
-                    selectRow = nextRow(selectRow, firstItemRow, items);
+                    selectRow = nextRow(selectRow, firstItemRow, filteredItems);
                     break;
                 case BACKWARD_ONE_LINE:
-                    selectRow = prevRow(selectRow, firstItemRow, items);
+                    selectRow = prevRow(selectRow, firstItemRow, filteredItems);
+                    break;
+
+                case INSERT:
+                    String ch = bindingReader.getLastBinding();
+                    filterText.append(ch);
+                    filteredItems = filterItems(allItems, filterText.toString());
+                    range = null;
+                    if (!filteredItems.isEmpty()) {
+                        selectRow = nextRow(firstItemRow - 1, firstItemRow, filteredItems);
+                    }
+                    break;
+
+                case BACKSPACE:
+                    if (filterText.length() > 0) {
+                        filterText.deleteCharAt(filterText.length() - 1);
+                        filteredItems = filterItems(allItems, filterText.toString());
+                        range = null;
+                        if (!filteredItems.isEmpty()) {
+                            selectRow = nextRow(firstItemRow - 1, firstItemRow, filteredItems);
+                        }
+                    }
                     break;
 
                 case TOGGLE:
-                    CheckboxItem currentItem = items.get(selectRow - firstItemRow);
-                    if (!currentItem.isDisabled()) {
-                        if (selectedIds.contains(currentItem.getName())) {
-                            selectedIds.remove(currentItem.getName());
-                        } else {
-                            selectedIds.add(currentItem.getName());
+                    int cbIdx = selectRow - firstItemRow;
+                    if (!filteredItems.isEmpty() && cbIdx >= 0 && cbIdx < filteredItems.size()) {
+                        CheckboxItem currentItem = filteredItems.get(cbIdx);
+                        if (!currentItem.isDisabled()) {
+                            if (selectedIds.contains(currentItem.getName())) {
+                                selectedIds.remove(currentItem.getName());
+                            } else if (prompt.getMaxSelections() <= 0
+                                    || selectedIds.size() < prompt.getMaxSelections()) {
+                                selectedIds.add(currentItem.getName());
+                            }
                         }
                     }
                     break;
                 case EXIT:
+                    if (prompt.getMinSelections() > 0 && selectedIds.size() < prompt.getMinSelections()) {
+                        break;
+                    }
                     return new DefaultCheckboxResult(selectedIds, prompt);
                 case ESCAPE:
-                    return null; // Go back to previous prompt
+                    if (filterText.length() > 0) {
+                        filterText.setLength(0);
+                        filteredItems = allItems;
+                        range = null;
+                        selectRow = nextRow(firstItemRow - 1, firstItemRow, filteredItems);
+                    } else {
+                        return null;
+                    }
+                    break;
                 case CANCEL:
                     throw new UserInterruptException("User cancelled");
                 case IGNORE:
-                    // Ignore unmatched keys (like console-ui behavior)
                     break;
             }
         }
@@ -1197,13 +1275,50 @@ public class DefaultPrompter implements Prompter {
         KeyMap<ChoiceOperation> keyMap = new KeyMap<>();
         bindChoiceKeys(keyMap);
 
+        String statusMessage = null;
+        boolean redrawNeeded = false;
+
         // Interactive selection loop
         while (true) {
+            if (redrawNeeded) {
+                // Rebuild display (e.g. after returning from expanded view)
+                out.clear();
+                if (header != null) {
+                    out.addAll(header);
+                }
+                out.add(messageBuilder.toAttributedString());
+                out.addAll(buildChoiceItemsDisplay(items));
+                out.add(choiceBuilder.toAttributedString());
+                size.copy(terminal.getSize());
+                display.resize(size.getRows(), size.getColumns());
+                display.update(out, out.size() - 1);
+                redrawNeeded = false;
+            }
+            // Update display with status message if present
+            if (statusMessage != null) {
+                AttributedStringBuilder cb = new AttributedStringBuilder();
+                cb.styled(config.style(PrompterConfig.PR), "Choice: ");
+                cb.styled(config.style(PrompterConfig.ME), statusMessage);
+                out.set(out.size() - 1, cb.toAttributedString());
+                display.update(out, out.size() - 1);
+                statusMessage = null;
+            }
+
             ChoiceOperation op = bindingReader.readBinding(keyMap);
             switch (op) {
                 case INSERT:
-                    // Check if the input character matches any choice key
                     String ch = bindingReader.getLastBinding();
+                    // 'h' expands to a full list view for selection
+                    if ("h".equals(ch)) {
+                        ChoiceResult expanded = executeExpandedChoicePrompt(header, prompt, items);
+                        if (expanded != null) {
+                            return expanded;
+                        }
+                        // Escape in expanded view returns to the choice prompt
+                        redrawNeeded = true;
+                        break;
+                    }
+                    // Check if the input character matches any choice key
                     for (ChoiceItem item : items) {
                         if (!item.isDisabled()
                                 && item.getKey() != null
@@ -1213,7 +1328,8 @@ public class DefaultPrompter implements Prompter {
                             return new DefaultChoiceResult(item.getName(), prompt);
                         }
                     }
-                    // Invalid choice, continue waiting
+                    // Invalid choice - show help hint
+                    statusMessage = "Please enter a valid command (press \"h\" for help)";
                     break;
                 case EXIT:
                     // Use default choice if available
@@ -1230,6 +1346,76 @@ public class DefaultPrompter implements Prompter {
                     return null; // Go back to previous prompt
                 case CANCEL:
                     throw new UserInterruptException("User cancelled");
+                case IGNORE:
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Execute an expanded choice prompt that shows all choices as a navigable list.
+     * This is triggered when the user presses 'h' in a choice prompt.
+     */
+    private ChoiceResult executeExpandedChoicePrompt(
+            List<AttributedString> header, ChoicePrompt prompt, List<ChoiceItem> items)
+            throws IOException, UserInterruptException {
+
+        // Reuse list prompt infrastructure for the expanded view
+        resetDisplay();
+        firstItemRow = (header != null ? header.size() : 0) + 1;
+        range = null;
+
+        // Find first selectable item
+        int selectRow = nextRow(firstItemRow - 1, firstItemRow, items);
+        // If there's a default choice, start on it
+        for (int i = 0; i < items.size(); i++) {
+            ChoiceItem item = items.get(i);
+            if (item.isDefaultChoice() && !item.isDisabled()) {
+                selectRow = firstItemRow + i;
+                break;
+            }
+        }
+
+        // Set up list-style key bindings (arrow keys for navigation)
+        KeyMap<ListOperation> keyMap = new KeyMap<>();
+        bindListKeys(keyMap);
+
+        while (true) {
+            List<AttributedString> out = new ArrayList<>(header != null ? header : new ArrayList<>());
+
+            AttributedStringBuilder asb = new AttributedStringBuilder();
+            asb.append(createMessage(prompt.getMessage(), null));
+            out.add(asb.toAttributedString());
+
+            computeListRange(selectRow, items.size(), 0);
+            for (int i = range.first; i < range.last && i < items.size(); i++) {
+                out.add(buildSingleItemLine(items.get(i), i + firstItemRow == selectRow, true));
+            }
+
+            display.resize(size.getRows(), size.getColumns());
+            display.update(out, size.cursorPos(Math.min(size.getRows() - 1, firstItemRow + items.size()), 0));
+
+            ListOperation op = bindingReader.readBinding(keyMap);
+            switch (op) {
+                case FORWARD_ONE_LINE:
+                    selectRow = nextRow(selectRow, firstItemRow, items);
+                    break;
+                case BACKWARD_ONE_LINE:
+                    selectRow = prevRow(selectRow, firstItemRow, items);
+                    break;
+                case EXIT:
+                    int choiceIdx = selectRow - firstItemRow;
+                    if (choiceIdx >= 0 && choiceIdx < items.size()) {
+                        ChoiceItem selectedItem = items.get(choiceIdx);
+                        return new DefaultChoiceResult(selectedItem.getName(), prompt);
+                    }
+                    break;
+                case ESCAPE:
+                    return null;
+                case CANCEL:
+                    throw new UserInterruptException("User cancelled");
+                default:
+                    break;
             }
         }
     }
@@ -1260,9 +1446,11 @@ public class DefaultPrompter implements Prompter {
 
         // Create prompt message using proper styling like ConsolePrompt
         AttributedStringBuilder asb = createMessage(prompt.getMessage(), null);
-        asb.append("(y/N) ");
+        boolean defaultYes = prompt.getDefaultValue();
+        asb.append(defaultYes ? "(Y/n) " : "(y/N) ");
 
-        ConfirmResult.ConfirmationValue confirm = ConfirmResult.ConfirmationValue.NO; // Default
+        ConfirmResult.ConfirmationValue confirm =
+                defaultYes ? ConfirmResult.ConfirmationValue.YES : ConfirmResult.ConfirmationValue.NO;
         StringBuilder buffer = new StringBuilder();
 
         while (true) {
@@ -1309,7 +1497,7 @@ public class DefaultPrompter implements Prompter {
         }
     }
 
-    private PromptResult<TextPrompt> executeTextPrompt(List<AttributedString> header, TextPrompt prompt)
+    private PromptResult<? extends Prompt> executeTextPrompt(List<AttributedString> header, TextPrompt prompt)
             throws IOException, UserInterruptException {
 
         // Build display lines including header + text lines
@@ -1327,27 +1515,110 @@ public class DefaultPrompter implements Prompter {
         display.update(displayLines, -1);
 
         // Text prompts don't require user input, just display
-        return new AbstractPromptResult<TextPrompt>(prompt) {
-            @Override
-            public String getResult() {
-                return "TEXT_DISPLAYED";
+        return NoResult.INSTANCE;
+    }
+
+    private ToggleResult executeTogglePrompt(List<AttributedString> header, TogglePrompt prompt)
+            throws IOException, UserInterruptException {
+
+        size.copy(terminal.getSize());
+
+        boolean active = prompt.getDefaultValue();
+
+        KeyMap<ConfirmOperation> keyMap = new KeyMap<>();
+        // Next: Tab, Right, Down
+        keyMap.bind(ConfirmOperation.TOGGLE, "\t", " ", key(terminal, key_right), key(terminal, key_down));
+        // Previous: Shift+Tab, Left, Up
+        keyMap.bind(ConfirmOperation.TOGGLE, key(terminal, key_btab), key(terminal, key_left), key(terminal, key_up));
+        keyMap.bind(ConfirmOperation.EXIT, "\r", "\n");
+        keyMap.bind(ConfirmOperation.ESCAPE, esc());
+        keyMap.bind(ConfirmOperation.CANCEL, ctrl('C'));
+        keyMap.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
+
+        while (true) {
+            List<AttributedString> out = new ArrayList<>();
+            if (header != null) {
+                out.addAll(header);
             }
-        };
+
+            AttributedStringBuilder asb = createMessage(prompt.getMessage(), null);
+            if (active) {
+                asb.styled(config.style(PrompterConfig.SE), prompt.getActiveLabel());
+                asb.append(" / ");
+                asb.append(prompt.getInactiveLabel());
+            } else {
+                asb.append(prompt.getActiveLabel());
+                asb.append(" / ");
+                asb.styled(config.style(PrompterConfig.SE), prompt.getInactiveLabel());
+            }
+            out.add(asb.toAttributedString());
+
+            display.resize(size.getRows(), size.getColumns());
+            display.update(out, size.cursorPos(out.size() - 1, asb.columnLength()));
+
+            ConfirmOperation op = bindingReader.readBinding(keyMap);
+            switch (op) {
+                case TOGGLE:
+                    active = !active;
+                    break;
+                case EXIT:
+                    return new DefaultToggleResult(active, prompt);
+                case ESCAPE:
+                    return null;
+                case CANCEL:
+                    throw new UserInterruptException("User cancelled");
+                default:
+                    break;
+            }
+        }
     }
 
-    private void displayPromptMessage(String message) {
-        terminal.writer().print("? " + message + " ");
-        terminal.flush();
-    }
+    private KeyPressResult executeKeyPressPrompt(List<AttributedString> header, KeyPressPrompt prompt)
+            throws IOException, UserInterruptException {
 
-    private void displayText(String text) {
-        terminal.writer().println(text);
-        terminal.flush();
-    }
+        size.copy(terminal.getSize());
 
-    private void displayError(String error) {
-        terminal.writer().println("Error: " + error);
-        terminal.flush();
+        List<AttributedString> out = new ArrayList<>();
+        if (header != null) {
+            out.addAll(header);
+        }
+
+        AttributedStringBuilder asb = createMessage(prompt.getMessage(), null);
+        asb.styled(config.style(PrompterConfig.ME), prompt.getHint());
+        out.add(asb.toAttributedString());
+
+        display.resize(size.getRows(), size.getColumns());
+        display.update(out, -1);
+
+        // Use a KeyMap to properly consume multi-byte escape sequences (arrow keys, function keys)
+        // so trailing bytes don't leak into the next prompt
+        String unicode = "__unicode__";
+        KeyMap<String> keyMap = new KeyMap<>();
+        keyMap.setUnicode(unicode);
+        // Bind common escape sequences so they are fully consumed
+        keyMap.bind("UP", key(terminal, key_up));
+        keyMap.bind("DOWN", key(terminal, key_down));
+        keyMap.bind("LEFT", key(terminal, key_left));
+        keyMap.bind("RIGHT", key(terminal, key_right));
+        keyMap.bind("CANCEL", ctrl('C'));
+        keyMap.bind("ESCAPE", esc());
+        keyMap.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
+
+        String result = bindingReader.readBinding(keyMap);
+        if ("CANCEL".equals(result)) {
+            throw new UserInterruptException("User cancelled");
+        }
+        if ("ESCAPE".equals(result)) {
+            return null;
+        }
+        // For printable characters, use the last binding (actual character typed)
+        String key;
+        if (unicode.equals(result)) {
+            key = bindingReader.getLastBinding();
+        } else {
+            key = result; // Named key like "UP", "DOWN", etc.
+        }
+        return new DefaultKeyPressResult(key, prompt);
     }
 
     private void open() throws IOException {
@@ -1387,11 +1658,14 @@ public class DefaultPrompter implements Prompter {
         for (char i = 32; i < KEYMAP_LENGTH; i++) {
             map.bind(ListOperation.INSERT, Character.toString(i));
         }
-        // Bind navigation keys
-        map.bind(ListOperation.FORWARD_ONE_LINE, "e", ctrl('E'), key(terminal, key_down));
-        map.bind(ListOperation.BACKWARD_ONE_LINE, "y", ctrl('Y'), key(terminal, key_up));
+        // Bind navigation keys: next (Down, Tab) and previous (Up, Shift+Tab)
+        map.bind(ListOperation.FORWARD_ONE_LINE, "e", ctrl('E'), key(terminal, key_down), "\t");
+        map.bind(ListOperation.BACKWARD_ONE_LINE, "y", ctrl('Y'), key(terminal, key_up), key(terminal, key_btab));
+        // Consume Left/Right arrow sequences so trailing bytes don't leak as input
+        map.bind(ListOperation.IGNORE, key(terminal, key_left), key(terminal, key_right));
 
         // Bind action keys
+        map.bind(ListOperation.BACKSPACE, "\b", "\u007f");
         map.bind(ListOperation.EXIT, "\r", "\n");
         map.bind(ListOperation.ESCAPE, esc()); // Escape goes back to previous prompt
         map.bind(ListOperation.CANCEL, ctrl('C')); // Ctrl+C cancels
@@ -1434,13 +1708,27 @@ public class DefaultPrompter implements Prompter {
             out.add(buildSingleItemLine(items.get(i), i + firstItemRow == cursorRow));
         }
 
+        // Add page indicator if pagination is active
+        if (prompt.showPageIndicator() && (range.first > 0 || range.last < items.size())) {
+            out.add(new AttributedStringBuilder()
+                    .styled(config.style(PrompterConfig.ME), "(Move up and down to reveal more choices)")
+                    .toAttributedString());
+        }
+
         return out;
     }
 
     /**
      * Build a single item line for display.
      */
-    private AttributedString buildSingleItemLine(ListItem item, boolean isSelected) {
+    private AttributedString buildSingleItemLine(PromptItem item, boolean isSelected) {
+        return buildSingleItemLine(item, isSelected, false);
+    }
+
+    /**
+     * Build a single item line for display, optionally showing choice keys.
+     */
+    private AttributedString buildSingleItemLine(PromptItem item, boolean isSelected, boolean showChoiceKeys) {
         AttributedStringBuilder asb = new AttributedStringBuilder();
 
         // Check if this is a separator
@@ -1450,8 +1738,8 @@ public class DefaultPrompter implements Prompter {
             return asb.toAttributedString();
         }
 
-        // Add selection indicator and key if available
-        String key = item instanceof ChoiceItem ? ((ChoiceItem) item).getKey() + " - " : "";
+        // Add selection indicator and key if available (only for expanded choice view)
+        String key = showChoiceKeys && item instanceof ChoiceItem ? ((ChoiceItem) item).getKey() + " - " : "";
         if (isSelected && item.isSelectable()) {
             asb.styled(config.style(PrompterConfig.CURSOR), config.indicator())
                     .style(config.style(PrompterConfig.SE))
@@ -1466,7 +1754,7 @@ public class DefaultPrompter implements Prompter {
             fillIndicatorSpace(asb);
             asb.append(" ").append(key);
             if (item.isDisabled()) {
-                asb.styled(config.style(PrompterConfig.BD), item.getDisabledText())
+                asb.styled(config.style(PrompterConfig.BD), item.getText())
                         .append(" (")
                         .styled(config.style(PrompterConfig.BD), item.getDisabledText())
                         .append(")");
@@ -1502,16 +1790,23 @@ public class DefaultPrompter implements Prompter {
      * Bind keys for checkbox prompt operations.
      */
     private void bindCheckboxKeys(KeyMap<CheckboxOperation> map) {
-        // Bind navigation keys
-        map.bind(CheckboxOperation.FORWARD_ONE_LINE, "e", ctrl('E'), key(terminal, key_down));
-        map.bind(CheckboxOperation.BACKWARD_ONE_LINE, "y", ctrl('Y'), key(terminal, key_up));
+        // Bind printable characters to INSERT for inline filtering
+        for (char i = 32; i < KEYMAP_LENGTH; i++) {
+            map.bind(CheckboxOperation.INSERT, Character.toString(i));
+        }
+        // Bind navigation keys: next (Down, Tab) and previous (Up, Shift+Tab)
+        map.bind(CheckboxOperation.FORWARD_ONE_LINE, "e", ctrl('E'), key(terminal, key_down), "\t");
+        map.bind(CheckboxOperation.BACKWARD_ONE_LINE, "y", ctrl('Y'), key(terminal, key_up), key(terminal, key_btab));
+        // Consume Left/Right arrow sequences so trailing bytes don't leak as input
+        map.bind(CheckboxOperation.IGNORE, key(terminal, key_left), key(terminal, key_right));
 
         // Bind toggle key
         map.bind(CheckboxOperation.TOGGLE, " ");
         // Bind action keys
+        map.bind(CheckboxOperation.BACKSPACE, "\b", "\u007f");
         map.bind(CheckboxOperation.EXIT, "\r", "\n");
-        map.bind(CheckboxOperation.ESCAPE, esc()); // Escape goes back to previous prompt
-        map.bind(CheckboxOperation.CANCEL, ctrl('C')); // Ctrl+C cancels
+        map.bind(CheckboxOperation.ESCAPE, esc());
+        map.bind(CheckboxOperation.CANCEL, ctrl('C'));
 
         // Set up fallback for unmatched keys (like console-ui behavior)
         map.setNomatch(CheckboxOperation.IGNORE);
@@ -1547,9 +1842,22 @@ public class DefaultPrompter implements Prompter {
             CheckboxPrompt prompt) {
         List<AttributedString> out = new ArrayList<>(header != null ? header : new ArrayList<>());
 
-        // Add message line
+        // Add message line with selection constraints hint
         AttributedStringBuilder asb = new AttributedStringBuilder();
         asb.append(message);
+        int min = prompt.getMinSelections();
+        int max = prompt.getMaxSelections();
+        if (min > 0 || max > 0) {
+            asb.styled(config.style(PrompterConfig.ME), " (select ");
+            if (min > 0 && max > 0) {
+                asb.styled(config.style(PrompterConfig.ME), min + "-" + max);
+            } else if (min > 0) {
+                asb.styled(config.style(PrompterConfig.ME), "at least " + min);
+            } else {
+                asb.styled(config.style(PrompterConfig.ME), "at most " + max);
+            }
+            asb.styled(config.style(PrompterConfig.ME), ")");
+        }
         out.add(asb.toAttributedString());
 
         // Single column layout with pagination
@@ -1559,6 +1867,13 @@ public class DefaultPrompter implements Prompter {
                 break;
             }
             out.add(buildSingleCheckboxLine(items.get(i), i + firstItemRow == cursorRow, selectedIds));
+        }
+
+        // Add page indicator if pagination is active
+        if (prompt.showPageIndicator() && (range.first > 0 || range.last < items.size())) {
+            out.add(new AttributedStringBuilder()
+                    .styled(config.style(PrompterConfig.ME), "(Move up and down to reveal more choices)")
+                    .toAttributedString());
         }
 
         return out;
@@ -1621,9 +1936,17 @@ public class DefaultPrompter implements Prompter {
         for (char i = 32; i < KEYMAP_LENGTH; i++) {
             map.bind(ChoiceOperation.INSERT, Character.toString(i));
         }
+        // Consume arrow key sequences so trailing bytes don't leak as input
+        map.bind(
+                ChoiceOperation.IGNORE,
+                key(terminal, key_up),
+                key(terminal, key_down),
+                key(terminal, key_left),
+                key(terminal, key_right));
         // Bind action keys
         map.bind(ChoiceOperation.EXIT, "\r", "\n");
-        map.bind(ChoiceOperation.CANCEL, esc());
+        map.bind(ChoiceOperation.ESCAPE, esc());
+        map.bind(ChoiceOperation.CANCEL, ctrl('C'));
         map.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
     }
 
@@ -1635,18 +1958,25 @@ public class DefaultPrompter implements Prompter {
         out.add(AttributedString.EMPTY); // Empty line before choices
 
         for (ChoiceItem item : items) {
-            if (!item.isDisabled()) {
-                AttributedStringBuilder asb = new AttributedStringBuilder();
-                asb.append("  ");
-                if (item.getKey() != null && item.getKey() != ' ') {
+            AttributedStringBuilder asb = new AttributedStringBuilder();
+            asb.append("  ");
+            if (item.getKey() != null && item.getKey() != ' ') {
+                if (item.isDisabled()) {
+                    asb.styled(config.style(PrompterConfig.BD), item.getKey() + ") ");
+                } else {
                     asb.styled(config.style(PrompterConfig.CURSOR), item.getKey() + ") ");
                 }
+            }
+            if (item.isDisabled()) {
+                String disabledDisplay = item.getText() + " (" + item.getDisabledText() + ")";
+                asb.styled(config.style(PrompterConfig.BD), disabledDisplay);
+            } else {
                 asb.append(item.getText());
                 if (item.isDefaultChoice()) {
                     asb.styled(config.style(PrompterConfig.AN), " (default)");
                 }
-                out.add(asb.toAttributedString());
             }
+            out.add(asb.toAttributedString());
         }
         return out;
     }

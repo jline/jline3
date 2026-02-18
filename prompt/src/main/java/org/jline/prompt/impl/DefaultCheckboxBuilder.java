@@ -10,6 +10,7 @@ package org.jline.prompt.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import org.jline.prompt.CheckboxBuilder;
 import org.jline.prompt.CheckboxItem;
@@ -23,7 +24,7 @@ import org.jline.prompt.SeparatorItem;
  */
 public class DefaultCheckboxBuilder implements CheckboxBuilder {
 
-    private final DefaultPromptBuilder parent;
+    private final PromptBuilder parent;
     private final List<CheckboxItem> items = new ArrayList<>();
     private String name;
     private String message;
@@ -34,13 +35,17 @@ public class DefaultCheckboxBuilder implements CheckboxBuilder {
     private String currentItemDisabledText;
     private int pageSize = 0;
     private boolean showPageIndicator = true;
+    private int minSelections = 0;
+    private int maxSelections = 0;
+    private Function<String, String> transformer;
+    private Function<String, String> filter;
 
     /**
      * Create a new DefaultCheckboxBuilder with the given parent.
      *
      * @param parent the parent builder
      */
-    public DefaultCheckboxBuilder(DefaultPromptBuilder parent) {
+    public DefaultCheckboxBuilder(PromptBuilder parent) {
         this.parent = parent;
     }
 
@@ -50,6 +55,7 @@ public class DefaultCheckboxBuilder implements CheckboxBuilder {
      * @param name the name
      * @return this builder
      */
+    @Override
     public CheckboxBuilder name(String name) {
         this.name = name;
         return this;
@@ -61,6 +67,7 @@ public class DefaultCheckboxBuilder implements CheckboxBuilder {
      * @param message the message
      * @return this builder
      */
+    @Override
     public CheckboxBuilder message(String message) {
         this.message = message;
         return this;
@@ -158,6 +165,18 @@ public class DefaultCheckboxBuilder implements CheckboxBuilder {
     }
 
     @Override
+    public CheckboxBuilder minSelections(int min) {
+        this.minSelections = min;
+        return this;
+    }
+
+    @Override
+    public CheckboxBuilder maxSelections(int max) {
+        this.maxSelections = max;
+        return this;
+    }
+
+    @Override
     public CheckboxSeparatorBuilder newSeparator() {
         return new DefaultCheckboxSeparatorBuilder(this);
     }
@@ -176,11 +195,31 @@ public class DefaultCheckboxBuilder implements CheckboxBuilder {
         items.add((CheckboxItem) separatorItem);
     }
 
+    @Override
+    public CheckboxBuilder transformer(Function<String, String> transformer) {
+        this.transformer = transformer;
+        return this;
+    }
+
+    @Override
+    public CheckboxBuilder filter(Function<String, String> filter) {
+        this.filter = filter;
+        return this;
+    }
+
     /**
      * Add this prompt to the parent builder.
      */
+    @Override
     public PromptBuilder addPrompt() {
-        DefaultCheckboxPrompt prompt = new DefaultCheckboxPrompt(name, message, items, pageSize, showPageIndicator);
+        if (maxSelections > 0 && minSelections > maxSelections) {
+            throw new IllegalStateException("minSelections (" + minSelections
+                    + ") cannot be greater than maxSelections (" + maxSelections + ")");
+        }
+        DefaultCheckboxPrompt prompt = new DefaultCheckboxPrompt(
+                name, message, items, pageSize, showPageIndicator, minSelections, maxSelections);
+        prompt.setTransformer(transformer);
+        prompt.setFilter(filter);
         parent.addPrompt(prompt);
         return parent;
     }

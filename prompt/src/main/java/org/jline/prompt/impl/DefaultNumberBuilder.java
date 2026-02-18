@@ -8,7 +8,10 @@
  */
 package org.jline.prompt.impl;
 
-import org.jline.prompt.*;
+import java.util.function.Function;
+
+import org.jline.prompt.NumberBuilder;
+import org.jline.prompt.PromptBuilder;
 
 /**
  * Default implementation of NumberBuilder.
@@ -24,6 +27,8 @@ public class DefaultNumberBuilder implements NumberBuilder {
     private boolean allowDecimals = true;
     private String invalidNumberMessage;
     private String outOfRangeMessage;
+    private Function<String, String> transformer;
+    private Function<String, String> filter;
 
     public DefaultNumberBuilder(PromptBuilder parent) {
         this.parent = parent;
@@ -78,9 +83,23 @@ public class DefaultNumberBuilder implements NumberBuilder {
     }
 
     @Override
+    public NumberBuilder transformer(Function<String, String> transformer) {
+        this.transformer = transformer;
+        return this;
+    }
+
+    @Override
+    public NumberBuilder filter(Function<String, String> filter) {
+        this.filter = filter;
+        return this;
+    }
+
+    @Override
     public PromptBuilder addPrompt() {
-        NumberPrompt prompt = new DefaultNumberPrompt(
+        DefaultNumberPrompt prompt = new DefaultNumberPrompt(
                 name, message, min, max, allowDecimals, defaultValue, invalidNumberMessage, outOfRangeMessage);
+        prompt.setTransformer(transformer);
+        prompt.setFilter(filter);
         parent.addPrompt(prompt);
         return parent;
     }
