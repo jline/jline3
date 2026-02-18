@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import org.jline.reader.*;
+import org.jline.shell.impl.DefaultCommandDispatcher;
 import org.jline.shell.impl.DefaultJobManager;
 import org.jline.terminal.Terminal;
 
@@ -90,8 +91,24 @@ public class Shell implements AutoCloseable {
      */
     public void run() throws Exception {
         running = true;
+        Terminal.SignalHandler prevInt = null;
+        Terminal.SignalHandler prevTstp = null;
         try {
             dispatcher.initialize(initScript);
+
+            // Register signal handlers
+            if (dispatcher instanceof DefaultCommandDispatcher) {
+                DefaultCommandDispatcher dcd = (DefaultCommandDispatcher) dispatcher;
+                prevInt = terminal.handle(Terminal.Signal.INT, sig -> dcd.interruptCurrentCommand());
+                if (jobManager != null) {
+                    prevTstp = terminal.handle(Terminal.Signal.TSTP, sig -> {
+                        Job fg = dcd.session().foregroundJob();
+                        if (fg != null) {
+                            fg.suspend();
+                        }
+                    });
+                }
+            }
 
             while (running) {
                 // Print completed background job notifications
@@ -134,6 +151,13 @@ public class Shell implements AutoCloseable {
             }
         } finally {
             running = false;
+            // Restore previous signal handlers
+            if (prevInt != null) {
+                terminal.handle(Terminal.Signal.INT, prevInt);
+            }
+            if (prevTstp != null) {
+                terminal.handle(Terminal.Signal.TSTP, prevTstp);
+            }
         }
     }
 

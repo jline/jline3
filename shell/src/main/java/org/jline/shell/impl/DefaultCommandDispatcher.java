@@ -18,6 +18,7 @@ import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
+import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.reader.impl.completer.SystemCompleter;
 import org.jline.shell.*;
 import org.jline.shell.Pipeline.Operator;
@@ -52,6 +53,9 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
     private final CommandSession session;
     private final DefaultJobManager jobManager;
     private final AliasManager aliasManager;
+    private final LineExpander lineExpander;
+    private final ScriptRunner scriptRunner;
+    private volatile Thread commandThread;
 
     /**
      * Creates a new dispatcher for the given terminal.
@@ -91,11 +95,34 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
      */
     public DefaultCommandDispatcher(
             Terminal terminal, JobManager jobManager, PipelineParser pipelineParser, AliasManager aliasManager) {
+        this(terminal, jobManager, pipelineParser, aliasManager, null, null);
+    }
+
+    /**
+     * Creates a new dispatcher with all configuration options including line expansion
+     * and script execution.
+     *
+     * @param terminal the terminal
+     * @param jobManager the job manager, or null for no job control
+     * @param pipelineParser the pipeline parser, or null for the default parser
+     * @param aliasManager the alias manager, or null for no alias support
+     * @param lineExpander the line expander, or null for no variable expansion
+     * @param scriptRunner the script runner, or null for no script support
+     */
+    public DefaultCommandDispatcher(
+            Terminal terminal,
+            JobManager jobManager,
+            PipelineParser pipelineParser,
+            AliasManager aliasManager,
+            LineExpander lineExpander,
+            ScriptRunner scriptRunner) {
         this.terminal = terminal;
         this.session = new CommandSession(terminal);
         this.pipelineParser = pipelineParser != null ? pipelineParser : new PipelineParser();
         this.jobManager = jobManager instanceof DefaultJobManager ? (DefaultJobManager) jobManager : null;
         this.aliasManager = aliasManager;
+        this.lineExpander = lineExpander;
+        this.scriptRunner = scriptRunner;
         if (this.jobManager != null) {
             groups.add(new JobCommands(jobManager));
         }
@@ -135,6 +162,21 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
         String expanded = line;
         if (aliasManager != null) {
             expanded = aliasManager.expand(line);
+        }
+
+        // Expand variables after alias expansion
+        if (lineExpander != null) {
+            expanded = lineExpander.expand(expanded, session);
+        }
+
+        // Handle bare variable assignment: NAME=VALUE
+        String assignTrimmed = expanded.trim();
+        if (isVariableAssignment(assignTrimmed)) {
+            int eq = assignTrimmed.indexOf('=');
+            String name = assignTrimmed.substring(0, eq);
+            String value = assignTrimmed.substring(eq + 1);
+            session.put(name, value);
+            return null;
         }
 
         // Check for background execution
@@ -195,6 +237,15 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
     }
 
     private Object executePipelineStages(Pipeline pipeline) throws Exception {
+        commandThread = Thread.currentThread();
+        try {
+            return doExecutePipelineStages(pipeline);
+        } finally {
+            commandThread = null;
+        }
+    }
+
+    private Object doExecutePipelineStages(Pipeline pipeline) throws Exception {
         List<Pipeline.Stage> stages = pipeline.stages();
         Object lastResult = null;
         String lastOutput = null;
@@ -244,14 +295,49 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
 
             String[] args = argsStr.isEmpty() ? new String[0] : argsStr.split("\\s+");
 
+            // Subcommand routing: check if first arg matches a subcommand
+            if (args.length > 0 && !cmd.subcommands().isEmpty()) {
+                Command sub = cmd.subcommands().get(args[0]);
+                if (sub != null) {
+                    cmd = sub;
+                    args = Arrays.copyOfRange(args, 1, args.length);
+                }
+            }
+
+            // Handle input redirection
+            InputStream originalIn = session.in();
+            boolean inputRedirected = false;
+            if (stage.inputSource() != null) {
+                byte[] inputBytes = Files.readAllBytes(stage.inputSource());
+                session.setIn(new ByteArrayInputStream(inputBytes));
+                inputRedirected = true;
+            }
+
             // If this stage pipes into the next, capture stdout instead of printing to terminal
             Operator op = stage.operator();
             boolean captureOutput = (op == Operator.PIPE || op == Operator.FLIP);
-            ByteArrayOutputStream capture = null;
+
+            // For stderr/combined redirect, we redirect streams before execution
             PrintStream originalOut = session.out();
+            PrintStream originalErr = session.err();
+            ByteArrayOutputStream capture = null;
+            boolean stderrRedirected = false;
+
             if (captureOutput) {
                 capture = new ByteArrayOutputStream();
                 session.setOut(new PrintStream(capture));
+            } else if (op == Operator.STDERR_REDIRECT && stage.redirectTarget() != null) {
+                OutputStream errFile = Files.newOutputStream(
+                        stage.redirectTarget(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                session.setErr(new PrintStream(errFile));
+                stderrRedirected = true;
+            } else if (op == Operator.COMBINED_REDIRECT && stage.redirectTarget() != null) {
+                OutputStream combinedFile = Files.newOutputStream(
+                        stage.redirectTarget(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                PrintStream combinedStream = new PrintStream(combinedFile);
+                session.setOut(combinedStream);
+                session.setErr(combinedStream);
+                stderrRedirected = true;
             }
 
             try {
@@ -278,6 +364,15 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
                 if (captureOutput) {
                     session.setOut(originalOut);
                 }
+                if (stderrRedirected) {
+                    session.out().flush();
+                    session.err().flush();
+                    session.setOut(originalOut);
+                    session.setErr(originalErr);
+                }
+                if (inputRedirected) {
+                    session.setIn(originalIn);
+                }
             }
 
             // Handle redirect/append
@@ -295,6 +390,10 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
                     lastResult = null;
                     lastOutput = null;
                 }
+            } else if (op == Operator.STDERR_REDIRECT || op == Operator.COMBINED_REDIRECT) {
+                // Already handled above via stream redirection
+                lastResult = null;
+                lastOutput = null;
             } else if (op == Operator.SEQUENCE) {
                 // Sequence: always continue, reset output for next independent command
                 lastOutput = null;
@@ -309,24 +408,33 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
         SystemCompleter completer = new SystemCompleter();
         for (CommandGroup group : groups) {
             for (Command cmd : group.commands()) {
-                List<Completer> cmdCompleters = cmd.completers();
-                if (!cmdCompleters.isEmpty()) {
-                    List<Completer> all = new ArrayList<>(cmdCompleters);
-                    all.add(NullCompleter.INSTANCE);
-                    completer.add(cmd.name(), new ArgumentCompleter(all));
-                    for (String alias : cmd.aliases()) {
-                        completer.add(alias, new ArgumentCompleter(all));
-                    }
-                } else {
-                    completer.add(cmd.name(), NullCompleter.INSTANCE);
-                    for (String alias : cmd.aliases()) {
-                        completer.add(alias, NullCompleter.INSTANCE);
-                    }
+                Completer cmdCompleter = buildCommandCompleter(cmd);
+                completer.add(cmd.name(), cmdCompleter);
+                for (String alias : cmd.aliases()) {
+                    completer.add(alias, cmdCompleter);
                 }
             }
         }
         completer.compile(this::createCandidate);
         return completer;
+    }
+
+    private Completer buildCommandCompleter(Command cmd) {
+        Map<String, Command> subs = cmd.subcommands();
+        if (!subs.isEmpty()) {
+            // Build a completer that offers subcommand names, then delegates
+            List<Completer> subCompleters = new ArrayList<>();
+            subCompleters.add(new StringsCompleter(subs.keySet()));
+            subCompleters.add(NullCompleter.INSTANCE);
+            return new ArgumentCompleter(subCompleters);
+        }
+        List<Completer> cmdCompleters = cmd.completers();
+        if (!cmdCompleters.isEmpty()) {
+            List<Completer> all = new ArrayList<>(cmdCompleters);
+            all.add(NullCompleter.INSTANCE);
+            return new ArgumentCompleter(all);
+        }
+        return NullCompleter.INSTANCE;
     }
 
     private Candidate createCandidate(String command) {
@@ -359,6 +467,68 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
     @Override
     public Terminal terminal() {
         return terminal;
+    }
+
+    /**
+     * Returns the command session used by this dispatcher.
+     *
+     * @return the command session
+     */
+    public CommandSession session() {
+        return session;
+    }
+
+    /**
+     * Interrupts the currently executing command, if any.
+     * <p>
+     * This is typically called from a signal handler (e.g., SIGINT) to
+     * interrupt the foreground command without killing the shell.
+     */
+    public void interruptCurrentCommand() {
+        Thread t = commandThread;
+        if (t != null) {
+            t.interrupt();
+        }
+    }
+
+    @Override
+    public void initialize(File script) throws Exception {
+        if (script != null && script.exists() && scriptRunner != null) {
+            scriptRunner.execute(script.toPath(), session, this);
+        }
+    }
+
+    /**
+     * Checks whether a line is a bare variable assignment ({@code NAME=VALUE}).
+     * <p>
+     * A line is a variable assignment if it contains {@code =} and the part before
+     * it is a valid identifier (letters, digits, underscores, starting with a letter
+     * or underscore). The line must not contain spaces before the {@code =}.
+     *
+     * @param line the trimmed input line
+     * @return true if the line is a variable assignment
+     */
+    private static boolean isVariableAssignment(String line) {
+        int eq = line.indexOf('=');
+        if (eq <= 0) {
+            return false;
+        }
+        // Check that there are no spaces before the '='
+        String name = line.substring(0, eq);
+        if (name.indexOf(' ') >= 0) {
+            return false;
+        }
+        // Check that the name is a valid identifier
+        if (!Character.isLetter(name.charAt(0)) && name.charAt(0) != '_') {
+            return false;
+        }
+        for (int i = 1; i < name.length(); i++) {
+            char c = name.charAt(i);
+            if (!Character.isLetterOrDigit(c) && c != '_') {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override

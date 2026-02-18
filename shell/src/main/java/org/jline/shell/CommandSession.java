@@ -27,9 +27,9 @@ import org.jline.terminal.Terminal;
 public class CommandSession {
 
     private final Terminal terminal;
-    private final InputStream in;
+    private InputStream in;
     private PrintStream out;
-    private final PrintStream err;
+    private PrintStream err;
     private final Map<String, Object> variables;
     private Path workingDirectory;
     private int lastExitCode;
@@ -110,12 +110,30 @@ public class CommandSession {
     }
 
     /**
+     * Sets the input stream.
+     *
+     * @param in the new input stream
+     */
+    public void setIn(InputStream in) {
+        this.in = in;
+    }
+
+    /**
      * Returns the error stream.
      *
      * @return the error stream
      */
     public PrintStream err() {
         return err;
+    }
+
+    /**
+     * Sets the error stream.
+     *
+     * @param err the new error stream
+     */
+    public void setErr(PrintStream err) {
+        this.err = err;
     }
 
     /**
@@ -136,6 +154,16 @@ public class CommandSession {
      */
     public void put(String name, Object value) {
         variables.put(name, value);
+    }
+
+    /**
+     * Removes a session variable.
+     *
+     * @param name the variable name
+     * @return the previous value, or null if not set
+     */
+    public Object remove(String name) {
+        return variables.remove(name);
     }
 
     /**

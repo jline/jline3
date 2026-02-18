@@ -114,7 +114,10 @@ public class PipelineParser {
                 String cmd = currentCmd.toString().trim();
                 currentCmd.setLength(0);
 
-                if (op == Operator.REDIRECT || op == Operator.APPEND) {
+                if (op == Operator.REDIRECT
+                        || op == Operator.APPEND
+                        || op == Operator.STDERR_REDIRECT
+                        || op == Operator.COMBINED_REDIRECT) {
                     // Next token should be the file path
                     Path target = null;
                     if (i + 1 < tokens.size()) {
@@ -122,6 +125,22 @@ public class PipelineParser {
                         target = Paths.get(tokens.get(i).value.trim());
                     }
                     stages.add(new DefaultPipeline.DefaultStage(cmd, op, target, op == Operator.APPEND));
+                } else if (op == Operator.INPUT_REDIRECT) {
+                    // Next token should be the input file path
+                    Path inputFile = null;
+                    if (i + 1 < tokens.size()) {
+                        i++;
+                        inputFile = Paths.get(tokens.get(i).value.trim());
+                    }
+                    stages.add(new DefaultPipeline.DefaultStage(cmd, null, null, false, inputFile));
+                } else if (op == Operator.HEREDOC) {
+                    // Next token should be the delimiter; for now treat similarly to input redirect
+                    Path heredocFile = null;
+                    if (i + 1 < tokens.size()) {
+                        i++;
+                        // HEREDOC is deferred to follow-up; store delimiter as-is for now
+                    }
+                    stages.add(new DefaultPipeline.DefaultStage(cmd, op, null, false));
                 } else {
                     stages.add(new DefaultPipeline.DefaultStage(cmd, op, null, false));
                 }
@@ -253,13 +272,19 @@ public class PipelineParser {
         // Check two-character operators first
         if (pos + 1 < line.length()) {
             String two = line.substring(pos, pos + 2);
-            if (two.equals(">>") || two.equals("&&") || two.equals("||") || two.equals("|;")) {
+            if (two.equals(">>")
+                    || two.equals("&&")
+                    || two.equals("||")
+                    || two.equals("|;")
+                    || two.equals("2>")
+                    || two.equals("&>")
+                    || two.equals("<<")) {
                 return two;
             }
         }
         // Single-character operators
         char c = line.charAt(pos);
-        if (c == '|' || c == '>' || c == ';') {
+        if (c == '|' || c == '>' || c == ';' || c == '<') {
             return String.valueOf(c);
         }
         return null;

@@ -213,6 +213,227 @@ PipelineParser parser = new PipelineParser() {
 };
 ```
 
+### I/O Redirection
+
+In addition to `>` and `>>`, the pipeline parser supports:
+
+| Operator | Name | Description |
+|----------|------|-------------|
+| `<` | Input redirect | Read stdin from file |
+| `2>` | Stderr redirect | Redirect stderr to file |
+| `&>` | Combined redirect | Redirect both stdout and stderr to file |
+
+```
+echo hello > out.txt       # write to file
+cat < out.txt              # read from file
+cmd 2> errors.txt          # capture stderr
+cmd &> all.txt             # capture both stdout and stderr
+```
+
 ### Demo
 
 <CodeSnippet name="ShellPipelineExample" />
+
+---
+
+## Variable Expansion
+
+The `LineExpander` interface provides pluggable variable expansion that runs after alias expansion and before pipeline parsing.
+
+### Setting Up
+
+```java
+Shell.builder()
+    .lineExpander(new DefaultLineExpander())
+    .build();
+```
+
+### Built-in Expansions
+
+The `DefaultLineExpander` supports:
+
+| Syntax | Description |
+|--------|-------------|
+| `$VAR` | Session variable, then environment variable |
+| `${VAR}` | Same, with braces for disambiguation |
+| `~` | Expands to `user.home` (at word start) |
+| `'...'` | Single-quoted regions are not expanded |
+| `"..."` | Double-quoted regions expand variables |
+| `${VAR:-default}` | Use default if VAR is unset or empty |
+| `${VAR:=default}` | Assign default if VAR is unset or empty |
+| `${VAR:+alt}` | Use alt if VAR is set and non-empty |
+| `${VAR:?error}` | Error if VAR is unset or empty |
+
+```
+echo $HOME              → /home/user
+echo ${HOME}/docs       → /home/user/docs
+echo ~/docs             → /home/user/docs
+echo '$HOME'            → $HOME  (no expansion)
+echo "$HOME"            → /home/user
+echo ${MISSING:-hello}  → hello
+echo ${NAME:+yes}       → yes  (if NAME is set)
+```
+
+Unknown variables are left as-is (`$UNKNOWN` → `$UNKNOWN`).
+
+### Setting Variables
+
+Variables can be set in several ways:
+
+| Syntax | Description |
+|--------|-------------|
+| `NAME=VALUE` | Bare assignment (at dispatcher level) |
+| `set NAME=VALUE` | Set command |
+| `set NAME VALUE` | Set command (space form) |
+| `export NAME=VALUE` | Export command (alias for set) |
+| `unset NAME` | Remove a variable |
+| `set` | List all session variables |
+
+Enable the `set`/`unset`/`export` commands:
+
+```java
+Shell.builder().variableCommands(true)
+```
+
+Bare `NAME=VALUE` assignment is always available when a `LineExpander` is configured.
+
+### Custom Expansion
+
+Implement `LineExpander` for custom syntax:
+
+```java
+LineExpander expander = (line, session) -> {
+    // Custom expansion logic
+    return line.replace("@user", System.getProperty("user.name"));
+};
+```
+
+Or subclass `DefaultLineExpander` and override `expandBracedExpression()` or `resolve()`:
+
+```java
+new DefaultLineExpander() {
+    @Override
+    protected String resolve(String name, CommandSession session) {
+        // Custom variable resolution, Groovy evaluation, etc.
+        return super.resolve(name, session);
+    }
+};
+```
+
+---
+
+## Subcommands
+
+Commands can define subcommands via the `subcommands()` method. The dispatcher routes `git commit -m msg` to the `commit` subcommand with args `[-m, msg]`.
+
+### Defining Subcommands
+
+```java
+public class GitCommand extends AbstractCommand {
+    private final Map<String, Command> subs = Map.of(
+        "commit", new CommitCommand(),
+        "status", new StatusCommand()
+    );
+
+    public GitCommand() { super("git"); }
+
+    @Override
+    public Map<String, Command> subcommands() { return subs; }
+
+    @Override
+    public Object execute(CommandSession session, String[] args) {
+        session.out().println("usage: git <command>");
+        return null;
+    }
+}
+```
+
+Tab completion automatically offers subcommand names after the parent command.
+
+---
+
+## Script Execution
+
+The `ScriptRunner` interface enables executing script files line by line through the dispatcher.
+
+### Setting Up
+
+```java
+Shell.builder()
+    .scriptRunner(new DefaultScriptRunner())
+    .scriptCommands(true)  // registers source/. commands
+    .build();
+```
+
+### Usage
+
+```
+source ~/.myapprc
+. ./setup.sh
+```
+
+### Script Format
+
+The `DefaultScriptRunner` supports:
+
+- Lines starting with `#` are comments
+- Blank lines are skipped
+- `\` at end of line joins with the next line (continuation)
+
+```bash
+# This is a comment
+alias ll=ls -la
+
+echo hello \
+  world
+```
+
+### Init Scripts
+
+Run a script at shell startup:
+
+```java
+Shell.builder()
+    .scriptRunner(new DefaultScriptRunner())
+    .initScript(new File("~/.myapprc"))
+    .build();
+```
+
+---
+
+## Signal Handling
+
+When the dispatcher is a `DefaultCommandDispatcher`, the shell automatically registers signal handlers:
+
+| Signal | Behavior |
+|--------|----------|
+| `INT` (Ctrl-C) | Interrupts the running command, not the shell |
+| `TSTP` (Ctrl-Z) | Suspends the foreground job (when job manager is configured) |
+
+Previous signal handlers are restored when the shell exits.
+
+---
+
+## Builtins Integration
+
+The `PosixCommandGroup` wraps the builtins module's POSIX commands as shell commands:
+
+```java
+Shell.builder()
+    .groups(new PosixCommandGroup())
+    .build();
+```
+
+Available commands: `cd`, `pwd`, `echo`, `cat`, `ls`, `grep`, `head`, `tail`, `wc`, `sort`, `date`, `sleep`, `clear`.
+
+For interactive commands (`nano`, `less`, `ttop`):
+
+```java
+Shell.builder()
+    .groups(new InteractiveCommandGroup())
+    .build();
+```
+
+### Full Example
+
+<CodeSnippet name="ShellBuilderExample" />

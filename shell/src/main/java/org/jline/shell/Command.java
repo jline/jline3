@@ -9,6 +9,7 @@
 package org.jline.shell;
 
 import java.util.List;
+import java.util.Map;
 
 import org.jline.reader.Completer;
 
@@ -97,5 +98,22 @@ public interface Command {
      */
     default List<Completer> completers() {
         return List.of();
+    }
+
+    /**
+     * Returns the subcommands of this command.
+     * <p>
+     * When a command has subcommands, the dispatcher will check if the first
+     * argument matches a subcommand name and route execution accordingly.
+     * For example, a "git" command with a "commit" subcommand would handle
+     * {@code git commit -m msg} by routing to the "commit" subcommand with
+     * args {@code [-m, msg]}.
+     * <p>
+     * The default implementation returns an empty map, meaning no subcommands.
+     *
+     * @return a map from subcommand name to command, never null
+     */
+    default Map<String, Command> subcommands() {
+        return Map.of();
     }
 }
