@@ -82,6 +82,41 @@ attrs.setControlChar(ControlChar.VTIME, 0);
 terminal.setAttributes(attrs);
 ```
 
+## Performance Tuning: VMIN and VTIME
+
+When the terminal is in non-canonical (raw) mode, the kernel uses two control characters to decide when `read()` returns:
+
+| Control Char | Description |
+|--------------|-------------|
+| `VMIN` | Minimum number of bytes before `read()` returns |
+| `VTIME` | Timeout in **deciseconds** (1/10th of a second) before `read()` returns |
+
+JLine typically uses `VMIN=0, VTIME=1`, which means each `read()` call waits up to 100ms before returning if no input is available. This is fine for interactive line editing but can cap throughput at ~10 iterations per second, which is too slow for applications that need high-frequency input polling (games, animations, real-time UIs).
+
+### Non-blocking reads
+
+To remove the 100ms cap, set both to 0 for purely non-blocking reads:
+
+```java
+Attributes attrs = terminal.getAttributes();
+attrs.setControlChar(ControlChar.VMIN, 0);
+attrs.setControlChar(ControlChar.VTIME, 0);
+terminal.setAttributes(attrs);
+```
+
+With this configuration `read()` returns immediately, even if no input is available. This removes the frame rate cap but increases CPU usage since the application must implement its own polling rate (e.g., via `Thread.sleep()` or a game loop timer) to avoid busy-waiting.
+
+### Choosing the right values
+
+| VMIN | VTIME | Behavior |
+|------|-------|----------|
+| 0 | 0 | Non-blocking: `read()` returns immediately |
+| 0 | >0 | Timed: `read()` waits up to VTIME deciseconds |
+| >0 | 0 | Blocking: `read()` waits until VMIN bytes are available |
+| >0 | >0 | Combined: `read()` returns when VMIN bytes arrive or VTIME expires (whichever comes first, timer starts after first byte) |
+
+---
+
 ## Best Practices
 
 When working with terminal attributes in JLine, keep these best practices in mind:
