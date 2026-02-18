@@ -13,6 +13,7 @@ import java.util.Collections;
 
 import org.jline.reader.EOFError;
 import org.jline.reader.ParsedLine;
+import org.jline.reader.Parser.ParseContext;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.ReaderTestSupport;
 import org.junit.jupiter.api.BeforeEach;
@@ -240,6 +241,34 @@ public class DefaultParserTest extends ReaderTestSupport {
 
         delimited = parser.parse("select '1' as \"'a'\\\ns'd\\\n\n\" from t;", 0);
         assertEquals(Arrays.asList("select", "1", "as", "'a'\ns'd\n\n", "from", "t;"), delimited.words());
+    }
+
+    @Test
+    public void testTrailingSpace() {
+        // Issue #1489: trailing space should not emit an empty word in non-COMPLETE contexts
+        delimited = parser.parse("echo foo bar ", 0);
+        assertEquals(Arrays.asList("echo", "foo", "bar"), delimited.words());
+
+        delimited = parser.parse("echo foo bar ", "echo foo bar ".length());
+        assertEquals(Arrays.asList("echo", "foo", "bar"), delimited.words());
+
+        // In COMPLETE context, trailing space should emit an empty word for tab-completion
+        delimited = parser.parse("echo foo bar ", "echo foo bar ".length(), ParseContext.COMPLETE);
+        assertEquals(Arrays.asList("echo", "foo", "bar", ""), delimited.words());
+        assertEquals(3, delimited.wordIndex());
+        assertEquals(0, delimited.wordCursor());
+
+        // Explicit empty quoted string should always be preserved
+        delimited = parser.parse("echo foo bar \"\"", "echo foo bar \"\"".length());
+        assertEquals(Arrays.asList("echo", "foo", "bar", ""), delimited.words());
+
+        // Empty quoted string in the middle should also be preserved
+        delimited = parser.parse("echo \"\" bar", 0);
+        assertEquals(Arrays.asList("echo", "", "bar"), delimited.words());
+
+        // Multiple trailing spaces should not emit empty word
+        delimited = parser.parse("echo foo   ", "echo foo   ".length());
+        assertEquals(Arrays.asList("echo", "foo"), delimited.words());
     }
 
     @Test

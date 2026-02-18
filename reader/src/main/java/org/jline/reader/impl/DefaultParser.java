@@ -451,6 +451,7 @@ public class DefaultParser implements Parser {
         int rawWordStart = 0;
         BracketChecker bracketChecker = new BracketChecker(cursor);
         boolean quotedWord = false;
+        boolean wordStarted = false;
         boolean lineCommented = false;
         boolean blockCommented = false;
         boolean blockCommentInRightOrder = true;
@@ -471,6 +472,7 @@ public class DefaultParser implements Parser {
             if (quoteStart < 0 && isQuoteChar(line, i) && !lineCommented && !blockCommented) {
                 // Start a quote block
                 quoteStart = i;
+                wordStarted = true;
                 if (current.length() == 0) {
                     quotedWord = true;
                     if (context == ParseContext.SPLIT_LINE) {
@@ -499,9 +501,17 @@ public class DefaultParser implements Parser {
                     }
                 } else {
                     // Delimiter
-                    rawWordLength = handleDelimiterAndGetRawWordLength(
-                            current, words, rawWordStart, rawWordCursor, rawWordLength, i);
+                    if (wordStarted && current.length() == 0) {
+                        words.add(current.toString());
+                        if (rawWordCursor >= 0 && rawWordLength < 0) {
+                            rawWordLength = i - rawWordStart;
+                        }
+                    } else {
+                        rawWordLength = handleDelimiterAndGetRawWordLength(
+                                current, words, rawWordStart, rawWordCursor, rawWordLength, i);
+                    }
                     rawWordStart = i + 1;
+                    wordStarted = false;
                 }
             } else {
                 if (quoteStart < 0 && !blockCommented && (lineCommented || isLineCommentStarted(line, i))) {
@@ -520,6 +530,7 @@ public class DefaultParser implements Parser {
                                 current, words, rawWordStart, rawWordCursor, rawWordLength, i);
                         i += blockCommentStart == null ? 0 : blockCommentStart.length() - 1;
                         rawWordStart = i + 1;
+                        wordStarted = false;
                     }
                 } else if (quoteStart < 0 && !lineCommented && isCommentDelim(line, i, blockCommentEnd)) {
                     current.append(line.charAt(i));
@@ -535,7 +546,7 @@ public class DefaultParser implements Parser {
             }
         }
 
-        if (current.length() > 0 || cursor == line.length()) {
+        if (current.length() > 0 || wordStarted || (cursor == line.length() && context == ParseContext.COMPLETE)) {
             words.add(current.toString());
             if (rawWordCursor >= 0 && rawWordLength < 0) {
                 rawWordLength = line.length() - rawWordStart;
@@ -543,6 +554,9 @@ public class DefaultParser implements Parser {
         }
 
         if (cursor == line.length()) {
+            if (words.isEmpty()) {
+                words.add("");
+            }
             wordIndex = words.size() - 1;
             wordCursor = words.get(words.size() - 1).length();
             rawWordCursor = cursor - rawWordStart;

@@ -15,6 +15,7 @@ import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
 import org.jline.reader.ParsedLine;
+import org.jline.reader.Parser.ParseContext;
 import org.jline.reader.impl.DefaultParser;
 import org.junit.jupiter.api.Test;
 
@@ -37,8 +38,8 @@ public class CompletersTest {
         Completer completer = new Completers.TreeCompleter(
                 node("Command1", node("Option1", node(test)), node("Option2"), node("Option3")));
         List<Candidate> candidates = new ArrayList<>();
-        completer.complete(
-                null, new DefaultParser().parse("Command1 Option1 ", "Command1 Option1 ".length()), candidates);
+        String line = "Command1 Option1 ";
+        completer.complete(null, new DefaultParser().parse(line, line.length(), ParseContext.COMPLETE), candidates);
         assertEquals(2, candidates.size());
         assertEquals("Param1", candidates.get(0).value());
         assertEquals("Param2", candidates.get(1).value());
