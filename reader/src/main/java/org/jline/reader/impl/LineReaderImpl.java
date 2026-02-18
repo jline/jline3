@@ -685,7 +685,12 @@ public class LineReaderImpl implements LineReader, Flushable {
                     terminal.puts(Capability.keypad_xmit);
                     if (isSet(Option.AUTO_FRESH_LINE)) callWidget(FRESH_LINE);
                     if (isSet(Option.MOUSE)) terminal.trackMouse(Terminal.MouseTracking.Normal);
-                    if (isSet(Option.BRACKETED_PASTE)) terminal.writer().write(BRACKETED_PASTE_ON);
+                    if (isSet(Option.BRACKETED_PASTE)) {
+                        terminal.writer().write(BRACKETED_PASTE_ON);
+                    } else if (options.containsKey(Option.BRACKETED_PASTE)) {
+                        // Explicitly disabled: ensure terminal bracketed paste is off
+                        terminal.writer().write(BRACKETED_PASTE_OFF);
+                    }
                 } else if (isTerminalDumb() && maskingCallback != null) {
                     // Setup masking thread for dumb terminals when reading a password
                     setupMaskThread(prompt != null ? prompt : "");
