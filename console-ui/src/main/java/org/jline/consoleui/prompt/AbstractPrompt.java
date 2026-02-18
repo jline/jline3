@@ -349,7 +349,7 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             for (char i = 32; i < KEYMAP_LENGTH; i++) {
                 map.bind(Operation.INSERT, Character.toString(i));
             }
-            map.bind(Operation.EXIT, "\r");
+            map.bind(Operation.EXIT, "\r", "\n");
             map.bind(Operation.CANCEL, KeyMap.esc());
             map.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
         }
@@ -460,7 +460,7 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             String no = config.resourceBundle().getString("confirmation_no_key");
             map.bind(Operation.YES, yes, yes.toUpperCase());
             map.bind(Operation.NO, no, no.toUpperCase());
-            map.bind(Operation.EXIT, "\r");
+            map.bind(Operation.EXIT, "\r", "\n");
             map.bind(Operation.CANCEL, KeyMap.esc());
             map.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
         }
@@ -564,7 +564,7 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             map.bind(Operation.BACKSPACE, del());
             map.bind(Operation.DELETE, ctrl('D'), key(terminal, InfoCmp.Capability.key_dc));
             map.bind(Operation.BACKSPACE, ctrl('H'));
-            map.bind(Operation.EXIT, "\r");
+            map.bind(Operation.EXIT, "\r", "\n");
             map.bind(Operation.RIGHT, key(terminal, InfoCmp.Capability.key_right));
             map.bind(Operation.LEFT, key(terminal, InfoCmp.Capability.key_left));
             map.bind(Operation.UP, key(terminal, InfoCmp.Capability.key_up));
@@ -852,7 +852,7 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             }
             map.bind(Operation.FORWARD_ONE_LINE, "e", ctrl('E'), key(terminal, InfoCmp.Capability.key_down));
             map.bind(Operation.BACKWARD_ONE_LINE, "y", ctrl('Y'), key(terminal, InfoCmp.Capability.key_up));
-            map.bind(Operation.EXIT, "\r");
+            map.bind(Operation.EXIT, "\r", "\n");
             map.bind(Operation.CANCEL, KeyMap.esc());
             map.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
         }
@@ -934,7 +934,7 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             map.bind(Operation.FORWARD_ONE_LINE, "e", ctrl('E'), key(terminal, InfoCmp.Capability.key_down));
             map.bind(Operation.BACKWARD_ONE_LINE, "y", ctrl('Y'), key(terminal, InfoCmp.Capability.key_up));
             map.bind(Operation.TOGGLE, " ");
-            map.bind(Operation.EXIT, "\r");
+            map.bind(Operation.EXIT, "\r", "\n");
             map.bind(Operation.CANCEL, KeyMap.esc());
             map.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
         }
