@@ -14,7 +14,6 @@
     <parent />
     <artifactId>jline-groovy</artifactId>
     <name>JLine Groovy</name>
-    <url>http://maven.apache.org</url>
 
     <properties>
         <automatic.module.name>org.jline.groovy</automatic.module.name>
