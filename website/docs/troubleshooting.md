@@ -295,7 +295,24 @@ If you experience performance issues with JLine:
    display.update(lines, 0);
    ```
 
-3. **Complex Completers**
+3. **Low Frame Rate in Real-Time Applications**
+
+   Applications that poll input in a tight loop (games, animations, real-time UIs) may be limited to ~10 fps.
+
+   **Cause**: JLine sets `VMIN=0, VTIME=1` by default, which means each `read()` waits up to 100ms before returning when no input is available.
+
+   **Solution**: Set both to 0 for non-blocking reads, then control the polling rate yourself:
+
+   ```java
+   Attributes attrs = terminal.getAttributes();
+   attrs.setControlChar(ControlChar.VMIN, 0);
+   attrs.setControlChar(ControlChar.VTIME, 0);
+   terminal.setAttributes(attrs);
+   ```
+
+   See [Terminal Attributes — VMIN and VTIME](./advanced/terminal-attributes.md#performance-tuning-vmin-and-vtime) for a detailed explanation of the different configurations.
+
+4. **Complex Completers**
 
    Complex tab completion logic can slow down input handling.
 
