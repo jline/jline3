@@ -17,6 +17,7 @@ import java.nio.charset.Charset;
 import java.util.Objects;
 
 import org.jline.terminal.spi.Pty;
+import org.jline.utils.Log;
 import org.jline.utils.NonBlocking;
 import org.jline.utils.NonBlockingInputStream;
 import org.jline.utils.NonBlockingReader;
@@ -232,7 +233,9 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
                 masterOutput.flush();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            if (!closed) {
+                Log.warn("Error in input pump", e);
+            }
         } finally {
             synchronized (lock) {
                 inputPumpThread = null;
@@ -258,7 +261,9 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
                 out.flush();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            if (!closed) {
+                Log.warn("Error in output pump", e);
+            }
         } finally {
             synchronized (lock) {
                 outputPumpThread = null;
