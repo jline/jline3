@@ -5151,7 +5151,8 @@ public class LineReaderImpl implements LineReader, Flushable {
     }
 
     protected boolean clearChoices() {
-        return doList(new ArrayList<>(), "", false, null, false);
+        post = null;
+        return false;
     }
 
     protected boolean doList(
