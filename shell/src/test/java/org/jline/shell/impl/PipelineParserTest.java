@@ -239,13 +239,19 @@ public class PipelineParserTest {
     }
 
     @Test
-    void customOperatorRegistration() {
+    void customOperatorReplacesDefault() {
+        // "==>" replaces "|" as the PIPE operator
         PipelineParser custom = new PipelineParser(Map.of("==>", Operator.PIPE));
         Pipeline pipeline = custom.parse("cmd1 ==> cmd2");
         assertEquals(2, pipeline.stages().size());
         assertEquals("cmd1", pipeline.stages().get(0).commandLine());
         assertEquals(Operator.PIPE, pipeline.stages().get(0).operator());
         assertEquals("cmd2", pipeline.stages().get(1).commandLine());
+
+        // The default "|" is no longer recognized as PIPE
+        pipeline = custom.parse("cmd1 | cmd2");
+        assertEquals(1, pipeline.stages().size());
+        assertEquals("cmd1 | cmd2", pipeline.stages().get(0).commandLine());
     }
 
     @Test
@@ -254,6 +260,29 @@ public class PipelineParserTest {
         Pipeline pipeline = custom.parse("cmd1 ==> cmd2");
         assertEquals(2, pipeline.stages().size());
         assertEquals(Operator.FLIP, pipeline.stages().get(0).operator());
+    }
+
+    @Test
+    void customOperatorRenameRedirect() {
+        // Groovy use case: replace > and >> with |> and |>>
+        PipelineParser custom = new PipelineParser(Map.of("|>", Operator.REDIRECT, "|>>", Operator.APPEND));
+        // |> works as redirect
+        Pipeline pipeline = custom.parse("ls |> output.txt");
+        assertEquals(1, pipeline.stages().size());
+        assertEquals("ls", pipeline.stages().get(0).commandLine());
+        assertEquals(Operator.REDIRECT, pipeline.stages().get(0).operator());
+        assertEquals(Paths.get("output.txt"), pipeline.stages().get(0).redirectTarget());
+
+        // |>> works as append
+        pipeline = custom.parse("echo hello |>> log.txt");
+        assertEquals(1, pipeline.stages().size());
+        assertEquals(Operator.APPEND, pipeline.stages().get(0).operator());
+        assertTrue(pipeline.stages().get(0).isAppend());
+
+        // > is no longer an operator, treated as part of the command
+        pipeline = custom.parse("if (a > b) { echo yes }");
+        assertEquals(1, pipeline.stages().size());
+        assertEquals("if (a > b) { echo yes }", pipeline.stages().get(0).commandLine());
     }
 
     @Test
@@ -268,10 +297,9 @@ public class PipelineParserTest {
                 return super.matchOperator(line, pos);
             }
         };
-        // "::" should be treated as an operator (but maps to null via fromSymbol,
-        // so it's treated as text in the current implementation)
+        // "::" is matched as an operator token but doesn't map to any Operator
+        // in the operator table, so it's treated as text
         Pipeline pipeline = custom.parse("cmd1 :: cmd2");
-        // Since "::" doesn't map to any Operator via fromSymbol, it becomes text
         assertEquals(1, pipeline.stages().size());
     }
 
