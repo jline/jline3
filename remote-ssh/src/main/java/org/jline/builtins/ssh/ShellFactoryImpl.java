@@ -183,6 +183,7 @@ public class ShellFactoryImpl implements ShellFactory {
                         .name("JLine SSH")
                         .type(env.getEnv().get("TERM"))
                         .system(false)
+                        .provider("exec")
                         .streams(in, out)
                         .attributes(attributes)
                         .size(new Size(
