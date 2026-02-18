@@ -37,7 +37,7 @@ public class DefaultCheckboxResult extends AbstractPromptResult<CheckboxPrompt> 
     }
 
     @Override
-    public String getResult() {
+    protected String getRawResult() {
         return selectedIds.toString();
     }
 

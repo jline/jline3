@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, the original author(s).
+ * Copyright (c) 2026, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -10,72 +10,72 @@ package org.jline.prompt.impl;
 
 import java.util.function.Function;
 
-import org.jline.prompt.PasswordBuilder;
 import org.jline.prompt.PromptBuilder;
+import org.jline.prompt.ToggleBuilder;
 
 /**
- * Default implementation of PasswordBuilder.
+ * Default implementation of ToggleBuilder.
  */
-public class DefaultPasswordBuilder implements PasswordBuilder {
+public class DefaultToggleBuilder implements ToggleBuilder {
 
     private final PromptBuilder parent;
     private String name;
     private String message;
-    private String defaultValue;
-    private Character mask = '*';
-    private boolean showMask = true;
+    private String activeLabel = "Yes";
+    private String inactiveLabel = "No";
+    private boolean defaultValue;
     private Function<String, String> transformer;
     private Function<String, String> filter;
 
-    public DefaultPasswordBuilder(PromptBuilder parent) {
+    public DefaultToggleBuilder(PromptBuilder parent) {
         this.parent = parent;
     }
 
     @Override
-    public PasswordBuilder name(String name) {
+    public ToggleBuilder name(String name) {
         this.name = name;
         return this;
     }
 
     @Override
-    public PasswordBuilder message(String message) {
+    public ToggleBuilder message(String message) {
         this.message = message;
         return this;
     }
 
     @Override
-    public PasswordBuilder defaultValue(String defaultValue) {
+    public ToggleBuilder activeLabel(String label) {
+        this.activeLabel = label;
+        return this;
+    }
+
+    @Override
+    public ToggleBuilder inactiveLabel(String label) {
+        this.inactiveLabel = label;
+        return this;
+    }
+
+    @Override
+    public ToggleBuilder defaultValue(boolean defaultValue) {
         this.defaultValue = defaultValue;
         return this;
     }
 
     @Override
-    public PasswordBuilder mask(Character mask) {
-        this.mask = mask;
-        return this;
-    }
-
-    @Override
-    public PasswordBuilder showMask(boolean showMask) {
-        this.showMask = showMask;
-        return this;
-    }
-
-    @Override
-    public PasswordBuilder transformer(Function<String, String> transformer) {
+    public ToggleBuilder transformer(Function<String, String> transformer) {
         this.transformer = transformer;
         return this;
     }
 
     @Override
-    public PasswordBuilder filter(Function<String, String> filter) {
+    public ToggleBuilder filter(Function<String, String> filter) {
         this.filter = filter;
         return this;
     }
 
     @Override
     public PromptBuilder addPrompt() {
-        DefaultPasswordPrompt prompt = new DefaultPasswordPrompt(name, message, defaultValue, mask, showMask);
+        DefaultTogglePrompt prompt = new DefaultTogglePrompt(name, message, activeLabel, inactiveLabel, defaultValue);
         prompt.setTransformer(transformer);
         prompt.setFilter(filter);
         parent.addPrompt(prompt);

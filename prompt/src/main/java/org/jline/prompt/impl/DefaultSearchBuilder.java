@@ -11,7 +11,8 @@ package org.jline.prompt.impl;
 import java.util.List;
 import java.util.function.Function;
 
-import org.jline.prompt.*;
+import org.jline.prompt.PromptBuilder;
+import org.jline.prompt.SearchBuilder;
 
 /**
  * Default implementation of SearchBuilder.
@@ -27,6 +28,8 @@ public class DefaultSearchBuilder<T> implements SearchBuilder<T> {
     private String placeholder = "Type to search...";
     private int minSearchLength = 0;
     private int maxResults = 10;
+    private Function<String, String> transformer;
+    private Function<String, String> filter;
 
     public DefaultSearchBuilder(PromptBuilder parent) {
         this.parent = parent;
@@ -81,8 +84,20 @@ public class DefaultSearchBuilder<T> implements SearchBuilder<T> {
     }
 
     @Override
+    public SearchBuilder<T> transformer(Function<String, String> transformer) {
+        this.transformer = transformer;
+        return this;
+    }
+
+    @Override
+    public SearchBuilder<T> filter(Function<String, String> filter) {
+        this.filter = filter;
+        return this;
+    }
+
+    @Override
     public PromptBuilder addPrompt() {
-        SearchPrompt<T> prompt = new DefaultSearchPrompt<>(
+        DefaultSearchPrompt<T> prompt = new DefaultSearchPrompt<>(
                 name,
                 message,
                 searchFunction,
@@ -91,6 +106,8 @@ public class DefaultSearchBuilder<T> implements SearchBuilder<T> {
                 placeholder,
                 minSearchLength,
                 maxResults);
+        prompt.setTransformer(transformer);
+        prompt.setFilter(filter);
         parent.addPrompt(prompt);
         return parent;
     }

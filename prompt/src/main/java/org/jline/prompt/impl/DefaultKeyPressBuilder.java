@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, the original author(s).
+ * Copyright (c) 2026, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -10,72 +10,58 @@ package org.jline.prompt.impl;
 
 import java.util.function.Function;
 
-import org.jline.prompt.PasswordBuilder;
+import org.jline.prompt.KeyPressBuilder;
 import org.jline.prompt.PromptBuilder;
 
 /**
- * Default implementation of PasswordBuilder.
+ * Default implementation of KeyPressBuilder.
  */
-public class DefaultPasswordBuilder implements PasswordBuilder {
+public class DefaultKeyPressBuilder implements KeyPressBuilder {
 
     private final PromptBuilder parent;
     private String name;
     private String message;
-    private String defaultValue;
-    private Character mask = '*';
-    private boolean showMask = true;
+    private String hint = "Press any key to continue...";
     private Function<String, String> transformer;
     private Function<String, String> filter;
 
-    public DefaultPasswordBuilder(PromptBuilder parent) {
+    public DefaultKeyPressBuilder(PromptBuilder parent) {
         this.parent = parent;
     }
 
     @Override
-    public PasswordBuilder name(String name) {
+    public KeyPressBuilder name(String name) {
         this.name = name;
         return this;
     }
 
     @Override
-    public PasswordBuilder message(String message) {
+    public KeyPressBuilder message(String message) {
         this.message = message;
         return this;
     }
 
     @Override
-    public PasswordBuilder defaultValue(String defaultValue) {
-        this.defaultValue = defaultValue;
+    public KeyPressBuilder hint(String hint) {
+        this.hint = hint;
         return this;
     }
 
     @Override
-    public PasswordBuilder mask(Character mask) {
-        this.mask = mask;
-        return this;
-    }
-
-    @Override
-    public PasswordBuilder showMask(boolean showMask) {
-        this.showMask = showMask;
-        return this;
-    }
-
-    @Override
-    public PasswordBuilder transformer(Function<String, String> transformer) {
+    public KeyPressBuilder transformer(Function<String, String> transformer) {
         this.transformer = transformer;
         return this;
     }
 
     @Override
-    public PasswordBuilder filter(Function<String, String> filter) {
+    public KeyPressBuilder filter(Function<String, String> filter) {
         this.filter = filter;
         return this;
     }
 
     @Override
     public PromptBuilder addPrompt() {
-        DefaultPasswordPrompt prompt = new DefaultPasswordPrompt(name, message, defaultValue, mask, showMask);
+        DefaultKeyPressPrompt prompt = new DefaultKeyPressPrompt(name, message, hint);
         prompt.setTransformer(transformer);
         prompt.setFilter(filter);
         parent.addPrompt(prompt);

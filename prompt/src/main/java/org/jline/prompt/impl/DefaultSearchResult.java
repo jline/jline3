@@ -37,7 +37,7 @@ public class DefaultSearchResult<T> extends AbstractPromptResult<SearchPrompt<T>
     }
 
     @Override
-    public String getResult() {
+    protected String getRawResult() {
         return selectedValue;
     }
 

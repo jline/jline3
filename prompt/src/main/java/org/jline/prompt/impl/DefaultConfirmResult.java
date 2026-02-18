@@ -40,8 +40,13 @@ public class DefaultConfirmResult extends AbstractPromptResult<ConfirmPrompt> im
     }
 
     @Override
-    public String getResult() {
+    protected String getRawResult() {
         return confirmed.toString();
+    }
+
+    @Override
+    public String getDisplayResult() {
+        return confirmed == ConfirmationValue.YES ? "Yes" : "No";
     }
 
     @Override

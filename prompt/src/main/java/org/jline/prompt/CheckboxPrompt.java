@@ -42,4 +42,22 @@ public interface CheckboxPrompt extends Prompt {
     default boolean showPageIndicator() {
         return true;
     }
+
+    /**
+     * Get the minimum number of items that must be selected.
+     *
+     * @return the minimum number of selections, or 0 for no minimum
+     */
+    default int getMinSelections() {
+        return 0;
+    }
+
+    /**
+     * Get the maximum number of items that can be selected.
+     *
+     * @return the maximum number of selections, or 0 for no maximum
+     */
+    default int getMaxSelections() {
+        return 0;
+    }
 }

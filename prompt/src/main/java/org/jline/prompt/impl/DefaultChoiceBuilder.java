@@ -10,6 +10,7 @@ package org.jline.prompt.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import org.jline.prompt.ChoiceBuilder;
 import org.jline.prompt.ChoiceItem;
@@ -21,7 +22,7 @@ import org.jline.prompt.PromptBuilder;
  */
 public class DefaultChoiceBuilder implements ChoiceBuilder {
 
-    private final DefaultPromptBuilder parent;
+    private final PromptBuilder parent;
     private final List<ChoiceItem> items = new ArrayList<>();
     private String name;
     private String message;
@@ -30,13 +31,15 @@ public class DefaultChoiceBuilder implements ChoiceBuilder {
     private char currentItemKey;
     private String currentItemHelpText;
     private boolean currentItemDefaultChoice;
+    private Function<String, String> transformer;
+    private Function<String, String> filter;
 
     /**
      * Create a new DefaultChoiceBuilder with the given parent.
      *
      * @param parent the parent builder
      */
-    public DefaultChoiceBuilder(DefaultPromptBuilder parent) {
+    public DefaultChoiceBuilder(PromptBuilder parent) {
         this.parent = parent;
     }
 
@@ -46,6 +49,7 @@ public class DefaultChoiceBuilder implements ChoiceBuilder {
      * @param name the name
      * @return this builder
      */
+    @Override
     public ChoiceBuilder name(String name) {
         this.name = name;
         return this;
@@ -57,6 +61,7 @@ public class DefaultChoiceBuilder implements ChoiceBuilder {
      * @param message the message
      * @return this builder
      */
+    @Override
     public ChoiceBuilder message(String message) {
         this.message = message;
         return this;
@@ -140,11 +145,26 @@ public class DefaultChoiceBuilder implements ChoiceBuilder {
         return this;
     }
 
+    @Override
+    public ChoiceBuilder transformer(Function<String, String> transformer) {
+        this.transformer = transformer;
+        return this;
+    }
+
+    @Override
+    public ChoiceBuilder filter(Function<String, String> filter) {
+        this.filter = filter;
+        return this;
+    }
+
     /**
      * Add this prompt to the parent builder.
      */
+    @Override
     public PromptBuilder addPrompt() {
         DefaultChoicePrompt prompt = new DefaultChoicePrompt(name, message, items);
+        prompt.setTransformer(transformer);
+        prompt.setFilter(filter);
         parent.addPrompt(prompt);
         return parent;
     }

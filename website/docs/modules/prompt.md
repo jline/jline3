@@ -20,6 +20,7 @@ The Prompt module offers:
 - **Grid-based navigation** using arrow keys (left/right for columns, up/down for rows)
 - **Advanced item support** including disabled items and pre-checked checkboxes
 - **Choice prompts** with key-based selection (e.g., 'r' for Red, 'g' for Green)
+- **Specialized prompts** for passwords, numbers, toggles, search, editor, and key press
 - **Professional display management** with efficient screen updates
 - **Pagination and scrolling** for large item lists
 - **Script integration** via PromptCommands for shell scripts and automation
@@ -77,6 +78,42 @@ Yes/No confirmation with default values:
 
 <CodeSnippet name="PromptConfirmExample" />
 
+### Password Prompt
+
+Secure password input with configurable masking:
+
+<CodeSnippet name="PromptPasswordExample" />
+
+### Number Prompt
+
+Numeric input with range validation and decimal control:
+
+<CodeSnippet name="PromptNumberExample" />
+
+### Toggle Prompt
+
+Binary choice between two labeled options, navigated with arrow keys:
+
+<CodeSnippet name="PromptToggleExample" />
+
+### Editor Prompt
+
+Opens an inline editor (Nano) for multi-line text editing:
+
+<CodeSnippet name="PromptEditorExample" />
+
+### Search Prompt
+
+Dynamic search with type-ahead filtering:
+
+<CodeSnippet name="PromptSearchExample" />
+
+### KeyPress Prompt
+
+Captures a single key press without requiring Enter:
+
+<CodeSnippet name="PromptKeyPressExample" />
+
 ## Multi-Column Layouts
 
 The Prompt module automatically calculates optimal column layouts based on terminal width and item content:
@@ -86,11 +123,12 @@ The Prompt module automatically calculates optimal column layouts based on termi
 ### Navigation
 
 - **Up/Down arrows**: Navigate between rows
-- **Left/Right arrows**: Navigate between columns
+- **Left/Right arrows**: Navigate between columns, switch toggle state
 - **Enter**: Select/confirm
 - **Space**: Toggle checkbox items
 - **Character keys**: Quick selection in choice prompts
-- **Escape**: Cancel
+- **Escape**: Cancel / go back to previous prompt
+- **Any key**: Advances key press prompts
 
 ## Advanced Features
 
@@ -227,8 +265,23 @@ System.setProperty("jline.prompt.debug", "true");
 
 - `Prompter`: Main interface for creating prompts
 - `PromptBuilder`: Builder for creating multiple prompts
-- `ListBuilder`, `CheckboxBuilder`, `ChoiceBuilder`: Type-specific builders
+- `BaseBuilder`: Common base for all prompt builders (name, message, transformer, filter)
 - `PromptResult`: Base interface for prompt results
+
+### Prompt Builders
+
+- `ListBuilder`: Single-selection list prompt
+- `CheckboxBuilder`: Multiple-selection checkbox prompt
+- `ChoiceBuilder`: Key-based choice prompt
+- `InputBuilder`: Text input prompt
+- `ConfirmBuilder`: Yes/No confirmation prompt
+- `PasswordBuilder`: Masked password input prompt
+- `NumberBuilder`: Numeric input with validation
+- `ToggleBuilder`: Binary toggle between two options
+- `EditorBuilder`: Multi-line editor prompt
+- `SearchBuilder`: Type-ahead search prompt
+- `KeyPressBuilder`: Single key capture prompt
+- `TextBuilder`: Static text display
 
 ### Factory Classes
 

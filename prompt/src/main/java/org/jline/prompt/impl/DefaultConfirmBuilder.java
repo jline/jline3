@@ -8,6 +8,8 @@
  */
 package org.jline.prompt.impl;
 
+import java.util.function.Function;
+
 import org.jline.prompt.ConfirmBuilder;
 import org.jline.prompt.PromptBuilder;
 
@@ -17,17 +19,19 @@ import org.jline.prompt.PromptBuilder;
  */
 public class DefaultConfirmBuilder implements ConfirmBuilder {
 
-    private final DefaultPromptBuilder parent;
+    private final PromptBuilder parent;
     private String name;
     private String message;
     private boolean defaultValue;
+    private Function<String, String> transformer;
+    private Function<String, String> filter;
 
     /**
      * Create a new DefaultConfirmBuilder with the given parent.
      *
      * @param parent the parent builder
      */
-    public DefaultConfirmBuilder(DefaultPromptBuilder parent) {
+    public DefaultConfirmBuilder(PromptBuilder parent) {
         this.parent = parent;
     }
 
@@ -37,6 +41,7 @@ public class DefaultConfirmBuilder implements ConfirmBuilder {
      * @param name the name
      * @return this builder
      */
+    @Override
     public ConfirmBuilder name(String name) {
         this.name = name;
         return this;
@@ -48,6 +53,7 @@ public class DefaultConfirmBuilder implements ConfirmBuilder {
      * @param message the message
      * @return this builder
      */
+    @Override
     public ConfirmBuilder message(String message) {
         this.message = message;
         return this;
@@ -64,11 +70,26 @@ public class DefaultConfirmBuilder implements ConfirmBuilder {
         return this;
     }
 
+    @Override
+    public ConfirmBuilder transformer(Function<String, String> transformer) {
+        this.transformer = transformer;
+        return this;
+    }
+
+    @Override
+    public ConfirmBuilder filter(Function<String, String> filter) {
+        this.filter = filter;
+        return this;
+    }
+
     /**
      * Add this prompt to the parent builder.
      */
+    @Override
     public PromptBuilder addPrompt() {
         DefaultConfirmPrompt prompt = new DefaultConfirmPrompt(name, message, defaultValue);
+        prompt.setTransformer(transformer);
+        prompt.setFilter(filter);
         parent.addPrompt(prompt);
         return parent;
     }

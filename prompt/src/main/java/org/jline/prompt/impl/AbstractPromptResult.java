@@ -17,6 +17,7 @@ import org.jline.prompt.PromptResult;
 public abstract class AbstractPromptResult<T extends Prompt> implements PromptResult<T> {
 
     private final T prompt;
+    private String filteredResult;
 
     /**
      * Create a new AbstractPromptResult with the given prompt.
@@ -31,4 +32,31 @@ public abstract class AbstractPromptResult<T extends Prompt> implements PromptRe
     public T getPrompt() {
         return prompt;
     }
+
+    /**
+     * Apply a filter to this result. If set, {@link #getResult()} will return
+     * the filtered value instead of the original.
+     *
+     * @param filteredResult the filtered result value
+     */
+    public void applyFilter(String filteredResult) {
+        this.filteredResult = filteredResult;
+    }
+
+    /**
+     * Returns the filtered result if a filter was applied, otherwise delegates
+     * to the subclass implementation via {@link #getRawResult()}.
+     */
+    @Override
+    public final String getResult() {
+        return filteredResult != null ? filteredResult : getRawResult();
+    }
+
+    /**
+     * Get the raw (unfiltered) result value. Subclasses must implement this
+     * instead of {@link #getResult()}.
+     *
+     * @return the raw result value
+     */
+    protected abstract String getRawResult();
 }

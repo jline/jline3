@@ -8,6 +8,8 @@
  */
 package org.jline.prompt.impl;
 
+import java.util.function.Function;
+
 import org.jline.prompt.Prompt;
 
 /**
@@ -18,6 +20,8 @@ public abstract class DefaultPrompt implements Prompt {
 
     protected final String name;
     protected final String message;
+    private Function<String, String> transformer;
+    private Function<String, String> filter;
 
     protected DefaultPrompt(String name, String message) {
         this.name = name;
@@ -32,5 +36,23 @@ public abstract class DefaultPrompt implements Prompt {
     @Override
     public String getMessage() {
         return message;
+    }
+
+    @Override
+    public Function<String, String> getTransformer() {
+        return transformer;
+    }
+
+    @Override
+    public Function<String, String> getFilter() {
+        return filter;
+    }
+
+    public void setTransformer(Function<String, String> transformer) {
+        this.transformer = transformer;
+    }
+
+    public void setFilter(Function<String, String> filter) {
+        this.filter = filter;
     }
 }

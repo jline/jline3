@@ -23,21 +23,36 @@ public class DefaultCheckboxPrompt extends DefaultPrompt implements CheckboxProm
     private final List<CheckboxItem> items;
     private final int pageSize;
     private final boolean showPageIndicator;
+    private final int minSelections;
+    private final int maxSelections;
 
     public DefaultCheckboxPrompt(String name, String message, List<CheckboxItem> items) {
-        this(name, message, items, 0, true);
+        this(name, message, items, 0, true, 0, 0);
     }
 
     public DefaultCheckboxPrompt(String name, String message, List<CheckboxItem> items, int pageSize) {
-        this(name, message, items, pageSize, true);
+        this(name, message, items, pageSize, true, 0, 0);
     }
 
     public DefaultCheckboxPrompt(
             String name, String message, List<CheckboxItem> items, int pageSize, boolean showPageIndicator) {
+        this(name, message, items, pageSize, showPageIndicator, 0, 0);
+    }
+
+    public DefaultCheckboxPrompt(
+            String name,
+            String message,
+            List<CheckboxItem> items,
+            int pageSize,
+            boolean showPageIndicator,
+            int minSelections,
+            int maxSelections) {
         super(name, message);
         this.items = new ArrayList<>(items);
         this.pageSize = pageSize;
         this.showPageIndicator = showPageIndicator;
+        this.minSelections = minSelections;
+        this.maxSelections = maxSelections;
     }
 
     @Override
@@ -53,5 +68,15 @@ public class DefaultCheckboxPrompt extends DefaultPrompt implements CheckboxProm
     @Override
     public boolean showPageIndicator() {
         return showPageIndicator;
+    }
+
+    @Override
+    public int getMinSelections() {
+        return minSelections;
+    }
+
+    @Override
+    public int getMaxSelections() {
+        return maxSelections;
     }
 }

@@ -35,7 +35,7 @@ public class DefaultChoiceResult extends AbstractPromptResult<ChoicePrompt> impl
     }
 
     @Override
-    public String getResult() {
+    protected String getRawResult() {
         return selectedId;
     }
 

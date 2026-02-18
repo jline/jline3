@@ -38,7 +38,7 @@ public class DefaultInputResult extends AbstractPromptResult<InputPrompt> implem
     }
 
     @Override
-    public String getResult() {
+    protected String getRawResult() {
         return input;
     }
 

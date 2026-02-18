@@ -35,7 +35,7 @@ public class DefaultEditorResult extends AbstractPromptResult<EditorPrompt> impl
     }
 
     @Override
-    public String getResult() {
+    protected String getRawResult() {
         return text;
     }
 
