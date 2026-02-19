@@ -276,6 +276,17 @@ public abstract class AttributedCharSequence implements CharSequence {
                 if (oldalt ^ alt) {
                     sb.append(alt ? altIn : altOut);
                 }
+            } else {
+                // Fallback to ASCII when alternate charset mode is not supported
+                // @spotless:off
+                switch (c) {
+                    case '┘': case '┐': case '┌': case '└': c = '+'; break;
+                    case '┼': c = '+'; break;
+                    case '─': c = '-'; break;
+                    case '├': case '┤': case '┴': case '┬': c = '+'; break;
+                    case '│': c = '|'; break;
+                }
+                // @spotless:on
             }
             long s = styleCodeAt(i) & ~F_HIDDEN; // The hidden flag does not change the ansi styles
             if (style != s) {
