@@ -690,6 +690,11 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
     }
 
     @Override
+    public boolean supportsGraphemeClusterMode() {
+        return false;
+    }
+
+    @Override
     public boolean trackMouse(MouseTracking tracking) {
         this.tracking = tracking;
         updateConsoleMode();
