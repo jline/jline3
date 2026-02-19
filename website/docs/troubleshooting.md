@@ -47,6 +47,65 @@ The `jdk11` classifier artifact excludes the FFM terminal provider and is compat
 
 **Note:** For JLine 3.x, use the `jdk8` classifier which is compatible with Java 8-21.
 
+### JDK 24+ Restricted Method Warning
+
+Starting with JDK 24, you may see warnings like:
+
+```
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.jline.nativ.JLineNativeLoader in an unnamed module
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+```
+
+Or, if using JPMS:
+
+```
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.jline.terminal.jni
+WARNING: Use --enable-native-access=org.jline.terminal.jni to avoid a warning for this module
+```
+
+This happens because JDK 24 ([JEP 472](https://openjdk.org/jeps/472)) warns by default when native methods are called without explicit permission.
+
+#### Solutions
+
+**Classpath (unnamed module):**
+
+```bash
+java --enable-native-access=ALL-UNNAMED -jar myapp.jar
+```
+
+**JPMS (module path) with JNI provider:**
+
+```bash
+java --enable-native-access=org.jline.terminal.jni -m myapp/com.example.Main
+```
+
+**JPMS with FFM provider (Java 22+):**
+
+```bash
+java --enable-native-access=org.jline.terminal.ffm -m myapp/com.example.Main
+```
+
+**Multiple providers:**
+
+```bash
+java --enable-native-access=org.jline.terminal.jni,org.jline.terminal.ffm -m myapp/com.example.Main
+```
+
+**Suppress entirely (not recommended for production):**
+
+```bash
+java --enable-native-access=ALL-UNNAMED -jar myapp.jar
+```
+
+#### Notes
+
+- The warning is harmless — JLine's native code operates correctly regardless. It is purely informational.
+- Starting with JDK 26, `--enable-native-access` may become mandatory (calls without it will throw `IllegalCallerException`). Adding the flag now is recommended.
+- If you use the `exec` terminal provider (no native code), no flag is needed, but terminal capabilities will be limited.
+- See [JPMS Configuration](./modules/jpms.md) for full module path setup.
+
 ### Unable to Create a System Terminal
 
 One of the most common issues is the "Unable to create a system terminal" error:
