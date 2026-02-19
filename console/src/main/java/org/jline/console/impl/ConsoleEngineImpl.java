@@ -59,7 +59,8 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         PIPE,
         UNALIAS,
         DOC,
-        SLURP
+        SLURP,
+        WHICH
     }
 
     private static final String VAR_CONSOLE_OPTIONS = "CONSOLE_OPTIONS";
@@ -117,6 +118,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         commandExecute.put(Command.UNALIAS, new CommandMethods(this::unalias, this::unaliasCompleter));
         commandExecute.put(Command.DOC, new CommandMethods(this::doc, this::docCompleter));
         commandExecute.put(Command.PIPE, new CommandMethods(this::pipe, this::defaultCompleter));
+        commandExecute.put(Command.WHICH, new CommandMethods(this::which, this::whichCompleter));
         aliasFile = configPath.getUserConfig("aliases.json");
         if (aliasFile == null) {
             aliasFile = configPath.getUserConfig("aliases.json", true);
@@ -1178,6 +1180,39 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
         return null;
     }
 
+    private Object which(CommandInput input) {
+        final String[] usage = {
+            "which -  Return the full path, command registry or alias of COMMAND(s).",
+            "Usage: which COMMAND [...]",
+            "  -? --help                       Displays command help"
+        };
+        List<String> out = new ArrayList<>();
+        try {
+            parseOptions(usage, input.xargs());
+            for (String arg : input.args()) {
+                if (hasAlias(arg)) {
+                    out.add(arg + " is an alias: " + getAlias(arg));
+                } else if (systemRegistry.hasCommand(arg)) {
+                    out.add(arg + " is registered in " + systemRegistry.name());
+                } else if (scripts().containsKey(arg)) {
+                    Path script = findScript(arg);
+                    out.add(script != null ? script.toString() : arg + ": not found");
+                } else {
+                    out.add(arg + ": not found");
+                }
+            }
+            out.add("");
+        } catch (Exception e) {
+            exception = e;
+        }
+        return out;
+    }
+
+    private Path findScript(String command) {
+        ScriptFile sf = new ScriptFile(command, "", new String[0]);
+        return sf.isScript() ? sf.script : null;
+    }
+
     private boolean urlExists(String weburl) {
         try {
             URL url = URI.create(weburl).toURL();
@@ -1338,6 +1373,23 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                 NullCompleter.INSTANCE,
                 new OptionCompleter(new StringsCompleter(aliases::keySet), this::commandOptions, 1)));
         return completers;
+    }
+
+    private List<Completer> whichCompleter(String command) {
+        List<Completer> completers = new ArrayList<>();
+        List<Completer> parameters = new ArrayList<>();
+        parameters.add(new StringsCompleter(this::allCommandNames));
+        completers.add(new ArgumentCompleter(
+                NullCompleter.INSTANCE, new OptionCompleter(parameters, this::commandOptions, 1)));
+        return completers;
+    }
+
+    private Set<String> allCommandNames() {
+        Set<String> out = new HashSet<>();
+        out.addAll(scripts().keySet());
+        out.addAll(aliases.keySet());
+        out.addAll(systemRegistry.commandNames());
+        return out;
     }
 
     private List<String> docs() {
