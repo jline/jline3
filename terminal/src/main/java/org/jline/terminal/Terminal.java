@@ -1342,6 +1342,40 @@ public interface Terminal extends Closeable, Flushable {
     boolean trackFocus(boolean tracking);
 
     /**
+     * Returns whether the terminal supports mode 2027 (grapheme cluster / Unicode Core).
+     *
+     * <p>
+     * Mode 2027 allows the terminal to use UAX #29 grapheme cluster segmentation
+     * instead of per-codepoint {@code wcwidth()} for cursor positioning. This matters
+     * for multi-codepoint characters like ZWJ emoji sequences (e.g., family emoji),
+     * which would otherwise be counted as multiple separate characters.
+     * </p>
+     *
+     * @return {@code true} if the terminal supports mode 2027, {@code false} otherwise
+     * @see #setGraphemeClusterMode(boolean)
+     */
+    default boolean supportsGraphemeClusterMode() {
+        return false;
+    }
+
+    /**
+     * Enables or disables mode 2027 (grapheme cluster / Unicode Core).
+     *
+     * <p>
+     * When enabled, the terminal uses UAX #29 grapheme cluster segmentation for
+     * cursor positioning. This allows multi-codepoint characters like ZWJ emoji
+     * sequences to be treated as single display units.
+     * </p>
+     *
+     * @param enable {@code true} to enable grapheme cluster mode, {@code false} to disable it
+     * @return {@code true} if the operation succeeded, {@code false} otherwise
+     * @see #supportsGraphemeClusterMode()
+     */
+    default boolean setGraphemeClusterMode(boolean enable) {
+        return false;
+    }
+
+    /**
      * Returns the color palette for this terminal.
      *
      * <p>
