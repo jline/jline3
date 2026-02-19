@@ -66,8 +66,10 @@ public class Display {
 
     protected final Map<Capability, Integer> cost = new HashMap<>();
     protected final boolean canScroll;
-    protected final boolean wrapAtEol;
-    protected final boolean delayedWrapAtEol;
+    protected final boolean terminalWrapAtEol;
+    protected final boolean terminalDelayedWrapAtEol;
+    protected boolean wrapAtEol;
+    protected boolean delayedWrapAtEol;
     protected final boolean cursorDownIsNewLine;
 
     @SuppressWarnings("this-escape")
@@ -77,8 +79,11 @@ public class Display {
 
         this.canScroll = can(Capability.insert_line, Capability.parm_insert_line)
                 && can(Capability.delete_line, Capability.parm_delete_line);
-        this.wrapAtEol = terminal.getBooleanCapability(Capability.auto_right_margin);
-        this.delayedWrapAtEol = this.wrapAtEol && terminal.getBooleanCapability(Capability.eat_newline_glitch);
+        this.terminalWrapAtEol = terminal.getBooleanCapability(Capability.auto_right_margin);
+        this.terminalDelayedWrapAtEol =
+                this.terminalWrapAtEol && terminal.getBooleanCapability(Capability.eat_newline_glitch);
+        this.wrapAtEol = this.terminalWrapAtEol;
+        this.delayedWrapAtEol = this.terminalDelayedWrapAtEol;
         this.cursorDownIsNewLine = "\n".equals(Curses.tputs(terminal.getStringCapability(Capability.cursor_down)));
     }
 
@@ -106,6 +111,17 @@ public class Display {
             this.columns1 = columns + 1;
             oldLines = AttributedString.join(AttributedString.EMPTY, oldLines)
                     .columnSplitLength(columns, true, delayLineWrap());
+        }
+        // When the terminal buffer is wider than the visible window (e.g. Windows with
+        // a wide screen buffer), auto-wrap occurs at the buffer width, not the visible
+        // width. Disable wrap-at-eol reliance since content won't reach the buffer edge.
+        int bufferColumns = terminal.getBufferSize().getColumns();
+        if (bufferColumns > columns) {
+            this.wrapAtEol = false;
+            this.delayedWrapAtEol = false;
+        } else {
+            this.wrapAtEol = this.terminalWrapAtEol;
+            this.delayedWrapAtEol = this.terminalDelayedWrapAtEol;
         }
     }
 
