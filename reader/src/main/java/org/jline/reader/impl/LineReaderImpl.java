@@ -4994,8 +4994,13 @@ public class LineReaderImpl implements LineReader, Flushable {
             } else {
                 computed = pr.post;
             }
-            lines = pr.lines;
-            columns = (possible.size() + lines - 1) / lines;
+            if (pr.columns > 0) {
+                columns = pr.columns;
+                lines = (possible.size() + columns - 1) / columns;
+            } else {
+                lines = pr.lines;
+                columns = (possible.size() + lines - 1) / lines;
+            }
         }
 
         @Override
@@ -5284,11 +5289,17 @@ public class LineReaderImpl implements LineReader, Flushable {
         final AttributedString post;
         final int lines;
         final int selectedLine;
+        final int columns;
 
         public PostResult(AttributedString post, int lines, int selectedLine) {
+            this(post, lines, selectedLine, -1);
+        }
+
+        public PostResult(AttributedString post, int lines, int selectedLine, int columns) {
             this.post = post;
             this.lines = lines;
             this.selectedLine = selectedLine;
+            this.columns = columns;
         }
     }
 
@@ -5435,7 +5446,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             Function<String, Integer> wcwidth,
             int width,
             boolean rowsFirst) {
-        int[] out = new int[2];
+        int[] out = new int[3]; // [0]=lines, [1]=selectedLine, [2]=columns
         // TODO: support Option.LIST_PACKED
         // Compute column width
         int maxWidth = 0;
@@ -5494,7 +5505,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         if (sb.length() > 0 && sb.charAt(sb.length() - 1) == '\n') {
             sb.setLength(sb.length() - 1);
         }
-        return new PostResult(sb.toAttributedString(), out[0], out[1]);
+        return new PostResult(sb.toAttributedString(), out[0], out[1], out[2]);
     }
 
     @SuppressWarnings("unchecked")
@@ -5543,6 +5554,9 @@ public class LineReaderImpl implements LineReader, Flushable {
             // Try to minimize the number of columns for the given number of rows
             // Prevents eg 9 candiates being split 6/3 instead of 5/4.
             final int columns = (candidates.size() + lines - 1) / lines;
+            if (out[2] <= 0) {
+                out[2] = columns;
+            }
             IntBinaryOperator index;
             if (rowsFirst) {
                 index = (i, j) -> i * columns + j;
