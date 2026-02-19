@@ -2,7 +2,7 @@ name: Website
 
 on:
   push:
-    branches: [jline-3.x]
+    branches: [jline-3.x, master]
     paths:
       - 'website/**'
   workflow_dispatch:
@@ -20,18 +20,51 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+
+      # Build 3.x (main site at /)
+      - name: Checkout jline-3.x
         uses: actions/checkout@v6
+        with:
+          ref: jline-3.x
+          path: jline-3.x
+      - name: Build 3.x website
+        working-directory: jline-3.x/website
+        run: npm install && npm run build
+        env:
+          BASE_URL: /
+      - name: Copy 3.x build
+        run: |
+          mkdir -p combined-site
+          cp -r jline-3.x/website/target/build/* combined-site/
+
+      # Build 4.0 (at /versions/4.0/)
+      - name: Checkout master
+        uses: actions/checkout@v6
+        with:
+          ref: master
+          path: master
+      - name: Build 4.0 website
+        working-directory: master/website
+        run: npm install && npm run build
+        env:
+          BASE_URL: /versions/4.0/
+      - name: Copy 4.0 build
+        run: |
+          mkdir -p combined-site/versions/4.0
+          cp -r master/website/target/build/* combined-site/versions/4.0/
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
         with:
           enablement: true
-      - name: Build website
-        run: ./mvx website-build
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: website/target/build
+          path: combined-site
 
   deploy:
     environment:
