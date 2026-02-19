@@ -4733,8 +4733,8 @@ public class LineReaderImpl implements LineReader, Flushable {
             }
 
             if (useMenu) {
-                buf.move(line.word().length() - line.wordCursor());
-                buf.backspace(line.word().length());
+                buf.move(line.rawWordLength() - line.rawWordCursor());
+                buf.backspace(line.rawWordLength());
                 doMenu(possible, line.word(), line::escape);
                 return true;
             }
@@ -4752,9 +4752,13 @@ public class LineReaderImpl implements LineReader, Flushable {
             String commonPrefix = completionMatcher.getCommonPrefix();
             boolean hasUnambiguous = commonPrefix.startsWith(current) && !commonPrefix.equals(current);
 
+            // Track raw length in buffer for correct backspace when entering menu
+            int rawLen = line.rawWordLength();
             if (hasUnambiguous) {
-                buf.backspace(line.rawWordLength());
-                buf.write(line.escape(commonPrefix, false));
+                buf.backspace(rawLen);
+                CharSequence escaped = line.escape(commonPrefix, false);
+                buf.write(escaped.toString());
+                rawLen = escaped.length();
                 callWidget(REDISPLAY);
                 current = commonPrefix;
                 if ((!isSet(Option.AUTO_LIST) && isSet(Option.AUTO_MENU))
@@ -4770,7 +4774,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                 }
             }
             if (isSet(Option.AUTO_MENU)) {
-                buf.backspace(current.length());
+                buf.backspace(rawLen);
                 doMenu(possible, line.word(), line::escape);
             }
             return true;
