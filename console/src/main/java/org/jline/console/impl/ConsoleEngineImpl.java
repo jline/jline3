@@ -1192,7 +1192,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                     out.add(arg + " is an alias: " + getAlias(arg));
                 } else if (systemRegistry.hasCommand(arg)) {
                     out.add(arg + " is registered in " + systemRegistry.name());
-                } else if (scripts().keySet().contains(arg)) {
+                } else if (scripts().containsKey(arg)) {
                     Path script = findScript(arg);
                     out.add(script != null ? script.toString() : arg + ": not found");
                 } else {
