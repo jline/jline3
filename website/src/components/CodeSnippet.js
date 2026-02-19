@@ -17,7 +17,7 @@ export default function CodeSnippet({ name }) {
     }
 
     // In browser, load the snippet from the snippets directory
-    fetch(`/snippets/${name}.java`)
+    fetch(`${siteConfig.baseUrl}snippets/${name}.java`)
       .then(response => {
         if (!response.ok) {
           throw new Error(`Failed to load snippet: ${name}`);

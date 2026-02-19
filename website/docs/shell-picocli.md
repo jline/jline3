@@ -3,6 +3,8 @@ sidebar_position: 9
 title: "Shell: Picocli Integration"
 ---
 
+import CodeSnippet from '@site/src/components/CodeSnippet';
+
 # Picocli Integration
 
 The `PicocliCommandRegistry` implements both `CommandRegistry` (old API) and `CommandGroup` (new API), so picocli commands work with both the old and new shell infrastructure.

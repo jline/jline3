@@ -3,6 +3,8 @@ sidebar_position: 6
 title: "Shell: Getting Started"
 ---
 
+import CodeSnippet from '@site/src/components/CodeSnippet';
+
 # Getting Started with jline-shell
 
 The `jline-shell` module makes it easy to build interactive command-line applications. Here's a minimal example:

@@ -3,6 +3,8 @@ sidebar_position: 8
 title: "Shell: Features"
 ---
 
+import CodeSnippet from '@site/src/components/CodeSnippet';
+
 # Shell Features
 
 The `jline-shell` module provides a rich set of features for building interactive command-line applications. This page covers the key extensibility points and built-in capabilities.
