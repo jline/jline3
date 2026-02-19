@@ -661,8 +661,6 @@
         <subproject>remote-ssh</subproject>
         <subproject>remote-telnet</subproject>
         <subproject>style</subproject>
-        <subproject>curses</subproject>
-        <subproject>components</subproject>
         <subproject>demo</subproject>
         <subproject>graal</subproject>
         <subproject>jansi-core</subproject>

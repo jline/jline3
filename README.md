@@ -141,7 +141,6 @@ JLine provides full support for JPMS starting with version 4.0. The following mo
 | Prompt | `jline-prompt` | `org.jline.prompt` | Modern prompt API for interactive applications |
 | Console | `jline-console` | `org.jline.console` | Console framework |
 | Jansi Core | `jline-jansi-core` | `org.jline.jansi.core` | ANSI support |
-| Curses | `jline-curses` | `org.jline.curses` | Curses-like UI components |
 
 ### ❌ Non-JPMS Modules (automatic modules)
 
