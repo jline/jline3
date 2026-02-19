@@ -8,6 +8,9 @@ import path from 'path';
 // JLine version - update this when releasing a new version
 const jlineVersion = '3.30.0';
 
+// Allow overriding baseUrl via environment variable for multi-version deployment
+const baseUrl = process.env.BASE_URL || '/';
+
 // Define build output directory - only used for production builds
 // We'll set this via CLI for development server
 const outputDir = path.join(process.cwd(), 'target/build');
@@ -32,7 +35,7 @@ const config: Config = {
   url: 'https://jline.org',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: '/',
+  baseUrl: baseUrl,
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
@@ -63,7 +66,7 @@ const config: Config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/jline/jline3/edit/master/website/',
+            'https://github.com/jline/jline3/edit/jline-3.x/website/',
         },
         blog: false, // blog section disabled
         theme: {
@@ -95,6 +98,15 @@ const config: Config = {
           label: 'Documentation',
         },
         // blog link removed
+        {
+          type: 'dropdown',
+          label: `v${jlineVersion}`,
+          position: 'right',
+          items: [
+            {label: '3.30.x', href: 'https://jline.org/'},
+            {label: '4.0.x', href: 'https://jline.org/versions/4.0/'},
+          ],
+        },
         {
           href: 'https://github.com/jline/jline3',
           label: 'GitHub',
