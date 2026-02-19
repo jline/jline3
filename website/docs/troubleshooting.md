@@ -215,6 +215,24 @@ If line editing features like history navigation, tab completion, or key binding
            .build();
    ```
 
+4. **Arrow Keys Not Working in Custom Input Loop After readLine()**
+
+   If you use `BindingReader` or `NonBlockingReader` for your own input loop after `LineReader.readLine()` returns, arrow keys and function keys may produce unrecognized escape sequences.
+
+   **Cause**: `readLine()` switches the terminal back to normal keypad mode (`keypad_local` / rmkx) when it returns. In normal mode, arrow keys send different escape sequences than in application mode.
+
+   **Solution**: Send `keypad_xmit` before your input loop:
+
+   ```java
+   terminal.puts(Capability.keypad_xmit);
+   terminal.flush();
+   // ... your BindingReader loop ...
+   terminal.puts(Capability.keypad_local);
+   terminal.flush();
+   ```
+
+   See [Using BindingReader After readLine()](./advanced/non-blocking-input.md#using-bindingreader-after-readline) for details.
+
 ### Terminal Size Issues
 
 If the terminal size is incorrectly detected or not updated when the window is resized:

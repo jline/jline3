@@ -40,6 +40,51 @@ For more complex applications, you might want to handle input asynchronously:
 
 This approach uses a dedicated thread to continuously read and process input, allowing the main application thread to focus on other tasks.
 
+## Using BindingReader After readLine()
+
+When an application alternates between `LineReader.readLine()` and its own input loop using `BindingReader` (or raw `NonBlockingReader`), arrow keys and other special keys may stop working in the custom input loop.
+
+### Why This Happens
+
+`LineReader.readLine()` puts the terminal into **application keypad mode** by sending the `keypad_xmit` (smkx) capability on entry. In this mode, arrow keys send application-mode escape sequences (e.g., `\eOA` for Up). When `readLine()` returns, it sends `keypad_local` (rmkx) to restore normal keypad mode. In normal mode, the same arrow keys send different escape sequences (e.g., `\e[A` for Up).
+
+If your `BindingReader` key map was built from the terminal's application-mode key definitions (which is what `InfoCmp` reports), the sequences won't match after `readLine()` has switched back to normal mode.
+
+### Solution
+
+Send `keypad_xmit` before entering your own input loop, and `keypad_local` when you're done:
+
+```java
+// After readLine() returns, before your own input loop:
+terminal.puts(Capability.keypad_xmit);
+terminal.flush();
+
+BindingReader bindingReader = new BindingReader(terminal.reader());
+KeyMap<String> keyMap = new KeyMap<>();
+// ... populate key map with bindings ...
+
+try {
+    while (true) {
+        String binding = bindingReader.readBinding(keyMap);
+        if (binding == null) break;
+        // process binding...
+    }
+} finally {
+    terminal.puts(Capability.keypad_local);
+    terminal.flush();
+}
+```
+
+This ensures that arrow keys and function keys produce the escape sequences that match your key map definitions.
+
+### When This Matters
+
+This only affects applications that:
+1. Use `LineReader.readLine()` for command input, **and**
+2. Run their own `BindingReader`-based input loop for a different purpose (e.g., a game, a pager, a custom menu)
+
+If you only use `readLine()`, this is handled automatically.
+
 ## Best Practices
 
 When working with non-blocking input in JLine, keep these best practices in mind:
