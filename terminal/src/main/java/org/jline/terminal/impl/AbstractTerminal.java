@@ -83,6 +83,7 @@ public abstract class AbstractTerminal implements TerminalExt {
     protected Runnable onClose;
     protected MouseTracking currentMouseTracking = MouseTracking.Off;
     protected volatile boolean closed = false;
+    private Boolean graphemeClusterModeSupported;
 
     public AbstractTerminal(String name, String type) throws IOException {
         this(name, type, null, SignalHandler.SIG_DFL);
@@ -332,6 +333,68 @@ public abstract class AbstractTerminal implements TerminalExt {
     public boolean trackFocus(boolean tracking) {
         if (hasFocusSupport()) {
             writer().write(tracking ? "\033[?1004h" : "\033[?1004l");
+            writer().flush();
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean supportsGraphemeClusterMode() {
+        if (graphemeClusterModeSupported == null) {
+            graphemeClusterModeSupported = probeGraphemeClusterMode();
+        }
+        return graphemeClusterModeSupported;
+    }
+
+    /**
+     * Probes the terminal for mode 2027 support using DECRQM.
+     *
+     * <p>Sends {@code CSI ? 2027 $ p} and expects a DECRPM response
+     * {@code CSI ? 2027 ; Ps $ y} where Ps indicates the mode status.</p>
+     *
+     * @return {@code true} if the terminal recognizes mode 2027
+     */
+    private boolean probeGraphemeClusterMode() {
+        if (TYPE_DUMB.equals(type) || TYPE_DUMB_COLOR.equals(type)) {
+            return false;
+        }
+        try {
+            // Send DECRQM query for mode 2027
+            writer().write("\033[?2027$p");
+            writer().flush();
+
+            // Read DECRPM response: ESC [ ? 2 0 2 7 ; Ps $ y
+            long timeout = 100;
+            if (reader().peek(timeout) < 0) {
+                return false;
+            }
+            int[] expected = {'\033', '[', '?', '2', '0', '2', '7', ';'};
+            for (int e : expected) {
+                if (reader().read(timeout) != e) {
+                    return false;
+                }
+            }
+            int ps = reader().read(timeout);
+            if (ps < '0' || ps > '4') {
+                return false;
+            }
+            if (reader().read(timeout) != '$' || reader().read(timeout) != 'y') {
+                return false;
+            }
+            // Ps: 1=set, 2=reset (can be set), 3=permanently set → supported
+            // Ps: 0=not recognized, 4=permanently reset → not supported
+            return ps == '1' || ps == '2' || ps == '3';
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean setGraphemeClusterMode(boolean enable) {
+        if (supportsGraphemeClusterMode()) {
+            writer().write(enable ? "\033[?2027h" : "\033[?2027l");
             writer().flush();
             return true;
         } else {
