@@ -38,8 +38,6 @@ These modules have complete `module-info.java` descriptors with proper exports, 
 | Prompt | `jline-prompt` | `org.jline.prompt` | 11+ | Modern prompt API for interactive applications |
 | Console | `jline-console` | `org.jline.console` | 11+ | High-level console framework |
 | Jansi Core | `jline-jansi-core` | `org.jline.jansi.core` | 11+ | JLine's ANSI implementation |
-| Widgets | `jline-components` | `org.jline.components` | 11+ | Composable output components (spinners, progress bars, etc.) |
-| Curses | `jline-curses` | `org.jline.curses` | 11+ | Curses-like UI components |
 | **Remote Access** | | | | |
 | Remote Telnet | `jline-remote-telnet` | `org.jline.remote.telnet` | 11+ | Telnet server functionality |
 
@@ -86,7 +84,6 @@ module your.application {
     requires org.jline.console;      // For console framework
     requires org.jline.prompt;       // For modern prompt API
     requires org.jline.console.ui;   // For legacy UI components (deprecated)
-    requires org.jline.components;      // For composable output components
 
     // Terminal providers (choose one or more)
     requires org.jline.terminal.jni; // JNI-based (recommended)
@@ -104,7 +101,6 @@ module your.application {
     requires org.jline.reader;
 
     // Additional JPMS modules
-    requires org.jline.curses;          // For curses UI
     requires org.jline.remote.telnet;   // For Telnet server
 
     // Automatic modules
@@ -254,8 +250,6 @@ module your.application {
 
 - **Minimal applications**: Use only `org.jline.terminal` and `org.jline.reader`
 - **Shell applications**: Add `org.jline.builtins` for common commands (ls, cat, etc.)
-- **Inline UI**: Add `org.jline.components` for composable output components (spinners, progress bars, etc.)
-- **Full-screen UI**: Add `org.jline.curses` for full-screen TUI applications
 
 ### Terminal Provider Selection
 

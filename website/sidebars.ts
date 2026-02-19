@@ -77,7 +77,6 @@ const sidebars: SidebarsConfig = {
         'modules/shell',
         'modules/builtins',
         'modules/style',
-        'modules/components',
         'modules/terminal-providers',
         'modules/jpms',
         'modules/repl-console',
