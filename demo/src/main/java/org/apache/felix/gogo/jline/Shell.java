@@ -44,6 +44,7 @@ package org.apache.felix.gogo.jline;
  */
 
 import java.io.File;
+import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -557,6 +558,12 @@ public class Shell {
 
                     waitJobCompletion(session);
 
+                } catch (IOError e) {
+                    if (e.getCause() instanceof IOException) {
+                        // Terminal I/O broken (e.g. Ctrl+C on some platforms), exit the loop
+                        break;
+                    }
+                    throw e;
                 } catch (UserInterruptException e) {
                     // continue;
                 } catch (EndOfFileException e) {
