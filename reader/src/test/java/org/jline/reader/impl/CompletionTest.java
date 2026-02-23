@@ -33,6 +33,27 @@ public class CompletionTest extends ReaderTestSupport {
     }
 
     @Test
+    public void testCompleteQuotedWithMultipleCandidates() throws IOException {
+        // Test MENU_COMPLETE with quoted input and multiple candidates
+        reader.setCompleter(new StringsCompleter("Example1", "Example2"));
+        reader.setOpt(Option.MENU_COMPLETE);
+        // Typing "Ex then Tab should produce "Example1" (not ""Example1")
+        assertBuffer("\"Example1\"", new TestBuffer("\"Ex\t"));
+    }
+
+    @Test
+    public void testCompleteQuotedAutoMenu() throws IOException {
+        // Test AUTO_MENU with quoted input and multiple candidates
+        reader.setCompleter(new StringsCompleter("Example1", "Example2"));
+        reader.unsetOpt(Option.MENU_COMPLETE);
+        reader.setOpt(Option.AUTO_LIST);
+        reader.setOpt(Option.AUTO_MENU);
+        // First tab completes common prefix, second tab enters menu
+        // Typing "Ex then Tab Tab should produce "Example1" (not ""Example1")
+        assertBuffer("\"Example1\"", new TestBuffer("\"Ex\t\t"));
+    }
+
+    @Test
     public void testListAndMenu() throws IOException {
         reader.setCompleter(new StringsCompleter("foo", "foobar"));
 
