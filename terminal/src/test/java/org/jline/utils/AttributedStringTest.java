@@ -218,4 +218,101 @@ public class AttributedStringTest {
         // Multiple BMP emoji in one string
         assertEquals(4, new AttributedString("\u2705\u274C").columnLength()); // ✅❌
     }
+
+    /**
+     * Test updated combining (zero-width) table covers Unicode 16.0 characters.
+     * The old table (from ~Unicode 5.1) missed many newer combining marks.
+     */
+    @Test
+    public void testUnicode16Combining() {
+        // Vedic Extensions (U+1CD0-1CF9) — added in Unicode 5.2+
+        assertEquals(0, WCWidth.wcwidth(0x1CD0)); // VEDIC TONE KARSHANA
+        assertEquals(0, WCWidth.wcwidth(0x1CF4)); // VEDIC TONE CANDRA ABOVE
+
+        // Combining Diacritical Marks Extended (U+1AB0-1ACE) — added in Unicode 7.0+
+        assertEquals(0, WCWidth.wcwidth(0x1AB0)); // COMBINING DOUBLED CIRCUMFLEX ACCENT
+        assertEquals(0, WCWidth.wcwidth(0x1ACE)); // last in block
+
+        // Myanmar Extended combining marks
+        assertEquals(0, WCWidth.wcwidth(0x103D)); // MYANMAR CONSONANT SIGN MEDIAL WA
+        assertEquals(0, WCWidth.wcwidth(0x103E)); // MYANMAR CONSONANT SIGN MEDIAL HA
+        assertEquals(0, WCWidth.wcwidth(0x105E)); // MYANMAR CONSONANT SIGN MON MEDIAL NA
+
+        // Combining Diacritical Marks Supplement extended range (U+20D0-20F0)
+        assertEquals(0, WCWidth.wcwidth(0x20F0)); // COMBINING ASTERISK ABOVE
+
+        // Cyrillic Extended-A combining (U+2DE0-2DFF) — added in Unicode 5.1
+        assertEquals(0, WCWidth.wcwidth(0x2DE0)); // COMBINING CYRILLIC LETTER BE
+
+        // Mongolian Free Variation Selectors (U+180E-180F) — was missing 180E-180F
+        assertEquals(0, WCWidth.wcwidth(0x180E)); // MONGOLIAN VOWEL SEPARATOR
+        assertEquals(0, WCWidth.wcwidth(0x180F)); // MONGOLIAN FREE VARIATION SELECTOR FOUR
+
+        // SMP combining marks from newer scripts
+        assertEquals(0, WCWidth.wcwidth(0x10AE5)); // MANICHAEAN ABBREVIATION MARK ABOVE
+        assertEquals(0, WCWidth.wcwidth(0x11038)); // BRAHMI VOWEL SIGN AA
+        assertEquals(0, WCWidth.wcwidth(0x1CF00)); // ZNAMENNY COMBINING MARK
+
+        // Bidi/Format characters added after Unicode 5.1
+        assertEquals(0, WCWidth.wcwidth(0x2066)); // LEFT-TO-RIGHT ISOLATE
+        assertEquals(0, WCWidth.wcwidth(0x2069)); // POP DIRECTIONAL ISOLATE
+
+        // Non-combining neighbors should still be width 1
+        assertEquals(1, WCWidth.wcwidth(0x1ACF)); // after combining block
+        assertEquals(1, WCWidth.wcwidth(0x0904)); // DEVANAGARI LETTER SHORT A (Lo, not Mn/Me/Cf)
+    }
+
+    /**
+     * Test updated East Asian Width table covers Unicode 16.0 ranges.
+     * The old code missed Hangul Jamo Extended-A, Tangut, Kana extensions, etc.
+     */
+    @Test
+    public void testUnicode16EastAsianWidth() {
+        // Hangul Jamo Extended-A (U+A960-A97C) — was missing
+        assertEquals(2, WCWidth.wcwidth(0xA960)); // HANGUL CHOSEONG TIKEUT-MIEUM
+        assertEquals(2, WCWidth.wcwidth(0xA97C)); // HANGUL CHOSEONG SSANGYEORINHIEUH
+
+        // Tangut (U+17000-187F7) — was missing
+        assertEquals(2, WCWidth.wcwidth(0x17000)); // TANGUT IDEOGRAPH
+        assertEquals(2, WCWidth.wcwidth(0x187F7)); // last Tangut ideograph
+
+        // Tangut Components (U+18800-18CD5) — was missing
+        assertEquals(2, WCWidth.wcwidth(0x18800)); // TANGUT COMPONENT
+
+        // Kana Supplement (U+1B000-1B122) — was missing
+        assertEquals(2, WCWidth.wcwidth(0x1B000)); // KATAKANA LETTER ARCHAIC E
+        assertEquals(2, WCWidth.wcwidth(0x1B122)); // KATAKANA LETTER ARCHAIC WU
+
+        // Nushu (U+1B170-1B2FB) — was missing
+        assertEquals(2, WCWidth.wcwidth(0x1B170)); // NUSHU CHARACTER
+
+        // Tai Xuan Jing Symbols (U+1D300-1D356) — was missing
+        assertEquals(2, WCWidth.wcwidth(0x1D300)); // MONOGRAM FOR EARTH
+
+        // Trigrams (U+2630-2637) — was missing
+        assertEquals(2, WCWidth.wcwidth(0x2630)); // TRIGRAM FOR HEAVEN ☰
+        assertEquals(2, WCWidth.wcwidth(0x2637)); // TRIGRAM FOR EARTH ☷
+
+        // Yijing mono/digrams (U+268A-268F) — was missing
+        assertEquals(2, WCWidth.wcwidth(0x268A)); // MONOGRAM FOR YANG
+
+        // SMP emoji — more precise ranges than old 0x1F000-0x1FEEE
+        assertEquals(2, WCWidth.wcwidth(0x1F600)); // 😀
+        assertEquals(2, WCWidth.wcwidth(0x1F4A9)); // 💩
+        assertEquals(2, WCWidth.wcwidth(0x1FAF8)); // 🫸 (last emoji in Unicode 16.0)
+
+        // CJK basics still work
+        assertEquals(2, WCWidth.wcwidth(0x4E00)); // 一
+        assertEquals(2, WCWidth.wcwidth(0xAC00)); // 가 (Hangul)
+        assertEquals(2, WCWidth.wcwidth(0x3041)); // ぁ (Hiragana)
+        assertEquals(2, WCWidth.wcwidth(0xFF01)); // ！ (Fullwidth)
+
+        // Extension B..F and G..J
+        assertEquals(2, WCWidth.wcwidth(0x20000)); // CJK Extension B
+        assertEquals(2, WCWidth.wcwidth(0x30000)); // CJK Extension G
+
+        // Non-wide characters should still be 1
+        assertEquals(1, WCWidth.wcwidth(0x0041)); // A
+        assertEquals(1, WCWidth.wcwidth(0x00E9)); // é
+    }
 }
