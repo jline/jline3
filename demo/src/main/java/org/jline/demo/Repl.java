@@ -391,6 +391,12 @@ public class Repl {
                         }
                     }
                     break;
+                } catch (IOError e) {
+                    if (e.getCause() instanceof IOException) {
+                        // Terminal I/O broken (e.g. Ctrl+C on some platforms), exit the loop
+                        break;
+                    }
+                    systemRegistry.trace(e);
                 } catch (Exception | Error e) {
                     systemRegistry.trace(e); // print exception and save it to console variable
                 }
