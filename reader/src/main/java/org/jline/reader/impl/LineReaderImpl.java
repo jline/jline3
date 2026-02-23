@@ -685,6 +685,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                     terminal.puts(Capability.keypad_xmit);
                     if (isSet(Option.AUTO_FRESH_LINE)) callWidget(FRESH_LINE);
                     if (isSet(Option.MOUSE)) terminal.trackMouse(Terminal.MouseTracking.Normal);
+                    if (isSet(Option.GRAPHEME_CLUSTER)) terminal.setGraphemeClusterMode(true);
                     if (isSet(Option.BRACKETED_PASTE)) {
                         terminal.writer().write(BRACKETED_PASTE_ON);
                     } else if (options.containsKey(Option.BRACKETED_PASTE)) {
@@ -2677,6 +2678,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             }
             terminal.puts(Capability.keypad_local);
             terminal.trackMouse(Terminal.MouseTracking.Off);
+            if (terminal.getGraphemeClusterMode()) terminal.setGraphemeClusterMode(false);
             if (isSet(Option.BRACKETED_PASTE) && !isTerminalDumb())
                 terminal.writer().write(BRACKETED_PASTE_OFF);
             // Stop the masking thread if it was started for dumb terminals

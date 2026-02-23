@@ -85,6 +85,7 @@ public abstract class AbstractTerminal implements TerminalExt {
     protected MouseTracking currentMouseTracking = MouseTracking.Off;
     protected volatile boolean closed = false;
     private Boolean graphemeClusterModeSupported;
+    private boolean graphemeClusterModeEnabled;
 
     public AbstractTerminal(String name, String type) throws IOException {
         this(name, type, null, SignalHandler.SIG_DFL);
@@ -160,6 +161,9 @@ public abstract class AbstractTerminal implements TerminalExt {
     }
 
     protected void doClose() throws IOException {
+        if (graphemeClusterModeEnabled) {
+            setGraphemeClusterMode(false);
+        }
         if (status != null) {
             status.close();
         }
@@ -373,16 +377,30 @@ public abstract class AbstractTerminal implements TerminalExt {
         return graphemeClusterModeSupported;
     }
 
+    @Override
+    public boolean getGraphemeClusterMode() {
+        return graphemeClusterModeEnabled;
+    }
+
     /**
      * Probes the terminal for mode 2027 support using DECRQM.
      *
      * <p>Sends {@code CSI ? 2027 $ p} and expects a DECRPM response
      * {@code CSI ? 2027 ; Ps $ y} where Ps indicates the mode status.</p>
      *
+     * <p>The probe is only performed on terminals whose type starts with
+     * {@code "xterm"}, as DECRQM is a DEC private mode query that may not be
+     * understood by older or minimal terminals. Terminals that do not understand
+     * DECRQM could echo the query as visible garbage or leave partial responses
+     * in the input buffer.</p>
+     *
      * @return {@code true} if the terminal recognizes mode 2027
      */
     private boolean probeGraphemeClusterMode() {
         if (TYPE_DUMB.equals(type) || TYPE_DUMB_COLOR.equals(type)) {
+            return false;
+        }
+        if (!type.startsWith("xterm")) {
             return false;
         }
         try {
@@ -397,15 +415,23 @@ public abstract class AbstractTerminal implements TerminalExt {
             }
             int[] expected = {'\033', '[', '?', '2', '0', '2', '7', ';'};
             for (int e : expected) {
-                if (reader().read(timeout) != e) {
+                int c = reader().read(timeout);
+                if (c != e) {
+                    // Mismatch — drain any remaining bytes from the partial
+                    // response to avoid leaving garbage in the input buffer
+                    drainResponse(timeout);
                     return false;
                 }
             }
             int ps = reader().read(timeout);
             if (ps < '0' || ps > '4') {
+                drainResponse(timeout);
                 return false;
             }
-            if (reader().read(timeout) != '$' || reader().read(timeout) != 'y') {
+            int dollar = reader().read(timeout);
+            int y = reader().read(timeout);
+            if (dollar != '$' || y != 'y') {
+                drainResponse(timeout);
                 return false;
             }
             // Ps: 1=set, 2=reset (can be set), 3=permanently set → supported
@@ -416,11 +442,25 @@ public abstract class AbstractTerminal implements TerminalExt {
         }
     }
 
+    /**
+     * Drains any remaining bytes from a partial or unexpected DECRPM response.
+     * Reads and discards characters until no more are available within the timeout.
+     */
+    private void drainResponse(long timeout) {
+        try {
+            while (reader().peek(timeout) >= 0) {
+                reader().read(timeout);
+            }
+        } catch (IOException ignored) {
+        }
+    }
+
     @Override
     public boolean setGraphemeClusterMode(boolean enable) {
         if (supportsGraphemeClusterMode()) {
             writer().write(enable ? "\033[?2027h" : "\033[?2027l");
             writer().flush();
+            graphemeClusterModeEnabled = enable;
             return true;
         } else {
             return false;

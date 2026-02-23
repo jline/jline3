@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2025, the original author(s).
+ * Copyright (c) the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -74,6 +74,20 @@ public class GraphemeClusterModeTest {
     }
 
     @Test
+    public void testNotSupportedOnNonXtermTerminal() throws Exception {
+        // Terminals that don't start with "xterm" should not be probed
+        ByteArrayOutputStream masterOutput = new ByteArrayOutputStream();
+        LineDisciplineTerminal terminal =
+                new LineDisciplineTerminal("test", "vt100", masterOutput, StandardCharsets.UTF_8);
+
+        assertFalse(terminal.supportsGraphemeClusterMode());
+        // No query should have been sent
+        assertEquals(0, masterOutput.size());
+
+        terminal.close();
+    }
+
+    @Test
     public void testNotSupportedWhenNoResponse() throws Exception {
         // No response written to slaveInputPipe → peek() times out
         ByteArrayOutputStream masterOutput = new ByteArrayOutputStream();
@@ -117,6 +131,7 @@ public class GraphemeClusterModeTest {
         terminal.slaveInputPipe.flush();
 
         assertTrue(terminal.setGraphemeClusterMode(true));
+        assertTrue(terminal.getGraphemeClusterMode());
 
         String output = masterOutput.toString(StandardCharsets.UTF_8);
         assertTrue(output.contains("\033[?2027h"));
@@ -134,7 +149,11 @@ public class GraphemeClusterModeTest {
         terminal.slaveInputPipe.write("\033[?2027;2$y".getBytes(StandardCharsets.UTF_8));
         terminal.slaveInputPipe.flush();
 
+        assertTrue(terminal.setGraphemeClusterMode(true));
+        assertTrue(terminal.getGraphemeClusterMode());
+
         assertTrue(terminal.setGraphemeClusterMode(false));
+        assertFalse(terminal.getGraphemeClusterMode());
 
         String output = masterOutput.toString(StandardCharsets.UTF_8);
         assertTrue(output.contains("\033[?2027l"));
@@ -149,8 +168,52 @@ public class GraphemeClusterModeTest {
                 new LineDisciplineTerminal("test", Terminal.TYPE_DUMB, masterOutput, StandardCharsets.UTF_8);
 
         assertFalse(terminal.setGraphemeClusterMode(true));
+        assertFalse(terminal.getGraphemeClusterMode());
 
         terminal.close();
+    }
+
+    @Test
+    public void testModeDisabledOnClose() throws Exception {
+        ByteArrayOutputStream masterOutput = new ByteArrayOutputStream();
+        LineDisciplineTerminal terminal =
+                new LineDisciplineTerminal("test", "xterm-256color", masterOutput, StandardCharsets.UTF_8);
+
+        // Feed probe response
+        terminal.slaveInputPipe.write("\033[?2027;2$y".getBytes(StandardCharsets.UTF_8));
+        terminal.slaveInputPipe.flush();
+
+        assertTrue(terminal.setGraphemeClusterMode(true));
+        assertTrue(terminal.getGraphemeClusterMode());
+
+        // Close should disable the mode
+        terminal.close();
+
+        String output = masterOutput.toString(StandardCharsets.UTF_8);
+        // Should contain both enable and disable sequences
+        assertTrue(output.contains("\033[?2027h"));
+        assertTrue(output.contains("\033[?2027l"));
+    }
+
+    @Test
+    public void testModeNotDisabledOnCloseIfNeverEnabled() throws Exception {
+        ByteArrayOutputStream masterOutput = new ByteArrayOutputStream();
+        LineDisciplineTerminal terminal =
+                new LineDisciplineTerminal("test", "xterm-256color", masterOutput, StandardCharsets.UTF_8);
+
+        // Feed probe response but don't enable the mode
+        terminal.slaveInputPipe.write("\033[?2027;2$y".getBytes(StandardCharsets.UTF_8));
+        terminal.slaveInputPipe.flush();
+
+        assertTrue(terminal.supportsGraphemeClusterMode());
+
+        terminal.close();
+
+        String output = masterOutput.toString(StandardCharsets.UTF_8);
+        // Should contain probe but no enable/disable sequences
+        assertTrue(output.contains("\033[?2027$p"));
+        assertFalse(output.contains("\033[?2027h"));
+        assertFalse(output.contains("\033[?2027l"));
     }
 
     @Test
@@ -295,6 +358,7 @@ public class GraphemeClusterModeTest {
         };
 
         assertFalse(terminal.supportsGraphemeClusterMode());
+        assertFalse(terminal.getGraphemeClusterMode());
         assertFalse(terminal.setGraphemeClusterMode(true));
     }
 

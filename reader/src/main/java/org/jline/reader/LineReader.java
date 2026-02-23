@@ -487,6 +487,17 @@ public interface LineReader {
          */
         INSERT_TAB,
         MOUSE,
+        /**
+         * When set, the reader will enable mode 2027 (grapheme cluster / Unicode Core)
+         * on terminals that support it. This allows the terminal to use UAX #29 grapheme
+         * cluster segmentation for cursor positioning, improving display of multi-codepoint
+         * characters like ZWJ emoji sequences.
+         *
+         * <p>The mode is automatically disabled when {@code readLine()} returns.</p>
+         *
+         * @see org.jline.terminal.Terminal#setGraphemeClusterMode(boolean)
+         */
+        GRAPHEME_CLUSTER,
         DISABLE_HIGHLIGHTER,
         BRACKETED_PASTE(true),
         /**
