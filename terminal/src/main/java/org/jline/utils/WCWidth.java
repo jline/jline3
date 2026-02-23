@@ -79,6 +79,55 @@ public final class WCWidth {
         /* binary search in table of non-spacing characters */
         if (bisearch(ucs, combining, combining.length - 1)) return 0;
 
+        /* BMP characters with Emoji_Presentation=Yes (Unicode 16.0).
+         * These are rendered as 2 columns by modern terminal emulators
+         * but fall outside the East Asian Wide/Fullwidth categories.
+         * See https://unicode.org/Public/16.0.0/ucd/emoji/emoji-data.txt */
+        if (ucs == 0x231a
+                || ucs == 0x231b
+                || (ucs >= 0x23e9 && ucs <= 0x23ec)
+                || ucs == 0x23f0
+                || ucs == 0x23f3
+                || ucs == 0x25fd
+                || ucs == 0x25fe
+                || ucs == 0x2614
+                || ucs == 0x2615
+                || (ucs >= 0x2648 && ucs <= 0x2653)
+                || ucs == 0x267f
+                || ucs == 0x2693
+                || ucs == 0x26a1
+                || ucs == 0x26aa
+                || ucs == 0x26ab
+                || ucs == 0x26bd
+                || ucs == 0x26be
+                || ucs == 0x26c4
+                || ucs == 0x26c5
+                || ucs == 0x26ce
+                || ucs == 0x26d4
+                || ucs == 0x26ea
+                || ucs == 0x26f2
+                || ucs == 0x26f3
+                || ucs == 0x26f5
+                || ucs == 0x26fa
+                || ucs == 0x26fd
+                || ucs == 0x2705
+                || ucs == 0x270a
+                || ucs == 0x270b
+                || ucs == 0x2728
+                || ucs == 0x274c
+                || ucs == 0x274e
+                || (ucs >= 0x2753 && ucs <= 0x2755)
+                || ucs == 0x2757
+                || (ucs >= 0x2795 && ucs <= 0x2797)
+                || ucs == 0x27b0
+                || ucs == 0x27bf
+                || ucs == 0x2b1b
+                || ucs == 0x2b1c
+                || ucs == 0x2b50
+                || ucs == 0x2b55) {
+            return 2;
+        }
+
         /* if we arrive here, ucs is not a combining or C0/C1 control character */
         return 1
                 + ((ucs >= 0x1100

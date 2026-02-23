@@ -160,4 +160,62 @@ public class AttributedStringTest {
         messageLength = message.columnLength();
         assertEquals(12, messageLength);
     }
+
+    /**
+     * BMP characters with Emoji_Presentation=Yes should have column width 2.
+     * These are legacy Unicode characters (Dingbats, Miscellaneous Symbols, etc.)
+     * that modern terminals render as 2 columns wide.
+     * See https://github.com/jline/jline3/issues/1648
+     */
+    @Test
+    public void testBmpEmojiWidth() {
+        // SMP emoji (0x1F000+) — already handled
+        assertEquals(2, new AttributedString("\uD83D\uDE00").columnLength()); // 😀 U+1F600
+        assertEquals(2, new AttributedString("\uD83D\uDD34").columnLength()); // 🔴 U+1F534
+
+        // BMP Emoji_Presentation=Yes — Miscellaneous Technical
+        assertEquals(2, new AttributedString("\u231A").columnLength()); // ⌚ U+231A
+        assertEquals(2, new AttributedString("\u231B").columnLength()); // ⌛ U+231B
+        assertEquals(2, new AttributedString("\u23E9").columnLength()); // ⏩ U+23E9
+        assertEquals(2, new AttributedString("\u23F0").columnLength()); // ⏰ U+23F0
+        assertEquals(2, new AttributedString("\u23F3").columnLength()); // ⏳ U+23F3
+
+        // BMP Emoji_Presentation=Yes — Miscellaneous Symbols
+        assertEquals(2, new AttributedString("\u2614").columnLength()); // ☔ U+2614
+        assertEquals(2, new AttributedString("\u2615").columnLength()); // ☕ U+2615
+        assertEquals(2, new AttributedString("\u267F").columnLength()); // ♿ U+267F
+        assertEquals(2, new AttributedString("\u2693").columnLength()); // ⚓ U+2693
+        assertEquals(2, new AttributedString("\u26A1").columnLength()); // ⚡ U+26A1
+        assertEquals(2, new AttributedString("\u26BD").columnLength()); // ⚽ U+26BD
+        assertEquals(2, new AttributedString("\u26D4").columnLength()); // ⛔ U+26D4
+        assertEquals(2, new AttributedString("\u26FD").columnLength()); // ⛽ U+26FD
+
+        // BMP Emoji_Presentation=Yes — Dingbats
+        assertEquals(2, new AttributedString("\u2705").columnLength()); // ✅ U+2705
+        assertEquals(2, new AttributedString("\u270A").columnLength()); // ✊ U+270A
+        assertEquals(2, new AttributedString("\u2728").columnLength()); // ✨ U+2728
+        assertEquals(2, new AttributedString("\u274C").columnLength()); // ❌ U+274C
+        assertEquals(2, new AttributedString("\u274E").columnLength()); // ❎ U+274E
+        assertEquals(2, new AttributedString("\u2753").columnLength()); // ❓ U+2753
+        assertEquals(2, new AttributedString("\u2757").columnLength()); // ❗ U+2757
+        assertEquals(2, new AttributedString("\u2795").columnLength()); // ➕ U+2795
+
+        // BMP Emoji_Presentation=Yes — Miscellaneous Symbols and Arrows
+        assertEquals(2, new AttributedString("\u2B1B").columnLength()); // ⬛ U+2B1B
+        assertEquals(2, new AttributedString("\u2B50").columnLength()); // ⭐ U+2B50
+        assertEquals(2, new AttributedString("\u2B55").columnLength()); // ⭕ U+2B55
+
+        // Non-emoji neighbors should remain width 1
+        assertEquals(1, new AttributedString("\u2713").columnLength()); // ✓ U+2713
+        assertEquals(1, new AttributedString("\u2717").columnLength()); // ✗ U+2717
+        assertEquals(1, new AttributedString("\u274B").columnLength()); // ❋ U+274B
+        assertEquals(1, new AttributedString("\u2756").columnLength()); // ❖ U+2756
+
+        // Zodiac signs (Emoji_Presentation=Yes)
+        assertEquals(2, new AttributedString("\u2648").columnLength()); // ♈ U+2648
+        assertEquals(2, new AttributedString("\u2653").columnLength()); // ♓ U+2653
+
+        // Multiple BMP emoji in one string
+        assertEquals(4, new AttributedString("\u2705\u274C").columnLength()); // ✅❌
+    }
 }
