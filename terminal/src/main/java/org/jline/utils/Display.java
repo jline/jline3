@@ -131,7 +131,7 @@ public class Display {
             this.columns = columns;
             this.columns1 = columns + 1;
             oldLines = AttributedString.join(AttributedString.EMPTY, oldLines)
-                    .columnSplitLength(columns, true, delayLineWrap());
+                    .columnSplitLength(columns, true, delayLineWrap(), terminal);
         }
         // When the terminal buffer is wider than the visible window (e.g. Windows with
         // a wide screen buffer), auto-wrap occurs at the buffer width, not the visible
@@ -281,7 +281,7 @@ public class Display {
                     AttributedString firstChar = newLine.substring(0, 1);
                     // go to next line column one
                     rawPrint(firstChar);
-                    cursorPos += firstChar.columnLength(); // normally 1
+                    cursorPos += firstChar.columnLength(terminal); // normally 1
                     newLine = newLine.substring(1, newLength);
                     newLength--;
                     if (oldLength > 0) {
@@ -291,12 +291,35 @@ public class Display {
                     currentPos = cursorPos;
                 }
             }
+            // When grapheme cluster mode is active, the terminal may retroactively
+            // combine or uncombine characters as ZWJ and other combining code points
+            // are added incrementally. This invalidates cursor position tracking
+            // based on char-level diffs. Force a full line repaint in this case.
+            if (terminal.getGraphemeClusterMode() && !oldLine.equals(newLine)) {
+                cursorPos = moveVisualCursorTo(currentPos);
+                if (!terminal.puts(Capability.clr_eol)) {
+                    int oldLen = oldLine.columnLength(terminal);
+                    if (oldLen > 0) {
+                        rawPrint(' ', oldLen);
+                        cursorPos += oldLen;
+                        cursorPos = moveVisualCursorTo(currentPos);
+                    }
+                }
+                rawPrint(newLine);
+                cursorPos += newLine.columnLength(terminal);
+                currentPos = cursorPos;
+                lineIndex++;
+                boolean newWrap2 = !newNL && lineIndex < newLines.size();
+                if (targetCursorPos + 1 == lineIndex * columns1 && (newWrap2 || !delayLineWrap)) targetCursorPos++;
+                wrapNeeded = newWrap2;
+                continue;
+            }
             List<DiffHelper.Diff> diffs = DiffHelper.diff(oldLine, newLine);
             boolean ident = true;
             boolean cleared = false;
             for (int i = 0; i < diffs.size(); i++) {
                 DiffHelper.Diff diff = diffs.get(i);
-                int width = diff.text.columnLength();
+                int width = diff.text.columnLength(terminal);
                 switch (diff.operation) {
                     case EQUAL:
                         if (!ident) {
@@ -319,7 +342,7 @@ public class Display {
                             }
                         } else if (i <= diffs.size() - 2
                                 && diffs.get(i + 1).operation == DiffHelper.Operation.DELETE
-                                && width == diffs.get(i + 1).text.columnLength()) {
+                                && width == diffs.get(i + 1).text.columnLength(terminal)) {
                             moveVisualCursorTo(currentPos);
                             rawPrint(diff.text);
                             cursorPos += width;
@@ -341,15 +364,15 @@ public class Display {
                             continue;
                         }
                         if (i <= diffs.size() - 2 && diffs.get(i + 1).operation == DiffHelper.Operation.EQUAL) {
-                            if (currentPos + diffs.get(i + 1).text.columnLength() < columns) {
+                            if (currentPos + diffs.get(i + 1).text.columnLength(terminal) < columns) {
                                 moveVisualCursorTo(currentPos);
                                 if (deleteChars(width)) {
                                     break;
                                 }
                             }
                         }
-                        int oldLen = oldLine.columnLength();
-                        int newLen = newLine.columnLength();
+                        int oldLen = oldLine.columnLength(terminal);
+                        int newLen = newLine.columnLength(terminal);
                         int nb = Math.max(oldLen, newLen) - (currentPos - curCol);
                         moveVisualCursorTo(currentPos);
                         if (!terminal.puts(Capability.clr_eol)) {
@@ -478,7 +501,7 @@ public class Display {
                 int row = targetPos / columns1;
                 AttributedString lastChar = row >= newLines.size()
                         ? AttributedString.EMPTY
-                        : newLines.get(row).columnSubSequence(columns - 1, columns);
+                        : newLines.get(row).columnSubSequence(columns - 1, columns, terminal);
                 if (lastChar.length() == 0) rawPrint((int) ' ');
                 else rawPrint(lastChar);
                 cursorPos++;

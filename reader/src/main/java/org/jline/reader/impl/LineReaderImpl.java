@@ -685,7 +685,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                     terminal.puts(Capability.keypad_xmit);
                     if (isSet(Option.AUTO_FRESH_LINE)) callWidget(FRESH_LINE);
                     if (isSet(Option.MOUSE)) terminal.trackMouse(Terminal.MouseTracking.Normal);
-                    if (isSet(Option.GRAPHEME_CLUSTER)) terminal.setGraphemeClusterMode(true);
+
                     if (isSet(Option.BRACKETED_PASTE)) {
                         terminal.writer().write(BRACKETED_PASTE_ON);
                     } else if (options.containsKey(Option.BRACKETED_PASTE)) {
@@ -2471,11 +2471,115 @@ public class LineReaderImpl implements LineReader, Flushable {
     }
 
     protected boolean backwardChar() {
+        if (terminal.getGraphemeClusterMode()) {
+            return moveByGraphemeCluster(-count) != 0;
+        }
         return buf.move(-count) != 0;
     }
 
     protected boolean forwardChar() {
+        if (terminal.getGraphemeClusterMode()) {
+            return moveByGraphemeCluster(count) != 0;
+        }
         return buf.move(count) != 0;
+    }
+
+    /**
+     * Moves the cursor by the specified number of grapheme clusters.
+     * A grapheme cluster is a user-perceived character, which may consist of
+     * multiple code points (e.g., ZWJ emoji sequences, flag pairs, skin tone modifiers).
+     *
+     * @param count positive to move forward, negative to move backward
+     * @return the number of grapheme clusters actually moved
+     */
+    private int moveByGraphemeCluster(int count) {
+        int moved = 0;
+        if (count > 0) {
+            for (int i = 0; i < count && buf.cursor() < buf.length(); i++) {
+                int skip = graphemeClusterCodePointCount(buf, buf.cursor());
+                buf.move(skip);
+                moved++;
+            }
+        } else {
+            for (int i = 0; i > count && buf.cursor() > 0; i--) {
+                int skip = graphemeClusterCodePointCountBefore(buf, buf.cursor());
+                buf.move(-skip);
+                moved++;
+            }
+        }
+        return moved;
+    }
+
+    /**
+     * Returns the number of code points in the grapheme cluster starting at
+     * position {@code pos} in the buffer.
+     */
+    private static int graphemeClusterCodePointCount(Buffer buf, int pos) {
+        int len = buf.length();
+        if (pos >= len) return 0;
+        int cp = buf.atChar(pos);
+        int cur = pos + 1;
+        // Regional indicator pairs (flags)
+        if (WCWidth.isRegionalIndicator(cp) && cur < len && WCWidth.isRegionalIndicator(buf.atChar(cur))) {
+            return 2;
+        }
+        // Consume grapheme cluster extensions
+        while (cur < len) {
+            int ncp = buf.atChar(cur);
+            if (ncp == 0x200D && cur + 1 < len) {
+                // ZWJ + next code point
+                cur += 2;
+            } else if (WCWidth.wcwidth(ncp) == 0 && ncp >= 0x20) {
+                cur++;
+            } else {
+                break;
+            }
+        }
+        return cur - pos;
+    }
+
+    /**
+     * Returns the number of code points in the grapheme cluster ending just
+     * before position {@code pos} in the buffer (for backward movement).
+     */
+    private static int graphemeClusterCodePointCountBefore(Buffer buf, int pos) {
+        if (pos <= 0) return 0;
+        // Walk backwards: a grapheme cluster in the buffer is structured as
+        //   BASE [extending | ZWJ BASE]*
+        // We scan left from pos-1, consuming extending chars and ZWJ+BASE pairs.
+        int cur = pos - 1;
+        // Skip trailing extending characters (variation selectors, skin tones, combining marks)
+        while (cur > 0
+                && WCWidth.wcwidth(buf.atChar(cur)) == 0
+                && buf.atChar(cur) >= 0x20
+                && buf.atChar(cur) != 0x200D) {
+            cur--;
+        }
+        // Now cur points at a base character or a ZWJ.
+        // Scan backwards through ZWJ+BASE pairs
+        while (cur >= 2) {
+            int prev = buf.atChar(cur - 1);
+            if (prev == 0x200D) {
+                // ZWJ before the current base — skip over ZWJ and the preceding base
+                cur -= 2;
+                // Also skip extending chars before this base
+                while (cur > 0
+                        && WCWidth.wcwidth(buf.atChar(cur)) == 0
+                        && buf.atChar(cur) >= 0x20
+                        && buf.atChar(cur) != 0x200D) {
+                    cur--;
+                }
+            } else {
+                break;
+            }
+        }
+        // Check for regional indicator pair
+        if (cur > 0
+                && WCWidth.isRegionalIndicator(buf.atChar(cur))
+                && WCWidth.isRegionalIndicator(buf.atChar(cur - 1))) {
+            cur--;
+        }
+        return pos - cur;
     }
 
     protected boolean viDigitOrBeginningOfLine() {
@@ -2678,7 +2782,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             }
             terminal.puts(Capability.keypad_local);
             terminal.trackMouse(Terminal.MouseTracking.Off);
-            if (terminal.getGraphemeClusterMode()) terminal.setGraphemeClusterMode(false);
+
             if (isSet(Option.BRACKETED_PASTE) && !isTerminalDumb())
                 terminal.writer().write(BRACKETED_PASTE_OFF);
             // Stop the masking thread if it was started for dumb terminals
@@ -3444,7 +3548,14 @@ public class LineReaderImpl implements LineReader, Flushable {
         if (buf.cursor() == 0) {
             return false;
         }
-        buf.backspace(count);
+        if (terminal.getGraphemeClusterMode()) {
+            for (int i = 0; i < count && buf.cursor() > 0; i++) {
+                int skip = graphemeClusterCodePointCountBefore(buf, buf.cursor());
+                buf.backspace(skip);
+            }
+        } else {
+            buf.backspace(count);
+        }
         return true;
     }
 
@@ -3495,7 +3606,14 @@ public class LineReaderImpl implements LineReader, Flushable {
         if (buf.cursor() == buf.length()) {
             return false;
         }
-        buf.delete(count);
+        if (terminal.getGraphemeClusterMode()) {
+            for (int i = 0; i < count && buf.cursor() < buf.length(); i++) {
+                int skip = graphemeClusterCodePointCount(buf, buf.cursor());
+                buf.delete(skip);
+            }
+        } else {
+            buf.delete(count);
+        }
         return true;
     }
 
@@ -4055,7 +4173,7 @@ public class LineReaderImpl implements LineReader, Flushable {
 
                 int w = WCWidth.wcwidth('…');
                 int width = size.getColumns();
-                int cursor = toCursor.columnLength();
+                int cursor = toCursor.columnLength(terminal);
                 int inc = width / 2 + 1;
                 while (cursor <= smallTerminalOffset + w) {
                     smallTerminalOffset -= inc;
@@ -4066,13 +4184,13 @@ public class LineReaderImpl implements LineReader, Flushable {
                 if (smallTerminalOffset > 0) {
                     sb.setLength(0);
                     sb.append("…");
-                    sb.append(full.columnSubSequence(smallTerminalOffset + w, Integer.MAX_VALUE));
+                    sb.append(full.columnSubSequence(smallTerminalOffset + w, Integer.MAX_VALUE, terminal));
                     full = sb.toAttributedString();
                 }
-                int length = full.columnLength();
+                int length = full.columnLength(terminal);
                 if (length >= smallTerminalOffset + width) {
                     sb.setLength(0);
-                    sb.append(full.columnSubSequence(0, width - w));
+                    sb.append(full.columnSubSequence(0, width - w, terminal));
                     sb.append("…");
                     full = sb.toAttributedString();
                 }
@@ -4089,7 +4207,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                 newLines = new ArrayList<>();
                 newLines.add(full);
             } else {
-                newLines = full.columnSplitLength(size.getColumns(), true, display.delayLineWrap());
+                newLines = full.columnSplitLength(size.getColumns(), true, display.delayLineWrap(), terminal);
             }
 
             List<AttributedString> rightPromptLines;
@@ -4118,10 +4236,10 @@ public class LineReaderImpl implements LineReader, Flushable {
                 }
                 sb.append(insertSecondaryPrompts(new AttributedString(buffer), secondaryPrompts, false));
                 List<AttributedString> promptLines =
-                        sb.columnSplitLength(size.getColumns(), false, display.delayLineWrap());
+                        sb.columnSplitLength(size.getColumns(), false, display.delayLineWrap(), terminal);
                 if (!promptLines.isEmpty()) {
                     cursorNewLinesId = promptLines.size() - 1;
-                    cursorColPos = promptLines.get(promptLines.size() - 1).columnLength();
+                    cursorColPos = promptLines.get(promptLines.size() - 1).columnLength(terminal);
                     cursorPos = size.cursorPos(cursorNewLinesId, cursorColPos);
                 }
             }

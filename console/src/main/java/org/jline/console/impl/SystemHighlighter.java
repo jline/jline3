@@ -213,9 +213,7 @@ public class SystemHighlighter extends DefaultHighlighter {
                 boolean fileOption = false;
                 for (int i = 1; i < words.size(); i++) {
                     int nextIdx = buffer.substring(idx).indexOf(words.get(i)) + idx;
-                    for (int j = idx; j < nextIdx; j++) {
-                        asb.append(buffer.charAt(j));
-                    }
+                    asb.append(buffer, idx, nextIdx);
                     String word = words.get(i);
                     if (subCommand) {
                         subCommand = false;
@@ -254,9 +252,7 @@ public class SystemHighlighter extends DefaultHighlighter {
                 int idx = buffer.indexOf(words.get(0)) + words.get(0).length();
                 for (int i = 1; i < words.size(); i++) {
                     int nextIdx = buffer.substring(idx).indexOf(words.get(i)) + idx;
-                    for (int j = idx; j < nextIdx; j++) {
-                        asb.append(buffer.charAt(j));
-                    }
+                    asb.append(buffer, idx, nextIdx);
                     if (subCommand) {
                         subCommand = false;
                         highlightArgs(words.get(i), asb);

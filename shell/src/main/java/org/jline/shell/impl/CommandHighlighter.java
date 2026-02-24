@@ -91,29 +91,30 @@ public class CommandHighlighter implements Highlighter {
         StringBuilder word = new StringBuilder();
 
         while (i < buffer.length()) {
-            char c = buffer.charAt(i);
+            int cp = buffer.codePointAt(i);
+            int charCount = Character.charCount(cp);
 
             // Handle quotes
-            if (c == '\'' && !inDoubleQuote) {
+            if (cp == '\'' && !inDoubleQuote) {
                 inSingleQuote = !inSingleQuote;
-                word.append(c);
-                i++;
+                word.appendCodePoint(cp);
+                i += charCount;
                 continue;
             }
-            if (c == '"' && !inSingleQuote) {
+            if (cp == '"' && !inSingleQuote) {
                 inDoubleQuote = !inDoubleQuote;
-                word.append(c);
-                i++;
+                word.appendCodePoint(cp);
+                i += charCount;
                 continue;
             }
 
             if (inSingleQuote || inDoubleQuote) {
-                word.append(c);
-                i++;
+                word.appendCodePoint(cp);
+                i += charCount;
                 continue;
             }
 
-            // Check for operators
+            // Check for operators (all BMP characters, safe to check at char level)
             String op = matchOperator(buffer, i);
             if (op != null) {
                 // Flush accumulated word
@@ -129,19 +130,19 @@ public class CommandHighlighter implements Highlighter {
             }
 
             // Handle whitespace
-            if (Character.isWhitespace(c)) {
+            if (Character.isWhitespace(cp)) {
                 if (word.length() > 0) {
                     flushWord(sb, word.toString(), firstWordInSegment);
                     word.setLength(0);
                     firstWordInSegment = false;
                 }
-                sb.append(c);
-                i++;
+                sb.append(buffer, i, i + charCount);
+                i += charCount;
                 continue;
             }
 
-            word.append(c);
-            i++;
+            word.appendCodePoint(cp);
+            i += charCount;
         }
 
         // Flush remaining

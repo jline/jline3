@@ -234,6 +234,8 @@ public final class TerminalBuilder {
     public static final String PROP_REDIRECT_PIPE_CREATION_MODE_DEFAULT =
             String.join(",", PROP_REDIRECT_PIPE_CREATION_MODE_REFLECTION, PROP_REDIRECT_PIPE_CREATION_MODE_NATIVE);
 
+    public static final String PROP_GRAPHEME_CLUSTER = "org.jline.terminal.graphemeCluster";
+
     // Graphics protocol properties
     public static final String GRAPHICS_SIXEL_TIMEOUT = "org.jline.terminal.graphics.sixel.timeout";
     public static final String GRAPHICS_SIXEL_SUBSEQUENT_TIMEOUT =
@@ -350,6 +352,7 @@ public final class TerminalBuilder {
     private boolean nativeSignals = true;
     private Terminal.SignalHandler signalHandler = Terminal.SignalHandler.SIG_DFL;
     private boolean paused = false;
+    private Boolean graphemeCluster;
 
     private TerminalBuilder() {}
 
@@ -671,6 +674,33 @@ public final class TerminalBuilder {
     }
 
     /**
+     * Controls whether mode 2027 (grapheme cluster segmentation) should be
+     * enabled on the terminal after construction.
+     *
+     * <p>When enabled, the terminal uses UAX #29 grapheme cluster boundaries
+     * for cursor positioning, which allows multi-codepoint characters like
+     * ZWJ emoji sequences (e.g., family emoji) to be treated as single
+     * display units.</p>
+     *
+     * <p>By default ({@code null}), mode 2027 is automatically enabled if
+     * the terminal supports it. Set to {@code false} to explicitly disable
+     * grapheme cluster mode even on terminals that support it.</p>
+     *
+     * <p>This can also be controlled via the system property
+     * {@link #PROP_GRAPHEME_CLUSTER}.</p>
+     *
+     * @param graphemeCluster {@code true} to enable, {@code false} to disable,
+     *                        or leave unset for auto-detection
+     * @return The builder
+     * @see Terminal#supportsGraphemeClusterMode()
+     * @see Terminal#setGraphemeClusterMode(boolean)
+     */
+    public TerminalBuilder graphemeCluster(boolean graphemeCluster) {
+        this.graphemeCluster = graphemeCluster;
+        return this;
+    }
+
+    /**
      * Builds the terminal.
      * @return the newly created terminal, never {@code null}
      * @throws IOException if an error occurs
@@ -685,6 +715,14 @@ public final class TerminalBuilder {
         if (terminal instanceof AbstractPosixTerminal) {
             Log.debug(() -> "Using pty "
                     + ((AbstractPosixTerminal) terminal).getPty().getClass().getSimpleName());
+        }
+        // Enable grapheme cluster mode (mode 2027) if supported
+        Boolean gc = this.graphemeCluster;
+        if (gc == null) {
+            gc = getBoolean(PROP_GRAPHEME_CLUSTER, null);
+        }
+        if (!Boolean.FALSE.equals(gc) && terminal.supportsGraphemeClusterMode()) {
+            terminal.setGraphemeClusterMode(true);
         }
         return terminal;
     }

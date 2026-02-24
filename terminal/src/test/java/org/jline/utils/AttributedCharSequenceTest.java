@@ -20,6 +20,60 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class AttributedCharSequenceTest {
 
+    // Family emoji: 👨‍👩‍👧‍👦 (man ZWJ woman ZWJ girl ZWJ boy)
+    private static final String FAMILY_EMOJI = "\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67\u200D\uD83D\uDC66";
+    // French flag: 🇫🇷 (regional indicators F + R)
+    private static final String FLAG_FR = "\uD83C\uDDEB\uD83C\uDDF7";
+    // Waving hand with medium skin tone: 👋🏽
+    private static final String WAVE_SKIN = "\uD83D\uDC4B\uD83C\uDFFD";
+    // Woman scientist: 👩‍🔬
+    private static final String WOMAN_SCIENTIST = "\uD83D\uDC69\u200D\uD83D\uDD2C";
+
+    @Test
+    public void testGraphemeClusterColumnLength() {
+        // We can't easily test columnLength(terminal) with grapheme cluster mode
+        // in unit tests (requires terminal probing), so we test per-codepoint widths
+        // here and verify charCountForGraphemeCluster separately below.
+
+        // Family emoji: per-codepoint = 2+0+2+0+2+0+2 = 8
+        AttributedString family = new AttributedString(FAMILY_EMOJI);
+        assertEquals(8, family.columnLength());
+
+        // Flag: per-codepoint = 2+2 = 4
+        AttributedString flag = new AttributedString(FLAG_FR);
+        assertEquals(4, flag.columnLength());
+
+        // Skin tone: per-codepoint = 2+0 = 2
+        AttributedString wave = new AttributedString(WAVE_SKIN);
+        assertEquals(2, wave.columnLength());
+
+        // Woman scientist: per-codepoint = 2+0+2 = 4
+        AttributedString scientist = new AttributedString(WOMAN_SCIENTIST);
+        assertEquals(4, scientist.columnLength());
+
+        // Mixed: "Hi " + family + " end"
+        AttributedString mixed = new AttributedString("Hi " + FAMILY_EMOJI + " end");
+        assertEquals(3 + 8 + 4, mixed.columnLength());
+    }
+
+    @Test
+    public void testCharCountForGraphemeCluster() {
+        // Family emoji: 11 chars total (4 surrogates + 3 ZWJ)
+        assertEquals(11, WCWidth.charCountForGraphemeCluster(FAMILY_EMOJI, 0));
+
+        // Flag: 4 chars (2 surrogate pairs for regional indicators)
+        assertEquals(4, WCWidth.charCountForGraphemeCluster(FLAG_FR, 0));
+
+        // Skin tone: 4 chars (surrogate pair + surrogate pair modifier)
+        assertEquals(4, WCWidth.charCountForGraphemeCluster(WAVE_SKIN, 0));
+
+        // Plain ASCII: 1 char
+        assertEquals(1, WCWidth.charCountForGraphemeCluster("Hello", 0));
+
+        // CJK character: 1 char (BMP)
+        assertEquals(1, WCWidth.charCountForGraphemeCluster("中", 0));
+    }
+
     @Test
     public void testUnderline() throws IOException {
         AttributedString as = AttributedString.fromAnsi("\33[38;5;0m\33[48;5;15mtest\33[0m");
