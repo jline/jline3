@@ -215,6 +215,46 @@ public class LineReaderTest {
     }
 
     @Test
+    public void testSecondaryPromptMultiCharPad() throws IOException {
+        ByteArrayInputStream in = new ByteArrayInputStream(new byte[0]);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        Terminal terminal = TerminalBuilder.builder().streams(in, out).build();
+        LineReaderImpl reader = new LineReaderImpl(terminal);
+
+        // Single char pad (backward compatible): %P. pads with '.'
+        AttributedString result = reader.expandPromptPattern("%P ", 10, "", 1);
+        assertEquals(10, result.columnLength());
+        assertEquals("          ", result.toString());
+
+        // Single char pad with dots
+        result = reader.expandPromptPattern("%P.", 10, "", 1);
+        assertEquals(10, result.columnLength());
+        assertEquals("..........", result.toString());
+
+        // Multi-char pad: %P{. } pads with repeating ". "
+        result = reader.expandPromptPattern("%P{. }", 10, "", 1);
+        assertEquals(10, result.columnLength());
+        assertEquals(". . . . . ", result.toString());
+
+        // Multi-char pad: %P{..} pads with repeating ".."
+        result = reader.expandPromptPattern("%P{..}", 8, "", 1);
+        assertEquals(8, result.columnLength());
+        assertEquals("........", result.toString());
+
+        // Multi-char pad with suffix: %P{. }> pads then appends ">"
+        result = reader.expandPromptPattern("%P{. }>", 10, "", 1);
+        assertEquals(10, result.columnLength());
+        assertEquals(". . . . .>", result.toString());
+
+        // Pad with line number: %N%P{. } — line number then padding
+        result = reader.expandPromptPattern("%N%P{. }", 10, "", 2);
+        assertEquals(10, result.columnLength());
+        assertEquals("2. . . . .", result.toString());
+
+        terminal.close();
+    }
+
+    @Test
     public void testNoBackspaceInOutputOnDumbTerminal() throws IOException {
         ByteArrayInputStream in = new ByteArrayInputStream(new byte[] {'\n'});
         ByteArrayOutputStream out = new ByteArrayOutputStream();

@@ -4279,7 +4279,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         return new AttributedString(buffer);
     }
 
-    private AttributedString expandPromptPattern(String pattern, int padToWidth, String message, int line) {
+    AttributedString expandPromptPattern(String pattern, int padToWidth, String message, int line) {
         ArrayList<AttributedString> parts = new ArrayList<>();
         boolean isHidden = false;
         int padPartIndex = -1;
@@ -4288,7 +4288,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         // Add "%{" to avoid special case for end of string.
         pattern = pattern + "%{";
         int plen = pattern.length();
-        int padChar = -1;
+        String padString = null;
         int padPos = -1;
         int cols = 0;
         for (int i = 0; i < plen; ) {
@@ -4339,9 +4339,16 @@ public class LineReaderImpl implements LineReader, Flushable {
                             break decode;
                         case 'P':
                             if (countSeen && count >= 0) padToWidth = count;
-                            if (i < plen) {
-                                padChar = pattern.charAt(i++);
-                                // FIXME check surrogate
+                            if (i < plen && pattern.charAt(i) == '{') {
+                                // Multi-character pad string: %P{. } or %P{...}
+                                i++; // skip '{'
+                                int end = pattern.indexOf('}', i);
+                                if (end > i) {
+                                    padString = pattern.substring(i, end);
+                                    i = end + 1;
+                                }
+                            } else if (i < plen) {
+                                padString = String.valueOf(pattern.charAt(i++));
                             }
                             padPos = sb.length();
                             padPartIndex = parts.size();
@@ -4379,11 +4386,19 @@ public class LineReaderImpl implements LineReader, Flushable {
                 }
             } else sb.append(ch);
         }
-        if (padToWidth > cols) {
-            int padCharCols = WCWidth.wcwidth(padChar);
-            int padCount = (padToWidth - cols) / padCharCols;
+        if (padToWidth > cols && padString != null) {
+            int remaining = padToWidth - cols;
             sb = padPartString;
-            while (--padCount >= 0) sb.insert(padPos, (char) padChar); // FIXME if wide
+            int padIdx = 0;
+            while (remaining > 0) {
+                char pc = padString.charAt(padIdx % padString.length());
+                int w = WCWidth.wcwidth(pc);
+                if (w <= 0) w = 1;
+                if (w > remaining) break;
+                sb.insert(padPos + padIdx, pc);
+                padIdx++;
+                remaining -= w;
+            }
             parts.set(padPartIndex, fromAnsi(sb.toString()));
         }
         return AttributedString.join(null, parts);
