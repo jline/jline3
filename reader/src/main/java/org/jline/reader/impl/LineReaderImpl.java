@@ -4843,6 +4843,7 @@ public class LineReaderImpl implements LineReader, Flushable {
     private class MenuSupport implements Supplier<AttributedString> {
         final List<Candidate> possible;
         final BiFunction<CharSequence, Boolean, CharSequence> escaper;
+        final int[] groupOffsets; // start index of each group in possible, final entry = possible.size()
         int selection;
         int topLine;
         String word;
@@ -4860,7 +4861,32 @@ public class LineReaderImpl implements LineReader, Flushable {
             this.word = "";
             this.completed = completed;
             computePost(original, null, possible, completed);
+            // Compute group boundaries
+            if (isSet(Option.GROUP_PERSIST)) {
+                List<Integer> offsets = new ArrayList<>();
+                offsets.add(0);
+                for (int i = 1; i < possible.size(); i++) {
+                    String prev = possible.get(i - 1).group();
+                    String curr = possible.get(i).group();
+                    if (!Objects.equals(prev, curr)) {
+                        offsets.add(i);
+                    }
+                }
+                offsets.add(possible.size());
+                this.groupOffsets = offsets.stream().mapToInt(Integer::intValue).toArray();
+            } else {
+                this.groupOffsets = null;
+            }
             next();
+        }
+
+        private int groupOf(int sel) {
+            for (int g = 0; g < groupOffsets.length - 1; g++) {
+                if (sel < groupOffsets[g + 1]) {
+                    return g;
+                }
+            }
+            return groupOffsets.length - 2;
         }
 
         public Candidate completion() {
@@ -4885,6 +4911,10 @@ public class LineReaderImpl implements LineReader, Flushable {
          * @param step number of options to move by
          */
         private void major(int step) {
+            if (groupOffsets != null) {
+                majorGroupAware(step);
+                return;
+            }
             int axis = isSet(Option.LIST_ROWS_FIRST) ? columns : lines;
             int sel = selection + step * axis;
             if (sel < 0) {
@@ -4909,6 +4939,10 @@ public class LineReaderImpl implements LineReader, Flushable {
          * @param step number of options to move by
          */
         private void minor(int step) {
+            if (groupOffsets != null) {
+                minorGroupAware(step);
+                return;
+            }
             int axis = isSet(Option.LIST_ROWS_FIRST) ? columns : lines;
             int row = selection % axis;
             int options = possible.size();
@@ -4918,6 +4952,92 @@ public class LineReaderImpl implements LineReader, Flushable {
                 axis = options % axis;
             }
             selection = selection - row + ((axis + row + step) % axis);
+            update();
+        }
+
+        /**
+         * Group-aware major axis navigation (left/right for column-major, up/down for row-major).
+         * Wraps within the current group at boundaries.
+         */
+        private void majorGroupAware(int step) {
+            int g = groupOf(selection);
+            int groupStart = groupOffsets[g];
+            int groupSize = groupOffsets[g + 1] - groupStart;
+            int local = selection - groupStart;
+            int groupLines = (groupSize + columns - 1) / columns;
+            int axis = isSet(Option.LIST_ROWS_FIRST) ? columns : groupLines;
+            int sel = local + step * axis;
+            if (sel < 0 || sel >= groupSize) {
+                // Wrap within group
+                if (sel < 0) {
+                    int pos = (sel + axis) % axis;
+                    int remainders = groupSize % axis;
+                    sel = groupSize - remainders + pos;
+                    if (sel >= groupSize) {
+                        sel -= axis;
+                    }
+                } else {
+                    sel = sel % axis;
+                }
+            }
+            selection = groupStart + sel;
+            update();
+        }
+
+        /**
+         * Group-aware minor axis navigation (up/down for column-major, left/right for row-major).
+         * Crosses group boundaries: moving past the edge of a group enters the adjacent group.
+         */
+        private void minorGroupAware(int step) {
+            boolean rowsFirst = isSet(Option.LIST_ROWS_FIRST);
+            int g = groupOf(selection);
+            int groupStart = groupOffsets[g];
+            int groupSize = groupOffsets[g + 1] - groupStart;
+            int local = selection - groupStart;
+            int groupLines = (groupSize + columns - 1) / columns;
+            int axis = rowsFirst ? columns : groupLines;
+            // For column-major: col = local / groupLines, row = local % groupLines
+            // For row-major:    row = local / columns,    col = local % columns
+            int col = rowsFirst ? local % columns : local / groupLines;
+            int row = rowsFirst ? local / columns : local % groupLines;
+            int newRow = row + step;
+            if (newRow >= 0 && newRow < axis) {
+                // Within current group, check bounds
+                int newLocal = rowsFirst ? newRow * columns + col : col * groupLines + newRow;
+                if (newLocal < groupSize) {
+                    selection = groupStart + newLocal;
+                    update();
+                    return;
+                }
+            }
+            // Cross group boundary
+            int numGroups = groupOffsets.length - 1;
+            if (step > 0) {
+                // Moving down/right: go to next group, same column, first row
+                int ng = (g + 1) % numGroups;
+                int ngStart = groupOffsets[ng];
+                int ngSize = groupOffsets[ng + 1] - ngStart;
+                int ngLines = (ngSize + columns - 1) / columns;
+                int newCol = Math.min(col, (rowsFirst ? (ngSize - 1) % columns : (ngSize + ngLines - 1) / ngLines - 1));
+                int newLocal = rowsFirst ? newCol : newCol * ngLines;
+                if (newLocal >= ngSize) {
+                    newLocal = rowsFirst ? 0 : 0;
+                }
+                selection = ngStart + newLocal;
+            } else {
+                // Moving up/left: go to previous group, same column, last row
+                int ng = (g + numGroups - 1) % numGroups;
+                int ngStart = groupOffsets[ng];
+                int ngSize = groupOffsets[ng + 1] - ngStart;
+                int ngLines = (ngSize + columns - 1) / columns;
+                int newCol = Math.min(col, (rowsFirst ? (ngSize - 1) % columns : (ngSize + ngLines - 1) / ngLines - 1));
+                int lastRow = rowsFirst ? (ngSize - 1) / columns : Math.min(ngLines - 1, ngSize - newCol * ngLines - 1);
+                int newLocal = rowsFirst ? lastRow * columns + newCol : newCol * ngLines + lastRow;
+                if (newLocal >= ngSize) {
+                    newLocal = ngSize - 1;
+                }
+                selection = ngStart + newLocal;
+            }
             update();
         }
 
@@ -5017,7 +5137,6 @@ public class LineReaderImpl implements LineReader, Flushable {
         original.sort(getCandidateComparator(caseInsensitive, completed));
         mergeCandidates(original);
         computePost(original, null, possible, completed);
-        // candidate grouping is not supported by MenuSupport
         boolean defaultAutoGroup = isSet(Option.AUTO_GROUP);
         boolean defaultGroup = isSet(Option.GROUP);
         if (!isSet(Option.GROUP_PERSIST)) {
@@ -5594,7 +5713,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                             rw += DESC_PREFIX.length() + DESC_SUFFIX.length();
                         }
                         if (cand == selection) {
-                            out[1] = i;
+                            out[1] = out[0] + i;
                             asb.style(getCompletionStyleSelection(doMenuList));
                             if (left.toString()
                                     .regionMatches(
