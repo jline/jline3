@@ -11,8 +11,10 @@ package org.jline.terminal.impl.jni;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 
+import org.jline.nativ.JLineNativeLoader;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
@@ -53,18 +55,43 @@ public class JniTerminalProvider implements TerminalProvider {
     /**
      * Creates a new JNI terminal provider instance and ensures the native library is loaded.
      * <p>
-     * The constructor initializes the JLine native library using {@link org.jline.nativ.JLineNativeLoader#initialize()}.
-     * If the native library cannot be loaded, methods in this provider may throw exceptions when used.
+     * The constructor first checks that native access is enabled for this module. On JDK 22+,
+     * calling {@code System.load()} without {@code --enable-native-access} produces a warning
+     * (JDK 24+) or throws {@code IllegalCallerException} (JDK 26+). By checking upfront, this
+     * provider fails cleanly and allows {@link TerminalBuilder} to fall back to other providers.
+     *
+     * @throws UnsupportedOperationException if native access is not enabled for this module
      */
     public JniTerminalProvider() {
+        checkNativeAccess();
+        // Ensure the native library is loaded
+        JLineNativeLoader.initialize();
+    }
+
+    /**
+     * Checks that native access is enabled for this module.
+     * Uses reflection because {@code Module.isNativeAccessEnabled()} is only available on JDK 22+
+     * and {@code Class.getModule()} is only available on JDK 9+.
+     * On older JDKs, the check is skipped (no restrictions exist).
+     *
+     * @throws UnsupportedOperationException if native access is not enabled
+     */
+    static void checkNativeAccess() {
         try {
-            // Ensure the native library is loaded
-            org.jline.nativ.JLineNativeLoader.initialize();
-        } catch (Exception e) {
-            // Log the error but don't throw - this allows the provider to be instantiated
-            // even if the native library can't be loaded. TerminalBuilder will handle this
-            // by trying other providers.
-            Log.debug("Failed to load JLine native library: " + e.getMessage(), e);
+            Method getModule = Class.class.getMethod("getModule");
+            Object module = getModule.invoke(JniTerminalProvider.class);
+            Method isNativeAccessEnabled = module.getClass().getMethod("isNativeAccessEnabled");
+            Boolean enabled = (Boolean) isNativeAccessEnabled.invoke(module);
+            if (!enabled) {
+                throw new UnsupportedOperationException(
+                        "Native access is not enabled for the current module: " + module);
+            }
+        } catch (NoSuchMethodException e) {
+            // JDK < 9 (no modules) or JDK < 22 (no isNativeAccessEnabled), no restrictions
+        } catch (UnsupportedOperationException e) {
+            throw e;
+        } catch (ReflectiveOperationException e) {
+            // Unexpected reflection error, proceed anyway
         }
     }
 
