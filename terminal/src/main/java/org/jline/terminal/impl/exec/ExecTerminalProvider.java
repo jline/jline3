@@ -14,6 +14,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 
 import org.jline.nativ.JLineLibrary;
@@ -679,6 +680,7 @@ public class ExecTerminalProvider implements TerminalProvider {
 
     static class NativeRedirectPipeCreator implements RedirectPipeCreator {
         public NativeRedirectPipeCreator() {
+            checkNativeAccess();
             // Force load the library
             JLineNativeLoader.initialize();
         }
@@ -686,6 +688,33 @@ public class ExecTerminalProvider implements TerminalProvider {
         @Override
         public ProcessBuilder.Redirect newRedirectPipe(FileDescriptor fd) {
             return JLineLibrary.newRedirectPipe(fd);
+        }
+    }
+
+    /**
+     * Checks that native access is enabled for this module.
+     * Uses reflection because {@code Module.isNativeAccessEnabled()} is only available on JDK 22+
+     * and {@code Class.getModule()} is only available on JDK 9+.
+     * On older JDKs, the check is skipped (no restrictions exist).
+     *
+     * @throws UnsupportedOperationException if native access is not enabled
+     */
+    static void checkNativeAccess() {
+        try {
+            Method getModule = Class.class.getMethod("getModule");
+            Object module = getModule.invoke(ExecTerminalProvider.class);
+            Method isNativeAccessEnabled = module.getClass().getMethod("isNativeAccessEnabled");
+            Boolean enabled = (Boolean) isNativeAccessEnabled.invoke(module);
+            if (!enabled) {
+                throw new UnsupportedOperationException(
+                        "Native access is not enabled for the current module: " + module);
+            }
+        } catch (NoSuchMethodException e) {
+            // JDK < 9 (no modules) or JDK < 22 (no isNativeAccessEnabled), no restrictions
+        } catch (UnsupportedOperationException e) {
+            throw e;
+        } catch (ReflectiveOperationException e) {
+            // Unexpected reflection error, proceed anyway
         }
     }
 
