@@ -170,7 +170,7 @@ def _toggleMenuList() {
 def _getkey(name) {
     def key
     key=:tget $name
-    key.values()[0]
+    key != null ? key.values()[0] : null
 }
 _f1 = _getkey('key_f1')
 _f2 = _getkey('key_f2')
