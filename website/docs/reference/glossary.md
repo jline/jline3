@@ -66,6 +66,18 @@ In JLine, a Widget is a function that can be bound to a key or key sequence to p
 
 REPL stands for Read-Eval-Print Loop, which is a type of interactive programming environment that reads user input, evaluates it, prints the result, and then loops back to read more input. JLine provides components for building REPL environments.
 
+## JNI
+
+JNI (Java Native Interface) is a Java framework that allows Java code to call native (platform-specific) code and vice versa. JLine's `jline-terminal-jni` module uses JNI to access native terminal functionality such as reading terminal size, setting raw mode, and handling signals. JNI works with all Java versions supported by JLine but requires `--enable-native-access` on JDK 24+.
+
+## FFM
+
+FFM (Foreign Function & Memory) is a Java API introduced as a preview in JDK 19 and finalized in JDK 22 ([JEP 454](https://openjdk.org/jeps/454)). It provides a pure-Java way to call native code without traditional JNI boilerplate. JLine's `jline-terminal-ffm` module uses FFM for native terminal access and requires Java 22+. FFM is the recommended provider for Java 22+ as it avoids the need for pre-compiled native libraries. Like JNI, it requires `--enable-native-access` on JDK 24+.
+
+## Native Access
+
+Native access refers to calling platform-specific (non-Java) code from Java. JLine uses native access for features like raw terminal mode, terminal size detection, and signal handling on Unix and Windows. JLine provides multiple strategies: JNI (pre-compiled native libraries), FFM (Java 22+ built-in), Exec (spawning external commands like `stty`), and Dumb (no native access at all). See [Terminal Providers](../modules/terminal-providers.md) for details.
+
 ## Sources
 
 - [What's The Difference Between A Console, A Terminal, And A Shell?](https://www.hanselman.com/blog/WhatsTheDifferenceBetweenAConsoleATerminalAndAShell.aspx)

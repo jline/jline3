@@ -103,6 +103,95 @@ The Dumb terminal is a fallback option that provides basic terminal functionalit
 
 <CodeSnippet name="DumbTerminalExample" />
 
+## Using JLine for ANSI Output Only (No Native Access)
+
+If you only need JLine for generating ANSI escape sequences (styled/colored text output) and don't need interactive line editing or terminal control, you can use JLine without any native access at all.
+
+### Minimal Dependencies
+
+The `jline-terminal` module contains `AttributedString`, `AttributedStyle`, and `AttributedStringBuilder` in the `org.jline.utils` package. These classes generate ANSI escape sequences without requiring any native code:
+
+```xml
+<dependency>
+    <groupId>org.jline</groupId>
+    <artifactId>jline-terminal</artifactId>
+    <version>%%JLINE_VERSION%%</version>
+</dependency>
+```
+
+### Generating ANSI Sequences Without a Terminal
+
+`AttributedString.toAnsi()` can be called without a terminal instance:
+
+```java
+import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.AttributedStyle;
+
+// Build styled text
+AttributedStringBuilder sb = new AttributedStringBuilder();
+sb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.RED).bold());
+sb.append("Error: ");
+sb.style(AttributedStyle.DEFAULT);
+sb.append("something went wrong");
+
+// Convert to ANSI escape sequence string — no terminal needed
+String ansi = sb.toAnsi();
+System.out.println(ansi);
+```
+
+This produces: `\033[1;31mError: \033[0msomething went wrong`
+
+### Available Style Attributes
+
+`AttributedStyle` supports:
+
+- **Text attributes**: `bold()`, `faint()`, `italic()`, `underline()`, `blink()`, `inverse()`, `conceal()`, `crossedOut()`
+- **Standard colors** (0-7): `foreground(AttributedStyle.RED)`, `background(AttributedStyle.BLUE)`
+- **256-color palette**: `foreground(196)` (indexed color)
+- **24-bit true color**: `foreground(r, g, b)`
+
+### When You Need a Terminal
+
+If you need a `Terminal` object (e.g., for `toAnsi(Terminal)` to adapt output to terminal capabilities) but don't want native access, use the `exec` or `dumb` provider:
+
+```java
+// Exec provider: uses external commands (stty), no native libraries
+Terminal terminal = TerminalBuilder.builder()
+    .provider("exec")
+    .build();
+
+// Dumb provider: pure Java, no external commands, no native access
+Terminal terminal = TerminalBuilder.builder()
+    .dumb(true)
+    .build();
+```
+
+The `exec` provider gives full terminal capabilities on Unix-like systems by spawning external commands (`stty`, `tput`) instead of loading native libraries. The `dumb` provider is a pure-Java fallback with no native access at all.
+
+### Which Provider Needs Native Access?
+
+| Provider | Native Access | Java Version | Capabilities |
+|----------|:---:|:---:|---|
+| **FFM** | Yes | 22+ | Full terminal control via Foreign Function & Memory API |
+| **JNI** | Yes | 11+ | Full terminal control via Java Native Interface |
+| **Exec** | No | 11+ | Full terminal control via external commands (Unix) |
+| **Dumb** | No | 11+ | Basic I/O only, no terminal control |
+| *No terminal* | No | 11+ | ANSI generation only (`AttributedString.toAnsi()`) |
+
+### Migrating from Jansi
+
+If you previously used Jansi purely for ANSI output generation, the migration is straightforward:
+
+| Jansi | JLine 4 Equivalent |
+|-------|---------------------|
+| `Ansi.ansi().fg(RED).a("text").reset()` | `new AttributedString("text", AttributedStyle.DEFAULT.foreground(RED)).toAnsi()` |
+| `Ansi.ansi().bold().a("text").reset()` | `new AttributedString("text", AttributedStyle.BOLD).toAnsi()` |
+| `AnsiConsole.systemInstall()` | Not needed — modern Windows terminals support ANSI natively |
+| `AnsiConsole.out().println(...)` | `System.out.println(attributedString.toAnsi())` |
+
+For Windows ANSI support: Windows 10+ (including Windows Terminal, ConEmu, and modern cmd.exe) handles ANSI escape sequences natively. `AnsiConsole.systemInstall()` is no longer needed in most cases.
+
 ## Best Practices
 
 When working with terminal providers in JLine, consider these best practices:
