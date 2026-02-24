@@ -45,6 +45,7 @@ import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.ClosedException;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.OSUtils;
@@ -348,6 +349,7 @@ public class Repl {
                     .variable(LineReader.HISTORY_FILE, Paths.get(root, "history"))
                     .option(Option.INSERT_BRACKET, true)
                     .option(Option.EMPTY_WORD_OPTIONS, false)
+                    .option(Option.GROUP_PERSIST, true)
                     .option(Option.USE_FORWARD_SLASH, true) // use forward slash in directory separator
                     .option(Option.DISABLE_EVENT_EXPANSION, true)
                     .build();
@@ -392,11 +394,11 @@ public class Repl {
                     }
                     break;
                 } catch (IOError e) {
-                    if (e.getCause() instanceof IOException) {
-                        // Terminal I/O broken (e.g. Ctrl+C on some platforms), exit the loop
+                    if (e.getCause() instanceof ClosedException) {
+                        // Terminal has been closed, exit the loop
                         break;
                     }
-                    systemRegistry.trace(e);
+                    // Transient I/O error (e.g. Ctrl+C during menu completion), continue
                 } catch (Exception | Error e) {
                     systemRegistry.trace(e); // print exception and save it to console variable
                 }

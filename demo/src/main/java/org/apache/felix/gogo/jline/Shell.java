@@ -96,6 +96,7 @@ import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.Terminal.SignalHandler;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
+import org.jline.utils.ClosedException;
 
 public class Shell {
 
@@ -559,11 +560,11 @@ public class Shell {
                     waitJobCompletion(session);
 
                 } catch (IOError e) {
-                    if (e.getCause() instanceof IOException) {
-                        // Terminal I/O broken (e.g. Ctrl+C on some platforms), exit the loop
+                    if (e.getCause() instanceof ClosedException) {
+                        // Terminal has been closed, exit the loop
                         break;
                     }
-                    throw e;
+                    // Transient I/O error (e.g. Ctrl+C during menu completion), continue
                 } catch (UserInterruptException e) {
                     // continue;
                 } catch (EndOfFileException e) {
