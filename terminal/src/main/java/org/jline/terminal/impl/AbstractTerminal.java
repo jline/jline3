@@ -403,6 +403,8 @@ public abstract class AbstractTerminal implements TerminalExt {
         if (!type.startsWith("xterm")) {
             return false;
         }
+        // Enter raw mode to prevent the terminal response from being echoed
+        Attributes prev = enterRawMode();
         try {
             // Send DECRQM query for mode 2027
             writer().write("\033[?2027$p");
@@ -439,6 +441,8 @@ public abstract class AbstractTerminal implements TerminalExt {
             return ps == '1' || ps == '2' || ps == '3';
         } catch (IOException e) {
             return false;
+        } finally {
+            setAttributes(prev);
         }
     }
 
