@@ -20,6 +20,7 @@
 name-template: $NEXT_PATCH_VERSION
 tag-template: $NEXT_PATCH_VERSION
 version-template: $MAJOR.$MINOR.$PATCH
+commitish: jline-3.x
 
 # Emoji reference: https://gitmoji.carloscuesta.me/
 categories:
