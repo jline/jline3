@@ -70,8 +70,9 @@ public class CommandDescriptionTest {
                 .option("-o", List.of(new AttributedString("opt")))
                 .build();
 
-        assertThrows(UnsupportedOperationException.class, () -> desc.mainDescription()
-                .add(new AttributedString("x")));
+        assertThrows(
+                UnsupportedOperationException.class,
+                () -> desc.mainDescription().add(new AttributedString("x")));
         assertThrows(UnsupportedOperationException.class, () -> desc.arguments().add(new ArgumentDescription("x")));
         assertThrows(UnsupportedOperationException.class, () -> desc.options().put("x", List.of()));
     }
