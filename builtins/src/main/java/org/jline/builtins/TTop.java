@@ -443,9 +443,10 @@ public class TTop {
         int nb = Math.min(size.getRows() - lines.size() - 2, nthreads > 0 ? nthreads : threads.size());
         // Compute values
         List<Map<String, String>> values = threads.subList(0, nb).stream()
-                .map(thread -> stats.stream().collect(Collectors.toMap(Function.identity(), key -> columns.get(key)
-                        .format
-                        .apply(thread.get(key)))))
+                .map(thread -> stats.stream()
+                        .collect(Collectors.toMap(
+                                Function.identity(),
+                                key -> columns.get(key).format.apply(thread.get(key)))))
                 .collect(Collectors.toList());
         for (String key : stats) {
             int width =
