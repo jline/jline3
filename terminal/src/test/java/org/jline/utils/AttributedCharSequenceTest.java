@@ -12,8 +12,11 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
+import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.ExternalTerminal;
+import org.jline.terminal.impl.GraphemeClusterTestTerminal;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -32,7 +35,6 @@ public class AttributedCharSequenceTest {
     @Test
     public void testGraphemeClusterColumnLength() {
         // Test per-codepoint widths without grapheme cluster mode.
-        // See GraphemeClusterDisplayTest for terminal-aware tests with gc mode enabled.
 
         // Family emoji: per-codepoint = 2+0+2+0+2+0+2 = 8
         AttributedString family = new AttributedString(FAMILY_EMOJI);
@@ -110,5 +112,112 @@ public class AttributedCharSequenceTest {
         AttributedString rndTrip = AttributedString.fromAnsi(org.toAnsi(terminal), terminal);
 
         assertEquals(org, rndTrip);
+    }
+
+    // --- grapheme cluster mode tests (columnLength, columnSubSequence, columnSplitLength) ---
+
+    @Test
+    public void testColumnLengthWithGcMode() throws Exception {
+        Terminal t = GraphemeClusterTestTerminal.create();
+        try {
+            // Family emoji: as one cluster = width 2
+            assertEquals(2, new AttributedString(FAMILY_EMOJI).columnLength(t));
+
+            // Flag: as one cluster = width 2
+            assertEquals(2, new AttributedString(FLAG_FR).columnLength(t));
+
+            // Skin tone: base + modifier = width 2
+            assertEquals(2, new AttributedString(WAVE_SKIN).columnLength(t));
+
+            // Mixed: "Hi " (3) + family (2) + " end" (4) = 9
+            assertEquals(9, new AttributedString("Hi " + FAMILY_EMOJI + " end").columnLength(t));
+
+            // Two flags: 2 + 2 = 4
+            assertEquals(4, new AttributedString(FLAG_FR + FLAG_FR).columnLength(t));
+
+            // CJK unchanged
+            assertEquals(4, new AttributedString("中文").columnLength(t));
+        } finally {
+            t.close();
+        }
+    }
+
+    @Test
+    public void testColumnSubSequenceWithGcMode() throws Exception {
+        Terminal t = GraphemeClusterTestTerminal.create();
+        try {
+            // "AB" + family + "CD" — gc: A(1) B(1) family(2) C(1) D(1) = 6 columns
+            String text = "AB" + FAMILY_EMOJI + "CD";
+            AttributedString as = new AttributedString(text);
+
+            assertEquals("AB", as.columnSubSequence(0, 2, t).toString());
+            assertEquals(FAMILY_EMOJI, as.columnSubSequence(2, 4, t).toString());
+            assertEquals("CD", as.columnSubSequence(4, 6, t).toString());
+
+            // Two flags: extract each one
+            String twoFlags = FLAG_FR + FLAG_FR;
+            AttributedString flags = new AttributedString(twoFlags);
+            assertEquals(FLAG_FR, flags.columnSubSequence(0, 2, t).toString());
+            assertEquals(FLAG_FR, flags.columnSubSequence(2, 4, t).toString());
+        } finally {
+            t.close();
+        }
+    }
+
+    @Test
+    public void testColumnSubSequenceNoArgDelegatesToNull() {
+        AttributedString as = new AttributedString("Hello");
+        assertEquals(
+                as.columnSubSequence(1, 3, null).toString(),
+                as.columnSubSequence(1, 3).toString());
+    }
+
+    @Test
+    public void testColumnSplitLengthWithGcMode() throws Exception {
+        Terminal t = GraphemeClusterTestTerminal.create();
+        try {
+            // "AB" + family + "CD" = 6 columns; split at 4
+            String text = "AB" + FAMILY_EMOJI + "CD";
+            AttributedString as = new AttributedString(text);
+            List<AttributedString> lines = as.columnSplitLength(4, false, true, t);
+            assertEquals(2, lines.size());
+            assertEquals("AB" + FAMILY_EMOJI, lines.get(0).toString());
+            assertEquals("CD", lines.get(1).toString());
+
+            // Three families = 6 columns; split at 5 → [family+family, family]
+            String three = FAMILY_EMOJI + FAMILY_EMOJI + FAMILY_EMOJI;
+            AttributedString as3 = new AttributedString(three);
+            List<AttributedString> lines3 = as3.columnSplitLength(5, false, true, t);
+            assertEquals(2, lines3.size());
+            assertEquals(FAMILY_EMOJI + FAMILY_EMOJI, lines3.get(0).toString());
+            assertEquals(FAMILY_EMOJI, lines3.get(1).toString());
+        } finally {
+            t.close();
+        }
+    }
+
+    @Test
+    public void testColumnSplitLengthWithNewlines() throws Exception {
+        Terminal t = GraphemeClusterTestTerminal.create();
+        try {
+            AttributedString as = new AttributedString("AB\nCD");
+            List<AttributedString> lines = as.columnSplitLength(80, false, true, t);
+            assertEquals(2, lines.size());
+            assertEquals("AB", lines.get(0).toString());
+            assertEquals("CD", lines.get(1).toString());
+        } finally {
+            t.close();
+        }
+    }
+
+    @Test
+    public void testColumnSplitLengthNoArgDelegatesToNull() {
+        AttributedString as = new AttributedString("Hello World");
+        List<AttributedString> a = as.columnSplitLength(5, false, true, null);
+        List<AttributedString> b = as.columnSplitLength(5, false, true);
+        assertEquals(a.size(), b.size());
+        for (int i = 0; i < a.size(); i++) {
+            assertEquals(a.get(i).toString(), b.get(i).toString());
+        }
     }
 }

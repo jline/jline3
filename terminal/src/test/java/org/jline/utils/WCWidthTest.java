@@ -8,6 +8,8 @@
  */
 package org.jline.utils;
 
+import org.jline.terminal.Terminal;
+import org.jline.terminal.impl.GraphemeClusterTestTerminal;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -161,5 +163,49 @@ public class WCWidthTest {
         assertEquals(1, WCWidth.charCountForDisplay("AB", 0, null));
         assertEquals(1, WCWidth.charCountForDisplay("AB", 1, null));
         assertEquals(1, WCWidth.charCountForDisplay("中文", 0, null));
+    }
+
+    @Test
+    void charCountForDisplay_withGcMode_returnsClusterSize() throws Exception {
+        Terminal t = GraphemeClusterTestTerminal.create();
+        try {
+            assertEquals(11, WCWidth.charCountForDisplay(FAMILY_EMOJI, 0, t));
+            assertEquals(4, WCWidth.charCountForDisplay(FLAG_FR, 0, t));
+            assertEquals(4, WCWidth.charCountForDisplay(WAVE_SKIN, 0, t));
+            assertEquals(5, WCWidth.charCountForDisplay(WOMAN_SCIENTIST, 0, t));
+        } finally {
+            t.close();
+        }
+    }
+
+    @Test
+    void charCountForDisplay_withGcMode_asciiUnchanged() throws Exception {
+        Terminal t = GraphemeClusterTestTerminal.create();
+        try {
+            assertEquals(1, WCWidth.charCountForDisplay("Hello", 0, t));
+            assertEquals(1, WCWidth.charCountForDisplay("Hello", 1, t));
+        } finally {
+            t.close();
+        }
+    }
+
+    @Test
+    void charCountForDisplay_withGcMode_cjkUnchanged() throws Exception {
+        Terminal t = GraphemeClusterTestTerminal.create();
+        try {
+            assertEquals(1, WCWidth.charCountForDisplay("中文", 0, t));
+        } finally {
+            t.close();
+        }
+    }
+
+    @Test
+    void charCountForDisplay_withGcMode_variationSelector() throws Exception {
+        Terminal t = GraphemeClusterTestTerminal.create();
+        try {
+            assertEquals(2, WCWidth.charCountForDisplay(STAR_TEXT, 0, t));
+        } finally {
+            t.close();
+        }
     }
 }
