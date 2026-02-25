@@ -574,7 +574,7 @@ public class DefaultPrompter implements Prompter {
 
         // Create prompt message
         AttributedStringBuilder asb = createMessage(prompt.getMessage(), null);
-        int startColumn = asb.columnLength();
+        int startColumn = asb.columnLength(terminal);
 
         size.copy(terminal.getSize());
         KeyMap<InputOperation> keyMap = new KeyMap<>();
@@ -817,7 +817,7 @@ public class DefaultPrompter implements Prompter {
 
         // Add completion candidates if available
         if (displayCandidates && !candidates.isEmpty()) {
-            out.addAll(buildCandidatesDisplay(candidates, startColumn + asb.columnLength()));
+            out.addAll(buildCandidatesDisplay(candidates, startColumn + asb.columnLength(terminal)));
         }
 
         return out;
@@ -843,7 +843,7 @@ public class DefaultPrompter implements Prompter {
             tmp.ansiAppend(c.displ());
             asb.style(tmp.styleAt(0));
             asb.append(AttributedString.stripAnsi(c.displ()));
-            int cl = asb.columnLength();
+            int cl = asb.columnLength(terminal);
             for (int k = cl; k < width; k++) {
                 asb.append(" ");
             }
@@ -1469,7 +1469,7 @@ public class DefaultPrompter implements Prompter {
             // Update display exactly like ConsolePrompt
             display.resize(size.getRows(), size.getColumns());
             int cursorRow = out.size() - 1;
-            int column = asb.columnLength() + buffer.length();
+            int column = asb.columnLength(terminal) + buffer.length();
             display.update(out, size.cursorPos(cursorRow, column));
 
             // Read input like ConsolePrompt
@@ -1554,7 +1554,7 @@ public class DefaultPrompter implements Prompter {
             out.add(asb.toAttributedString());
 
             display.resize(size.getRows(), size.getColumns());
-            display.update(out, size.cursorPos(out.size() - 1, asb.columnLength()));
+            display.update(out, size.cursorPos(out.size() - 1, asb.columnLength(terminal)));
 
             ConfirmOperation op = bindingReader.readBinding(keyMap);
             switch (op) {

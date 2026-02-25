@@ -573,6 +573,6 @@ public class Display {
     }
 
     public int wcwidth(String str) {
-        return str != null ? AttributedString.fromAnsi(str).columnLength() : 0;
+        return str != null ? AttributedString.fromAnsi(str).columnLength(terminal) : 0;
     }
 }

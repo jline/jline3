@@ -1038,23 +1038,24 @@ public class Nano implements Editor {
                                 line.append(cut);
                                 cutCount = 2;
                             }
-                            if (disp.columnLength() - firstColumnToDisplay
-                                    >= width - (cutCount - 1) * cut.columnLength()) {
+                            if (disp.columnLength(terminal) - firstColumnToDisplay
+                                    >= width - (cutCount - 1) * cut.columnLength(terminal)) {
                                 highlightDisplayedLine(
                                         curLine,
                                         firstColumnToDisplay,
-                                        firstColumnToDisplay + width - cutCount * cut.columnLength(),
+                                        firstColumnToDisplay + width - cutCount * cut.columnLength(terminal),
                                         line);
                                 line.append(cut);
                             } else {
-                                highlightDisplayedLine(curLine, firstColumnToDisplay, disp.columnLength(), line);
+                                highlightDisplayedLine(
+                                        curLine, firstColumnToDisplay, disp.columnLength(terminal), line);
                             }
                         } else {
-                            if (disp.columnLength() >= width) {
-                                highlightDisplayedLine(curLine, 0, width - cut.columnLength(), line);
+                            if (disp.columnLength(terminal) >= width) {
+                                highlightDisplayedLine(curLine, 0, width - cut.columnLength(terminal), line);
                                 line.append(cut);
                             } else {
-                                highlightDisplayedLine(curLine, 0, disp.columnLength(), line);
+                                highlightDisplayedLine(curLine, 0, disp.columnLength(terminal), line);
                             }
                         }
                         curLine++;
@@ -1431,7 +1432,7 @@ public class Nano implements Editor {
         }
 
         private int length(String line) {
-            return new AttributedStringBuilder().tabs(tabs).append(line).columnLength();
+            return new AttributedStringBuilder().tabs(tabs).append(line).columnLength(terminal);
         }
 
         void copy() {

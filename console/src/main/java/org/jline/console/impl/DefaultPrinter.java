@@ -581,7 +581,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
 
     private AttributedString addPadding(AttributedString str, int width) {
         AttributedStringBuilder sb = new AttributedStringBuilder();
-        for (int i = str.columnLength(); i < width; i++) {
+        for (int i = str.columnLength(terminal()); i < width; i++) {
             sb.append(" ");
         }
         sb.append(str);
@@ -702,7 +702,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
     }
 
     private AttributedString truncateValue(Map<String, Object> options, AttributedString value) {
-        if (value.columnLength() > (int) options.getOrDefault(Printer.MAX_COLUMN_WIDTH, Integer.MAX_VALUE)) {
+        if (value.columnLength(terminal()) > (int) options.getOrDefault(Printer.MAX_COLUMN_WIDTH, Integer.MAX_VALUE)) {
             AttributedStringBuilder asb = new AttributedStringBuilder();
             asb.append(value.columnSubSequence(0, (int) options.get(Printer.MAX_COLUMN_WIDTH) - 3));
             asb.append("...");
@@ -900,7 +900,7 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
                                 }
                                 for (int i = 0; i < header.size(); i++) {
                                     int cw = highlightMapValue(options, header.get(i), m)
-                                            .columnLength();
+                                            .columnLength(terminal());
                                     if (cw > columns.get(i) - 1) {
                                         columns.set(i, cw + 1);
                                     }

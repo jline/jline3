@@ -1218,7 +1218,7 @@ public class Less {
                         lastLineToDisplay = nextLine.getU();
                         break;
                     }
-                    if (line.columnLength() > off + width) {
+                    if (line.columnLength(terminal) > off + width) {
                         off += width;
                     } else {
                         off = 0;
@@ -1232,7 +1232,7 @@ public class Less {
             }
             Pair<Integer, AttributedString> nextLine = nextLine2display(firstLineToDisplay, dpCompiled);
             AttributedString line = nextLine.getV();
-            if (doOffsets && line.columnLength() > width + offsetInLine) {
+            if (doOffsets && line.columnLength(terminal) > width + offsetInLine) {
                 offsetInLine += width;
             } else {
                 offsetInLine = 0;
@@ -1255,7 +1255,7 @@ public class Less {
                 firstLineToDisplay = prevLine.getU();
                 AttributedString line = prevLine.getV();
                 if (line != null && firstColumnToDisplay == 0 && !chopLongLines) {
-                    int length = line.columnLength();
+                    int length = line.columnLength(terminal);
                     offsetInLine = length - length % width;
                 }
             } else {

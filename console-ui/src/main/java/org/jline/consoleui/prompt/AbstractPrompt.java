@@ -154,7 +154,7 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
         if (cursorRow - firstItemRow >= 0 && !candidates.isEmpty() && cursorRow - firstItemRow < candidates.size()) {
             String dc = candidates.get(cursorRow - firstItemRow).displ();
             listStart = candidatesColumn
-                    + buffer.columnLength()
+                    + buffer.columnLength(terminal)
                     - display.wcwidth(dc)
                     + (AttributedString.stripAnsi(dc).endsWith("*") ? 1 : 0);
         } else {
@@ -180,7 +180,7 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
                 asb.style(new AttributedStyle().inverse());
             }
             asb.append(AttributedString.stripAnsi(c.displ()));
-            int cl = asb.columnLength();
+            int cl = asb.columnLength(terminal);
             for (int k = cl; k < width; k++) {
                 asb.append(" ");
             }
@@ -331,7 +331,7 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
                 ExpandableChoice expandableChoice,
                 ConsolePrompt.UiConfig cfg) {
             super(terminal, display, header, message, cfg);
-            startColumn = message.columnLength();
+            startColumn = message.columnLength(terminal);
             items = expandableChoice.getChoiceItems();
             config = cfg;
         }
@@ -445,7 +445,7 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
                 ConfirmChoice confirmChoice,
                 ConsolePrompt.UiConfig cfg) {
             super(terminal, display, header, message, cfg);
-            startColumn = message.columnLength();
+            startColumn = message.columnLength(terminal);
             defaultValue = confirmChoice.getDefaultConfirmation();
             config = cfg;
         }
@@ -550,7 +550,7 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             super(terminal, display, header, message, cfg);
             this.reader = reader;
             defaultValue = inputValue.getDefaultValue();
-            startColumn = message.columnLength();
+            startColumn = message.columnLength(terminal);
             mask = inputValue.getMask();
             this.completer = inputValue.getCompleter();
         }

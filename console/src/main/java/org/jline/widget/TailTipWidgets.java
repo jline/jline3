@@ -555,8 +555,8 @@ public class TailTipWidgets extends Widgets {
         } else {
             int tabs = 0;
             for (AttributedString as : mainDesc) {
-                if (as.columnLength() >= tabs) {
-                    tabs = as.columnLength() + 2;
+                if (as.columnLength(reader.getTerminal()) >= tabs) {
+                    tabs = as.columnLength(reader.getTerminal()) + 2;
                 }
             }
             int row = 0;
@@ -646,14 +646,14 @@ public class TailTipWidgets extends Widgets {
                     asb.append(HelpException.highlightSyntax(key, resolver));
                     asb.append("\t");
                     asb.append(cmdDesc.optionDescription(key));
-                    if (asb.columnLength() > columnWidth - 2) {
+                    if (asb.columnLength(reader.getTerminal()) > columnWidth - 2) {
                         AttributedString trunc = asb.columnSubSequence(0, columnWidth - 5);
                         asb = new AttributedStringBuilder().tabs(tabs);
                         asb.append(trunc);
                         asb.append("...", new AttributedStyle(AttributedStyle.INVERSE));
                         asb.append("  ");
                     } else {
-                        for (int i = asb.columnLength(); i < columnWidth; i++) {
+                        for (int i = asb.columnLength(reader.getTerminal()); i < columnWidth; i++) {
                             asb.append(" ");
                         }
                     }

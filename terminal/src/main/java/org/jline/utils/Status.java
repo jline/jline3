@@ -219,15 +219,15 @@ public class Status {
         // trim or complete lines to the full width
         for (int i = 0; i < lines.size(); i++) {
             AttributedString str = lines.get(i);
-            if (str.columnLength() > columns) {
+            if (str.columnLength(terminal) > columns) {
                 str = new AttributedStringBuilder(columns)
-                        .append(lines.get(i).columnSubSequence(0, columns - ellipsis.columnLength()))
+                        .append(lines.get(i).columnSubSequence(0, columns - ellipsis.columnLength(terminal)))
                         .append(ellipsis)
                         .toAttributedString();
-            } else if (str.columnLength() < columns) {
+            } else if (str.columnLength(terminal) < columns) {
                 str = new AttributedStringBuilder(columns)
                         .append(str)
-                        .append(' ', columns - str.columnLength())
+                        .append(' ', columns - str.columnLength(terminal))
                         .toAttributedString();
             }
             lines.set(i, str);

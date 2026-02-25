@@ -1437,7 +1437,12 @@ public class LineReaderImpl implements LineReader, Flushable {
             return false;
         }
         while (count-- > 0 && buf.cursor() < lim) {
-            buf.move(1);
+            if (terminal.getGraphemeClusterMode()) {
+                int skip = graphemeClusterCodePointCount(buf, buf.cursor());
+                buf.move(skip);
+            } else {
+                buf.move(1);
+            }
         }
         return true;
     }
@@ -1451,7 +1456,12 @@ public class LineReaderImpl implements LineReader, Flushable {
             return false;
         }
         while (count-- > 0 && buf.cursor() > 0) {
-            buf.move(-1);
+            if (terminal.getGraphemeClusterMode()) {
+                int skip = graphemeClusterCodePointCountBefore(buf, buf.cursor());
+                buf.move(-skip);
+            } else {
+                buf.move(-1);
+            }
             if (buf.currChar() == '\n') {
                 buf.move(1);
                 break;
@@ -2432,11 +2442,30 @@ public class LineReaderImpl implements LineReader, Flushable {
             while (buf.cursor() >= lend) {
                 buf.move(-1);
             }
-            int c = buf.currChar();
-            buf.currChar(buf.prevChar());
-            buf.move(-1);
-            buf.currChar(c);
-            buf.move(neg ? 0 : 2);
+            if (terminal.getGraphemeClusterMode()) {
+                // Swap two grapheme clusters: the one before and the one at cursor
+                int curPos = buf.cursor();
+                int prevLen = graphemeClusterCodePointCountBefore(buf, curPos);
+                int prevStart = curPos - prevLen;
+                int curLen = graphemeClusterCodePointCount(buf, curPos);
+                // Extract both clusters
+                String prev = buf.substring(prevStart, curPos);
+                String curr = buf.substring(curPos, curPos + curLen);
+                // Delete both and reinsert swapped
+                buf.cursor(prevStart);
+                buf.delete(prevLen + curLen);
+                buf.write(curr);
+                buf.write(prev);
+                if (neg) {
+                    buf.cursor(prevStart);
+                }
+            } else {
+                int c = buf.currChar();
+                buf.currChar(buf.prevChar());
+                buf.move(-1);
+                buf.currChar(c);
+                buf.move(neg ? 0 : 2);
+            }
         }
         return true;
     }
@@ -3637,8 +3666,16 @@ public class LineReaderImpl implements LineReader, Flushable {
      */
     protected boolean viDeleteChar() {
         for (int i = 0; i < count; i++) {
-            if (!buf.delete()) {
+            if (buf.cursor() >= buf.length()) {
                 return false;
+            }
+            if (terminal.getGraphemeClusterMode()) {
+                int skip = graphemeClusterCodePointCount(buf, buf.cursor());
+                buf.delete(skip);
+            } else {
+                if (!buf.delete()) {
+                    return false;
+                }
             }
         }
         return true;
@@ -3656,7 +3693,12 @@ public class LineReaderImpl implements LineReader, Flushable {
                 int ch = buf.atChar(buf.cursor());
                 ch = switchCase(ch);
                 buf.currChar(ch);
-                buf.move(1);
+                if (terminal.getGraphemeClusterMode()) {
+                    int skip = graphemeClusterCodePointCount(buf, buf.cursor());
+                    buf.move(skip);
+                } else {
+                    buf.move(1);
+                }
             } else {
                 return false;
             }
@@ -3677,7 +3719,17 @@ public class LineReaderImpl implements LineReader, Flushable {
         }
 
         for (int i = 0; i < count; i++) {
-            if (buf.currChar((char) c)) {
+            if (terminal.getGraphemeClusterMode() && buf.cursor() < buf.length()) {
+                // Delete the entire grapheme cluster, then insert the replacement
+                int skip = graphemeClusterCodePointCount(buf, buf.cursor());
+                buf.delete(skip);
+                buf.write(c);
+                if (i < count - 1) {
+                    // cursor is already past the inserted char
+                } else {
+                    buf.move(-1);
+                }
+            } else if (buf.currChar((char) c)) {
                 if (i < count - 1) {
                     buf.move(1);
                 }
@@ -4426,7 +4478,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                             AttributedString astr;
                             if (!isHidden) {
                                 astr = fromAnsi(str);
-                                cols += astr.columnLength();
+                                cols += astr.columnLength(terminal);
                             } else {
                                 astr = new AttributedString(str, AttributedStyle.HIDDEN);
                             }
@@ -4529,7 +4581,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         int width = 0;
         List<String> missings = new ArrayList<>();
         if (computePrompts && secondaryPromptPattern.contains("%P")) {
-            width = prompt.columnLength();
+            width = prompt.columnLength(terminal);
             if (width > size.getColumns() || prompt.contains('\n')) {
                 width = new TerminalLine(prompt.toString(), 0, size.getColumns())
                         .getEndLine()
@@ -4550,7 +4602,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                 }
                 missings.add(missing);
                 prompt = expandPromptPattern(secondaryPromptPattern, 0, missing, line + 1);
-                width = Math.max(width, prompt.columnLength());
+                width = Math.max(width, prompt.columnLength(terminal));
             }
             buf.setLength(0);
         }
@@ -4601,10 +4653,10 @@ public class LineReaderImpl implements LineReader, Flushable {
     }
 
     private AttributedString addRightPrompt(AttributedString prompt, AttributedString line) {
-        int width = prompt.columnLength();
+        int width = prompt.columnLength(terminal);
         boolean endsWithNl = line.length() > 0 && line.charAt(line.length() - 1) == '\n';
         // columnLength counts -1 for the final newline; adjust for that
-        int nb = size.getColumns() - width - (line.columnLength() + (endsWithNl ? 1 : 0));
+        int nb = size.getColumns() - width - (line.columnLength(terminal) + (endsWithNl ? 1 : 0));
         if (nb >= 3) {
             AttributedStringBuilder sb = new AttributedStringBuilder(size.getColumns());
             sb.append(line, 0, endsWithNl ? line.length() - 1 : line.length());
@@ -5744,7 +5796,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                         boolean hasRightItem = j < columns - 1 && index.applyAsInt(i, j + 1) < candidates.size();
                         AttributedString left = fromAnsi(cand.displ());
                         AttributedString right = fromAnsi(cand.descr());
-                        int lw = left.columnLength();
+                        int lw = left.columnLength(terminal);
                         int rw = 0;
                         if (right != null) {
                             int rem = maxWidth
@@ -5752,11 +5804,11 @@ public class LineReaderImpl implements LineReader, Flushable {
                                             + MARGIN_BETWEEN_DISPLAY_AND_DESC
                                             + DESC_PREFIX.length()
                                             + DESC_SUFFIX.length());
-                            rw = right.columnLength();
+                            rw = right.columnLength(terminal);
                             if (rw > rem) {
                                 right = AttributedStringBuilder.append(
                                         right.columnSubSequence(0, rem - WCWidth.wcwidth('…')), "…");
-                                rw = right.columnLength();
+                                rw = right.columnLength(terminal);
                             }
                             right = AttributedStringBuilder.append(DESC_PREFIX, right, DESC_SUFFIX);
                             rw += DESC_PREFIX.length() + DESC_SUFFIX.length();
@@ -6182,11 +6234,11 @@ public class LineReaderImpl implements LineReader, Flushable {
             int currentLine = promptLines.size() - 1;
             int wantedLine = Math.max(0, Math.min(currentLine + event.getY() - cursor.getY(), secondaryPrompts.size()));
             int pl0 = currentLine == 0
-                    ? prompt.columnLength()
-                    : secondaryPrompts.get(currentLine - 1).columnLength();
+                    ? prompt.columnLength(terminal)
+                    : secondaryPrompts.get(currentLine - 1).columnLength(terminal);
             int pl1 = wantedLine == 0
-                    ? prompt.columnLength()
-                    : secondaryPrompts.get(wantedLine - 1).columnLength();
+                    ? prompt.columnLength(terminal)
+                    : secondaryPrompts.get(wantedLine - 1).columnLength(terminal);
             int adjust = pl1 - pl0;
             buf.moveXY(event.getX() - cursor.getX() - adjust, event.getY() - cursor.getY());
         }
