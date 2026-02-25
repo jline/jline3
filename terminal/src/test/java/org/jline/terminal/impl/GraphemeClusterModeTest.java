@@ -9,9 +9,22 @@
 package org.jline.terminal.impl;
 
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.function.IntConsumer;
+import java.util.function.IntSupplier;
 
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Cursor;
+import org.jline.terminal.MouseEvent;
+import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
+import org.jline.utils.ColorPalette;
+import org.jline.utils.InfoCmp.Capability;
+import org.jline.utils.NonBlockingReader;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -230,23 +243,23 @@ public class GraphemeClusterModeTest {
 
             public void raise(Signal signal) {}
 
-            public org.jline.utils.NonBlockingReader reader() {
+            public NonBlockingReader reader() {
                 return null;
             }
 
-            public java.io.PrintWriter writer() {
+            public PrintWriter writer() {
                 return null;
             }
 
-            public java.nio.charset.Charset encoding() {
+            public Charset encoding() {
                 return StandardCharsets.UTF_8;
             }
 
-            public java.io.InputStream input() {
+            public InputStream input() {
                 return null;
             }
 
-            public java.io.OutputStream output() {
+            public OutputStream output() {
                 return null;
             }
 
@@ -264,7 +277,7 @@ public class GraphemeClusterModeTest {
                 return false;
             }
 
-            public org.jline.terminal.Attributes enterRawMode() {
+            public Attributes enterRawMode() {
                 return null;
             }
 
@@ -276,17 +289,17 @@ public class GraphemeClusterModeTest {
                 return false;
             }
 
-            public org.jline.terminal.Attributes getAttributes() {
+            public Attributes getAttributes() {
                 return null;
             }
 
-            public void setAttributes(org.jline.terminal.Attributes attr) {}
+            public void setAttributes(Attributes attr) {}
 
-            public org.jline.terminal.Size getSize() {
-                return new org.jline.terminal.Size(80, 24);
+            public Size getSize() {
+                return new Size(80, 24);
             }
 
-            public void setSize(org.jline.terminal.Size size) {}
+            public void setSize(Size size) {}
 
             public void flush() {}
 
@@ -294,23 +307,23 @@ public class GraphemeClusterModeTest {
                 return "test";
             }
 
-            public boolean puts(org.jline.utils.InfoCmp.Capability capability, Object... params) {
+            public boolean puts(Capability capability, Object... params) {
                 return false;
             }
 
-            public boolean getBooleanCapability(org.jline.utils.InfoCmp.Capability capability) {
+            public boolean getBooleanCapability(Capability capability) {
                 return false;
             }
 
-            public Integer getNumericCapability(org.jline.utils.InfoCmp.Capability capability) {
+            public Integer getNumericCapability(Capability capability) {
                 return null;
             }
 
-            public String getStringCapability(org.jline.utils.InfoCmp.Capability capability) {
+            public String getStringCapability(Capability capability) {
                 return null;
             }
 
-            public org.jline.terminal.Cursor getCursorPosition(java.util.function.IntConsumer discarded) {
+            public Cursor getCursorPosition(IntConsumer discarded) {
                 return null;
             }
 
@@ -326,19 +339,19 @@ public class GraphemeClusterModeTest {
                 return MouseTracking.Off;
             }
 
-            public org.jline.terminal.MouseEvent readMouseEvent() {
+            public MouseEvent readMouseEvent() {
                 return null;
             }
 
-            public org.jline.terminal.MouseEvent readMouseEvent(java.util.function.IntSupplier reader) {
+            public MouseEvent readMouseEvent(IntSupplier reader) {
                 return null;
             }
 
-            public org.jline.terminal.MouseEvent readMouseEvent(String prefix) {
+            public MouseEvent readMouseEvent(String prefix) {
                 return null;
             }
 
-            public org.jline.terminal.MouseEvent readMouseEvent(java.util.function.IntSupplier reader, String prefix) {
+            public MouseEvent readMouseEvent(IntSupplier reader, String prefix) {
                 return null;
             }
 
@@ -350,7 +363,7 @@ public class GraphemeClusterModeTest {
                 return false;
             }
 
-            public org.jline.utils.ColorPalette getPalette() {
+            public ColorPalette getPalette() {
                 return null;
             }
 
