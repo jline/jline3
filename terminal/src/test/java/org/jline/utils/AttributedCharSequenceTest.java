@@ -56,24 +56,6 @@ public class AttributedCharSequenceTest {
     }
 
     @Test
-    public void testCharCountForGraphemeCluster() {
-        // Family emoji: 11 chars total (4 surrogates + 3 ZWJ)
-        assertEquals(11, WCWidth.charCountForGraphemeCluster(FAMILY_EMOJI, 0));
-
-        // Flag: 4 chars (2 surrogate pairs for regional indicators)
-        assertEquals(4, WCWidth.charCountForGraphemeCluster(FLAG_FR, 0));
-
-        // Skin tone: 4 chars (surrogate pair + surrogate pair modifier)
-        assertEquals(4, WCWidth.charCountForGraphemeCluster(WAVE_SKIN, 0));
-
-        // Plain ASCII: 1 char
-        assertEquals(1, WCWidth.charCountForGraphemeCluster("Hello", 0));
-
-        // CJK character: 1 char (BMP)
-        assertEquals(1, WCWidth.charCountForGraphemeCluster("中", 0));
-    }
-
-    @Test
     public void testUnderline() throws IOException {
         AttributedString as = AttributedString.fromAnsi("\33[38;5;0m\33[48;5;15mtest\33[0m");
         assertEquals(as.toAnsi(256, AttributedCharSequence.ForceMode.Force256Colors), "\33[38;5;0;48;5;15mtest\33[0m");

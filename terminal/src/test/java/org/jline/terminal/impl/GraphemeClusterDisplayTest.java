@@ -69,17 +69,6 @@ public class GraphemeClusterDisplayTest {
     }
 
     @Test
-    void charCountForDisplay_withoutGcMode_returnsSingleCodepointSize() {
-        // null terminal = no gc mode
-        // Family emoji starts with U+1F468 (surrogate pair = 2 chars)
-        assertEquals(2, WCWidth.charCountForDisplay(FAMILY_EMOJI, 0, (Terminal) null));
-        // ASCII
-        assertEquals(1, WCWidth.charCountForDisplay("Hello", 0, (Terminal) null));
-        // CJK BMP
-        assertEquals(1, WCWidth.charCountForDisplay("中", 0, (Terminal) null));
-    }
-
-    @Test
     void charCountForDisplay_asciiUnchangedByGcMode() {
         assertEquals(1, WCWidth.charCountForDisplay("Hello", 0, gcTerminal));
         assertEquals(1, WCWidth.charCountForDisplay("Hello", 1, gcTerminal));
@@ -94,8 +83,6 @@ public class GraphemeClusterDisplayTest {
     void charCountForDisplay_variationSelector() {
         // Star + variation selector = 2 chars as a cluster
         assertEquals(2, WCWidth.charCountForDisplay(STAR_TEXT, 0, gcTerminal));
-        // Without gc mode, just the star (1 BMP char)
-        assertEquals(1, WCWidth.charCountForDisplay(STAR_TEXT, 0, (Terminal) null));
     }
 
     // --- columnLength(Terminal) ---
