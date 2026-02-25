@@ -659,13 +659,12 @@ public abstract class AttributedCharSequence implements CharSequence {
      * @return the display width in columns
      */
     public int columnLength(Terminal terminal) {
-        boolean gc = terminal != null && terminal.getGraphemeClusterMode();
         int cols = 0;
         int len = length();
         for (int cur = 0; cur < len; ) {
             int cp = codePointAt(cur);
             int w = isHidden(cur) ? 0 : WCWidth.wcwidth(cp);
-            cur += WCWidth.charCountForDisplay(this, cur, gc);
+            cur += WCWidth.charCountForDisplay(this, cur, terminal);
             cols += w;
         }
         return cols;
@@ -704,7 +703,6 @@ public abstract class AttributedCharSequence implements CharSequence {
      * @return the subsequence spanning the specified column range
      */
     public AttributedString columnSubSequence(int start, int stop, Terminal terminal) {
-        boolean gc = terminal != null && terminal.getGraphemeClusterMode();
         int begin = 0;
         int col = 0;
         while (begin < this.length()) {
@@ -713,7 +711,7 @@ public abstract class AttributedCharSequence implements CharSequence {
             if (col + w > start) {
                 break;
             }
-            begin += WCWidth.charCountForDisplay(this, begin, gc);
+            begin += WCWidth.charCountForDisplay(this, begin, terminal);
             col += w;
         }
         int end = begin;
@@ -724,7 +722,7 @@ public abstract class AttributedCharSequence implements CharSequence {
             if (col + w > stop) {
                 break;
             }
-            end += WCWidth.charCountForDisplay(this, end, gc);
+            end += WCWidth.charCountForDisplay(this, end, terminal);
             col += w;
         }
         return subSequence(begin, end);
@@ -783,7 +781,6 @@ public abstract class AttributedCharSequence implements CharSequence {
      */
     public List<AttributedString> columnSplitLength(
             int columns, boolean includeNewlines, boolean delayLineWrap, Terminal terminal) {
-        boolean gc = terminal != null && terminal.getGraphemeClusterMode();
         List<AttributedString> strings = new ArrayList<>();
         int cur = 0;
         int beg = cur;
@@ -800,7 +797,7 @@ public abstract class AttributedCharSequence implements CharSequence {
                 beg = cur;
                 col = w;
             }
-            cur += WCWidth.charCountForDisplay(this, cur, gc);
+            cur += WCWidth.charCountForDisplay(this, cur, terminal);
         }
         strings.add(subSequence(beg, cur));
         return strings;

@@ -8,6 +8,8 @@
  */
 package org.jline.utils;
 
+import org.jline.terminal.Terminal;
+
 /**
  * Utility class for determining the display width of Unicode characters.
  *
@@ -435,19 +437,19 @@ public final class WCWidth {
      * Returns the number of chars to advance past the current character or
      * grapheme cluster at {@code index} in {@code cs}.
      *
-     * <p>When {@code graphemeClusterMode} is {@code true}, this delegates to
+     * <p>When the terminal has grapheme cluster mode enabled, this delegates to
      * {@link #charCountForGraphemeCluster(CharSequence, int)} so that ZWJ
      * emoji, flag pairs, skin-tone modifiers, etc. are treated as a single
      * unit.  Otherwise it simply returns {@code Character.charCount(cp)}
      * for the code point at {@code index}.</p>
      *
-     * @param cs                 the character sequence
-     * @param index              the starting char index
-     * @param graphemeClusterMode whether grapheme cluster mode is active
+     * @param cs       the character sequence
+     * @param index    the starting char index
+     * @param terminal the terminal to query for grapheme cluster mode, or {@code null}
      * @return the number of chars to advance
      */
-    public static int charCountForDisplay(CharSequence cs, int index, boolean graphemeClusterMode) {
-        if (graphemeClusterMode) {
+    public static int charCountForDisplay(CharSequence cs, int index, Terminal terminal) {
+        if (terminal != null && terminal.getGraphemeClusterMode()) {
             return charCountForGraphemeCluster(cs, index);
         }
         return Character.charCount(Character.codePointAt(cs, index));
