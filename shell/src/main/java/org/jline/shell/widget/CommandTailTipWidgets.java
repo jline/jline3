@@ -736,7 +736,7 @@ public class CommandTailTipWidgets {
                     asb.append("\t");
                     asb.append(cmdDesc.optionDescription(key));
                     if (asb.columnLength(reader.getTerminal()) > columnWidth - 2) {
-                        AttributedString trunc = asb.columnSubSequence(0, columnWidth - 5);
+                        AttributedString trunc = asb.columnSubSequence(0, columnWidth - 5, reader.getTerminal());
                         asb = new AttributedStringBuilder().tabs(tabs);
                         asb.append(trunc);
                         asb.append("...", new AttributedStyle(AttributedStyle.INVERSE));
@@ -746,7 +746,7 @@ public class CommandTailTipWidgets {
                             asb.append(" ");
                         }
                     }
-                    keyList.add(asb.toAttributedString().columnSubSequence(0, columnWidth));
+                    keyList.add(asb.toAttributedString().columnSubSequence(0, columnWidth, reader.getTerminal()));
                 } else {
                     asb.append(keyList.get(row - descriptionSize));
                     asb.append(highlightOption(key));

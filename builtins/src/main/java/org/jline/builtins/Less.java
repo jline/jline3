@@ -1367,14 +1367,14 @@ public class Less {
                 if (terminalLine == 0 && offsetInLine > 0) {
                     off = Math.max(offsetInLine, off);
                 }
-                toDisplay = curLine.columnSubSequence(off, off + width);
+                toDisplay = curLine.columnSubSequence(off, off + width, terminal);
                 curLine = null;
             } else {
                 if (terminalLine == 0 && offsetInLine > 0) {
-                    curLine = curLine.columnSubSequence(offsetInLine, Integer.MAX_VALUE);
+                    curLine = curLine.columnSubSequence(offsetInLine, Integer.MAX_VALUE, terminal);
                 }
-                toDisplay = curLine.columnSubSequence(0, width);
-                curLine = curLine.columnSubSequence(width, Integer.MAX_VALUE);
+                toDisplay = curLine.columnSubSequence(0, width, terminal);
+                curLine = curLine.columnSubSequence(width, Integer.MAX_VALUE, terminal);
                 if (curLine.length() == 0) {
                     curLine = null;
                 }

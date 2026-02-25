@@ -5807,7 +5807,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                             rw = right.columnLength(terminal);
                             if (rw > rem) {
                                 right = AttributedStringBuilder.append(
-                                        right.columnSubSequence(0, rem - WCWidth.wcwidth('…')), "…");
+                                        right.columnSubSequence(0, rem - WCWidth.wcwidth('…'), terminal), "…");
                                 rw = right.columnLength(terminal);
                             }
                             right = AttributedStringBuilder.append(DESC_PREFIX, right, DESC_SUFFIX);

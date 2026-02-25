@@ -944,55 +944,56 @@ public class Nano implements Editor {
             int[] hls = highlightStart();
             int[] hle = highlightEnd();
             if (hls[0] == -1 || hle[0] == -1) {
-                line.append(disp.columnSubSequence(curOffset, nextOffset));
+                line.append(disp.columnSubSequence(curOffset, nextOffset, terminal));
             } else if (hls[0] == hle[0]) {
                 if (curLine == hls[0]) {
                     if (hls[1] > nextOffset) {
-                        line.append(disp.columnSubSequence(curOffset, nextOffset));
+                        line.append(disp.columnSubSequence(curOffset, nextOffset, terminal));
                     } else if (hls[1] < curOffset) {
                         if (hle[1] > nextOffset) {
-                            line.append(disp.columnSubSequence(curOffset, nextOffset), AttributedStyle.INVERSE);
+                            line.append(
+                                    disp.columnSubSequence(curOffset, nextOffset, terminal), AttributedStyle.INVERSE);
                         } else if (hle[1] > curOffset) {
-                            line.append(disp.columnSubSequence(curOffset, hle[1]), AttributedStyle.INVERSE);
-                            line.append(disp.columnSubSequence(hle[1], nextOffset));
+                            line.append(disp.columnSubSequence(curOffset, hle[1], terminal), AttributedStyle.INVERSE);
+                            line.append(disp.columnSubSequence(hle[1], nextOffset, terminal));
                         } else {
-                            line.append(disp.columnSubSequence(curOffset, nextOffset));
+                            line.append(disp.columnSubSequence(curOffset, nextOffset, terminal));
                         }
                     } else {
-                        line.append(disp.columnSubSequence(curOffset, hls[1]));
+                        line.append(disp.columnSubSequence(curOffset, hls[1], terminal));
                         if (hle[1] > nextOffset) {
-                            line.append(disp.columnSubSequence(hls[1], nextOffset), AttributedStyle.INVERSE);
+                            line.append(disp.columnSubSequence(hls[1], nextOffset, terminal), AttributedStyle.INVERSE);
                         } else {
-                            line.append(disp.columnSubSequence(hls[1], hle[1]), AttributedStyle.INVERSE);
-                            line.append(disp.columnSubSequence(hle[1], nextOffset));
+                            line.append(disp.columnSubSequence(hls[1], hle[1], terminal), AttributedStyle.INVERSE);
+                            line.append(disp.columnSubSequence(hle[1], nextOffset, terminal));
                         }
                     }
                 } else {
-                    line.append(disp.columnSubSequence(curOffset, nextOffset));
+                    line.append(disp.columnSubSequence(curOffset, nextOffset, terminal));
                 }
             } else {
                 if (curLine > hls[0] && curLine < hle[0]) {
-                    line.append(disp.columnSubSequence(curOffset, nextOffset), AttributedStyle.INVERSE);
+                    line.append(disp.columnSubSequence(curOffset, nextOffset, terminal), AttributedStyle.INVERSE);
                 } else if (curLine == hls[0]) {
                     if (hls[1] > nextOffset) {
-                        line.append(disp.columnSubSequence(curOffset, nextOffset));
+                        line.append(disp.columnSubSequence(curOffset, nextOffset, terminal));
                     } else if (hls[1] < curOffset) {
-                        line.append(disp.columnSubSequence(curOffset, nextOffset), AttributedStyle.INVERSE);
+                        line.append(disp.columnSubSequence(curOffset, nextOffset, terminal), AttributedStyle.INVERSE);
                     } else {
-                        line.append(disp.columnSubSequence(curOffset, hls[1]));
-                        line.append(disp.columnSubSequence(hls[1], nextOffset), AttributedStyle.INVERSE);
+                        line.append(disp.columnSubSequence(curOffset, hls[1], terminal));
+                        line.append(disp.columnSubSequence(hls[1], nextOffset, terminal), AttributedStyle.INVERSE);
                     }
                 } else if (curLine == hle[0]) {
                     if (hle[1] < curOffset) {
-                        line.append(disp.columnSubSequence(curOffset, nextOffset));
+                        line.append(disp.columnSubSequence(curOffset, nextOffset, terminal));
                     } else if (hle[1] > nextOffset) {
-                        line.append(disp.columnSubSequence(curOffset, nextOffset), AttributedStyle.INVERSE);
+                        line.append(disp.columnSubSequence(curOffset, nextOffset, terminal), AttributedStyle.INVERSE);
                     } else {
-                        line.append(disp.columnSubSequence(curOffset, hle[1]), AttributedStyle.INVERSE);
-                        line.append(disp.columnSubSequence(hle[1], nextOffset));
+                        line.append(disp.columnSubSequence(curOffset, hle[1], terminal), AttributedStyle.INVERSE);
+                        line.append(disp.columnSubSequence(hle[1], nextOffset, terminal));
                     }
                 } else {
-                    line.append(disp.columnSubSequence(curOffset, nextOffset));
+                    line.append(disp.columnSubSequence(curOffset, nextOffset, terminal));
                 }
             }
         }
