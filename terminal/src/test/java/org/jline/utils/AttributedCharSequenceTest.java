@@ -31,9 +31,8 @@ public class AttributedCharSequenceTest {
 
     @Test
     public void testGraphemeClusterColumnLength() {
-        // We can't easily test columnLength(terminal) with grapheme cluster mode
-        // in unit tests (requires terminal probing), so we test per-codepoint widths
-        // here and verify charCountForGraphemeCluster separately below.
+        // Test per-codepoint widths without grapheme cluster mode.
+        // See GraphemeClusterDisplayTest for terminal-aware tests with gc mode enabled.
 
         // Family emoji: per-codepoint = 2+0+2+0+2+0+2 = 8
         AttributedString family = new AttributedString(FAMILY_EMOJI);
