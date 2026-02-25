@@ -98,6 +98,7 @@
         <picocli.version>4.7.7</picocli.version>
         <graal.version>25.0.2</graal.version>
         <graal.plugin.version>21.2.0</graal.plugin.version>
+        <native.plugin.version>0.10.6</native.plugin.version>
         <palantir.version>2.89.0</palantir.version>
 
         <surefire.argLine>--add-opens java.base/java.io=org.jline.nativ --add-opens java.base/java.io=org.jline.terminal</surefire.argLine>
@@ -308,6 +309,11 @@
                     <groupId>org.graalvm.nativeimage</groupId>
                     <artifactId>native-image-maven-plugin</artifactId>
                     <version>${graal.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.graalvm.buildtools</groupId>
+                    <artifactId>native-maven-plugin</artifactId>
+                    <version>${native.plugin.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
