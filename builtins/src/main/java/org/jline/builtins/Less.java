@@ -714,25 +714,33 @@ public class Less {
                     buffer.insert(curPos++, bindingReader.getLastBinding());
                     break;
                 case BACKSPACE:
-                    if (curPos > begPos - 1) {
-                        buffer.deleteCharAt(--curPos);
+                    if (curPos > begPos) {
+                        int cpLen = Character.charCount(Character.codePointBefore(buffer, curPos));
+                        buffer.delete(curPos - cpLen, curPos);
+                        curPos -= cpLen;
                     }
                     break;
                 case NEXT_WORD:
                     int newPos = buffer.length();
-                    for (int i = curPos; i < buffer.length(); i++) {
-                        if (buffer.charAt(i) == ' ') {
-                            newPos = i + 1;
+                    for (int i = curPos; i < buffer.length(); ) {
+                        int cp = buffer.codePointAt(i);
+                        int cc = Character.charCount(cp);
+                        if (cp == ' ') {
+                            newPos = i + cc;
                             break;
                         }
+                        i += cc;
                     }
                     curPos = newPos;
                     break;
                 case PREV_WORD:
                     newPos = begPos;
-                    for (int i = curPos - 2; i > begPos; i--) {
-                        if (buffer.charAt(i) == ' ') {
-                            newPos = i + 1;
+                    for (int i = curPos; i > begPos; ) {
+                        int cp = Character.codePointBefore(buffer, i);
+                        int cc = Character.charCount(cp);
+                        i -= cc;
+                        if (cp == ' ') {
+                            newPos = i + cc;
                             break;
                         }
                     }
@@ -746,26 +754,25 @@ public class Less {
                     break;
                 case DELETE:
                     if (curPos >= begPos && curPos < buffer.length()) {
-                        buffer.deleteCharAt(curPos);
+                        int cpLen = Character.charCount(buffer.codePointAt(curPos));
+                        buffer.delete(curPos, curPos + cpLen);
                     }
                     break;
                 case DELETE_WORD:
-                    while (true) {
-                        if (curPos < buffer.length() && buffer.charAt(curPos) != ' ') {
-                            buffer.deleteCharAt(curPos);
+                    while (curPos < buffer.length()) {
+                        int cp = buffer.codePointAt(curPos);
+                        if (cp != ' ') {
+                            buffer.delete(curPos, curPos + Character.charCount(cp));
                         } else {
                             break;
                         }
                     }
-                    while (true) {
-                        if (curPos - 1 >= begPos) {
-                            if (buffer.charAt(curPos - 1) != ' ') {
-                                buffer.deleteCharAt(--curPos);
-                            } else {
-                                buffer.deleteCharAt(--curPos);
-                                break;
-                            }
-                        } else {
+                    while (curPos > begPos) {
+                        int cp = Character.codePointBefore(buffer, curPos);
+                        int cpLen = Character.charCount(cp);
+                        buffer.delete(curPos - cpLen, curPos);
+                        curPos -= cpLen;
+                        if (cp == ' ') {
                             break;
                         }
                     }
@@ -776,12 +783,12 @@ public class Less {
                     break;
                 case LEFT:
                     if (curPos > begPos) {
-                        curPos--;
+                        curPos -= Character.charCount(Character.codePointBefore(buffer, curPos));
                     }
                     break;
                 case RIGHT:
                     if (curPos < buffer.length()) {
-                        curPos++;
+                        curPos += Character.charCount(buffer.codePointAt(curPos));
                     }
                     break;
             }
