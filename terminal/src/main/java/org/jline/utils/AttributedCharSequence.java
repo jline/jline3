@@ -665,11 +665,7 @@ public abstract class AttributedCharSequence implements CharSequence {
         for (int cur = 0; cur < len; ) {
             int cp = codePointAt(cur);
             int w = isHidden(cur) ? 0 : WCWidth.wcwidth(cp);
-            if (gc) {
-                cur += WCWidth.charCountForGraphemeCluster(this, cur);
-            } else {
-                cur += Character.charCount(cp);
-            }
+            cur += WCWidth.charCountForDisplay(this, cur, gc);
             cols += w;
         }
         return cols;
@@ -717,7 +713,7 @@ public abstract class AttributedCharSequence implements CharSequence {
             if (col + w > start) {
                 break;
             }
-            begin += gc ? WCWidth.charCountForGraphemeCluster(this, begin) : Character.charCount(cp);
+            begin += WCWidth.charCountForDisplay(this, begin, gc);
             col += w;
         }
         int end = begin;
@@ -728,7 +724,7 @@ public abstract class AttributedCharSequence implements CharSequence {
             if (col + w > stop) {
                 break;
             }
-            end += gc ? WCWidth.charCountForGraphemeCluster(this, end) : Character.charCount(cp);
+            end += WCWidth.charCountForDisplay(this, end, gc);
             col += w;
         }
         return subSequence(begin, end);
@@ -804,7 +800,7 @@ public abstract class AttributedCharSequence implements CharSequence {
                 beg = cur;
                 col = w;
             }
-            cur += gc ? WCWidth.charCountForGraphemeCluster(this, cur) : Character.charCount(cp);
+            cur += WCWidth.charCountForDisplay(this, cur, gc);
         }
         strings.add(subSequence(beg, cur));
         return strings;

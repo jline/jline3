@@ -1437,12 +1437,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             return false;
         }
         while (count-- > 0 && buf.cursor() < lim) {
-            if (terminal.getGraphemeClusterMode()) {
-                int skip = graphemeClusterCodePointCount(buf, buf.cursor());
-                buf.move(skip);
-            } else {
-                buf.move(1);
-            }
+            moveForwardOne();
         }
         return true;
     }
@@ -1456,12 +1451,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             return false;
         }
         while (count-- > 0 && buf.cursor() > 0) {
-            if (terminal.getGraphemeClusterMode()) {
-                int skip = graphemeClusterCodePointCountBefore(buf, buf.cursor());
-                buf.move(-skip);
-            } else {
-                buf.move(-1);
-            }
+            moveBackwardOne();
             if (buf.currChar() == '\n') {
                 buf.move(1);
                 break;
@@ -2501,42 +2491,26 @@ public class LineReaderImpl implements LineReader, Flushable {
 
     protected boolean backwardChar() {
         if (terminal.getGraphemeClusterMode()) {
-            return moveByGraphemeCluster(-count) != 0;
+            int moved = 0;
+            for (int i = 0; i < count && buf.cursor() > 0; i++) {
+                moveBackwardOne();
+                moved++;
+            }
+            return moved != 0;
         }
         return buf.move(-count) != 0;
     }
 
     protected boolean forwardChar() {
         if (terminal.getGraphemeClusterMode()) {
-            return moveByGraphemeCluster(count) != 0;
+            int moved = 0;
+            for (int i = 0; i < count && buf.cursor() < buf.length(); i++) {
+                moveForwardOne();
+                moved++;
+            }
+            return moved != 0;
         }
         return buf.move(count) != 0;
-    }
-
-    /**
-     * Moves the cursor by the specified number of grapheme clusters.
-     * A grapheme cluster is a user-perceived character, which may consist of
-     * multiple code points (e.g., ZWJ emoji sequences, flag pairs, skin tone modifiers).
-     *
-     * @param count positive to move forward, negative to move backward
-     * @return the number of grapheme clusters actually moved
-     */
-    private int moveByGraphemeCluster(int count) {
-        int moved = 0;
-        if (count > 0) {
-            for (int i = 0; i < count && buf.cursor() < buf.length(); i++) {
-                int skip = graphemeClusterCodePointCount(buf, buf.cursor());
-                buf.move(skip);
-                moved++;
-            }
-        } else {
-            for (int i = 0; i > count && buf.cursor() > 0; i--) {
-                int skip = graphemeClusterCodePointCountBefore(buf, buf.cursor());
-                buf.move(-skip);
-                moved++;
-            }
-        }
-        return moved;
     }
 
     /**
@@ -2609,6 +2583,60 @@ public class LineReaderImpl implements LineReader, Flushable {
             cur--;
         }
         return pos - cur;
+    }
+
+    /**
+     * Moves the cursor forward past one grapheme cluster (or one code point
+     * when grapheme cluster mode is off).
+     */
+    private void moveForwardOne() {
+        if (terminal.getGraphemeClusterMode()) {
+            buf.move(graphemeClusterCodePointCount(buf, buf.cursor()));
+        } else {
+            buf.move(1);
+        }
+    }
+
+    /**
+     * Moves the cursor backward past one grapheme cluster (or one code point
+     * when grapheme cluster mode is off).
+     */
+    private void moveBackwardOne() {
+        if (terminal.getGraphemeClusterMode()) {
+            buf.move(-graphemeClusterCodePointCountBefore(buf, buf.cursor()));
+        } else {
+            buf.move(-1);
+        }
+    }
+
+    /**
+     * Deletes one grapheme cluster (or one code point) at the cursor.
+     *
+     * @return true if a character was deleted
+     */
+    private boolean deleteGrapheme() {
+        if (buf.cursor() >= buf.length()) return false;
+        if (terminal.getGraphemeClusterMode()) {
+            buf.delete(graphemeClusterCodePointCount(buf, buf.cursor()));
+        } else {
+            buf.delete();
+        }
+        return true;
+    }
+
+    /**
+     * Deletes one grapheme cluster (or one code point) before the cursor.
+     *
+     * @return true if a character was deleted
+     */
+    private boolean backspaceGrapheme() {
+        if (buf.cursor() <= 0) return false;
+        if (terminal.getGraphemeClusterMode()) {
+            buf.backspace(graphemeClusterCodePointCountBefore(buf, buf.cursor()));
+        } else {
+            buf.backspace();
+        }
+        return true;
     }
 
     protected boolean viDigitOrBeginningOfLine() {
@@ -3577,13 +3605,8 @@ public class LineReaderImpl implements LineReader, Flushable {
         if (buf.cursor() == 0) {
             return false;
         }
-        if (terminal.getGraphemeClusterMode()) {
-            for (int i = 0; i < count && buf.cursor() > 0; i++) {
-                int skip = graphemeClusterCodePointCountBefore(buf, buf.cursor());
-                buf.backspace(skip);
-            }
-        } else {
-            buf.backspace(count);
+        for (int i = 0; i < count; i++) {
+            if (!backspaceGrapheme()) break;
         }
         return true;
     }
@@ -3635,13 +3658,8 @@ public class LineReaderImpl implements LineReader, Flushable {
         if (buf.cursor() == buf.length()) {
             return false;
         }
-        if (terminal.getGraphemeClusterMode()) {
-            for (int i = 0; i < count && buf.cursor() < buf.length(); i++) {
-                int skip = graphemeClusterCodePointCount(buf, buf.cursor());
-                buf.delete(skip);
-            }
-        } else {
-            buf.delete(count);
+        for (int i = 0; i < count; i++) {
+            if (!deleteGrapheme()) break;
         }
         return true;
     }
@@ -3666,17 +3684,7 @@ public class LineReaderImpl implements LineReader, Flushable {
      */
     protected boolean viDeleteChar() {
         for (int i = 0; i < count; i++) {
-            if (buf.cursor() >= buf.length()) {
-                return false;
-            }
-            if (terminal.getGraphemeClusterMode()) {
-                int skip = graphemeClusterCodePointCount(buf, buf.cursor());
-                buf.delete(skip);
-            } else {
-                if (!buf.delete()) {
-                    return false;
-                }
-            }
+            if (!deleteGrapheme()) return false;
         }
         return true;
     }
@@ -3693,12 +3701,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                 int ch = buf.atChar(buf.cursor());
                 ch = switchCase(ch);
                 buf.currChar(ch);
-                if (terminal.getGraphemeClusterMode()) {
-                    int skip = graphemeClusterCodePointCount(buf, buf.cursor());
-                    buf.move(skip);
-                } else {
-                    buf.move(1);
-                }
+                moveForwardOne();
             } else {
                 return false;
             }
@@ -3721,12 +3724,9 @@ public class LineReaderImpl implements LineReader, Flushable {
         for (int i = 0; i < count; i++) {
             if (terminal.getGraphemeClusterMode() && buf.cursor() < buf.length()) {
                 // Delete the entire grapheme cluster, then insert the replacement
-                int skip = graphemeClusterCodePointCount(buf, buf.cursor());
-                buf.delete(skip);
+                deleteGrapheme();
                 buf.write(c);
-                if (i < count - 1) {
-                    // cursor is already past the inserted char
-                } else {
+                if (i == count - 1) {
                     buf.move(-1);
                 }
             } else if (buf.currChar((char) c)) {

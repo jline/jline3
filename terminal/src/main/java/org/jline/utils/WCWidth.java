@@ -432,6 +432,28 @@ public final class WCWidth {
     }
 
     /**
+     * Returns the number of chars to advance past the current character or
+     * grapheme cluster at {@code index} in {@code cs}.
+     *
+     * <p>When {@code graphemeClusterMode} is {@code true}, this delegates to
+     * {@link #charCountForGraphemeCluster(CharSequence, int)} so that ZWJ
+     * emoji, flag pairs, skin-tone modifiers, etc. are treated as a single
+     * unit.  Otherwise it simply returns {@code Character.charCount(cp)}
+     * for the code point at {@code index}.</p>
+     *
+     * @param cs                 the character sequence
+     * @param index              the starting char index
+     * @param graphemeClusterMode whether grapheme cluster mode is active
+     * @return the number of chars to advance
+     */
+    public static int charCountForDisplay(CharSequence cs, int index, boolean graphemeClusterMode) {
+        if (graphemeClusterMode) {
+            return charCountForGraphemeCluster(cs, index);
+        }
+        return Character.charCount(Character.codePointAt(cs, index));
+    }
+
+    /**
      * Tests whether the given code point is a Regional Indicator Symbol
      * (U+1F1E6 .. U+1F1FF), used in pairs to represent flag emoji.
      */
