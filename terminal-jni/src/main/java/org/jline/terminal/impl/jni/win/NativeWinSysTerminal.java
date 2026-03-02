@@ -132,6 +132,11 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<Long> {
                 inMode[0],
                 console,
                 outMode[0]);
+        // Clear any phantom input from console buffer to prevent first readLine() from
+        // returning immediately (fixes #1350)
+        if (consoleIn != Kernel32.INVALID_HANDLE_VALUE) {
+            Kernel32.FlushConsoleInputBuffer(consoleIn);
+        }
         // Start input pump thread
         if (!paused) {
             terminal.resume();
