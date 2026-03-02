@@ -65,7 +65,7 @@
                     <imageName>graal</imageName>
                     <mainClass>org.jline.demo.graal.Graal</mainClass>
                     <buildArgs>
-                        <arg>--enable-native-access=org.jline.terminal.ffm</arg>
+                        <arg>--enable-native-access=ALL-UNNAMED</arg>
                     </buildArgs>
                 </configuration>
                 <executions>
@@ -75,6 +75,26 @@
                             <goal>compile-no-fork</goal>
                         </goals>
                         <phase>package</phase>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>verify-native-image</id>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <phase>verify</phase>
+                        <configuration>
+                            <skip>${native.image.skip}</skip>
+                            <executable>${project.build.directory}/graal</executable>
+                            <arguments>
+                                <argument>--check</argument>
+                            </arguments>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

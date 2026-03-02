@@ -15,11 +15,16 @@ import org.jline.shell.Shell;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.spi.TerminalExt;
+import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
 
 public class Graal {
 
     public static void main(String[] args) {
+        if (args.length > 0 && "--check".equals(args[0])) {
+            check();
+            return;
+        }
         try {
             Terminal terminal = TerminalBuilder.builder().provider("ffm").build();
 
@@ -52,6 +57,22 @@ public class Graal {
             shell.run();
         } catch (Throwable t) {
             t.printStackTrace();
+        }
+    }
+
+    /**
+     * Verify that the FFM terminal provider can be loaded and used.
+     * This is used as a smoke test for native image builds.
+     */
+    private static void check() {
+        try {
+            TerminalProvider provider = TerminalProvider.load("ffm");
+            System.out.println("FFM provider loaded: " + provider.name());
+            System.out.println("CHECK PASSED");
+        } catch (Throwable t) {
+            System.err.println("CHECK FAILED: " + t.getMessage());
+            t.printStackTrace(System.err);
+            System.exit(1);
         }
     }
 }
