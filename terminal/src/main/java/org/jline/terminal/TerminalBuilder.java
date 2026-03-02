@@ -1005,10 +1005,11 @@ public final class TerminalBuilder {
                 }
             }
             // Auto-detect Windows console codepage if not explicitly set
-            if (codepage <= 0 && OSUtils.IS_WINDOWS && !OSUtils.IS_CYGWIN && !OSUtils.IS_MSYSTEM) {
+            // Only auto-detect when codepage == 0 (unset), not -1 (explicitly set to force UTF-8)
+            if (codepage == 0 && OSUtils.IS_WINDOWS && !OSUtils.IS_CYGWIN && !OSUtils.IS_MSYSTEM) {
                 codepage = getConsoleCodepage();
             }
-            if (codepage >= 0) {
+            if (codepage > 0) {
                 encoding = getCodepageCharset(codepage);
             } else {
                 encoding = StandardCharsets.UTF_8;
@@ -1174,26 +1175,31 @@ public final class TerminalBuilder {
      * Auto-detect the Windows console output codepage using GetConsoleOutputCP().
      * Uses reflection to avoid hard dependency on native provider modules.
      *
-     * @return the detected codepage, or -1 if detection fails
+     * @return the detected codepage (positive integer), 0 if detection fails or API returns 0,
+     *         or -1 to indicate no native provider is available
      */
     private static int getConsoleCodepage() {
         try {
             // Try JNI provider's Kernel32 first
             Class<?> kernel32Class = Class.forName("org.jline.nativ.Kernel32");
             java.lang.reflect.Method method = kernel32Class.getMethod("GetConsoleOutputCP");
-            return (Integer) method.invoke(null);
+            int codepage = (Integer) method.invoke(null);
+            // GetConsoleOutputCP returns 0 on failure - treat as detection failure
+            return codepage > 0 ? codepage : 0;
         } catch (ClassNotFoundException | NoSuchMethodException e) {
             // JNI provider not available, try FFM provider
             try {
                 Class<?> kernel32Class = Class.forName("org.jline.terminal.impl.ffm.Kernel32");
                 java.lang.reflect.Method method = kernel32Class.getMethod("GetConsoleOutputCP");
-                return (Integer) method.invoke(null);
-            } catch (Exception ex) {
-                // FFM provider not available either, return -1
+                int codepage = (Integer) method.invoke(null);
+                // GetConsoleOutputCP returns 0 on failure - treat as detection failure
+                return codepage > 0 ? codepage : 0;
+            } catch (Throwable ex) {
+                // FFM provider not available or reflection failed, return -1
                 return -1;
             }
-        } catch (Exception e) {
-            // Reflection failed, return -1
+        } catch (Throwable e) {
+            // Reflection failed (including ExceptionInInitializerError, LinkageError), return -1
             return -1;
         }
     }
