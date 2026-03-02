@@ -138,6 +138,11 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<MemorySegment>
                     inMode.get(ValueLayout.JAVA_INT, 0),
                     console,
                     outMode.get(ValueLayout.JAVA_INT, 0));
+            // Clear any phantom input from console buffer to prevent first readLine() from
+            // returning immediately (fixes #1350)
+            if (!consoleIn.equals(MemorySegment.NULL)) {
+                Kernel32.FlushConsoleInputBuffer(consoleIn);
+            }
             // Start input pump thread
             if (!paused) {
                 terminal.resume();
