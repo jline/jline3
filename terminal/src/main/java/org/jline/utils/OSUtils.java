@@ -65,10 +65,7 @@ public class OSUtils {
             && System.getenv("MSYSTEM") != null
             && System.getenv("MSYSTEM").startsWith("MINGW");
 
-    public static final boolean IS_MSYSTEM = IS_WINDOWS
-            && System.getenv("MSYSTEM") != null
-            && (System.getenv("MSYSTEM").startsWith("MINGW")
-                    || System.getenv("MSYSTEM").equals("MSYS"));
+    public static final boolean IS_MSYSTEM = IS_WINDOWS && System.getenv("MSYSTEM") != null;
 
     public static final boolean IS_WSL = System.getenv("WSL_DISTRO_NAME") != null;
 
