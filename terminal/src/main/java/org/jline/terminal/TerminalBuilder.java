@@ -1011,6 +1011,10 @@ public final class TerminalBuilder {
                     codepage = Integer.parseInt(str);
                 }
             }
+            // Auto-detect Windows console codepage if not explicitly set
+            if (codepage <= 0 && OSUtils.IS_WINDOWS && !OSUtils.IS_CYGWIN && !OSUtils.IS_MSYSTEM) {
+                codepage = getConsoleCodepage();
+            }
             if (codepage >= 0) {
                 encoding = getCodepageCharset(codepage);
             } else {
@@ -1176,6 +1180,34 @@ public final class TerminalBuilder {
     }
 
     private static final int UTF8_CODE_PAGE = 65001;
+
+    /**
+     * Auto-detect the Windows console output codepage using GetConsoleOutputCP().
+     * Uses reflection to avoid hard dependency on native provider modules.
+     *
+     * @return the detected codepage, or -1 if detection fails
+     */
+    private static int getConsoleCodepage() {
+        try {
+            // Try JNI provider's Kernel32 first
+            Class<?> kernel32Class = Class.forName("org.jline.nativ.Kernel32");
+            java.lang.reflect.Method method = kernel32Class.getMethod("GetConsoleOutputCP");
+            return (Integer) method.invoke(null);
+        } catch (ClassNotFoundException | NoSuchMethodException e) {
+            // JNI provider not available, try FFM provider
+            try {
+                Class<?> kernel32Class = Class.forName("org.jline.terminal.impl.ffm.Kernel32");
+                java.lang.reflect.Method method = kernel32Class.getMethod("GetConsoleOutputCP");
+                return (Integer) method.invoke(null);
+            } catch (Exception ex) {
+                // FFM provider not available either, return -1
+                return -1;
+            }
+        } catch (Exception e) {
+            // Reflection failed, return -1
+            return -1;
+        }
+    }
 
     private static Charset getCodepageCharset(int codepage) {
         // http://docs.oracle.com/javase/6/docs/technotes/guides/intl/encoding.doc.html
