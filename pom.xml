@@ -15,7 +15,7 @@
 
     <groupId>org.jline</groupId>
     <artifactId>jline-parent</artifactId>
-    <version>3.30.7</version>
+    <version>3.30.8-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>JLine</name>
     <description>JLine</description>
@@ -74,7 +74,7 @@
     <scm child.scm.connection.inherit.append.path="false" child.scm.developerConnection.inherit.append.path="false" child.scm.url.inherit.append.path="false">
         <connection>scm:git:https://github.com/jline/jline3.git</connection>
         <developerConnection>scm:git:https://github.com/jline/jline3.git</developerConnection>
-        <tag>jline-3.30.7</tag>
+        <tag>jline-3.30.5</tag>
         <url>https://github.com/jline/jline3</url>
     </scm>
 
@@ -98,7 +98,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.build.outputTimestamp>2026-03-03T14:36:56Z</project.build.outputTimestamp>
+        <project.build.outputTimestamp>2026-03-03T14:39:12Z</project.build.outputTimestamp>
 
         <java.build.version>22</java.build.version>
         <java.release.version>8</java.release.version>
