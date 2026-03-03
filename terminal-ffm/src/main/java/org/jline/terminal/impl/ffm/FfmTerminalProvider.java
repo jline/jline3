@@ -44,6 +44,14 @@ public class FfmTerminalProvider implements TerminalProvider {
     }
 
     @Override
+    public int getConsoleCodepage() {
+        if (OSUtils.IS_WINDOWS) {
+            return Kernel32.GetConsoleOutputCP();
+        }
+        return -1;
+    }
+
+    @Override
     public Terminal sysTerminal(
             String name,
             String type,

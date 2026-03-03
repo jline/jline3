@@ -15,6 +15,7 @@ import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 
 import org.jline.nativ.JLineNativeLoader;
+import org.jline.nativ.Kernel32;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
@@ -98,6 +99,14 @@ public class JniTerminalProvider implements TerminalProvider {
     @Override
     public String name() {
         return TerminalBuilder.PROP_PROVIDER_JNI;
+    }
+
+    @Override
+    public int getConsoleCodepage() {
+        if (OSUtils.IS_WINDOWS) {
+            return Kernel32.GetConsoleOutputCP();
+        }
+        return -1;
     }
 
     public Pty current(SystemStream systemStream) throws IOException {
