@@ -12,6 +12,9 @@ import java.io.BufferedWriter;
 import java.io.IOError;
 import java.io.IOException;
 import java.io.Writer;
+import java.lang.foreign.Arena;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 import java.nio.charset.Charset;
 import java.util.function.IntConsumer;
 
@@ -38,7 +41,7 @@ import static org.jline.terminal.impl.ffm.Kernel32.WaitForSingleObject;
 import static org.jline.terminal.impl.ffm.Kernel32.getLastErrorMessage;
 import static org.jline.terminal.impl.ffm.Kernel32.readConsoleInputHelper;
 
-public class NativeWinSysTerminal extends AbstractWindowsTerminal<java.lang.foreign.MemorySegment> {
+public class NativeWinSysTerminal extends AbstractWindowsTerminal<MemorySegment> {
 
     public static NativeWinSysTerminal createTerminal(
             TerminalProvider provider,
@@ -78,15 +81,15 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<java.lang.fore
             SignalHandler signalHandler,
             boolean paused)
             throws IOException {
-        try (java.lang.foreign.Arena arena = java.lang.foreign.Arena.ofConfined()) {
+        try (Arena arena = Arena.ofConfined()) {
             // Get input console mode
-            java.lang.foreign.MemorySegment consoleIn = GetStdHandle(STD_INPUT_HANDLE);
-            java.lang.foreign.MemorySegment inMode = allocateInt(arena);
+            MemorySegment consoleIn = GetStdHandle(STD_INPUT_HANDLE);
+            MemorySegment inMode = allocateInt(arena);
             if (GetConsoleMode(consoleIn, inMode) == 0) {
                 throw new IOException("Failed to get console mode: " + getLastErrorMessage());
             }
             // Get output console and mode
-            java.lang.foreign.MemorySegment console;
+            MemorySegment console;
             switch (systemStream) {
                 case Output:
                     console = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -97,7 +100,7 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<java.lang.fore
                 default:
                     throw new IllegalArgumentException("Unsupported stream for console: " + systemStream);
             }
-            java.lang.foreign.MemorySegment outMode = allocateInt(arena);
+            MemorySegment outMode = allocateInt(arena);
             if (GetConsoleMode(console, outMode) == 0) {
                 throw new IOException("Failed to get console mode: " + getLastErrorMessage());
             }
@@ -107,7 +110,7 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<java.lang.fore
                 type = type != null ? type : OSUtils.IS_CONEMU ? TYPE_WINDOWS_CONEMU : TYPE_WINDOWS;
                 writer = new NativeWinConsoleWriter();
             } else {
-                int m = outMode.get(java.lang.foreign.ValueLayout.JAVA_INT, 0);
+                int m = outMode.get(ValueLayout.JAVA_INT, 0);
                 if (enableVtp(console, m)) {
                     type = type != null ? type : TYPE_WINDOWS_VTP;
                     writer = new NativeWinConsoleWriter();
@@ -132,9 +135,9 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<java.lang.fore
                     nativeSignals,
                     signalHandler,
                     consoleIn,
-                    inMode.get(java.lang.foreign.ValueLayout.JAVA_INT, 0),
+                    inMode.get(ValueLayout.JAVA_INT, 0),
                     console,
-                    outMode.get(java.lang.foreign.ValueLayout.JAVA_INT, 0));
+                    outMode.get(ValueLayout.JAVA_INT, 0));
             // Start input pump thread
             if (!paused) {
                 terminal.resume();
@@ -143,14 +146,14 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<java.lang.fore
         }
     }
 
-    private static boolean enableVtp(java.lang.foreign.MemorySegment console, int m) {
+    private static boolean enableVtp(MemorySegment console, int m) {
         return SetConsoleMode(console, m | AbstractWindowsTerminal.ENABLE_VIRTUAL_TERMINAL_PROCESSING) != 0;
     }
 
     public static boolean isWindowsSystemStream(SystemStream stream) {
-        try (java.lang.foreign.Arena arena = java.lang.foreign.Arena.ofConfined()) {
-            java.lang.foreign.MemorySegment console;
-            java.lang.foreign.MemorySegment mode = allocateInt(arena);
+        try (Arena arena = Arena.ofConfined()) {
+            MemorySegment console;
+            MemorySegment mode = allocateInt(arena);
             switch (stream) {
                 case Input:
                     console = GetStdHandle(STD_INPUT_HANDLE);
@@ -168,8 +171,8 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<java.lang.fore
         }
     }
 
-    private static java.lang.foreign.MemorySegment allocateInt(java.lang.foreign.Arena arena) {
-        return arena.allocate(java.lang.foreign.ValueLayout.JAVA_INT);
+    private static MemorySegment allocateInt(Arena arena) {
+        return arena.allocate(ValueLayout.JAVA_INT);
     }
 
     NativeWinSysTerminal(
@@ -181,9 +184,9 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<java.lang.fore
             Charset encoding,
             boolean nativeSignals,
             SignalHandler signalHandler,
-            java.lang.foreign.MemorySegment inConsole,
+            MemorySegment inConsole,
             int inConsoleMode,
-            java.lang.foreign.MemorySegment outConsole,
+            MemorySegment outConsole,
             int outConsoleMode)
             throws IOException {
         this(
@@ -214,9 +217,9 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<java.lang.fore
             Charset outputEncoding,
             boolean nativeSignals,
             SignalHandler signalHandler,
-            java.lang.foreign.MemorySegment inConsole,
+            MemorySegment inConsole,
             int inConsoleMode,
-            java.lang.foreign.MemorySegment outConsole,
+            MemorySegment outConsole,
             int outConsoleMode)
             throws IOException {
         super(
@@ -237,23 +240,23 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<java.lang.fore
     }
 
     @Override
-    protected int getConsoleMode(java.lang.foreign.MemorySegment console) {
-        try (java.lang.foreign.Arena arena = java.lang.foreign.Arena.ofConfined()) {
-            java.lang.foreign.MemorySegment mode = arena.allocate(java.lang.foreign.ValueLayout.JAVA_INT);
+    protected int getConsoleMode(MemorySegment console) {
+        try (Arena arena = Arena.ofConfined()) {
+            MemorySegment mode = arena.allocate(ValueLayout.JAVA_INT);
             if (GetConsoleMode(console, mode) == 0) {
                 return -1;
             }
-            return mode.get(java.lang.foreign.ValueLayout.JAVA_INT, 0);
+            return mode.get(ValueLayout.JAVA_INT, 0);
         }
     }
 
     @Override
-    protected void setConsoleMode(java.lang.foreign.MemorySegment console, int mode) {
+    protected void setConsoleMode(MemorySegment console, int mode) {
         SetConsoleMode(console, mode);
     }
 
     public Size getSize() {
-        try (java.lang.foreign.Arena arena = java.lang.foreign.Arena.ofConfined()) {
+        try (Arena arena = Arena.ofConfined()) {
             CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO(arena);
             GetConsoleScreenBufferInfo(outConsole, info);
             return new Size(info.windowWidth(), info.windowHeight());
@@ -262,7 +265,7 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<java.lang.fore
 
     @Override
     public Size getBufferSize() {
-        try (java.lang.foreign.Arena arena = java.lang.foreign.Arena.ofConfined()) {
+        try (Arena arena = Arena.ofConfined()) {
             CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO(arena);
             GetConsoleScreenBufferInfo(outConsole, info);
             return new Size(info.size().x(), info.size().y());
@@ -270,7 +273,7 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<java.lang.fore
     }
 
     protected boolean processConsoleInput() throws IOException {
-        try (java.lang.foreign.Arena arena = java.lang.foreign.Arena.ofConfined()) {
+        try (Arena arena = Arena.ofConfined()) {
             INPUT_RECORD[] events;
             if (inConsole != null
                     && inConsole.address() != INVALID_HANDLE_VALUE
@@ -349,7 +352,7 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<java.lang.fore
 
     @Override
     public Cursor getCursorPosition(IntConsumer discarded) {
-        try (java.lang.foreign.Arena arena = java.lang.foreign.Arena.ofConfined()) {
+        try (Arena arena = Arena.ofConfined()) {
             CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO(arena);
             if (GetConsoleScreenBufferInfo(outConsole, info) == 0) {
                 throw new IOError(new IOException("Could not get the cursor position: " + getLastErrorMessage()));
@@ -360,7 +363,7 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<java.lang.fore
 
     @Override
     public int getDefaultForegroundColor() {
-        try (java.lang.foreign.Arena arena = java.lang.foreign.Arena.ofConfined()) {
+        try (Arena arena = Arena.ofConfined()) {
             CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO(arena);
             if (GetConsoleScreenBufferInfo(outConsole, info) == 0) {
                 return -1;
@@ -371,7 +374,7 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<java.lang.fore
 
     @Override
     public int getDefaultBackgroundColor() {
-        try (java.lang.foreign.Arena arena = java.lang.foreign.Arena.ofConfined()) {
+        try (Arena arena = Arena.ofConfined()) {
             CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO(arena);
             if (GetConsoleScreenBufferInfo(outConsole, info) == 0) {
                 return -1;
