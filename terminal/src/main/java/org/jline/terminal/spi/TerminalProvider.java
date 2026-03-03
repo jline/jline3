@@ -391,6 +391,21 @@ public interface TerminalProvider {
     int systemStreamWidth(SystemStream stream);
 
     /**
+     * Returns the Windows console output codepage.
+     *
+     * <p>
+     * On Windows, this method returns the console output codepage (equivalent to
+     * {@code GetConsoleOutputCP()}). On non-Windows platforms, or if the codepage
+     * cannot be determined, this method returns {@code -1}.
+     * </p>
+     *
+     * @return the console output codepage, or {@code -1} if not available
+     */
+    default int getConsoleCodepage() {
+        return -1;
+    }
+
+    /**
      * Loads a terminal provider with the specified name.
      *
      * <h2>Provider Discovery Mechanism</h2>

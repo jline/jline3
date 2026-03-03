@@ -138,6 +138,15 @@ final class Kernel32 {
         }
     }
 
+    public static int GetConsoleOutputCP() {
+        MethodHandle mh$ = requireNonNull(GetConsoleOutputCP$MH, "GetConsoleOutputCP");
+        try {
+            return (int) mh$.invokeExact();
+        } catch (Throwable ex$) {
+            throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
     public static int SetConsoleTitleW(MemorySegment lpConsoleTitle) {
         MethodHandle mh$ = requireNonNull(SetConsoleTitleW$MH, "SetConsoleTitleW");
         try {
@@ -358,6 +367,8 @@ final class Kernel32 {
             downcallHandle("SetConsoleMode", FunctionDescriptor.of(C_INT$LAYOUT, C_POINTER$LAYOUT, C_INT$LAYOUT));
     static final MethodHandle GetConsoleMode$MH =
             downcallHandle("GetConsoleMode", FunctionDescriptor.of(C_INT$LAYOUT, C_POINTER$LAYOUT, C_POINTER$LAYOUT));
+    static final MethodHandle GetConsoleOutputCP$MH =
+            downcallHandle("GetConsoleOutputCP", FunctionDescriptor.of(C_INT$LAYOUT));
 
     static final MethodHandle SetConsoleTitleW$MH =
             downcallHandle("SetConsoleTitleW", FunctionDescriptor.of(C_INT$LAYOUT, C_POINTER$LAYOUT));
