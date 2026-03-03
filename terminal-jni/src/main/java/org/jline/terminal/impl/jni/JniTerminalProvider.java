@@ -97,6 +97,14 @@ public class JniTerminalProvider implements TerminalProvider {
         return TerminalBuilder.PROP_PROVIDER_JNI;
     }
 
+    @Override
+    public int getConsoleCodepage() {
+        if (OSUtils.IS_WINDOWS) {
+            return org.jline.nativ.Kernel32.GetConsoleOutputCP();
+        }
+        return -1;
+    }
+
     public Pty current(SystemStream systemStream) throws IOException {
         String osName = System.getProperty("os.name");
         if (osName.startsWith("Linux")) {

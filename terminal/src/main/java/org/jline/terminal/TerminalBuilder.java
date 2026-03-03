@@ -732,10 +732,6 @@ public final class TerminalBuilder {
         if (name == null) {
             name = "JLine terminal";
         }
-        Charset encoding = computeEncoding();
-        Charset stdinEncoding = computeStdinEncoding();
-        Charset stdoutEncoding = computeStdoutEncoding();
-        Charset stderrEncoding = computeStderrEncoding();
         String type = computeType();
 
         String provider = this.provider;
@@ -752,6 +748,20 @@ public final class TerminalBuilder {
         }
         IllegalStateException exception = new IllegalStateException("Unable to create a terminal");
         List<TerminalProvider> providers = getProviders(provider, exception);
+
+        // Query providers for console codepage (Windows auto-detection)
+        int consoleCodepage = -1;
+        for (TerminalProvider prov : providers) {
+            consoleCodepage = prov.getConsoleCodepage();
+            if (consoleCodepage >= 0) {
+                break;
+            }
+        }
+
+        Charset encoding = computeEncoding(consoleCodepage);
+        Charset stdinEncoding = computeStdinEncoding();
+        Charset stdoutEncoding = computeStdoutEncoding();
+        Charset stderrEncoding = computeStderrEncoding();
         Terminal terminal = null;
         if ((system != null && system) || (system == null && in == null && out == null)) {
             if (system != null
@@ -989,6 +999,10 @@ public final class TerminalBuilder {
     }
 
     public Charset computeEncoding() {
+        return computeEncoding(-1);
+    }
+
+    Charset computeEncoding(int consoleCodepage) {
         Charset encoding = this.encoding;
         if (encoding == null) {
             String charsetName = System.getProperty(PROP_ENCODING);
@@ -1007,7 +1021,7 @@ public final class TerminalBuilder {
             // Auto-detect Windows console codepage if not explicitly set
             // Only auto-detect when codepage == 0 (unset), not -1 (explicitly set to force UTF-8)
             if (codepage == 0 && OSUtils.IS_WINDOWS && !OSUtils.IS_CYGWIN && !OSUtils.IS_MSYSTEM) {
-                codepage = getConsoleCodepage();
+                codepage = consoleCodepage;
             }
             if (codepage > 0) {
                 encoding = getCodepageCharset(codepage);
@@ -1170,39 +1184,6 @@ public final class TerminalBuilder {
     }
 
     private static final int UTF8_CODE_PAGE = 65001;
-
-    /**
-     * Auto-detect the Windows console output codepage using GetConsoleOutputCP().
-     * Uses reflection to avoid hard dependency on native provider modules.
-     *
-     * @return the detected codepage (positive integer), 0 if detection fails or API returns 0,
-     *         or -1 to indicate no native provider is available
-     */
-    private static int getConsoleCodepage() {
-        try {
-            // Try JNI provider's Kernel32 first
-            Class<?> kernel32Class = Class.forName("org.jline.nativ.Kernel32");
-            java.lang.reflect.Method method = kernel32Class.getMethod("GetConsoleOutputCP");
-            int codepage = (Integer) method.invoke(null);
-            // GetConsoleOutputCP returns 0 on failure - treat as detection failure
-            return codepage > 0 ? codepage : 0;
-        } catch (ClassNotFoundException | NoSuchMethodException e) {
-            // JNI provider not available, try FFM provider
-            try {
-                Class<?> kernel32Class = Class.forName("org.jline.terminal.impl.ffm.Kernel32");
-                java.lang.reflect.Method method = kernel32Class.getMethod("GetConsoleOutputCP");
-                int codepage = (Integer) method.invoke(null);
-                // GetConsoleOutputCP returns 0 on failure - treat as detection failure
-                return codepage > 0 ? codepage : 0;
-            } catch (Throwable ex) {
-                // FFM provider not available or reflection failed, return -1
-                return -1;
-            }
-        } catch (Throwable e) {
-            // Reflection failed (including ExceptionInInitializerError, LinkageError), return -1
-            return -1;
-        }
-    }
 
     private static Charset getCodepageCharset(int codepage) {
         // http://docs.oracle.com/javase/6/docs/technotes/guides/intl/encoding.doc.html
