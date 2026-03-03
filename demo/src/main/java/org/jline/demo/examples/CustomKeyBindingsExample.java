@@ -45,9 +45,10 @@ public class CustomKeyBindingsExample {
         reader.getKeyMaps().get(LineReader.MAIN).bind(new Reference("capitalize-word"), "\u001b\u0063"); // Alt+C
 
         // 5. Bind F5 to clear screen
+        // Use KeyMap.key() to convert the terminal capability to an actual key sequence
         reader.getKeyMaps()
                 .get(LineReader.MAIN)
-                .bind(new Reference("clear-screen"), terminal.getStringCapability(Capability.key_f5));
+                .bind(new Reference("clear-screen"), KeyMap.key(terminal, Capability.key_f5));
 
         // 6. Bind Ctrl+X Ctrl+E to edit-and-execute-command
         reader.getKeyMaps()
