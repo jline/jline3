@@ -70,12 +70,20 @@ public class JniTerminalProvider implements TerminalProvider {
 
     /**
      * Checks that native access is enabled for this module.
-     * Uses reflection because {@code Module.isNativeAccessEnabled()} is only available on JDK 22+.
-     * On older JDKs, the check is skipped (no restrictions exist).
+     * Uses reflection because {@code Module.isNativeAccessEnabled()} is only available on JDK 22+
+     * (though GraalVM backported it to earlier versions).
+     * On JDKs without this method, the check is skipped (no restrictions exist).
+     * In GraalVM native images, the check is also skipped since native libraries
+     * are handled at build time.
      *
      * @throws UnsupportedOperationException if native access is not enabled
      */
     static void checkNativeAccess() {
+        // In GraalVM native images, native libraries are linked at build time,
+        // so runtime native access checks are not applicable
+        if (System.getProperty("org.graalvm.nativeimage.imagecode") != null) {
+            return;
+        }
         try {
             Method m = Module.class.getMethod("isNativeAccessEnabled");
             Boolean enabled = (Boolean) m.invoke(JniTerminalProvider.class.getModule());

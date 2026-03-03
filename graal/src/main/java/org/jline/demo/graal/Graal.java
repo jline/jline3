@@ -8,121 +8,81 @@
  */
 package org.jline.demo.graal;
 
-import java.io.File;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
-import java.util.function.Supplier;
-import java.util.logging.LogManager;
 
-import org.jline.builtins.ConfigurationPath;
-import org.jline.console.impl.Builtins;
-import org.jline.console.impl.Builtins.Command;
-import org.jline.console.impl.SystemRegistryImpl;
-import org.jline.keymap.KeyMap;
-import org.jline.reader.*;
-import org.jline.reader.LineReader.Option;
-import org.jline.reader.impl.DefaultParser;
+import org.jline.reader.LineReader;
+import org.jline.shell.Shell;
 import org.jline.terminal.Terminal;
-import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.spi.TerminalExt;
+import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
-import org.jline.widget.TailTipWidgets;
-import org.jline.widget.TailTipWidgets.TipType;
-import org.jline.widget.Widgets;
 
 public class Graal {
 
     public static void main(String[] args) {
+        if (args.length > 0 && "--check".equals(args[0])) {
+            check();
+            return;
+        }
         try {
-            // Init log
-            String fname = System.getProperty("java.util.logging.config.file");
-            if (fname != null) {
-                LogManager.getLogManager().readConfiguration();
-            }
-            Supplier<Path> workDir = () -> Paths.get(System.getProperty("user.dir"));
-            //
-            // Parser & Terminal
-            //
-            DefaultParser parser = new DefaultParser();
-            parser.setEofOnUnclosedQuote(true);
-            parser.setEscapeChars(null);
-            parser.setRegexVariable(null); // we do not have console variables!
             Terminal terminal = TerminalBuilder.builder().build();
-            Thread executeThread = Thread.currentThread();
-            terminal.handle(Signal.INT, signal -> executeThread.interrupt());
-            //
-            // Command registries
-            //
-            File file = new File(Graal.class
-                    .getProtectionDomain()
-                    .getCodeSource()
-                    .getLocation()
-                    .toURI()
-                    .getPath());
-            String root = file.getCanonicalPath();
-            root = root.substring(0, root.length() - 6);
-            ConfigurationPath configPath = new ConfigurationPath(Paths.get(root), Paths.get(root));
-            Set<Builtins.Command> commands = new HashSet<>(Arrays.asList(Builtins.Command.values()));
-            commands.remove(Command.TTOP); // ttop command is not supported in GraalVM
-            Builtins builtins = new Builtins(commands, workDir, configPath, null);
-            SystemRegistryImpl systemRegistry = new SystemRegistryImpl(parser, terminal, workDir, configPath);
-            systemRegistry.setCommandRegistries(builtins);
-            //
-            // LineReader
-            //
-            LineReader reader = LineReaderBuilder.builder()
+
+            System.out.println(terminal.getName() + ": " + terminal.getType() + ", provider="
+                    + ((TerminalExt) terminal).getProvider().name());
+
+            Shell shell = Shell.builder()
                     .terminal(terminal)
-                    .completer(systemRegistry.completer())
-                    .parser(parser)
+                    .prompt("graal> ")
+                    .helpCommands(true)
+                    .historyCommands(true)
+                    .optionCommands(true)
+                    .variableCommands(true)
+                    .commandHighlighter(true)
+                    .historyFile(Paths.get(System.getProperty("user.home"), ".jline-graal-history"))
+                    .option(LineReader.Option.INSERT_BRACKET, true)
+                    .option(LineReader.Option.EMPTY_WORD_OPTIONS, false)
+                    .option(LineReader.Option.USE_FORWARD_SLASH, true)
+                    .option(LineReader.Option.DISABLE_EVENT_EXPANSION, true)
                     .variable(LineReader.SECONDARY_PROMPT_PATTERN, "%M%P > ")
                     .variable(LineReader.INDENTATION, 2)
                     .variable(LineReader.LIST_MAX, 100)
-                    .variable(LineReader.HISTORY_FILE, Paths.get(root, "history"))
-                    .option(Option.INSERT_BRACKET, true)
-                    .option(Option.EMPTY_WORD_OPTIONS, false)
-                    .option(Option.USE_FORWARD_SLASH, true) // use forward slash in directory separator
-                    .option(Option.DISABLE_EVENT_EXPANSION, true)
+                    .onReaderReady(reader -> {
+                        if (OSUtils.IS_WINDOWS) {
+                            reader.setVariable(LineReader.BLINK_MATCHING_PAREN, 0);
+                        }
+                    })
                     .build();
-            if (OSUtils.IS_WINDOWS) {
-                reader.setVariable(
-                        LineReader.BLINK_MATCHING_PAREN, 0); // if enabled cursor remains in begin parenthesis (gitbash)
-            }
-            //
-            // complete command registries
-            //
-            builtins.setLineReader(reader);
-            //
-            // widgets and console initialization
-            //
-            new TailTipWidgets(reader, systemRegistry::commandDescription, 5, TipType.COMPLETER);
-            KeyMap<Binding> keyMap = reader.getKeyMaps().get("main");
-            keyMap.bind(new Reference(Widgets.TAILTIP_TOGGLE), KeyMap.alt("s"));
-            //
-            // REPL-loop
-            //
-            System.out.println(terminal.getName() + ": " + terminal.getType() + ", provider="
-                    + ((TerminalExt) terminal).getProvider().name());
-            while (true) {
-                try {
-                    systemRegistry.cleanUp(); // reset output streams
-                    String line = reader.readLine("graal> ");
-                    Object result = systemRegistry.execute(line);
-                    if (result != null) {
-                        System.out.println(result);
-                    }
-                } catch (UserInterruptException e) {
-                    // Ignore
-                } catch (EndOfFileException e) {
-                    break;
-                } catch (Exception e) {
-                    systemRegistry.trace(true, e); // print exception
-                }
-            }
-            systemRegistry.close();
+
+            shell.run();
         } catch (Throwable t) {
             t.printStackTrace();
+        }
+    }
+
+    /**
+     * Verify that a terminal provider can be loaded and used.
+     * This is used as a smoke test for native image builds.
+     */
+    private static void check() {
+        try {
+            TerminalProvider provider = null;
+            for (String name : new String[] {"ffm", "jni"}) {
+                try {
+                    provider = TerminalProvider.load(name);
+                    break;
+                } catch (Throwable ignored) {
+                }
+            }
+            if (provider == null) {
+                throw new IllegalStateException("No terminal provider found");
+            }
+            System.out.println("Provider loaded: " + provider.name());
+            System.out.println("CHECK PASSED");
+        } catch (Throwable t) {
+            System.err.println("CHECK FAILED: " + t.getMessage());
+            t.printStackTrace(System.err);
+            System.exit(1);
         }
     }
 }

@@ -14,7 +14,7 @@
     <parent />
 
     <artifactId>jline-graal</artifactId>
-    <name>JLine Graal Demo</name>
+    <name>JLine Native Demo</name>
 
     <properties>
         <automatic.module.name>org.jline.graal</automatic.module.name>
@@ -22,14 +22,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.jline</groupId>
-            <artifactId>jline-terminal-jni</artifactId>
-        </dependency>
-        <dependency>
-            <artifactId>jline-reader</artifactId>
-        </dependency>
-        <dependency>
-            <artifactId>jline-console</artifactId>
+            <artifactId>jline-shell</artifactId>
         </dependency>
 
         <dependency>
@@ -39,11 +32,6 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-jdk14</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.graalvm.sdk</groupId>
-            <artifactId>graal-sdk</artifactId>
-            <scope>provided</scope>
         </dependency>
     </dependencies>
 
@@ -65,24 +53,83 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>org.graalvm.nativeimage</groupId>
-                <artifactId>native-image-maven-plugin</artifactId>
+                <groupId>org.graalvm.buildtools</groupId>
+                <artifactId>native-maven-plugin</artifactId>
                 <configuration>
                     <skip>${native.image.skip}</skip>
                     <imageName>graal</imageName>
                     <mainClass>org.jline.demo.graal.Graal</mainClass>
-                    <buildArgs />
                 </configuration>
                 <executions>
                     <execution>
+                        <id>build-native</id>
                         <goals>
-                            <goal>native-image</goal>
+                            <goal>compile-no-fork</goal>
                         </goals>
                         <phase>package</phase>
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>verify-native-image</id>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <phase>verify</phase>
+                        <configuration>
+                            <skip>${native.image.skip}</skip>
+                            <executable>${project.build.directory}/graal</executable>
+                            <arguments>
+                                <argument>--check</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>native-image-ffm</id>
+            <properties>
+                <java.release.version>22</java.release.version>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.jline</groupId>
+                    <artifactId>jline-terminal-ffm</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <configuration>
+                            <buildArgs>
+                                <arg>--enable-native-access=ALL-UNNAMED</arg>
+                            </buildArgs>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>native-image-jni</id>
+            <dependencies>
+                <dependency>
+                    <groupId>org.jline</groupId>
+                    <artifactId>jline-terminal-jni</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
 
 </project>
