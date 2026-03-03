@@ -608,7 +608,13 @@
         </profile>
 
         <profile>
-            <id>native-image</id>
+            <id>native-image-ffm</id>
+            <properties>
+                <native.image.skip>false</native.image.skip>
+            </properties>
+        </profile>
+        <profile>
+            <id>native-image-jni</id>
             <properties>
                 <native.image.skip>false</native.image.skip>
             </properties>

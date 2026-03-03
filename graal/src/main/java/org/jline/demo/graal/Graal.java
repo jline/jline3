@@ -26,7 +26,7 @@ public class Graal {
             return;
         }
         try {
-            Terminal terminal = TerminalBuilder.builder().provider("ffm").build();
+            Terminal terminal = TerminalBuilder.builder().build();
 
             System.out.println(terminal.getName() + ": " + terminal.getType() + ", provider="
                     + ((TerminalExt) terminal).getProvider().name());
@@ -61,13 +61,23 @@ public class Graal {
     }
 
     /**
-     * Verify that the FFM terminal provider can be loaded and used.
+     * Verify that a terminal provider can be loaded and used.
      * This is used as a smoke test for native image builds.
      */
     private static void check() {
         try {
-            TerminalProvider provider = TerminalProvider.load("ffm");
-            System.out.println("FFM provider loaded: " + provider.name());
+            TerminalProvider provider = null;
+            for (String name : new String[] {"ffm", "jni"}) {
+                try {
+                    provider = TerminalProvider.load(name);
+                    break;
+                } catch (Throwable ignored) {
+                }
+            }
+            if (provider == null) {
+                throw new IllegalStateException("No terminal provider found");
+            }
+            System.out.println("Provider loaded: " + provider.name());
             System.out.println("CHECK PASSED");
         } catch (Throwable t) {
             System.err.println("CHECK FAILED: " + t.getMessage());

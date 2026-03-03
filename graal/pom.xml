@@ -18,14 +18,9 @@
 
     <properties>
         <automatic.module.name>org.jline.graal</automatic.module.name>
-        <java.release.version>22</java.release.version>
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>org.jline</groupId>
-            <artifactId>jline-terminal-ffm</artifactId>
-        </dependency>
         <dependency>
             <artifactId>jline-shell</artifactId>
         </dependency>
@@ -64,9 +59,6 @@
                     <skip>${native.image.skip}</skip>
                     <imageName>graal</imageName>
                     <mainClass>org.jline.demo.graal.Graal</mainClass>
-                    <buildArgs>
-                        <arg>--enable-native-access=ALL-UNNAMED</arg>
-                    </buildArgs>
                 </configuration>
                 <executions>
                     <execution>
@@ -100,5 +92,44 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>native-image-ffm</id>
+            <properties>
+                <java.release.version>22</java.release.version>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.jline</groupId>
+                    <artifactId>jline-terminal-ffm</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <configuration>
+                            <buildArgs>
+                                <arg>--enable-native-access=ALL-UNNAMED</arg>
+                            </buildArgs>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>native-image-jni</id>
+            <dependencies>
+                <dependency>
+                    <groupId>org.jline</groupId>
+                    <artifactId>jline-terminal-jni</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
 
 </project>
