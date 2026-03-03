@@ -47,6 +47,13 @@ jobs:
           java-version: 22
           cache: maven
 
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v7
+        with:
+          gpg_private_key: ${{ secrets.GPG_SIGNING_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+          fingerprint: ${{ secrets.GPG_KEY_FINGERPRINT }}
+
       - name: Release
         env:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
@@ -54,6 +61,7 @@ jobs:
           MAVEN_GPG_KEY_FINGERPRINT: ${{ secrets.GPG_KEY_FINGERPRINT }}
           MAVEN_USER: ${{ secrets.MAVEN_USER }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+          MVX_USE_SYSTEM_JAVA: true
         run: |
           ./mvx mvn -- -B deploy -Dnjord.autoPublish -Pbundle,javadoc,format-check,sign -s .github/release-settings.xml
 
