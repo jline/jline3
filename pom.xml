@@ -98,7 +98,7 @@
         <picocli.version>4.7.7</picocli.version>
         <graal.version>25.0.2</graal.version>
         <graal.plugin.version>21.2.0</graal.plugin.version>
-        <native.plugin.version>0.10.6</native.plugin.version>
+        <native.plugin.version>0.11.4</native.plugin.version>
         <palantir.version>2.89.0</palantir.version>
 
         <surefire.argLine>--add-opens java.base/java.io=org.jline.nativ --add-opens java.base/java.io=org.jline.terminal</surefire.argLine>
