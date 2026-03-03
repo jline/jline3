@@ -732,10 +732,6 @@ public final class TerminalBuilder {
         if (name == null) {
             name = "JLine terminal";
         }
-        Charset encoding = computeEncoding();
-        Charset stdinEncoding = computeStdinEncoding();
-        Charset stdoutEncoding = computeStdoutEncoding();
-        Charset stderrEncoding = computeStderrEncoding();
         String type = computeType();
 
         String provider = this.provider;
@@ -752,6 +748,20 @@ public final class TerminalBuilder {
         }
         IllegalStateException exception = new IllegalStateException("Unable to create a terminal");
         List<TerminalProvider> providers = getProviders(provider, exception);
+
+        // Query providers for console codepage (Windows auto-detection)
+        int consoleCodepage = -1;
+        for (TerminalProvider prov : providers) {
+            consoleCodepage = prov.getConsoleCodepage();
+            if (consoleCodepage >= 0) {
+                break;
+            }
+        }
+
+        Charset encoding = computeEncoding(consoleCodepage);
+        Charset stdinEncoding = computeStdinEncoding();
+        Charset stdoutEncoding = computeStdoutEncoding();
+        Charset stderrEncoding = computeStderrEncoding();
         Terminal terminal = null;
         if ((system != null && system) || (system == null && in == null && out == null)) {
             if (system != null
@@ -989,6 +999,10 @@ public final class TerminalBuilder {
     }
 
     public Charset computeEncoding() {
+        return computeEncoding(-1);
+    }
+
+    Charset computeEncoding(int consoleCodepage) {
         Charset encoding = this.encoding;
         if (encoding == null) {
             String charsetName = System.getProperty(PROP_ENCODING);
@@ -1004,7 +1018,12 @@ public final class TerminalBuilder {
                     codepage = Integer.parseInt(str);
                 }
             }
-            if (codepage >= 0) {
+            // Auto-detect Windows console codepage if not explicitly set
+            // Only auto-detect when codepage == 0 (unset), not -1 (explicitly set to force UTF-8)
+            if (codepage == 0 && OSUtils.IS_WINDOWS && !OSUtils.IS_CYGWIN && !OSUtils.IS_MSYSTEM) {
+                codepage = consoleCodepage;
+            }
+            if (codepage > 0) {
                 encoding = getCodepageCharset(codepage);
             } else {
                 encoding = StandardCharsets.UTF_8;
