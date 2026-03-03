@@ -68,6 +68,7 @@ jobs:
       - name: Post release
         env:
           GH_TOKEN: ${{ github.token }}
+          MVX_USE_SYSTEM_JAVA: true
         shell: bash
         run: |
           gh extension install valeriobelli/gh-milestone
