@@ -623,12 +623,20 @@ public class ExecTerminalProvider implements TerminalProvider {
 
     /**
      * Checks that native access is enabled for this module.
-     * Uses reflection because {@code Module.isNativeAccessEnabled()} is only available on JDK 22+.
-     * On older JDKs, the check is skipped (no restrictions exist).
+     * JNI native access restrictions are only enforced from JDK 24+, so the check
+     * is skipped on earlier versions. Uses reflection because
+     * {@code Module.isNativeAccessEnabled()} is not available on all JDK versions.
      *
      * @throws UnsupportedOperationException if native access is not enabled
      */
     static void checkNativeAccess() {
+        // JNI native access restrictions are only enforced starting from JDK 24.
+        // Some JDK 21 builds (e.g. 21.0.10) backported Module.isNativeAccessEnabled(),
+        // but it returns false even though JNI works fine without --enable-native-access.
+        // See https://github.com/jline/jline3/issues/1689
+        if (Runtime.version().feature() < 24) {
+            return;
+        }
         try {
             Method m = Module.class.getMethod("isNativeAccessEnabled");
             Boolean enabled = (Boolean) m.invoke(ExecTerminalProvider.class.getModule());
@@ -637,7 +645,7 @@ public class ExecTerminalProvider implements TerminalProvider {
                         + ExecTerminalProvider.class.getModule());
             }
         } catch (NoSuchMethodException e) {
-            // JDK < 22, no native access restrictions
+            // Method not available, no native access restrictions
         } catch (UnsupportedOperationException e) {
             throw e;
         } catch (ReflectiveOperationException e) {
