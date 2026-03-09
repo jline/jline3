@@ -76,6 +76,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.outputTimestamp>${nisse.jgit.dateIso8601}</project.build.outputTimestamp>
+        <maven.consumer.pom.flatten>true</maven.consumer.pom.flatten>
 
         <java.build.version>22</java.build.version>
         <java.release.version>11</java.release.version>
