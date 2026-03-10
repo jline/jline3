@@ -22,6 +22,7 @@ import org.jline.utils.FastBufferedOutputStream;
 import org.jline.utils.NonBlocking;
 import org.jline.utils.NonBlockingInputStream;
 import org.jline.utils.NonBlockingReader;
+import org.jline.utils.OSUtils;
 import org.jline.utils.ShutdownHooks;
 import org.jline.utils.ShutdownHooks.Task;
 import org.jline.utils.Signals;
@@ -113,6 +114,18 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
             }
         }
         return prev;
+    }
+
+    @Override
+    public boolean supportsGraphemeClusterMode() {
+        // On Windows (Cygwin/MSYSTEM), the ExecPty slave output goes to a raw
+        // FileDescriptor (stdout/stderr) rather than a real PTY device.  Writing
+        // the DECRQM probe to a raw fd contaminates the process output and can
+        // corrupt downstream consumers that parse it.
+        if (OSUtils.IS_WINDOWS) {
+            return false;
+        }
+        return super.supportsGraphemeClusterMode();
     }
 
     public NonBlockingReader reader() {

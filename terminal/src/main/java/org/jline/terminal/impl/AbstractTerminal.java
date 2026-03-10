@@ -34,7 +34,6 @@ import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Log;
-import org.jline.utils.OSUtils;
 import org.jline.utils.Status;
 
 /**
@@ -402,15 +401,6 @@ public abstract class AbstractTerminal implements TerminalExt {
             return false;
         }
         if (!type.startsWith("xterm")) {
-            return false;
-        }
-        // On Windows (Cygwin/MSYSTEM), the PosixSysTerminal uses ExecPty whose
-        // slave output goes to a raw FileDescriptor (stdout/stderr) rather than
-        // a real PTY device.  Writing the DECRQM probe to a raw fd contaminates
-        // the process output and can corrupt downstream consumers that parse it.
-        // AbstractWindowsTerminal already overrides supportsGraphemeClusterMode()
-        // to return false, so this guard only affects the Cygwin/MSYSTEM path.
-        if (OSUtils.IS_WINDOWS) {
             return false;
         }
         // Enter raw mode to prevent the terminal response from being echoed
