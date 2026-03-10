@@ -17,7 +17,9 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.jline.terminal.impl.exec.ExecPty;
 import org.jline.terminal.spi.Pty;
+import org.jline.terminal.spi.SystemStream;
 import org.jline.utils.FastBufferedOutputStream;
 import org.jline.utils.NonBlocking;
 import org.jline.utils.NonBlockingInputStream;
@@ -118,12 +120,16 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
 
     @Override
     public boolean supportsGraphemeClusterMode() {
-        // On Windows (Cygwin/MSYSTEM), the ExecPty slave output goes to a raw
-        // FileDescriptor (stdout/stderr) rather than a real PTY device.  Writing
-        // the DECRQM probe to a raw fd contaminates the process output and can
-        // corrupt downstream consumers that parse it.
-        if (OSUtils.IS_WINDOWS) {
-            return false;
+        // On Windows (Cygwin/MSYSTEM), when using ExecPty, the slave output
+        // goes to a raw FileDescriptor (stdout/stderr) rather than a real PTY
+        // device.  If that fd is piped (e.g. subprocess with captured output),
+        // writing the DECRQM probe contaminates the process output.  Guard by
+        // asking the provider whether the output stream is actually a terminal.
+        if (OSUtils.IS_WINDOWS && getPty() instanceof ExecPty) {
+            SystemStream ss = getSystemStream();
+            if (ss != null && !getPty().getProvider().isSystemStream(ss)) {
+                return false;
+            }
         }
         return super.supportsGraphemeClusterMode();
     }
