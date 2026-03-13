@@ -39,14 +39,14 @@ jobs:
       # Drafts your next Release notes as Pull Requests are merged into "master"
       - name: Run release drafter for master branch
         if: github.ref == 'refs/heads/master'
-        uses: release-drafter/release-drafter@v6
+        uses: release-drafter/release-drafter@v7
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Drafts your next Release notes as Pull Requests are merged into "jline-3.x"
       - name: Run release drafter for jline-3.x branch
         if: github.ref == 'refs/heads/jline-3.x'
-        uses: release-drafter/release-drafter@v6
+        uses: release-drafter/release-drafter@v7
         with:
           config-name: release-drafter-3x.yml
         env:
