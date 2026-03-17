@@ -16,7 +16,7 @@
     <parent>
         <groupId>org.jline</groupId>
         <artifactId>jline-parent</artifactId>
-        <version>${revision}</version>
+        <version>${nisse.jgit.dynamicVersion}</version>
     </parent>
 
     <artifactId>jline-builtins</artifactId>
