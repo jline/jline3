@@ -9,11 +9,13 @@
     https://opensource.org/licenses/BSD-3-Clause
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.1.0 https://maven.apache.org/xsd/maven-4.1.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.jline</groupId>
     <artifactId>jline-parent</artifactId>
-    <version>${nisse.jgit.dynamicVersion}</version>
+    <version>${revision}</version>
     <packaging>pom</packaging>
     <name>JLine</name>
     <description>JLine</description>
@@ -48,10 +50,31 @@
         </mailingList>
     </mailingLists>
 
+    <modules>
+        <module>native</module>
+        <module>terminal</module>
+        <module>terminal-ffm</module>
+        <module>terminal-jni</module>
+        <module>reader</module>
+        <module>shell</module>
+        <module>builtins</module>
+        <module>console-ui</module>
+        <module>prompt</module>
+        <module>console</module>
+        <module>picocli</module>
+        <module>groovy</module>
+        <module>remote-ssh</module>
+        <module>remote-telnet</module>
+        <module>style</module>
+        <module>demo</module>
+        <module>graal</module>
+        <module>jansi-core</module>
+    </modules>
+
     <scm child.scm.connection.inherit.append.path="false" child.scm.developerConnection.inherit.append.path="false" child.scm.url.inherit.append.path="false">
         <connection>scm:git:https://github.com/jline/jline3.git</connection>
         <developerConnection>scm:git:https://github.com/jline/jline3.git</developerConnection>
-        <tag>${nisse.jgit.dynamicVersion}</tag>
+        <tag>HEAD</tag>
         <url>https://github.com/jline/jline3</url>
     </scm>
 
@@ -79,7 +102,7 @@
 
         <java.build.version>22</java.build.version>
         <java.release.version>11</java.release.version>
-        <maven.version>4.0.0-rc-3</maven.version>
+        <maven.version>3.9.0</maven.version>
 
         <native.image.skip>true</native.image.skip>
         <automatic.module.name />
@@ -106,6 +129,87 @@
 
     <dependencyManagement>
         <dependencies>
+
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-native</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-terminal</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-terminal-ffm</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-terminal-jni</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-reader</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-shell</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-builtins</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-console-ui</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-prompt</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-console</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-picocli</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-groovy</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-remote-ssh</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-remote-telnet</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-style</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jansi-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>org.fusesource.jansi</groupId>
@@ -547,6 +651,32 @@
                 <groupId>com.diffplug.spotless</groupId>
                 <artifactId>spotless-maven-plugin</artifactId>
             </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>1.6.0</version>
+                <configuration>
+                    <updatePomFile>true</updatePomFile>
+                    <flattenMode>resolveCiFriendliesOnly</flattenMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                        <phase>process-resources</phase>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                        <phase>clean</phase>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
@@ -558,6 +688,10 @@
                     <name>!nobundle</name>
                 </property>
             </activation>
+            <modules>
+                <module>jline</module>
+                <module>jansi</module>
+            </modules>
             <build>
                 <plugins>
                     <plugin>
@@ -574,10 +708,6 @@
                     </plugin>
                 </plugins>
             </build>
-            <subprojects>
-                <subproject>jline</subproject>
-                <subproject>jansi</subproject>
-            </subprojects>
         </profile>
 
         <profile>
@@ -656,26 +786,5 @@
             </build>
         </profile>
     </profiles>
-
-    <subprojects>
-        <subproject>native</subproject>
-        <subproject>terminal</subproject>
-        <subproject>terminal-ffm</subproject>
-        <subproject>terminal-jni</subproject>
-        <subproject>reader</subproject>
-        <subproject>shell</subproject>
-        <subproject>builtins</subproject>
-        <subproject>console-ui</subproject>
-        <subproject>prompt</subproject>
-        <subproject>console</subproject>
-        <subproject>picocli</subproject>
-        <subproject>groovy</subproject>
-        <subproject>remote-ssh</subproject>
-        <subproject>remote-telnet</subproject>
-        <subproject>style</subproject>
-        <subproject>demo</subproject>
-        <subproject>graal</subproject>
-        <subproject>jansi-core</subproject>
-    </subprojects>
 
 </project>
