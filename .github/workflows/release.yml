@@ -32,13 +32,18 @@ jobs:
       - name: Verify tag state
         id: version
         run: |
+          version=${GITHUB_REF#refs/tags/}
+          if [[ "$version" == *-* ]]; then
+            echo "Tag '$version' is not a release version (contains '-'), skipping"
+            exit 1
+          fi
           git fetch --tags
           echo "All recent tags:"
           git tag -l --sort=version:refname | head -5
           echo "Current commit: $(git rev-parse HEAD)"
           echo "Git describe: $(git describe --tags --always)"
-          echo "Tag: ${GITHUB_REF#refs/tags/}"
-          echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          echo "Tag: $version"
+          echo "version=$version" >> $GITHUB_OUTPUT
 
       - name: Setup Java
         uses: actions/setup-java@v5
