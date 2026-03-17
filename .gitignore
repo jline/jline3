@@ -8,4 +8,4 @@ build.rc
 
 .mvn/wrapper/maven-wrapper.jar
 .dependency-reduced-pom.xml
-.flattened-pom.xml
+.inlined-pom.xml
