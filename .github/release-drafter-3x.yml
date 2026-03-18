@@ -17,8 +17,8 @@
 
 # Configuration for Release Drafter for jline-3.x branch
 # This configuration is specifically for the 3.x maintenance branch
-name-template: $NEXT_PATCH_VERSION
-tag-template: $NEXT_PATCH_VERSION
+name-template: JLine $NEXT_PATCH_VERSION
+tag-template: jline-$NEXT_PATCH_VERSION
 version-template: $MAJOR.$MINOR.$PATCH
 commitish: jline-3.x
 

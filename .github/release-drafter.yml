@@ -16,8 +16,8 @@
 # under the License.
 
 # Configuration for Release Drafter: https://github.com/toolmantim/release-drafter
-name-template: 4.0.0
-tag-template: jline-4.0.0
+name-template: JLine $NEXT_PATCH_VERSION
+tag-template: $NEXT_PATCH_VERSION
 version-template: $MAJOR.$MINOR.$PATCH
 commitish: master
 
