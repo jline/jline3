@@ -835,14 +835,22 @@ public final class TerminalBuilder {
             }
             if (terminal == null && (forceDumb || dumb == null || dumb)) {
                 if (!forceDumb && dumb == null) {
-                    if (Log.isDebugEnabled()) {
-                        Log.warn("input is tty: " + system.get(SystemStream.Input));
-                        Log.warn("output is tty: " + system.get(SystemStream.Output));
-                        Log.warn("error is tty: " + system.get(SystemStream.Error));
-                        Log.warn("Creating a dumb terminal", exception);
-                    } else {
-                        Log.warn(
-                                "Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)");
+                    // Only warn if providers were available but couldn't create a terminal,
+                    // or if no providers loaded at all (can't determine TTY status).
+                    // When providers detect that no streams are TTYs, dumb fallback is expected.
+                    boolean noTty = !system.get(SystemStream.Input)
+                            && !system.get(SystemStream.Output)
+                            && !system.get(SystemStream.Error);
+                    if (providers.isEmpty() || !noTty) {
+                        if (Log.isDebugEnabled()) {
+                            Log.warn("input is tty: " + system.get(SystemStream.Input));
+                            Log.warn("output is tty: " + system.get(SystemStream.Output));
+                            Log.warn("error is tty: " + system.get(SystemStream.Error));
+                            Log.warn("Creating a dumb terminal", exception);
+                        } else {
+                            Log.warn(
+                                    "Unable to create a system terminal, creating a dumb terminal (enable debug logging for more information)");
+                        }
                     }
                 }
                 type = getDumbTerminalType(dumb, systemStream);
