@@ -212,6 +212,7 @@ public class ScreenTerminal {
             Arrays.fill(screen[i], attr | 0x00000020);
             Arrays.fill(screen2[i], attr | 0x00000020);
         }
+        history.clear();
         // Scroll parameters
         scroll_area_y0 = 0;
         scroll_area_y1 = height;
