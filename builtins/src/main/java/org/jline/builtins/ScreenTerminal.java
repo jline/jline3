@@ -127,7 +127,8 @@ public class ScreenTerminal {
 
     private List<Integer> tab_stops;
 
-    private final List<long[]> history = new ArrayList<>();
+    private List<long[]> history = new ArrayList<>();
+    private List<long[]> history2 = new ArrayList<>();
 
     private AtomicBoolean dirty = new AtomicBoolean(true);
 
@@ -213,6 +214,7 @@ public class ScreenTerminal {
             Arrays.fill(screen2[i], attr | 0x00000020);
         }
         history.clear();
+        history2.clear();
         // Scroll parameters
         scroll_area_y0 = 0;
         scroll_area_y1 = height;
@@ -623,6 +625,9 @@ public class ScreenTerminal {
                         long[][] s = screen;
                         screen = screen2;
                         screen2 = s;
+                        List<long[]> h = history;
+                        history = history2;
+                        history2 = h;
                         Map<String, Object> map = vt100_saved;
                         vt100_saved = vt100_saved2;
                         vt100_saved2 = map;
@@ -633,6 +638,12 @@ public class ScreenTerminal {
                         c = vt100_alternate_saved_cy;
                         vt100_alternate_saved_cy = cy;
                         cy = Math.min(c, height - 1);
+                        if (!state) { // Alt-screen does not persist
+                            for (int i = 0; i < height; i++) {
+                                Arrays.fill(screen2[i], attr | 0x00000020);
+                            }
+                            history2.clear();
+                        }
                     }
                     vt100_mode_alt_screen = state;
                     break;
