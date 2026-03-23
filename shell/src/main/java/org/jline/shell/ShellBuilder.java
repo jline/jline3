@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -40,7 +41,7 @@ import org.jline.terminal.TerminalBuilder;
  *     .historyFile(path)               // optional
  *     .variable(name, value)           // forwarded to LineReader
  *     .option(Option.X, true)          // forwarded to LineReader
- *     .onReaderReady(reader -&gt; { ... })// optional callback
+ *     .onReaderReady((reader, dispatcher) -&gt; { ... })// optional callback
  *     .build();
  * </pre>
  *
@@ -58,7 +59,7 @@ public class ShellBuilder {
     private Supplier<String> rightPromptSupplier;
     private final Map<String, Object> variables = new LinkedHashMap<>();
     private final Map<Option, Boolean> options = new LinkedHashMap<>();
-    private Consumer<LineReader> onReaderReady;
+    private BiConsumer<LineReader, CommandDispatcher> onReaderReady;
     private File initScript;
     private JobManager jobManager;
     private PipelineParser pipelineParser;
@@ -201,12 +202,35 @@ public class ShellBuilder {
     /**
      * Sets a callback invoked after the LineReader is created but before {@link Shell#run()}.
      * <p>
-     * This is useful for setting up TailTipWidgets or other post-reader customizations.
+     * This is useful for setting up post-reader customizations.
      *
-     * @param onReaderReady the callback
+     * @param onReaderReady the callback receiving the LineReader
      * @return this builder
+     * @see #onReaderReady(BiConsumer)
      */
     public ShellBuilder onReaderReady(Consumer<LineReader> onReaderReady) {
+        this.onReaderReady = (reader, dispatcher) -> onReaderReady.accept(reader);
+        return this;
+    }
+
+    /**
+     * Sets a callback invoked after the LineReader is created but before {@link Shell#run()}.
+     * <p>
+     * This is useful for setting up {@link org.jline.shell.widget.CommandTailTipWidgets}
+     * or other post-reader customizations that need access to both the reader and the dispatcher.
+     *
+     * <pre>
+     * Shell.builder()
+     *     .onReaderReady((reader, dispatcher) -&gt; {
+     *         new CommandTailTipWidgets(reader, dispatcher, 5).enable();
+     *     })
+     *     .build();
+     * </pre>
+     *
+     * @param onReaderReady the callback receiving the LineReader and CommandDispatcher
+     * @return this builder
+     */
+    public ShellBuilder onReaderReady(BiConsumer<LineReader, CommandDispatcher> onReaderReady) {
         this.onReaderReady = onReaderReady;
         return this;
     }
@@ -460,7 +484,7 @@ public class ShellBuilder {
 
         // Callback
         if (onReaderReady != null) {
-            onReaderReady.accept(reader);
+            onReaderReady.accept(reader, disp);
         }
 
         return new Shell(term, ownTerminal, reader, disp, prompt, rightPromptSupplier, initScript, jobManager);
