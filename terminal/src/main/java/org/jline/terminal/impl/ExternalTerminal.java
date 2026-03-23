@@ -228,6 +228,13 @@ public class ExternalTerminal extends LineDisciplineTerminal {
         }
     }
 
+    @Override
+    public boolean supportsGraphemeClusterMode() {
+        // ExternalTerminal has no real terminal emulator on the other end,
+        // so probing for mode 2027 would consume actual input data from the pipe.
+        return false;
+    }
+
     protected void doClose() throws IOException {
         if (closed.compareAndSet(false, true)) {
             pause();
