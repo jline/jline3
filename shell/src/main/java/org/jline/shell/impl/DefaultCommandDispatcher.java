@@ -420,6 +420,11 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
     }
 
     private Completer buildCommandCompleter(Command cmd) {
+        // Check for a custom completer first (e.g., picocli-based completion)
+        Completer custom = cmd.completer();
+        if (custom != null) {
+            return custom;
+        }
         Map<String, Command> subs = cmd.subcommands();
         if (!subs.isEmpty()) {
             // Build a completer that offers subcommand names, then delegates
