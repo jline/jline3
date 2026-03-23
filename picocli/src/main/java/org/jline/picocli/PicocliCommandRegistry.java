@@ -15,17 +15,16 @@ import org.jline.console.ArgDesc;
 import org.jline.console.CmdDesc;
 import org.jline.console.CommandRegistry;
 import org.jline.console.impl.DescriptionAdapter;
+import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
-import org.jline.reader.impl.completer.ArgumentCompleter;
-import org.jline.reader.impl.completer.NullCompleter;
-import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.reader.impl.completer.SystemCompleter;
 import org.jline.shell.CommandDescription;
 import org.jline.shell.CommandGroup;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 
+import picocli.AutoComplete;
 import picocli.CommandLine;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Model.OptionSpec;
@@ -122,27 +121,17 @@ public class PicocliCommandRegistry implements CommandRegistry, CommandGroup {
     @Override
     public SystemCompleter compileCompleters() {
         SystemCompleter completer = new SystemCompleter();
-        for (Map.Entry<String, CommandLine> entry : commandLine.getSubcommands().entrySet()) {
-            String name = entry.getKey();
-            CommandSpec spec = entry.getValue().getCommandSpec();
-            List<String> completionStrings = new ArrayList<>();
-
-            // Add option completions
-            for (OptionSpec option : spec.options()) {
-                for (String optName : option.names()) {
-                    completionStrings.add(optName);
-                }
+        Completer picocliCompleter = (reader, line, candidates) -> {
+            List<CharSequence> completions = new ArrayList<>();
+            String[] args = line.words().toArray(new String[0]);
+            AutoComplete.complete(commandLine.getCommandSpec(), args, line.wordIndex(), 0, line.cursor(), completions);
+            for (CharSequence completion : completions) {
+                candidates.add(new Candidate(completion.toString()));
             }
-
-            // Add subcommand completions
-            for (String subName : entry.getValue().getSubcommands().keySet()) {
-                completionStrings.add(subName);
-            }
-
-            Completer argCompleter =
-                    new ArgumentCompleter(new StringsCompleter(completionStrings), NullCompleter.INSTANCE);
-            completer.add(name, argCompleter);
-        }
+        };
+        List<String> all = new ArrayList<>(commandNames());
+        all.addAll(commandAliases().keySet());
+        completer.add(all, picocliCompleter);
         return completer;
     }
 
@@ -293,18 +282,22 @@ public class PicocliCommandRegistry implements CommandRegistry, CommandGroup {
         }
 
         @Override
-        public List<Completer> completers() {
-            CommandSpec spec = sub.getCommandSpec();
-            List<String> completionStrings = new ArrayList<>();
-            for (OptionSpec option : spec.options()) {
-                for (String optName : option.names()) {
-                    completionStrings.add(optName);
+        public Completer completer() {
+            return (reader, line, candidates) -> {
+                List<CharSequence> completions = new ArrayList<>();
+                // Build the words array including the command name for picocli navigation
+                List<String> words = line.words();
+                String[] args = new String[words.size() + 1];
+                args[0] = name;
+                for (int i = 0; i < words.size(); i++) {
+                    args[i + 1] = words.get(i);
                 }
-            }
-            for (String subName : sub.getSubcommands().keySet()) {
-                completionStrings.add(subName);
-            }
-            return List.of(new ArgumentCompleter(new StringsCompleter(completionStrings), NullCompleter.INSTANCE));
+                AutoComplete.complete(
+                        commandLine.getCommandSpec(), args, line.wordIndex() + 1, 0, line.cursor(), completions);
+                for (CharSequence completion : completions) {
+                    candidates.add(new Candidate(completion.toString()));
+                }
+            };
         }
     }
 
