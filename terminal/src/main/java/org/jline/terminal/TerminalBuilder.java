@@ -453,6 +453,40 @@ public final class TerminalBuilder {
     }
 
     /**
+     * No-op retained for backwards compatibility with JLine 3.
+     * <p>
+     * In JLine 3, this method enabled native terminal support via Jansi.
+     * JLine 4 replaced Jansi with its own FFM/JNI providers that are used
+     * automatically, so this method is no longer needed.
+     *
+     * @param jansi ignored
+     * @return this builder
+     * @deprecated Jansi is no longer used in JLine 4. Native support is provided
+     *             automatically via FFM or JNI providers.
+     */
+    @Deprecated
+    public TerminalBuilder jansi(boolean jansi) {
+        return this;
+    }
+
+    /**
+     * No-op retained for backwards compatibility with JLine 3.
+     * <p>
+     * In JLine 3, this method enabled native terminal support via JNA.
+     * JLine 4 replaced JNA with its own FFM/JNI providers that are used
+     * automatically, so this method is no longer needed.
+     *
+     * @param jna ignored
+     * @return this builder
+     * @deprecated JNA is no longer used in JLine 4. Native support is provided
+     *             automatically via FFM or JNI providers.
+     */
+    @Deprecated
+    public TerminalBuilder jna(boolean jna) {
+        return this;
+    }
+
+    /**
      * Enables or disables the {@link #PROP_PROVIDER_DUMB}/{@code dumb} terminal provider.
      * If not specified, the system property {@link #PROP_DUMB} will be used if set.
      * If not specified, the provider will be checked.
