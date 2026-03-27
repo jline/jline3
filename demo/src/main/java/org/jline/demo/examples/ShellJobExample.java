@@ -15,8 +15,7 @@ import org.jline.shell.impl.AbstractCommand;
 import org.jline.shell.impl.DefaultAliasManager;
 import org.jline.shell.impl.DefaultJobManager;
 import org.jline.shell.impl.SimpleCommandGroup;
-import org.jline.widget.TailTipWidgets;
-import org.jline.widget.TailTipWidgets.TipType;
+import org.jline.shell.widget.CommandTailTipWidgets;
 
 /**
  * Example demonstrating job control, aliases, built-in commands, and syntax highlighting.
@@ -148,9 +147,9 @@ public class ShellJobExample {
                         "demo", new EchoCommand(), new UpperCommand(), new SleepCommand(), new CountCommand()))
                 .option(Option.INSERT_BRACKET, true)
                 .option(Option.DISABLE_EVENT_EXPANSION, true)
-                .onReaderReady(reader -> {
+                .onReaderReady((reader, dispatcher) -> {
                     try {
-                        new TailTipWidgets(reader, desc -> null, 5, TipType.COMPLETER);
+                        new CommandTailTipWidgets(reader, dispatcher, 5).enable();
                     } catch (Exception e) {
                         // ignore
                     }

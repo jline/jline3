@@ -93,11 +93,34 @@ public interface Command {
      * Returns the completers for this command's arguments.
      * <p>
      * The default implementation returns an empty list, meaning no custom completion.
+     * <p>
+     * These completers are position-based: the first completer handles the first argument,
+     * the second handles the second argument, etc. For commands that need non-positional
+     * completion (e.g., picocli commands where options can appear in any order), override
+     * {@link #completer()} instead.
      *
      * @return the list of completers
+     * @see #completer()
      */
     default List<Completer> completers() {
         return List.of();
+    }
+
+    /**
+     * Returns a single completer for this command's arguments.
+     * <p>
+     * This method is called by the dispatcher to get the completer for this command.
+     * The default implementation builds a completer from {@link #completers()}.
+     * <p>
+     * Override this method when position-based completion is not appropriate,
+     * for example with picocli commands where options and arguments can appear
+     * in any order.
+     *
+     * @return the completer, or null for no completion
+     * @see #completers()
+     */
+    default Completer completer() {
+        return null;
     }
 
     /**
