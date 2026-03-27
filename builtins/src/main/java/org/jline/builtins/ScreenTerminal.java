@@ -116,8 +116,8 @@ public class ScreenTerminal {
     private int[] vt100_charset_g = {0, 0};
     private Map<String, Object> vt100_saved;
     private Map<String, Object> vt100_saved2;
-    private int vt100_alternate_saved_cx;
-    private int vt100_alternate_saved_cy;
+    private int vt100_alternate_cx;
+    private int vt100_alternate_cy;
     private int vt100_saved_cx;
     private int vt100_saved_cy;
     private String vt100_out;
@@ -632,17 +632,18 @@ public class ScreenTerminal {
                         vt100_saved = vt100_saved2;
                         vt100_saved2 = map;
                         int c;
-                        c = vt100_alternate_saved_cx;
-                        vt100_alternate_saved_cx = cx;
+                        c = vt100_alternate_cx;
+                        vt100_alternate_cx = cx;
                         cx = Math.min(c, width - 1);
-                        c = vt100_alternate_saved_cy;
-                        vt100_alternate_saved_cy = cy;
+                        c = vt100_alternate_cy;
+                        vt100_alternate_cy = cy;
                         cy = Math.min(c, height - 1);
                         if (!state) { // Alt-screen does not persist
                             for (int i = 0; i < height; i++) {
                                 Arrays.fill(screen2[i], attr | 0x00000020);
                             }
                             history2.clear();
+                            setDirty();
                         }
                     }
                     vt100_mode_alt_screen = state;
@@ -1700,35 +1701,72 @@ public class ScreenTerminal {
             cx = w - 1;
         }
 
-        // Set height
+        if (h != height) {
+            changeHeight(h, w, false);
+
+            if (vt100_mode_alt_screen) { // screen2 is the "main" screen, make sure that it is properly preserved.
+                changeHeight(h, w, true);
+            } else { // The alt-screen is not preserved, so rebuilding it is the quickest.
+                screen2 = (long[][]) Array.newInstance(long.class, h, w);
+                for (int i = 0; i < h; i++) {
+                    Arrays.fill(screen2[i], attr | 0x00000020);
+                }
+            }
+        }
+
+        // Scroll parameters
+        scroll_area_y0 = Math.min(h, scroll_area_y0);
+        scroll_area_y1 = scroll_area_y1 == height ? h : Math.min(h, scroll_area_y1);
+        // Cursor position
+        cx = Math.min(w - 1, cx);
+        cy = Math.min(h - 1, cy);
+        vt100_alternate_cx = Math.min(w - 1, vt100_alternate_cx);
+        vt100_alternate_cy = Math.min(h - 1, vt100_alternate_cy);
+
+        width = w;
+        height = h;
+
+        setDirty();
+        return true;
+    }
+
+    private void changeHeight(int h, int w, boolean alt) {
+        List<long[]> targetHistory = alt ? history2 : history;
+        long[][] targetScreen = alt ? screen2 : screen;
         if (h < height) {
             int needed = height - h;
             // Delete as many lines as possible from the bottom
-            int avail = height - 1 - cy;
+            int avail = height - 1 - (alt ? vt100_alternate_cy : cy);
             if (avail > 0) {
                 if (avail > needed) {
                     avail = needed;
                 }
-                screen = Arrays.copyOfRange(screen, 0, height - avail);
+                targetScreen = Arrays.copyOfRange(targetScreen, 0, height - avail);
             }
             needed -= avail;
             // Move lines to history
             for (int i = 0; i < needed; i++) {
-                history.add(screen[i]);
+                targetHistory.add(targetScreen[i]);
             }
-            screen = Arrays.copyOfRange(screen, needed, screen.length);
-            cy -= needed;
+            targetScreen = Arrays.copyOfRange(targetScreen, needed, targetScreen.length);
+            if (alt) {
+                vt100_alternate_cy -= needed;
+                screen2 = targetScreen;
+            } else {
+                cy -= needed;
+                screen = targetScreen;
+            }
         } else if (h > height) {
             int needed = h - height;
             // Pull lines from history
-            int avail = history.size();
+            int avail = targetHistory.size();
             if (avail > needed) {
                 avail = needed;
             }
             long[][] sc = new long[h][];
             if (avail > 0) {
                 for (int i = 0; i < avail; i++) {
-                    long[] historyLine = history.remove(history.size() - avail + i);
+                    long[] historyLine = targetHistory.remove(targetHistory.size() - avail + i);
                     // Check if the history line needs to be resized to match the new width
                     if (historyLine.length < w) {
                         int oldLength = historyLine.length;
@@ -1740,33 +1778,20 @@ public class ScreenTerminal {
                     }
                     sc[i] = historyLine;
                 }
-                cy += avail;
             }
-            System.arraycopy(screen, 0, sc, avail, screen.length);
-            for (int i = avail + screen.length; i < sc.length; i++) {
+            System.arraycopy(targetScreen, 0, sc, avail, targetScreen.length);
+            for (int i = avail + targetScreen.length; i < sc.length; i++) {
                 sc[i] = new long[w];
                 Arrays.fill(sc[i], attr | 0x00000020);
             }
-            screen = sc;
+            if (alt) {
+                vt100_alternate_cy += avail;
+                screen2 = sc;
+            } else {
+                cy += avail;
+                screen = sc;
+            }
         }
-
-        screen2 = (long[][]) Array.newInstance(long.class, h, w);
-        for (int i = 0; i < h; i++) {
-            Arrays.fill(screen2[i], attr | 0x00000020);
-        }
-
-        // Scroll parameters
-        scroll_area_y0 = Math.min(h, scroll_area_y0);
-        scroll_area_y1 = scroll_area_y1 == height ? h : Math.min(h, scroll_area_y1);
-        // Cursor position
-        cx = Math.min(w - 1, cx);
-        cy = Math.min(h - 1, cy);
-
-        width = w;
-        height = h;
-
-        setDirty();
-        return true;
     }
 
     public synchronized String read() {
