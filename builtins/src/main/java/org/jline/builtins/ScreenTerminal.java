@@ -638,12 +638,11 @@ public class ScreenTerminal {
                         c = vt100_alternate_cy;
                         vt100_alternate_cy = cy;
                         cy = Math.min(c, height - 1);
-                        if (!state) { // Alt-screen does not persist
+                        if (state) { // Alt-screen does not persist.
                             for (int i = 0; i < height; i++) {
-                                Arrays.fill(screen2[i], attr | 0x00000020);
+                                Arrays.fill(screen[i], attr | 0x00000020);
                             }
-                            history2.clear();
-                            setDirty();
+                            history.clear();
                         }
                     }
                     vt100_mode_alt_screen = state;
@@ -1703,15 +1702,7 @@ public class ScreenTerminal {
 
         if (h != height) {
             changeHeight(h, w, false);
-
-            if (vt100_mode_alt_screen) { // screen2 is the "main" screen, make sure that it is properly preserved.
-                changeHeight(h, w, true);
-            } else { // The alt-screen is not preserved, so rebuilding it is the quickest.
-                screen2 = (long[][]) Array.newInstance(long.class, h, w);
-                for (int i = 0; i < h; i++) {
-                    Arrays.fill(screen2[i], attr | 0x00000020);
-                }
-            }
+            changeHeight(h, w, true);
         }
 
         // Scroll parameters
