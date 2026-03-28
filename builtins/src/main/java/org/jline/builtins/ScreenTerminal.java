@@ -660,7 +660,7 @@ public class ScreenTerminal {
     }
 
     private void esc_DECALN() {
-        fill(0, 0, height, width, 0x00ff0045);
+        fill(0, 0, height, width, attr | 'E');
     }
 
     private void esc_G0_0() {
