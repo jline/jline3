@@ -563,8 +563,8 @@ public class WebTerminal extends LineDisciplineTerminal {
                     long a = d >> 32;
                     // Apply cursor styling
                     if (cy == y && cx == x) {
-                        a = (a & 0xfffff000L) | 0x0fff; // white bg for cursor
-                        a = a & ~0x0fff000L; // black fg for cursor
+                        a = (a & 0xfffff000L) | 0x20000000 | 0x0fff; // white bg for cursor
+                        a = (a & 0xff000fffL) | 0x10000000; // black fg for cursor
                     }
                     if (a != prevAttr) {
                         if (prevAttr != -1) {
