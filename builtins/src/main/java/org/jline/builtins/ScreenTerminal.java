@@ -2041,30 +2041,30 @@ public class ScreenTerminal {
                         }
                         int bg = a & 0x0fff;
                         int fg = (a >>> 12) & 0x0fff;
-                        if ((a & 0x10000000L) == 0) {
+                        if ((a & 0x10000000) == 0) {
                             fg = 0x0fff; // Default white foreground
                         }
-                        if ((a & 0x20000000L) == 0) {
+                        if ((a & 0x20000000) == 0) {
                             bg = 0x0000; // Default black background
                         }
-                        boolean inv = (a & 0x02000000L) != 0;
+                        boolean inv = (a & 0x02000000) != 0;
                         boolean inv2 = vt100_mode_inverse;
                         if (inv && !inv2 || inv2 && !inv) {
                             int i = fg;
                             fg = bg;
                             bg = i;
                         }
-                        if ((a & 0x04000000L) != 0) {
+                        if ((a & 0x04000000) != 0) {
                             fg = bg;
                         }
                         String ul;
-                        if ((a & 0x01000000L) != 0) {
+                        if ((a & 0x01000000) != 0) {
                             ul = " ul";
                         } else {
                             ul = "";
                         }
                         String b;
-                        if ((a & 0x08000000L) != 0) {
+                        if ((a & 0x08000000) != 0) {
                             b = " b";
                         } else {
                             b = "";
