@@ -2032,32 +2032,39 @@ public class ScreenTerminal {
                     int c = (int) (d & 0xffffffffL);
                     int a = (int) (d >> 32);
                     if (cy == y && cx == x && vt100_mode_cursor) {
-                        a = a & 0xfff0 | 0x000c;
+                        a = (a & 0xfffff000) | 0x20000000 | 0x0fff; // white bg for cursor
+                        a = (a & 0xff000fff) | 0x10000000; // black fg for cursor
                     }
                     if (a != prev_attr) {
                         if (prev_attr != -1) {
                             sb.append("</span>");
                         }
-                        int bg = a & 0x000000ff;
-                        int fg = (a & 0x0000ff00) >> 8;
-                        boolean inv = (a & 0x00020000) != 0;
+                        int bg = a & 0x0fff;
+                        int fg = (a >>> 12) & 0x0fff;
+                        if ((a & 0x10000000L) == 0) {
+                            fg = 0x0fff; // Default white foreground
+                        }
+                        if ((a & 0x20000000L) == 0) {
+                            bg = 0x0000; // Default black background
+                        }
+                        boolean inv = (a & 0x02000000L) != 0;
                         boolean inv2 = vt100_mode_inverse;
                         if (inv && !inv2 || inv2 && !inv) {
                             int i = fg;
                             fg = bg;
                             bg = i;
                         }
-                        if ((a & 0x00040000) != 0) {
-                            fg = 0x0c;
+                        if ((a & 0x04000000L) != 0) {
+                            fg = bg;
                         }
                         String ul;
-                        if ((a & 0x00010000) != 0) {
+                        if ((a & 0x01000000L) != 0) {
                             ul = " ul";
                         } else {
                             ul = "";
                         }
                         String b;
-                        if ((a & 0x00080000) != 0) {
+                        if ((a & 0x08000000L) != 0) {
                             b = " b";
                         } else {
                             b = "";
