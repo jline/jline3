@@ -37,8 +37,10 @@ public class AttributedCharSequenceTest {
     private static final String WHITE_FLAG_VS16 = "\uD83C\uDFF3\uFE0F";
     // White flag (no VS): 🏳
     private static final String WHITE_FLAG = "\uD83C\uDFF3";
-    // Party popper: 🎉
+    // Party popper: 🎉 (Emoji_Presentation=Yes)
     private static final String PARTY_POPPER = "\uD83C\uDF89";
+    // Party popper + VS15 (text presentation): 🎉︎
+    private static final String PARTY_POPPER_VS15 = "\uD83C\uDF89\uFE0E";
     // German flag: 🇩🇪 (regional indicators D + E)
     private static final String FLAG_DE = "\uD83C\uDDE9\uD83C\uDDEA";
 
@@ -167,6 +169,9 @@ public class AttributedCharSequenceTest {
 
             // Party popper: Emoji_Presentation=Yes → width 2
             assertEquals(2, new AttributedString(PARTY_POPPER).columnLength(t));
+
+            // Party popper + VS15: text presentation downgrades → width 1
+            assertEquals(1, new AttributedString(PARTY_POPPER_VS15).columnLength(t));
 
             // Flag DE: regional indicator pair → width 2
             assertEquals(2, new AttributedString(FLAG_DE).columnLength(t));

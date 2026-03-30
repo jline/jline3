@@ -436,31 +436,30 @@ public final class WCWidth {
     /**
      * Returns the display width of the grapheme cluster starting at {@code index}.
      *
-     * <p>When the cluster contains VS16 ({@code U+FE0F}), the emoji presentation
-     * selector upgrades the cluster to width 2.  Otherwise the width of the
-     * base code point (via {@link #wcwidth(int)}) is used.</p>
+     * <p>Variation selectors override the base code point's width:
+     * VS16 ({@code U+FE0F}) upgrades the cluster to emoji presentation (width 2),
+     * while VS15 ({@code U+FE0E}) downgrades it to text presentation (width 1).
+     * When neither is present, the width of the base code point (via
+     * {@link #wcwidth(int)}) is used.</p>
      *
      * @param cs    the character sequence
      * @param index the starting char index
-     * @return the display width of the grapheme cluster (0, 1, or 2)
+     * @return the display width of the grapheme cluster, same range as {@link #wcwidth(int)}
      */
     public static int wcwidthForGraphemeCluster(CharSequence cs, int index) {
         int cp = Character.codePointAt(cs, index);
         int w = wcwidth(cp);
 
-        // Base codepoint is already wide — no need to scan
-        if (w >= 2) {
-            return 2;
-        }
-
-        // Scan the rest of the cluster for VS16 (U+FE0F) — emoji presentation upgrade
+        // Scan the cluster for variation selectors
         int clusterLen = charCountForGraphemeCluster(cs, index);
         int end = index + clusterLen;
         int pos = index + Character.charCount(cp);
         while (pos < end) {
             int ncp = Character.codePointAt(cs, pos);
             if (ncp == 0xFE0F) {
-                return 2;
+                return 2; // VS16 — emoji presentation (width 2)
+            } else if (ncp == 0xFE0E) {
+                return 1; // VS15 — text presentation (width 1)
             }
             pos += Character.charCount(ncp);
         }
