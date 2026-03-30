@@ -431,8 +431,9 @@ public class ScreenTerminal {
     //
 
     private void ctrl_BS() {
-        int dy = (cx - 1) / width;
-        cursor_set(Math.max(scroll_area_y0, cy + dy), (cx - 1) % width);
+        if (cx > 0) {
+            cursor_set_x(cx - 1);
+        }
     }
 
     private void ctrl_HT() {
