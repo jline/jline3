@@ -150,6 +150,8 @@ public class ScreenTerminal {
         //      Bit 3 - Bold
         //  Y:  Bit 0 - Foreground set
         //      Bit 1 - Background set
+        //      Bit 2 - Dim
+        //      Bit 3 - Italic
         //	F:	Foreground r-g-b
         //	B:	Background r-g-b
         attr = 0x0000000000000000L;
@@ -177,6 +179,8 @@ public class ScreenTerminal {
         //      Bit 3 - Bold
         //  Y:  Bit 0 - Foreground set
         //      Bit 1 - Background set
+        //      Bit 2 - Dim
+        //      Bit 3 - Italic
         //	F:	Foreground r-g-b
         //	B:	Background r-g-b
         attr = 0x0000000000000000L;
@@ -997,6 +1001,8 @@ public class ScreenTerminal {
         //      Bit 3 - Bold
         //  Y:  Bit 0 - Foreground set
         //      Bit 1 - Background set
+        //      Bit 2 - Dim
+        //      Bit 3 - Italic
         //	F:	Foreground r-g-b
         //	B:	Background r-g-b
         int[] ps = vt100_parse_params(p, new int[] {0});
@@ -1006,6 +1012,10 @@ public class ScreenTerminal {
                 attr = 0x00000000L << 32;
             } else if (m == 1) {
                 attr |= 0x08000000L << 32; // bold
+            } else if (m == 2) {
+                attr |= 0x40000000L << 32; // dim
+            } else if (m == 3) {
+                attr |= 0x80000000L << 32; // italic
             } else if (m == 4) {
                 attr |= 0x01000000L << 32; // underline
             } else if (m == 7) {
@@ -1014,6 +1024,10 @@ public class ScreenTerminal {
                 attr |= 0x04000000L << 32; // conceal
             } else if (m == 21) {
                 attr &= 0xf7ffffffL << 32; // bold off
+            } else if (m == 22) {
+                attr &= ~(0x48000000L << 32); // bold and dim off (normal intensity)
+            } else if (m == 23) {
+                attr &= ~(0x80000000L << 32); // italic off
             } else if (m == 24) {
                 attr &= 0xfeffffffL << 32; // underline off
             } else if (m == 27) {
@@ -2081,7 +2095,7 @@ public class ScreenTerminal {
             for (int x = 0; x < w; x++) {
                 long d = screen[y * w + x];
                 int c = (int) (d & 0xffffffffL);
-                long a = d >> 32;
+                long a = d >>> 32;
                 // Apply cursor styling
                 if (cursorVisible && cy == y && cx == x) {
                     a = (a & 0xfffff000L) | 0x20000000 | 0x0fff; // white bg for cursor
@@ -2128,7 +2142,7 @@ public class ScreenTerminal {
     private static String generateSpanTag(long attr, boolean terminalInverse) {
         // Attribute mask: 0xYXFFFBBB00000000L
         // X: Bit 0 - Underlined, Bit 1 - Negative, Bit 2 - Concealed, Bit 3 - Bold
-        // Y: Bit 0 - Foreground set, Bit 1 - Background set
+        // Y: Bit 0 - Foreground set, Bit 1 - Background set, Bit 2 - Dim, Bit 3 - Italic
         // F: Foreground r-g-b
         // B: Background r-g-b
 
@@ -2140,6 +2154,8 @@ public class ScreenTerminal {
         boolean bold = (attr & 0x08000000L) != 0;
         boolean fgset = (attr & 0x10000000L) != 0;
         boolean bgset = (attr & 0x20000000L) != 0;
+        boolean dim = (attr & 0x40000000L) != 0;
+        boolean italic = (attr & 0x80000000L) != 0;
 
         // Handle default colors
         if (!fgset) {
@@ -2161,6 +2177,11 @@ public class ScreenTerminal {
             fg = bg; // Make text invisible by setting foreground to background
         }
 
+        // Handle dim (reduce foreground intensity)
+        if (dim) {
+            fg = (((fg >> 8) & 0x0f) >> 1) << 8 | (((fg >> 4) & 0x0f) >> 1) << 4 | ((fg & 0x0f) >> 1);
+        }
+
         StringBuilder span = new StringBuilder("<span style='");
 
         // Add foreground color
@@ -2176,9 +2197,12 @@ public class ScreenTerminal {
             span.append("text-decoration:underline;");
         }
 
-        // Add font weight
+        // Add font weight/style
         if (bold) {
             span.append("font-weight:bold;");
+        }
+        if (italic) {
+            span.append("font-style:italic;");
         }
 
         span.append("'>");
