@@ -137,6 +137,11 @@ public class KillRingTest extends ReaderTestSupport {
         killRing.yank(); // sets lastYank = true, returns null
         String yanked = killRing.yankPop();
         assertNull(yanked);
+
+        // After yankPop() returns null on empty ring, head must be restored
+        // to a valid index so that a subsequent yank() does not throw.
+        yanked = killRing.yank();
+        assertNull(yanked); // still null (ring is empty), but no exception
     }
 
     // Those tests are run using a buffer.

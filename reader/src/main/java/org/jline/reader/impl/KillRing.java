@@ -135,6 +135,7 @@ public final class KillRing {
             if (head >= 0) {
                 return slots[head];
             }
+            head = 0; // restore valid state
         }
         return null;
     }
