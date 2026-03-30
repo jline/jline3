@@ -237,15 +237,18 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
 
     /**
      * Reads RGB hex values separated by '/' and terminated by BEL or ST.
-     * Returns null on EOF or invalid input.
+     * Returns null on EOF, timeout, or invalid input.
      */
     private List<String> readRgbValues(NonBlockingReader reader) throws IOException {
         StringBuilder sb = new StringBuilder(16);
         List<String> rgb = new ArrayList<>();
         while (true) {
             int c = reader.read(10);
-            if (c < 0) {
-                return null;
+            if (c == -1) {
+                return null; // EOF — stream closed
+            }
+            if (c == NonBlockingReader.READ_EXPIRED) {
+                return null; // timeout — terminal not responding within probe window
             }
             if (c == '\007') {
                 rgb.add(sb.toString());
