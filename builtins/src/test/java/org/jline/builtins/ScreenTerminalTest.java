@@ -435,6 +435,147 @@ public class ScreenTerminalTest {
     }
 
     // -----------------------------------------------------------------------
+    // scroll_line_right / scroll_line_left tests (ICH / DCH)
+    // -----------------------------------------------------------------------
+
+    /**
+     * CSI n @ (ICH - Insert Character) triggers scroll_line_right.
+     * Inserting blanks at a mid-line cursor position must shift existing
+     * characters to the right.
+     */
+    @Test
+    public void testICHInsertCharacterShiftsRight() {
+        ScreenTerminal terminal = new ScreenTerminal(10, 5);
+        // Write "ABCDEFGHIJ" filling the entire first row
+        terminal.write("ABCDEFGHIJ");
+        // Move cursor to column 3 (1-based col 4)
+        terminal.write("\033[1;4H");
+        // Insert 2 blank characters at cursor position (CSI 2 @)
+        terminal.write("\033[2@");
+
+        // Expected row: A B C _ _ D E F G H (J dropped off the right)
+        assertEquals('A', getChar(terminal, 0, 0));
+        assertEquals('B', getChar(terminal, 0, 1));
+        assertEquals('C', getChar(terminal, 0, 2));
+        assertEquals(' ', getChar(terminal, 0, 3), "Inserted blank at cursor position");
+        assertEquals(' ', getChar(terminal, 0, 4), "Inserted blank at cursor+1");
+        assertEquals('D', getChar(terminal, 0, 5), "Original D shifted right by 2");
+        assertEquals('E', getChar(terminal, 0, 6));
+        assertEquals('F', getChar(terminal, 0, 7));
+        assertEquals('G', getChar(terminal, 0, 8));
+        assertEquals('H', getChar(terminal, 0, 9));
+    }
+
+    /**
+     * CSI n P (DCH - Delete Character) triggers scroll_line_left.
+     * Deleting characters at a mid-line cursor position must shift
+     * remaining characters to the left and fill the right edge with blanks.
+     */
+    @Test
+    public void testDCHDeleteCharacterShiftsLeft() {
+        ScreenTerminal terminal = new ScreenTerminal(10, 5);
+        // Write "ABCDEFGHIJ" filling the entire first row
+        terminal.write("ABCDEFGHIJ");
+        // Move cursor to column 3 (1-based col 4)
+        terminal.write("\033[1;4H");
+        // Delete 2 characters at cursor position (CSI 2 P)
+        terminal.write("\033[2P");
+
+        // Expected row: A B C F G H I J _ _
+        assertEquals('A', getChar(terminal, 0, 0));
+        assertEquals('B', getChar(terminal, 0, 1));
+        assertEquals('C', getChar(terminal, 0, 2));
+        assertEquals('F', getChar(terminal, 0, 3), "F shifted left to cursor position");
+        assertEquals('G', getChar(terminal, 0, 4));
+        assertEquals('H', getChar(terminal, 0, 5));
+        assertEquals('I', getChar(terminal, 0, 6));
+        assertEquals('J', getChar(terminal, 0, 7));
+        assertEquals(' ', getChar(terminal, 0, 8), "Right edge filled with blank");
+        assertEquals(' ', getChar(terminal, 0, 9), "Right edge filled with blank");
+    }
+
+    /**
+     * ICH at the last column must clamp n to 1 (only one cell available).
+     * Regression: using cx instead of x in the clamp would produce wrong
+     * results if the parameter x ever differed from the cursor position.
+     */
+    @Test
+    public void testICHAtLastColumn() {
+        ScreenTerminal terminal = new ScreenTerminal(10, 5);
+        terminal.write("ABCDEFGHI");
+        // Cursor is now at column 9 (0-based) after writing 9 chars
+        // Move cursor to column 9 (1-based col 10)
+        terminal.write("\033[1;10H");
+        // Insert 5 characters - should be clamped to 1 (only 1 cell at the edge)
+        terminal.write("\033[5@");
+
+        // Characters 0-8 should be unchanged, col 9 should be blank
+        assertEquals('A', getChar(terminal, 0, 0));
+        assertEquals('B', getChar(terminal, 0, 1));
+        assertEquals('C', getChar(terminal, 0, 2));
+        assertEquals('D', getChar(terminal, 0, 3));
+        assertEquals('E', getChar(terminal, 0, 4));
+        assertEquals('F', getChar(terminal, 0, 5));
+        assertEquals('G', getChar(terminal, 0, 6));
+        assertEquals('H', getChar(terminal, 0, 7));
+        assertEquals('I', getChar(terminal, 0, 8));
+        assertEquals(' ', getChar(terminal, 0, 9), "Last column should be blank after insert");
+    }
+
+    /**
+     * DCH at the last column must clamp n to 1 (only one cell to delete).
+     */
+    @Test
+    public void testDCHAtLastColumn() {
+        ScreenTerminal terminal = new ScreenTerminal(10, 5);
+        terminal.write("ABCDEFGHIJ");
+        // Move cursor to column 9 (1-based col 10)
+        terminal.write("\033[1;10H");
+        // Delete 5 characters - should be clamped to 1
+        terminal.write("\033[5P");
+
+        // Characters 0-8 unchanged, col 9 blanked
+        assertEquals('A', getChar(terminal, 0, 0));
+        assertEquals('B', getChar(terminal, 0, 1));
+        assertEquals('C', getChar(terminal, 0, 2));
+        assertEquals('D', getChar(terminal, 0, 3));
+        assertEquals('E', getChar(terminal, 0, 4));
+        assertEquals('F', getChar(terminal, 0, 5));
+        assertEquals('G', getChar(terminal, 0, 6));
+        assertEquals('H', getChar(terminal, 0, 7));
+        assertEquals('I', getChar(terminal, 0, 8));
+        assertEquals(' ', getChar(terminal, 0, 9), "Last column should be blank after delete");
+    }
+
+    /**
+     * Insert mode (SM 4) uses scroll_line_right internally when typing.
+     * Verify that inserting a character in insert mode shifts content right.
+     */
+    @Test
+    public void testInsertModeShiftsRight() {
+        ScreenTerminal terminal = new ScreenTerminal(10, 5);
+        terminal.write("ABCDEFGHIJ");
+        // Move cursor to column 2 (1-based col 3)
+        terminal.write("\033[1;3H");
+        // Enable insert mode (CSI 4 h)
+        terminal.write("\033[4h");
+        // Type a character - should insert, not overwrite
+        terminal.write("X");
+
+        // Expected: A B X C D E F G H I (J dropped)
+        assertEquals('A', getChar(terminal, 0, 0));
+        assertEquals('B', getChar(terminal, 0, 1));
+        assertEquals('X', getChar(terminal, 0, 2), "Inserted character");
+        assertEquals('C', getChar(terminal, 0, 3), "Original C shifted right");
+        assertEquals('D', getChar(terminal, 0, 4));
+        assertEquals('E', getChar(terminal, 0, 5));
+        assertEquals('F', getChar(terminal, 0, 6));
+        assertEquals('G', getChar(terminal, 0, 7));
+        assertEquals('H', getChar(terminal, 0, 8));
+        assertEquals('I', getChar(terminal, 0, 9));
+    }
+
+    // -----------------------------------------------------------------------
     // Dirty flag tests
     // -----------------------------------------------------------------------
 
