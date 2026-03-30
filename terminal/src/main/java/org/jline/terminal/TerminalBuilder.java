@@ -159,6 +159,22 @@ public final class TerminalBuilder {
     public static final String PROP_OUTPUT_ERR_OUT = "err-out";
     public static final String PROP_OUTPUT_FORCED_OUT = "forced-out";
     public static final String PROP_OUTPUT_FORCED_ERR = "forced-err";
+
+    /**
+     * System property to enable the {@code /dev/tty} fallback for creating a terminal
+     * when no system stream is connected to a TTY.
+     *
+     * <p>When set to {@code "true"} and running on a POSIX system where stdin, stdout,
+     * and stderr are all pipes (not TTYs), JLine will attempt to open {@code /dev/tty}
+     * (the controlling terminal) directly and use it for terminal I/O. This allows
+     * interactive features to work even when the process was launched with redirected
+     * streams (e.g., via Maven's {@code exec-maven-plugin} with the {@code exec:exec} goal).</p>
+     *
+     * <p>Defaults to {@code false}. Can also be set programmatically via
+     * {@link #devTty(boolean)}.</p>
+     *
+     * @see #devTty(boolean)
+     */
     public static final String PROP_DEV_TTY = "org.jline.terminal.devtty";
 
     //
