@@ -1214,13 +1214,18 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
     }
 
     private boolean urlExists(String weburl) {
+        HttpURLConnection huc = null;
         try {
             URL url = URI.create(weburl).toURL();
-            HttpURLConnection huc = (HttpURLConnection) url.openConnection();
+            huc = (HttpURLConnection) url.openConnection();
             huc.setRequestMethod("HEAD");
             return huc.getResponseCode() == HttpURLConnection.HTTP_OK;
         } catch (Exception e) {
             return false;
+        } finally {
+            if (huc != null) {
+                huc.disconnect();
+            }
         }
     }
 
