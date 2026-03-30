@@ -462,12 +462,18 @@ public abstract class AbstractTerminal implements TerminalExt {
 
     /**
      * Drains any remaining bytes from a partial or unexpected terminal response.
-     * Reads and discards characters until no more are available within the timeout.
+     * Uses the given timeout for the first byte (to wait for a response that may
+     * still be in flight), then switches to a short timeout for subsequent bytes
+     * to avoid blocking after the last byte is consumed.
      */
     private void drainResponse(long timeout) {
         try {
             while (reader().peek(timeout) >= 0) {
                 reader().read(timeout);
+                // After the first byte, remaining bytes in the same response
+                // arrive nearly instantly; use a short timeout to avoid
+                // blocking for the full duration after the last byte.
+                timeout = 10;
             }
         } catch (IOException ignored) {
         }
