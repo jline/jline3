@@ -444,7 +444,7 @@ public class ScreenTerminalTest {
      * characters to the right.
      */
     @Test
-    public void testICHInsertCharacterShiftsRight() {
+    void testICHInsertCharacterShiftsRight() {
         ScreenTerminal terminal = new ScreenTerminal(10, 5);
         // Write "ABCDEFGHIJ" filling the entire first row
         terminal.write("ABCDEFGHIJ");
@@ -472,7 +472,7 @@ public class ScreenTerminalTest {
      * remaining characters to the left and fill the right edge with blanks.
      */
     @Test
-    public void testDCHDeleteCharacterShiftsLeft() {
+    void testDCHDeleteCharacterShiftsLeft() {
         ScreenTerminal terminal = new ScreenTerminal(10, 5);
         // Write "ABCDEFGHIJ" filling the entire first row
         terminal.write("ABCDEFGHIJ");
@@ -500,7 +500,7 @@ public class ScreenTerminalTest {
      * rather than acting on an already-blank cell.
      */
     @Test
-    public void testICHAtLastColumn() {
+    void testICHAtLastColumn() {
         ScreenTerminal terminal = new ScreenTerminal(10, 5);
         terminal.write("ABCDEFGHIJ");
         // Move cursor to column 9 (1-based col 10)
@@ -526,7 +526,7 @@ public class ScreenTerminalTest {
      * DCH at the last column must clamp n to 1 (only one cell to delete).
      */
     @Test
-    public void testDCHAtLastColumn() {
+    void testDCHAtLastColumn() {
         ScreenTerminal terminal = new ScreenTerminal(10, 5);
         terminal.write("ABCDEFGHIJ");
         // Move cursor to column 9 (1-based col 10)
@@ -552,7 +552,7 @@ public class ScreenTerminalTest {
      * Verify that inserting a character in insert mode shifts content right.
      */
     @Test
-    public void testInsertModeShiftsRight() {
+    void testInsertModeShiftsRight() {
         ScreenTerminal terminal = new ScreenTerminal(10, 5);
         terminal.write("ABCDEFGHIJ");
         // Move cursor to column 2 (1-based col 3)
