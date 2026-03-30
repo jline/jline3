@@ -335,7 +335,6 @@ class CLibrary {
             long c_iflag = c_iflag();
             EnumSet<Attributes.InputFlag> iflag = attr.getInputFlags();
             addFlag(c_iflag, iflag, Attributes.InputFlag.IGNBRK, IGNBRK);
-            addFlag(c_iflag, iflag, Attributes.InputFlag.IGNBRK, IGNBRK);
             addFlag(c_iflag, iflag, Attributes.InputFlag.BRKINT, BRKINT);
             addFlag(c_iflag, iflag, Attributes.InputFlag.IGNPAR, IGNPAR);
             addFlag(c_iflag, iflag, Attributes.InputFlag.PARMRK, PARMRK);

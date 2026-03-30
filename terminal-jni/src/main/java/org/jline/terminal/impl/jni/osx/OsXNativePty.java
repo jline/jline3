@@ -283,7 +283,6 @@ public class OsXNativePty extends JniNativePty {
         // Input flags
         EnumSet<Attributes.InputFlag> iflag = attr.getInputFlags();
         addFlag(tio.c_iflag, iflag, Attributes.InputFlag.IGNBRK, IGNBRK);
-        addFlag(tio.c_iflag, iflag, Attributes.InputFlag.IGNBRK, IGNBRK);
         addFlag(tio.c_iflag, iflag, Attributes.InputFlag.BRKINT, BRKINT);
         addFlag(tio.c_iflag, iflag, Attributes.InputFlag.IGNPAR, IGNPAR);
         addFlag(tio.c_iflag, iflag, Attributes.InputFlag.PARMRK, PARMRK);
