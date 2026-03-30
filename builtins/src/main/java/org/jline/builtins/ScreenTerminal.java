@@ -1629,7 +1629,7 @@ public class ScreenTerminal {
     // Dirty
     //
 
-    public boolean isDirty() {
+    public synchronized boolean isDirty() {
         return dirty.compareAndSet(true, false);
     }
 
