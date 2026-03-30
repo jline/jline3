@@ -192,66 +192,94 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
             return -1;
         }
 
+        if (!readOscHeader(reader, colorType)) {
+            return -1;
+        }
+
+        List<String> rgb = readRgbValues(reader);
+        if (rgb == null || rgb.size() != 3) {
+            return -1;
+        }
+
+        return convertRgbToInt(rgb);
+    }
+
+    /**
+     * Reads and validates the OSC header: ESC ] {colorType} ; rgb:
+     */
+    private boolean readOscHeader(NonBlockingReader reader, int colorType) throws IOException {
         // Check for OSC sequence start
         if (reader.read(10) != '\033' || reader.read(10) != ']') {
-            return -1;
+            return false;
         }
 
         // Check for color type (10 or 11)
         int tens = reader.read(10);
         int ones = reader.read(10);
-        if (tens != '1' || ones != '0' && ones != '1') {
-            return -1;
+        if (tens != '1' || (ones != '0' && ones != '1')) {
+            return false;
         }
 
         // Check that the type matches what we expect
         int type = (ones - '0') + 10;
         if (type != colorType) {
-            return -1;
+            return false;
         }
 
         // Check for separator
         if (reader.read(10) != ';') {
-            return -1;
+            return false;
         }
 
         // Check for rgb: format
-        if (reader.read(10) != 'r' || reader.read(10) != 'g' || reader.read(10) != 'b' || reader.read(10) != ':') {
-            return -1;
-        }
+        return reader.read(10) == 'r' && reader.read(10) == 'g' && reader.read(10) == 'b' && reader.read(10) == ':';
+    }
 
-        // Parse the RGB values
+    /**
+     * Reads RGB hex values separated by '/' and terminated by BEL or ST.
+     * Returns null on EOF or invalid input.
+     */
+    private List<String> readRgbValues(NonBlockingReader reader) throws IOException {
         StringBuilder sb = new StringBuilder(16);
         List<String> rgb = new ArrayList<>();
         while (true) {
             int c = reader.read(10);
             if (c < 0) {
-                return -1;
+                return null;
             }
             if (c == '\007') {
                 rgb.add(sb.toString());
-                break;
-            } else if (c == '\033') {
-                int next = reader.read(10);
-                if (next == '\\') {
-                    rgb.add(sb.toString());
-                    break;
-                } else {
-                    return -1;
-                }
-            } else if (c >= '0' && c <= '9' || c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z') {
+                return rgb;
+            }
+            if (c == '\033') {
+                return readStTerminator(reader) ? addAndReturn(rgb, sb.toString()) : null;
+            }
+            if (isHexChar(c)) {
                 sb.append((char) c);
             } else if (c == '/') {
                 rgb.add(sb.toString());
                 sb.setLength(0);
             }
         }
+    }
 
-        if (rgb.size() != 3) {
-            return -1;
-        }
+    private boolean readStTerminator(NonBlockingReader reader) throws IOException {
+        return reader.read(10) == '\\';
+    }
 
-        // Convert hex values to RGB
+    private static List<String> addAndReturn(List<String> list, String value) {
+        list.add(value);
+        return list;
+    }
+
+    private static boolean isHexChar(int c) {
+        return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+    }
+
+    /**
+     * Converts a list of three hex RGB strings to a single packed int (0xRRGGBB).
+     */
+    private static int convertRgbToInt(List<String> rgb) {
         double r = Integer.parseInt(rgb.get(0), 16) / ((1 << (4 * rgb.get(0).length())) - 1.0);
         double g = Integer.parseInt(rgb.get(1), 16) / ((1 << (4 * rgb.get(1).length())) - 1.0);
         double b = Integer.parseInt(rgb.get(2), 16) / ((1 << (4 * rgb.get(2).length())) - 1.0);

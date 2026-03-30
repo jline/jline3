@@ -21,10 +21,10 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class ColorParsingTest {
+class ColorParsingTest {
 
     @Test
-    public void testParseColorResponseReturnsMinusOneOnEof() throws Exception {
+    void testParseColorResponseReturnsMinusOneOnEof() throws Exception {
         // EOF occurs while reading RGB hex values (after rgb: prefix but before terminator)
         NonBlockingReader reader = createReader("\033]10;rgb:ff/00");
 
@@ -38,7 +38,7 @@ public class ColorParsingTest {
     }
 
     @Test
-    public void testParseColorResponseReturnsMinusOneOnImmediateEof() throws Exception {
+    void testParseColorResponseReturnsMinusOneOnImmediateEof() throws Exception {
         // EOF on very first peek
         NonBlockingReader reader = createReader("");
 
@@ -52,7 +52,7 @@ public class ColorParsingTest {
     }
 
     @Test
-    public void testParseColorResponseWithValidBellTerminator() throws Exception {
+    void testParseColorResponseWithValidBellTerminator() throws Exception {
         // Valid OSC 10 response terminated by BEL (\007)
         NonBlockingReader reader = createReader("\033]10;rgb:ff/ff/ff\007");
 
@@ -66,7 +66,7 @@ public class ColorParsingTest {
     }
 
     @Test
-    public void testParseColorResponseWithValidStTerminator() throws Exception {
+    void testParseColorResponseWithValidStTerminator() throws Exception {
         // Valid OSC 11 response terminated by ST (ESC \)
         NonBlockingReader reader = createReader("\033]11;rgb:00/00/00\033\\");
 
@@ -80,7 +80,7 @@ public class ColorParsingTest {
     }
 
     @Test
-    public void testParseColorResponseEofAfterPartialRgb() throws Exception {
+    void testParseColorResponseEofAfterPartialRgb() throws Exception {
         // EOF after writing only part of the rgb: prefix
         NonBlockingReader reader = createReader("\033]10;rg");
 
