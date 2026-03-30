@@ -135,8 +135,11 @@ public class KeyMapTest {
         // (no ArrayIndexOutOfBoundsException)
         map.unbind(String.valueOf(boundaryChar));
 
-        // Unbinding a multi-char sequence where the final char is at the boundary
-        map.bind("action", "a");
+        // Unbinding a multi-char sequence where the final char is at the boundary.
+        // Bind a two-char sequence so that mapping['a'] becomes a KeyMap (the loop
+        // traverses into it), then unbind "a" + boundaryChar so the final-char
+        // boundary check on line 641 is actually exercised.
+        map.bind("action", "ab");
         map.unbind("a" + boundaryChar);
 
         // Unbinding a multi-char sequence where an intermediate char is at the boundary
