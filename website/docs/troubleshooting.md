@@ -173,6 +173,75 @@ This error occurs when JLine cannot initialize a terminal for the current enviro
            .build();
    ```
 
+### Interactive Features Disabled with Piped Streams
+
+When running a JLine application from a process launcher that connects stdin/stdout as pipes
+(rather than a TTY), JLine silently falls back to a dumb terminal. Interactive features like
+tab completion, syntax highlighting, and history navigation will not work.
+
+This commonly happens with:
+
+- **Maven `exec-maven-plugin`** with the `exec:exec` goal (required for JPMS `--module-path`)
+- Other process launchers that fork a JVM with redirected I/O
+- Wrapper scripts that pipe stdin/stdout
+
+#### Why It Happens
+
+JLine checks whether stdin is connected to a TTY (terminal device). When a process launcher
+forks a JVM and connects its streams through pipes, `isatty()` returns false for all file
+descriptors, and JLine creates a dumb terminal with limited capabilities.
+
+#### Solution: Use the `/dev/tty` Fallback
+
+On POSIX systems (Linux, macOS), even when stdin/stdout are pipes, the process usually still
+has access to the controlling terminal via `/dev/tty`. JLine can use this device directly
+for terminal I/O.
+
+Enable the `/dev/tty` fallback with the system property:
+
+```bash
+java -Dorg.jline.terminal.devtty=true -jar myapp.jar
+```
+
+For Maven `exec:exec`, add it to the JVM arguments:
+
+```xml
+<plugin>
+    <groupId>org.codehaus.mojo</groupId>
+    <artifactId>exec-maven-plugin</artifactId>
+    <configuration>
+        <executable>java</executable>
+        <arguments>
+            <argument>-Dorg.jline.terminal.devtty=true</argument>
+            <argument>--module-path</argument>
+            <argument>${project.build.directory}/modules</argument>
+            <argument>-m</argument>
+            <argument>mymodule/com.example.Main</argument>
+        </arguments>
+    </configuration>
+</plugin>
+```
+
+Or programmatically via the builder:
+
+```java
+Terminal terminal = TerminalBuilder.builder()
+        .devTty(true)
+        .build();
+```
+
+#### Alternative Workarounds
+
+- **Use `exec:java` instead of `exec:exec`** if your project does not require JPMS module path
+  support. `exec:java` runs in the same JVM as Maven and inherits the terminal.
+- **Wrap with `script`** to allocate a PTY: `script -q /dev/null mvn exec:exec ...`
+
+:::note
+The `/dev/tty` fallback is opt-in because it changes the source of terminal input. When enabled,
+JLine reads from the controlling terminal instead of stdin. This means piped input
+(e.g., `echo "command" | myapp`) would be ignored in favor of interactive terminal input.
+:::
+
 ### ANSI Color Codes Not Working
 
 If ANSI color codes or other escape sequences aren't working properly:

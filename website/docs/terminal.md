@@ -42,6 +42,23 @@ The `TerminalBuilder` will figure out the current Operating System and which act
 
 <CodeSnippet name="TerminalCreationExample" />
 
+### Using `/dev/tty` with Piped Streams
+
+When your application is launched by a process that redirects stdin/stdout through pipes
+(e.g., Maven's `exec:exec` plugin), JLine cannot detect a TTY and falls back to a dumb
+terminal. On POSIX systems, you can enable the `/dev/tty` fallback to access the controlling
+terminal directly:
+
+```java
+Terminal terminal = TerminalBuilder.builder()
+        .devTty(true)
+        .build();
+```
+
+Or via system property: `-Dorg.jline.terminal.devtty=true`
+
+See the [Troubleshooting Guide](./troubleshooting.md#interactive-features-disabled-with-piped-streams) for details.
+
 ## Terminal Capabilities
 
 You can check the capabilities of a Terminal:

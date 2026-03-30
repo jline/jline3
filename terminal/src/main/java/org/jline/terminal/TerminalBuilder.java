@@ -8,6 +8,9 @@
  */
 package org.jline.terminal;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -156,6 +159,7 @@ public final class TerminalBuilder {
     public static final String PROP_OUTPUT_ERR_OUT = "err-out";
     public static final String PROP_OUTPUT_FORCED_OUT = "forced-out";
     public static final String PROP_OUTPUT_FORCED_ERR = "forced-err";
+    public static final String PROP_DEV_TTY = "org.jline.terminal.devtty";
 
     //
     // Other system properties controlling various jline parts
@@ -347,6 +351,7 @@ public final class TerminalBuilder {
     private Boolean ffm;
     private Boolean dumb;
     private Boolean color;
+    private Boolean devTty;
     private Attributes attributes;
     private Size size;
     private boolean nativeSignals = true;
@@ -493,6 +498,31 @@ public final class TerminalBuilder {
      */
     public TerminalBuilder dumb(boolean dumb) {
         this.dumb = dumb;
+        return this;
+    }
+
+    /**
+     * Enables or disables the {@code /dev/tty} fallback for creating a terminal when
+     * no system stream is connected to a TTY (e.g., when stdin/stdout are pipes).
+     *
+     * <p>When enabled and running on a POSIX system where no system stream (stdin, stdout,
+     * stderr) is connected to a terminal, JLine will attempt to open {@code /dev/tty}
+     * (the controlling terminal) directly and use it for terminal I/O. This allows
+     * interactive features like tab completion, syntax highlighting, and history navigation
+     * to work even when the process was launched with redirected streams.</p>
+     *
+     * <p>A common use case is running a JLine application via Maven's
+     * {@code exec-maven-plugin} with the {@code exec:exec} goal, which forks a new JVM
+     * with piped stdin/stdout.</p>
+     *
+     * <p>If not specified, the system property {@link #PROP_DEV_TTY} will be used.
+     * Defaults to {@code false}.</p>
+     *
+     * @param devTty true to enable the /dev/tty fallback
+     * @return this builder
+     */
+    public TerminalBuilder devTty(boolean devTty) {
+        this.devTty = devTty;
         return this;
     }
 
@@ -855,16 +885,85 @@ public final class TerminalBuilder {
                             exception);
                 }
             }
+            // When no system stream is a TTY but a controlling terminal may still be
+            // available (e.g., when running via exec-maven-plugin's exec:exec goal),
+            // try to open /dev/tty directly and create a terminal using it.
+            String savedTtySettings = null;
+            if (terminal == null && !forceDumb && !OSUtils.IS_WINDOWS) {
+                Boolean useDevTty = this.devTty;
+                if (useDevTty == null) {
+                    useDevTty = getBoolean(PROP_DEV_TTY, false);
+                }
+                if (Boolean.TRUE.equals(useDevTty)) {
+                    try {
+                        File ttyFile = new File("/dev/tty");
+                        if (ttyFile.canRead() && ttyFile.canWrite()) {
+                            savedTtySettings = sttyDevTty("-g");
+                            if (savedTtySettings != null) {
+                                Size devTtySize = queryDevTtySize();
+                                sttyDevTty("raw", "-echo");
+                                InputStream ttyIn = new FileInputStream(ttyFile);
+                                OutputStream ttyOut = new FileOutputStream(ttyFile);
+                                for (TerminalProvider prov : providers) {
+                                    if (terminal == null) {
+                                        try {
+                                            terminal = prov.newTerminal(
+                                                    name,
+                                                    type,
+                                                    ttyIn,
+                                                    ttyOut,
+                                                    encoding,
+                                                    stdinEncoding,
+                                                    stdoutEncoding,
+                                                    signalHandler,
+                                                    paused,
+                                                    attributes,
+                                                    devTtySize != null ? devTtySize : size);
+                                        } catch (Throwable t) {
+                                            Log.debug(
+                                                    "Error creating terminal via /dev/tty with " + prov.name() + ": ",
+                                                    t.getMessage(),
+                                                    t);
+                                            exception.addSuppressed(t);
+                                        }
+                                    }
+                                }
+                                if (terminal == null) {
+                                    sttyDevTty(savedTtySettings);
+                                    savedTtySettings = null;
+                                    ttyIn.close();
+                                    ttyOut.close();
+                                }
+                            }
+                        }
+                    } catch (Throwable t) {
+                        Log.debug("Error setting up /dev/tty: ", t.getMessage(), t);
+                        if (savedTtySettings != null) {
+                            sttyDevTty(savedTtySettings);
+                            savedTtySettings = null;
+                        }
+                    }
+                }
+            }
+            final String ttySettingsToRestore = savedTtySettings;
             if (terminal instanceof AbstractTerminal) {
                 AbstractTerminal t = (AbstractTerminal) terminal;
                 if (SYSTEM_TERMINAL.compareAndSet(null, t)) {
-                    t.setOnClose(() -> SYSTEM_TERMINAL.compareAndSet(t, null));
+                    t.setOnClose(() -> {
+                        SYSTEM_TERMINAL.compareAndSet(t, null);
+                        if (ttySettingsToRestore != null) {
+                            sttyDevTty(ttySettingsToRestore);
+                        }
+                    });
                 } else {
                     exception.addSuppressed(new IllegalStateException("A system terminal is already running. "
                             + "Make sure to use the created system Terminal on the LineReaderBuilder if you're using one "
                             + "or that previously created system Terminals have been correctly closed."));
                     terminal.close();
                     terminal = null;
+                    if (ttySettingsToRestore != null) {
+                        sttyDevTty(ttySettingsToRestore);
+                    }
                 }
             }
             if (terminal == null && (forceDumb || dumb == null || dumb)) {
@@ -1277,5 +1376,53 @@ public final class TerminalBuilder {
     @Deprecated
     public static void setTerminalOverride(final Terminal terminal) {
         TERMINAL_OVERRIDE.set(terminal);
+    }
+
+    /**
+     * Runs stty with the given arguments, using {@code /dev/tty} as stdin.
+     *
+     * @return the trimmed stdout output on success, or {@code null} on failure
+     */
+    private static String sttyDevTty(String... args) {
+        try {
+            List<String> cmd = new ArrayList<>();
+            cmd.add(OSUtils.STTY_COMMAND);
+            for (String arg : args) {
+                cmd.add(arg);
+            }
+            ProcessBuilder pb = new ProcessBuilder(cmd);
+            pb.redirectInput(new File("/dev/tty"));
+            pb.redirectErrorStream(true);
+            Process p = pb.start();
+            String result = new String(p.getInputStream().readAllBytes()).trim();
+            if (p.waitFor() == 0) {
+                return result;
+            }
+        } catch (Throwable t) {
+            Log.debug("Error running stty for /dev/tty: ", t.getMessage(), t);
+        }
+        return null;
+    }
+
+    /**
+     * Queries the terminal size of {@code /dev/tty} using {@code stty size}.
+     *
+     * @return the terminal size, or {@code null} if it cannot be determined
+     */
+    private static Size queryDevTtySize() {
+        String sizeStr = sttyDevTty("size");
+        if (sizeStr != null) {
+            String[] parts = sizeStr.split("\\s+");
+            if (parts.length == 2) {
+                try {
+                    int rows = Integer.parseInt(parts[0]);
+                    int cols = Integer.parseInt(parts[1]);
+                    return new Size(cols, rows);
+                } catch (NumberFormatException e) {
+                    // ignore
+                }
+            }
+        }
+        return null;
     }
 }
