@@ -195,7 +195,7 @@ a dumb terminal with limited capabilities.
 On POSIX systems (Linux, macOS), the controlling terminal is still accessible via `/dev/tty`
 even when stdin/stdout are pipes. Tools like `less` and `vim` use this technique to provide
 interactive UIs while reading piped input. JLine does not currently use `/dev/tty`
-automatically, but this is planned for a future release.
+automatically, but this is planned for a future release (see [#1728](https://github.com/jline/jline3/issues/1728)).
 
 #### Workarounds
 
