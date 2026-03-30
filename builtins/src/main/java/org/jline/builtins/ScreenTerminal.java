@@ -863,6 +863,8 @@ public class ScreenTerminal {
             clear(0, 0, cy + 1, cx + 1);
         } else if ("2".equals(ps[0])) {
             clear(0, 0, height, width);
+        } else if ("3".equals(ps[0])) {
+            history.clear();
         }
     }
 
