@@ -473,7 +473,7 @@ public abstract class AbstractTerminal implements TerminalExt {
                 // After the first byte, remaining bytes in the same response
                 // arrive nearly instantly; use a short timeout to avoid
                 // blocking for the full duration after the last byte.
-                timeout = 10;
+                timeout = Math.min(10, timeout);
             }
         } catch (IOException ignored) {
         }
