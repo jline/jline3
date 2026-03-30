@@ -95,4 +95,40 @@ public class ScreenTerminalTest {
             assertNotEquals('\0', content.charAt(i), "Found null character at position " + i);
         }
     }
+
+    /**
+     * Test for PR #1725: Issues with long storage format
+     * This test verifies that the terminal HTML dump method correctly outputs properties like fg/bg colors.
+     */
+    @Test
+    public void testHTMLDump() throws InterruptedException {
+        // Create a terminal with initial size
+        int initialWidth = 80;
+        int initialHeight = 24;
+        ScreenTerminal terminal = new ScreenTerminal(initialWidth, initialHeight);
+
+        String line = "X".repeat(initialWidth);
+        String clearAnsi = "\033[0m";
+
+        // Dump the terminal content
+        String dump = terminal.dump(0, true);
+        assertNotNull(dump);
+        assertTrue(dump.contains("<span style='color:#000000;background-color:#f0f0f0;'> </span>")
+                || dump.contains("<span style='color:#000000;background-color:#ffffff;'> </span>")); // The cursor
+
+        terminal = new ScreenTerminal(initialWidth, initialHeight);
+        terminal.write(clearAnsi + "\033[31m" + line + clearAnsi + "\n");
+
+        dump = terminal.dump(0, true);
+        assertNotNull(dump);
+        assertTrue(dump.contains(
+                "<span style='color:#800000;background-color:#000000;'>" + line + "\n</span>")); // Text FG
+
+        terminal = new ScreenTerminal(initialWidth, initialHeight);
+        terminal.write(clearAnsi + "\033[44m" + line + clearAnsi + "\n");
+
+        dump = terminal.dump(0, true);
+        assertNotNull(dump);
+        assertTrue(dump.contains("background-color:#000080;'>" + line + "\n</span>")); // Text BG
+    }
 }
