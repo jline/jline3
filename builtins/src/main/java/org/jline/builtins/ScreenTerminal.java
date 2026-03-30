@@ -412,7 +412,7 @@ public class ScreenTerminal {
 
     private void cursor_set_x(int x) {
         eol = false;
-        cx = Math.max(0, x);
+        cx = Math.max(0, Math.min(width - 1, x));
         setDirty();
     }
 
