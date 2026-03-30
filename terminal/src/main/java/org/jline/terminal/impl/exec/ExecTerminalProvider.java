@@ -141,6 +141,26 @@ public class ExecTerminalProvider implements TerminalProvider {
             Charset outputEncoding,
             boolean nativeSignals,
             Terminal.SignalHandler signalHandler,
+            boolean paused)
+            throws IOException {
+        if (OSUtils.IS_WINDOWS) {
+            throw new UnsupportedOperationException("/dev/tty is not available on Windows");
+        }
+        Pty pty = new ExecPty(this, null, "/dev/tty");
+        return new PosixSysTerminal(
+                name, type, pty, encoding, inputEncoding, outputEncoding, nativeSignals, signalHandler);
+    }
+
+    @Override
+    public Terminal sysTerminal(
+            String name,
+            String type,
+            boolean ansiPassThrough,
+            Charset encoding,
+            Charset inputEncoding,
+            Charset outputEncoding,
+            boolean nativeSignals,
+            Terminal.SignalHandler signalHandler,
             boolean paused,
             SystemStream systemStream)
             throws IOException {
