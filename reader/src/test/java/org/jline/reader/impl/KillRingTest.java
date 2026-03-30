@@ -127,6 +127,18 @@ public class KillRingTest extends ReaderTestSupport {
         assertEquals(yanked, "baz");
     }
 
+    @Test
+    public void testYankPopOnEmptyRingDoesNotThrow() {
+        // When the ring is empty, yank() sets lastYank=true and returns null.
+        // A subsequent yankPop() calls prev() which sets head to -1 when all
+        // slots are null. Without a bounds check this would throw
+        // ArrayIndexOutOfBoundsException.
+        KillRing killRing = new KillRing();
+        killRing.yank(); // sets lastYank = true, returns null
+        String yanked = killRing.yankPop();
+        assertNull(yanked);
+    }
+
     // Those tests are run using a buffer.
 
     @Test
