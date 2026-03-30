@@ -1118,8 +1118,8 @@ public class ScreenTerminal {
     }
 
     private void csi_RCP(String p) {
-        cx = vt100_saved_cx;
-        cy = vt100_saved_cy;
+        cx = Math.min(vt100_saved_cx, width - 1);
+        cy = Math.min(vt100_saved_cy, height - 1);
     }
 
     private void csi_DECREQTPARM(String p) {
