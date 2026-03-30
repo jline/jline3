@@ -42,6 +42,13 @@ The `TerminalBuilder` will figure out the current Operating System and which act
 
 <CodeSnippet name="TerminalCreationExample" />
 
+### Piped Streams and Process Launchers
+
+When your application is launched by a process that redirects stdin/stdout through pipes
+(e.g., Maven's `exec-maven-plugin` with `exec:exec`), JLine cannot detect a TTY and falls back to a dumb
+terminal. See the [Troubleshooting Guide](./troubleshooting.md#interactive-features-disabled-with-piped-streams)
+for workarounds.
+
 ## Terminal Capabilities
 
 You can check the capabilities of a Terminal:

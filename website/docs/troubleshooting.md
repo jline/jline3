@@ -173,6 +173,64 @@ This error occurs when JLine cannot initialize a terminal for the current enviro
            .build();
    ```
 
+### Interactive Features Disabled with Piped Streams
+
+When running a JLine application from a process launcher that connects stdin/stdout as pipes
+(rather than a TTY), JLine silently falls back to a dumb terminal. Interactive features like
+tab completion, syntax highlighting, and history navigation will not work.
+
+This commonly happens with:
+
+- **Maven `exec-maven-plugin`** with the `exec:exec` goal (required for JPMS `--module-path`)
+- Other process launchers that fork a JVM with redirected I/O
+- Wrapper scripts that pipe stdin/stdout
+
+#### Why It Happens
+
+JLine checks whether its standard streams (stdin, stdout, and stderr) are connected to a TTY
+(terminal device) using `isatty()`. When a process launcher forks a JVM and connects its
+streams through pipes, `isatty()` returns false for all file descriptors, and JLine creates
+a dumb terminal with limited capabilities.
+
+On POSIX systems (Linux, macOS), the controlling terminal is still accessible via `/dev/tty`
+even when stdin/stdout are pipes. Tools like `less` and `vim` use this technique to provide
+interactive UIs while reading piped input. JLine does not currently use `/dev/tty`
+automatically, but this is planned for a future release (see [#1728](https://github.com/jline/jline3/issues/1728)).
+
+#### Workarounds
+
+- **Use `exec:java` instead of `exec:exec`** if your project does not require JPMS module path
+  support. The `exec:java` goal runs in the same JVM as Maven and inherits the terminal directly:
+
+  ```xml
+  <plugin>
+      <groupId>org.codehaus.mojo</groupId>
+      <artifactId>exec-maven-plugin</artifactId>
+      <configuration>
+          <mainClass>com.example.Main</mainClass>
+      </configuration>
+  </plugin>
+  ```
+
+- **Wrap with `script`** to allocate a PTY around the forked process:
+
+  ```bash
+  # macOS / BSD
+  script -q /dev/null mvn exec:exec
+
+  # Linux (util-linux)
+  script -q -c "mvn exec:exec" /dev/null
+  ```
+
+- **Use `ProcessBuilder` with `inheritIO()`** if you control the launcher. This preserves the
+  TTY connection to the child process:
+
+  ```java
+  new ProcessBuilder("java", "-jar", "myapp.jar")
+          .inheritIO()
+          .start();
+  ```
+
 ### ANSI Color Codes Not Working
 
 If ANSI color codes or other escape sequences aren't working properly:
