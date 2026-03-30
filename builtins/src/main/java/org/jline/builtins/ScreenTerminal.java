@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jline.utils.Colors;
 import org.jline.utils.WCWidth;
@@ -128,7 +127,7 @@ public class ScreenTerminal {
     private List<long[]> history = new ArrayList<>();
     private List<long[]> history2 = new ArrayList<>();
 
-    private AtomicBoolean dirty = new AtomicBoolean(true);
+    private boolean dirty = true;
 
     public ScreenTerminal() {
         this(80, 24);
@@ -1650,24 +1649,26 @@ public class ScreenTerminal {
     //
 
     public synchronized boolean isDirty() {
-        return dirty.compareAndSet(true, false);
+        boolean wasDirty = dirty;
+        dirty = false;
+        return wasDirty;
     }
 
     public synchronized void waitDirty() throws InterruptedException {
-        while (!dirty.compareAndSet(true, false)) {
+        while (!isDirty()) {
             wait();
         }
     }
 
     public synchronized boolean waitDirty(long timeout) throws InterruptedException {
-        if (!dirty.get()) {
+        if (!dirty) {
             wait(timeout);
         }
-        return dirty.compareAndSet(true, false);
+        return isDirty();
     }
 
     protected synchronized void setDirty() {
-        dirty.set(true);
+        dirty = true;
         notifyAll();
     }
 
@@ -1945,10 +1946,10 @@ public class ScreenTerminal {
             int fwidth,
             int[] cursor)
             throws InterruptedException {
-        if (!dirty.get() && timeout > 0) {
+        if (!dirty && timeout > 0) {
             wait(timeout);
         }
-        if (dirty.compareAndSet(true, false) || forceDump) {
+        if (isDirty() || forceDump) {
             dump(fullscreen, ftop, fleft, fheight, fwidth, cursor);
             return true;
         } else {
@@ -1968,10 +1969,10 @@ public class ScreenTerminal {
      */
     public synchronized boolean dump(long timeout, boolean forceDump, long[] fullscreen, int[] cursor)
             throws InterruptedException {
-        if (!dirty.get() && timeout > 0) {
+        if (!dirty && timeout > 0) {
             wait(timeout);
         }
-        if (dirty.compareAndSet(true, false) || forceDump) {
+        if (isDirty() || forceDump) {
             dump(fullscreen, cursor);
             return true;
         } else {
