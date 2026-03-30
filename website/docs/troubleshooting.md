@@ -187,9 +187,10 @@ This commonly happens with:
 
 #### Why It Happens
 
-JLine checks whether stdin is connected to a TTY (terminal device) using `isatty()`. When a
-process launcher forks a JVM and connects its streams through pipes, `isatty()` returns false
-for all file descriptors, and JLine creates a dumb terminal with limited capabilities.
+JLine checks whether its standard streams (stdin, stdout, and stderr) are connected to a TTY
+(terminal device) using `isatty()`. When a process launcher forks a JVM and connects its
+streams through pipes, `isatty()` returns false for all file descriptors, and JLine creates
+a dumb terminal with limited capabilities.
 
 On POSIX systems (Linux, macOS), the controlling terminal is still accessible via `/dev/tty`
 even when stdin/stdout are pipes. Tools like `less` and `vim` use this technique to provide
@@ -214,7 +215,11 @@ automatically, but this is planned for a future release.
 - **Wrap with `script`** to allocate a PTY around the forked process:
 
   ```bash
+  # macOS / BSD
   script -q /dev/null mvn exec:exec
+
+  # Linux (util-linux)
+  script -q -c "mvn exec:exec" /dev/null
   ```
 
 - **Use `ProcessBuilder` with `inheritIO()`** if you control the launcher. This preserves the
