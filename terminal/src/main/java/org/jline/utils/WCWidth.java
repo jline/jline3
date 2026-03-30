@@ -447,12 +447,28 @@ public final class WCWidth {
      * @return the display width of the grapheme cluster, same range as {@link #wcwidth(int)}
      */
     public static int wcwidthForGraphemeCluster(CharSequence cs, int index) {
+        return wcwidthForGraphemeCluster(cs, index, charCountForGraphemeCluster(cs, index));
+    }
+
+    /**
+     * Returns the display width of the grapheme cluster of the given
+     * {@code clusterCharCount} chars starting at {@code index}.
+     *
+     * <p>This overload avoids recomputing the cluster boundaries when the
+     * caller already obtained them from
+     * {@link #charCountForGraphemeCluster(CharSequence, int)}.</p>
+     *
+     * @param cs               the character sequence
+     * @param index            the starting char index
+     * @param clusterCharCount number of {@code char}s in the cluster
+     * @return the display width of the grapheme cluster, same range as {@link #wcwidth(int)}
+     */
+    static int wcwidthForGraphemeCluster(CharSequence cs, int index, int clusterCharCount) {
         int cp = Character.codePointAt(cs, index);
         int w = wcwidth(cp);
 
         // Scan the cluster for variation selectors
-        int clusterLen = charCountForGraphemeCluster(cs, index);
-        int end = index + clusterLen;
+        int end = index + clusterCharCount;
         int pos = index + Character.charCount(cp);
         while (pos < end) {
             int ncp = Character.codePointAt(cs, pos);
@@ -485,6 +501,25 @@ public final class WCWidth {
     public static int wcwidthForDisplay(CharSequence cs, int index, Terminal terminal) {
         if (terminal != null && terminal.getGraphemeClusterMode()) {
             return wcwidthForGraphemeCluster(cs, index);
+        }
+        return wcwidth(Character.codePointAt(cs, index));
+    }
+
+    /**
+     * Returns the display width of the character or grapheme cluster at
+     * {@code index}, reusing a pre-computed {@code charCount} to avoid
+     * scanning the cluster boundaries twice.
+     *
+     * @param cs       the character sequence
+     * @param index    the starting char index
+     * @param terminal the terminal to query for grapheme cluster mode, or {@code null}
+     * @param charCount number of {@code char}s consumed by this character/cluster
+     *                  (as returned by {@link #charCountForDisplay(CharSequence, int, Terminal)})
+     * @return the display width
+     */
+    static int wcwidthForDisplay(CharSequence cs, int index, Terminal terminal, int charCount) {
+        if (terminal != null && terminal.getGraphemeClusterMode()) {
+            return wcwidthForGraphemeCluster(cs, index, charCount);
         }
         return wcwidth(Character.codePointAt(cs, index));
     }

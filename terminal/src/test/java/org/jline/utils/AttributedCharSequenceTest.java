@@ -258,6 +258,30 @@ public class AttributedCharSequenceTest {
     }
 
     @Test
+    public void testColumnSplitLengthVS16WithGcMode() throws Exception {
+        Terminal t = GraphemeClusterTestTerminal.create();
+        try {
+            // "AB" + rainbow flag (2 cols) + "CD" = 6 columns; split at 4
+            String text = "AB" + RAINBOW_FLAG + "CD";
+            AttributedString as = new AttributedString(text);
+            List<AttributedString> lines = as.columnSplitLength(4, false, true, t);
+            assertEquals(2, lines.size());
+            assertEquals("AB" + RAINBOW_FLAG, lines.get(0).toString());
+            assertEquals("CD", lines.get(1).toString());
+
+            // Three rainbow flags = 6 columns; split at 5 → [flag+flag, flag]
+            String three = RAINBOW_FLAG + RAINBOW_FLAG + RAINBOW_FLAG;
+            AttributedString as3 = new AttributedString(three);
+            List<AttributedString> lines3 = as3.columnSplitLength(5, false, true, t);
+            assertEquals(2, lines3.size());
+            assertEquals(RAINBOW_FLAG + RAINBOW_FLAG, lines3.get(0).toString());
+            assertEquals(RAINBOW_FLAG, lines3.get(1).toString());
+        } finally {
+            t.close();
+        }
+    }
+
+    @Test
     public void testColumnSplitLengthWithNewlines() throws Exception {
         Terminal t = GraphemeClusterTestTerminal.create();
         try {
