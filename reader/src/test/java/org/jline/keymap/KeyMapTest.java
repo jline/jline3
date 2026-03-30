@@ -123,7 +123,7 @@ public class KeyMapTest {
     }
 
     @Test
-    public void testUnbindBoundaryChar() {
+    void testUnbindBoundaryChar() {
         // KEYMAP_LENGTH is 128, so a char with value 128 is at the boundary
         // (i.e., index == mapping.length). Before the fix, unbind() used ">"
         // instead of ">=" for the bounds check, which would let c == mapping.length
