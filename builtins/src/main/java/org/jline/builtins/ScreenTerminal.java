@@ -271,13 +271,13 @@ public class ScreenTerminal {
 
     private void fill(int y0, int x0, int y1, int x1, long c) {
         if (y0 == y1 - 1) {
-            if (x0 < x1 - 1) {
+            if (x0 < x1) {
                 Arrays.fill(screen[y0], x0, x1, c);
                 setDirty();
             }
         } else if (y0 < y1 - 1) {
             Arrays.fill(screen[y0], x0, width, c);
-            for (int i = y0; i < y1 - 1; i++) {
+            for (int i = y0 + 1; i < y1 - 1; i++) {
                 Arrays.fill(screen[i], c);
             }
             Arrays.fill(screen[y1 - 1], 0, x1, c);
