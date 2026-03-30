@@ -171,7 +171,7 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
         }
     }
 
-    private int parseColorResponse(NonBlockingReader reader, int colorType) throws IOException {
+    int parseColorResponse(NonBlockingReader reader, int colorType) throws IOException {
         if (reader.peek(50) < 0) {
             return -1;
         }
@@ -209,6 +209,9 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
         List<String> rgb = new ArrayList<>();
         while (true) {
             int c = reader.read(10);
+            if (c < 0) {
+                return -1;
+            }
             if (c == '\007') {
                 rgb.add(sb.toString());
                 break;
