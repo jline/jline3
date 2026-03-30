@@ -12,6 +12,7 @@ import java.io.IOError;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.IntConsumer;
@@ -197,7 +198,7 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
         }
 
         List<String> rgb = readRgbValues(reader);
-        if (rgb == null || rgb.size() != 3) {
+        if (rgb.size() != 3) {
             return -1;
         }
 
@@ -237,7 +238,7 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
 
     /**
      * Reads RGB hex values separated by '/' and terminated by BEL or ST.
-     * Returns null on EOF, timeout, or invalid input.
+     * Returns an empty list on EOF, timeout, or invalid input.
      */
     private List<String> readRgbValues(NonBlockingReader reader) throws IOException {
         StringBuilder sb = new StringBuilder(16);
@@ -245,17 +246,17 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
         while (true) {
             int c = reader.read(10);
             if (c == -1) {
-                return null; // EOF — stream closed
+                return Collections.emptyList(); // EOF — stream closed
             }
             if (c == NonBlockingReader.READ_EXPIRED) {
-                return null; // timeout — terminal not responding within probe window
+                return Collections.emptyList(); // timeout — terminal not responding within probe window
             }
             if (c == '\007') {
                 rgb.add(sb.toString());
                 return rgb;
             }
             if (c == '\033') {
-                return readStTerminator(reader) ? addAndReturn(rgb, sb.toString()) : null;
+                return readStTerminator(reader) ? addAndReturn(rgb, sb.toString()) : Collections.emptyList();
             }
             if (isHexChar(c)) {
                 sb.append((char) c);

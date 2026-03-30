@@ -11,6 +11,7 @@ package org.jline.terminal.impl;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.stream.Stream;
 
 import org.easymock.EasyMock;
 import org.jline.terminal.Attributes;
@@ -18,34 +19,30 @@ import org.jline.terminal.Terminal.SignalHandler;
 import org.jline.terminal.spi.Pty;
 import org.jline.utils.NonBlockingReader;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class ColorParsingTest {
 
-    @Test
-    void testParseColorResponseReturnsMinusOneOnEof() throws Exception {
-        // EOF occurs while reading RGB hex values (after rgb: prefix but before terminator)
-        NonBlockingReader reader = createReader("\033]10;rgb:ff/00");
-
-        AbstractPosixTerminal terminal = createTerminal();
-        try {
-            int result = terminal.parseColorResponse(reader, 10);
-            assertEquals(-1, result, "parseColorResponse should return -1 when EOF during RGB values");
-        } finally {
-            terminal.close();
-        }
+    static Stream<Arguments> eofScenarios() {
+        return Stream.of(
+                Arguments.of("\033]10;rgb:ff/00", 10, "EOF during RGB values"),
+                Arguments.of("", 10, "immediate EOF"),
+                Arguments.of("\033]10;rg", 10, "EOF during rgb: prefix"));
     }
 
-    @Test
-    void testParseColorResponseReturnsMinusOneOnImmediateEof() throws Exception {
-        // EOF on very first peek
-        NonBlockingReader reader = createReader("");
+    @ParameterizedTest(name = "parseColorResponse returns -1 on {2}")
+    @MethodSource("eofScenarios")
+    void testParseColorResponseReturnsMinusOneOnEof(String input, int colorType, String scenario) throws Exception {
+        NonBlockingReader reader = createReader(input);
 
         AbstractPosixTerminal terminal = createTerminal();
         try {
-            int result = terminal.parseColorResponse(reader, 10);
-            assertEquals(-1, result, "parseColorResponse should return -1 on immediate EOF");
+            int result = terminal.parseColorResponse(reader, colorType);
+            assertEquals(-1, result, "parseColorResponse should return -1 on " + scenario);
         } finally {
             terminal.close();
         }
@@ -74,20 +71,6 @@ class ColorParsingTest {
         try {
             int result = terminal.parseColorResponse(reader, 11);
             assertEquals(0x000000, result, "parseColorResponse should parse black color correctly");
-        } finally {
-            terminal.close();
-        }
-    }
-
-    @Test
-    void testParseColorResponseEofAfterPartialRgb() throws Exception {
-        // EOF after writing only part of the rgb: prefix
-        NonBlockingReader reader = createReader("\033]10;rg");
-
-        AbstractPosixTerminal terminal = createTerminal();
-        try {
-            int result = terminal.parseColorResponse(reader, 10);
-            assertEquals(-1, result, "parseColorResponse should return -1 when EOF during rgb: prefix");
         } finally {
             terminal.close();
         }
