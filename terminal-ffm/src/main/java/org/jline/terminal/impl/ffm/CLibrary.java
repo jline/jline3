@@ -642,6 +642,9 @@ class CLibrary {
                     size != null
                             ? new winsize((short) size.getRows(), (short) size.getColumns()).segment()
                             : MemorySegment.NULL);
+            if (res != 0) {
+                throw new RuntimeException("Unable to call openpty(): return code " + res);
+            }
             byte[] str = buf.toArray(ValueLayout.JAVA_BYTE);
             int len = 0;
             while (str[len] != 0) {
