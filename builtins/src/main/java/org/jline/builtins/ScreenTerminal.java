@@ -2154,9 +2154,12 @@ public class ScreenTerminal {
      * @return hex color string (e.g., "#ff0000")
      */
     private static String rgbToHex(int color) {
-        int r = ((color >> 8) & 0x0f) << 4; // Expand 4-bit to 8-bit
-        int g = ((color >> 4) & 0x0f) << 4;
-        int b = ((color >> 0) & 0x0f) << 4;
+        int rn = (color >> 8) & 0x0f;
+        int gn = (color >> 4) & 0x0f;
+        int bn = (color >> 0) & 0x0f;
+        int r = (rn << 4) | rn; // Expand 4-bit to 8-bit (e.g., 0xf -> 0xff)
+        int g = (gn << 4) | gn;
+        int b = (bn << 4) | bn;
         return String.format("#%02x%02x%02x", r, g, b);
     }
 

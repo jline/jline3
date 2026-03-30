@@ -113,8 +113,7 @@ public class ScreenTerminalTest {
         // Dump the terminal content
         String dump = terminal.dump(0, true);
         assertNotNull(dump);
-        assertTrue(dump.contains("<span style='color:#000000;background-color:#f0f0f0;'> </span>")
-                || dump.contains("<span style='color:#000000;background-color:#ffffff;'> </span>")); // The cursor
+        assertTrue(dump.contains("<span style='color:#000000;background-color:#ffffff;'> </span>")); // The cursor
 
         terminal = new ScreenTerminal(initialWidth, initialHeight);
         terminal.write(clearAnsi + "\033[31m" + line + clearAnsi + "\n");
@@ -122,13 +121,13 @@ public class ScreenTerminalTest {
         dump = terminal.dump(0, true);
         assertNotNull(dump);
         assertTrue(dump.contains(
-                "<span style='color:#800000;background-color:#000000;'>" + line + "\n</span>")); // Text FG
+                "<span style='color:#880000;background-color:#000000;'>" + line + "\n</span>")); // Text FG
 
         terminal = new ScreenTerminal(initialWidth, initialHeight);
         terminal.write(clearAnsi + "\033[44m" + line + clearAnsi + "\n");
 
         dump = terminal.dump(0, true);
         assertNotNull(dump);
-        assertTrue(dump.contains("background-color:#000080;'>" + line + "\n</span>")); // Text BG
+        assertTrue(dump.contains("background-color:#000088;'>" + line + "\n</span>")); // Text BG
     }
 }
