@@ -308,7 +308,7 @@ public class ScreenTerminal {
             System.arraycopy(screen, n, screen, 0, height - n);
             for (int i = 1; i <= n; i++) {
                 screen[y1 - i] = new long[width];
-                Arrays.fill(screen[y1 - 1], attr | 0x0020);
+                Arrays.fill(screen[y1 - i], attr | 0x0020);
             }
         } else {
             poke(y0, 0, peek(y0 + n, 0, y1, width));
