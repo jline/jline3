@@ -35,7 +35,6 @@ package org.jline.builtins;
  *       and http://vt100.net/docs/vt510-rm/
  */
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -229,8 +228,8 @@ public class ScreenTerminal {
 
     private void reset_screen() {
         // Screen
-        screen = (long[][]) Array.newInstance(long.class, height, width);
-        screen2 = (long[][]) Array.newInstance(long.class, height, width);
+        screen = new long[height][width];
+        screen2 = new long[height][width];
         for (int i = 0; i < height; i++) {
             Arrays.fill(screen[i], attr | 0x00000020);
             Arrays.fill(screen2[i], attr | 0x00000020);
