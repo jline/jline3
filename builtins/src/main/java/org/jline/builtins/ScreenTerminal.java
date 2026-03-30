@@ -2015,97 +2015,149 @@ public class ScreenTerminal {
         }
     }
 
+    /**
+     * Dumps the terminal content as HTML with inline RGB color styles.
+     *
+     * @param timeout maximum time to wait for changes in milliseconds
+     * @param forceDump whether to force a dump even if screen is not dirty
+     * @return the terminal content as HTML, or null if no update
+     * @throws InterruptedException if interrupted
+     */
     public synchronized String dump(long timeout, boolean forceDump) throws InterruptedException {
-        int width = this.width;
-        int height = this.height;
-        long[] screen = new long[width * height];
+        boolean inverse = vt100_mode_inverse;
+        boolean cursorVisible = vt100_mode_cursor;
+        int w = getWidth();
+        int h = getHeight();
+        long[] screen = new long[w * h];
         int[] cursor = new int[2];
-        if (dump(timeout, forceDump, screen, 0, 0, height, width, cursor)) {
-            StringBuilder sb = new StringBuilder();
-            int prev_attr = -1;
-            int cx = cursor[0];
-            int cy = cursor[1];
-            sb.append("<div><pre class='term'>");
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    long d = screen[y * width + x];
-                    int c = (int) (d & 0xffffffffL);
-                    int a = (int) (d >> 32);
-                    if (cy == y && cx == x && vt100_mode_cursor) {
-                        a = (a & 0xfffff000) | 0x20000000 | 0x0fff; // white bg for cursor
-                        a = (a & 0xff000fff) | 0x10000000; // black fg for cursor
-                    }
-                    if (a != prev_attr) {
-                        if (prev_attr != -1) {
-                            sb.append("</span>");
-                        }
-                        int bg = a & 0x0fff;
-                        int fg = (a >>> 12) & 0x0fff;
-                        if ((a & 0x10000000) == 0) {
-                            fg = 0x0fff; // Default white foreground
-                        }
-                        if ((a & 0x20000000) == 0) {
-                            bg = 0x0000; // Default black background
-                        }
-                        boolean inv = (a & 0x02000000) != 0;
-                        boolean inv2 = vt100_mode_inverse;
-                        if (inv && !inv2 || inv2 && !inv) {
-                            int i = fg;
-                            fg = bg;
-                            bg = i;
-                        }
-                        if ((a & 0x04000000) != 0) {
-                            fg = bg;
-                        }
-                        String ul;
-                        if ((a & 0x01000000) != 0) {
-                            ul = " ul";
-                        } else {
-                            ul = "";
-                        }
-                        String b;
-                        if ((a & 0x08000000) != 0) {
-                            b = " b";
-                        } else {
-                            b = "";
-                        }
-                        sb.append("<span class='f")
-                                .append(fg)
-                                .append(" b")
-                                .append(bg)
-                                .append(ul)
-                                .append(b)
-                                .append("'>");
-                        prev_attr = a;
-                    }
-                    switch (c) {
-                        case '&':
-                            sb.append("&amp;");
-                            break;
-                        case '<':
-                            sb.append("&lt;");
-                            break;
-                        case '>':
-                            sb.append("&gt;");
-                            break;
-                        default:
-                            // Skip continuation markers (null characters)
-                            if (c == 0) {
-                                // This is a continuation of a wide character, skip it
-                                break;
-                            }
-                            // Use appendCodePoint for proper codepoint-to-char conversion
-                            // This handles Unicode characters beyond the BMP correctly
-                            sb.appendCodePoint(c);
-                            break;
-                    }
-                }
-                sb.append("\n");
-            }
-            sb.append("</span></pre></div>");
-            return sb.toString();
+        if (!dump(timeout, forceDump, screen, cursor)) {
+            return null;
         }
-        return null;
+        int cx = cursor[0];
+        int cy = cursor[1];
+        StringBuilder sb = new StringBuilder();
+        long prevAttr = -1;
+        sb.append("<div><pre class='term'>");
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                long d = screen[y * w + x];
+                int c = (int) (d & 0xffffffffL);
+                long a = d >> 32;
+                // Apply cursor styling
+                if (cursorVisible && cy == y && cx == x) {
+                    a = (a & 0xfffff000L) | 0x20000000 | 0x0fff; // white bg for cursor
+                    a = (a & 0xff000fffL) | 0x10000000; // black fg for cursor
+                }
+                if (a != prevAttr) {
+                    if (prevAttr != -1) {
+                        sb.append("</span>");
+                    }
+                    sb.append(generateSpanTag(a, inverse));
+                    prevAttr = a;
+                }
+                switch (c) {
+                    case '&':
+                        sb.append("&amp;");
+                        break;
+                    case '<':
+                        sb.append("&lt;");
+                        break;
+                    case '>':
+                        sb.append("&gt;");
+                        break;
+                    default:
+                        if (c == 0) {
+                            break; // wide char continuation
+                        }
+                        sb.appendCodePoint(c);
+                        break;
+                }
+            }
+            sb.append("\n");
+        }
+        sb.append("</span></pre></div>");
+        return sb.toString();
+    }
+
+    /**
+     * Generates a span tag with proper CSS styling for the given attributes.
+     * Handles RGB colors, bold, underline, inverse, and other attributes.
+     *
+     * @param attr the attribute value from the cell
+     * @return HTML span tag with appropriate CSS classes and inline styles
+     */
+    private static String generateSpanTag(long attr, boolean terminalInverse) {
+        // Attribute mask: 0xYXFFFBBB00000000L
+        // X: Bit 0 - Underlined, Bit 1 - Negative, Bit 2 - Concealed, Bit 3 - Bold
+        // Y: Bit 0 - Foreground set, Bit 1 - Background set
+        // F: Foreground r-g-b
+        // B: Background r-g-b
+
+        int bg = (int) ((attr) & 0x0fff);
+        int fg = (int) ((attr >>> 12) & 0x0fff);
+        boolean underline = (attr & 0x01000000L) != 0;
+        boolean inverse = (attr & 0x02000000L) != 0;
+        boolean conceal = (attr & 0x04000000L) != 0;
+        boolean bold = (attr & 0x08000000L) != 0;
+        boolean fgset = (attr & 0x10000000L) != 0;
+        boolean bgset = (attr & 0x20000000L) != 0;
+
+        // Handle default colors
+        if (!fgset) {
+            fg = 0x0fff; // Default white foreground
+        }
+        if (!bgset) {
+            bg = 0x0000; // Default black background
+        }
+
+        // Handle inverse
+        if (inverse && !terminalInverse || terminalInverse && !inverse) {
+            int temp = fg;
+            fg = bg;
+            bg = temp;
+        }
+
+        // Handle concealed
+        if (conceal) {
+            fg = bg; // Make text invisible by setting foreground to background
+        }
+
+        StringBuilder span = new StringBuilder("<span style='");
+
+        // Add foreground color
+        String fgColor = rgbToHex(fg);
+        span.append("color:").append(fgColor).append(";");
+
+        // Add background color
+        String bgColor = rgbToHex(bg);
+        span.append("background-color:").append(bgColor).append(";");
+
+        // Add text decorations
+        if (underline) {
+            span.append("text-decoration:underline;");
+        }
+
+        // Add font weight
+        if (bold) {
+            span.append("font-weight:bold;");
+        }
+
+        span.append("'>");
+        return span.toString();
+    }
+
+    /**
+     * Converts a 12-bit RGB color value to a hex color string.
+     * The format is 0xRGB where each component is 4 bits.
+     *
+     * @param color 12-bit color value
+     * @return hex color string (e.g., "#ff0000")
+     */
+    private static String rgbToHex(int color) {
+        int r = ((color >> 8) & 0x0f) << 4; // Expand 4-bit to 8-bit
+        int g = ((color >> 4) & 0x0f) << 4;
+        int b = ((color >> 0) & 0x0f) << 4;
+        return String.format("#%02x%02x%02x", r, g, b);
     }
 
     public String toString() {
