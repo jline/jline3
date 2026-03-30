@@ -1016,17 +1016,17 @@ public class ScreenTerminal {
             } else if (m == 8) {
                 attr |= 0x04000000L << 32; // conceal
             } else if (m == 21) {
-                attr &= 0xf7ffffffL << 32; // bold off
+                attr &= ~(0x08000000L << 32); // bold off
             } else if (m == 22) {
                 attr &= ~(0x48000000L << 32); // bold and dim off (normal intensity)
             } else if (m == 23) {
                 attr &= ~(0x80000000L << 32); // italic off
             } else if (m == 24) {
-                attr &= 0xfeffffffL << 32; // underline off
+                attr &= ~(0x01000000L << 32); // underline off
             } else if (m == 27) {
-                attr &= 0xfdffffffL << 32; // negative off
+                attr &= ~(0x02000000L << 32); // negative off
             } else if (m == 28) {
-                attr &= 0xfbffffffL << 32; // conceal off
+                attr &= ~(0x04000000L << 32); // conceal off
             } else if (m >= 30 && m <= 37) {
                 attr = (attr & (0xef000fffL << 32)) | (0x10000000L << 32) | (col24(m - 30) << 44); // foreground
             } else if (m == 38) {
@@ -1681,7 +1681,7 @@ public class ScreenTerminal {
      *
      * @return the width in characters
      */
-    public int getWidth() {
+    public synchronized int getWidth() {
         return width;
     }
 
@@ -1690,7 +1690,7 @@ public class ScreenTerminal {
      *
      * @return the height in characters
      */
-    public int getHeight() {
+    public synchronized int getHeight() {
         return height;
     }
 

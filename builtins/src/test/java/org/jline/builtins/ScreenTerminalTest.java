@@ -331,6 +331,110 @@ public class ScreenTerminalTest {
     }
 
     // -----------------------------------------------------------------------
+    // pipe() tests
+    // -----------------------------------------------------------------------
+
+    /**
+     * pipe() must produce identical output for arrow keys regardless of
+     * cursor key mode, except for the prefix (\033O vs \033[).
+     * Regression guard for the switch deduplication refactoring.
+     */
+    @Test
+    public void testPipeArrowKeysNormalMode() {
+        ScreenTerminal terminal = new ScreenTerminal(80, 24);
+        // Normal mode (default): arrows use CSI (\033[)
+        String result = terminal.pipe("~A~B~C~D~F~H");
+        assertEquals("\u001b[A\u001b[B\u001b[C\u001b[D\u001b[F\u001b[H", result);
+    }
+
+    @Test
+    public void testPipeArrowKeysCursorKeyMode() {
+        ScreenTerminal terminal = new ScreenTerminal(80, 24);
+        // Enable cursor key mode via DECCKM
+        terminal.write("\033[?1h");
+        String result = terminal.pipe("~A~B~C~D~F~H");
+        assertEquals("\u001bOA\u001bOB\u001bOC\u001bOD\u001bOF\u001bOH", result);
+    }
+
+    @Test
+    public void testPipeFunctionKeys() {
+        ScreenTerminal terminal = new ScreenTerminal(80, 24);
+        // Function keys use the same sequences in both modes
+        String result = terminal.pipe("~1~2~3~4~a~b~c~d~e~f~g~h~i~j~k~l");
+        assertEquals(
+                "\u001b[5~\u001b[6~\u001b[2~\u001b[3~"
+                        + "\u001bOP\u001bOQ\u001bOR\u001bOS"
+                        + "\u001b[15~\u001b[17~\u001b[18~\u001b[19~\u001b[20~\u001b[21~\u001b[23~\u001b[24~",
+                result);
+    }
+
+    @Test
+    public void testPipeTildeEscape() {
+        ScreenTerminal terminal = new ScreenTerminal(80, 24);
+        // ~~ should produce a single ~
+        String result = terminal.pipe("~~");
+        assertEquals("~", result);
+    }
+
+    // -----------------------------------------------------------------------
+    // Alt-screen tests
+    // -----------------------------------------------------------------------
+
+    /**
+     * Switching to alt-screen must clear it, and switching back must
+     * restore the main screen content.
+     */
+    @Test
+    public void testAltScreenSwitchPreservesMainScreen() {
+        ScreenTerminal terminal = new ScreenTerminal(10, 5);
+        // Write content on main screen
+        terminal.write("MAIN");
+
+        // Switch to alt-screen (CSI ?1049h)
+        terminal.write("\033[?1049h");
+
+        // Alt-screen should be clear
+        assertEquals(' ', getChar(terminal, 0, 0), "Alt-screen should be cleared on entry");
+
+        // Write something on alt-screen
+        terminal.write("ALT");
+
+        // Switch back to main screen (CSI ?1049l)
+        terminal.write("\033[?1049l");
+
+        // Main screen content should be preserved
+        assertEquals('M', getChar(terminal, 0, 0), "Main screen should be restored");
+        assertEquals('A', getChar(terminal, 0, 1));
+        assertEquals('I', getChar(terminal, 0, 2));
+        assertEquals('N', getChar(terminal, 0, 3));
+    }
+
+    /**
+     * Resizing while on the alt-screen must not corrupt the main screen.
+     */
+    @Test
+    public void testResizeOnAltScreen() {
+        ScreenTerminal terminal = new ScreenTerminal(10, 5);
+        terminal.write("MAIN");
+
+        // Switch to alt-screen
+        terminal.write("\033[?1049h");
+        terminal.write("ALT");
+
+        // Resize while on alt-screen
+        terminal.setSize(20, 10);
+
+        // Switch back
+        terminal.write("\033[?1049l");
+
+        // Main screen content should still be there
+        assertEquals('M', getChar(terminal, 0, 0));
+        assertEquals('A', getChar(terminal, 0, 1));
+        assertEquals('I', getChar(terminal, 0, 2));
+        assertEquals('N', getChar(terminal, 0, 3));
+    }
+
+    // -----------------------------------------------------------------------
     // Dirty flag tests
     // -----------------------------------------------------------------------
 
