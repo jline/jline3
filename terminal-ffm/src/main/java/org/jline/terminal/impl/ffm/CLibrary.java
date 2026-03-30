@@ -654,6 +654,8 @@ class CLibrary {
             String device = new String(str, 0, len);
             return new FfmNativePty(
                     provider, null, master.get(ValueLayout.JAVA_INT, 0), slave.get(ValueLayout.JAVA_INT, 0), device);
+        } catch (UncheckedIOException e) {
+            throw e;
         } catch (Throwable e) {
             throw new RuntimeException("Unable to call openpty()", e);
         }
