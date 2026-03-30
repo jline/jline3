@@ -367,7 +367,7 @@ public class ScreenTerminal {
         int wx = utf8_charwidth(next_char);
         int lx = 0;
         for (int x = 0; x < Math.min(cx, width); x++) {
-            int c = (int) (peek(cy, x, cy + 1, x + 1)[0] & 0x00000000ffffffffL);
+            int c = (int) (screen[cy][x] & 0xffffffffL);
             wx += utf8_charwidth(c);
             lx += 1;
         }
