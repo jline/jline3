@@ -1701,8 +1701,8 @@ public class ScreenTerminal {
         }
 
         if (h != height) {
-            changeHeight(h, w, false);
-            changeHeight(h, w, true);
+            adjustBufferHeight(h, w, false);
+            adjustBufferHeight(h, w, true);
         }
 
         // Scroll parameters
@@ -1721,7 +1721,7 @@ public class ScreenTerminal {
         return true;
     }
 
-    private void changeHeight(int h, int w, boolean alt) {
+    private void adjustBufferHeight(int h, int w, boolean alt) {
         List<long[]> targetHistory = alt ? history2 : history;
         long[][] targetScreen = alt ? screen2 : screen;
         if (h < height) {
