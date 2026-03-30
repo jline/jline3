@@ -9,30 +9,11 @@
 package org.jline.builtins;
 
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Based on the Apache Karaf WebConsole Gogo plugin (Apache License 2.0)
+ * and http://antony.lesuisse.org/software/ajaxterm/ (Public Domain).
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-/*
- * Based on http://antony.lesuisse.org/software/ajaxterm/
- *  Public Domain License
- */
-
-/*
  * See http://www.ecma-international.org/publications/standards/Ecma-048.htm
- *       and http://vt100.net/docs/vt510-rm/
+ *     and http://vt100.net/docs/vt510-rm/
  */
 
 import java.util.ArrayList;
