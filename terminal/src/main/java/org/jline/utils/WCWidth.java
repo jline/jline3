@@ -434,6 +434,63 @@ public final class WCWidth {
     }
 
     /**
+     * Returns the display width of the grapheme cluster starting at {@code index}.
+     *
+     * <p>When the cluster contains VS16 ({@code U+FE0F}), the emoji presentation
+     * selector upgrades the cluster to width 2.  Otherwise the width of the
+     * base code point (via {@link #wcwidth(int)}) is used.</p>
+     *
+     * @param cs    the character sequence
+     * @param index the starting char index
+     * @return the display width of the grapheme cluster (0, 1, or 2)
+     */
+    public static int wcwidthForGraphemeCluster(CharSequence cs, int index) {
+        int cp = Character.codePointAt(cs, index);
+        int w = wcwidth(cp);
+
+        // Base codepoint is already wide — no need to scan
+        if (w >= 2) {
+            return 2;
+        }
+
+        // Scan the rest of the cluster for VS16 (U+FE0F) — emoji presentation upgrade
+        int clusterLen = charCountForGraphemeCluster(cs, index);
+        int end = index + clusterLen;
+        int pos = index + Character.charCount(cp);
+        while (pos < end) {
+            int ncp = Character.codePointAt(cs, pos);
+            if (ncp == 0xFE0F) {
+                return 2;
+            }
+            pos += Character.charCount(ncp);
+        }
+
+        return w;
+    }
+
+    /**
+     * Returns the display width of the character or grapheme cluster at
+     * {@code index} in {@code cs}.
+     *
+     * <p>When the terminal has grapheme cluster mode enabled, this delegates to
+     * {@link #wcwidthForGraphemeCluster(CharSequence, int)} so that VS16
+     * emoji presentation and ZWJ sequences are measured correctly.
+     * Otherwise it returns {@link #wcwidth(int)} for the code point at
+     * {@code index}.</p>
+     *
+     * @param cs       the character sequence
+     * @param index    the starting char index
+     * @param terminal the terminal to query for grapheme cluster mode, or {@code null}
+     * @return the display width
+     */
+    public static int wcwidthForDisplay(CharSequence cs, int index, Terminal terminal) {
+        if (terminal != null && terminal.getGraphemeClusterMode()) {
+            return wcwidthForGraphemeCluster(cs, index);
+        }
+        return wcwidth(Character.codePointAt(cs, index));
+    }
+
+    /**
      * Returns the number of chars to advance past the current character or
      * grapheme cluster at {@code index} in {@code cs}.
      *

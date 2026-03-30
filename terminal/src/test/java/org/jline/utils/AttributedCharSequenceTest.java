@@ -31,6 +31,16 @@ public class AttributedCharSequenceTest {
     private static final String WAVE_SKIN = "\uD83D\uDC4B\uD83C\uDFFD";
     // Woman scientist: 👩‍🔬
     private static final String WOMAN_SCIENTIST = "\uD83D\uDC69\u200D\uD83D\uDD2C";
+    // Rainbow flag: 🏳️‍🌈 (white flag + VS16 + ZWJ + rainbow)
+    private static final String RAINBOW_FLAG = "\uD83C\uDFF3\uFE0F\u200D\uD83C\uDF08";
+    // White flag + VS16: 🏳️
+    private static final String WHITE_FLAG_VS16 = "\uD83C\uDFF3\uFE0F";
+    // White flag (no VS): 🏳
+    private static final String WHITE_FLAG = "\uD83C\uDFF3";
+    // Party popper: 🎉
+    private static final String PARTY_POPPER = "\uD83C\uDF89";
+    // German flag: 🇩🇪 (regional indicators D + E)
+    private static final String FLAG_DE = "\uD83C\uDDE9\uD83C\uDDEA";
 
     @Test
     public void testGraphemeClusterColumnLength() {
@@ -143,6 +153,36 @@ public class AttributedCharSequenceTest {
     }
 
     @Test
+    public void testColumnLengthVS16WithGcMode() throws Exception {
+        Terminal t = GraphemeClusterTestTerminal.create();
+        try {
+            // Rainbow flag: VS16 upgrades white flag to emoji presentation → width 2
+            assertEquals(2, new AttributedString(RAINBOW_FLAG).columnLength(t));
+
+            // White flag + VS16: emoji presentation → width 2
+            assertEquals(2, new AttributedString(WHITE_FLAG_VS16).columnLength(t));
+
+            // White flag without VS16: text presentation → width 1
+            assertEquals(1, new AttributedString(WHITE_FLAG).columnLength(t));
+
+            // Party popper: Emoji_Presentation=Yes → width 2
+            assertEquals(2, new AttributedString(PARTY_POPPER).columnLength(t));
+
+            // Flag DE: regional indicator pair → width 2
+            assertEquals(2, new AttributedString(FLAG_DE).columnLength(t));
+
+            // Mixed: "Hi " (3) + rainbow flag (2) + " end" (4) = 9
+            assertEquals(9, new AttributedString("Hi " + RAINBOW_FLAG + " end").columnLength(t));
+
+            // Without terminal: per-codepoint widths (no cluster awareness)
+            // Rainbow flag: wcwidth(0x1F3F3)=1 + 0(FE0F) + 0(ZWJ) + wcwidth(0x1F308)=2 = 3
+            assertEquals(3, new AttributedString(RAINBOW_FLAG).columnLength());
+        } finally {
+            t.close();
+        }
+    }
+
+    @Test
     public void testColumnSubSequenceWithGcMode() throws Exception {
         Terminal t = GraphemeClusterTestTerminal.create();
         try {
@@ -159,6 +199,22 @@ public class AttributedCharSequenceTest {
             AttributedString flags = new AttributedString(twoFlags);
             assertEquals(FLAG_FR, flags.columnSubSequence(0, 2, t).toString());
             assertEquals(FLAG_FR, flags.columnSubSequence(2, 4, t).toString());
+        } finally {
+            t.close();
+        }
+    }
+
+    @Test
+    public void testColumnSubSequenceVS16WithGcMode() throws Exception {
+        Terminal t = GraphemeClusterTestTerminal.create();
+        try {
+            // "AB" + rainbow flag (2 cols) + "CD" = 6 columns
+            String text = "AB" + RAINBOW_FLAG + "CD";
+            AttributedString as = new AttributedString(text);
+
+            assertEquals("AB", as.columnSubSequence(0, 2, t).toString());
+            assertEquals(RAINBOW_FLAG, as.columnSubSequence(2, 4, t).toString());
+            assertEquals("CD", as.columnSubSequence(4, 6, t).toString());
         } finally {
             t.close();
         }

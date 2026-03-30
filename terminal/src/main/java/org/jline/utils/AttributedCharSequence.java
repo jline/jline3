@@ -662,8 +662,7 @@ public abstract class AttributedCharSequence implements CharSequence {
         int cols = 0;
         int len = length();
         for (int cur = 0; cur < len; ) {
-            int cp = codePointAt(cur);
-            int w = isHidden(cur) ? 0 : WCWidth.wcwidth(cp);
+            int w = isHidden(cur) ? 0 : WCWidth.wcwidthForDisplay(this, cur, terminal);
             cur += WCWidth.charCountForDisplay(this, cur, terminal);
             cols += w;
         }
@@ -706,8 +705,7 @@ public abstract class AttributedCharSequence implements CharSequence {
         int begin = 0;
         int col = 0;
         while (begin < this.length()) {
-            int cp = codePointAt(begin);
-            int w = isHidden(begin) ? 0 : WCWidth.wcwidth(cp);
+            int w = isHidden(begin) ? 0 : WCWidth.wcwidthForDisplay(this, begin, terminal);
             if (col + w > start) {
                 break;
             }
@@ -718,7 +716,7 @@ public abstract class AttributedCharSequence implements CharSequence {
         while (end < this.length()) {
             int cp = codePointAt(end);
             if (cp == '\n') break;
-            int w = isHidden(end) ? 0 : WCWidth.wcwidth(cp);
+            int w = isHidden(end) ? 0 : WCWidth.wcwidthForDisplay(this, end, terminal);
             if (col + w > stop) {
                 break;
             }
@@ -787,7 +785,7 @@ public abstract class AttributedCharSequence implements CharSequence {
         int col = 0;
         while (cur < length()) {
             int cp = codePointAt(cur);
-            int w = isHidden(cur) ? 0 : WCWidth.wcwidth(cp);
+            int w = isHidden(cur) ? 0 : WCWidth.wcwidthForDisplay(this, cur, terminal);
             if (cp == '\n') {
                 strings.add(subSequence(beg, includeNewlines ? cur + 1 : cur));
                 beg = cur + 1;
