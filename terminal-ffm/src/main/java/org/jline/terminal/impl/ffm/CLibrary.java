@@ -11,6 +11,7 @@ package org.jline.terminal.impl.ffm;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -643,7 +644,7 @@ class CLibrary {
                             ? new winsize((short) size.getRows(), (short) size.getColumns()).segment()
                             : MemorySegment.NULL);
             if (res != 0) {
-                throw new RuntimeException("Unable to call openpty(): return code " + res);
+                throw new UncheckedIOException(new IOException("Unable to call openpty(): return code " + res));
             }
             byte[] str = buf.toArray(ValueLayout.JAVA_BYTE);
             int len = 0;
