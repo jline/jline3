@@ -146,6 +146,72 @@ public class WCWidthTest {
         assertEquals(0, WCWidth.charCountForGraphemeCluster("A", 1));
     }
 
+    // --- wcwidthForGraphemeCluster ---
+
+    @Test
+    void wcwidthForGraphemeCluster_singleAsciiChar() {
+        // Single ASCII char — no cluster extensions, returns wcwidth('A') = 1
+        assertEquals(1, WCWidth.wcwidthForGraphemeCluster("A", 0));
+    }
+
+    @Test
+    void wcwidthForGraphemeCluster_singleCjk() {
+        // Single CJK character — already wide, returns 2
+        assertEquals(2, WCWidth.wcwidthForGraphemeCluster("中", 0));
+    }
+
+    @Test
+    void wcwidthForGraphemeCluster_vs16UpgradesWidth() {
+        // White flag (wcwidth=1) + VS16 → emoji presentation = 2
+        assertEquals(2, WCWidth.wcwidthForGraphemeCluster("\uD83C\uDFF3\uFE0F", 0));
+    }
+
+    @Test
+    void wcwidthForGraphemeCluster_vs15DowngradesWidth() {
+        // Party popper (Emoji_Presentation=Yes, wcwidth=2) + VS15 → text presentation = 1
+        assertEquals(1, WCWidth.wcwidthForGraphemeCluster("\uD83C\uDF89\uFE0E", 0));
+    }
+
+    @Test
+    void wcwidthForGraphemeCluster_zjwWithoutVariationSelector() {
+        // Family emoji — base 👨 has wcwidth=2, no VS in cluster, returns 2
+        assertEquals(2, WCWidth.wcwidthForGraphemeCluster(FAMILY_EMOJI, 0));
+        // Woman scientist — base 👩 has wcwidth=2, no VS, returns 2
+        assertEquals(2, WCWidth.wcwidthForGraphemeCluster(WOMAN_SCIENTIST, 0));
+    }
+
+    @Test
+    void wcwidthForGraphemeCluster_flagPair() {
+        // Regional indicator pair — base has wcwidth=2, returns 2
+        assertEquals(2, WCWidth.wcwidthForGraphemeCluster(FLAG_FR, 0));
+    }
+
+    @Test
+    void wcwidthForGraphemeCluster_skinTone() {
+        // Waving hand + skin tone modifier — base has wcwidth=2, no VS, returns 2
+        assertEquals(2, WCWidth.wcwidthForGraphemeCluster(WAVE_SKIN, 0));
+    }
+
+    @Test
+    void wcwidthForGraphemeCluster_rainbowFlag() {
+        // White flag + VS16 + ZWJ + rainbow — VS16 found, returns 2
+        assertEquals(2, WCWidth.wcwidthForGraphemeCluster("\uD83C\uDFF3\uFE0F\u200D\uD83C\uDF08", 0));
+    }
+
+    @Test
+    void wcwidthForGraphemeCluster_combiningMarkAlone() {
+        // Combining acute accent alone — wcwidth=0, no VS, returns 0
+        assertEquals(0, WCWidth.wcwidthForGraphemeCluster("\u0301", 0));
+    }
+
+    @Test
+    void wcwidthForGraphemeCluster_atMiddleOfString() {
+        // "A" + white flag + VS16 — cluster at index 1
+        String text = "A\uD83C\uDFF3\uFE0F";
+        assertEquals(1, WCWidth.wcwidthForGraphemeCluster(text, 0));
+        assertEquals(2, WCWidth.wcwidthForGraphemeCluster(text, 1));
+    }
+
     // --- charCountForDisplay ---
 
     @Test
