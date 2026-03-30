@@ -496,20 +496,20 @@ public class ScreenTerminalTest {
 
     /**
      * ICH at the last column must clamp n to 1 (only one cell available).
-     * Regression: using cx instead of x in the clamp would produce wrong
-     * results if the parameter x ever differed from the cursor position.
+     * The row is fully filled so that ICH must actually push content off screen
+     * rather than acting on an already-blank cell.
      */
     @Test
     public void testICHAtLastColumn() {
         ScreenTerminal terminal = new ScreenTerminal(10, 5);
-        terminal.write("ABCDEFGHI");
-        // Cursor is now at column 9 (0-based) after writing 9 chars
+        terminal.write("ABCDEFGHIJ");
         // Move cursor to column 9 (1-based col 10)
         terminal.write("\033[1;10H");
         // Insert 5 characters - should be clamped to 1 (only 1 cell at the edge)
+        // 'J' at column 9 is pushed off screen, replaced by a blank
         terminal.write("\033[5@");
 
-        // Characters 0-8 should be unchanged, col 9 should be blank
+        // Characters 0-8 should be unchanged, col 9 should be blank (J pushed off)
         assertEquals('A', getChar(terminal, 0, 0));
         assertEquals('B', getChar(terminal, 0, 1));
         assertEquals('C', getChar(terminal, 0, 2));
