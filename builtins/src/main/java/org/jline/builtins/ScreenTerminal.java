@@ -39,9 +39,7 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jline.utils.Colors;
@@ -74,6 +72,26 @@ public class ScreenTerminal {
         Esc,
         Str,
         Csi,
+    }
+
+    static class SavedState {
+        final int cx;
+        final int cy;
+        final long attr;
+        final int charsetGSel;
+        final int[] charsetG;
+        final boolean autowrap;
+        final boolean origin;
+
+        SavedState(int cx, int cy, long attr, int charsetGSel, int[] charsetG, boolean autowrap, boolean origin) {
+            this.cx = cx;
+            this.cy = cy;
+            this.attr = attr;
+            this.charsetGSel = charsetGSel;
+            this.charsetG = charsetG;
+            this.autowrap = autowrap;
+            this.origin = origin;
+        }
     }
 
     private int width;
@@ -114,8 +132,8 @@ public class ScreenTerminal {
     };
     private int vt100_charset_g_sel;
     private int[] vt100_charset_g = {0, 0};
-    private Map<String, Object> vt100_saved;
-    private Map<String, Object> vt100_saved2;
+    private SavedState vt100_saved;
+    private SavedState vt100_saved2;
     private int vt100_alternate_cx;
     private int vt100_alternate_cy;
     private int vt100_saved_cx;
@@ -633,7 +651,7 @@ public class ScreenTerminal {
                         List<long[]> h = history;
                         history = history2;
                         history2 = h;
-                        Map<String, Object> map = vt100_saved;
+                        SavedState map = vt100_saved;
                         vt100_saved = vt100_saved2;
                         vt100_saved2 = map;
                         int c;
@@ -721,25 +739,19 @@ public class ScreenTerminal {
     }
 
     private void esc_DECSC() {
-        vt100_saved = new HashMap<>();
-        vt100_saved.put("cx", cx);
-        vt100_saved.put("cy", cy);
-        vt100_saved.put("attr", attr);
-        vt100_saved.put("vt100_charset_g_sel", vt100_charset_g_sel);
-        vt100_saved.put("vt100_charset_g", vt100_charset_g);
-        vt100_saved.put("vt100_mode_autowrap", vt100_mode_autowrap);
-        vt100_saved.put("vt100_mode_origin", vt100_mode_origin);
+        vt100_saved = new SavedState(
+                cx, cy, attr, vt100_charset_g_sel, vt100_charset_g.clone(), vt100_mode_autowrap, vt100_mode_origin);
     }
 
     private void esc_DECRC() {
-        cx = (Integer) vt100_saved.get("cx");
-        cy = (Integer) vt100_saved.get("cy");
-        attr = (Long) vt100_saved.get("attr");
-        vt100_charset_g_sel = (Integer) vt100_saved.get("vt100_charset_g_sel");
-        vt100_charset_g = (int[]) vt100_saved.get("vt100_charset_g");
+        cx = Math.min(vt100_saved.cx, width - 1);
+        cy = Math.min(vt100_saved.cy, height - 1);
+        attr = vt100_saved.attr;
+        vt100_charset_g_sel = vt100_saved.charsetGSel;
+        vt100_charset_g = vt100_saved.charsetG.clone();
         vt100_charset_update();
-        vt100_mode_autowrap = (Boolean) vt100_saved.get("vt100_mode_autowrap");
-        vt100_mode_origin = (Boolean) vt100_saved.get("vt100_mode_origin");
+        vt100_mode_autowrap = vt100_saved.autowrap;
+        vt100_mode_origin = vt100_saved.origin;
     }
 
     private void esc_IND() {
