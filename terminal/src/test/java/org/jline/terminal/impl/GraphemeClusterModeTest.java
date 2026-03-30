@@ -87,15 +87,32 @@ public class GraphemeClusterModeTest {
     }
 
     @Test
-    public void testNotSupportedOnNonXtermTerminal() throws Exception {
-        // Terminals that don't start with "xterm" should not be probed
+    public void testNotSupportedWhenOnlyDa1Responds() throws Exception {
+        // Terminal doesn't support DECRQM but responds to DA1 sentinel
+        ByteArrayOutputStream masterOutput = new ByteArrayOutputStream();
+        LineDisciplineTerminal terminal =
+                new LineDisciplineTerminal("test", "xterm-256color", masterOutput, StandardCharsets.UTF_8);
+
+        // Feed only a DA1 response (no DECRPM)
+        terminal.slaveInputPipe.write("\033[?64c".getBytes(StandardCharsets.UTF_8));
+        terminal.slaveInputPipe.flush();
+
+        assertFalse(terminal.supportsGraphemeClusterMode());
+
+        terminal.close();
+    }
+
+    @Test
+    public void testProbeSentForNonXtermTerminal() throws Exception {
+        // Non-xterm terminals should now be probed (DA1 sentinel makes it safe)
         ByteArrayOutputStream masterOutput = new ByteArrayOutputStream();
         LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("test", "vt100", masterOutput, StandardCharsets.UTF_8);
 
         assertFalse(terminal.supportsGraphemeClusterMode());
-        // No query should have been sent
-        assertEquals(0, masterOutput.size());
+        // Probe should have been sent
+        String output = masterOutput.toString(StandardCharsets.UTF_8);
+        assertTrue(output.contains("\033[?2027$p"));
 
         terminal.close();
     }
@@ -109,9 +126,10 @@ public class GraphemeClusterModeTest {
 
         assertFalse(terminal.supportsGraphemeClusterMode());
 
-        // Query should still have been sent
+        // Query and DA1 sentinel should have been sent
         String output = masterOutput.toString(StandardCharsets.UTF_8);
         assertTrue(output.contains("\033[?2027$p"));
+        assertTrue(output.contains("\033[c"));
 
         terminal.close();
     }
@@ -122,8 +140,8 @@ public class GraphemeClusterModeTest {
         LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("test", "xterm-256color", masterOutput, StandardCharsets.UTF_8);
 
-        // Feed response
-        terminal.slaveInputPipe.write("\033[?2027;2$y".getBytes(StandardCharsets.UTF_8));
+        // Feed DECRPM response followed by mock DA1 response
+        terminal.slaveInputPipe.write("\033[?2027;2$y\033[?64c".getBytes(StandardCharsets.UTF_8));
         terminal.slaveInputPipe.flush();
 
         assertTrue(terminal.supportsGraphemeClusterMode());
@@ -139,8 +157,8 @@ public class GraphemeClusterModeTest {
         LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("test", "xterm-256color", masterOutput, StandardCharsets.UTF_8);
 
-        // Feed probe response
-        terminal.slaveInputPipe.write("\033[?2027;2$y".getBytes(StandardCharsets.UTF_8));
+        // Feed DECRPM response followed by mock DA1 response
+        terminal.slaveInputPipe.write("\033[?2027;2$y\033[?64c".getBytes(StandardCharsets.UTF_8));
         terminal.slaveInputPipe.flush();
 
         assertTrue(terminal.setGraphemeClusterMode(true));
@@ -158,8 +176,8 @@ public class GraphemeClusterModeTest {
         LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("test", "xterm-256color", masterOutput, StandardCharsets.UTF_8);
 
-        // Feed probe response
-        terminal.slaveInputPipe.write("\033[?2027;2$y".getBytes(StandardCharsets.UTF_8));
+        // Feed DECRPM response followed by mock DA1 response
+        terminal.slaveInputPipe.write("\033[?2027;2$y\033[?64c".getBytes(StandardCharsets.UTF_8));
         terminal.slaveInputPipe.flush();
 
         assertTrue(terminal.setGraphemeClusterMode(true));
@@ -192,8 +210,8 @@ public class GraphemeClusterModeTest {
         LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("test", "xterm-256color", masterOutput, StandardCharsets.UTF_8);
 
-        // Feed probe response
-        terminal.slaveInputPipe.write("\033[?2027;2$y".getBytes(StandardCharsets.UTF_8));
+        // Feed DECRPM response followed by mock DA1 response
+        terminal.slaveInputPipe.write("\033[?2027;2$y\033[?64c".getBytes(StandardCharsets.UTF_8));
         terminal.slaveInputPipe.flush();
 
         assertTrue(terminal.setGraphemeClusterMode(true));
@@ -214,8 +232,8 @@ public class GraphemeClusterModeTest {
         LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("test", "xterm-256color", masterOutput, StandardCharsets.UTF_8);
 
-        // Feed probe response but don't enable the mode
-        terminal.slaveInputPipe.write("\033[?2027;2$y".getBytes(StandardCharsets.UTF_8));
+        // Feed DECRPM response followed by mock DA1 response
+        terminal.slaveInputPipe.write("\033[?2027;2$y\033[?64c".getBytes(StandardCharsets.UTF_8));
         terminal.slaveInputPipe.flush();
 
         assertTrue(terminal.supportsGraphemeClusterMode());
@@ -380,15 +398,16 @@ public class GraphemeClusterModeTest {
         LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("test", terminalType, masterOutput, StandardCharsets.UTF_8);
 
-        // Feed the DECRPM response into the slave input pipe
-        terminal.slaveInputPipe.write(response.getBytes(StandardCharsets.UTF_8));
+        // Feed the DECRPM response followed by mock DA1 response
+        terminal.slaveInputPipe.write((response + "\033[?64c").getBytes(StandardCharsets.UTF_8));
         terminal.slaveInputPipe.flush();
 
         assertEquals(expectedSupport, terminal.supportsGraphemeClusterMode());
 
-        // Verify the DECRQM query was sent
+        // Verify the DECRQM query and DA1 sentinel were sent
         String output = masterOutput.toString(StandardCharsets.UTF_8);
         assertTrue(output.contains("\033[?2027$p"));
+        assertTrue(output.contains("\033[c"));
 
         terminal.close();
     }

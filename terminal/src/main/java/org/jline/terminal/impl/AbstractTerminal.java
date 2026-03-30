@@ -385,14 +385,21 @@ public abstract class AbstractTerminal implements TerminalExt {
     /**
      * Probes the terminal for mode 2027 support using DECRQM.
      *
-     * <p>Sends {@code CSI ? 2027 $ p} and expects a DECRPM response
-     * {@code CSI ? 2027 ; Ps $ y} where Ps indicates the mode status.</p>
+     * <p>Sends {@code CSI ? 2027 $ p} followed by a DA1 (Primary Device
+     * Attributes) query {@code CSI c} as a sentinel.  DA1 is near-universally
+     * supported, so its response acts as a fence: if we receive the DA1
+     * response without a preceding DECRPM, the terminal does not support
+     * DECRQM and we return immediately instead of waiting for a timeout.</p>
      *
-     * <p>The probe is only performed on terminals whose type starts with
-     * {@code "xterm"}, as DECRQM is a DEC private mode query that may not be
-     * understood by older or minimal terminals. Terminals that do not understand
-     * DECRQM could echo the query as visible garbage or leave partial responses
-     * in the input buffer.</p>
+     * <p>The expected DECRPM response is {@code CSI ? 2027 ; Ps $ y} where
+     * Ps indicates the mode status.  Both DECRPM and DA1 responses share the
+     * {@code CSI ?} prefix, but diverge immediately after ({@code 2027;}
+     * vs the DA1 device-type parameter), so they are easy to distinguish.</p>
+     *
+     * <p>macOS Terminal.app is explicitly skipped (detected via
+     * {@code TERM_PROGRAM=Apple_Terminal}) because its CSI parser does not
+     * handle the {@code $} intermediate byte and leaks the final {@code p}
+     * as visible text — the only known terminal with this bug.</p>
      *
      * @return {@code true} if the terminal recognizes mode 2027
      */
@@ -400,17 +407,22 @@ public abstract class AbstractTerminal implements TerminalExt {
         if (TYPE_DUMB.equals(type) || TYPE_DUMB_COLOR.equals(type)) {
             return false;
         }
-        if (!type.startsWith("xterm")) {
+        // Terminal.app's CSI parser does not handle intermediate bytes correctly
+        // and leaks the final byte 'p' of the DECRQM sequence as visible text.
+        String termProgram = System.getenv("TERM_PROGRAM");
+        if ("Apple_Terminal".equals(termProgram)) {
             return false;
         }
         // Enter raw mode to prevent the terminal response from being echoed
         Attributes prev = enterRawMode();
         try {
-            // Send DECRQM query for mode 2027
-            writer().write("\033[?2027$p");
+            // Send DECRQM query for mode 2027 followed by DA1 as sentinel
+            writer().write("\033[?2027$p\033[c");
             writer().flush();
 
-            // Read DECRPM response: ESC [ ? 2 0 2 7 ; Ps $ y
+            // Read response — both DECRPM and DA1 start with ESC [ ?
+            // DECRPM: ESC [ ? 2 0 2 7 ; Ps $ y
+            // DA1:    ESC [ ? Pp ; ... c
             long timeout = 100;
             if (reader().peek(timeout) < 0) {
                 return false;
@@ -419,8 +431,8 @@ public abstract class AbstractTerminal implements TerminalExt {
             for (int e : expected) {
                 int c = reader().read(timeout);
                 if (c != e) {
-                    // Mismatch — drain any remaining bytes from the partial
-                    // response to avoid leaving garbage in the input buffer
+                    // Not DECRPM — likely the DA1 sentinel response,
+                    // meaning the terminal does not support DECRQM
                     drainResponse(timeout);
                     return false;
                 }
@@ -436,6 +448,8 @@ public abstract class AbstractTerminal implements TerminalExt {
                 drainResponse(timeout);
                 return false;
             }
+            // Drain the trailing DA1 sentinel response
+            drainResponse(timeout);
             // Ps: 1=set, 2=reset (can be set), 3=permanently set → supported
             // Ps: 0=not recognized, 4=permanently reset → not supported
             return ps == '1' || ps == '2' || ps == '3';
@@ -447,7 +461,7 @@ public abstract class AbstractTerminal implements TerminalExt {
     }
 
     /**
-     * Drains any remaining bytes from a partial or unexpected DECRPM response.
+     * Drains any remaining bytes from a partial or unexpected terminal response.
      * Reads and discards characters until no more are available within the timeout.
      */
     private void drainResponse(long timeout) {
