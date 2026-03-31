@@ -365,7 +365,6 @@ class FfmSignalHandler {
      * Creates and starts a thread named "JLine-signal-dispatcher" that runs the dispatch loop
      * and stores the thread reference in the class field so subsequent calls are no-ops.
      */
-
     private static synchronized void ensureDispatcherStarted() {
         if (dispatcherThread != null) {
             return;
@@ -437,14 +436,14 @@ class FfmSignalHandler {
     }
 
     /**
-         * Invoke the registered Java handler for the given signal, if one exists.
-         *
-         * If a handler is present it will be executed on the dispatcher thread;
-         * any Exception thrown by the handler is caught and logged and will not
-         * propagate to the caller.
-         *
-         * @param signum the POSIX signal number to dispatch
-         */
+     * Invoke the registered Java handler for the given signal, if one exists.
+     *
+     * If a handler is present it will be executed on the dispatcher thread;
+     * any Exception thrown by the handler is caught and logged and will not
+     * propagate to the caller.
+     *
+     * @param signum the POSIX signal number to dispatch
+     */
     private static void dispatchSignal(int signum) {
         Runnable handler = handlers.get(signum);
         if (handler != null) {
@@ -463,7 +462,6 @@ class FfmSignalHandler {
      * @param name the short signal name (e.g., "INT", "HUP", "WINCH")
      * @return the platform signal number corresponding to {@code name}, or {@code -1} if the name is not recognized
      */
-
     private static int signalNumber(String name) {
         return switch (name) {
             case "HUP" -> SIGHUP;
