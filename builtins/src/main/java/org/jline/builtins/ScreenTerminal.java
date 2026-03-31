@@ -340,7 +340,7 @@ public class ScreenTerminal {
 
     private void scroll_line_right(int y, int x, int n) {
         if (x < width) {
-            n = Math.min(width - cx, n);
+            n = Math.min(width - x, n);
             poke(y, x + n, peek(y, x, y + 1, width - n));
             clear(y, x, y + 1, x + n);
         }
@@ -352,7 +352,7 @@ public class ScreenTerminal {
 
     private void scroll_line_left(int y, int x, int n) {
         if (x < width) {
-            n = Math.min(width - cx, n);
+            n = Math.min(width - x, n);
             poke(y, x, peek(y, x + n, y + 1, width));
             clear(y, width - n, y + 1, width);
         }
