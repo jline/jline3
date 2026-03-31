@@ -44,7 +44,8 @@ public class ByteArrayBuilder {
 
     private void ensureCapacity(int minCapacity) {
         if (minCapacity > buffer.length) {
-            int newCapacity = Math.max(buffer.length << 1, minCapacity);
+            long doubleCap = (long) buffer.length * 2;
+            int newCapacity = (int) Math.max(Math.min(doubleCap, Integer.MAX_VALUE), minCapacity);
             byte[] newBuffer = new byte[newCapacity];
             System.arraycopy(buffer, 0, newBuffer, 0, count);
             buffer = newBuffer;
@@ -220,6 +221,9 @@ public class ByteArrayBuilder {
     private class AsciiAppendable implements Appendable {
         @Override
         public Appendable append(CharSequence csq) {
+            if (csq == null) {
+                csq = "null";
+            }
             int len = csq.length();
             ensureCapacity(count + len);
             for (int i = 0; i < len; i++) {
@@ -230,6 +234,9 @@ public class ByteArrayBuilder {
 
         @Override
         public Appendable append(CharSequence csq, int start, int end) {
+            if (csq == null) {
+                csq = "null";
+            }
             int len = end - start;
             ensureCapacity(count + len);
             for (int i = start; i < end; i++) {
