@@ -71,8 +71,8 @@ class FfmSignalHandler {
     // --- Shared upcall stub for all signals ---
     private static final MemorySegment upcallStub;
 
-    // --- Whether FFM signal handling is available on this platform ---
-    private static final boolean available;
+    // --- Whether FFM signal handling is AVAILABLE on this platform ---
+    private static final boolean AVAILABLE;
 
     static {
         boolean avail = false;
@@ -176,7 +176,7 @@ class FfmSignalHandler {
                 }
             }
         } catch (Exception | LinkageError t) {
-            logger.log(Level.FINE, "FFM signal handler not available", t);
+            logger.log(Level.FINE, "FFM signal handler not AVAILABLE", t);
         }
 
         SIGHUP = sighup;
@@ -194,7 +194,7 @@ class FfmSignalHandler {
         sa_flags_vh = saFlags;
         sigaction_mh = sigaction;
         upcallStub = stub;
-        available = avail;
+        AVAILABLE = avail;
     }
 
     // --- Signal dispatch infrastructure ---
@@ -216,10 +216,10 @@ class FfmSignalHandler {
     // --- Public API ---
 
     /**
-     * Returns whether FFM-based signal handling is available on this platform.
+     * Returns whether FFM-based signal handling is AVAILABLE on this platform.
      */
     static boolean isAvailable() {
-        return available;
+        return AVAILABLE;
     }
 
     /**
@@ -230,7 +230,7 @@ class FfmSignalHandler {
      * @return a {@link Registration} token, or {@code null} if the signal is unsupported
      */
     static Object register(String name, Runnable handler) {
-        if (!available) {
+        if (!AVAILABLE) {
             return null;
         }
         int signum = signalNumber(name);
@@ -270,7 +270,7 @@ class FfmSignalHandler {
      * @return a {@link Registration} token, or {@code null} if the signal is unsupported
      */
     static Object registerDefault(String name) {
-        if (!available) {
+        if (!AVAILABLE) {
             return null;
         }
         int signum = signalNumber(name);

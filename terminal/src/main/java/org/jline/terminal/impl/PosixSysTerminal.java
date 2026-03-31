@@ -89,7 +89,7 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
         this(null, name, type, pty, encoding, inputEncoding, outputEncoding, nativeSignals, signalHandler);
     }
 
-    @SuppressWarnings("this-escape")
+    @SuppressWarnings({"this-escape", "squid:S107"})
     public PosixSysTerminal(
             TerminalProvider provider,
             String name,
