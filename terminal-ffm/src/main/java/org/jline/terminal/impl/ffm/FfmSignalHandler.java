@@ -32,19 +32,22 @@ import java.util.logging.Logger;
  *   <li>Arena-scoped handler lifetime</li>
  * </ul>
  *
- * <p>Signal safety is achieved by having the native signal handler only set an atomic flag.
- * A daemon dispatcher thread polls these flags and invokes the registered Java handlers
- * in a safe context.</p>
+ * <p><b>Async-signal-safety caveat:</b> The upcall stub used as the native signal handler
+ * is not formally documented as async-signal-safe by the FFM specification. However, the
+ * callback ({@link #signalReceived(int)}) performs only a single atomic store, minimizing
+ * time spent in signal context. This is analogous to what {@code sun.misc.Signal} does
+ * internally. All substantive Java work happens on the daemon dispatcher thread.</p>
  */
 @SuppressWarnings("restricted")
 class FfmSignalHandler {
 
     private static final Logger logger = Logger.getLogger("org.jline");
 
-    // --- Struct field name constants (shared across platform layouts) ---
+    // --- Shared string constants ---
     private static final String SA_HANDLER = "sa_handler";
     private static final String SA_MASK = "sa_mask";
     private static final String SA_FLAGS = "sa_flags";
+    private static final String EXCEPTION_DETAILS = "Exception details";
 
     // --- Platform-specific signal constants ---
     private static final int SIGHUP;
@@ -208,7 +211,7 @@ class FfmSignalHandler {
     /**
      * Token returned by {@link #register} for later use with {@link #unregister}.
      */
-    record Registration(int signum, MemorySegment oldAction) {}
+    record Registration(int signum, Arena arena, MemorySegment oldAction) {}
 
     // --- Public API ---
 
@@ -236,25 +239,26 @@ class FfmSignalHandler {
         }
 
         ensureDispatcherStarted();
-        handlers.put(signum, handler);
 
+        Arena arena = Arena.ofShared();
         try {
-            MemorySegment oldAct = Arena.global().allocate(sigactionLayout);
-            MemorySegment newAct = Arena.global().allocate(sigactionLayout);
+            MemorySegment oldAct = arena.allocate(sigactionLayout);
+            MemorySegment newAct = arena.allocate(sigactionLayout);
             sa_handler_vh.set(newAct, upcallStub);
             sa_flags_vh.set(newAct, SA_RESTART);
 
             int res = (int) sigaction_mh.invoke(signum, newAct, oldAct);
             if (res != 0) {
                 logger.log(Level.FINE, "sigaction() failed for signal {0} (signum={1})", new Object[] {name, signum});
-                handlers.remove(signum);
+                arena.close();
                 return null;
             }
-            return new Registration(signum, oldAct);
+            handlers.put(signum, handler);
+            return new Registration(signum, arena, oldAct);
         } catch (Throwable t) {
             logger.log(Level.FINE, "Error registering FFM signal handler for {0}", name);
-            logger.log(Level.FINE, "Exception details", t);
-            handlers.remove(signum);
+            logger.log(Level.FINE, EXCEPTION_DETAILS, t);
+            arena.close();
             return null;
         }
     }
@@ -274,23 +278,25 @@ class FfmSignalHandler {
             return null;
         }
 
-        handlers.remove(signum);
-
+        Arena arena = Arena.ofShared();
         try {
-            MemorySegment oldAct = Arena.global().allocate(sigactionLayout);
-            MemorySegment newAct = Arena.global().allocate(sigactionLayout);
+            MemorySegment oldAct = arena.allocate(sigactionLayout);
+            MemorySegment newAct = arena.allocate(sigactionLayout);
             // sa_handler = SIG_DFL (0) — already zero from allocate()
             // sa_flags and sa_mask also zero
 
             int res = (int) sigaction_mh.invoke(signum, newAct, oldAct);
             if (res != 0) {
                 logger.log(Level.FINE, "sigaction(SIG_DFL) failed for signal {0}", name);
+                arena.close();
                 return null;
             }
-            return new Registration(signum, oldAct);
+            handlers.remove(signum);
+            return new Registration(signum, arena, oldAct);
         } catch (Throwable t) {
             logger.log(Level.FINE, "Error registering default handler for {0}", name);
-            logger.log(Level.FINE, "Exception details", t);
+            logger.log(Level.FINE, EXCEPTION_DETAILS, t);
+            arena.close();
             return null;
         }
     }
@@ -306,16 +312,18 @@ class FfmSignalHandler {
             return;
         }
 
-        handlers.remove(reg.signum());
-
         try {
             int res = (int) sigaction_mh.invoke(reg.signum(), reg.oldAction(), MemorySegment.NULL);
             if (res != 0) {
                 logger.log(Level.FINE, "sigaction() restore failed for signal {0}", name);
+                return;
             }
+            handlers.remove(reg.signum());
         } catch (Throwable t) {
             logger.log(Level.FINE, "Error unregistering FFM signal handler for {0}", name);
-            logger.log(Level.FINE, "Exception details", t);
+            logger.log(Level.FINE, EXCEPTION_DETAILS, t);
+        } finally {
+            reg.arena().close();
         }
     }
 
@@ -372,7 +380,7 @@ class FfmSignalHandler {
                 handler.run();
             } catch (Exception e) {
                 logger.log(Level.WARNING, "Error in signal handler for signal {0}", signum);
-                logger.log(Level.WARNING, "Exception details", e);
+                logger.log(Level.WARNING, EXCEPTION_DETAILS, e);
             }
         }
     }
