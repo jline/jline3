@@ -207,7 +207,7 @@ public interface TerminalProvider {
                 }
                 Class<?> clazz = cl.loadClass(className);
                 return (TerminalProvider) clazz.getConstructor().newInstance();
-            } catch (Exception e) {
+            } catch (Exception | LinkageError e) {
                 throw new IOException("Unable to load terminal provider " + name + ": " + e.getMessage(), e);
             }
         } else {
