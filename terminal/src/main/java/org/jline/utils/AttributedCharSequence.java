@@ -78,26 +78,32 @@ public abstract class AttributedCharSequence implements CharSequence {
     private static final int HIGH_COLORS = 0x7FFF;
 
     /**
-     * Enum defining color mode forcing options for ANSI rendering.
+     * Controls how indexed (palette) colors are rendered in ANSI output.
      *
-     * <p>
-     * This enum specifies how color rendering should be forced when generating
-     * ANSI escape sequences, regardless of the terminal's reported capabilities.
-     * </p>
+     * <p>These modes only affect colors that have been resolved to a palette index.
+     * Direct RGB colors (set via {@link AttributedStyle#foreground(int, int, int)})
+     * are always emitted as {@code 38;2;r;g;b} when the terminal supports
+     * {@link #HIGH_COLORS}, regardless of this setting.</p>
      */
     public enum ForceMode {
         /**
-         * No forcing; use the terminal's reported color capabilities.
+         * No forcing; indexed colors are rendered using the best encoding for
+         * the terminal's reported color count (basic SGR 30-37/90-97,
+         * 256-color {@code 38;5;n}, or true-color {@code 38;2;r;g;b}).
          */
         None,
 
         /**
-         * Force the use of 256-color mode (8-bit colors).
+         * Force indexed colors to use 256-color encoding ({@code 38;5;n})
+         * even when a basic SGR code would suffice.
          */
         Force256Colors,
 
         /**
-         * Force the use of true color mode (24-bit RGB colors).
+         * Force indexed colors to be expanded to true-color RGB
+         * ({@code 38;2;r;g;b}) via the palette, but only when the terminal
+         * supports {@link #HIGH_COLORS}. This does not override the color
+         * count check for direct RGB values.
          */
         ForceTrueColors
     }
@@ -445,6 +451,8 @@ public abstract class AttributedCharSequence implements CharSequence {
             int r = (int) (colorValue >> (colorExp + 16)) & 0xFF;
             int g = (int) (colorValue >> (colorExp + 8)) & 0xFF;
             int b = (int) (colorValue >> colorExp) & 0xFF;
+            // Direct RGB: emit 38;2/48;2 only if terminal supports high colors;
+            // ForceMode does not override this — it only affects indexed colors
             if (colors >= HIGH_COLORS) {
                 return attrRgbB(buf, csiPrefix, r, g, b, first);
             }
@@ -482,10 +490,12 @@ public abstract class AttributedCharSequence implements CharSequence {
         if (rounded < 0) {
             return first;
         }
+        // ForceTrueColors: expand indexed color to RGB via palette (requires high-color terminal)
         if (colors >= HIGH_COLORS && force == ForceMode.ForceTrueColors) {
             int col = palette.getColor(rounded);
             return attrRgbB(buf, csiPrefix, (col >> 16) & 0xFF, (col >> 8) & 0xFF, col & 0xFF, first);
         }
+        // Force256Colors: always use 38;5;n encoding; also used for extended palette (index >= 16)
         if (force == ForceMode.Force256Colors || rounded >= 16) {
             return attrIdxB(buf, csiPrefix, rounded, first);
         }
