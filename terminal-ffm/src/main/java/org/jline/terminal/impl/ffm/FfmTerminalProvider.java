@@ -28,6 +28,7 @@ import org.jline.terminal.spi.Pty;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
+import org.jline.utils.Signals;
 
 public class FfmTerminalProvider implements TerminalProvider {
 
@@ -89,7 +90,7 @@ public class FfmTerminalProvider implements TerminalProvider {
                     systemStream == SystemStream.Output ? FileDescriptor.out : FileDescriptor.err,
                     CLibrary.ttyName(0));
             return new PosixSysTerminal(
-                    name, type, pty, encoding, inputEncoding, outputEncoding, nativeSignals, signalHandler);
+                    this, name, type, pty, encoding, inputEncoding, outputEncoding, nativeSignals, signalHandler);
         }
     }
 
@@ -137,6 +138,33 @@ public class FfmTerminalProvider implements TerminalProvider {
     @Override
     public int systemStreamWidth(SystemStream stream) {
         return FfmNativePty.systemStreamWidth(stream);
+    }
+
+    @Override
+    public Object registerSignal(String signal, Runnable handler) {
+        Object reg = FfmSignalHandler.register(signal, handler);
+        if (reg != null) {
+            return reg;
+        }
+        return Signals.register(signal, handler);
+    }
+
+    @Override
+    public Object registerDefaultSignal(String signal) {
+        Object reg = FfmSignalHandler.registerDefault(signal);
+        if (reg != null) {
+            return reg;
+        }
+        return Signals.registerDefault(signal);
+    }
+
+    @Override
+    public void unregisterSignal(String signal, Object registration) {
+        if (registration instanceof FfmSignalHandler.Registration) {
+            FfmSignalHandler.unregister(signal, registration);
+        } else {
+            Signals.unregister(signal, registration);
+        }
     }
 
     @Override

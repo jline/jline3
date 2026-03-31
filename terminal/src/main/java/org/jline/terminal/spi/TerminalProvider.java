@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
+import org.jline.utils.Signals;
 
 /**
  * Service provider interface for terminal implementations.
@@ -195,6 +196,44 @@ public interface TerminalProvider {
      */
     default int getConsoleCodepage() {
         return -1;
+    }
+
+    /**
+     * Registers a handler for the specified signal.
+     *
+     * <p>
+     * Terminal providers can override this method to use platform-specific signal
+     * handling mechanisms. The default implementation delegates to
+     * {@link Signals#register(String, Runnable)} which uses {@code sun.misc.Signal}
+     * via reflection.
+     * </p>
+     *
+     * @param signal the signal name (e.g., "INT", "WINCH")
+     * @param handler the callback to run when the signal is received
+     * @return an opaque registration object for use with {@link #unregisterSignal}
+     */
+    default Object registerSignal(String signal, Runnable handler) {
+        return Signals.register(signal, handler);
+    }
+
+    /**
+     * Registers the default handler for the specified signal.
+     *
+     * @param signal the signal name (e.g., "INT", "WINCH")
+     * @return an opaque registration object for use with {@link #unregisterSignal}
+     */
+    default Object registerDefaultSignal(String signal) {
+        return Signals.registerDefault(signal);
+    }
+
+    /**
+     * Unregisters a previously registered signal handler, restoring the prior handler.
+     *
+     * @param signal the signal name
+     * @param registration the object returned by {@link #registerSignal} or {@link #registerDefaultSignal}
+     */
+    default void unregisterSignal(String signal, Object registration) {
+        Signals.unregister(signal, registration);
     }
 
     /**

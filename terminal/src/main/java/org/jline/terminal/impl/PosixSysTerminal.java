@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.jline.terminal.spi.Pty;
+import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.FastBufferedOutputStream;
 import org.jline.utils.NonBlocking;
 import org.jline.utils.NonBlockingInputStream;
@@ -59,6 +60,7 @@ import org.jline.utils.Signals;
  */
 public class PosixSysTerminal extends AbstractPosixTerminal {
 
+    protected final TerminalProvider provider;
     protected final NonBlockingInputStream input;
     protected final OutputStream output;
     protected final NonBlockingReader reader;
@@ -70,7 +72,7 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
     public PosixSysTerminal(
             String name, String type, Pty pty, Charset encoding, boolean nativeSignals, SignalHandler signalHandler)
             throws IOException {
-        this(name, type, pty, encoding, encoding, encoding, nativeSignals, signalHandler);
+        this(null, name, type, pty, encoding, encoding, encoding, nativeSignals, signalHandler);
     }
 
     @SuppressWarnings("this-escape")
@@ -84,7 +86,23 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
             boolean nativeSignals,
             SignalHandler signalHandler)
             throws IOException {
+        this(null, name, type, pty, encoding, inputEncoding, outputEncoding, nativeSignals, signalHandler);
+    }
+
+    @SuppressWarnings("this-escape")
+    public PosixSysTerminal(
+            TerminalProvider provider,
+            String name,
+            String type,
+            Pty pty,
+            Charset encoding,
+            Charset inputEncoding,
+            Charset outputEncoding,
+            boolean nativeSignals,
+            SignalHandler signalHandler)
+            throws IOException {
         super(name, type, pty, encoding, inputEncoding, outputEncoding, signalHandler);
+        this.provider = provider;
         this.input = NonBlocking.nonBlocking(getName(), pty.getSlaveInput());
         this.output = new FastBufferedOutputStream(pty.getSlaveOutput());
         this.reader = NonBlocking.nonBlocking(getName(), input, inputEncoding());
@@ -93,9 +111,9 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
         if (nativeSignals) {
             for (final Signal signal : Signal.values()) {
                 if (signalHandler == SignalHandler.SIG_DFL) {
-                    nativeHandlers.put(signal, Signals.registerDefault(signal.name()));
+                    nativeHandlers.put(signal, doRegisterDefaultSignal(signal.name()));
                 } else {
-                    nativeHandlers.put(signal, Signals.register(signal.name(), () -> raise(signal)));
+                    nativeHandlers.put(signal, doRegisterSignal(signal.name(), () -> raise(signal)));
                 }
             }
         }
@@ -108,12 +126,28 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
         SignalHandler prev = super.handle(signal, handler);
         if (prev != handler) {
             if (handler == SignalHandler.SIG_DFL) {
-                Signals.registerDefault(signal.name());
+                doRegisterDefaultSignal(signal.name());
             } else {
-                Signals.register(signal.name(), () -> raise(signal));
+                doRegisterSignal(signal.name(), () -> raise(signal));
             }
         }
         return prev;
+    }
+
+    private Object doRegisterSignal(String name, Runnable handler) {
+        return provider != null ? provider.registerSignal(name, handler) : Signals.register(name, handler);
+    }
+
+    private Object doRegisterDefaultSignal(String name) {
+        return provider != null ? provider.registerDefaultSignal(name) : Signals.registerDefault(name);
+    }
+
+    private void doUnregisterSignal(String name, Object registration) {
+        if (provider != null) {
+            provider.unregisterSignal(name, registration);
+        } else {
+            Signals.unregister(name, registration);
+        }
     }
 
     @Override
@@ -157,7 +191,7 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
         writer.flush();
         ShutdownHooks.remove(closer);
         for (Map.Entry<Signal, Object> entry : nativeHandlers.entrySet()) {
-            Signals.unregister(entry.getKey().name(), entry.getValue());
+            doUnregisterSignal(entry.getKey().name(), entry.getValue());
         }
         super.doClose();
         reader.close();

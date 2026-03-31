@@ -283,7 +283,7 @@ public class JniTerminalProvider implements TerminalProvider {
         // Use the appropriate output encoding based on the system stream
         Charset outputEncoding = systemStream == SystemStream.Error ? stderrEncoding : stdoutEncoding;
         return new PosixSysTerminal(
-                name, type, pty, encoding, stdinEncoding, outputEncoding, nativeSignals, signalHandler);
+                this, name, type, pty, encoding, stdinEncoding, outputEncoding, nativeSignals, signalHandler);
     }
 
     @Override
