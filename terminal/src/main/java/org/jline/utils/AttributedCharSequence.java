@@ -337,64 +337,31 @@ public abstract class AttributedCharSequence implements CharSequence {
         boolean first = true;
         first = appendDecorationAttrsB(buf, d, newStyle, first);
         if (colorState[0] != fg) {
-            first = appendColorB(
-                    buf,
-                    fg,
-                    F_FOREGROUND_RGB,
-                    F_FOREGROUND_IND,
-                    FG_COLOR_EXP,
-                    38,
-                    30,
-                    90,
-                    "39",
-                    colors,
-                    force,
-                    palette,
-                    first);
+            first = appendColorB(buf, fg, true, colors, force, palette, first);
             if (fg > 0 && usedBasicFgColor(fg, colors, force, palette)) {
                 d |= (newStyle & F_BOLD);
             }
             colorState[0] = fg;
         }
         if (colorState[1] != bg) {
-            first = appendColorB(
-                    buf,
-                    bg,
-                    F_BACKGROUND_RGB,
-                    F_BACKGROUND_IND,
-                    BG_COLOR_EXP,
-                    48,
-                    40,
-                    100,
-                    "49",
-                    colors,
-                    force,
-                    palette,
-                    first);
+            first = appendColorB(buf, bg, false, colors, force, palette, first);
             colorState[1] = bg;
         }
         first = appendBoldFaintB(buf, d, newStyle, first);
         buf.appendAscii('m');
     }
 
+    private static final long[] DECORATION_FLAGS = {F_ITALIC, F_UNDERLINE, F_BLINK, F_INVERSE, F_CONCEAL, F_CROSSED_OUT
+    };
+    private static final String[] DECORATION_ON = {"3", "4", "5", "7", "8", "9"};
+    private static final String[] DECORATION_OFF = {"23", "24", "25", "27", "28", "29"};
+
     private static boolean appendDecorationAttrsB(ByteArrayBuilder buf, long d, long s, boolean first) {
-        if ((d & F_ITALIC) != 0) {
-            first = attrB(buf, (s & F_ITALIC) != 0 ? "3" : "23", first);
-        }
-        if ((d & F_UNDERLINE) != 0) {
-            first = attrB(buf, (s & F_UNDERLINE) != 0 ? "4" : "24", first);
-        }
-        if ((d & F_BLINK) != 0) {
-            first = attrB(buf, (s & F_BLINK) != 0 ? "5" : "25", first);
-        }
-        if ((d & F_INVERSE) != 0) {
-            first = attrB(buf, (s & F_INVERSE) != 0 ? "7" : "27", first);
-        }
-        if ((d & F_CONCEAL) != 0) {
-            first = attrB(buf, (s & F_CONCEAL) != 0 ? "8" : "28", first);
-        }
-        if ((d & F_CROSSED_OUT) != 0) {
-            first = attrB(buf, (s & F_CROSSED_OUT) != 0 ? "9" : "29", first);
+        for (int i = 0; i < DECORATION_FLAGS.length; i++) {
+            long flag = DECORATION_FLAGS[i];
+            if ((d & flag) != 0) {
+                first = attrB(buf, (s & flag) != 0 ? DECORATION_ON[i] : DECORATION_OFF[i], first);
+            }
         }
         return first;
     }
@@ -402,19 +369,17 @@ public abstract class AttributedCharSequence implements CharSequence {
     private static boolean appendColorB(
             ByteArrayBuilder buf,
             long colorValue,
-            long rgbFlag,
-            long indFlag,
-            int colorExp,
-            int csiPrefix,
-            int lowBase,
-            int highBase,
-            String defaultCode,
+            boolean isForeground,
             int colors,
             ForceMode force,
             ColorPalette palette,
             boolean first) {
+        long rgbFlag = isForeground ? F_FOREGROUND_RGB : F_BACKGROUND_RGB;
+        long indFlag = isForeground ? F_FOREGROUND_IND : F_BACKGROUND_IND;
+        int colorExp = isForeground ? FG_COLOR_EXP : BG_COLOR_EXP;
+        int csiPrefix = isForeground ? 38 : 48;
         if (colorValue <= 0) {
-            return attrB(buf, defaultCode, first);
+            return attrB(buf, isForeground ? "39" : "49", first);
         }
         if ((colorValue & rgbFlag) != 0) {
             int r = (int) (colorValue >> (colorExp + 16)) & 0xFF;
@@ -423,12 +388,11 @@ public abstract class AttributedCharSequence implements CharSequence {
             if (colors >= HIGH_COLORS) {
                 return attrRgbB(buf, csiPrefix, r, g, b, first);
             }
-            return appendRoundedColorB(
-                    buf, palette.round(r, g, b), csiPrefix, lowBase, highBase, colors, force, palette, first);
+            return appendRoundedColorB(buf, palette.round(r, g, b), isForeground, colors, force, palette, first);
         }
         if ((colorValue & indFlag) != 0) {
             int rounded = palette.round((int) (colorValue >> colorExp) & 0xFF);
-            return appendRoundedColorB(buf, rounded, csiPrefix, lowBase, highBase, colors, force, palette, first);
+            return appendRoundedColorB(buf, rounded, isForeground, colors, force, palette, first);
         }
         return first;
     }
@@ -436,13 +400,12 @@ public abstract class AttributedCharSequence implements CharSequence {
     private static boolean appendRoundedColorB(
             ByteArrayBuilder buf,
             int rounded,
-            int csiPrefix,
-            int lowBase,
-            int highBase,
+            boolean isForeground,
             int colors,
             ForceMode force,
             ColorPalette palette,
             boolean first) {
+        int csiPrefix = isForeground ? 38 : 48;
         if (rounded < 0) {
             return first;
         }
@@ -453,8 +416,9 @@ public abstract class AttributedCharSequence implements CharSequence {
         if (force == ForceMode.Force256Colors || rounded >= 16) {
             return attrIdxB(buf, csiPrefix, rounded, first);
         }
+        int lowBase = isForeground ? 30 : 40;
         if (rounded >= 8) {
-            return attrIntB(buf, highBase + rounded - 8, first);
+            return attrIntB(buf, (isForeground ? 90 : 100) + rounded - 8, first);
         }
         return attrIntB(buf, lowBase + rounded, first);
     }
