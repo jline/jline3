@@ -176,7 +176,7 @@ class FfmSignalHandler {
                 }
             }
         } catch (Exception | LinkageError t) {
-            logger.log(Level.FINE, "FFM signal handler not AVAILABLE", t);
+            logger.log(Level.FINE, "FFM signal handler not available", t);
         }
 
         SIGHUP = sighup;
@@ -211,12 +211,12 @@ class FfmSignalHandler {
     /**
      * Token returned by {@link #register} for later use with {@link #unregister}.
      */
-    record Registration(int signum, Arena arena, MemorySegment oldAction) {}
+    record Registration(int signum, Arena arena, MemorySegment oldAction, Runnable previousHandler) {}
 
     // --- Public API ---
 
     /**
-     * Returns whether FFM-based signal handling is AVAILABLE on this platform.
+     * Returns whether FFM-based signal handling is available on this platform.
      */
     static boolean isAvailable() {
         return AVAILABLE;
@@ -238,8 +238,6 @@ class FfmSignalHandler {
             return null;
         }
 
-        ensureDispatcherStarted();
-
         Arena arena = Arena.ofShared();
         try {
             MemorySegment oldAct = arena.allocate(sigactionLayout);
@@ -253,8 +251,11 @@ class FfmSignalHandler {
                 arena.close();
                 return null;
             }
+            // Save the previous Java handler if the old native handler was our upcall stub
+            Runnable previousHandler = isOurUpcallStub(oldAct) ? handlers.get(signum) : null;
             handlers.put(signum, handler);
-            return new Registration(signum, arena, oldAct);
+            ensureDispatcherStarted();
+            return new Registration(signum, arena, oldAct, previousHandler);
         } catch (Throwable t) {
             logger.log(Level.FINE, "Error registering FFM signal handler for {0}", name);
             logger.log(Level.FINE, EXCEPTION_DETAILS, t);
@@ -291,8 +292,10 @@ class FfmSignalHandler {
                 arena.close();
                 return null;
             }
-            handlers.remove(signum);
-            return new Registration(signum, arena, oldAct);
+            // Save the previous Java handler in case unregister() needs to restore it
+            Runnable previousHandler = handlers.remove(signum);
+            stopDispatcherIfIdle();
+            return new Registration(signum, arena, oldAct, previousHandler);
         } catch (Throwable t) {
             logger.log(Level.FINE, "Error registering default handler for {0}", name);
             logger.log(Level.FINE, EXCEPTION_DETAILS, t);
@@ -318,7 +321,14 @@ class FfmSignalHandler {
                 logger.log(Level.FINE, "sigaction() restore failed for signal {0}", name);
                 return;
             }
-            handlers.remove(reg.signum());
+            // If we restored our own upcall stub, preserve the previous Java handler;
+            // otherwise the native handler is external, so remove the Java handler.
+            if (isOurUpcallStub(reg.oldAction()) && reg.previousHandler() != null) {
+                handlers.put(reg.signum(), reg.previousHandler());
+            } else {
+                handlers.remove(reg.signum());
+            }
+            stopDispatcherIfIdle();
         } catch (Throwable t) {
             logger.log(Level.FINE, "Error unregistering FFM signal handler for {0}", name);
             logger.log(Level.FINE, EXCEPTION_DETAILS, t);
@@ -349,6 +359,22 @@ class FfmSignalHandler {
         t.setDaemon(true);
         t.start();
         dispatcherThread = t;
+    }
+
+    private static synchronized void stopDispatcherIfIdle() {
+        if (handlers.isEmpty() && dispatcherThread != null) {
+            dispatcherThread.interrupt();
+            dispatcherThread = null;
+        }
+    }
+
+    /**
+     * Checks whether the {@code sa_handler} field in the given sigaction struct
+     * points to our shared upcall stub.
+     */
+    private static boolean isOurUpcallStub(MemorySegment sigactionStruct) {
+        MemorySegment handler = (MemorySegment) sa_handler_vh.get(sigactionStruct);
+        return handler.address() == upcallStub.address();
     }
 
     /**
