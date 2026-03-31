@@ -82,6 +82,13 @@ public class ByteArrayBuilderTest {
     }
 
     @Test
+    public void testAppendIntMinValue() {
+        ByteArrayBuilder buf = new ByteArrayBuilder();
+        buf.appendInt(Integer.MIN_VALUE);
+        assertEquals(Integer.toString(Integer.MIN_VALUE), buf.toStringUtf8());
+    }
+
+    @Test
     public void testAppendUtf8Ascii() {
         ByteArrayBuilder buf = new ByteArrayBuilder();
         buf.appendUtf8('A');

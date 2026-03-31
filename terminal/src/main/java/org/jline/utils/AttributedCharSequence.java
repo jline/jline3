@@ -244,150 +244,9 @@ public abstract class AttributedCharSequence implements CharSequence {
      * @return a string with ANSI escape sequences representing this attributed string
      */
     public String toAnsi(int colors, ForceMode force, ColorPalette palette, String altIn, String altOut) {
-        StringBuilder sb = new StringBuilder();
-        long style = 0;
-        long foreground = 0;
-        long background = 0;
-        boolean alt = false;
-        if (palette == null) {
-            palette = ColorPalette.DEFAULT;
-        }
-        for (int i = 0; i < length(); i++) {
-            char c = substituteChar(charAt(i), altIn, altOut);
-            if (altIn != null && altOut != null) {
-                boolean oldalt = alt;
-                alt = isBoxDrawing(charAt(i));
-                if (oldalt ^ alt) {
-                    sb.append(alt ? altIn : altOut);
-                }
-            }
-            long s = styleCodeAt(i) & ~F_HIDDEN; // The hidden flag does not change the ansi styles
-            if (style != s) {
-                long d = (style ^ s) & MASK;
-                long fg = (s & F_FOREGROUND) != 0 ? s & (FG_COLOR | F_FOREGROUND) : 0;
-                long bg = (s & F_BACKGROUND) != 0 ? s & (BG_COLOR | F_BACKGROUND) : 0;
-                if (s == 0) {
-                    sb.append("\033[0m");
-                    foreground = background = 0;
-                } else {
-                    sb.append("\033[");
-                    boolean first = true;
-                    if ((d & F_ITALIC) != 0) {
-                        first = attr(sb, (s & F_ITALIC) != 0 ? "3" : "23", first);
-                    }
-                    if ((d & F_UNDERLINE) != 0) {
-                        first = attr(sb, (s & F_UNDERLINE) != 0 ? "4" : "24", first);
-                    }
-                    if ((d & F_BLINK) != 0) {
-                        first = attr(sb, (s & F_BLINK) != 0 ? "5" : "25", first);
-                    }
-                    if ((d & F_INVERSE) != 0) {
-                        first = attr(sb, (s & F_INVERSE) != 0 ? "7" : "27", first);
-                    }
-                    if ((d & F_CONCEAL) != 0) {
-                        first = attr(sb, (s & F_CONCEAL) != 0 ? "8" : "28", first);
-                    }
-                    if ((d & F_CROSSED_OUT) != 0) {
-                        first = attr(sb, (s & F_CROSSED_OUT) != 0 ? "9" : "29", first);
-                    }
-                    if (foreground != fg) {
-                        if (fg > 0) {
-                            int rounded = -1;
-                            if ((fg & F_FOREGROUND_RGB) != 0) {
-                                int r = (int) (fg >> (FG_COLOR_EXP + 16)) & 0xFF;
-                                int g = (int) (fg >> (FG_COLOR_EXP + 8)) & 0xFF;
-                                int b = (int) (fg >> FG_COLOR_EXP) & 0xFF;
-                                if (colors >= HIGH_COLORS) {
-                                    first = attrRgb(sb, 38, r, g, b, first);
-                                } else {
-                                    rounded = palette.round(r, g, b);
-                                }
-                            } else if ((fg & F_FOREGROUND_IND) != 0) {
-                                rounded = palette.round((int) (fg >> FG_COLOR_EXP) & 0xFF);
-                            }
-                            if (rounded >= 0) {
-                                if (colors >= HIGH_COLORS && force == ForceMode.ForceTrueColors) {
-                                    int col = palette.getColor(rounded);
-                                    int r = (col >> 16) & 0xFF;
-                                    int g = (col >> 8) & 0xFF;
-                                    int b = col & 0xFF;
-                                    first = attrRgb(sb, 38, r, g, b, first);
-                                } else if (force == ForceMode.Force256Colors || rounded >= 16) {
-                                    first = attrIdx(sb, 38, rounded, first);
-                                } else if (rounded >= 8) {
-                                    first = attrInt(sb, 90 + rounded - 8, first);
-                                    // small hack to force setting bold again after a foreground color change
-                                    d |= (s & F_BOLD);
-                                } else {
-                                    first = attrInt(sb, 30 + rounded, first);
-                                    // small hack to force setting bold again after a foreground color change
-                                    d |= (s & F_BOLD);
-                                }
-                            }
-                        } else {
-                            first = attr(sb, "39", first);
-                        }
-                        foreground = fg;
-                    }
-                    if (background != bg) {
-                        if (bg > 0) {
-                            int rounded = -1;
-                            if ((bg & F_BACKGROUND_RGB) != 0) {
-                                int r = (int) (bg >> (BG_COLOR_EXP + 16)) & 0xFF;
-                                int g = (int) (bg >> (BG_COLOR_EXP + 8)) & 0xFF;
-                                int b = (int) (bg >> BG_COLOR_EXP) & 0xFF;
-                                if (colors >= HIGH_COLORS) {
-                                    first = attrRgb(sb, 48, r, g, b, first);
-                                } else {
-                                    rounded = palette.round(r, g, b);
-                                }
-                            } else if ((bg & F_BACKGROUND_IND) != 0) {
-                                rounded = palette.round((int) (bg >> BG_COLOR_EXP) & 0xFF);
-                            }
-                            if (rounded >= 0) {
-                                if (colors >= HIGH_COLORS && force == ForceMode.ForceTrueColors) {
-                                    int col = palette.getColor(rounded);
-                                    int r = (col >> 16) & 0xFF;
-                                    int g = (col >> 8) & 0xFF;
-                                    int b = col & 0xFF;
-                                    first = attrRgb(sb, 48, r, g, b, first);
-                                } else if (force == ForceMode.Force256Colors || rounded >= 16) {
-                                    first = attrIdx(sb, 48, rounded, first);
-                                } else if (rounded >= 8) {
-                                    first = attrInt(sb, 100 + rounded - 8, first);
-                                } else {
-                                    first = attrInt(sb, 40 + rounded, first);
-                                }
-                            }
-                        } else {
-                            first = attr(sb, "49", first);
-                        }
-                        background = bg;
-                    }
-                    if ((d & (F_BOLD | F_FAINT)) != 0) {
-                        if ((d & F_BOLD) != 0 && (s & F_BOLD) == 0 || (d & F_FAINT) != 0 && (s & F_FAINT) == 0) {
-                            first = attr(sb, "22", first);
-                        }
-                        if ((d & F_BOLD) != 0 && (s & F_BOLD) != 0) {
-                            first = attr(sb, "1", first);
-                        }
-                        if ((d & F_FAINT) != 0 && (s & F_FAINT) != 0) {
-                            first = attr(sb, "2", first);
-                        }
-                    }
-                    sb.append("m");
-                }
-                style = s;
-            }
-            sb.append(c);
-        }
-        if (alt) {
-            sb.append(altOut);
-        }
-        if (style != 0) {
-            sb.append("\033[0m");
-        }
-        return sb.toString();
+        ByteArrayBuilder buf = new ByteArrayBuilder();
+        toAnsiBytes(buf, colors, force, palette, altIn, altOut);
+        return buf.toStringUtf8();
     }
 
     /**
@@ -544,7 +403,7 @@ public abstract class AttributedCharSequence implements CharSequence {
                 char next = charAt(i + 1);
                 if (Character.isLowSurrogate(next)) {
                     buf.appendUtf8(Character.toCodePoint(c, next));
-                    i++;
+                    i++; // skip low surrogate
                     continue;
                 }
             }
@@ -601,37 +460,6 @@ public abstract class AttributedCharSequence implements CharSequence {
         }
     }
     // @spotless:on
-
-    // StringBuilder helpers — no String concatenation for color codes
-    private static boolean attr(StringBuilder sb, String s, boolean first) {
-        if (!first) sb.append(';');
-        sb.append(s);
-        return false;
-    }
-
-    private static boolean attrInt(StringBuilder sb, int value, boolean first) {
-        if (!first) sb.append(';');
-        sb.append(value);
-        return false;
-    }
-
-    private static boolean attrRgb(StringBuilder sb, int prefix, int r, int g, int b, boolean first) {
-        if (!first) sb.append(';');
-        sb.append(prefix)
-                .append(";2;")
-                .append(r)
-                .append(';')
-                .append(g)
-                .append(';')
-                .append(b);
-        return false;
-    }
-
-    private static boolean attrIdx(StringBuilder sb, int prefix, int idx, boolean first) {
-        if (!first) sb.append(';');
-        sb.append(prefix).append(";5;").append(idx);
-        return false;
-    }
 
     // ByteArrayBuilder helpers — zero-allocation integer formatting
     private static boolean attrB(ByteArrayBuilder buf, String s, boolean first) {

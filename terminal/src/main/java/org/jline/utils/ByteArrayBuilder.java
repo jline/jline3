@@ -89,6 +89,9 @@ public class ByteArrayBuilder {
      */
     public ByteArrayBuilder appendInt(int value) {
         if (value < 0) {
+            if (value == Integer.MIN_VALUE) {
+                return appendAscii(Integer.toString(value));
+            }
             appendAscii('-');
             appendInt(-value);
             return this;
