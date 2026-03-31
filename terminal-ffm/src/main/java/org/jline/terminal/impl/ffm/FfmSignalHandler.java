@@ -258,11 +258,21 @@ class FfmSignalHandler {
                 arena.close();
                 return null;
             }
-            ensureDispatcherStarted();
-            // Only preserve previousHandler in Registration when the old native
-            // disposition was our upcall stub (otherwise it belongs to an external handler)
-            Runnable saved = isOurUpcallStub(oldAct) ? previousHandler : null;
-            return new Registration(signum, arena, oldAct, saved);
+            try {
+                ensureDispatcherStarted();
+                // Only preserve previousHandler in Registration when the old native
+                // disposition was our upcall stub (otherwise it belongs to an external handler)
+                Runnable saved = isOurUpcallStub(oldAct) ? previousHandler : null;
+                return new Registration(signum, arena, oldAct, saved);
+            } catch (Throwable t2) {
+                // sigaction succeeded but post-install setup failed; restore native disposition
+                try {
+                    sigaction_mh.invoke(signum, oldAct, MemorySegment.NULL);
+                } catch (Throwable ignore) {
+                    // best-effort restore
+                }
+                throw t2;
+            }
         } catch (Throwable t) {
             logger.log(Level.FINE, "Error registering FFM signal handler for {0}", name);
             logger.log(Level.FINE, EXCEPTION_DETAILS, t);
@@ -332,10 +342,11 @@ class FfmSignalHandler {
             // Preserve the previous Java Runnable when the restored native disposition is our stub
             if (isOurUpcallStub(reg.oldAction()) && reg.previousHandler() != null) {
                 handlers.put(reg.signum(), reg.previousHandler());
+                ensureDispatcherStarted();
             } else {
                 handlers.remove(reg.signum());
+                stopDispatcherIfIdle();
             }
-            stopDispatcherIfIdle();
         } catch (Throwable t) {
             logger.log(Level.FINE, "Error unregistering FFM signal handler for {0}", name);
             logger.log(Level.FINE, EXCEPTION_DETAILS, t);
