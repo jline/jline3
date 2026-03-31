@@ -245,8 +245,10 @@ class FfmSignalHandler {
         Runnable previousHandler = handlers.put(signum, handler);
 
         Arena arena = Arena.ofShared();
+        MemorySegment oldAct = null;
+        boolean nativeInstalled = false;
         try {
-            MemorySegment oldAct = arena.allocate(sigactionLayout);
+            oldAct = arena.allocate(sigactionLayout);
             MemorySegment newAct = arena.allocate(sigactionLayout);
             sa_handler_vh.set(newAct, upcallStub);
             sa_flags_vh.set(newAct, SA_RESTART);
@@ -258,24 +260,18 @@ class FfmSignalHandler {
                 arena.close();
                 return null;
             }
-            try {
-                ensureDispatcherStarted();
-                // Only preserve previousHandler in Registration when the old native
-                // disposition was our upcall stub (otherwise it belongs to an external handler)
-                Runnable saved = isOurUpcallStub(oldAct) ? previousHandler : null;
-                return new Registration(signum, arena, oldAct, saved);
-            } catch (Throwable t2) {
-                // sigaction succeeded but post-install setup failed; restore native disposition
-                try {
-                    sigaction_mh.invoke(signum, oldAct, MemorySegment.NULL);
-                } catch (Throwable ignore) {
-                    // best-effort restore
-                }
-                throw t2;
-            }
+            nativeInstalled = true;
+            ensureDispatcherStarted();
+            // Only preserve previousHandler in Registration when the old native
+            // disposition was our upcall stub (otherwise it belongs to an external handler)
+            Runnable saved = isOurUpcallStub(oldAct) ? previousHandler : null;
+            return new Registration(signum, arena, oldAct, saved);
         } catch (Throwable t) {
             logger.log(Level.FINE, "Error registering FFM signal handler for {0}", name);
             logger.log(Level.FINE, EXCEPTION_DETAILS, t);
+            if (nativeInstalled) {
+                bestEffortRestore(signum, oldAct);
+            }
             restoreHandler(signum, previousHandler);
             arena.close();
             return null;
@@ -408,6 +404,15 @@ class FfmSignalHandler {
      * @param signum the platform signal number to update
      * @param previousHandler the handler to restore, or {@code null} to remove the mapping
      */
+    @SuppressWarnings("java:S1181") // MethodHandle.invoke throws Throwable
+    private static void bestEffortRestore(int signum, MemorySegment oldAct) {
+        try {
+            sigaction_mh.invoke(signum, oldAct, MemorySegment.NULL);
+        } catch (Throwable ignore) {
+            // best-effort native handler restore
+        }
+    }
+
     private static void restoreHandler(int signum, Runnable previousHandler) {
         if (previousHandler != null) {
             handlers.put(signum, previousHandler);
