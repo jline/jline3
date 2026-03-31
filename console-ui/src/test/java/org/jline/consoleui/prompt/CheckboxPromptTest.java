@@ -16,18 +16,31 @@ import org.jline.consoleui.elements.items.impl.CheckboxItem;
 import org.jline.consoleui.elements.items.impl.Separator;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 public class CheckboxPromptTest {
+
     @Test
-    public void renderSimpleList() {
+    void renderSimpleList() {
         List<CheckboxItemIF> list = new ArrayList<>();
 
-        list.add(new CheckboxItem("One"));
-        list.add(new CheckboxItem(true, "Two"));
+        CheckboxItem one = new CheckboxItem("One");
+        list.add(one);
+        CheckboxItem two = new CheckboxItem(true, "Two");
+        list.add(two);
         CheckboxItem three = new CheckboxItem("Three");
         three.setDisabled("not available");
         list.add(three);
         list.add(new Separator("some extra items"));
         list.add(new CheckboxItem("Four"));
         list.add(new CheckboxItem(true, "Five"));
+
+        assertEquals(6, list.size());
+        assertFalse(one.isChecked());
+        assertTrue(two.isChecked());
+        assertTrue(three.isDisabled());
+        assertEquals("not available", three.getDisabledText());
     }
 }
