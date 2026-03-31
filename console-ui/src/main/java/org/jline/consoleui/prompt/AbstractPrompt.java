@@ -311,8 +311,6 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
         return out;
     }
 
-    // S2387: items/config fields intentionally shadow parent fields with more specific types
-    @SuppressWarnings("java:S2387")
     protected static class ExpandableChoicePrompt extends AbstractPrompt<ListItemIF> {
         private enum Operation {
             INSERT,
@@ -322,7 +320,11 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
         }
 
         private final int startColumn;
+
+        @SuppressWarnings("java:S2387") // intentionally shadows parent with more specific type
         private final List<ChoiceItemIF> items;
+
+        @SuppressWarnings("java:S2387") // intentionally shadows parent field
         private final ConsolePrompt.UiConfig config;
 
         private ExpandableChoicePrompt(
@@ -426,8 +428,6 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
         }
     }
 
-    // S2387: config field intentionally shadows parent field
-    @SuppressWarnings("java:S2387")
     protected static class ConfirmPrompt extends AbstractPrompt<ListItemIF> {
         private enum Operation {
             NO,
@@ -439,6 +439,8 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
 
         private final int startColumn;
         private final ConfirmChoice.ConfirmationValue defaultValue;
+
+        @SuppressWarnings("java:S2387") // intentionally shadows parent field
         private final ConsolePrompt.UiConfig config;
 
         private ConfirmPrompt(
@@ -832,8 +834,6 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
         return prev;
     }
 
-    // S2387: items field intentionally shadows parent field
-    @SuppressWarnings("java:S2387")
     protected static class ListChoicePrompt<T extends ListItemIF> extends AbstractPrompt<T> {
         private enum Operation {
             FORWARD_ONE_LINE,
@@ -844,6 +844,7 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             INTERRUPT
         }
 
+        @SuppressWarnings("java:S2387") // intentionally shadows parent field
         private final List<T> items;
 
         private ListChoicePrompt(
@@ -922,8 +923,6 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
         }
     }
 
-    // S2387: items field intentionally shadows parent field
-    @SuppressWarnings("java:S2387")
     protected static class CheckboxPrompt extends AbstractPrompt<CheckboxItemIF> {
         private enum Operation {
             FORWARD_ONE_LINE,
@@ -934,6 +933,7 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             INTERRUPT
         }
 
+        @SuppressWarnings("java:S2387") // intentionally shadows parent field
         private final List<CheckboxItemIF> items;
 
         private CheckboxPrompt(
