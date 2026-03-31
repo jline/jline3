@@ -184,15 +184,12 @@ public interface TerminalProvider {
     int systemStreamWidth(SystemStream stream);
 
     /**
-     * Returns the Windows console output codepage.
+     * Retrieve the Windows console output code page.
      *
-     * <p>
-     * On Windows, this method returns the console output codepage (equivalent to
-     * {@code GetConsoleOutputCP()}). On non-Windows platforms, or if the codepage
-     * cannot be determined, this method returns {@code -1}.
-     * </p>
+     * On Windows this returns the console output code page; on non-Windows platforms or when the code page
+     * cannot be determined this returns {@code -1}.
      *
-     * @return the console output codepage, or {@code -1} if not available
+     * @return the console output code page, or {@code -1} if not available
      */
     default int getConsoleCodepage() {
         return -1;
@@ -201,16 +198,11 @@ public interface TerminalProvider {
     /**
      * Registers a handler for the specified signal.
      *
-     * <p>
-     * Terminal providers can override this method to use platform-specific signal
-     * handling mechanisms. The default implementation delegates to
-     * {@link Signals#register(String, Runnable)} which uses {@code sun.misc.Signal}
-     * via reflection.
-     * </p>
+     * Providers may override this to use platform-specific signal handling.
      *
      * @param signal the signal name (e.g., "INT", "WINCH")
      * @param handler the callback to run when the signal is received
-     * @return an opaque registration object for use with {@link #unregisterSignal}
+     * @return an opaque registration object suitable for use with {@link #unregisterSignal(String, Object)}
      */
     default Object registerSignal(String signal, Runnable handler) {
         return Signals.register(signal, handler);

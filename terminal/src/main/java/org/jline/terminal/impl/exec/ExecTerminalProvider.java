@@ -243,6 +243,22 @@ public class ExecTerminalProvider implements TerminalProvider {
                 systemStream);
     }
 
+    /**
+     * Create a POSIX-style system terminal for Windows environments that provide a POSIX layer (Cygwin/MSYS); returns null on other Windows variants.
+     *
+     * @param name the terminal name
+     * @param type the terminal type (TERM)
+     * @param ansiPassThrough whether ANSI sequences should be passed through (unused for POSIX path)
+     * @param encoding the general charset for the terminal
+     * @param stdinEncoding charset to use for stdin
+     * @param stdoutEncoding charset to use for stdout
+     * @param stderrEncoding charset to use for stderr
+     * @param nativeSignals whether native signal handling is enabled
+     * @param signalHandler handler for terminal signals
+     * @param paused whether the terminal should be created in a paused state
+     * @param systemStream the system stream to associate with the terminal; determines which output encoding (stdout vs stderr) is selected
+     * @return a configured {@code PosixSysTerminal} when running under Cygwin or MSYS, {@code null} otherwise
+     */
     public Terminal winSysTerminal(
             String name,
             String type,
@@ -311,6 +327,23 @@ public class ExecTerminalProvider implements TerminalProvider {
                 systemStream);
     }
 
+    /**
+     * Create a POSIX system terminal backed by the specified system stream.
+     *
+     * @param name the terminal name
+     * @param type the terminal type
+     * @param ansiPassThrough whether ANSI sequences should be passed through (platform-dependent)
+     * @param encoding the terminal's primary character encoding
+     * @param stdinEncoding the encoding to use for standard input
+     * @param stdoutEncoding the encoding to use for standard output (used when {@code systemStream} is not Error)
+     * @param stderrEncoding the encoding to use for standard error (used when {@code systemStream} is Error)
+     * @param nativeSignals whether native signal handling is enabled
+     * @param signalHandler handler for terminal signals
+     * @param paused whether the terminal should be created in a paused state
+     * @param systemStream the system stream to back the terminal; selects the output encoding (uses {@code stderrEncoding} when {@code SystemStream.Error}, otherwise {@code stdoutEncoding})
+     * @return a POSIX-based Terminal instance connected to the chosen system stream
+     * @throws IOException if obtaining the underlying PTY or creating the terminal fails
+     */
     public Terminal posixSysTerminal(
             String name,
             String type,

@@ -216,18 +216,20 @@ class FfmSignalHandler {
     // --- Public API ---
 
     /**
-     * Returns whether FFM-based signal handling is available on this platform.
+     * Indicates whether native POSIX signal handling via the FFM API is supported and initialized.
+     *
+     * @return `true` if FFM-based signal handling is available on this platform, `false` otherwise.
      */
     static boolean isAvailable() {
         return AVAILABLE;
     }
 
     /**
-     * Registers a signal handler via {@code sigaction()} with {@code SA_RESTART}.
+     * Installs the given Java Runnable as the handler for the named POSIX signal using {@code sigaction} with {@code SA_RESTART}.
      *
      * @param name    signal name (e.g. "WINCH", "INT")
-     * @param handler the Java callback
-     * @return a {@link Registration} token, or {@code null} if the signal is unsupported
+     * @param handler the Java callback to invoke when the signal is dispatched
+     * @return a {@link Registration} token encapsulating the signum, native arena and saved old action (and the previous Java handler when preserved), or {@code null} if FFM support is unavailable or the signal name is unsupported
      */
     static Object register(String name, Runnable handler) {
         if (!AVAILABLE) {
@@ -345,8 +347,10 @@ class FfmSignalHandler {
     // --- Signal upcall target (called from native signal context) ---
 
     /**
-     * Called from the native signal handler via the upcall stub.
-     * Sets an atomic flag; the dispatcher thread will invoke the Java handler.
+     * Record a received POSIX signal for deferred dispatch to the Java handler.
+     *
+     * @param signum the POSIX signal number; if it is within the handler array bounds this marks the signal as pending
+     *                so the dispatcher thread will invoke the registered Java handler, otherwise the value is ignored
      */
     static void signalReceived(int signum) {
         if (signum >= 0 && signum < pendingSignals.length()) {
@@ -355,7 +359,12 @@ class FfmSignalHandler {
         }
     }
 
-    // --- Dispatcher thread ---
+    /**
+     * Starts the signal dispatcher daemon thread if one is not already running.
+     *
+     * Creates and starts a thread named "JLine-signal-dispatcher" that runs the dispatch loop
+     * and stores the thread reference in the class field so subsequent calls are no-ops.
+     */
 
     private static synchronized void ensureDispatcherStarted() {
         if (dispatcherThread != null) {
@@ -367,6 +376,12 @@ class FfmSignalHandler {
         dispatcherThread = t;
     }
 
+    /**
+     * Stops the dispatcher thread when there are no registered signal handlers.
+     *
+     * If no handlers are registered and a dispatcher thread exists, interrupts the thread
+     * and clears the stored reference; otherwise does nothing.
+     */
     private static synchronized void stopDispatcherIfIdle() {
         if (handlers.isEmpty() && dispatcherThread != null) {
             dispatcherThread.interrupt();
@@ -374,6 +389,15 @@ class FfmSignalHandler {
         }
     }
 
+    /**
+     * Restore or remove the Java handler mapping for the given signal number.
+     *
+     * If {@code previousHandler} is non-null, associates it with {@code signum}; otherwise removes any
+     * existing mapping for that signal.
+     *
+     * @param signum the platform signal number to update
+     * @param previousHandler the handler to restore, or {@code null} to remove the mapping
+     */
     private static void restoreHandler(int signum, Runnable previousHandler) {
         if (previousHandler != null) {
             handlers.put(signum, previousHandler);
@@ -383,8 +407,10 @@ class FfmSignalHandler {
     }
 
     /**
-     * Checks whether the {@code sa_handler} field in the given sigaction struct
-     * points to our shared upcall stub.
+     * Determine whether the native sigaction struct's `sa_handler` field points to this class's shared FFM upcall stub.
+     *
+     * @param sigactionStruct a native `struct sigaction` memory segment (as laid out for the current platform)
+     * @return `true` if the `sa_handler` address equals the shared upcall stub address, `false` otherwise
      */
     private static boolean isOurUpcallStub(MemorySegment sigactionStruct) {
         MemorySegment handler = (MemorySegment) sa_handler_vh.get(sigactionStruct);
@@ -411,8 +437,14 @@ class FfmSignalHandler {
     }
 
     /**
-     * Dispatches a single pending signal to its registered handler.
-     */
+         * Invoke the registered Java handler for the given signal, if one exists.
+         *
+         * If a handler is present it will be executed on the dispatcher thread;
+         * any Exception thrown by the handler is caught and logged and will not
+         * propagate to the caller.
+         *
+         * @param signum the POSIX signal number to dispatch
+         */
     private static void dispatchSignal(int signum) {
         Runnable handler = handlers.get(signum);
         if (handler != null) {
@@ -425,7 +457,12 @@ class FfmSignalHandler {
         }
     }
 
-    // --- Signal name → number mapping ---
+    /**
+     * Map a POSIX signal short name to its platform-specific signal number.
+     *
+     * @param name the short signal name (e.g., "INT", "HUP", "WINCH")
+     * @return the platform signal number corresponding to {@code name}, or {@code -1} if the name is not recognized
+     */
 
     private static int signalNumber(String name) {
         return switch (name) {

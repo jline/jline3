@@ -266,6 +266,27 @@ public class JniTerminalProvider implements TerminalProvider {
                 systemStream);
     }
 
+    /**
+     * Create a POSIX system terminal backed by a native PTY.
+     *
+     * The created terminal is configured with the provided character encodings and signal handling.
+     * The output encoding is chosen from {@code stdoutEncoding} or {@code stderrEncoding}
+     * depending on {@code systemStream}.
+     *
+     * @param name human-readable terminal name
+     * @param type terminal type (TERM)
+     * @param ansiPassThrough whether ANSI sequences should be passed through unchanged
+     * @param encoding primary charset used by the terminal
+     * @param stdinEncoding charset for standard input
+     * @param stdoutEncoding charset for standard output
+     * @param stderrEncoding charset for standard error
+     * @param nativeSignals whether native signal handling is enabled
+     * @param signalHandler handler for terminal signals
+     * @param paused whether the terminal should start in a paused state
+     * @param systemStream which system stream the terminal represents (affects output encoding selection)
+     * @return a POSIX system Terminal backed by a native PTY
+     * @throws IOException if the underlying PTY cannot be opened
+     */
     public Terminal posixSysTerminal(
             String name,
             String type,
@@ -286,6 +307,23 @@ public class JniTerminalProvider implements TerminalProvider {
                 this, name, type, pty, encoding, stdinEncoding, outputEncoding, nativeSignals, signalHandler);
     }
 
+    /**
+     * Create a new terminal backed by a newly opened POSIX pseudo-terminal (PTY).
+     *
+     * @param name the terminal name for identification
+     * @param type the terminal type (TERM)
+     * @param in the input stream connected to the PTY slave
+     * @param out the output stream connected to the PTY slave
+     * @param encoding the primary charset for the terminal
+     * @param inputEncoding the charset to decode input
+     * @param outputEncoding the charset to encode output
+     * @param signalHandler handler for terminal signals
+     * @param paused if true, the terminal is created in a paused state
+     * @param attributes initial terminal attributes for the PTY
+     * @param size initial terminal size for the PTY
+     * @return a Terminal instance wrapping the opened PTY and provided streams
+     * @throws IOException if the PTY cannot be opened
+     */
     @Override
     public Terminal newTerminal(
             String name,
