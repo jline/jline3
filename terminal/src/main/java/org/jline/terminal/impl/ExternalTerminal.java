@@ -57,6 +57,8 @@ import org.jline.terminal.spi.TerminalProvider;
  *
  * @see LineDisciplineTerminal
  */
+// S2387: closed field intentionally shadows AbstractTerminal.closed to use AtomicBoolean instead of boolean
+@SuppressWarnings("java:S2387")
 public class ExternalTerminal extends LineDisciplineTerminal {
 
     private final TerminalProvider provider;

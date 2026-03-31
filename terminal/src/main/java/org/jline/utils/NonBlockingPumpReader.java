@@ -15,6 +15,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
+// S2387: lock field intentionally shadows Reader.lock to use ReentrantLock instead of Object
+@SuppressWarnings("java:S2387")
 public class NonBlockingPumpReader extends NonBlockingReader {
 
     private static final int DEFAULT_BUFFER_SIZE = 4096;
