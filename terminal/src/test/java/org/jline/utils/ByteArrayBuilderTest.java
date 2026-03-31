@@ -17,31 +17,31 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class ByteArrayBuilderTest {
+class ByteArrayBuilderTest {
 
     @Test
-    public void testAppendAsciiChar() {
+    void testAppendAsciiChar() {
         ByteArrayBuilder buf = new ByteArrayBuilder();
         buf.appendAscii('A').appendAscii('B').appendAscii('C');
         assertEquals("ABC", buf.toStringUtf8());
     }
 
     @Test
-    public void testAppendAsciiString() {
+    void testAppendAsciiString() {
         ByteArrayBuilder buf = new ByteArrayBuilder();
         buf.appendAscii("hello world");
         assertEquals("hello world", buf.toStringUtf8());
     }
 
     @Test
-    public void testCsi() {
+    void testCsi() {
         ByteArrayBuilder buf = new ByteArrayBuilder();
         buf.csi().appendAscii("0m");
         assertEquals("\033[0m", buf.toStringUtf8());
     }
 
     @Test
-    public void testAppendIntSmallValues() {
+    void testAppendIntSmallValues() {
         ByteArrayBuilder buf = new ByteArrayBuilder();
         buf.appendInt(0);
         assertEquals("0", buf.toStringUtf8());
@@ -60,7 +60,7 @@ public class ByteArrayBuilderTest {
     }
 
     @Test
-    public void testAppendIntLargeValues() {
+    void testAppendIntLargeValues() {
         ByteArrayBuilder buf = new ByteArrayBuilder();
         buf.appendInt(1000);
         assertEquals("1000", buf.toStringUtf8());
@@ -71,7 +71,7 @@ public class ByteArrayBuilderTest {
     }
 
     @Test
-    public void testAppendIntNegative() {
+    void testAppendIntNegative() {
         ByteArrayBuilder buf = new ByteArrayBuilder();
         buf.appendInt(-1);
         assertEquals("-1", buf.toStringUtf8());
@@ -82,21 +82,21 @@ public class ByteArrayBuilderTest {
     }
 
     @Test
-    public void testAppendIntMinValue() {
+    void testAppendIntMinValue() {
         ByteArrayBuilder buf = new ByteArrayBuilder();
         buf.appendInt(Integer.MIN_VALUE);
         assertEquals(Integer.toString(Integer.MIN_VALUE), buf.toStringUtf8());
     }
 
     @Test
-    public void testAppendUtf8Ascii() {
+    void testAppendUtf8Ascii() {
         ByteArrayBuilder buf = new ByteArrayBuilder();
         buf.appendUtf8('A');
         assertArrayEquals(new byte[] {'A'}, buf.toByteArray());
     }
 
     @Test
-    public void testAppendUtf8TwoByte() {
+    void testAppendUtf8TwoByte() {
         ByteArrayBuilder buf = new ByteArrayBuilder();
         buf.appendUtf8('\u00E9'); // é
         assertEquals("é", buf.toStringUtf8());
@@ -104,7 +104,7 @@ public class ByteArrayBuilderTest {
     }
 
     @Test
-    public void testAppendUtf8ThreeByte() {
+    void testAppendUtf8ThreeByte() {
         ByteArrayBuilder buf = new ByteArrayBuilder();
         buf.appendUtf8('\u4E16'); // 世
         assertEquals("世", buf.toStringUtf8());
@@ -112,7 +112,7 @@ public class ByteArrayBuilderTest {
     }
 
     @Test
-    public void testAppendUtf8SupplementaryCodePoint() {
+    void testAppendUtf8SupplementaryCodePoint() {
         ByteArrayBuilder buf = new ByteArrayBuilder();
         int cp = 0x1F600; // 😀
         buf.appendUtf8(cp);
@@ -122,7 +122,7 @@ public class ByteArrayBuilderTest {
     }
 
     @Test
-    public void testAnsiColorSequence() {
+    void testAnsiColorSequence() {
         ByteArrayBuilder buf = new ByteArrayBuilder();
         // Build: \033[38;2;128;64;255m
         buf.csi()
@@ -138,7 +138,7 @@ public class ByteArrayBuilderTest {
     }
 
     @Test
-    public void testReset() {
+    void testReset() {
         ByteArrayBuilder buf = new ByteArrayBuilder();
         buf.appendAscii("first");
         assertEquals(5, buf.length());
@@ -149,7 +149,7 @@ public class ByteArrayBuilderTest {
     }
 
     @Test
-    public void testWriteTo() throws IOException {
+    void testWriteTo() throws IOException {
         ByteArrayBuilder buf = new ByteArrayBuilder();
         buf.appendAscii("test");
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -158,7 +158,7 @@ public class ByteArrayBuilderTest {
     }
 
     @Test
-    public void testGrowth() {
+    void testGrowth() {
         ByteArrayBuilder buf = new ByteArrayBuilder(4);
         StringBuilder expected = new StringBuilder();
         for (int i = 0; i < 1000; i++) {
@@ -170,7 +170,7 @@ public class ByteArrayBuilderTest {
     }
 
     @Test
-    public void testAsAsciiAppendable() throws IOException {
+    void testAsAsciiAppendable() throws IOException {
         ByteArrayBuilder buf = new ByteArrayBuilder();
         Appendable app = buf.asAsciiAppendable();
         app.append('A');
@@ -180,7 +180,7 @@ public class ByteArrayBuilderTest {
     }
 
     @Test
-    public void testToAnsiBytesParity() {
+    void testToAnsiBytesParity() {
         // Verify that toAnsiBytes produces the same output as toAnsi
         AttributedStringBuilder asb = new AttributedStringBuilder();
         asb.style(AttributedStyle.DEFAULT.foreground(128, 64, 255));
@@ -202,7 +202,7 @@ public class ByteArrayBuilderTest {
     }
 
     @Test
-    public void testToAnsiBytesParityWithIndexedColors() {
+    void testToAnsiBytesParityWithIndexedColors() {
         AttributedStringBuilder asb = new AttributedStringBuilder();
         asb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
         asb.append("red");
@@ -222,7 +222,7 @@ public class ByteArrayBuilderTest {
     }
 
     @Test
-    public void testToAnsiBytesWithMultiByteChars() {
+    void testToAnsiBytesWithMultiByteChars() {
         AttributedStringBuilder asb = new AttributedStringBuilder();
         asb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN));
         asb.append("hello 世界");
