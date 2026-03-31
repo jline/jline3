@@ -123,6 +123,36 @@ public class KeyMapTest {
     }
 
     @Test
+    void testUnbindBoundaryChar() {
+        // KEYMAP_LENGTH is 128, so a char with value 128 is at the boundary
+        // (i.e., index == mapping.length). Before the fix, unbind() used ">"
+        // instead of ">=" for the bounds check, which would let c == mapping.length
+        // pass the check and then throw ArrayIndexOutOfBoundsException.
+        KeyMap<String> map = new KeyMap<>();
+        char boundaryChar = (char) KeyMap.KEYMAP_LENGTH;
+
+        // Unbinding a single-char sequence at the boundary should return null gracefully
+        // (no ArrayIndexOutOfBoundsException)
+        map.unbind(String.valueOf(boundaryChar));
+
+        // Unbinding a multi-char sequence where the final char is at the boundary.
+        // Bind a two-char sequence so that mapping['a'] becomes a KeyMap (the loop
+        // traverses into it), then unbind "a" + boundaryChar so the final-char
+        // boundary check on line 641 is actually exercised.
+        map.bind("action", "ab");
+        map.unbind("a" + boundaryChar);
+
+        // Unbinding a multi-char sequence where an intermediate char is at the boundary
+        map.unbind(boundaryChar + "a");
+
+        // Verify that normal unbind still works correctly
+        map.bind("test", "x");
+        assertEquals("test", map.getBound("x"));
+        map.unbind("x");
+        assertNull(map.getBound("x"));
+    }
+
+    @Test
     public void testSort() {
         List<String> strings = new ArrayList<>();
         strings.add("abc");
