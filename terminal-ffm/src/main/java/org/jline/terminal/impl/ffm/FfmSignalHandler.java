@@ -238,6 +238,10 @@ class FfmSignalHandler {
             return null;
         }
 
+        // Install the Java handler before sigaction() so that signals arriving
+        // immediately after the native install are not lost.
+        Runnable previousHandler = handlers.put(signum, handler);
+
         Arena arena = Arena.ofShared();
         try {
             MemorySegment oldAct = arena.allocate(sigactionLayout);
@@ -248,17 +252,19 @@ class FfmSignalHandler {
             int res = (int) sigaction_mh.invoke(signum, newAct, oldAct);
             if (res != 0) {
                 logger.log(Level.FINE, "sigaction() failed for signal {0} (signum={1})", new Object[] {name, signum});
+                restoreHandler(signum, previousHandler);
                 arena.close();
                 return null;
             }
-            // Save the previous Java handler if the old native handler was our upcall stub
-            Runnable previousHandler = isOurUpcallStub(oldAct) ? handlers.get(signum) : null;
-            handlers.put(signum, handler);
             ensureDispatcherStarted();
-            return new Registration(signum, arena, oldAct, previousHandler);
+            // Only preserve previousHandler in Registration when the old native
+            // disposition was our upcall stub (otherwise it belongs to an external handler)
+            Runnable saved = isOurUpcallStub(oldAct) ? previousHandler : null;
+            return new Registration(signum, arena, oldAct, saved);
         } catch (Throwable t) {
             logger.log(Level.FINE, "Error registering FFM signal handler for {0}", name);
             logger.log(Level.FINE, EXCEPTION_DETAILS, t);
+            restoreHandler(signum, previousHandler);
             arena.close();
             return null;
         }
@@ -321,8 +327,7 @@ class FfmSignalHandler {
                 logger.log(Level.FINE, "sigaction() restore failed for signal {0}", name);
                 return;
             }
-            // If we restored our own upcall stub, preserve the previous Java handler;
-            // otherwise the native handler is external, so remove the Java handler.
+            // Preserve the previous Java Runnable when the restored native disposition is our stub
             if (isOurUpcallStub(reg.oldAction()) && reg.previousHandler() != null) {
                 handlers.put(reg.signum(), reg.previousHandler());
             } else {
@@ -345,6 +350,7 @@ class FfmSignalHandler {
      */
     static void signalReceived(int signum) {
         if (signum >= 0 && signum < pendingSignals.length()) {
+            // Multiple rapid signals coalesce into one pending flag (standard POSIX semantics)
             pendingSignals.set(signum, 1);
         }
     }
@@ -365,6 +371,14 @@ class FfmSignalHandler {
         if (handlers.isEmpty() && dispatcherThread != null) {
             dispatcherThread.interrupt();
             dispatcherThread = null;
+        }
+    }
+
+    private static void restoreHandler(int signum, Runnable previousHandler) {
+        if (previousHandler != null) {
+            handlers.put(signum, previousHandler);
+        } else {
+            handlers.remove(signum);
         }
     }
 
