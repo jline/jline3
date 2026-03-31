@@ -124,6 +124,9 @@ public class ColorParsingTest {
                 pos += count;
                 return count;
             }
+
+            @Override
+            public void close() throws IOException {}
         };
     }
 
