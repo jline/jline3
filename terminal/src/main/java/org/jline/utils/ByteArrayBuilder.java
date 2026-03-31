@@ -34,14 +34,31 @@ public class ByteArrayBuilder {
     private byte[] buffer;
     private int count;
 
+    /**
+     * Creates a new ByteArrayBuilder with a default initial capacity of 256 bytes.
+     */
     public ByteArrayBuilder() {
         this(256);
     }
 
+    /**
+     * Creates a ByteArrayBuilder with the specified initial capacity.
+     *
+     * @param initialCapacity the initial size of the internal byte buffer in bytes
+     */
     public ByteArrayBuilder(int initialCapacity) {
         buffer = new byte[initialCapacity];
     }
 
+    /**
+     * Ensures the internal byte buffer has length at least {@code minCapacity}, growing it if necessary.
+     *
+     * If the current buffer is too small, allocates a larger array (at least {@code minCapacity}),
+     * copies existing bytes, and replaces the buffer. Growth attempts to double the current size,
+     * capped to {@code Integer.MAX_VALUE}.
+     *
+     * @param minCapacity minimum required capacity for the internal buffer
+     */
     private void ensureCapacity(int minCapacity) {
         if (minCapacity > buffer.length) {
             long doubleCap = (long) buffer.length * 2;
@@ -53,7 +70,9 @@ public class ByteArrayBuilder {
     }
 
     /**
-     * Appends a CSI (Control Sequence Introducer) escape: ESC [
+     * Appends the CSI (Control Sequence Introducer) two-byte sequence ESC '[' to the buffer.
+     *
+     * @return this ByteArrayBuilder instance for call chaining
      */
     public ByteArrayBuilder csi() {
         ensureCapacity(count + 2);
@@ -63,7 +82,10 @@ public class ByteArrayBuilder {
     }
 
     /**
-     * Appends a single ASCII character as a byte.
+     * Appends the given ASCII character as a single byte to the builder.
+     *
+     * @param c the ASCII character to append (expected in range U+0000..U+007F)
+     * @return this ByteArrayBuilder
      */
     public ByteArrayBuilder appendAscii(char c) {
         ensureCapacity(count + 1);
@@ -72,8 +94,10 @@ public class ByteArrayBuilder {
     }
 
     /**
-     * Appends an ASCII string directly as bytes, bypassing charset encoding.
-     * The string must contain only ASCII characters (0x00-0x7F).
+     * Appends the characters of the given string as raw ASCII bytes to the builder without charset encoding.
+     *
+     * @param s the ASCII string to append; each character must be in the range 0x00–0x7F
+     * @return this ByteArrayBuilder
      */
     public ByteArrayBuilder appendAscii(String s) {
         int len = s.length();
@@ -85,8 +109,13 @@ public class ByteArrayBuilder {
     }
 
     /**
-     * Appends an integer as ASCII digit bytes without creating a String.
-     * Optimized for the common case of small values (0-999) used in ANSI color codes.
+     * Appends the decimal ASCII representation of an integer to the buffer.
+     *
+     * <p>Negative values are prefixed with `'-'`. `Integer.MIN_VALUE` and values
+     * outside the common small range are appended via a `String` fallback.
+     *
+     * @param value the integer to append as ASCII digits
+     * @return this builder instance for method chaining
      */
     public ByteArrayBuilder appendInt(int value) {
         if (value < 0) {
@@ -116,8 +145,10 @@ public class ByteArrayBuilder {
     }
 
     /**
-     * Appends a character as UTF-8 encoded bytes.
-     * Fast-paths ASCII characters (single byte).
+     * Appends the given character to the builder by encoding it as UTF-8 bytes.
+     *
+     * @param c the character to encode and append
+     * @return this ByteArrayBuilder instance
      */
     public ByteArrayBuilder appendUtf8(char c) {
         if (c < 0x80) {
@@ -137,8 +168,10 @@ public class ByteArrayBuilder {
     }
 
     /**
-     * Appends a Unicode code point as UTF-8 encoded bytes.
-     * Handles supplementary characters (code points above U+FFFF).
+     * Append the given Unicode code point encoded as UTF-8 bytes.
+     *
+     * @param codePoint the Unicode code point to append (U+0000..U+10FFFF)
+     * @return the builder instance for chaining
      */
     public ByteArrayBuilder appendUtf8(int codePoint) {
         if (codePoint < 0x80) {
@@ -171,7 +204,9 @@ public class ByteArrayBuilder {
     }
 
     /**
-     * Returns the number of bytes written to the buffer.
+     * Reports the number of bytes written to the buffer.
+     *
+     * @return the number of valid bytes stored in the internal buffer
      */
     public int length() {
         return count;
@@ -185,7 +220,9 @@ public class ByteArrayBuilder {
     }
 
     /**
-     * Returns a copy of the buffer contents as a byte array.
+     * Create a new byte array containing the bytes written to the builder.
+     *
+     * @return a newly allocated byte array with the builder's contents (bytes at indices 0..length()-1)
      */
     public byte[] toByteArray() {
         byte[] result = new byte[count];
@@ -194,7 +231,13 @@ public class ByteArrayBuilder {
     }
 
     /**
-     * Writes the buffer contents to an output stream.
+     * Writes the valid bytes stored in this builder to the given output stream.
+     *
+     * Writes the bytes in the internal buffer from index 0 (inclusive) to {@link #length()} (exclusive).
+     * If the builder is empty, this method does nothing.
+     *
+     * @param out the OutputStream to which the bytes will be written
+     * @throws IOException if an I/O error occurs while writing to the stream
      */
     public void writeTo(OutputStream out) throws IOException {
         if (count > 0) {
@@ -203,22 +246,37 @@ public class ByteArrayBuilder {
     }
 
     /**
-     * Returns the buffer contents as a UTF-8 string.
+     * Convert the builder's written bytes to a UTF-8 String.
+     *
+     * @return the bytes from index 0 to length()-1 decoded using UTF-8
      */
     public String toStringUtf8() {
         return new String(buffer, 0, count, StandardCharsets.UTF_8);
     }
 
     /**
-     * Returns an {@link Appendable} view that writes ASCII characters to this builder.
-     * Suitable for use with {@link Curses#tputs(Appendable, String, Object...)} since
-     * terminal capability sequences are pure ASCII.
+     * Provides an Appendable that writes ASCII characters into this builder.
+     *
+     * The returned Appendable encodes each character as a single ASCII byte and appends it
+     * to this ByteArrayBuilder, making it suitable for Appendable-based APIs that emit
+     * terminal capability sequences.
+     *
+     * @return an Appendable whose append methods write characters as ASCII bytes into this builder
      */
     public Appendable asAsciiAppendable() {
         return new AsciiAppendable();
     }
 
     private class AsciiAppendable implements Appendable {
+        /**
+         * Appends the characters of a CharSequence to the enclosing ByteArrayBuilder as ASCII bytes.
+         *
+         * If {@code csq} is {@code null}, the four characters "null" are appended. Each character is written
+         * by casting to a single byte (low 8 bits).
+         *
+         * @param csq the character sequence to append, or {@code null}
+         * @return this Appendable
+         */
         @Override
         public Appendable append(CharSequence csq) {
             if (csq == null) {
@@ -232,6 +290,17 @@ public class ByteArrayBuilder {
             return this;
         }
 
+        /**
+         * Appends the subsequence [start, end) of the given CharSequence as ASCII bytes.
+         *
+         * If {@code csq} is {@code null}, the four-character sequence {@code "null"} is appended.
+         * Each character is cast to a single byte and written into the enclosing ByteArrayBuilder.
+         *
+         * @param csq   the character sequence to append, or {@code null}
+         * @param start start index, inclusive
+         * @param end   end index, exclusive
+         * @return      this Appendable
+         */
         @Override
         public Appendable append(CharSequence csq, int start, int end) {
             if (csq == null) {
@@ -245,6 +314,12 @@ public class ByteArrayBuilder {
             return this;
         }
 
+        /**
+         * Appends a single character to the builder as an ASCII byte.
+         *
+         * @param c the character to append; its low-order 8 bits are written as a single byte
+         * @return this Appendable instance
+         */
         @Override
         public Appendable append(char c) {
             ensureCapacity(count + 1);

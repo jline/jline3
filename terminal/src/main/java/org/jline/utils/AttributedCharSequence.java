@@ -226,22 +226,15 @@ public abstract class AttributedCharSequence implements CharSequence {
     }
 
     /**
-     * Converts this attributed string to an ANSI escape sequence string
-     * with the specified color capabilities, force mode, color palette,
-     * and alternate character set sequences.
+     * Render this attributed string as an ANSI escape sequence string using the provided
+     * color capabilities and alternate character set sequences.
      *
-     * <p>
-     * This method renders the attributed string with ANSI escape sequences
-     * using the specified number of colors, force mode, color palette, and
-     * alternate character set sequences for box drawing characters.
-     * </p>
-     *
-     * @param colors the number of colors to use (8, 256, or 16777216 for true colors)
-     * @param force the force mode to use for color rendering
-     * @param palette the color palette to use for color conversion, or null for the default palette
-     * @param altIn the sequence to enable the alternate character set, or null to disable
-     * @param altOut the sequence to disable the alternate character set, or null to disable
-     * @return a string with ANSI escape sequences representing this attributed string
+     * @param colors the number of colors to use (commonly 8, 256, or 16777216 for true color)
+     * @param force the force mode controlling whether 256-color or true-color forms are preferred
+     * @param palette the color palette used to map colors, or {@code null} to use the default palette
+     * @param altIn the sequence to enable the alternate character set for box-drawing, or {@code null} to disable
+     * @param altOut the sequence to disable the alternate character set, or {@code null} to disable
+     * @return the ANSI-encoded representation of this attributed string
      */
     public String toAnsi(int colors, ForceMode force, ColorPalette palette, String altIn, String altOut) {
         ByteArrayBuilder buf = new ByteArrayBuilder();
@@ -250,19 +243,20 @@ public abstract class AttributedCharSequence implements CharSequence {
     }
 
     /**
-     * Writes the ANSI rendering of this attributed string directly as UTF-8 bytes
-     * to the given {@link ByteArrayBuilder}, avoiding intermediate String allocations.
+     * Write the ANSI-encoded UTF-8 bytes for this attributed string into the provided buffer.
      *
-     * <p>This method produces output equivalent to
-     * {@link #toAnsi(int, ForceMode, ColorPalette, String, String)} but writes bytes
-     * directly, eliminating StringBuilder, Integer.toString(), and charset encoding overhead.</p>
+     * <p>The method encodes styles, colors, decoration attributes, and alternate-charset
+     * box-drawing sequences as ANSI control sequences and appends their UTF-8 bytes to
+     * {@code buf}. If {@code palette} is null, the default palette is used. The method
+     * ensures any active alternate-charset is exited and final style state is reset
+     * before returning.</p>
      *
-     * @param buf     the byte buffer to write to
-     * @param colors  the number of colors to use
-     * @param force   the force mode for color rendering
-     * @param palette the color palette, or null for default
-     * @param altIn   the alternate charset enter sequence, or null
-     * @param altOut  the alternate charset exit sequence, or null
+     * @param buf     the byte buffer to write UTF-8 bytes and ANSI control sequences to
+     * @param colors  the number of displayable colors to target when emitting color sequences
+     * @param force   the force mode that influences whether truecolor/256-color forms are used
+     * @param palette the color palette to use for rounding/indexing, or null to use the default
+     * @param altIn   the sequence to enter the terminal's alternate character set, or null
+     * @param altOut  the sequence to exit the terminal's alternate character set, or null
      */
     void toAnsiBytes(
             ByteArrayBuilder buf, int colors, ForceMode force, ColorPalette palette, String altIn, String altOut) {
@@ -292,6 +286,17 @@ public abstract class AttributedCharSequence implements CharSequence {
         }
     }
 
+    /**
+     * Toggle and emit the terminal alternate character set sequence when encountering
+     * box-drawing characters.
+     *
+     * @param buf          buffer to which enter/exit alternate-char sequences are appended
+     * @param originalChar the character being examined for box-drawing status
+     * @param alt          whether the alternate character set is currently active
+     * @param altIn        sequence to enable alternate character set (may be null)
+     * @param altOut       sequence to disable alternate character set (may be null)
+     * @return              `true` if the alternate character set should be active after processing `originalChar`, `false` otherwise
+     */
     private static boolean emitAltCharset(
             ByteArrayBuilder buf, char originalChar, boolean alt, String altIn, String altOut) {
         if (altIn != null && altOut != null) {
@@ -304,6 +309,18 @@ public abstract class AttributedCharSequence implements CharSequence {
         return alt;
     }
 
+    /**
+     * Appends the UTF-8 encoding of the character (or surrogate pair) at position `i` to the buffer.
+     *
+     * If `c` is a UTF-16 high-surrogate and the following code unit (within `len`) is a low-surrogate,
+     * the combined code point is appended.
+     *
+     * @param buf the byte buffer to append UTF-8 bytes into
+     * @param c the character at index `i`
+     * @param i the index within the sequence corresponding to `c`
+     * @param len the sequence length (used to ensure the low-surrogate is within bounds)
+     * @return 2 if a surrogate pair was consumed and appended, otherwise 1
+     */
     private int emitUtf8Char(ByteArrayBuilder buf, char c, int i, int len) {
         if (Character.isHighSurrogate(c) && i + 1 < len) {
             char next = charAt(i + 1);
@@ -316,6 +333,22 @@ public abstract class AttributedCharSequence implements CharSequence {
         return 1;
     }
 
+    /**
+     * Emit a single CSI SGR sequence that transitions terminal attributes from prevStyle to newStyle.
+     *
+     * Writes ANSI SGR parameters into the provided ByteArrayBuilder and updates colorState to reflect the
+     * currently applied foreground (index 0) and background (index 1) encodings. If newStyle is zero, a
+     * reset sequence is emitted and colorState entries are cleared.
+     *
+     * @param buf        the byte-oriented builder to which CSI parameters and the final 'm' are appended
+     * @param prevStyle  previously applied style code
+     * @param newStyle   target style code to apply
+     * @param colorState two-element array tracking currently applied foreground (0) and background (1);
+     *                   this method mutates its entries to the values actually emitted
+     * @param colors     terminal maximum color capability (affects truecolor/256-color selection)
+     * @param force      force mode controlling preference for 256/true color output
+     * @param palette    color palette used to round/lookup colors when not emitting direct RGB
+     */
     private static void emitStyleChange(
             ByteArrayBuilder buf,
             long prevStyle,
@@ -356,6 +389,17 @@ public abstract class AttributedCharSequence implements CharSequence {
     private static final String[] DECORATION_ON = {"3", "4", "5", "7", "8", "9"};
     private static final String[] DECORATION_OFF = {"23", "24", "25", "27", "28", "29"};
 
+    /**
+     * Appends CSI decoration parameters for each decoration flag present in `d` to `buf`, using the
+     * enabled/disabled codes from `s`.
+     *
+     * @param buf the byte buffer receiving CSI parameters
+     * @param d bitmask of decoration flags that have changed and should be emitted
+     * @param s current style bitmask used to choose the ON or OFF code for each flag
+     * @param first true if no CSI parameters have yet been written (affects separator emission)
+     * @return `true` if no parameters were appended (so subsequent parameter should not be prefixed),
+     *         `false` if at least one parameter was appended (so subsequent parameter should be prefixed)
+     */
     private static boolean appendDecorationAttrsB(ByteArrayBuilder buf, long d, long s, boolean first) {
         for (int i = 0; i < DECORATION_FLAGS.length; i++) {
             long flag = DECORATION_FLAGS[i];
@@ -366,6 +410,22 @@ public abstract class AttributedCharSequence implements CharSequence {
         return first;
     }
 
+    /**
+     * Appends CSI color parameters for a foreground or background color value to the byte buffer.
+     *
+     * <p>Handles three color encodings encoded in {@code colorValue}:
+     * - default (<= 0) emits the reset parameter (39 for foreground, 49 for background),
+     * - RGB (flag present) emits a truecolor parameter when supported or delegates to palette rounding,
+     * - indexed (flag present) rounds the index via {@code palette} and emits an appropriate form.
+     *
+     * @param buf the byte-oriented builder to receive CSI parameters
+     * @param colorValue encoded color value containing flags and components (RGB or indexed)
+     * @param isForeground true when emitting a foreground color, false for background
+     * @param colors current terminal color capability (used to choose truecolor vs palette/indexed forms)
+     * @param force color forcing mode that may override form selection
+     * @param palette palette used to round RGB or indexed values into a terminal index
+     * @param first true if this is the first CSI parameter (no leading separator); updated based on what is emitted
+     * @return true if no parameter was appended (the "first" state remains), false if a parameter was appended */
     private static boolean appendColorB(
             ByteArrayBuilder buf,
             long colorValue,
@@ -397,6 +457,19 @@ public abstract class AttributedCharSequence implements CharSequence {
         return first;
     }
 
+    /**
+     * Append the appropriate CSI color parameter (truecolor RGB, 256-color index, or basic ANSI color)
+     * for a rounded palette entry to the given buffer.
+     *
+     * @param buf         the byte buffer receiving CSI parameters
+     * @param rounded     the palette index for the desired color, or a negative value to indicate no color
+     * @param isForeground true to emit a foreground color parameter, false for background
+     * @param colors      the terminal's reported color capacity (numeric)
+     * @param force       a ForceMode hint that can force 256- or true-color emission
+     * @param palette     the ColorPalette used to resolve truecolor values when required
+     * @param first       whether this is the first CSI parameter (affects whether a leading separator is emitted)
+     * @return `true` if no separator was emitted (i.e., still first), `false` otherwise.
+     */
     private static boolean appendRoundedColorB(
             ByteArrayBuilder buf,
             int rounded,
@@ -423,6 +496,20 @@ public abstract class AttributedCharSequence implements CharSequence {
         return attrIntB(buf, lowBase + rounded, first);
     }
 
+    /**
+     * Determines whether the encoded foreground color should be rendered using a basic (0–15) terminal color.
+     *
+     * <p>For an RGB-encoded or indexed foreground value in `fg`, returns `true` when the palette rounds it to an
+     * index in the 0–15 range and the current `colors`/`force` configuration does not require forcing 256-color
+     * or truecolor output; otherwise returns `false`.</p>
+     *
+     * @param fg      encoded foreground style bits (may contain RGB or indexed color encoding)
+     * @param colors  terminal reported color capacity (used to decide truecolor behavior)
+     * @param force   color forcing mode that may require 256-color or truecolor output
+     * @param palette palette used to round RGB or indexed values to a terminal color index
+     * @return `true` if the foreground maps to a basic terminal color (0–15) and basic-color emission is allowed;
+     *         `false` otherwise.
+     */
     private static boolean usedBasicFgColor(long fg, int colors, ForceMode force, ColorPalette palette) {
         int rounded;
         if ((fg & F_FOREGROUND_RGB) != 0) {
@@ -444,6 +531,18 @@ public abstract class AttributedCharSequence implements CharSequence {
                 && force != ForceMode.Force256Colors;
     }
 
+    /**
+     * Appends appropriate SGR parameters for bold and faint transitions to the buffer when those
+     * attributes changed, and updates the CSI parameter separation state.
+     *
+     * @param buf   the byte buffer used to build the CSI sequence
+     * @param d     bitmask of attributes that changed (diff between previous and new style)
+     * @param s     the current style bitmask (after change)
+     * @param first true if no CSI parameter has yet been emitted for this sequence; used to decide
+     *              whether to prepend a separator
+     * @return      the updated `first` flag indicating whether subsequent parameters need a separator
+     *              (`true` if still first, `false` if a parameter was emitted)
+     */
     private static boolean appendBoldFaintB(ByteArrayBuilder buf, long d, long s, boolean first) {
         if ((d & (F_BOLD | F_FAINT)) != 0) {
             if ((d & F_BOLD) != 0 && (s & F_BOLD) == 0 || (d & F_FAINT) != 0 && (s & F_FAINT) == 0) {
@@ -461,7 +560,12 @@ public abstract class AttributedCharSequence implements CharSequence {
 
     // @spotless:off
     /**
-     * Substitutes box-drawing characters with alternate charset or ASCII equivalents.
+     * Map box-drawing characters to alternate-charset codes when alternate sequences are available, otherwise to simple ASCII equivalents.
+     *
+     * @param c the input character to substitute
+     * @param altIn the terminal's enter-alternate-charset sequence, or null if not available
+     * @param altOut the terminal's exit-alternate-charset sequence, or null if not available
+     * @return the substituted character (an alternate-charset code or an ASCII fallback), or the original character if no substitution applies
      */
     private static char substituteChar(char c, String altIn, String altOut) {
         if (altIn != null && altOut != null) {
@@ -491,6 +595,12 @@ public abstract class AttributedCharSequence implements CharSequence {
         }
     }
 
+    /**
+     * Determines whether the given character is one of the supported Unicode box-drawing characters.
+     *
+     * @param c the character to test
+     * @return true if the character is a box-drawing glyph handled by this class, false otherwise
+     */
     private static boolean isBoxDrawing(char c) {
         switch (c) {
             case '┘': case '┐': case '┌': case '└':
@@ -503,19 +613,47 @@ public abstract class AttributedCharSequence implements CharSequence {
     }
     // @spotless:on
 
-    // ByteArrayBuilder helpers — zero-allocation integer formatting
+    /**
+     * Append a CSI parameter string to the byte buffer, prefixing with ';' when not the first parameter.
+     *
+     * @param buf   destination ByteArrayBuilder to append ASCII bytes to
+     * @param s     parameter string to append (ASCII)
+     * @param first whether this is the first parameter in the CSI sequence
+     * @return      `false` to indicate subsequent parameters must be separated by ';'
+     */
     private static boolean attrB(ByteArrayBuilder buf, String s, boolean first) {
         if (!first) buf.appendAscii(';');
         buf.appendAscii(s);
         return false;
     }
 
+    /**
+     * Append an integer parameter to the byte buffer, prefixing it with ';' when it is not the first parameter.
+     *
+     * @param buf   the byte buffer to append into
+     * @param value the integer value to append as a parameter
+     * @param first true if this is the first CSI parameter (no leading ';'), false otherwise
+     * @return      `false` to indicate subsequent parameters are not the first
+     */
     private static boolean attrIntB(ByteArrayBuilder buf, int value, boolean first) {
         if (!first) buf.appendAscii(';');
         buf.appendInt(value);
         return false;
     }
 
+    /**
+     * Append an RGB color parameter sequence to the provided ByteArrayBuilder for a CSI sequence.
+     *
+     * Appends the form "{prefix};2;{r};{g};{b}" and writes a leading ';' if `first` is false.
+     *
+     * @param buf    the byte-oriented builder to append CSI parameters to
+     * @param prefix CSI color prefix (typically 38 for foreground or 48 for background)
+     * @param r      red component (0–255)
+     * @param g      green component (0–255)
+     * @param b      blue component (0–255)
+     * @param first  true when this is the first CSI parameter (omit leading ';'); false otherwise
+     * @return       `false` indicating subsequent parameters are not the first
+     */
     private static boolean attrRgbB(ByteArrayBuilder buf, int prefix, int r, int g, int b, boolean first) {
         if (!first) buf.appendAscii(';');
         buf.appendInt(prefix)
@@ -528,6 +666,16 @@ public abstract class AttributedCharSequence implements CharSequence {
         return false;
     }
 
+    /**
+     * Appends a CSI indexed-color parameter of the form `prefix;5;idx` to the byte buffer,
+     * inserting a leading `;` only if this is not the first parameter.
+     *
+     * @param buf the byte buffer to append into
+     * @param prefix the CSI color prefix (commonly `38` for foreground or `48` for background)
+     * @param idx the palette index to emit
+     * @param first true if this is the first CSI parameter (omits a leading `;`), false otherwise
+     * @return false (marks that subsequent parameters are no longer the first)
+     */
     private static boolean attrIdxB(ByteArrayBuilder buf, int prefix, int idx, boolean first) {
         if (!first) buf.appendAscii(';');
         buf.appendInt(prefix).appendAscii(";5;").appendInt(idx);

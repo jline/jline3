@@ -108,6 +108,16 @@ public class Display {
     private String ansiAltIn;
     private String ansiAltOut;
 
+    /**
+     * Create a Display bound to the given Terminal and configured for either full-screen
+     * or inline (partial-screen) usage.
+     *
+     * <p>Queries the terminal for capabilities and initializes internal flags that
+     * control scrolling, wrap-at-end-of-line behavior, and cursor movement semantics.
+     *
+     * @param terminal the target terminal used for rendering
+     * @param fullscreen true to enable full-screen (application-takes-over) mode, false for partial-screen mode
+     */
     @SuppressWarnings("this-escape")
     public Display(Terminal terminal, boolean fullscreen) {
         this.terminal = terminal;
@@ -475,6 +485,12 @@ public class Display {
         useByteMode = false;
     }
 
+    /**
+     * Emits terminal control sequences to delete the specified number of lines.
+     *
+     * @param nb the number of lines to delete
+     * @return `true` if a delete-line capability was available and the operation was issued, `false` otherwise
+     */
     protected boolean deleteLines(int nb) {
         return perform(Capability.delete_line, Capability.parm_delete_line, nb);
     }
@@ -495,6 +511,14 @@ public class Display {
         return terminal.getStringCapability(single) != null || terminal.getStringCapability(multi) != null;
     }
 
+    /**
+     * Emits a terminal capability to affect a repeated action, using the parameterized (multi) form when available and preferable, otherwise repeating the single-capability.
+     *
+     * @param single the single-invocation capability to use repeatedly if a multi-parameter form is unavailable or not preferable
+     * @param multi the multi-parameter capability that can perform the action for a specified count in one invocation
+     * @param nb the number of times the action should be applied
+     * @return {@code true} if a capability sequence was emitted to perform the action, {@code false} if neither capability is available
+     */
     protected boolean perform(Capability single, Capability multi, int nb) {
         boolean hasMulti = terminal.getStringCapability(multi) != null;
         boolean hasSingle = terminal.getStringCapability(single) != null;
@@ -564,12 +588,16 @@ public class Display {
         }
     }
 
-    /*
-     * Move cursor from cursorPos to argument, updating cursorPos
-     * We're at the right margin if {@code (cursorPos % columns1) == columns}.
-     * This method knows how to move *from* the right margin,
-     * but does not know how to move *to* the right margin.
-     * I.e. {@code (i1 % columns1) == column} is not allowed.
+    /**
+     * Move the visual cursor to the specified wrapped-line position without allowing movement to a right-margin target.
+     *
+     * Moves the terminal cursor from the current visual position (stored in {@code cursorPos}) to {@code i1},
+     * handling line and column transitions, and updating {@code cursorPos}. If the current position is at the right
+     * margin a carriage return is emitted before further movement. The target position must not lie on a right-margin
+     * column (i.e. {@code i1 % columns1 != columns}).
+     *
+     * @param i1 the target visual cursor position in wrapped-line coordinates
+     * @return the updated cursor position (equal to {@code i1})
      */
     protected int moveVisualCursorTo(int i1) {
         int i0 = cursorPos;
@@ -613,12 +641,26 @@ public class Display {
         return i1;
     }
 
+    /**
+     * Prints the specified character to the terminal output the given number of times.
+     *
+     * @param c   the character to print
+     * @param num the number of times to print {@code c}; if less than or equal to zero, nothing is printed
+     */
     void rawPrint(char c, int num) {
         for (int i = 0; i < num; i++) {
             rawPrint(c);
         }
     }
 
+    /**
+     * Append or write a single Unicode code point to the terminal output buffer.
+     *
+     * If byte-mode is enabled, append the code point's UTF-8 bytes to the internal byte buffer;
+     * otherwise write the code point to the terminal's writer.
+     *
+     * @param c the Unicode code point to output
+     */
     void rawPrint(int c) {
         if (useByteMode) {
             byteBuilder.appendUtf8(c);
@@ -627,6 +669,13 @@ public class Display {
         }
     }
 
+    /**
+     * Writes the given attributed string to the display output.
+     *
+     * When byte-mode is enabled, the string is encoded as ANSI/UTF-8 bytes and appended to the internal output buffer; otherwise it is printed through the terminal's print path.
+     *
+     * @param str the attributed string to write (may contain styling/ANSI sequences)
+     */
     void rawPrint(AttributedString str) {
         if (useByteMode) {
             str.toAnsiBytes(byteBuilder, ansiColors, ansiForceMode, ansiPalette, ansiAltIn, ansiAltOut);
@@ -636,8 +685,11 @@ public class Display {
     }
 
     /**
-     * Writes a terminal capability sequence. In byte mode, writes directly to the
-     * byte buffer via Curses; otherwise delegates to terminal.puts().
+     * Emit the terminal control sequence for the given capability, using the byte buffer when byte mode is enabled.
+     *
+     * @param capability the terminal capability to emit
+     * @param params parameters to format into the capability string, if applicable
+     * @return `true` if the capability sequence was emitted; `false` if the capability string is unavailable
      */
     private boolean puts(Capability capability, Object... params) {
         if (useByteMode) {
@@ -652,6 +704,12 @@ public class Display {
         }
     }
 
+    /**
+     * Compute the number of terminal columns required to display a string, interpreting ANSI escape sequences.
+     *
+     * @param str the input string, which may contain ANSI escape sequences; if `null` it is treated as empty
+     * @return the displayed column width of the string (0 if `str` is `null`)
+     */
     public int wcwidth(String str) {
         return str != null ? AttributedString.fromAnsi(str).columnLength(terminal) : 0;
     }
