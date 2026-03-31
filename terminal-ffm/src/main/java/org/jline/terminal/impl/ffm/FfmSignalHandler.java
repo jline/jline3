@@ -41,6 +41,11 @@ class FfmSignalHandler {
 
     private static final Logger logger = Logger.getLogger("org.jline");
 
+    // --- Struct field name constants (shared across platform layouts) ---
+    private static final String SA_HANDLER = "sa_handler";
+    private static final String SA_MASK = "sa_mask";
+    private static final String SA_FLAGS = "sa_flags";
+
     // --- Platform-specific signal constants ---
     private static final int SIGHUP;
     private static final int SIGINT;
@@ -74,8 +79,14 @@ class FfmSignalHandler {
         MethodHandle sigaction = null;
         MemorySegment stub = null;
 
-        int sighup = -1, sigint = -1, sigquit = -1, sigterm = -1;
-        int sigtstp = -1, sigcont = -1, siginfo = -1, sigwinch = -1;
+        int sighup = -1;
+        int sigint = -1;
+        int sigquit = -1;
+        int sigterm = -1;
+        int sigtstp = -1;
+        int sigcont = -1;
+        int siginfo = -1;
+        int sigwinch = -1;
         int saRestart = 0;
 
         try {
@@ -93,9 +104,9 @@ class FfmSignalHandler {
                 saRestart = 0x0002;
 
                 layout = MemoryLayout.structLayout(
-                        ValueLayout.ADDRESS.withName("sa_handler"),
-                        ValueLayout.JAVA_INT.withName("sa_mask"),
-                        ValueLayout.JAVA_INT.withName("sa_flags"));
+                        ValueLayout.ADDRESS.withName(SA_HANDLER),
+                        ValueLayout.JAVA_INT.withName(SA_MASK),
+                        ValueLayout.JAVA_INT.withName(SA_FLAGS));
             } else if (osName.startsWith("Linux")) {
                 sighup = 1;
                 sigint = 2;
@@ -108,9 +119,9 @@ class FfmSignalHandler {
                 saRestart = 0x10000000;
 
                 layout = MemoryLayout.structLayout(
-                        ValueLayout.ADDRESS.withName("sa_handler"),
-                        MemoryLayout.sequenceLayout(128, ValueLayout.JAVA_BYTE).withName("sa_mask"),
-                        ValueLayout.JAVA_INT.withName("sa_flags"),
+                        ValueLayout.ADDRESS.withName(SA_HANDLER),
+                        MemoryLayout.sequenceLayout(128, ValueLayout.JAVA_BYTE).withName(SA_MASK),
+                        ValueLayout.JAVA_INT.withName(SA_FLAGS),
                         MemoryLayout.paddingLayout(4),
                         ValueLayout.ADDRESS.withName("sa_restorer"));
             } else if (osName.startsWith("FreeBSD")) {
@@ -125,17 +136,16 @@ class FfmSignalHandler {
                 saRestart = 0x0002;
 
                 layout = MemoryLayout.structLayout(
-                        ValueLayout.ADDRESS.withName("sa_handler"),
-                        ValueLayout.JAVA_INT.withName("sa_flags"),
-                        MemoryLayout.sequenceLayout(16, ValueLayout.JAVA_BYTE).withName("sa_mask"),
+                        ValueLayout.ADDRESS.withName(SA_HANDLER),
+                        ValueLayout.JAVA_INT.withName(SA_FLAGS),
+                        MemoryLayout.sequenceLayout(16, ValueLayout.JAVA_BYTE).withName(SA_MASK),
                         MemoryLayout.paddingLayout(4));
             }
 
             if (layout != null) {
-                saHandler = FfmTerminalProvider.lookupVarHandle(
-                        layout, MemoryLayout.PathElement.groupElement("sa_handler"));
-                saFlags =
-                        FfmTerminalProvider.lookupVarHandle(layout, MemoryLayout.PathElement.groupElement("sa_flags"));
+                saHandler =
+                        FfmTerminalProvider.lookupVarHandle(layout, MemoryLayout.PathElement.groupElement(SA_HANDLER));
+                saFlags = FfmTerminalProvider.lookupVarHandle(layout, MemoryLayout.PathElement.groupElement(SA_FLAGS));
 
                 Linker linker = Linker.nativeLinker();
                 SymbolLookup lookup = SymbolLookup.loaderLookup().or(linker.defaultLookup());
@@ -162,7 +172,7 @@ class FfmSignalHandler {
                     avail = true;
                 }
             }
-        } catch (Throwable t) {
+        } catch (Exception | LinkageError t) {
             logger.log(Level.FINE, "FFM signal handler not available", t);
         }
 
@@ -236,13 +246,14 @@ class FfmSignalHandler {
 
             int res = (int) sigaction_mh.invoke(signum, newAct, oldAct);
             if (res != 0) {
-                logger.log(Level.FINE, "sigaction() failed for signal " + name + " (signum=" + signum + ")");
+                logger.log(Level.FINE, "sigaction() failed for signal {0} (signum={1})", new Object[] {name, signum});
                 handlers.remove(signum);
                 return null;
             }
             return new Registration(signum, oldAct);
         } catch (Throwable t) {
-            logger.log(Level.FINE, "Error registering FFM signal handler for " + name, t);
+            logger.log(Level.FINE, "Error registering FFM signal handler for {0}", name);
+            logger.log(Level.FINE, "Exception details", t);
             handlers.remove(signum);
             return null;
         }
@@ -273,12 +284,13 @@ class FfmSignalHandler {
 
             int res = (int) sigaction_mh.invoke(signum, newAct, oldAct);
             if (res != 0) {
-                logger.log(Level.FINE, "sigaction(SIG_DFL) failed for signal " + name);
+                logger.log(Level.FINE, "sigaction(SIG_DFL) failed for signal {0}", name);
                 return null;
             }
             return new Registration(signum, oldAct);
         } catch (Throwable t) {
-            logger.log(Level.FINE, "Error registering default handler for " + name, t);
+            logger.log(Level.FINE, "Error registering default handler for {0}", name);
+            logger.log(Level.FINE, "Exception details", t);
             return null;
         }
     }
@@ -299,10 +311,11 @@ class FfmSignalHandler {
         try {
             int res = (int) sigaction_mh.invoke(reg.signum(), reg.oldAction(), MemorySegment.NULL);
             if (res != 0) {
-                logger.log(Level.FINE, "sigaction() restore failed for signal " + name);
+                logger.log(Level.FINE, "sigaction() restore failed for signal {0}", name);
             }
         } catch (Throwable t) {
-            logger.log(Level.FINE, "Error unregistering FFM signal handler for " + name, t);
+            logger.log(Level.FINE, "Error unregistering FFM signal handler for {0}", name);
+            logger.log(Level.FINE, "Exception details", t);
         }
     }
 
@@ -340,18 +353,26 @@ class FfmSignalHandler {
             for (int i = 0; i < pendingSignals.length(); i++) {
                 if (pendingSignals.compareAndSet(i, 1, 0)) {
                     anyPending = true;
-                    Runnable handler = handlers.get(i);
-                    if (handler != null) {
-                        try {
-                            handler.run();
-                        } catch (Exception e) {
-                            logger.log(Level.WARNING, "Error in signal handler for signal " + i, e);
-                        }
-                    }
+                    dispatchSignal(i);
                 }
             }
             if (!anyPending) {
                 LockSupport.parkNanos(1_000_000L); // 1 ms
+            }
+        }
+    }
+
+    /**
+     * Dispatches a single pending signal to its registered handler.
+     */
+    private static void dispatchSignal(int signum) {
+        Runnable handler = handlers.get(signum);
+        if (handler != null) {
+            try {
+                handler.run();
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "Error in signal handler for signal {0}", signum);
+                logger.log(Level.WARNING, "Exception details", e);
             }
         }
     }
