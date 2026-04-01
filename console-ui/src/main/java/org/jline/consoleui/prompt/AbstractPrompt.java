@@ -320,7 +320,11 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
         }
 
         private final int startColumn;
+
+        @SuppressWarnings("java:S2387") // intentionally shadows parent with more specific type
         private final List<ChoiceItemIF> items;
+
+        @SuppressWarnings("java:S2387") // intentionally shadows parent field
         private final ConsolePrompt.UiConfig config;
 
         private ExpandableChoicePrompt(
@@ -435,6 +439,8 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
 
         private final int startColumn;
         private final ConfirmChoice.ConfirmationValue defaultValue;
+
+        @SuppressWarnings("java:S2387") // intentionally shadows parent field
         private final ConsolePrompt.UiConfig config;
 
         private ConfirmPrompt(
@@ -838,6 +844,7 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             INTERRUPT
         }
 
+        @SuppressWarnings("java:S2387") // intentionally shadows parent field
         private final List<T> items;
 
         private ListChoicePrompt(
@@ -926,6 +933,7 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             INTERRUPT
         }
 
+        @SuppressWarnings("java:S2387") // intentionally shadows parent field
         private final List<CheckboxItemIF> items;
 
         private CheckboxPrompt(

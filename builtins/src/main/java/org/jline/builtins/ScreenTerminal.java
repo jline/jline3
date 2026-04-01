@@ -516,7 +516,7 @@ public class ScreenTerminal {
         // For wide characters, fill the subsequent cells with a continuation marker
         if (charWidth > 1) {
             for (int i = 1; i < charWidth && cx + i < width; i++) {
-                poke(cy, cx + i, new long[] {attr | 0}); // Use null character as continuation marker
+                poke(cy, cx + i, new long[] {attr}); // Use null character as continuation marker
             }
         }
 

@@ -11,14 +11,12 @@ package org.jline.console.impl;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 import org.jline.builtins.ConfigurationPath;
@@ -33,6 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 /**
  * Tests for SystemRegistryImpl class.
@@ -93,7 +92,7 @@ public class SystemRegistryImplTest {
      * PTY terminals that could hang on BSD/macOS platforms.
      */
     @Test
-    public void testVariableAssignmentDoesNotHang() throws Exception {
+    void testVariableAssignmentDoesNotHang() {
         // Add a test command that outputs some text
         TestCommandRegistry echoRegistry = new TestCommandRegistry(output);
         echoRegistry.addCommand("echo", (input) -> {
@@ -111,28 +110,12 @@ public class SystemRegistryImplTest {
 
         registry.setCommandRegistries(echoRegistry);
 
-        // Test variable assignment with a timeout to ensure it doesn't hang
-        CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-            try {
-                // This command uses variable assignment which triggers CommandOutputStream.open()
-                // and previously could hang on macOS due to PTY terminal creation
-                registry.execute("result=echo hello world");
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
-
-        try {
-            // If the operation hangs, this will throw TimeoutException
-            future.get(5, TimeUnit.SECONDS);
-        } catch (TimeoutException e) {
-            future.cancel(true);
-            throw new AssertionError(
-                    "Variable assignment operation hung - this indicates the macOS hang bug is present", e);
-        }
-
-        // If we get here, the operation completed without hanging
-        // The exact output doesn't matter as much as the fact that it didn't hang
+        // Variable assignment triggers CommandOutputStream.open() which previously
+        // could hang on macOS due to PTY terminal creation
+        assertTimeoutPreemptively(
+                Duration.ofSeconds(5),
+                () -> registry.execute("result=echo hello world"),
+                "Variable assignment operation hung - this indicates the macOS hang bug is present");
     }
 
     /**

@@ -93,8 +93,7 @@ public class SignalHandlingTest {
 
     @Test
     void interruptWithNoRunningCommandIsNoop() {
-        // Should not throw
-        dispatcher.interruptCurrentCommand();
+        assertDoesNotThrow(() -> dispatcher.interruptCurrentCommand());
     }
 
     @Test

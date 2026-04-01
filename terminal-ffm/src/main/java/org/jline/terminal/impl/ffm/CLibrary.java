@@ -437,7 +437,7 @@ class CLibrary {
 
     static final MethodHandle ioctl;
     static final MethodHandle isatty;
-    static final MethodHandle openpty;
+    static final MethodHandle openptyHandle;
     static final MethodHandle tcsetattr;
     static final MethodHandle tcgetattr;
     static final MethodHandle ttyname_r;
@@ -537,7 +537,7 @@ class CLibrary {
             }
         }
         if (openPtyAddr.isPresent()) {
-            openpty = linker.downcallHandle(
+            openptyHandle = linker.downcallHandle(
                     openPtyAddr.get(),
                     FunctionDescriptor.of(
                             ValueLayout.JAVA_INT,
@@ -548,7 +548,7 @@ class CLibrary {
                             ValueLayout.ADDRESS));
             openptyError = null;
         } else {
-            openpty = null;
+            openptyHandle = null;
             openptyError = error;
         }
     }
@@ -634,7 +634,7 @@ class CLibrary {
             MemorySegment buf = Arena.ofAuto().allocate(64);
             MemorySegment master = Arena.ofAuto().allocate(ValueLayout.JAVA_INT);
             MemorySegment slave = Arena.ofAuto().allocate(ValueLayout.JAVA_INT);
-            int res = (int) openpty.invoke(
+            int res = (int) openptyHandle.invoke(
                     master,
                     slave,
                     buf,

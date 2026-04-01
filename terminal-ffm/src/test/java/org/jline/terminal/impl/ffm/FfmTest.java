@@ -21,6 +21,8 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 public class FfmTest {
 
     @Test
@@ -39,7 +41,7 @@ public class FfmTest {
                         false,
                         null,
                         null);
-        // terminal.close();
+        assertNotNull(terminal);
     }
 
     @Test
@@ -58,21 +60,21 @@ public class FfmTest {
                         false,
                         new Attributes(),
                         new Size());
-        Size size = terminal.getSize();
-        // terminal.close();
+        assertNotNull(terminal);
+        assertNotNull(terminal.getSize());
     }
 
     @Test
     @EnabledOnOs(OS.WINDOWS)
     void checkStructLayout() {
         try (java.lang.foreign.Arena arena = java.lang.foreign.Arena.ofConfined()) {
-            new Kernel32.KEY_EVENT_RECORD(arena);
-            new Kernel32.MOUSE_EVENT_RECORD(arena);
-            new Kernel32.WINDOW_BUFFER_SIZE_RECORD(arena);
-            new Kernel32.MENU_EVENT_RECORD(arena);
-            new Kernel32.FOCUS_EVENT_RECORD(arena);
-            new Kernel32.INPUT_RECORD(arena);
-            new Kernel32.SMALL_RECT(arena);
+            assertNotNull(new Kernel32.KEY_EVENT_RECORD(arena));
+            assertNotNull(new Kernel32.MOUSE_EVENT_RECORD(arena));
+            assertNotNull(new Kernel32.WINDOW_BUFFER_SIZE_RECORD(arena));
+            assertNotNull(new Kernel32.MENU_EVENT_RECORD(arena));
+            assertNotNull(new Kernel32.FOCUS_EVENT_RECORD(arena));
+            assertNotNull(new Kernel32.INPUT_RECORD(arena));
+            assertNotNull(new Kernel32.SMALL_RECT(arena));
         }
     }
 }

@@ -40,6 +40,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class OptionsTest {
@@ -106,6 +107,7 @@ public class OptionsTest {
                 TerminalBuilder.builder().streams(inputStream, System.out).build();
 
         AttributedString as = HelpException.highlight(String.join("\n", usage), HelpException.defaultStyle());
+        assertNotNull(as);
         as.print(terminal);
     }
 

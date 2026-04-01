@@ -18,11 +18,13 @@ import org.jline.terminal.impl.LineDisciplineTerminal;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 public class NanoTest {
 
     @Test
     @Timeout(1)
-    public void nanoBufferLineOverflow() throws Exception {
+    void nanoBufferLineOverflow() throws Exception {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         LineDisciplineTerminal terminal = new LineDisciplineTerminal("nano", "xterm", output, StandardCharsets.UTF_8);
         terminal.setSize(new Size(80, 25));
@@ -36,6 +38,7 @@ public class NanoTest {
                 terminal,
                 Paths.get("target/test.txt"),
                 Options.compile(Nano.usage()).parse(argv));
+        assertNotNull(nano);
         nano.run();
     }
 }

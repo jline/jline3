@@ -79,8 +79,7 @@ public class SyntaxHighlighterTest {
     @ParameterizedTest
     @MethodSource("unescaped")
     public void unescapedChecksWork(String posix) {
-        // should not throw
-        Pattern.compile(posix);
+        Assertions.assertDoesNotThrow(() -> Pattern.compile(posix));
     }
 
     @ParameterizedTest

@@ -58,6 +58,8 @@ import java.util.logging.Logger;
  * @author Dieter Wimberger
  * @version 2.0 (16/07/2006)
  */
+// S3014: ThreadGroup is used for legacy telnet connection thread management
+@SuppressWarnings("java:S3014")
 public abstract class ConnectionManager implements Runnable {
 
     private static Logger LOG = Logger.getLogger(ConnectionManager.class.getName());
