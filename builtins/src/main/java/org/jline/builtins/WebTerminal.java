@@ -543,7 +543,7 @@ public class WebTerminal extends LineDisciplineTerminal {
          * @return true if successful
          */
         public boolean setSize(int width, int height) {
-            if (width < 10 || height < 5 || width > 200 || height > 100) {
+            if (width < 10 || height < 5 || width > MAX_SIZE || height > MAX_SIZE) {
                 return false;
             }
             // ScreenTerminal.setSize takes width and height directly

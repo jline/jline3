@@ -269,8 +269,12 @@ public class TerminalTest {
         // Test that invalid sizes are rejected
         assertFalse(webTerminal.setSize(1, 10)); // Too small width
         assertFalse(webTerminal.setSize(10, 1)); // Too small height
-        assertFalse(webTerminal.setSize(300, 10)); // Too large width
-        assertFalse(webTerminal.setSize(10, 300)); // Too large height
+        // Boundary checks at MAX_SIZE
+        int max = ScreenTerminal.MAX_SIZE;
+        assertTrue(webTerminal.setSize(max, 10)); // Exactly at max width
+        assertTrue(webTerminal.setSize(10, max)); // Exactly at max height
+        assertFalse(webTerminal.setSize(max + 1, 10)); // One past max width
+        assertFalse(webTerminal.setSize(10, max + 1)); // One past max height
 
         swingTerminal.setSize(new Size(1, 10));
         swingTerminal.setSize(new Size(10, 1));
