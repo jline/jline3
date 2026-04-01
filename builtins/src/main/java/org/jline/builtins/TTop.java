@@ -339,10 +339,21 @@ public class TTop {
         }
     }
 
+    /**
+     * Render the full terminal view: system headers, JVM/thread summary, formatted columns,
+     * per-thread rows with change highlighting, and push the result to the display.
+     *
+     * This method gathers system and JVM metrics, computes column widths and which
+     * statistics fit the current terminal size, formats per-thread values, applies
+     * time-based fade highlighting for changed fields, and updates the alternate
+     * screen buffer with the composed lines.
+     *
+     * @throws IOException if an I/O error occurs while resizing or updating the display
+     */
     private synchronized void display() throws IOException {
         long now = System.currentTimeMillis();
 
-        display.resize(size.getRows(), size.getColumns());
+        display.resize(size);
 
         List<AttributedString> lines = new ArrayList<>();
         AttributedStringBuilder sb = new AttributedStringBuilder(size.getColumns());

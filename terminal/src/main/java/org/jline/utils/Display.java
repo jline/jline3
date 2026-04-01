@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.utils.InfoCmp.Capability;
 
@@ -142,10 +143,38 @@ public class Display {
         return delayLineWrap;
     }
 
+    /**
+     * Enable or disable delayed line wrapping when the cursor reaches the right margin.
+     *
+     * @param v `true` to delay wrapping at end-of-line, `false` to disable delayed wrapping
+     */
     public void setDelayLineWrap(boolean v) {
         delayLineWrap = v;
     }
 
+    /**
+     * Resize the display to the dimensions specified by the given Size.
+     *
+     * @param size the target display dimensions; its rows and columns are applied to the display
+     */
+    public void resize(Size size) {
+        resize(size.getRows(), size.getColumns());
+    }
+
+    /**
+     * Resize the display to the specified number of rows and columns.
+     *
+     * This updates the display geometry, rewraps previously rendered lines to the new
+     * width, and adjusts wrap-at-EOL behavior based on the terminal's buffer width.
+     * If either dimension is zero the method treats it as a special case (sets rows
+     * to 1 and columns to a very large internal value) to avoid a zero-sized display.
+     *
+     * @param rows    the number of display rows
+     * @param columns the number of display columns
+     * @deprecated Use {@link #resize(Size)} instead to avoid parameter order confusion.
+     */
+    @Deprecated
+    @SuppressWarnings("java:S1133") // Intentional deprecation; removal planned for a future major version
     public void resize(int rows, int columns) {
         if (rows == 0 || columns == 0) {
             columns = Integer.MAX_VALUE - 1;
@@ -171,6 +200,32 @@ public class Display {
         }
     }
 
+    /**
+     * Get the current display width in character cells.
+     *
+     * @return the number of columns (display width)
+     */
+    public int getColumns() {
+        return columns;
+    }
+
+    /**
+     * The current display height in character rows.
+     *
+     * @return the current number of rows
+     */
+    public int getRows() {
+        return rows;
+    }
+
+    /**
+     * Clears the cached model of previously rendered lines.
+     *
+     * <p>The next {@link #update} call will treat all content as new and repaint
+     * every line via the diff algorithm. This does <em>not</em> issue a terminal
+     * {@code clear_screen}; to also clear the physical screen, call {@link #clear()}
+     * before {@code reset()}.</p>
+     */
     public void reset() {
         oldLines = Collections.emptyList();
     }

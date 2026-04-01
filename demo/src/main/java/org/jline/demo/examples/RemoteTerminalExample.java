@@ -111,6 +111,19 @@ public class RemoteTerminalExample {
 
     // SNIPPET_START: RemoteShellExample
     public static class RemoteShell implements Telnet.ShellProvider {
+        /**
+         * Provide an interactive, command-driven shell on the given Terminal.
+         *
+         * <p>The shell presents a short welcome banner, accepts line input with the prompt
+         * "shell> ", and supports the commands: "help" (lists available commands),
+         * "info" (prints terminal type, columns×rows, and encoding), and "exit"
+         * (closes the session). Blank lines are ignored; unrecognized input produces
+         * an "Unknown command" message. The session ends after "exit" or when the
+         * input stream is closed, and the shell prints a goodbye message before returning.
+         *
+         * @param terminal the Terminal to interact with for input/output
+         * @param environment a map of environment variables available to the shell implementation
+         */
         @Override
         public void shell(Terminal terminal, Map<String, String> environment) {
             try {
@@ -139,7 +152,7 @@ public class RemoteTerminalExample {
                             terminal.writer().println("  exit - Exit the shell");
                         } else if ("info".equals(line)) {
                             terminal.writer().println("Terminal type: " + terminal.getType());
-                            terminal.writer().println("Size: " + terminal.getWidth() + "x" + terminal.getHeight());
+                            terminal.writer().println("Size: " + terminal.getColumns() + "x" + terminal.getRows());
                             terminal.writer().println("Encoding: " + terminal.encoding());
                         } else {
                             terminal.writer().println("Unknown command: " + line);

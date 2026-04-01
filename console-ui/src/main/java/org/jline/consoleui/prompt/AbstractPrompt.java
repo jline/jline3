@@ -87,19 +87,48 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
         size.copy(terminal.getSize());
     }
 
+    /**
+     * Refreshes the display so the UI is re-rendered with the specified cursor row.
+     *
+     * <p>Uses column 0 and an empty input buffer (no trailing newline) when updating the display.
+     *
+     * @param row the absolute terminal row to position the cursor for rendering
+     */
     protected void refreshDisplay(int row) {
         refreshDisplay(row, 0, null, false);
     }
 
+    /**
+     * Refreshes the UI to render items with the cursor positioned at the specified row and the given items marked as selected.
+     *
+     * Resizes the display to the current terminal size, updates the rendered lines based on the cursor row and selection set,
+     * and moves the terminal cursor to the computed position.
+     *
+     * @param row      the absolute terminal row where the cursor should appear (typically a value relative to the prompt's layout)
+     * @param selected names of items that should be rendered as selected/checked
+     */
     protected void refreshDisplay(int row, Set<String> selected) {
-        display.resize(size.getRows(), size.getColumns());
+        display.resize(size);
         display.update(
                 displayLines(row, selected),
                 size.cursorPos(Math.min(size.getRows() - 1, firstItemRow + items.size()), 0));
     }
 
+    /**
+     * Refreshes the terminal display using the provided buffer and positions the cursor.
+     *
+     * This resizes the display to the current terminal Size, renders header/message/items
+     * together with the optional input buffer (when `newline` is true and `buffer` is
+     * non-empty the buffer is presented on its own line with a prompt marker), and moves
+     * the cursor to the computed (row, column) position.
+     *
+     * @param row the current cursor row used to determine which item/candidate is active
+     * @param column the cursor column within the buffer (column offset from the message start)
+     * @param buffer the current input text to render; may be null to omit the buffer text
+     * @param newline if true and `buffer` is non-empty, render the buffer on its own line with a prompt marker
+     */
     protected void refreshDisplay(int row, int column, String buffer, boolean newline) {
-        display.resize(size.getRows(), size.getColumns());
+        display.resize(size);
         AttributedStringBuilder asb = new AttributedStringBuilder();
         int crow = column == 0 ? Math.min(size.getRows() - 1, firstItemRow + items.size()) : row;
         if (buffer != null) {
@@ -111,9 +140,23 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
         display.update(displayLines(row, asb.toAttributedString(), newline), size.cursorPos(crow, column));
     }
 
+    /**
+     * Resize the display to the cached terminal size, render the input buffer together with a candidate list,
+     * and position the cursor.
+     *
+     * Renders the provided buffer (if non-null) and the candidates at the candidate display coordinates,
+     * updates the display content, and moves the cursor to the specified buffer coordinates.
+     *
+     * @param buffRow   row where the input buffer's cursor should be placed after rendering
+     * @param buffCol   column where the input buffer's cursor should be placed after rendering
+     * @param buffer    the current input buffer to show; may be null to render no buffer text
+     * @param candRow   row used to position and highlight the candidate list
+     * @param candCol   column where the candidate list should start
+     * @param candidates the list of completion candidates to display alongside the buffer
+     */
     protected void refreshDisplay(
             int buffRow, int buffCol, String buffer, int candRow, int candCol, List<Candidate> candidates) {
-        display.resize(size.getRows(), size.getColumns());
+        display.resize(size);
         AttributedStringBuilder asb = new AttributedStringBuilder();
         if (buffer != null) {
             asb.style(AttributedStyle.DEFAULT).append(buffer);

@@ -265,6 +265,21 @@ public class Repl {
         }
     }
 
+    /**
+     * Starts an interactive Groovy read–eval–print loop (REPL) with command parsing,
+     * completion, syntax highlighting, and optional shell command execution.
+     *
+     * <p>The method configures the parser and terminal (including a fallback size
+     * when redirected), ensures demo configuration files exist, initializes the
+     * Groovy scripting engine and command registries, builds syntax highlighters
+     * and a LineReader with history and key bindings, installs widgets, and then
+     * runs the REPL loop. The loop handles interrupts, end-of-file (including
+     * executing a final redirected line on Windows), transient I/O conditions, and
+     * general errors; it closes resources on exit and warns if Groovy GUI threads
+     * remain running.
+     *
+     * @param args command-line arguments (not used by the REPL)
+     */
     public static void main(String[] args) {
         try {
             Supplier<Path> workDir = () -> Paths.get(System.getProperty("user.dir"));
@@ -278,7 +293,7 @@ public class Repl {
             parser.blockCommentDelims(new DefaultParser.BlockCommentDelims("/*", "*/"))
                     .lineCommentDelims(new String[] {"//"});
             Terminal terminal = TerminalBuilder.builder().build();
-            if (terminal.getWidth() == 0 || terminal.getHeight() == 0) {
+            if (terminal.getColumns() == 0 || terminal.getRows() == 0) {
                 terminal.setSize(new Size(120, 40)); // hard coded terminal size when redirecting
             }
             Thread executeThread = Thread.currentThread();

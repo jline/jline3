@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.jline.terminal.Size;
 import org.jline.utils.Colors;
 import org.jline.utils.WCWidth;
 
@@ -77,8 +78,8 @@ public class ScreenTerminal {
         }
     }
 
-    private int width;
-    private int height;
+    private int columns;
+    private int rows;
     private long attr;
     private boolean eol;
     private int cx;
@@ -133,13 +134,22 @@ public class ScreenTerminal {
 
     private boolean dirty = true;
 
+    /**
+     * Creates a ScreenTerminal using the default size of 80 columns and 24 rows.
+     */
     public ScreenTerminal() {
         this(80, 24);
     }
 
-    public ScreenTerminal(int width, int height) {
-        this.width = width;
-        this.height = height;
+    /**
+     * Creates a ScreenTerminal with the specified number of columns and rows.
+     *
+     * @param columns the number of character columns for the terminal
+     * @param rows the number of character rows for the terminal
+     */
+    public ScreenTerminal(int columns, int rows) {
+        this.columns = columns;
+        this.rows = rows;
         reset_hard();
     }
 
@@ -187,7 +197,7 @@ public class ScreenTerminal {
         attr = 0x0000000000000000L;
         // Scroll parameters
         scroll_area_y0 = 0;
-        scroll_area_y1 = height;
+        scroll_area_y1 = rows;
         // Character sets
         vt100_charset_is_single_shift = false;
         vt100_charset_is_graphical = false;
@@ -212,9 +222,9 @@ public class ScreenTerminal {
 
     private void reset_screen() {
         // Screen
-        screen = new long[height][width];
-        screen2 = new long[height][width];
-        for (int i = 0; i < height; i++) {
+        screen = new long[rows][columns];
+        screen2 = new long[rows][columns];
+        for (int i = 0; i < rows; i++) {
             Arrays.fill(screen[i], attr | 0x00000020);
             Arrays.fill(screen2[i], attr | 0x00000020);
         }
@@ -222,13 +232,13 @@ public class ScreenTerminal {
         history2.clear();
         // Scroll parameters
         scroll_area_y0 = 0;
-        scroll_area_y1 = height;
+        scroll_area_y1 = rows;
         // Cursor position
         cx = 0;
         cy = 0;
         // Tab stops
         tab_stops = new ArrayList<>();
-        for (int i = 7; i < width; i += 8) {
+        for (int i = 7; i < columns; i += 8) {
             tab_stops.add(i);
         }
     }
@@ -246,16 +256,16 @@ public class ScreenTerminal {
     //
 
     private long[] peek(int y0, int x0, int y1, int x1) {
-        int from = width * y0 + x0;
-        int to = width * (y1 - 1) + x1;
+        int from = columns * y0 + x0;
+        int to = columns * (y1 - 1) + x1;
         int newLength = to - from;
         if (newLength < 0) throw new IllegalArgumentException(from + " > " + to);
         long[] copy = new long[newLength];
         int cur = from;
         while (cur < to) {
-            int y = cur / width;
-            int x = cur % width;
-            int nb = Math.min(width - x, to - cur);
+            int y = cur / columns;
+            int x = cur % columns;
+            int nb = Math.min(columns - x, to - cur);
             System.arraycopy(screen[y], x, copy, cur - from, nb);
             cur += nb;
         }
@@ -266,7 +276,7 @@ public class ScreenTerminal {
         int cur = 0;
         int max = s.length;
         while (cur < max) {
-            int nb = Math.min(width - x, max - cur);
+            int nb = Math.min(columns - x, max - cur);
             System.arraycopy(s, cur, screen[y++], x, nb);
             x = 0;
             cur += nb;
@@ -281,7 +291,7 @@ public class ScreenTerminal {
                 setDirty();
             }
         } else if (y0 < y1 - 1) {
-            Arrays.fill(screen[y0], x0, width, c);
+            Arrays.fill(screen[y0], x0, columns, c);
             for (int i = y0 + 1; i < y1 - 1; i++) {
                 Arrays.fill(screen[i], c);
             }
@@ -304,18 +314,18 @@ public class ScreenTerminal {
 
     private void scroll_area_up(int y0, int y1, int n) {
         n = Math.min(y1 - y0, n);
-        if (y0 == 0 && y1 == height) {
+        if (y0 == 0 && y1 == rows) {
             for (int i = 0; i < n; i++) {
                 history.add(screen[i]);
             }
-            System.arraycopy(screen, n, screen, 0, height - n);
+            System.arraycopy(screen, n, screen, 0, rows - n);
             for (int i = 1; i <= n; i++) {
-                screen[y1 - i] = new long[width];
+                screen[y1 - i] = new long[columns];
                 Arrays.fill(screen[y1 - i], attr | 0x0020);
             }
         } else {
-            poke(y0, 0, peek(y0 + n, 0, y1, width));
-            clear(y1 - n, 0, y1, width);
+            poke(y0, 0, peek(y0 + n, 0, y1, columns));
+            clear(y1 - n, 0, y1, columns);
         }
     }
 
@@ -325,13 +335,13 @@ public class ScreenTerminal {
 
     private void scroll_area_down(int y0, int y1, int n) {
         n = Math.min(y1 - y0, n);
-        poke(y0 + n, 0, peek(y0, 0, y1 - n, width));
-        clear(y0, 0, y0 + n, width);
+        poke(y0 + n, 0, peek(y0, 0, y1 - n, columns));
+        clear(y0, 0, y0 + n, columns);
     }
 
     private void scroll_area_set(int y0, int y1) {
-        y0 = Math.max(0, Math.min(height - 1, y0));
-        y1 = Math.max(1, Math.min(height, y1));
+        y0 = Math.max(0, Math.min(rows - 1, y0));
+        y1 = Math.max(1, Math.min(rows, y1));
         if (y1 > y0) {
             scroll_area_y0 = y0;
             scroll_area_y1 = y1;
@@ -343,9 +353,9 @@ public class ScreenTerminal {
     }
 
     private void scroll_line_right(int y, int x, int n) {
-        if (x < width) {
-            n = Math.min(width - x, n);
-            poke(y, x + n, peek(y, x, y + 1, width - n));
+        if (x < columns) {
+            n = Math.min(columns - x, n);
+            poke(y, x + n, peek(y, x, y + 1, columns - n));
             clear(y, x, y + 1, x + n);
         }
     }
@@ -355,10 +365,10 @@ public class ScreenTerminal {
     }
 
     private void scroll_line_left(int y, int x, int n) {
-        if (x < width) {
-            n = Math.min(width - x, n);
-            poke(y, x, peek(y, x + n, y + 1, width));
-            clear(y, width - n, y + 1, width);
+        if (x < columns) {
+            n = Math.min(columns - x, n);
+            poke(y, x, peek(y, x + n, y + 1, columns));
+            clear(y, columns - n, y + 1, columns);
         }
     }
 
@@ -366,10 +376,10 @@ public class ScreenTerminal {
     // Cursor functions
     //
 
-    private int[] cursor_line_width(int next_char) {
-        int wx = utf8_charwidth(next_char);
+    private int[] cursorLineColumns(int nextChar) {
+        int wx = utf8_charwidth(nextChar);
         int lx = 0;
-        for (int x = 0; x < Math.min(cx, width); x++) {
+        for (int x = 0; x < Math.min(cx, columns); x++) {
             int c = (int) (screen[cy][x] & 0xffffffffL);
             wx += utf8_charwidth(c);
             lx += 1;
@@ -410,19 +420,19 @@ public class ScreenTerminal {
     }
 
     private void cursor_right(int n) {
-        eol = cx + n >= width;
-        cx = Math.min(width - 1, cx + n);
+        eol = cx + n >= columns;
+        cx = Math.min(columns - 1, cx + n);
         setDirty();
     }
 
     private void cursor_set_x(int x) {
         eol = false;
-        cx = Math.max(0, Math.min(width - 1, x));
+        cx = Math.max(0, Math.min(columns - 1, x));
         setDirty();
     }
 
     private void cursor_set_y(int y) {
-        cy = Math.max(0, Math.min(height - 1, y));
+        cy = Math.max(0, Math.min(rows - 1, y));
         setDirty();
     }
 
@@ -446,7 +456,7 @@ public class ScreenTerminal {
     }
 
     private void ctrl_HT(int n) {
-        if (n > 0 && cx >= width) {
+        if (n > 0 && cx >= columns) {
             return;
         }
         if (n <= 0 && cx == 0) {
@@ -462,7 +472,7 @@ public class ScreenTerminal {
         if (ts < tab_stops.size() && ts >= 0) {
             cursor_set_x(tab_stops.get(ts));
         } else {
-            cursor_set_x(width - 1);
+            cursor_set_x(columns - 1);
         }
     }
 
@@ -503,7 +513,7 @@ public class ScreenTerminal {
                 ctrl_CR();
                 ctrl_LF();
             } else {
-                cx = cursor_line_width(c)[1] - 1;
+                cx = cursorLineColumns(c)[1] - 1;
             }
         }
         if (vt100_mode_insert) {
@@ -519,7 +529,7 @@ public class ScreenTerminal {
 
         // For wide characters, fill the subsequent cells with a continuation marker
         if (charWidth > 1) {
-            for (int i = 1; i < charWidth && cx + i < width; i++) {
+            for (int i = 1; i < charWidth && cx + i < columns; i++) {
                 poke(cy, cx + i, new long[] {attr}); // Use null character as continuation marker
             }
         }
@@ -584,9 +594,9 @@ public class ScreenTerminal {
                     // DECCOLM: Column
                     if (vt100_mode_column_switch) {
                         if (state) {
-                            width = 132;
+                            columns = 132;
                         } else {
-                            width = 80;
+                            columns = 80;
                         }
                         reset_screen();
                     }
@@ -640,12 +650,12 @@ public class ScreenTerminal {
                         int c;
                         c = vt100_alternate_cx;
                         vt100_alternate_cx = cx;
-                        cx = Math.min(c, width - 1);
+                        cx = Math.min(c, columns - 1);
                         c = vt100_alternate_cy;
                         vt100_alternate_cy = cy;
-                        cy = Math.min(c, height - 1);
+                        cy = Math.min(c, rows - 1);
                         if (state) { // Alt-screen does not persist.
-                            for (int i = 0; i < height; i++) {
+                            for (int i = 0; i < rows; i++) {
                                 Arrays.fill(screen[i], attr | 0x00000020);
                             }
                             history.clear();
@@ -678,7 +688,7 @@ public class ScreenTerminal {
     }
 
     private void esc_DECALN() {
-        fill(0, 0, height, width, attr | 'E');
+        fill(0, 0, rows, columns, attr | 'E');
     }
 
     private void esc_G0_0() {
@@ -727,8 +737,8 @@ public class ScreenTerminal {
     }
 
     private void esc_DECRC() {
-        cx = Math.min(vt100_saved.cx, width - 1);
-        cy = Math.min(vt100_saved.cy, height - 1);
+        cx = Math.min(vt100_saved.cx, columns - 1);
+        cy = Math.min(vt100_saved.cy, rows - 1);
         attr = vt100_saved.attr;
         vt100_charset_g_sel = vt100_saved.charsetGSel;
         vt100_charset_g = vt100_saved.charsetG.clone();
@@ -853,11 +863,11 @@ public class ScreenTerminal {
     private void csi_ED(String p) {
         String[] ps = vt100_parse_params(p, new String[] {"0"});
         if ("0".equals(ps[0])) {
-            clear(cy, cx, height, width);
+            clear(cy, cx, rows, columns);
         } else if ("1".equals(ps[0])) {
             clear(0, 0, cy + 1, cx + 1);
         } else if ("2".equals(ps[0])) {
-            clear(0, 0, height, width);
+            clear(0, 0, rows, columns);
         } else if ("3".equals(ps[0])) {
             history.clear();
         }
@@ -866,11 +876,11 @@ public class ScreenTerminal {
     private void csi_EL(String p) {
         String[] ps = vt100_parse_params(p, new String[] {"0"});
         if ("0".equals(ps[0])) {
-            clear(cy, cx, cy + 1, width);
+            clear(cy, cx, cy + 1, columns);
         } else if ("1".equals(ps[0])) {
             clear(cy, 0, cy + 1, cx + 1);
         } else if ("2".equals(ps[0])) {
-            clear(cy, 0, cy + 1, width);
+            clear(cy, 0, cy + 1, columns);
         }
     }
 
@@ -921,7 +931,7 @@ public class ScreenTerminal {
 
     private void csi_ECH(String p) {
         int[] ps = vt100_parse_params(p, new int[] {1});
-        int n = Math.min(width - cx, Math.max(1, ps[0]));
+        int n = Math.min(columns - cx, Math.max(1, ps[0]));
         clear(cy, cx, cy + 1, cx + n);
     }
 
@@ -1106,7 +1116,7 @@ public class ScreenTerminal {
     }
 
     private void csi_DECSTBM(String p) {
-        int[] ps = vt100_parse_params(p, new int[] {1, height});
+        int[] ps = vt100_parse_params(p, new int[] {1, rows});
         scroll_area_set(ps[0] - 1, ps[1]);
         if (vt100_mode_origin) {
             cursor_set(scroll_area_y0, 0);
@@ -1121,8 +1131,8 @@ public class ScreenTerminal {
     }
 
     private void csi_RCP(String p) {
-        cx = Math.min(vt100_saved_cx, width - 1);
-        cy = Math.min(vt100_saved_cy, height - 1);
+        cx = Math.min(vt100_saved_cx, columns - 1);
+        cy = Math.min(vt100_saved_cy, rows - 1);
     }
 
     private void csi_DECREQTPARM(String p) {
@@ -1696,132 +1706,195 @@ public class ScreenTerminal {
     //
 
     /**
+     * Provide the current number of columns in the terminal.
+     *
+     * @return the current number of columns
+     */
+    public synchronized int getColumns() {
+        return columns;
+    }
+
+    /**
+     * Gets the number of rows in the terminal.
+     *
+     * @return the number of rows
+     */
+    public synchronized int getRows() {
+        return rows;
+    }
+
+    /**
      * Gets the terminal width in characters.
      *
      * @return the width in characters
+     * @deprecated Use {@link #getColumns()} instead.
      */
+    @Deprecated
+    @SuppressWarnings("java:S1133") // Intentional deprecation; removal planned for a future major version
     public synchronized int getWidth() {
-        return width;
+        return getColumns();
     }
 
     /**
      * Gets the terminal height in characters.
      *
      * @return the height in characters
+     * @deprecated Use {@link #getRows()} instead.
      */
+    @Deprecated
+    @SuppressWarnings("java:S1133") // Intentional deprecation; removal planned for a future major version
     public synchronized int getHeight() {
-        return height;
+        return getRows();
     }
 
-    public synchronized boolean setSize(int w, int h) {
-        if (w < MIN_SIZE || w > MAX_SIZE || h < MIN_SIZE || h > MAX_SIZE) {
+    /**
+     * Resize the terminal to the specified columns and rows.
+     *
+     * @param size the new Size whose columns and rows will be applied
+     * @return true if the size was set successfully, false otherwise
+     */
+    public synchronized boolean setSize(Size size) {
+        return setSize(size.getColumns(), size.getRows());
+    }
+
+    /**
+     * Resize the terminal to the given number of columns and rows.
+     *
+     * This adjusts internal screen buffers, clamps cursor and scroll-region positions
+     * to the new dimensions, and marks the terminal as dirty so callers can refresh.
+     *
+     * @param columns the target number of columns (2–256)
+     * @param rows    the target number of rows (2–256)
+     * @return        `true` if the size was changed; `false` if the requested dimensions are out of range
+     */
+    public synchronized boolean setSize(int columns, int rows) {
+        if (columns < MIN_SIZE || columns > MAX_SIZE || rows < MIN_SIZE || rows > MAX_SIZE) {
             return false;
         }
 
-        // Set width
-        for (int i = 0; i < height; i++) {
-            if (screen[i].length != w) {
-                int oldLength = screen[i].length;
-                screen[i] = Arrays.copyOf(screen[i], w);
-                for (int j = oldLength; j < w; j++) {
-                    screen[i][j] = attr | 0x00000020;
-                }
-            }
-            if (screen2[i].length != w) {
-                int oldLength = screen2[i].length;
-                screen2[i] = Arrays.copyOf(screen2[i], w);
-                for (int j = oldLength; j < w; j++) {
-                    screen2[i][j] = attr | 0x00000020;
-                }
-            }
-        }
-        if (cx >= w) {
-            cx = w - 1;
+        // Resize screen buffers
+        adjustBufferColumns(screen, columns);
+        adjustBufferColumns(screen2, columns);
+
+        if (cx >= columns) {
+            cx = columns - 1;
         }
 
-        if (h != height) {
-            adjustBufferHeight(h, w, false);
-            adjustBufferHeight(h, w, true);
+        if (rows != this.rows) {
+            adjustBufferRows(rows, columns, false);
+            adjustBufferRows(rows, columns, true);
         }
 
         // Scroll parameters
-        scroll_area_y0 = Math.min(h, scroll_area_y0);
-        scroll_area_y1 = scroll_area_y1 == height ? h : Math.min(h, scroll_area_y1);
+        scroll_area_y0 = Math.min(rows - 1, scroll_area_y0);
+        scroll_area_y1 = scroll_area_y1 == this.rows ? rows : Math.min(rows, scroll_area_y1);
         // Cursor position
-        cx = Math.min(w - 1, cx);
-        cy = Math.min(h - 1, cy);
-        vt100_alternate_cx = Math.min(w - 1, vt100_alternate_cx);
-        vt100_alternate_cy = Math.min(h - 1, vt100_alternate_cy);
+        cx = Math.min(columns - 1, cx);
+        cy = Math.min(rows - 1, cy);
+        vt100_alternate_cx = Math.min(columns - 1, vt100_alternate_cx);
+        vt100_alternate_cy = Math.min(rows - 1, vt100_alternate_cy);
 
-        width = w;
-        height = h;
+        this.columns = columns;
+        this.rows = rows;
 
         setDirty();
         return true;
     }
 
-    private void adjustBufferHeight(int h, int w, boolean alt) {
+    /**
+     * Resize each row in the given screen buffer to the specified column count and fill any newly added cells with the current blank cell value.
+     *
+     * For each row in `buffer`, if the row's length differs from `columns` this method replaces the row with a copy truncated or extended to `columns`. Newly added cells are initialized to `attr | 0x00000020` (blank with current attributes).
+     *
+     * @param buffer  the 2D screen buffer whose rows will be resized (must have at least `rows` rows)
+     * @param columns the target number of columns for each row
+     */
+    private void adjustBufferColumns(long[][] buffer, int columns) {
+        for (int i = 0; i < rows; i++) {
+            if (buffer[i].length != columns) {
+                int oldLength = buffer[i].length;
+                buffer[i] = Arrays.copyOf(buffer[i], columns);
+                for (int j = oldLength; j < columns; j++) {
+                    buffer[i][j] = attr | 0x00000020;
+                }
+            }
+        }
+    }
+
+    private void adjustBufferRows(int rows, int columns, boolean alt) {
+        if (rows < this.rows) {
+            shrinkBufferRows(rows, alt);
+        } else if (rows > this.rows) {
+            growBufferRows(rows, columns, alt);
+        }
+    }
+
+    private void shrinkBufferRows(int rows, boolean alt) {
         List<long[]> targetHistory = alt ? history2 : history;
         long[][] targetScreen = alt ? screen2 : screen;
-        if (h < height) {
-            int needed = height - h;
-            // Delete as many lines as possible from the bottom
-            int avail = height - 1 - (alt ? vt100_alternate_cy : cy);
-            if (avail > 0) {
-                if (avail > needed) {
-                    avail = needed;
-                }
-                targetScreen = Arrays.copyOfRange(targetScreen, 0, height - avail);
-            }
-            needed -= avail;
-            // Move lines to history
-            for (int i = 0; i < needed; i++) {
-                targetHistory.add(targetScreen[i]);
-            }
-            targetScreen = Arrays.copyOfRange(targetScreen, needed, targetScreen.length);
-            if (alt) {
-                vt100_alternate_cy -= needed;
-                screen2 = targetScreen;
-            } else {
-                cy -= needed;
-                screen = targetScreen;
-            }
-        } else if (h > height) {
-            int needed = h - height;
-            // Pull lines from history
-            int avail = targetHistory.size();
+        int needed = this.rows - rows;
+        // Delete as many lines as possible from the bottom
+        int avail = this.rows - 1 - (alt ? vt100_alternate_cy : cy);
+        if (avail > 0) {
             if (avail > needed) {
                 avail = needed;
             }
-            long[][] sc = new long[h][];
-            if (avail > 0) {
-                for (int i = 0; i < avail; i++) {
-                    long[] historyLine = targetHistory.remove(targetHistory.size() - avail + i);
-                    // Check if the history line needs to be resized to match the new width
-                    if (historyLine.length < w) {
-                        int oldLength = historyLine.length;
-                        historyLine = Arrays.copyOf(historyLine, w);
-                        // Fill the rest with spaces
-                        for (int j = oldLength; j < w; j++) {
-                            historyLine[j] = attr | 0x00000020;
-                        }
-                    }
-                    sc[i] = historyLine;
-                }
-            }
-            System.arraycopy(targetScreen, 0, sc, avail, targetScreen.length);
-            for (int i = avail + targetScreen.length; i < sc.length; i++) {
-                sc[i] = new long[w];
-                Arrays.fill(sc[i], attr | 0x00000020);
-            }
-            if (alt) {
-                vt100_alternate_cy += avail;
-                screen2 = sc;
-            } else {
-                cy += avail;
-                screen = sc;
+            targetScreen = Arrays.copyOfRange(targetScreen, 0, this.rows - avail);
+        }
+        needed -= avail;
+        // Move lines to history
+        for (int i = 0; i < needed; i++) {
+            targetHistory.add(targetScreen[i]);
+        }
+        targetScreen = Arrays.copyOfRange(targetScreen, needed, targetScreen.length);
+        if (alt) {
+            vt100_alternate_cy -= needed;
+            screen2 = targetScreen;
+        } else {
+            cy -= needed;
+            screen = targetScreen;
+        }
+    }
+
+    private void growBufferRows(int rows, int columns, boolean alt) {
+        List<long[]> targetHistory = alt ? history2 : history;
+        long[][] targetScreen = alt ? screen2 : screen;
+        int needed = rows - this.rows;
+        // Pull lines from history
+        int avail = targetHistory.size();
+        if (avail > needed) {
+            avail = needed;
+        }
+        long[][] sc = new long[rows][];
+        if (avail > 0) {
+            for (int i = 0; i < avail; i++) {
+                long[] historyLine = targetHistory.remove(targetHistory.size() - avail + i);
+                sc[i] = resizeHistoryLine(historyLine, columns);
             }
         }
+        System.arraycopy(targetScreen, 0, sc, avail, targetScreen.length);
+        for (int i = avail + targetScreen.length; i < sc.length; i++) {
+            sc[i] = new long[columns];
+            Arrays.fill(sc[i], attr | 0x00000020);
+        }
+        if (alt) {
+            vt100_alternate_cy += avail;
+            screen2 = sc;
+        } else {
+            cy += avail;
+            screen = sc;
+        }
+    }
+
+    private long[] resizeHistoryLine(long[] historyLine, int columns) {
+        if (historyLine.length < columns) {
+            int oldLength = historyLine.length;
+            historyLine = Arrays.copyOf(historyLine, columns);
+            for (int j = oldLength; j < columns; j++) {
+                historyLine[j] = attr | 0x00000020;
+            }
+        }
+        return historyLine;
     }
 
     public synchronized String read() {
@@ -1925,33 +1998,33 @@ public class ScreenTerminal {
     }
 
     public synchronized void dump(long[] fullscreen, int ftop, int fleft, int fheight, int fwidth, int[] cursor) {
-        int cx = Math.min(this.cx, width - 1);
-        int cy = this.cy;
-        for (int y = 0; y < Math.min(height, fheight - ftop); y++) {
-            System.arraycopy(screen[y], 0, fullscreen, (y + ftop) * fwidth + fleft, width);
+        int cursorX = Math.min(this.cx, columns - 1);
+        int cursorY = this.cy;
+        for (int y = 0; y < Math.min(rows, fheight - ftop); y++) {
+            System.arraycopy(screen[y], 0, fullscreen, (y + ftop) * fwidth + fleft, columns);
         }
         if (cursor != null) {
-            cursor[0] = cx + fleft;
-            cursor[1] = cy + ftop;
+            cursor[0] = cursorX + fleft;
+            cursor[1] = cursorY + ftop;
         }
     }
 
     /**
      * Dumps the raw screen content into a flat array.
-     * The array must be at least {@code width * height} elements long.
+     * The array must be at least {@code columns * rows} elements long.
      *
      * @param fullscreen destination array
      * @param cursor     2-element array to receive cursor [x, y], or null
      */
     public synchronized void dump(long[] fullscreen, int[] cursor) {
-        int cx = Math.min(this.cx, width - 1);
-        int cy = this.cy;
-        for (int y = 0; y < height; y++) {
-            System.arraycopy(screen[y], 0, fullscreen, y * width, width);
+        int cursorX = Math.min(this.cx, columns - 1);
+        int cursorY = this.cy;
+        for (int y = 0; y < rows; y++) {
+            System.arraycopy(screen[y], 0, fullscreen, y * columns, columns);
         }
         if (cursor != null) {
-            cursor[0] = cx;
-            cursor[1] = cy;
+            cursor[0] = cursorX;
+            cursor[1] = cursorY;
         }
     }
 
@@ -1992,7 +2065,7 @@ public class ScreenTerminal {
      *
      * @param timeout   maximum time to wait in milliseconds
      * @param forceDump if true, dump even if the screen is not dirty
-     * @param fullscreen destination array (must be at least width * height)
+     * @param fullscreen destination array (must be at least columns * rows)
      * @param cursor    2-element array to receive cursor [x, y], or null
      * @return true if the screen was dumped
      * @throws InterruptedException if interrupted
@@ -2031,21 +2104,21 @@ public class ScreenTerminal {
     public synchronized String dump() {
         boolean inverse = vt100_mode_inverse;
         boolean cursorVisible = vt100_mode_cursor;
-        int w = getWidth();
-        int h = getHeight();
-        long[] screen = new long[w * h];
+        int cols = getColumns();
+        int numRows = getRows();
+        long[] dumpBuffer = new long[cols * numRows];
         int[] cursor = new int[2];
         dump(screen, cursor);
-        int cx = cursor[0];
-        int cy = cursor[1];
+        int cursorX = cursor[0];
+        int cursorY = cursor[1];
         StringBuilder sb = new StringBuilder();
         long prevAttr = -1;
         sb.append("<div><pre class='term'>");
-        for (int y = 0; y < h; y++) {
-            for (int x = 0; x < w; x++) {
-                long d = screen[y * w + x];
+        for (int y = 0; y < numRows; y++) {
+            for (int x = 0; x < cols; x++) {
+                long d = dumpBuffer[y * cols + x];
                 int c = (int) (d & 0xffffffffL);
-                long a = resolveCellAttr(d >>> 32, cursorVisible, x, y, cx, cy);
+                long a = resolveCellAttr(d >>> 32, cursorVisible, x, y, cursorX, cursorY);
                 if (a != prevAttr) {
                     if (prevAttr != -1) {
                         sb.append("</span>");
@@ -2187,8 +2260,8 @@ public class ScreenTerminal {
 
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
+        for (int y = 0; y < rows; y++) {
+            for (int x = 0; x < columns; x++) {
                 int c = (int) (screen[y][x] & 0xffffffffL);
                 if (c != 0) {
                     sb.appendCodePoint(c);

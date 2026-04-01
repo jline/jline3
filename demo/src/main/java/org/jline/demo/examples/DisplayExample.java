@@ -25,6 +25,16 @@ import org.jline.utils.Display;
 public class DisplayExample {
 
     // SNIPPET_START: DisplayExample
+    /**
+     * Demonstrates a simple terminal UI using JLine's Display with a periodically updating progress indicator.
+     *
+     * <p>Builds a Terminal and Display, renders initial text, updates a progress and status line once per
+     * second for ten steps, then waits for the user to press Enter before closing the terminal.</p>
+     *
+     * @param args command-line arguments (not used)
+     * @throws IOException if terminal I/O (creation, reading, or closing) fails
+     * @throws InterruptedException if the thread is interrupted while sleeping between updates
+     */
     public static void main(String[] args) throws IOException, InterruptedException {
         Terminal terminal = TerminalBuilder.builder().build();
 
@@ -40,7 +50,7 @@ public class DisplayExample {
         lines.add(new AttributedString("The content will update every second."));
 
         // Display the initial content
-        display.resize(terminal.getHeight(), terminal.getWidth());
+        display.resize(terminal.getSize());
         display.update(lines, 0);
 
         // Update the display with a progress indicator
