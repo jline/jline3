@@ -631,6 +631,8 @@ public class SwingTerminal extends LineDisciplineTerminal {
             boolean bold = (attr & 0x08000000L) != 0;
             boolean fgset = (attr & 0x10000000L) != 0;
             boolean bgset = (attr & 0x20000000L) != 0;
+            boolean dim = (attr & 0x40000000L) != 0;
+            boolean italic = (attr & 0x80000000L) != 0;
 
             if (!fgset) {
                 fg = 0x0fff; // Default white foreground
@@ -649,6 +651,8 @@ public class SwingTerminal extends LineDisciplineTerminal {
             // Handle conceal - hide text by making foreground match background
             if (conceal) {
                 fg = bg;
+            } else if (dim) { // Handle dim (reduce foreground intensity)
+                fg = (((fg >> 8) & 0x0f) >> 1) << 8 | (((fg >> 4) & 0x0f) >> 1) << 4 | ((fg & 0x0f) >> 1);
             }
 
             // Handle cursor
@@ -676,6 +680,9 @@ public class SwingTerminal extends LineDisciplineTerminal {
                 Font font = terminalFont;
                 if (bold) {
                     font = font.deriveFont(Font.BOLD);
+                }
+                if (italic) {
+                    font = font.deriveFont(Font.ITALIC);
                 }
                 g2d.setFont(font);
 
