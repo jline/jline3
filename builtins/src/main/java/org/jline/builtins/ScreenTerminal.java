@@ -1664,7 +1664,7 @@ public class ScreenTerminal {
     }
 
     public synchronized boolean waitDirty(long timeout) throws InterruptedException {
-        if (!dirty) {
+        if (!dirty && timeout > 0) {
             wait(timeout);
         }
         return isDirty();
@@ -1949,10 +1949,7 @@ public class ScreenTerminal {
             int fwidth,
             int[] cursor)
             throws InterruptedException {
-        if (!dirty && timeout > 0) {
-            wait(timeout);
-        }
-        if (isDirty() || forceDump) {
+        if (waitDirty(timeout) || forceDump) {
             dump(fullscreen, ftop, fleft, fheight, fwidth, cursor);
             return true;
         } else {
@@ -1972,10 +1969,7 @@ public class ScreenTerminal {
      */
     public synchronized boolean dump(long timeout, boolean forceDump, long[] fullscreen, int[] cursor)
             throws InterruptedException {
-        if (!dirty && timeout > 0) {
-            wait(timeout);
-        }
-        if (isDirty() || forceDump) {
+        if (waitDirty(timeout) || forceDump) {
             dump(fullscreen, cursor);
             return true;
         } else {
@@ -1992,15 +1986,26 @@ public class ScreenTerminal {
      * @throws InterruptedException if interrupted
      */
     public synchronized String dump(long timeout, boolean forceDump) throws InterruptedException {
+        if (waitDirty(timeout) || forceDump) {
+            return dump();
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Dumps the terminal content as HTML with inline RGB color styles.
+     *
+     * @return the terminal content as HTML.
+     */
+    public synchronized String dump() {
         boolean inverse = vt100_mode_inverse;
         boolean cursorVisible = vt100_mode_cursor;
         int w = getWidth();
         int h = getHeight();
         long[] screen = new long[w * h];
         int[] cursor = new int[2];
-        if (!dump(timeout, forceDump, screen, cursor)) {
-            return null;
-        }
+        dump(screen, cursor);
         int cx = cursor[0];
         int cy = cursor[1];
         StringBuilder sb = new StringBuilder();
