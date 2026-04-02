@@ -67,7 +67,7 @@ public class GraphemeClusterExample {
 
             if (supported) {
                 // Enable mode 2027
-                terminal.setGraphemeClusterMode(true);
+                terminal.setGraphemeClusterMode(true, false);
                 writer.println("Mode 2027 enabled: " + terminal.getGraphemeClusterMode());
 
                 writer.println();
@@ -243,14 +243,14 @@ public class GraphemeClusterExample {
             boolean supported = terminal.supportsGraphemeClusterMode();
             writer.println("4. Mode 2027 supported: " + supported);
             if (supported) {
-                terminal.setGraphemeClusterMode(true);
+                terminal.setGraphemeClusterMode(true, false);
                 writer.println("   Mode 2027 ON, writer.println:");
                 writer.println("   [" + FAMILY_EMOJI + "]");
                 writer.println("   Mode 2027 ON, AttributedString.print:");
                 writer.print("   [");
                 new AttributedString(FAMILY_EMOJI).print(terminal);
                 writer.println("]");
-                terminal.setGraphemeClusterMode(false);
+                terminal.setGraphemeClusterMode(false, false);
             }
             writer.println();
 
@@ -331,11 +331,11 @@ public class GraphemeClusterExample {
                 writer.println("     Family emoji: " + emoji.columnLength(terminal) + " cols");
                 writer.println("     Flag:         " + flag.columnLength(terminal) + " cols");
                 if (supported) {
-                    terminal.setGraphemeClusterMode(true);
+                    terminal.setGraphemeClusterMode(true, false);
                     writer.println("   Mode 2027 ON:");
                     writer.println("     Family emoji: " + emoji.columnLength(terminal) + " cols");
                     writer.println("     Flag:         " + flag.columnLength(terminal) + " cols");
-                    terminal.setGraphemeClusterMode(false);
+                    terminal.setGraphemeClusterMode(false, false);
                 }
             }
             writer.println();
