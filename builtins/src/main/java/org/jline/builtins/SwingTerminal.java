@@ -677,14 +677,14 @@ public class SwingTerminal extends LineDisciplineTerminal {
                 g2d.setColor(getAnsiColor(fg));
 
                 // Set font style
-                Font font = terminalFont;
+                int style = Font.PLAIN;
                 if (bold) {
-                    font = font.deriveFont(Font.BOLD);
+                    style |= Font.BOLD;
                 }
                 if (italic) {
-                    font = font.deriveFont(Font.ITALIC);
+                    style |= Font.ITALIC;
                 }
-                g2d.setFont(font);
+                g2d.setFont(terminalFont.deriveFont(style));
 
                 // Draw character using code point for proper non-BMP support
                 String str = new String(Character.toChars(cp));
