@@ -9,40 +9,17 @@
 package org.jline.builtins;
 
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Based on the Apache Karaf WebConsole Gogo plugin (Apache License 2.0)
+ * and http://antony.lesuisse.org/software/ajaxterm/ (Public Domain).
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-/*
- * Based on http://antony.lesuisse.org/software/ajaxterm/
- *  Public Domain License
- */
-
-/*
  * See http://www.ecma-international.org/publications/standards/Ecma-048.htm
- *       and http://vt100.net/docs/vt510-rm/
+ *     and http://vt100.net/docs/vt510-rm/
  */
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jline.utils.Colors;
 import org.jline.utils.WCWidth;
@@ -69,11 +46,34 @@ import org.jline.utils.WCWidth;
  */
 public class ScreenTerminal {
 
+    public static final int MIN_SIZE = 2;
+    public static final int MAX_SIZE = 4096;
+
     enum State {
         None,
         Esc,
         Str,
         Csi,
+    }
+
+    static class SavedState {
+        final int cx;
+        final int cy;
+        final long attr;
+        final int charsetGSel;
+        final int[] charsetG;
+        final boolean autowrap;
+        final boolean origin;
+
+        SavedState(int cx, int cy, long attr, int charsetGSel, int[] charsetG, boolean autowrap, boolean origin) {
+            this.cx = cx;
+            this.cy = cy;
+            this.attr = attr;
+            this.charsetGSel = charsetGSel;
+            this.charsetG = charsetG;
+            this.autowrap = autowrap;
+            this.origin = origin;
+        }
     }
 
     private int width;
@@ -114,10 +114,10 @@ public class ScreenTerminal {
     };
     private int vt100_charset_g_sel;
     private int[] vt100_charset_g = {0, 0};
-    private Map<String, Object> vt100_saved;
-    private Map<String, Object> vt100_saved2;
-    private int vt100_alternate_saved_cx;
-    private int vt100_alternate_saved_cy;
+    private SavedState vt100_saved;
+    private SavedState vt100_saved2;
+    private int vt100_alternate_cx;
+    private int vt100_alternate_cy;
     private int vt100_saved_cx;
     private int vt100_saved_cy;
     private String vt100_out;
@@ -127,9 +127,10 @@ public class ScreenTerminal {
 
     private List<Integer> tab_stops;
 
-    private final List<long[]> history = new ArrayList<>();
+    private List<long[]> history = new ArrayList<>();
+    private List<long[]> history2 = new ArrayList<>();
 
-    private AtomicBoolean dirty = new AtomicBoolean(true);
+    private boolean dirty = true;
 
     public ScreenTerminal() {
         this(80, 24);
@@ -149,6 +150,8 @@ public class ScreenTerminal {
         //      Bit 3 - Bold
         //  Y:  Bit 0 - Foreground set
         //      Bit 1 - Background set
+        //      Bit 2 - Dim
+        //      Bit 3 - Italic
         //	F:	Foreground r-g-b
         //	B:	Background r-g-b
         attr = 0x0000000000000000L;
@@ -176,6 +179,8 @@ public class ScreenTerminal {
         //      Bit 3 - Bold
         //  Y:  Bit 0 - Foreground set
         //      Bit 1 - Background set
+        //      Bit 2 - Dim
+        //      Bit 3 - Italic
         //	F:	Foreground r-g-b
         //	B:	Background r-g-b
         attr = 0x0000000000000000L;
@@ -206,12 +211,14 @@ public class ScreenTerminal {
 
     private void reset_screen() {
         // Screen
-        screen = (long[][]) Array.newInstance(long.class, height, width);
-        screen2 = (long[][]) Array.newInstance(long.class, height, width);
+        screen = new long[height][width];
+        screen2 = new long[height][width];
         for (int i = 0; i < height; i++) {
             Arrays.fill(screen[i], attr | 0x00000020);
             Arrays.fill(screen2[i], attr | 0x00000020);
         }
+        history.clear();
+        history2.clear();
         // Scroll parameters
         scroll_area_y0 = 0;
         scroll_area_y1 = height;
@@ -268,13 +275,13 @@ public class ScreenTerminal {
 
     private void fill(int y0, int x0, int y1, int x1, long c) {
         if (y0 == y1 - 1) {
-            if (x0 < x1 - 1) {
+            if (x0 < x1) {
                 Arrays.fill(screen[y0], x0, x1, c);
                 setDirty();
             }
         } else if (y0 < y1 - 1) {
             Arrays.fill(screen[y0], x0, width, c);
-            for (int i = y0; i < y1 - 1; i++) {
+            for (int i = y0 + 1; i < y1 - 1; i++) {
                 Arrays.fill(screen[i], c);
             }
             Arrays.fill(screen[y1 - 1], 0, x1, c);
@@ -303,7 +310,7 @@ public class ScreenTerminal {
             System.arraycopy(screen, n, screen, 0, height - n);
             for (int i = 1; i <= n; i++) {
                 screen[y1 - i] = new long[width];
-                Arrays.fill(screen[y1 - 1], attr | 0x0020);
+                Arrays.fill(screen[y1 - i], attr | 0x0020);
             }
         } else {
             poke(y0, 0, peek(y0 + n, 0, y1, width));
@@ -336,7 +343,7 @@ public class ScreenTerminal {
 
     private void scroll_line_right(int y, int x, int n) {
         if (x < width) {
-            n = Math.min(width - cx, n);
+            n = Math.min(width - x, n);
             poke(y, x + n, peek(y, x, y + 1, width - n));
             clear(y, x, y + 1, x + n);
         }
@@ -348,7 +355,7 @@ public class ScreenTerminal {
 
     private void scroll_line_left(int y, int x, int n) {
         if (x < width) {
-            n = Math.min(width - cx, n);
+            n = Math.min(width - x, n);
             poke(y, x, peek(y, x + n, y + 1, width));
             clear(y, width - n, y + 1, width);
         }
@@ -362,7 +369,7 @@ public class ScreenTerminal {
         int wx = utf8_charwidth(next_char);
         int lx = 0;
         for (int x = 0; x < Math.min(cx, width); x++) {
-            int c = (int) (peek(cy, x, cy + 1, x + 1)[0] & 0x00000000ffffffffL);
+            int c = (int) (screen[cy][x] & 0xffffffffL);
             wx += utf8_charwidth(c);
             lx += 1;
         }
@@ -409,7 +416,7 @@ public class ScreenTerminal {
 
     private void cursor_set_x(int x) {
         eol = false;
-        cx = Math.max(0, x);
+        cx = Math.max(0, Math.min(width - 1, x));
         setDirty();
     }
 
@@ -428,8 +435,9 @@ public class ScreenTerminal {
     //
 
     private void ctrl_BS() {
-        int dy = (cx - 1) / width;
-        cursor_set(Math.max(scroll_area_y0, cy + dy), (cx - 1) % width);
+        if (cx > 0) {
+            cursor_set_x(cx - 1);
+        }
     }
 
     private void ctrl_HT() {
@@ -511,7 +519,7 @@ public class ScreenTerminal {
         // For wide characters, fill the subsequent cells with a continuation marker
         if (charWidth > 1) {
             for (int i = 1; i < charWidth && cx + i < width; i++) {
-                poke(cy, cx + i, new long[] {attr | 0}); // Use null character as continuation marker
+                poke(cy, cx + i, new long[] {attr}); // Use null character as continuation marker
             }
         }
 
@@ -622,16 +630,25 @@ public class ScreenTerminal {
                         long[][] s = screen;
                         screen = screen2;
                         screen2 = s;
-                        Map<String, Object> map = vt100_saved;
+                        List<long[]> h = history;
+                        history = history2;
+                        history2 = h;
+                        SavedState map = vt100_saved;
                         vt100_saved = vt100_saved2;
                         vt100_saved2 = map;
                         int c;
-                        c = vt100_alternate_saved_cx;
-                        vt100_alternate_saved_cx = cx;
+                        c = vt100_alternate_cx;
+                        vt100_alternate_cx = cx;
                         cx = Math.min(c, width - 1);
-                        c = vt100_alternate_saved_cy;
-                        vt100_alternate_saved_cy = cy;
+                        c = vt100_alternate_cy;
+                        vt100_alternate_cy = cy;
                         cy = Math.min(c, height - 1);
+                        if (state) { // Alt-screen does not persist.
+                            for (int i = 0; i < height; i++) {
+                                Arrays.fill(screen[i], attr | 0x00000020);
+                            }
+                            history.clear();
+                        }
                     }
                     vt100_mode_alt_screen = state;
                     break;
@@ -660,7 +677,7 @@ public class ScreenTerminal {
     }
 
     private void esc_DECALN() {
-        fill(0, 0, height, width, 0x00ff0045);
+        fill(0, 0, height, width, attr | 'E');
     }
 
     private void esc_G0_0() {
@@ -704,25 +721,19 @@ public class ScreenTerminal {
     }
 
     private void esc_DECSC() {
-        vt100_saved = new HashMap<>();
-        vt100_saved.put("cx", cx);
-        vt100_saved.put("cy", cy);
-        vt100_saved.put("attr", attr);
-        vt100_saved.put("vt100_charset_g_sel", vt100_charset_g_sel);
-        vt100_saved.put("vt100_charset_g", vt100_charset_g);
-        vt100_saved.put("vt100_mode_autowrap", vt100_mode_autowrap);
-        vt100_saved.put("vt100_mode_origin", vt100_mode_origin);
+        vt100_saved = new SavedState(
+                cx, cy, attr, vt100_charset_g_sel, vt100_charset_g.clone(), vt100_mode_autowrap, vt100_mode_origin);
     }
 
     private void esc_DECRC() {
-        cx = (Integer) vt100_saved.get("cx");
-        cy = (Integer) vt100_saved.get("cy");
-        attr = (Long) vt100_saved.get("attr");
-        vt100_charset_g_sel = (Integer) vt100_saved.get("vt100_charset_g_sel");
-        vt100_charset_g = (int[]) vt100_saved.get("vt100_charset_g");
+        cx = Math.min(vt100_saved.cx, width - 1);
+        cy = Math.min(vt100_saved.cy, height - 1);
+        attr = vt100_saved.attr;
+        vt100_charset_g_sel = vt100_saved.charsetGSel;
+        vt100_charset_g = vt100_saved.charsetG.clone();
         vt100_charset_update();
-        vt100_mode_autowrap = (Boolean) vt100_saved.get("vt100_mode_autowrap");
-        vt100_mode_origin = (Boolean) vt100_saved.get("vt100_mode_origin");
+        vt100_mode_autowrap = vt100_saved.autowrap;
+        vt100_mode_origin = vt100_saved.origin;
     }
 
     private void esc_IND() {
@@ -846,6 +857,8 @@ public class ScreenTerminal {
             clear(0, 0, cy + 1, cx + 1);
         } else if ("2".equals(ps[0])) {
             clear(0, 0, height, width);
+        } else if ("3".equals(ps[0])) {
+            history.clear();
         }
     }
 
@@ -984,6 +997,8 @@ public class ScreenTerminal {
         //      Bit 3 - Bold
         //  Y:  Bit 0 - Foreground set
         //      Bit 1 - Background set
+        //      Bit 2 - Dim
+        //      Bit 3 - Italic
         //	F:	Foreground r-g-b
         //	B:	Background r-g-b
         int[] ps = vt100_parse_params(p, new int[] {0});
@@ -993,6 +1008,10 @@ public class ScreenTerminal {
                 attr = 0x00000000L << 32;
             } else if (m == 1) {
                 attr |= 0x08000000L << 32; // bold
+            } else if (m == 2) {
+                attr |= 0x40000000L << 32; // dim
+            } else if (m == 3) {
+                attr |= 0x80000000L << 32; // italic
             } else if (m == 4) {
                 attr |= 0x01000000L << 32; // underline
             } else if (m == 7) {
@@ -1000,13 +1019,17 @@ public class ScreenTerminal {
             } else if (m == 8) {
                 attr |= 0x04000000L << 32; // conceal
             } else if (m == 21) {
-                attr &= 0xf7ffffffL << 32; // bold off
+                attr &= ~(0x08000000L << 32); // bold off
+            } else if (m == 22) {
+                attr &= ~(0x48000000L << 32); // bold and dim off (normal intensity)
+            } else if (m == 23) {
+                attr &= ~(0x80000000L << 32); // italic off
             } else if (m == 24) {
-                attr &= 0xfeffffffL << 32; // underline off
+                attr &= ~(0x01000000L << 32); // underline off
             } else if (m == 27) {
-                attr &= 0xfdffffffL << 32; // negative off
+                attr &= ~(0x02000000L << 32); // negative off
             } else if (m == 28) {
-                attr &= 0xfbffffffL << 32; // conceal off
+                attr &= ~(0x04000000L << 32); // conceal off
             } else if (m >= 30 && m <= 37) {
                 attr = (attr & (0xef000fffL << 32)) | (0x10000000L << 32) | (col24(m - 30) << 44); // foreground
             } else if (m == 38) {
@@ -1014,6 +1037,12 @@ public class ScreenTerminal {
                 if (m == 5) {
                     m = ++i < ps.length ? ps[i] : 0;
                     attr = (attr & (0xef000fffL << 32)) | (0x10000000L << 32) | (col24(m) << 44); // foreground
+                } else if (m == 2) {
+                    int r = ++i < ps.length ? ps[i] : 0;
+                    int g = ++i < ps.length ? ps[i] : 0;
+                    int b = ++i < ps.length ? ps[i] : 0;
+                    long rgb = ((long) (r >> 4) << 8) | ((long) (g >> 4) << 4) | (b >> 4);
+                    attr = (attr & (0xef000fffL << 32)) | (0x10000000L << 32) | (rgb << 44); // foreground
                 }
             } else if (m == 39) {
                 attr &= 0xef000fffL << 32;
@@ -1024,6 +1053,12 @@ public class ScreenTerminal {
                 if (m == 5) {
                     m = ++i < ps.length ? ps[i] : 0;
                     attr = (attr & (0xdffff000L << 32)) | (0x20000000L << 32) | (col24(m) << 32); // background
+                } else if (m == 2) {
+                    int r = ++i < ps.length ? ps[i] : 0;
+                    int g = ++i < ps.length ? ps[i] : 0;
+                    int b = ++i < ps.length ? ps[i] : 0;
+                    long rgb = ((long) (r >> 4) << 8) | ((long) (g >> 4) << 4) | (b >> 4);
+                    attr = (attr & (0xdffff000L << 32)) | (0x20000000L << 32) | (rgb << 32); // background
                 }
             } else if (m == 49) {
                 attr &= 0xdf000fffL << 32;
@@ -1085,8 +1120,8 @@ public class ScreenTerminal {
     }
 
     private void csi_RCP(String p) {
-        cx = vt100_saved_cx;
-        cy = vt100_saved_cy;
+        cx = Math.min(vt100_saved_cx, width - 1);
+        cy = Math.min(vt100_saved_cy, height - 1);
     }
 
     private void csi_DECREQTPARM(String p) {
@@ -1616,25 +1651,27 @@ public class ScreenTerminal {
     // Dirty
     //
 
-    public boolean isDirty() {
-        return dirty.compareAndSet(true, false);
+    public synchronized boolean isDirty() {
+        boolean wasDirty = dirty;
+        dirty = false;
+        return wasDirty;
     }
 
     public synchronized void waitDirty() throws InterruptedException {
-        while (!dirty.compareAndSet(true, false)) {
+        while (!isDirty()) {
             wait();
         }
     }
 
     public synchronized boolean waitDirty(long timeout) throws InterruptedException {
-        if (!dirty.get()) {
+        if (!dirty) {
             wait(timeout);
         }
-        return dirty.compareAndSet(true, false);
+        return isDirty();
     }
 
     protected synchronized void setDirty() {
-        dirty.set(true);
+        dirty = true;
         notifyAll();
     }
 
@@ -1647,7 +1684,7 @@ public class ScreenTerminal {
      *
      * @return the width in characters
      */
-    public int getWidth() {
+    public synchronized int getWidth() {
         return width;
     }
 
@@ -1656,29 +1693,27 @@ public class ScreenTerminal {
      *
      * @return the height in characters
      */
-    public int getHeight() {
+    public synchronized int getHeight() {
         return height;
     }
 
     public synchronized boolean setSize(int w, int h) {
-        if (w < 2 || w > 256 || h < 2 || h > 256) {
+        if (w < MIN_SIZE || w > MAX_SIZE || h < MIN_SIZE || h > MAX_SIZE) {
             return false;
         }
 
         // Set width
         for (int i = 0; i < height; i++) {
-            if (screen[i].length < w) {
+            if (screen[i].length != w) {
                 int oldLength = screen[i].length;
                 screen[i] = Arrays.copyOf(screen[i], w);
-                // Fill the rest with spaces
                 for (int j = oldLength; j < w; j++) {
                     screen[i][j] = attr | 0x00000020;
                 }
             }
-            if (screen2[i].length < w) {
+            if (screen2[i].length != w) {
                 int oldLength = screen2[i].length;
                 screen2[i] = Arrays.copyOf(screen2[i], w);
-                // Fill the rest with spaces
                 for (int j = oldLength; j < w; j++) {
                     screen2[i][j] = attr | 0x00000020;
                 }
@@ -1688,35 +1723,64 @@ public class ScreenTerminal {
             cx = w - 1;
         }
 
-        // Set height
+        if (h != height) {
+            adjustBufferHeight(h, w, false);
+            adjustBufferHeight(h, w, true);
+        }
+
+        // Scroll parameters
+        scroll_area_y0 = Math.min(h, scroll_area_y0);
+        scroll_area_y1 = scroll_area_y1 == height ? h : Math.min(h, scroll_area_y1);
+        // Cursor position
+        cx = Math.min(w - 1, cx);
+        cy = Math.min(h - 1, cy);
+        vt100_alternate_cx = Math.min(w - 1, vt100_alternate_cx);
+        vt100_alternate_cy = Math.min(h - 1, vt100_alternate_cy);
+
+        width = w;
+        height = h;
+
+        setDirty();
+        return true;
+    }
+
+    private void adjustBufferHeight(int h, int w, boolean alt) {
+        List<long[]> targetHistory = alt ? history2 : history;
+        long[][] targetScreen = alt ? screen2 : screen;
         if (h < height) {
             int needed = height - h;
             // Delete as many lines as possible from the bottom
-            int avail = height - 1 - cy;
+            int avail = height - 1 - (alt ? vt100_alternate_cy : cy);
             if (avail > 0) {
                 if (avail > needed) {
                     avail = needed;
                 }
-                screen = Arrays.copyOfRange(screen, 0, height - avail);
+                targetScreen = Arrays.copyOfRange(targetScreen, 0, height - avail);
             }
             needed -= avail;
             // Move lines to history
             for (int i = 0; i < needed; i++) {
-                history.add(screen[i]);
+                targetHistory.add(targetScreen[i]);
             }
-            screen = Arrays.copyOfRange(screen, needed, screen.length);
-            cy -= needed;
+            targetScreen = Arrays.copyOfRange(targetScreen, needed, targetScreen.length);
+            if (alt) {
+                vt100_alternate_cy -= needed;
+                screen2 = targetScreen;
+            } else {
+                cy -= needed;
+                screen = targetScreen;
+            }
         } else if (h > height) {
             int needed = h - height;
             // Pull lines from history
-            int avail = history.size();
+            int avail = targetHistory.size();
             if (avail > needed) {
                 avail = needed;
             }
             long[][] sc = new long[h][];
             if (avail > 0) {
                 for (int i = 0; i < avail; i++) {
-                    long[] historyLine = history.remove(history.size() - avail + i);
+                    long[] historyLine = targetHistory.remove(targetHistory.size() - avail + i);
                     // Check if the history line needs to be resized to match the new width
                     if (historyLine.length < w) {
                         int oldLength = historyLine.length;
@@ -1728,33 +1792,20 @@ public class ScreenTerminal {
                     }
                     sc[i] = historyLine;
                 }
-                cy += avail;
             }
-            System.arraycopy(screen, 0, sc, avail, screen.length);
-            for (int i = avail + screen.length; i < sc.length; i++) {
+            System.arraycopy(targetScreen, 0, sc, avail, targetScreen.length);
+            for (int i = avail + targetScreen.length; i < sc.length; i++) {
                 sc[i] = new long[w];
                 Arrays.fill(sc[i], attr | 0x00000020);
             }
-            screen = sc;
+            if (alt) {
+                vt100_alternate_cy += avail;
+                screen2 = sc;
+            } else {
+                cy += avail;
+                screen = sc;
+            }
         }
-
-        screen2 = (long[][]) Array.newInstance(long.class, h, w);
-        for (int i = 0; i < h; i++) {
-            Arrays.fill(screen2[i], attr | 0x00000020);
-        }
-
-        // Scroll parameters
-        scroll_area_y0 = Math.min(h, scroll_area_y0);
-        scroll_area_y1 = scroll_area_y1 == height ? h : Math.min(h, scroll_area_y1);
-        // Cursor position
-        cx = Math.min(w - 1, cx);
-        cy = Math.min(h - 1, cy);
-
-        width = w;
-        height = h;
-
-        setDirty();
-        return true;
     }
 
     public synchronized String read() {
@@ -1768,150 +1819,67 @@ public class ScreenTerminal {
         for (char c : d.toCharArray()) {
             if (vt100_keyfilter_escape) {
                 vt100_keyfilter_escape = false;
-                if (vt100_mode_cursorkey) {
-                    switch (c) {
-                        case '~':
-                            o.append("~");
-                            break;
-                        case 'A':
-                            o.append("\u001bOA");
-                            break;
-                        case 'B':
-                            o.append("\u001bOB");
-                            break;
-                        case 'C':
-                            o.append("\u001bOC");
-                            break;
-                        case 'D':
-                            o.append("\u001bOD");
-                            break;
-                        case 'F':
-                            o.append("\u001bOF");
-                            break;
-                        case 'H':
-                            o.append("\u001bOH");
-                            break;
-                        case '1':
-                            o.append("\u001b[5~");
-                            break;
-                        case '2':
-                            o.append("\u001b[6~");
-                            break;
-                        case '3':
-                            o.append("\u001b[2~");
-                            break;
-                        case '4':
-                            o.append("\u001b[3~");
-                            break;
-                        case 'a':
-                            o.append("\u001bOP");
-                            break;
-                        case 'b':
-                            o.append("\u001bOQ");
-                            break;
-                        case 'c':
-                            o.append("\u001bOR");
-                            break;
-                        case 'd':
-                            o.append("\u001bOS");
-                            break;
-                        case 'e':
-                            o.append("\u001b[15~");
-                            break;
-                        case 'f':
-                            o.append("\u001b[17~");
-                            break;
-                        case 'g':
-                            o.append("\u001b[18~");
-                            break;
-                        case 'h':
-                            o.append("\u001b[19~");
-                            break;
-                        case 'i':
-                            o.append("\u001b[20~");
-                            break;
-                        case 'j':
-                            o.append("\u001b[21~");
-                            break;
-                        case 'k':
-                            o.append("\u001b[23~");
-                            break;
-                        case 'l':
-                            o.append("\u001b[24~");
-                            break;
-                    }
-                } else {
-                    switch (c) {
-                        case '~':
-                            o.append("~");
-                            break;
-                        case 'A':
-                            o.append("\u001b[A");
-                            break;
-                        case 'B':
-                            o.append("\u001b[B");
-                            break;
-                        case 'C':
-                            o.append("\u001b[C");
-                            break;
-                        case 'D':
-                            o.append("\u001b[D");
-                            break;
-                        case 'F':
-                            o.append("\u001b[F");
-                            break;
-                        case 'H':
-                            o.append("\u001b[H");
-                            break;
-                        case '1':
-                            o.append("\u001b[5~");
-                            break;
-                        case '2':
-                            o.append("\u001b[6~");
-                            break;
-                        case '3':
-                            o.append("\u001b[2~");
-                            break;
-                        case '4':
-                            o.append("\u001b[3~");
-                            break;
-                        case 'a':
-                            o.append("\u001bOP");
-                            break;
-                        case 'b':
-                            o.append("\u001bOQ");
-                            break;
-                        case 'c':
-                            o.append("\u001bOR");
-                            break;
-                        case 'd':
-                            o.append("\u001bOS");
-                            break;
-                        case 'e':
-                            o.append("\u001b[15~");
-                            break;
-                        case 'f':
-                            o.append("\u001b[17~");
-                            break;
-                        case 'g':
-                            o.append("\u001b[18~");
-                            break;
-                        case 'h':
-                            o.append("\u001b[19~");
-                            break;
-                        case 'i':
-                            o.append("\u001b[20~");
-                            break;
-                        case 'j':
-                            o.append("\u001b[21~");
-                            break;
-                        case 'k':
-                            o.append("\u001b[23~");
-                            break;
-                        case 'l':
-                            o.append("\u001b[24~");
-                            break;
-                    }
+                String arrow = vt100_mode_cursorkey ? "\u001bO" : "\u001b[";
+                switch (c) {
+                    case '~':
+                        o.append("~");
+                        break;
+                    case 'A':
+                    case 'B':
+                    case 'C':
+                    case 'D':
+                    case 'F':
+                    case 'H':
+                        o.append(arrow).append(c);
+                        break;
+                    case '1':
+                        o.append("\u001b[5~");
+                        break;
+                    case '2':
+                        o.append("\u001b[6~");
+                        break;
+                    case '3':
+                        o.append("\u001b[2~");
+                        break;
+                    case '4':
+                        o.append("\u001b[3~");
+                        break;
+                    case 'a':
+                        o.append("\u001bOP");
+                        break;
+                    case 'b':
+                        o.append("\u001bOQ");
+                        break;
+                    case 'c':
+                        o.append("\u001bOR");
+                        break;
+                    case 'd':
+                        o.append("\u001bOS");
+                        break;
+                    case 'e':
+                        o.append("\u001b[15~");
+                        break;
+                    case 'f':
+                        o.append("\u001b[17~");
+                        break;
+                    case 'g':
+                        o.append("\u001b[18~");
+                        break;
+                    case 'h':
+                        o.append("\u001b[19~");
+                        break;
+                    case 'i':
+                        o.append("\u001b[20~");
+                        break;
+                    case 'j':
+                        o.append("\u001b[21~");
+                        break;
+                    case 'k':
+                        o.append("\u001b[23~");
+                        break;
+                    case 'l':
+                        o.append("\u001b[24~");
+                        break;
                 }
             } else if (c == '~') {
                 vt100_keyfilter_escape = true;
@@ -1981,10 +1949,10 @@ public class ScreenTerminal {
             int fwidth,
             int[] cursor)
             throws InterruptedException {
-        if (!dirty.get() && timeout > 0) {
+        if (!dirty && timeout > 0) {
             wait(timeout);
         }
-        if (dirty.compareAndSet(true, false) || forceDump) {
+        if (isDirty() || forceDump) {
             dump(fullscreen, ftop, fleft, fheight, fwidth, cursor);
             return true;
         } else {
@@ -2004,10 +1972,10 @@ public class ScreenTerminal {
      */
     public synchronized boolean dump(long timeout, boolean forceDump, long[] fullscreen, int[] cursor)
             throws InterruptedException {
-        if (!dirty.get() && timeout > 0) {
+        if (!dirty && timeout > 0) {
             wait(timeout);
         }
-        if (dirty.compareAndSet(true, false) || forceDump) {
+        if (isDirty() || forceDump) {
             dump(fullscreen, cursor);
             return true;
         } else {
@@ -2015,90 +1983,162 @@ public class ScreenTerminal {
         }
     }
 
+    /**
+     * Dumps the terminal content as HTML with inline RGB color styles.
+     *
+     * @param timeout maximum time to wait for changes in milliseconds
+     * @param forceDump whether to force a dump even if screen is not dirty
+     * @return the terminal content as HTML, or null if no update
+     * @throws InterruptedException if interrupted
+     */
     public synchronized String dump(long timeout, boolean forceDump) throws InterruptedException {
-        int width = this.width;
-        int height = this.height;
-        long[] screen = new long[width * height];
+        boolean inverse = vt100_mode_inverse;
+        boolean cursorVisible = vt100_mode_cursor;
+        int w = getWidth();
+        int h = getHeight();
+        long[] screen = new long[w * h];
         int[] cursor = new int[2];
-        if (dump(timeout, forceDump, screen, 0, 0, height, width, cursor)) {
-            StringBuilder sb = new StringBuilder();
-            int prev_attr = -1;
-            int cx = cursor[0];
-            int cy = cursor[1];
-            sb.append("<div><pre class='term'>");
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    long d = screen[y * width + x];
-                    int c = (int) (d & 0xffffffffL);
-                    int a = (int) (d >> 32);
-                    if (cy == y && cx == x && vt100_mode_cursor) {
-                        a = a & 0xfff0 | 0x000c;
-                    }
-                    if (a != prev_attr) {
-                        if (prev_attr != -1) {
-                            sb.append("</span>");
-                        }
-                        int bg = a & 0x000000ff;
-                        int fg = (a & 0x0000ff00) >> 8;
-                        boolean inv = (a & 0x00020000) != 0;
-                        boolean inv2 = vt100_mode_inverse;
-                        if (inv && !inv2 || inv2 && !inv) {
-                            int i = fg;
-                            fg = bg;
-                            bg = i;
-                        }
-                        if ((a & 0x00040000) != 0) {
-                            fg = 0x0c;
-                        }
-                        String ul;
-                        if ((a & 0x00010000) != 0) {
-                            ul = " ul";
-                        } else {
-                            ul = "";
-                        }
-                        String b;
-                        if ((a & 0x00080000) != 0) {
-                            b = " b";
-                        } else {
-                            b = "";
-                        }
-                        sb.append("<span class='f")
-                                .append(fg)
-                                .append(" b")
-                                .append(bg)
-                                .append(ul)
-                                .append(b)
-                                .append("'>");
-                        prev_attr = a;
-                    }
-                    switch (c) {
-                        case '&':
-                            sb.append("&amp;");
-                            break;
-                        case '<':
-                            sb.append("&lt;");
-                            break;
-                        case '>':
-                            sb.append("&gt;");
-                            break;
-                        default:
-                            // Skip continuation markers (null characters)
-                            if (c == 0) {
-                                // This is a continuation of a wide character, skip it
-                                break;
-                            }
-                            // Use appendCodePoint for proper codepoint-to-char conversion
-                            // This handles Unicode characters beyond the BMP correctly
-                            sb.appendCodePoint(c);
-                            break;
-                    }
-                }
-                sb.append("\n");
-            }
-            sb.append("</span></pre></div>");
-            return sb.toString();
+        if (!dump(timeout, forceDump, screen, cursor)) {
+            return null;
         }
-        return null;
+        int cx = cursor[0];
+        int cy = cursor[1];
+        StringBuilder sb = new StringBuilder();
+        long prevAttr = -1;
+        sb.append("<div><pre class='term'>");
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                long d = screen[y * w + x];
+                int c = (int) (d & 0xffffffffL);
+                long a = d >>> 32;
+                // Apply cursor styling
+                if (cursorVisible && cy == y && cx == x) {
+                    a = (a & 0xfffff000L) | 0x20000000 | 0x0fff; // white bg for cursor
+                    a = (a & 0xff000fffL) | 0x10000000; // black fg for cursor
+                }
+                if (a != prevAttr) {
+                    if (prevAttr != -1) {
+                        sb.append("</span>");
+                    }
+                    sb.append(generateSpanTag(a, inverse));
+                    prevAttr = a;
+                }
+                switch (c) {
+                    case '&':
+                        sb.append("&amp;");
+                        break;
+                    case '<':
+                        sb.append("&lt;");
+                        break;
+                    case '>':
+                        sb.append("&gt;");
+                        break;
+                    default:
+                        if (c == 0) {
+                            break; // wide char continuation
+                        }
+                        sb.appendCodePoint(c);
+                        break;
+                }
+            }
+            sb.append("\n");
+        }
+        sb.append("</span></pre></div>");
+        return sb.toString();
+    }
+
+    /**
+     * Generates a span tag with proper CSS styling for the given attributes.
+     * Handles RGB colors, bold, underline, inverse, and other attributes.
+     *
+     * @param attr the attribute value from the cell
+     * @return HTML span tag with appropriate CSS classes and inline styles
+     */
+    private static String generateSpanTag(long attr, boolean terminalInverse) {
+        // Attribute mask: 0xYXFFFBBB00000000L
+        // X: Bit 0 - Underlined, Bit 1 - Negative, Bit 2 - Concealed, Bit 3 - Bold
+        // Y: Bit 0 - Foreground set, Bit 1 - Background set, Bit 2 - Dim, Bit 3 - Italic
+        // F: Foreground r-g-b
+        // B: Background r-g-b
+
+        int bg = (int) ((attr) & 0x0fff);
+        int fg = (int) ((attr >>> 12) & 0x0fff);
+        boolean underline = (attr & 0x01000000L) != 0;
+        boolean inverse = (attr & 0x02000000L) != 0;
+        boolean conceal = (attr & 0x04000000L) != 0;
+        boolean bold = (attr & 0x08000000L) != 0;
+        boolean fgset = (attr & 0x10000000L) != 0;
+        boolean bgset = (attr & 0x20000000L) != 0;
+        boolean dim = (attr & 0x40000000L) != 0;
+        boolean italic = (attr & 0x80000000L) != 0;
+
+        // Handle default colors
+        if (!fgset) {
+            fg = 0x0fff; // Default white foreground
+        }
+        if (!bgset) {
+            bg = 0x0000; // Default black background
+        }
+
+        // Handle inverse
+        if (inverse && !terminalInverse || terminalInverse && !inverse) {
+            int temp = fg;
+            fg = bg;
+            bg = temp;
+        }
+
+        // Handle concealed
+        if (conceal) {
+            fg = bg; // Make text invisible by setting foreground to background
+        }
+
+        // Handle dim (reduce foreground intensity)
+        if (dim) {
+            fg = (((fg >> 8) & 0x0f) >> 1) << 8 | (((fg >> 4) & 0x0f) >> 1) << 4 | ((fg & 0x0f) >> 1);
+        }
+
+        StringBuilder span = new StringBuilder("<span style='");
+
+        // Add foreground color
+        String fgColor = rgbToHex(fg);
+        span.append("color:").append(fgColor).append(";");
+
+        // Add background color
+        String bgColor = rgbToHex(bg);
+        span.append("background-color:").append(bgColor).append(";");
+
+        // Add text decorations
+        if (underline) {
+            span.append("text-decoration:underline;");
+        }
+
+        // Add font weight/style
+        if (bold) {
+            span.append("font-weight:bold;");
+        }
+        if (italic) {
+            span.append("font-style:italic;");
+        }
+
+        span.append("'>");
+        return span.toString();
+    }
+
+    /**
+     * Converts a 12-bit RGB color value to a hex color string.
+     * The format is 0xRGB where each component is 4 bits.
+     *
+     * @param color 12-bit color value
+     * @return hex color string (e.g., "#ff0000")
+     */
+    private static String rgbToHex(int color) {
+        int rn = (color >> 8) & 0x0f;
+        int gn = (color >> 4) & 0x0f;
+        int bn = (color >> 0) & 0x0f;
+        int r = (rn << 4) | rn; // Expand 4-bit to 8-bit (e.g., 0xf -> 0xff)
+        int g = (gn << 4) | gn;
+        int b = (bn << 4) | bn;
+        return String.format("#%02x%02x%02x", r, g, b);
     }
 
     public String toString() {

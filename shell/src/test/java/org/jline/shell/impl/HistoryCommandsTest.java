@@ -57,10 +57,9 @@ public class HistoryCommandsTest {
     }
 
     @Test
-    void historyListEmpty() throws Exception {
+    void historyListEmpty() {
         Command cmd = commands.command("history");
-        cmd.execute(session, new String[0]);
-        // No entries, no output
+        assertDoesNotThrow(() -> cmd.execute(session, new String[0]));
     }
 
     @Test

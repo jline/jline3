@@ -24,6 +24,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class ScreenTerminal {
 
+    public static final int MIN_SIZE = 2;
+    public static final int MAX_SIZE = 4096;
+
     enum State {
         None,
         Esc,
@@ -1588,7 +1591,7 @@ public class ScreenTerminal {
     //
 
     public synchronized boolean setSize(int w, int h) {
-        if (w < 2 || w > 256 || h < 2 || h > 256) {
+        if (w < MIN_SIZE || w > MAX_SIZE || h < MIN_SIZE || h > MAX_SIZE) {
             return false;
         }
 

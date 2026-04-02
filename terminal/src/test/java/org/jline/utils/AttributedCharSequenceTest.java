@@ -20,6 +20,7 @@ import org.jline.terminal.impl.GraphemeClusterTestTerminal;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class AttributedCharSequenceTest {
 
@@ -31,30 +32,42 @@ public class AttributedCharSequenceTest {
     private static final String WAVE_SKIN = "\uD83D\uDC4B\uD83C\uDFFD";
     // Woman scientist: 👩‍🔬
     private static final String WOMAN_SCIENTIST = "\uD83D\uDC69\u200D\uD83D\uDD2C";
+    // Rainbow flag: 🏳️‍🌈 (white flag + VS16 + ZWJ + rainbow)
+    private static final String RAINBOW_FLAG = "\uD83C\uDFF3\uFE0F\u200D\uD83C\uDF08";
+    // White flag + VS16: 🏳️
+    private static final String WHITE_FLAG_VS16 = "\uD83C\uDFF3\uFE0F";
+    // White flag (no VS): 🏳
+    private static final String WHITE_FLAG = "\uD83C\uDFF3";
+    // Party popper: 🎉 (Emoji_Presentation=Yes)
+    private static final String PARTY_POPPER = "\uD83C\uDF89";
+    // Party popper + VS15 (text presentation): 🎉︎
+    private static final String PARTY_POPPER_VS15 = "\uD83C\uDF89\uFE0E";
+    // German flag: 🇩🇪 (regional indicators D + E)
+    private static final String FLAG_DE = "\uD83C\uDDE9\uD83C\uDDEA";
 
     @Test
     public void testGraphemeClusterColumnLength() {
-        // Test per-codepoint widths without grapheme cluster mode.
-
-        // Family emoji: per-codepoint = 2+0+2+0+2+0+2 = 8
+        // columnLength() without terminal: on JDK 21+ uses grapheme cluster widths
         AttributedString family = new AttributedString(FAMILY_EMOJI);
-        assertEquals(8, family.columnLength());
-
-        // Flag: per-codepoint = 2+2 = 4
         AttributedString flag = new AttributedString(FLAG_FR);
-        assertEquals(4, flag.columnLength());
-
-        // Skin tone: per-codepoint = 2+0 = 2
         AttributedString wave = new AttributedString(WAVE_SKIN);
-        assertEquals(2, wave.columnLength());
-
-        // Woman scientist: per-codepoint = 2+0+2 = 4
         AttributedString scientist = new AttributedString(WOMAN_SCIENTIST);
-        assertEquals(4, scientist.columnLength());
-
-        // Mixed: "Hi " + family + " end"
         AttributedString mixed = new AttributedString("Hi " + FAMILY_EMOJI + " end");
-        assertEquals(3 + 8 + 4, mixed.columnLength());
+
+        if (WCWidth.HAS_JDK_GRAPHEME_SUPPORT) {
+            assertEquals(2, family.columnLength());
+            assertEquals(2, flag.columnLength());
+            assertEquals(2, wave.columnLength());
+            assertEquals(2, scientist.columnLength());
+            assertEquals(3 + 2 + 4, mixed.columnLength());
+        } else {
+            // Older JDK: per-codepoint widths
+            assertEquals(8, family.columnLength()); // 2+0+2+0+2+0+2
+            assertEquals(4, flag.columnLength()); // 2+2
+            assertEquals(2, wave.columnLength()); // 2+0
+            assertEquals(4, scientist.columnLength()); // 2+0+2
+            assertEquals(3 + 8 + 4, mixed.columnLength());
+        }
     }
 
     @Test
@@ -143,6 +156,43 @@ public class AttributedCharSequenceTest {
     }
 
     @Test
+    public void testColumnLengthVS16WithGcMode() throws Exception {
+        Terminal t = GraphemeClusterTestTerminal.create();
+        try {
+            // Rainbow flag: VS16 upgrades white flag to emoji presentation → width 2
+            assertEquals(2, new AttributedString(RAINBOW_FLAG).columnLength(t));
+
+            // White flag + VS16: emoji presentation → width 2
+            assertEquals(2, new AttributedString(WHITE_FLAG_VS16).columnLength(t));
+
+            // White flag without VS16: text presentation → width 1
+            assertEquals(1, new AttributedString(WHITE_FLAG).columnLength(t));
+
+            // Party popper: Emoji_Presentation=Yes → width 2
+            assertEquals(2, new AttributedString(PARTY_POPPER).columnLength(t));
+
+            // Party popper + VS15: text presentation downgrades → width 1
+            assertEquals(1, new AttributedString(PARTY_POPPER_VS15).columnLength(t));
+
+            // Flag DE: regional indicator pair → width 2
+            assertEquals(2, new AttributedString(FLAG_DE).columnLength(t));
+
+            // Mixed: "Hi " (3) + rainbow flag (2) + " end" (4) = 9
+            assertEquals(9, new AttributedString("Hi " + RAINBOW_FLAG + " end").columnLength(t));
+
+            // Without terminal: behavior depends on JDK version
+            if (WCWidth.HAS_JDK_GRAPHEME_SUPPORT) {
+                assertEquals(2, new AttributedString(RAINBOW_FLAG).columnLength());
+            } else {
+                // Rainbow flag: wcwidth(0x1F3F3)=1 + 0(FE0F) + 0(ZWJ) + wcwidth(0x1F308)=2 = 3
+                assertEquals(3, new AttributedString(RAINBOW_FLAG).columnLength());
+            }
+        } finally {
+            t.close();
+        }
+    }
+
+    @Test
     public void testColumnSubSequenceWithGcMode() throws Exception {
         Terminal t = GraphemeClusterTestTerminal.create();
         try {
@@ -162,6 +212,47 @@ public class AttributedCharSequenceTest {
         } finally {
             t.close();
         }
+    }
+
+    @Test
+    public void testColumnSubSequenceVS16WithGcMode() throws Exception {
+        Terminal t = GraphemeClusterTestTerminal.create();
+        try {
+            // "AB" + rainbow flag (2 cols) + "CD" = 6 columns
+            String text = "AB" + RAINBOW_FLAG + "CD";
+            AttributedString as = new AttributedString(text);
+
+            assertEquals("AB", as.columnSubSequence(0, 2, t).toString());
+            assertEquals(RAINBOW_FLAG, as.columnSubSequence(2, 4, t).toString());
+            assertEquals("CD", as.columnSubSequence(4, 6, t).toString());
+        } finally {
+            t.close();
+        }
+    }
+
+    @Test
+    void testColumnSubSequenceNoTerminal() {
+        assumeTrue(WCWidth.HAS_JDK_GRAPHEME_SUPPORT, "Requires JDK 21+ grapheme support");
+
+        // JDK 21+: grapheme cluster-aware without terminal
+        String text = "AB" + FAMILY_EMOJI + "CD";
+        AttributedString as = new AttributedString(text);
+        assertEquals("AB", as.columnSubSequence(0, 2).toString());
+        assertEquals(FAMILY_EMOJI, as.columnSubSequence(2, 4).toString());
+        assertEquals("CD", as.columnSubSequence(4, 6).toString());
+    }
+
+    @Test
+    void testColumnSplitLengthNoTerminal() {
+        assumeTrue(WCWidth.HAS_JDK_GRAPHEME_SUPPORT, "Requires JDK 21+ grapheme support");
+
+        // JDK 21+: grapheme cluster-aware without terminal
+        String text = "AB" + FAMILY_EMOJI + "CD";
+        AttributedString as = new AttributedString(text);
+        List<AttributedString> lines = as.columnSplitLength(4);
+        assertEquals(2, lines.size());
+        assertEquals("AB" + FAMILY_EMOJI, lines.get(0).toString());
+        assertEquals("CD", lines.get(1).toString());
     }
 
     @Test
@@ -191,6 +282,30 @@ public class AttributedCharSequenceTest {
             assertEquals(2, lines3.size());
             assertEquals(FAMILY_EMOJI + FAMILY_EMOJI, lines3.get(0).toString());
             assertEquals(FAMILY_EMOJI, lines3.get(1).toString());
+        } finally {
+            t.close();
+        }
+    }
+
+    @Test
+    public void testColumnSplitLengthVS16WithGcMode() throws Exception {
+        Terminal t = GraphemeClusterTestTerminal.create();
+        try {
+            // "AB" + rainbow flag (2 cols) + "CD" = 6 columns; split at 4
+            String text = "AB" + RAINBOW_FLAG + "CD";
+            AttributedString as = new AttributedString(text);
+            List<AttributedString> lines = as.columnSplitLength(4, false, true, t);
+            assertEquals(2, lines.size());
+            assertEquals("AB" + RAINBOW_FLAG, lines.get(0).toString());
+            assertEquals("CD", lines.get(1).toString());
+
+            // Three rainbow flags = 6 columns; split at 5 → [flag+flag, flag]
+            String three = RAINBOW_FLAG + RAINBOW_FLAG + RAINBOW_FLAG;
+            AttributedString as3 = new AttributedString(three);
+            List<AttributedString> lines3 = as3.columnSplitLength(5, false, true, t);
+            assertEquals(2, lines3.size());
+            assertEquals(RAINBOW_FLAG + RAINBOW_FLAG, lines3.get(0).toString());
+            assertEquals(RAINBOW_FLAG, lines3.get(1).toString());
         } finally {
             t.close();
         }

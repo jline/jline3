@@ -10,17 +10,12 @@ package org.jline.nativ;
 
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
 public class JLineNativeLoaderTest {
 
-    /**
-     * Default constructor.
-     */
-    public JLineNativeLoaderTest() {
-        // Default constructor
-    }
-
     @Test
-    public void testLoadLibrary() {
-        JLineNativeLoader.initialize();
+    void testLoadLibrary() {
+        assertDoesNotThrow(JLineNativeLoader::initialize);
     }
 }

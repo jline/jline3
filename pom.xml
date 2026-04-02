@@ -107,7 +107,7 @@
         <native.image.skip>true</native.image.skip>
         <automatic.module.name />
 
-        <jansi.version>2.4.2</jansi.version>
+        <jansi.version>2.4.3</jansi.version>
         <juniversalchardet.version>1.0.3</juniversalchardet.version>
         <sshd.version>2.17.1</sshd.version>
         <easymock.version>5.6.0</easymock.version>
@@ -116,13 +116,13 @@
         <gogo.jline.version>1.1.8</gogo.jline.version>
         <slf4j.version>2.0.17</slf4j.version>
         <findbugs.version>3.0.2</findbugs.version>
-        <groovy.version>5.0.4</groovy.version>
+        <groovy.version>5.0.5</groovy.version>
         <ivy.version>2.5.3</ivy.version>
         <picocli.version>4.7.7</picocli.version>
         <graal.version>25.0.2</graal.version>
         <graal.plugin.version>21.2.0</graal.plugin.version>
-        <native.plugin.version>0.11.5</native.plugin.version>
-        <palantir.version>2.89.0</palantir.version>
+        <native.plugin.version>1.0.0</native.plugin.version>
+        <palantir.version>2.90.0</palantir.version>
 
         <surefire.argLine>--add-opens java.base/java.io=org.jline.nativ --add-opens java.base/java.io=org.jline.terminal</surefire.argLine>
     </properties>

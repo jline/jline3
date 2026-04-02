@@ -13,6 +13,7 @@ import org.jline.terminal.impl.GraphemeClusterTestTerminal;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Tests for {@link WCWidth} utility methods: {@code wcwidth},
@@ -146,15 +147,192 @@ public class WCWidthTest {
         assertEquals(0, WCWidth.charCountForGraphemeCluster("A", 1));
     }
 
+    // --- charCountForGraphemeClusterLegacy (JDK < 21 path) ---
+
+    @Test
+    void charCountForGraphemeClusterLegacy_familyEmoji() {
+        assertEquals(11, WCWidth.charCountForGraphemeClusterLegacy(FAMILY_EMOJI, 0));
+    }
+
+    @Test
+    void charCountForGraphemeClusterLegacy_flag() {
+        assertEquals(4, WCWidth.charCountForGraphemeClusterLegacy(FLAG_FR, 0));
+    }
+
+    @Test
+    void charCountForGraphemeClusterLegacy_skinTone() {
+        assertEquals(4, WCWidth.charCountForGraphemeClusterLegacy(WAVE_SKIN, 0));
+    }
+
+    @Test
+    void charCountForGraphemeClusterLegacy_womanScientist() {
+        assertEquals(5, WCWidth.charCountForGraphemeClusterLegacy(WOMAN_SCIENTIST, 0));
+    }
+
+    @Test
+    void charCountForGraphemeClusterLegacy_ascii() {
+        assertEquals(1, WCWidth.charCountForGraphemeClusterLegacy("Hello", 0));
+        assertEquals(1, WCWidth.charCountForGraphemeClusterLegacy("Hello", 1));
+    }
+
+    @Test
+    void charCountForGraphemeClusterLegacy_cjk() {
+        assertEquals(1, WCWidth.charCountForGraphemeClusterLegacy("中", 0));
+    }
+
+    @Test
+    void charCountForGraphemeClusterLegacy_variationSelector() {
+        assertEquals(2, WCWidth.charCountForGraphemeClusterLegacy(STAR_TEXT, 0));
+    }
+
+    @Test
+    void charCountForGraphemeClusterLegacy_emptyAtEnd() {
+        assertEquals(0, WCWidth.charCountForGraphemeClusterLegacy("A", 1));
+    }
+
+    // --- charCountForGraphemeClusterBreakIterator (JDK 21+ path) ---
+
+    @Test
+    void charCountForGraphemeClusterBreakIterator_familyEmoji() {
+        assumeTrue(WCWidth.HAS_JDK_GRAPHEME_SUPPORT, "Requires JDK 21+");
+        assertEquals(11, WCWidth.charCountForGraphemeClusterBreakIterator(FAMILY_EMOJI, 0));
+    }
+
+    @Test
+    void charCountForGraphemeClusterBreakIterator_flag() {
+        assumeTrue(WCWidth.HAS_JDK_GRAPHEME_SUPPORT, "Requires JDK 21+");
+        assertEquals(4, WCWidth.charCountForGraphemeClusterBreakIterator(FLAG_FR, 0));
+    }
+
+    @Test
+    void charCountForGraphemeClusterBreakIterator_skinTone() {
+        assumeTrue(WCWidth.HAS_JDK_GRAPHEME_SUPPORT, "Requires JDK 21+");
+        assertEquals(4, WCWidth.charCountForGraphemeClusterBreakIterator(WAVE_SKIN, 0));
+    }
+
+    @Test
+    void charCountForGraphemeClusterBreakIterator_womanScientist() {
+        assumeTrue(WCWidth.HAS_JDK_GRAPHEME_SUPPORT, "Requires JDK 21+");
+        assertEquals(5, WCWidth.charCountForGraphemeClusterBreakIterator(WOMAN_SCIENTIST, 0));
+    }
+
+    @Test
+    void charCountForGraphemeClusterBreakIterator_ascii() {
+        assumeTrue(WCWidth.HAS_JDK_GRAPHEME_SUPPORT, "Requires JDK 21+");
+        assertEquals(1, WCWidth.charCountForGraphemeClusterBreakIterator("Hello", 0));
+        assertEquals(1, WCWidth.charCountForGraphemeClusterBreakIterator("Hello", 1));
+    }
+
+    @Test
+    void charCountForGraphemeClusterBreakIterator_cjk() {
+        assumeTrue(WCWidth.HAS_JDK_GRAPHEME_SUPPORT, "Requires JDK 21+");
+        assertEquals(1, WCWidth.charCountForGraphemeClusterBreakIterator("中", 0));
+    }
+
+    @Test
+    void charCountForGraphemeClusterBreakIterator_variationSelector() {
+        assumeTrue(WCWidth.HAS_JDK_GRAPHEME_SUPPORT, "Requires JDK 21+");
+        assertEquals(2, WCWidth.charCountForGraphemeClusterBreakIterator(STAR_TEXT, 0));
+    }
+
+    @Test
+    void charCountForGraphemeClusterBreakIterator_emptyAtEnd() {
+        assumeTrue(WCWidth.HAS_JDK_GRAPHEME_SUPPORT, "Requires JDK 21+");
+        assertEquals(0, WCWidth.charCountForGraphemeClusterBreakIterator("A", 1));
+    }
+
+    @Test
+    void charCountForGraphemeCluster_bothPathsAgree() {
+        // On JDK 21+, both implementations should produce the same results
+        // for standard emoji sequences
+        assumeTrue(WCWidth.HAS_JDK_GRAPHEME_SUPPORT, "Requires JDK 21+");
+        for (String emoji : new String[] {FAMILY_EMOJI, FLAG_FR, WAVE_SKIN, WOMAN_SCIENTIST, STAR_TEXT}) {
+            assertEquals(
+                    WCWidth.charCountForGraphemeClusterLegacy(emoji, 0),
+                    WCWidth.charCountForGraphemeClusterBreakIterator(emoji, 0),
+                    "Mismatch for: " + emoji);
+        }
+    }
+
+    // --- wcwidthForGraphemeCluster ---
+
+    @Test
+    void wcwidthForGraphemeCluster_singleAsciiChar() {
+        // Single ASCII char — no cluster extensions, returns wcwidth('A') = 1
+        assertEquals(1, WCWidth.wcwidthForGraphemeCluster("A", 0));
+    }
+
+    @Test
+    void wcwidthForGraphemeCluster_singleCjk() {
+        // Single CJK character — already wide, returns 2
+        assertEquals(2, WCWidth.wcwidthForGraphemeCluster("中", 0));
+    }
+
+    @Test
+    void wcwidthForGraphemeCluster_vs16UpgradesWidth() {
+        // White flag (wcwidth=1) + VS16 → emoji presentation = 2
+        assertEquals(2, WCWidth.wcwidthForGraphemeCluster("\uD83C\uDFF3\uFE0F", 0));
+    }
+
+    @Test
+    void wcwidthForGraphemeCluster_vs15DowngradesWidth() {
+        // Party popper (Emoji_Presentation=Yes, wcwidth=2) + VS15 → text presentation = 1
+        assertEquals(1, WCWidth.wcwidthForGraphemeCluster("\uD83C\uDF89\uFE0E", 0));
+    }
+
+    @Test
+    void wcwidthForGraphemeCluster_zjwWithoutVariationSelector() {
+        // Family emoji — base 👨 has wcwidth=2, no VS in cluster, returns 2
+        assertEquals(2, WCWidth.wcwidthForGraphemeCluster(FAMILY_EMOJI, 0));
+        // Woman scientist — base 👩 has wcwidth=2, no VS, returns 2
+        assertEquals(2, WCWidth.wcwidthForGraphemeCluster(WOMAN_SCIENTIST, 0));
+    }
+
+    @Test
+    void wcwidthForGraphemeCluster_flagPair() {
+        // Regional indicator pair — base has wcwidth=2, returns 2
+        assertEquals(2, WCWidth.wcwidthForGraphemeCluster(FLAG_FR, 0));
+    }
+
+    @Test
+    void wcwidthForGraphemeCluster_skinTone() {
+        // Waving hand + skin tone modifier — base has wcwidth=2, no VS, returns 2
+        assertEquals(2, WCWidth.wcwidthForGraphemeCluster(WAVE_SKIN, 0));
+    }
+
+    @Test
+    void wcwidthForGraphemeCluster_rainbowFlag() {
+        // White flag + VS16 + ZWJ + rainbow — VS16 found, returns 2
+        assertEquals(2, WCWidth.wcwidthForGraphemeCluster("\uD83C\uDFF3\uFE0F\u200D\uD83C\uDF08", 0));
+    }
+
+    @Test
+    void wcwidthForGraphemeCluster_combiningMarkAlone() {
+        // Combining acute accent alone — wcwidth=0, no VS, returns 0
+        assertEquals(0, WCWidth.wcwidthForGraphemeCluster("\u0301", 0));
+    }
+
+    @Test
+    void wcwidthForGraphemeCluster_atMiddleOfString() {
+        // "A" + white flag + VS16 — cluster at index 1
+        String text = "A\uD83C\uDFF3\uFE0F";
+        assertEquals(1, WCWidth.wcwidthForGraphemeCluster(text, 0));
+        assertEquals(2, WCWidth.wcwidthForGraphemeCluster(text, 1));
+    }
+
     // --- charCountForDisplay ---
 
     @Test
-    void charCountForDisplay_nullTerminal_returnsSingleCodepointSize() {
-        // Surrogate pair = 2 chars for the first codepoint
-        assertEquals(2, WCWidth.charCountForDisplay(FAMILY_EMOJI, 0, null));
-        // ASCII
+    void charCountForDisplay_nullTerminal() {
+        if (WCWidth.HAS_JDK_GRAPHEME_SUPPORT) {
+            // JDK 21+: grapheme cluster segmentation used without terminal
+            assertEquals(11, WCWidth.charCountForDisplay(FAMILY_EMOJI, 0, null));
+        } else {
+            // Older JDK: per-codepoint, surrogate pair = 2 chars
+            assertEquals(2, WCWidth.charCountForDisplay(FAMILY_EMOJI, 0, null));
+        }
+        // ASCII and CJK unchanged regardless
         assertEquals(1, WCWidth.charCountForDisplay("Hello", 0, null));
-        // CJK BMP
         assertEquals(1, WCWidth.charCountForDisplay("中", 0, null));
     }
 
@@ -207,5 +385,27 @@ public class WCWidthTest {
         } finally {
             t.close();
         }
+    }
+
+    // --- JDK 21+ grapheme cluster support without terminal ---
+
+    @Test
+    void wcwidthForDisplay_nullTerminal_emojiClusters() {
+        assumeTrue(WCWidth.HAS_JDK_GRAPHEME_SUPPORT, "Requires JDK 21+ grapheme support");
+        // JDK 21+: grapheme cluster-aware widths without terminal
+        assertEquals(2, WCWidth.wcwidthForDisplay(FAMILY_EMOJI, 0, null));
+        assertEquals(2, WCWidth.wcwidthForDisplay(FLAG_FR, 0, null));
+        assertEquals(2, WCWidth.wcwidthForDisplay(WAVE_SKIN, 0, null));
+        assertEquals(2, WCWidth.wcwidthForDisplay(WOMAN_SCIENTIST, 0, null));
+    }
+
+    @Test
+    void wcwidthForDisplay_nullTerminal_variationSelectors() {
+        assumeTrue(WCWidth.HAS_JDK_GRAPHEME_SUPPORT, "Requires JDK 21+ grapheme support");
+        // Rainbow flag: VS16 found → width 2
+        String rainbowFlag = "\uD83C\uDFF3\uFE0F\u200D\uD83C\uDF08";
+        assertEquals(2, WCWidth.wcwidthForDisplay(rainbowFlag, 0, null));
+        // Star + VS15 → text presentation = width 1
+        assertEquals(1, WCWidth.wcwidthForDisplay(STAR_TEXT, 0, null));
     }
 }

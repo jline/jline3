@@ -234,7 +234,21 @@ Terminal terminal = TerminalBuilder.builder()
 
 - **Use `exec:java` instead of `exec:exec`** if your project does not require JPMS module path
   support. `exec:java` runs in the same JVM as Maven and inherits the terminal.
-- **Wrap with `script`** to allocate a PTY: `script -q /dev/null mvn exec:exec ...`
+- **Wrap with `script`** to allocate a PTY:
+  ```bash
+  # macOS / BSD
+  script -q /dev/null mvn exec:exec
+
+  # Linux (util-linux)
+  script -q -c "mvn exec:exec" /dev/null
+  ```
+- **Use `ProcessBuilder` with `inheritIO()`** if you control the launcher. This preserves the
+  TTY connection to the child process:
+  ```java
+  new ProcessBuilder("java", "-jar", "myapp.jar")
+          .inheritIO()
+          .start();
+  ```
 
 :::note
 The `/dev/tty` fallback is opt-in because it changes the source of terminal input. When enabled,
