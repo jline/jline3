@@ -36,10 +36,14 @@ public final class GraphemeClusterTestTerminal {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("test", "xterm-256color", out, StandardCharsets.UTF_8);
-        // Feed DECRPM probe response indicating mode 2027 is supported
-        terminal.slaveInputPipe.write("\033[?2027;2$y".getBytes(StandardCharsets.UTF_8));
+        // Feed DECRPM probe response indicating mode 2027 is supported,
+        // followed by the DA1 sentinel response that probeMode2027() drains
+        terminal.slaveInputPipe.write("\033[?2027;2$y\033[?62c".getBytes(StandardCharsets.UTF_8));
         terminal.slaveInputPipe.flush();
-        terminal.setGraphemeClusterMode(true);
+        if (!terminal.setGraphemeClusterMode(true, false)) {
+            terminal.close();
+            throw new IllegalStateException("Failed to enable grapheme cluster mode");
+        }
         return terminal;
     }
 }

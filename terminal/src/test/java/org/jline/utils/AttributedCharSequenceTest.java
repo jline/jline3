@@ -20,6 +20,7 @@ import org.jline.terminal.impl.GraphemeClusterTestTerminal;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class AttributedCharSequenceTest {
 
@@ -46,27 +47,27 @@ public class AttributedCharSequenceTest {
 
     @Test
     public void testGraphemeClusterColumnLength() {
-        // Test per-codepoint widths without grapheme cluster mode.
-
-        // Family emoji: per-codepoint = 2+0+2+0+2+0+2 = 8
+        // columnLength() without terminal: on JDK 21+ uses grapheme cluster widths
         AttributedString family = new AttributedString(FAMILY_EMOJI);
-        assertEquals(8, family.columnLength());
-
-        // Flag: per-codepoint = 2+2 = 4
         AttributedString flag = new AttributedString(FLAG_FR);
-        assertEquals(4, flag.columnLength());
-
-        // Skin tone: per-codepoint = 2+0 = 2
         AttributedString wave = new AttributedString(WAVE_SKIN);
-        assertEquals(2, wave.columnLength());
-
-        // Woman scientist: per-codepoint = 2+0+2 = 4
         AttributedString scientist = new AttributedString(WOMAN_SCIENTIST);
-        assertEquals(4, scientist.columnLength());
-
-        // Mixed: "Hi " + family + " end"
         AttributedString mixed = new AttributedString("Hi " + FAMILY_EMOJI + " end");
-        assertEquals(3 + 8 + 4, mixed.columnLength());
+
+        if (WCWidth.HAS_JDK_GRAPHEME_SUPPORT) {
+            assertEquals(2, family.columnLength());
+            assertEquals(2, flag.columnLength());
+            assertEquals(2, wave.columnLength());
+            assertEquals(2, scientist.columnLength());
+            assertEquals(3 + 2 + 4, mixed.columnLength());
+        } else {
+            // Older JDK: per-codepoint widths
+            assertEquals(8, family.columnLength()); // 2+0+2+0+2+0+2
+            assertEquals(4, flag.columnLength()); // 2+2
+            assertEquals(2, wave.columnLength()); // 2+0
+            assertEquals(4, scientist.columnLength()); // 2+0+2
+            assertEquals(3 + 8 + 4, mixed.columnLength());
+        }
     }
 
     @Test
@@ -179,9 +180,13 @@ public class AttributedCharSequenceTest {
             // Mixed: "Hi " (3) + rainbow flag (2) + " end" (4) = 9
             assertEquals(9, new AttributedString("Hi " + RAINBOW_FLAG + " end").columnLength(t));
 
-            // Without terminal: per-codepoint widths (no cluster awareness)
-            // Rainbow flag: wcwidth(0x1F3F3)=1 + 0(FE0F) + 0(ZWJ) + wcwidth(0x1F308)=2 = 3
-            assertEquals(3, new AttributedString(RAINBOW_FLAG).columnLength());
+            // Without terminal: behavior depends on JDK version
+            if (WCWidth.HAS_JDK_GRAPHEME_SUPPORT) {
+                assertEquals(2, new AttributedString(RAINBOW_FLAG).columnLength());
+            } else {
+                // Rainbow flag: wcwidth(0x1F3F3)=1 + 0(FE0F) + 0(ZWJ) + wcwidth(0x1F308)=2 = 3
+                assertEquals(3, new AttributedString(RAINBOW_FLAG).columnLength());
+            }
         } finally {
             t.close();
         }
@@ -223,6 +228,31 @@ public class AttributedCharSequenceTest {
         } finally {
             t.close();
         }
+    }
+
+    @Test
+    void testColumnSubSequenceNoTerminal() {
+        assumeTrue(WCWidth.HAS_JDK_GRAPHEME_SUPPORT, "Requires JDK 21+ grapheme support");
+
+        // JDK 21+: grapheme cluster-aware without terminal
+        String text = "AB" + FAMILY_EMOJI + "CD";
+        AttributedString as = new AttributedString(text);
+        assertEquals("AB", as.columnSubSequence(0, 2).toString());
+        assertEquals(FAMILY_EMOJI, as.columnSubSequence(2, 4).toString());
+        assertEquals("CD", as.columnSubSequence(4, 6).toString());
+    }
+
+    @Test
+    void testColumnSplitLengthNoTerminal() {
+        assumeTrue(WCWidth.HAS_JDK_GRAPHEME_SUPPORT, "Requires JDK 21+ grapheme support");
+
+        // JDK 21+: grapheme cluster-aware without terminal
+        String text = "AB" + FAMILY_EMOJI + "CD";
+        AttributedString as = new AttributedString(text);
+        List<AttributedString> lines = as.columnSplitLength(4);
+        assertEquals(2, lines.size());
+        assertEquals("AB" + FAMILY_EMOJI, lines.get(0).toString());
+        assertEquals("CD", lines.get(1).toString());
     }
 
     @Test
