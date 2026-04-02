@@ -704,8 +704,11 @@ public class SwingTerminal extends LineDisciplineTerminal {
                     || (cp >= 0x30000 && cp <= 0x3FFFD);
         }
 
-        private Color getAnsiColor(int color) {
-            return new Color(((color >> 8) & 0x0f) << 4, ((color >> 4) & 0x0f) << 4, ((color >> 0) & 0x0f) << 4);
+        private static Color getAnsiColor(int color) {
+            int rn = (color >> 8) & 0x0f;
+            int gn = (color >> 4) & 0x0f;
+            int bn = (color >> 0) & 0x0f;
+            return new Color((rn << 4) | rn, (gn << 4) | gn, (bn << 4) | bn);
         }
 
         /**
