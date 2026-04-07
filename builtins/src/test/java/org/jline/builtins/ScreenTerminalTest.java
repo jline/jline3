@@ -276,6 +276,24 @@ public class ScreenTerminalTest {
     }
 
     /**
+     * When both conceal (SGR 8) and dim (SGR 2) are active, conceal must win:
+     * the foreground must equal the background so text remains invisible.
+     * Dim must not alter the foreground after concealment.
+     */
+    @Test
+    void testConcealPlusDimInteraction() throws InterruptedException {
+        ScreenTerminal terminal = new ScreenTerminal(80, 24);
+        // Set dim + conceal, then write a character
+        terminal.write("\033[2;8mX\033[0m");
+
+        String dump = terminal.dump(0, true);
+        // With conceal active, fg must equal bg regardless of dim.
+        // Default bg is #000000, so fg should also be #000000 (not a dimmed value).
+        assertTrue(dump.contains("color:#000000;"), "Concealed+dim: fg should match bg, got: " + dump);
+        assertTrue(dump.contains("background-color:#000000;"), "Background should be default black, got: " + dump);
+    }
+
+    /**
      * SGR 22 (normal intensity) must reset both bold and dim per ECMA-48.
      */
     @Test

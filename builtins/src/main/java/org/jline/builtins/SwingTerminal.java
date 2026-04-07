@@ -622,44 +622,11 @@ public class SwingTerminal extends LineDisciplineTerminal {
                 return;
             }
 
-            // Extract colors and attributes
-            int bg = (int) ((attr) & 0x0fff);
-            int fg = (int) ((attr >>> 12) & 0x0fff);
+            // Resolve effective colors (handles defaults, inverse, conceal, dim, cursor)
+            int[] colors = resolveColors(attr, isCursor, cursorVisible.get());
+            int fg = colors[0];
+            int bg = colors[1];
             boolean underline = (attr & 0x01000000L) != 0;
-            boolean inverse = (attr & 0x02000000L) != 0;
-            boolean conceal = (attr & 0x04000000L) != 0;
-            boolean bold = (attr & 0x08000000L) != 0;
-            boolean fgset = (attr & 0x10000000L) != 0;
-            boolean bgset = (attr & 0x20000000L) != 0;
-            boolean dim = (attr & 0x40000000L) != 0;
-            boolean italic = (attr & 0x80000000L) != 0;
-
-            if (!fgset) {
-                fg = 0x0fff; // Default white foreground
-            }
-            if (!bgset) {
-                bg = 0; // Default black background
-            }
-
-            // Handle inverse
-            if (inverse) {
-                int temp = fg;
-                fg = bg;
-                bg = temp;
-            }
-
-            // Handle conceal - hide text by making foreground match background
-            if (conceal) {
-                fg = bg;
-            } else if (dim) { // Handle dim (reduce foreground intensity)
-                fg = (((fg >> 8) & 0x0f) >> 1) << 8 | (((fg >> 4) & 0x0f) >> 1) << 4 | ((fg & 0x0f) >> 1);
-            }
-
-            // Handle cursor
-            if (isCursor && cursorVisible.get()) {
-                bg = 0x0fff; // White background for cursor
-                fg = 0; // Black foreground for cursor
-            }
 
             // Calculate position
             int cellX = x * charWidth;
@@ -675,16 +642,7 @@ public class SwingTerminal extends LineDisciplineTerminal {
             // Paint character if not space
             if (cp != ' ') {
                 g2d.setColor(getAnsiColor(fg));
-
-                // Set font style
-                int style = Font.PLAIN;
-                if (bold) {
-                    style |= Font.BOLD;
-                }
-                if (italic) {
-                    style |= Font.ITALIC;
-                }
-                g2d.setFont(terminalFont.deriveFont(style));
+                g2d.setFont(terminalFont.deriveFont(resolveFontStyle(attr)));
 
                 // Draw character using code point for proper non-BMP support
                 String str = new String(Character.toChars(cp));
@@ -709,6 +667,80 @@ public class SwingTerminal extends LineDisciplineTerminal {
                     || (cp >= 0xFFE0 && cp <= 0xFFE6)
                     || (cp >= 0x20000 && cp <= 0x2FFFD)
                     || (cp >= 0x30000 && cp <= 0x3FFFD);
+        }
+
+        /**
+         * Resolves the effective foreground and background colors from cell attributes,
+         * accounting for default colors, inverse video, concealed text, and dim mode.
+         *
+         * @param attr the 32-bit attribute value (upper half of the cell long, already right-shifted)
+         * @param isCursor true if this cell is at the cursor position
+         * @param cursorVisible true if the cursor is currently visible
+         * @return a two-element array: [0] = foreground color (12-bit RGB), [1] = background color (12-bit RGB)
+         */
+        static int[] resolveColors(long attr, boolean isCursor, boolean cursorVisible) {
+            int bg = (int) ((attr) & 0x0fff);
+            int fg = (int) ((attr >>> 12) & 0x0fff);
+            boolean inverse = (attr & 0x02000000L) != 0;
+            boolean conceal = (attr & 0x04000000L) != 0;
+            boolean fgset = (attr & 0x10000000L) != 0;
+            boolean bgset = (attr & 0x20000000L) != 0;
+            boolean dim = (attr & 0x40000000L) != 0;
+
+            if (!fgset) {
+                fg = 0x0fff; // Default white foreground
+            }
+            if (!bgset) {
+                bg = 0; // Default black background
+            }
+
+            if (inverse) {
+                int temp = fg;
+                fg = bg;
+                bg = temp;
+            }
+
+            if (conceal) {
+                fg = bg;
+            } else if (dim) {
+                fg = dimColor(fg);
+            }
+
+            if (isCursor && cursorVisible) {
+                bg = 0x0fff;
+                fg = 0;
+            }
+
+            return new int[] {fg, bg};
+        }
+
+        /**
+         * Reduces the intensity of a 12-bit RGB color by halving each 4-bit channel.
+         *
+         * @param color the 12-bit RGB color value (0x000–0xfff)
+         * @return the dimmed color with each channel halved
+         */
+        static int dimColor(int color) {
+            return (((color >> 8) & 0x0f) >> 1) << 8 | (((color >> 4) & 0x0f) >> 1) << 4 | ((color & 0x0f) >> 1);
+        }
+
+        /**
+         * Determines the AWT font style flags from cell attributes.
+         *
+         * @param attr the 32-bit attribute value (upper half of the cell long, already right-shifted)
+         * @return a combination of {@link Font#PLAIN}, {@link Font#BOLD}, and {@link Font#ITALIC}
+         */
+        static int resolveFontStyle(long attr) {
+            boolean bold = (attr & 0x08000000L) != 0;
+            boolean italic = (attr & 0x80000000L) != 0;
+            int style = Font.PLAIN;
+            if (bold) {
+                style |= Font.BOLD;
+            }
+            if (italic) {
+                style |= Font.ITALIC;
+            }
+            return style;
         }
 
         /**
