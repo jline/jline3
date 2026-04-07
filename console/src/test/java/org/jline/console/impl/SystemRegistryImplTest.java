@@ -36,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 /**
  * Tests for SystemRegistryImpl class.
  */
+@SuppressWarnings("deprecation")
 public class SystemRegistryImplTest {
 
     private Terminal terminal;

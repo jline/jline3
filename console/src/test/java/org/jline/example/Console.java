@@ -44,6 +44,7 @@ import org.jline.widget.AutosuggestionWidgets;
 import org.jline.widget.TailTipWidgets;
 import org.jline.widget.TailTipWidgets.TipType;
 
+@SuppressWarnings("deprecation")
 public class Console {
     private static Map<String, CmdDesc> compileTailTips() {
         Map<String, CmdDesc> tailTips = new HashMap<>();

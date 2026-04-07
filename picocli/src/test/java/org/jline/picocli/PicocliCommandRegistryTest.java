@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for {@link PicocliCommandRegistry}.
  */
+@SuppressWarnings("deprecation")
 public class PicocliCommandRegistryTest {
 
     private CommandLine commandLine;
