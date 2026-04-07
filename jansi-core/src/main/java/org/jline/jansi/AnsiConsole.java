@@ -195,8 +195,11 @@ public class AnsiConsole {
             if (terminal == null) {
                 TerminalBuilder builder = TerminalBuilder.builder()
                         .system(true)
-                        .name("jansi")
-                        .providers(System.getProperty(JANSI_PROVIDERS));
+                        .name("jansi");
+                String providers = System.getProperty(JANSI_PROVIDERS);
+                if (providers != null) {
+                    builder.providers(providers);
+                }
                 String graceful = System.getProperty(JANSI_GRACEFUL);
                 if (graceful != null) {
                     builder.dumb(Boolean.parseBoolean(graceful));
