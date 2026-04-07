@@ -2128,10 +2128,7 @@ public class ScreenTerminal {
         // Handle concealed
         if (conceal) {
             fg = bg; // Make text invisible by setting foreground to background
-        }
-
-        // Handle dim (reduce foreground intensity)
-        if (dim) {
+        } else if (dim) { // Handle dim (reduce foreground intensity)
             fg = (((fg >> 8) & 0x0f) >> 1) << 8 | (((fg >> 4) & 0x0f) >> 1) << 4 | ((fg & 0x0f) >> 1);
         }
 
