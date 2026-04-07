@@ -421,9 +421,12 @@ public final class WCWidth {
      * of the given character sequence. Returns {@code null} when JDK grapheme
      * support is unavailable (&lt; 21).
      *
-     * <p>Callers that iterate over a string should create the iterator once and
-     * pass it to {@link #charCountForGraphemeClusterBreakIterator(CharSequence, int, BreakIterator)}
-     * to avoid per-character allocation and {@code toString()} overhead.</p>
+     * <p>The returned iterator is bound to the {@code String} produced by
+     * {@code cs.toString()} at creation time. It must only be reused with the
+     * <em>same</em> character sequence; passing it to
+     * {@link #charCountForGraphemeClusterBreakIterator(CharSequence, int, BreakIterator)}
+     * with a different sequence will produce incorrect results. Create a new
+     * iterator for each distinct sequence.</p>
      */
     static BreakIterator createGraphemeBreakIterator(CharSequence cs) {
         if (!HAS_JDK_GRAPHEME_SUPPORT) return null;
