@@ -417,6 +417,22 @@ public final class WCWidth {
     }
 
     /**
+     * Creates a {@link BreakIterator} configured for grapheme cluster segmentation
+     * of the given character sequence. Returns {@code null} when JDK grapheme
+     * support is unavailable (&lt; 21).
+     *
+     * <p>Callers that iterate over a string should create the iterator once and
+     * pass it to {@link #charCountForGraphemeClusterBreakIterator(CharSequence, int, BreakIterator)}
+     * to avoid per-character allocation and {@code toString()} overhead.</p>
+     */
+    static BreakIterator createGraphemeBreakIterator(CharSequence cs) {
+        if (!HAS_JDK_GRAPHEME_SUPPORT) return null;
+        BreakIterator bi = BreakIterator.getCharacterInstance();
+        bi.setText(cs.toString());
+        return bi;
+    }
+
+    /**
      * Uses JDK 21+ {@link BreakIterator} with full UAX #29 Extended Grapheme
      * Cluster segmentation. Automatically stays current with new Unicode
      * versions as the JDK is updated.
@@ -426,6 +442,16 @@ public final class WCWidth {
         if (index >= len) return 0;
         BreakIterator bi = BreakIterator.getCharacterInstance();
         bi.setText(cs.toString());
+        return charCountForGraphemeClusterBreakIterator(cs, index, bi);
+    }
+
+    /**
+     * Uses a pre-configured {@link BreakIterator} to find the grapheme cluster
+     * boundary at the given index, avoiding per-call allocation.
+     */
+    static int charCountForGraphemeClusterBreakIterator(CharSequence cs, int index, BreakIterator bi) {
+        int len = cs.length();
+        if (index >= len) return 0;
         int next = bi.following(index);
         if (next == BreakIterator.DONE) {
             return len - index;
@@ -581,8 +607,27 @@ public final class WCWidth {
      * @return the number of {@code char} units to advance past the display unit beginning at {@code index}
      */
     public static int charCountForDisplay(CharSequence cs, int index, Terminal terminal) {
+        return charCountForDisplay(cs, index, terminal, null);
+    }
+
+    /**
+     * Compute the number of Java chars that form the display unit starting at {@code index},
+     * reusing a pre-configured {@link BreakIterator} to avoid per-call allocation.
+     *
+     * @param cs the character sequence
+     * @param index the starting char index
+     * @param terminal the terminal to consult for grapheme cluster mode, or {@code null}
+     * @param bi a pre-configured BreakIterator from {@link #createGraphemeBreakIterator}, or {@code null}
+     * @return the number of {@code char} units to advance past the display unit beginning at {@code index}
+     */
+    static int charCountForDisplay(CharSequence cs, int index, Terminal terminal, BreakIterator bi) {
         if ((terminal != null && terminal.getGraphemeClusterMode()) || (terminal == null && HAS_JDK_GRAPHEME_SUPPORT)) {
-            int charCount = charCountForGraphemeCluster(cs, index);
+            int charCount;
+            if (bi != null) {
+                charCount = charCountForGraphemeClusterBreakIterator(cs, index, bi);
+            } else {
+                charCount = charCountForGraphemeCluster(cs, index);
+            }
             return charCountForDisplayWithGroupings(cs, index, terminal, charCount);
         }
         return Character.charCount(Character.codePointAt(cs, index));
