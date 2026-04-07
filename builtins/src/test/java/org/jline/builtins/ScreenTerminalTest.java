@@ -8,6 +8,8 @@
  */
 package org.jline.builtins;
 
+import java.time.Duration;
+
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -600,7 +602,7 @@ public class ScreenTerminalTest {
      * matching the output of dump(0, true) for the same screen state.
      */
     @Test
-    public void testDirectHtmlDump() throws InterruptedException {
+    void testDirectHtmlDump() throws InterruptedException {
         ScreenTerminal terminal = new ScreenTerminal(10, 3);
         terminal.write("\033[31mHello\033[0m");
 
@@ -625,19 +627,17 @@ public class ScreenTerminalTest {
      * Regression: Object.wait(0) waits forever, so timeout==0 must skip the wait.
      */
     @Test
-    public void testWaitDirtyZeroTimeoutReturnsImmediately() throws InterruptedException {
+    void testWaitDirtyZeroTimeoutReturnsImmediately() {
         ScreenTerminal terminal = new ScreenTerminal(80, 24);
 
         // Consume the initial dirty flag
         terminal.isDirty();
 
         // waitDirty(0) on a non-dirty screen must return false immediately
-        long start = System.currentTimeMillis();
-        boolean result = terminal.waitDirty(0);
-        long elapsed = System.currentTimeMillis() - start;
-
-        assertFalse(result, "Non-dirty screen should return false");
-        assertTrue(elapsed < 1000, "waitDirty(0) should return immediately, took " + elapsed + "ms");
+        assertTimeoutPreemptively(Duration.ofSeconds(1), () -> {
+            boolean result = terminal.waitDirty(0);
+            assertFalse(result, "Non-dirty screen should return false");
+        });
     }
 
     // -----------------------------------------------------------------------
