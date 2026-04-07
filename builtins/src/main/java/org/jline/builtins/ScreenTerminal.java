@@ -1663,8 +1663,15 @@ public class ScreenTerminal {
         }
     }
 
+    /**
+     * Waits for the screen to become dirty, up to the given timeout.
+     *
+     * @param timeout maximum time to wait in milliseconds; if {@code <= 0}, returns immediately
+     * @return true if the screen is dirty
+     * @throws InterruptedException if interrupted while waiting
+     */
     public synchronized boolean waitDirty(long timeout) throws InterruptedException {
-        if (!dirty) {
+        if (!dirty && timeout > 0) {
             wait(timeout);
         }
         return isDirty();
@@ -1939,6 +1946,20 @@ public class ScreenTerminal {
         }
     }
 
+    /**
+     * Waits for the screen to be dirty, then dumps the raw screen content into a subregion.
+     *
+     * @param timeout    maximum time to wait in milliseconds
+     * @param forceDump  if true, dump even if the screen is not dirty
+     * @param fullscreen destination array (must be at least fwidth * fheight)
+     * @param ftop       top row offset
+     * @param fleft      left column offset
+     * @param fheight    number of rows to dump
+     * @param fwidth     number of columns to dump
+     * @param cursor     2-element array to receive cursor [x, y], or null
+     * @return true if the screen was dumped
+     * @throws InterruptedException if interrupted
+     */
     public synchronized boolean dump(
             long timeout,
             boolean forceDump,
@@ -1949,10 +1970,7 @@ public class ScreenTerminal {
             int fwidth,
             int[] cursor)
             throws InterruptedException {
-        if (!dirty && timeout > 0) {
-            wait(timeout);
-        }
-        if (isDirty() || forceDump) {
+        if (forceDump || waitDirty(timeout)) {
             dump(fullscreen, ftop, fleft, fheight, fwidth, cursor);
             return true;
         } else {
@@ -1972,10 +1990,7 @@ public class ScreenTerminal {
      */
     public synchronized boolean dump(long timeout, boolean forceDump, long[] fullscreen, int[] cursor)
             throws InterruptedException {
-        if (!dirty && timeout > 0) {
-            wait(timeout);
-        }
-        if (isDirty() || forceDump) {
+        if (forceDump || waitDirty(timeout)) {
             dump(fullscreen, cursor);
             return true;
         } else {
@@ -1992,15 +2007,26 @@ public class ScreenTerminal {
      * @throws InterruptedException if interrupted
      */
     public synchronized String dump(long timeout, boolean forceDump) throws InterruptedException {
+        if (forceDump || waitDirty(timeout)) {
+            return dump();
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Dumps the terminal content as HTML with inline RGB color styles.
+     *
+     * @return the terminal content as HTML.
+     */
+    public synchronized String dump() {
         boolean inverse = vt100_mode_inverse;
         boolean cursorVisible = vt100_mode_cursor;
         int w = getWidth();
         int h = getHeight();
         long[] screen = new long[w * h];
         int[] cursor = new int[2];
-        if (!dump(timeout, forceDump, screen, cursor)) {
-            return null;
-        }
+        dump(screen, cursor);
         int cx = cursor[0];
         int cy = cursor[1];
         StringBuilder sb = new StringBuilder();
@@ -2010,12 +2036,7 @@ public class ScreenTerminal {
             for (int x = 0; x < w; x++) {
                 long d = screen[y * w + x];
                 int c = (int) (d & 0xffffffffL);
-                long a = d >>> 32;
-                // Apply cursor styling
-                if (cursorVisible && cy == y && cx == x) {
-                    a = (a & 0xfffff000L) | 0x20000000 | 0x0fff; // white bg for cursor
-                    a = (a & 0xff000fffL) | 0x10000000; // black fg for cursor
-                }
+                long a = resolveCellAttr(d >>> 32, cursorVisible, x, y, cx, cy);
                 if (a != prevAttr) {
                     if (prevAttr != -1) {
                         sb.append("</span>");
@@ -2023,28 +2044,45 @@ public class ScreenTerminal {
                     sb.append(generateSpanTag(a, inverse));
                     prevAttr = a;
                 }
-                switch (c) {
-                    case '&':
-                        sb.append("&amp;");
-                        break;
-                    case '<':
-                        sb.append("&lt;");
-                        break;
-                    case '>':
-                        sb.append("&gt;");
-                        break;
-                    default:
-                        if (c == 0) {
-                            break; // wide char continuation
-                        }
-                        sb.appendCodePoint(c);
-                        break;
-                }
+                appendEscapedChar(sb, c);
             }
             sb.append("\n");
         }
         sb.append("</span></pre></div>");
         return sb.toString();
+    }
+
+    /**
+     * Resolves the display attribute for a cell, applying cursor styling if the cell is at the cursor position.
+     */
+    private static long resolveCellAttr(long a, boolean cursorVisible, int x, int y, int cx, int cy) {
+        if (cursorVisible && cy == y && cx == x) {
+            a = (a & 0xfffff000L) | 0x20000000 | 0x0fff; // white bg for cursor
+            a = (a & 0xff000fffL) | 0x10000000; // black fg for cursor
+        }
+        return a;
+    }
+
+    /**
+     * Appends a character to the buffer, escaping HTML special characters.
+     */
+    private static void appendEscapedChar(StringBuilder sb, int c) {
+        switch (c) {
+            case '&':
+                sb.append("&amp;");
+                break;
+            case '<':
+                sb.append("&lt;");
+                break;
+            case '>':
+                sb.append("&gt;");
+                break;
+            case 0:
+                break; // wide char continuation
+            default:
+                sb.appendCodePoint(c);
+                break;
+        }
     }
 
     /**
