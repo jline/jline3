@@ -595,6 +595,51 @@ public class ScreenTerminalTest {
         assertFalse(terminal.isDirty(), "Should not be dirty after consuming again");
     }
 
+    /**
+     * The no-arg dump() must return HTML directly without waiting,
+     * matching the output of dump(0, true) for the same screen state.
+     */
+    @Test
+    public void testDirectHtmlDump() throws InterruptedException {
+        ScreenTerminal terminal = new ScreenTerminal(10, 3);
+        terminal.write("\033[31mHello\033[0m");
+
+        // Consume dirty flag so dump(0,true) uses forceDump path
+        terminal.isDirty();
+        String viaDumpTimeout = terminal.dump(0, true);
+        assertNotNull(viaDumpTimeout);
+
+        // Write the same content again for a fresh terminal
+        ScreenTerminal terminal2 = new ScreenTerminal(10, 3);
+        terminal2.write("\033[31mHello\033[0m");
+
+        String viaDumpDirect = terminal2.dump();
+        assertNotNull(viaDumpDirect);
+        assertTrue(viaDumpDirect.contains("<span style='"), "Should contain HTML span tags");
+        assertTrue(viaDumpDirect.contains("color:#880000;"), "Should contain red foreground color");
+        assertEquals(viaDumpTimeout, viaDumpDirect, "Direct dump should match dump(0, true)");
+    }
+
+    /**
+     * waitDirty(0) must return immediately rather than blocking indefinitely.
+     * Regression: Object.wait(0) waits forever, so timeout==0 must skip the wait.
+     */
+    @Test
+    public void testWaitDirtyZeroTimeoutReturnsImmediately() throws InterruptedException {
+        ScreenTerminal terminal = new ScreenTerminal(80, 24);
+
+        // Consume the initial dirty flag
+        terminal.isDirty();
+
+        // waitDirty(0) on a non-dirty screen must return false immediately
+        long start = System.currentTimeMillis();
+        boolean result = terminal.waitDirty(0);
+        long elapsed = System.currentTimeMillis() - start;
+
+        assertFalse(result, "Non-dirty screen should return false");
+        assertTrue(elapsed < 1000, "waitDirty(0) should return immediately, took " + elapsed + "ms");
+    }
+
     // -----------------------------------------------------------------------
     // Existing tests (preserved)
     // -----------------------------------------------------------------------
