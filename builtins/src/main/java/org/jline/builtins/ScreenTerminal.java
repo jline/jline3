@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.jline.utils.Colors;
 import org.jline.utils.WCWidth;
@@ -1665,6 +1666,7 @@ public class ScreenTerminal {
 
     /**
      * Waits for the screen to become dirty, up to the given timeout.
+     * Uses a while loop to guard against spurious wakeups.
      *
      * @param timeout maximum time to wait in milliseconds; if {@code <= 0}, returns immediately
      * @return true if the screen is dirty
@@ -1672,7 +1674,14 @@ public class ScreenTerminal {
      */
     public synchronized boolean waitDirty(long timeout) throws InterruptedException {
         if (!dirty && timeout > 0) {
-            wait(timeout);
+            long deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeout);
+            while (!dirty) {
+                long remainingMillis = TimeUnit.NANOSECONDS.toMillis(deadlineNanos - System.nanoTime());
+                if (remainingMillis <= 0) {
+                    break;
+                }
+                wait(remainingMillis);
+            }
         }
         return isDirty();
     }
