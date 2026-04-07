@@ -641,6 +641,33 @@ public class ScreenTerminalTest {
     }
 
     /**
+     * dump(timeout, forceDump=true) must still wait for the timeout before dumping
+     * when the screen is not dirty. This prevents busy-loop spinning when callers
+     * use forceDump in a loop.
+     * Regression: #1768 — short-circuit evaluation of (forceDump || waitDirty(timeout))
+     * skipped the wait entirely when forceDump was true.
+     */
+    @Test
+    void testForceDumpWaitsForTimeout() {
+        ScreenTerminal terminal = new ScreenTerminal(10, 3);
+        terminal.write("Hello");
+
+        // Consume the dirty flag
+        terminal.isDirty();
+
+        long minWaitMs = 200;
+        long start = System.nanoTime();
+        assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {
+            terminal.dump(minWaitMs, true);
+        });
+        long elapsedMs = (System.nanoTime() - start) / 1_000_000;
+
+        assertTrue(
+                elapsedMs >= minWaitMs / 2,
+                "forceDump should still wait for timeout when not dirty, but returned in " + elapsedMs + "ms");
+    }
+
+    /**
      * waitDirty(0) must return immediately rather than blocking indefinitely.
      * Regression: Object.wait(0) waits forever, so timeout==0 must skip the wait.
      */
