@@ -42,6 +42,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jline.utils.Colors;
@@ -1615,6 +1616,28 @@ public class ScreenTerminal {
         while (!dirty.compareAndSet(true, false)) {
             wait();
         }
+    }
+
+    /**
+     * Waits for the screen to become dirty, up to the given timeout.
+     * Uses a while loop to guard against spurious wakeups.
+     *
+     * @param timeout maximum time to wait in milliseconds; if {@code <= 0}, returns immediately
+     * @return true if the screen is dirty
+     * @throws InterruptedException if interrupted while waiting
+     */
+    public synchronized boolean waitDirty(long timeout) throws InterruptedException {
+        if (!dirty.get() && timeout > 0) {
+            long deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeout);
+            while (!dirty.get()) {
+                long remainingMillis = TimeUnit.NANOSECONDS.toMillis(deadlineNanos - System.nanoTime());
+                if (remainingMillis <= 0) {
+                    break;
+                }
+                wait(remainingMillis);
+            }
+        }
+        return dirty.compareAndSet(true, false);
     }
 
     protected synchronized void setDirty() {
