@@ -704,8 +704,22 @@ public class SwingTerminal extends LineDisciplineTerminal {
                     || (cp >= 0x30000 && cp <= 0x3FFFD);
         }
 
-        private Color getAnsiColor(int color) {
-            return new Color(((color >> 8) & 0x0f) << 4, ((color >> 4) & 0x0f) << 4, ((color >> 0) & 0x0f) << 4);
+        /**
+         * Converts a 12-bit packed color value to a {@link Color}.
+         * <p>
+         * Each 4-bit nibble (red, green, blue) is expanded to 8 bits using the
+         * standard duplication method: {@code (nibble << 4) | nibble}. This maps
+         * the full nibble range {@code 0x0–0xF} to {@code 0x00–0xFF}, matching
+         * CSS shorthand color expansion (e.g. {@code #FFF → #FFFFFF}).
+         *
+         * @param color a 12-bit packed RGB value (bits 11–8 = red, 7–4 = green, 3–0 = blue)
+         * @return the corresponding {@link Color}
+         */
+        static Color getAnsiColor(int color) {
+            int rn = (color >> 8) & 0x0f;
+            int gn = (color >> 4) & 0x0f;
+            int bn = (color >> 0) & 0x0f;
+            return new Color((rn << 4) | rn, (gn << 4) | gn, (bn << 4) | bn);
         }
 
         /**
