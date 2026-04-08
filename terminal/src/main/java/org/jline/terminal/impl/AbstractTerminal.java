@@ -595,9 +595,9 @@ public abstract class AbstractTerminal implements TerminalExt {
             }
 
             // --- Flag probe ---
-            int flagCol = probeEmojiWidth(flagEmoji);
+            int flagCol = probeEmojiWidth(flagEmoji, startCol);
             // --- ZWJ probe ---
-            int zwjCol = probeEmojiWidth(zwjEmoji);
+            int zwjCol = probeEmojiWidth(zwjEmoji, startCol);
 
             // Grouped emoji → 2-column displacement; ungrouped → 4
             groupsRegionalIndicators = (flagCol - startCol == 2);
@@ -626,7 +626,7 @@ public abstract class AbstractTerminal implements TerminalExt {
      * Writes a single emoji to the terminal, queries cursor position via
      * DSR/CPR, then cleans up. Returns the 1-based column value.
      */
-    private int probeEmojiWidth(String emoji) throws IOException {
+    private int probeEmojiWidth(String emoji, int startCol) throws IOException {
         puts(Capability.save_cursor);
         writer().write(emoji);
         puts(Capability.user7); // DSR — request cursor position
@@ -634,7 +634,18 @@ public abstract class AbstractTerminal implements TerminalExt {
 
         int col = readCprColumn(200);
 
+        // Erase the probe glyphs: rewind, overwrite the occupied cells with
+        // spaces, then rewind again to leave the cursor in the original saved position.
         puts(Capability.restore_cursor);
+        int width = col - startCol;
+        if (width > 0) {
+            for (int i = 0; i < width; i++) {
+                writer().write(' ');
+            }
+            puts(Capability.restore_cursor);
+        } else {
+            puts(Capability.clr_eol);
+        }
         writer().flush();
         return col;
     }
