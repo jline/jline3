@@ -79,26 +79,32 @@ public abstract class AttributedCharSequence implements CharSequence {
     private static final int HIGH_COLORS = 0x7FFF;
 
     /**
-     * Enum defining color mode forcing options for ANSI rendering.
+     * Controls how indexed (palette) colors are rendered in ANSI output.
      *
-     * <p>
-     * This enum specifies how color rendering should be forced when generating
-     * ANSI escape sequences, regardless of the terminal's reported capabilities.
-     * </p>
+     * <p>These modes only affect colors that have been resolved to a palette index.
+     * Direct RGB colors (set via {@link AttributedStyle#foreground(int, int, int)})
+     * are always emitted as {@code 38;2;r;g;b} when the terminal supports
+     * {@link #HIGH_COLORS}, regardless of this setting.</p>
      */
     public enum ForceMode {
         /**
-         * No forcing; use the terminal's reported color capabilities.
+         * No forcing; indexed colors are rendered using the best encoding for
+         * the terminal's reported color count (basic SGR 30-37/90-97,
+         * 256-color {@code 38;5;n}, or true-color {@code 38;2;r;g;b}).
          */
         None,
 
         /**
-         * Force the use of 256-color mode (8-bit colors).
+         * Force indexed colors to use 256-color encoding ({@code 38;5;n})
+         * even when a basic SGR code would suffice.
          */
         Force256Colors,
 
         /**
-         * Force the use of true color mode (24-bit RGB colors).
+         * Force indexed colors to be expanded to true-color RGB
+         * ({@code 38;2;r;g;b}) via the palette, but only when the terminal
+         * supports {@link #HIGH_COLORS}. This does not override the color
+         * count check for direct RGB values.
          */
         ForceTrueColors
     }
@@ -227,202 +233,463 @@ public abstract class AttributedCharSequence implements CharSequence {
     }
 
     /**
-     * Converts this attributed string to an ANSI escape sequence string
-     * with the specified color capabilities, force mode, color palette,
-     * and alternate character set sequences.
+     * Render this attributed string as an ANSI escape sequence string using the provided
+     * color capabilities and alternate character set sequences.
      *
-     * <p>
-     * This method renders the attributed string with ANSI escape sequences
-     * using the specified number of colors, force mode, color palette, and
-     * alternate character set sequences for box drawing characters.
-     * </p>
-     *
-     * @param colors the number of colors to use (8, 256, or 16777216 for true colors)
-     * @param force the force mode to use for color rendering
-     * @param palette the color palette to use for color conversion, or null for the default palette
-     * @param altIn the sequence to enable the alternate character set, or null to disable
-     * @param altOut the sequence to disable the alternate character set, or null to disable
-     * @return a string with ANSI escape sequences representing this attributed string
+     * @param colors the number of colors to use (commonly 8, 256, or 16777216 for true color)
+     * @param force the force mode controlling whether 256-color or true-color forms are preferred
+     * @param palette the color palette used to map colors, or {@code null} to use the default palette
+     * @param altIn the sequence to enable the alternate character set for box-drawing, or {@code null} to disable
+     * @param altOut the sequence to disable the alternate character set, or {@code null} to disable
+     * @return the ANSI-encoded representation of this attributed string
      */
     public String toAnsi(int colors, ForceMode force, ColorPalette palette, String altIn, String altOut) {
-        StringBuilder sb = new StringBuilder();
+        ByteArrayBuilder buf = new ByteArrayBuilder();
+        toAnsiBytes(buf, colors, force, palette, altIn, altOut);
+        return buf.toStringUtf8();
+    }
+
+    /**
+     * Write the ANSI-encoded UTF-8 bytes for this attributed string into the provided buffer.
+     *
+     * <p>The method encodes styles, colors, decoration attributes, and alternate-charset
+     * box-drawing sequences as ANSI control sequences and appends their UTF-8 bytes to
+     * {@code buf}. If {@code palette} is null, the default palette is used. The method
+     * ensures any active alternate-charset is exited and final style state is reset
+     * before returning.</p>
+     *
+     * @param buf     the byte buffer to write UTF-8 bytes and ANSI control sequences to
+     * @param colors  the number of displayable colors to target when emitting color sequences
+     * @param force   the force mode that influences whether truecolor/256-color forms are used
+     * @param palette the color palette to use for rounding/indexing, or null to use the default
+     * @param altIn   the sequence to enter the terminal's alternate character set, or null
+     * @param altOut  the sequence to exit the terminal's alternate character set, or null
+     */
+    void toAnsiBytes(
+            ByteArrayBuilder buf, int colors, ForceMode force, ColorPalette palette, String altIn, String altOut) {
         long style = 0;
-        long foreground = 0;
-        long background = 0;
+        long[] colorState = {0, 0}; // [foreground, background]
         boolean alt = false;
         if (palette == null) {
             palette = ColorPalette.DEFAULT;
         }
-        for (int i = 0; i < length(); i++) {
-            char c = charAt(i);
-            if (altIn != null && altOut != null) {
-                char pc = c;
-                // @spotless:off
-                switch (c) {
-                    case '┘': c = 'j'; break;
-                    case '┐': c = 'k'; break;
-                    case '┌': c = 'l'; break;
-                    case '└': c = 'm'; break;
-                    case '┼': c = 'n'; break;
-                    case '─': c = 'q'; break;
-                    case '├': c = 't'; break;
-                    case '┤': c = 'u'; break;
-                    case '┴': c = 'v'; break;
-                    case '┬': c = 'w'; break;
-                    case '│': c = 'x'; break;
-                }
-                // @spotless:on
-                boolean oldalt = alt;
-                alt = c != pc;
-                if (oldalt ^ alt) {
-                    sb.append(alt ? altIn : altOut);
-                }
-            } else {
-                // Fallback to ASCII when alternate charset mode is not supported
-                // @spotless:off
-                switch (c) {
-                    case '┘': case '┐': case '┌': case '└': c = '+'; break;
-                    case '┼': c = '+'; break;
-                    case '─': c = '-'; break;
-                    case '├': case '┤': case '┴': case '┬': c = '+'; break;
-                    case '│': c = '|'; break;
-                }
-                // @spotless:on
-            }
-            long s = styleCodeAt(i) & ~F_HIDDEN; // The hidden flag does not change the ansi styles
+        int i = 0;
+        int len = length();
+        while (i < len) {
+            char c = substituteChar(charAt(i), altIn, altOut);
+            alt = emitAltCharset(buf, charAt(i), alt, altIn, altOut);
+            long s = styleCodeAt(i) & ~F_HIDDEN;
             if (style != s) {
-                long d = (style ^ s) & MASK;
-                long fg = (s & F_FOREGROUND) != 0 ? s & (FG_COLOR | F_FOREGROUND) : 0;
-                long bg = (s & F_BACKGROUND) != 0 ? s & (BG_COLOR | F_BACKGROUND) : 0;
-                if (s == 0) {
-                    sb.append("\033[0m");
-                    foreground = background = 0;
-                } else {
-                    sb.append("\033[");
-                    boolean first = true;
-                    if ((d & F_ITALIC) != 0) {
-                        first = attr(sb, (s & F_ITALIC) != 0 ? "3" : "23", first);
-                    }
-                    if ((d & F_UNDERLINE) != 0) {
-                        first = attr(sb, (s & F_UNDERLINE) != 0 ? "4" : "24", first);
-                    }
-                    if ((d & F_BLINK) != 0) {
-                        first = attr(sb, (s & F_BLINK) != 0 ? "5" : "25", first);
-                    }
-                    if ((d & F_INVERSE) != 0) {
-                        first = attr(sb, (s & F_INVERSE) != 0 ? "7" : "27", first);
-                    }
-                    if ((d & F_CONCEAL) != 0) {
-                        first = attr(sb, (s & F_CONCEAL) != 0 ? "8" : "28", first);
-                    }
-                    if ((d & F_CROSSED_OUT) != 0) {
-                        first = attr(sb, (s & F_CROSSED_OUT) != 0 ? "9" : "29", first);
-                    }
-                    if (foreground != fg) {
-                        if (fg > 0) {
-                            int rounded = -1;
-                            if ((fg & F_FOREGROUND_RGB) != 0) {
-                                int r = (int) (fg >> (FG_COLOR_EXP + 16)) & 0xFF;
-                                int g = (int) (fg >> (FG_COLOR_EXP + 8)) & 0xFF;
-                                int b = (int) (fg >> FG_COLOR_EXP) & 0xFF;
-                                if (colors >= HIGH_COLORS) {
-                                    first = attr(sb, "38;2;" + r + ";" + g + ";" + b, first);
-                                } else {
-                                    rounded = palette.round(r, g, b);
-                                }
-                            } else if ((fg & F_FOREGROUND_IND) != 0) {
-                                rounded = palette.round((int) (fg >> FG_COLOR_EXP) & 0xFF);
-                            }
-                            if (rounded >= 0) {
-                                if (colors >= HIGH_COLORS && force == ForceMode.ForceTrueColors) {
-                                    int col = palette.getColor(rounded);
-                                    int r = (col >> 16) & 0xFF;
-                                    int g = (col >> 8) & 0xFF;
-                                    int b = col & 0xFF;
-                                    first = attr(sb, "38;2;" + r + ";" + g + ";" + b, first);
-                                } else if (force == ForceMode.Force256Colors || rounded >= 16) {
-                                    first = attr(sb, "38;5;" + rounded, first);
-                                } else if (rounded >= 8) {
-                                    first = attr(sb, "9" + (rounded - 8), first);
-                                    // small hack to force setting bold again after a foreground color change
-                                    d |= (s & F_BOLD);
-                                } else {
-                                    first = attr(sb, "3" + rounded, first);
-                                    // small hack to force setting bold again after a foreground color change
-                                    d |= (s & F_BOLD);
-                                }
-                            }
-                        } else {
-                            first = attr(sb, "39", first);
-                        }
-                        foreground = fg;
-                    }
-                    if (background != bg) {
-                        if (bg > 0) {
-                            int rounded = -1;
-                            if ((bg & F_BACKGROUND_RGB) != 0) {
-                                int r = (int) (bg >> (BG_COLOR_EXP + 16)) & 0xFF;
-                                int g = (int) (bg >> (BG_COLOR_EXP + 8)) & 0xFF;
-                                int b = (int) (bg >> BG_COLOR_EXP) & 0xFF;
-                                if (colors >= HIGH_COLORS) {
-                                    first = attr(sb, "48;2;" + r + ";" + g + ";" + b, first);
-                                } else {
-                                    rounded = palette.round(r, g, b);
-                                }
-                            } else if ((bg & F_BACKGROUND_IND) != 0) {
-                                rounded = palette.round((int) (bg >> BG_COLOR_EXP) & 0xFF);
-                            }
-                            if (rounded >= 0) {
-                                if (colors >= HIGH_COLORS && force == ForceMode.ForceTrueColors) {
-                                    int col = palette.getColor(rounded);
-                                    int r = (col >> 16) & 0xFF;
-                                    int g = (col >> 8) & 0xFF;
-                                    int b = col & 0xFF;
-                                    first = attr(sb, "48;2;" + r + ";" + g + ";" + b, first);
-                                } else if (force == ForceMode.Force256Colors || rounded >= 16) {
-                                    first = attr(sb, "48;5;" + rounded, first);
-                                } else if (rounded >= 8) {
-                                    first = attr(sb, "10" + (rounded - 8), first);
-                                } else {
-                                    first = attr(sb, "4" + rounded, first);
-                                }
-                            }
-                        } else {
-                            first = attr(sb, "49", first);
-                        }
-                        background = bg;
-                    }
-                    if ((d & (F_BOLD | F_FAINT)) != 0) {
-                        if ((d & F_BOLD) != 0 && (s & F_BOLD) == 0 || (d & F_FAINT) != 0 && (s & F_FAINT) == 0) {
-                            first = attr(sb, "22", first);
-                        }
-                        if ((d & F_BOLD) != 0 && (s & F_BOLD) != 0) {
-                            first = attr(sb, "1", first);
-                        }
-                        if ((d & F_FAINT) != 0 && (s & F_FAINT) != 0) {
-                            first = attr(sb, "2", first);
-                        }
-                    }
-                    sb.append("m");
-                }
+                emitStyleChange(buf, style, s, colorState, colors, force, palette);
                 style = s;
             }
-            sb.append(c);
+            i += emitUtf8Char(buf, c, i, len);
         }
         if (alt) {
-            sb.append(altOut);
+            buf.appendAscii(altOut);
         }
         if (style != 0) {
-            sb.append("\033[0m");
+            buf.csi().appendAscii("0m");
         }
-        return sb.toString();
     }
 
-    private static boolean attr(StringBuilder sb, String s, boolean first) {
-        if (!first) {
-            sb.append(";");
+    /**
+     * Toggle and emit the terminal alternate character set sequence when encountering
+     * box-drawing characters.
+     *
+     * @param buf          buffer to which enter/exit alternate-char sequences are appended
+     * @param originalChar the character being examined for box-drawing status
+     * @param alt          whether the alternate character set is currently active
+     * @param altIn        sequence to enable alternate character set (may be null)
+     * @param altOut       sequence to disable alternate character set (may be null)
+     * @return              `true` if the alternate character set should be active after processing `originalChar`, `false` otherwise
+     */
+    private static boolean emitAltCharset(
+            ByteArrayBuilder buf, char originalChar, boolean alt, String altIn, String altOut) {
+        if (altIn != null && altOut != null) {
+            boolean newAlt = isBoxDrawing(originalChar);
+            if (alt != newAlt) {
+                buf.appendAscii(newAlt ? altIn : altOut);
+            }
+            return newAlt;
         }
-        sb.append(s);
+        return alt;
+    }
+
+    /**
+     * Appends the UTF-8 encoding of the character (or surrogate pair) at position `i` to the buffer.
+     *
+     * If `c` is a UTF-16 high-surrogate and the following code unit (within `len`) is a low-surrogate,
+     * the combined code point is appended.
+     *
+     * @param buf the byte buffer to append UTF-8 bytes into
+     * @param c the character at index `i`
+     * @param i the index within the sequence corresponding to `c`
+     * @param len the sequence length (used to ensure the low-surrogate is within bounds)
+     * @return 2 if a surrogate pair was consumed and appended, otherwise 1
+     */
+    private int emitUtf8Char(ByteArrayBuilder buf, char c, int i, int len) {
+        if (Character.isHighSurrogate(c) && i + 1 < len) {
+            char next = charAt(i + 1);
+            if (Character.isLowSurrogate(next)) {
+                buf.appendUtf8(Character.toCodePoint(c, next));
+                return 2;
+            }
+        }
+        buf.appendUtf8(c);
+        return 1;
+    }
+
+    /**
+     * Emit a single CSI SGR sequence that transitions terminal attributes from prevStyle to newStyle.
+     *
+     * Writes ANSI SGR parameters into the provided ByteArrayBuilder and updates colorState to reflect the
+     * currently applied foreground (index 0) and background (index 1) encodings. If newStyle is zero, a
+     * reset sequence is emitted and colorState entries are cleared.
+     *
+     * @param buf        the byte-oriented builder to which CSI parameters and the final 'm' are appended
+     * @param prevStyle  previously applied style code
+     * @param newStyle   target style code to apply
+     * @param colorState two-element array tracking currently applied foreground (0) and background (1);
+     *                   this method mutates its entries to the values actually emitted
+     * @param colors     terminal maximum color capability (affects truecolor/256-color selection)
+     * @param force      force mode controlling preference for 256/true color output
+     * @param palette    color palette used to round/lookup colors when not emitting direct RGB
+     */
+    private static void emitStyleChange(
+            ByteArrayBuilder buf,
+            long prevStyle,
+            long newStyle,
+            long[] colorState,
+            int colors,
+            ForceMode force,
+            ColorPalette palette) {
+        long fg = (newStyle & F_FOREGROUND) != 0 ? newStyle & (FG_COLOR | F_FOREGROUND) : 0;
+        long bg = (newStyle & F_BACKGROUND) != 0 ? newStyle & (BG_COLOR | F_BACKGROUND) : 0;
+        if (newStyle == 0) {
+            buf.csi().appendAscii("0m");
+            colorState[0] = 0;
+            colorState[1] = 0;
+            return;
+        }
+        long d = (prevStyle ^ newStyle) & MASK;
+        buf.csi();
+        boolean first = true;
+        first = appendDecorationAttrsB(buf, d, newStyle, first);
+        if (colorState[0] != fg) {
+            first = appendColorB(buf, fg, true, colors, force, palette, first);
+            if (fg > 0 && usedBasicFgColor(fg, colors, force, palette)) {
+                d |= (newStyle & F_BOLD);
+            }
+            colorState[0] = fg;
+        }
+        if (colorState[1] != bg) {
+            first = appendColorB(buf, bg, false, colors, force, palette, first);
+            colorState[1] = bg;
+        }
+        first = appendBoldFaintB(buf, d, newStyle, first);
+        buf.appendAscii('m');
+    }
+
+    private static final long[] DECORATION_FLAGS = {F_ITALIC, F_UNDERLINE, F_BLINK, F_INVERSE, F_CONCEAL, F_CROSSED_OUT
+    };
+    private static final String[] DECORATION_ON = {"3", "4", "5", "7", "8", "9"};
+    private static final String[] DECORATION_OFF = {"23", "24", "25", "27", "28", "29"};
+
+    /**
+     * Appends CSI decoration parameters for each decoration flag present in `d` to `buf`, using the
+     * enabled/disabled codes from `s`.
+     *
+     * @param buf the byte buffer receiving CSI parameters
+     * @param d bitmask of decoration flags that have changed and should be emitted
+     * @param s current style bitmask used to choose the ON or OFF code for each flag
+     * @param first true if no CSI parameters have yet been written (affects separator emission)
+     * @return `true` if no parameters were appended (so subsequent parameter should not be prefixed),
+     *         `false` if at least one parameter was appended (so subsequent parameter should be prefixed)
+     */
+    private static boolean appendDecorationAttrsB(ByteArrayBuilder buf, long d, long s, boolean first) {
+        for (int i = 0; i < DECORATION_FLAGS.length; i++) {
+            long flag = DECORATION_FLAGS[i];
+            if ((d & flag) != 0) {
+                first = attrB(buf, (s & flag) != 0 ? DECORATION_ON[i] : DECORATION_OFF[i], first);
+            }
+        }
+        return first;
+    }
+
+    /**
+     * Appends CSI color parameters for a foreground or background color value to the byte buffer.
+     *
+     * <p>Handles three color encodings encoded in {@code colorValue}:
+     * - default (<= 0) emits the reset parameter (39 for foreground, 49 for background),
+     * - RGB (flag present) emits a truecolor parameter when supported or delegates to palette rounding,
+     * - indexed (flag present) rounds the index via {@code palette} and emits an appropriate form.
+     *
+     * @param buf the byte-oriented builder to receive CSI parameters
+     * @param colorValue encoded color value containing flags and components (RGB or indexed)
+     * @param isForeground true when emitting a foreground color, false for background
+     * @param colors current terminal color capability (used to choose truecolor vs palette/indexed forms)
+     * @param force color forcing mode that may override form selection
+     * @param palette palette used to round RGB or indexed values into a terminal index
+     * @param first true if this is the first CSI parameter (no leading separator); updated based on what is emitted
+     * @return true if no parameter was appended (the "first" state remains), false if a parameter was appended */
+    private static boolean appendColorB(
+            ByteArrayBuilder buf,
+            long colorValue,
+            boolean isForeground,
+            int colors,
+            ForceMode force,
+            ColorPalette palette,
+            boolean first) {
+        long rgbFlag = isForeground ? F_FOREGROUND_RGB : F_BACKGROUND_RGB;
+        long indFlag = isForeground ? F_FOREGROUND_IND : F_BACKGROUND_IND;
+        int colorExp = isForeground ? FG_COLOR_EXP : BG_COLOR_EXP;
+        int csiPrefix = isForeground ? 38 : 48;
+        if (colorValue <= 0) {
+            return attrB(buf, isForeground ? "39" : "49", first);
+        }
+        if ((colorValue & rgbFlag) != 0) {
+            int r = (int) (colorValue >> (colorExp + 16)) & 0xFF;
+            int g = (int) (colorValue >> (colorExp + 8)) & 0xFF;
+            int b = (int) (colorValue >> colorExp) & 0xFF;
+            // Direct RGB: emit 38;2/48;2 only if terminal supports high colors;
+            // ForceMode does not override this — it only affects indexed colors
+            if (colors >= HIGH_COLORS) {
+                return attrRgbB(buf, csiPrefix, r, g, b, first);
+            }
+            return appendRoundedColorB(buf, palette.round(r, g, b), isForeground, colors, force, palette, first);
+        }
+        if ((colorValue & indFlag) != 0) {
+            int rounded = palette.round((int) (colorValue >> colorExp) & 0xFF);
+            return appendRoundedColorB(buf, rounded, isForeground, colors, force, palette, first);
+        }
+        return first;
+    }
+
+    /**
+     * Append the appropriate CSI color parameter (truecolor RGB, 256-color index, or basic ANSI color)
+     * for a rounded palette entry to the given buffer.
+     *
+     * @param buf         the byte buffer receiving CSI parameters
+     * @param rounded     the palette index for the desired color, or a negative value to indicate no color
+     * @param isForeground true to emit a foreground color parameter, false for background
+     * @param colors      the terminal's reported color capacity (numeric)
+     * @param force       a ForceMode hint that can force 256- or true-color emission
+     * @param palette     the ColorPalette used to resolve truecolor values when required
+     * @param first       whether this is the first CSI parameter (affects whether a leading separator is emitted)
+     * @return `true` if no separator was emitted (i.e., still first), `false` otherwise.
+     */
+    private static boolean appendRoundedColorB(
+            ByteArrayBuilder buf,
+            int rounded,
+            boolean isForeground,
+            int colors,
+            ForceMode force,
+            ColorPalette palette,
+            boolean first) {
+        int csiPrefix = isForeground ? 38 : 48;
+        if (rounded < 0) {
+            return first;
+        }
+        // ForceTrueColors: expand indexed color to RGB via palette (requires high-color terminal)
+        if (colors >= HIGH_COLORS && force == ForceMode.ForceTrueColors) {
+            int col = palette.getColor(rounded);
+            return attrRgbB(buf, csiPrefix, (col >> 16) & 0xFF, (col >> 8) & 0xFF, col & 0xFF, first);
+        }
+        // Force256Colors: always use 38;5;n encoding; also used for extended palette (index >= 16)
+        if (force == ForceMode.Force256Colors || rounded >= 16) {
+            return attrIdxB(buf, csiPrefix, rounded, first);
+        }
+        int lowBase = isForeground ? 30 : 40;
+        if (rounded >= 8) {
+            return attrIntB(buf, (isForeground ? 90 : 100) + rounded - 8, first);
+        }
+        return attrIntB(buf, lowBase + rounded, first);
+    }
+
+    /**
+     * Determines whether the encoded foreground color should be rendered using a basic (0–15) terminal color.
+     *
+     * <p>For an RGB-encoded or indexed foreground value in `fg`, returns `true` when the palette rounds it to an
+     * index in the 0–15 range and the current `colors`/`force` configuration does not require forcing 256-color
+     * or truecolor output; otherwise returns `false`.</p>
+     *
+     * @param fg      encoded foreground style bits (may contain RGB or indexed color encoding)
+     * @param colors  terminal reported color capacity (used to decide truecolor behavior)
+     * @param force   color forcing mode that may require 256-color or truecolor output
+     * @param palette palette used to round RGB or indexed values to a terminal color index
+     * @return `true` if the foreground maps to a basic terminal color (0–15) and basic-color emission is allowed;
+     *         `false` otherwise.
+     */
+    private static boolean usedBasicFgColor(long fg, int colors, ForceMode force, ColorPalette palette) {
+        int rounded;
+        if ((fg & F_FOREGROUND_RGB) != 0) {
+            if (colors >= HIGH_COLORS) {
+                return false;
+            }
+            int r = (int) (fg >> (FG_COLOR_EXP + 16)) & 0xFF;
+            int g = (int) (fg >> (FG_COLOR_EXP + 8)) & 0xFF;
+            int b = (int) (fg >> FG_COLOR_EXP) & 0xFF;
+            rounded = palette.round(r, g, b);
+        } else if ((fg & F_FOREGROUND_IND) != 0) {
+            rounded = palette.round((int) (fg >> FG_COLOR_EXP) & 0xFF);
+        } else {
+            return false;
+        }
+        return rounded >= 0
+                && rounded < 16
+                && !(colors >= HIGH_COLORS && force == ForceMode.ForceTrueColors)
+                && force != ForceMode.Force256Colors;
+    }
+
+    /**
+     * Appends appropriate SGR parameters for bold and faint transitions to the buffer when those
+     * attributes changed, and updates the CSI parameter separation state.
+     *
+     * @param buf   the byte buffer used to build the CSI sequence
+     * @param d     bitmask of attributes that changed (diff between previous and new style)
+     * @param s     the current style bitmask (after change)
+     * @param first true if no CSI parameter has yet been emitted for this sequence; used to decide
+     *              whether to prepend a separator
+     * @return      the updated `first` flag indicating whether subsequent parameters need a separator
+     *              (`true` if still first, `false` if a parameter was emitted)
+     */
+    private static boolean appendBoldFaintB(ByteArrayBuilder buf, long d, long s, boolean first) {
+        if ((d & (F_BOLD | F_FAINT)) != 0) {
+            if ((d & F_BOLD) != 0 && (s & F_BOLD) == 0 || (d & F_FAINT) != 0 && (s & F_FAINT) == 0) {
+                first = attrB(buf, "22", first);
+            }
+            if ((d & F_BOLD) != 0 && (s & F_BOLD) != 0) {
+                first = attrB(buf, "1", first);
+            }
+            if ((d & F_FAINT) != 0 && (s & F_FAINT) != 0) {
+                first = attrB(buf, "2", first);
+            }
+        }
+        return first;
+    }
+
+    // @spotless:off
+    /**
+     * Map box-drawing characters to alternate-charset codes when alternate sequences are available, otherwise to simple ASCII equivalents.
+     *
+     * @param c the input character to substitute
+     * @param altIn the terminal's enter-alternate-charset sequence, or null if not available
+     * @param altOut the terminal's exit-alternate-charset sequence, or null if not available
+     * @return the substituted character (an alternate-charset code or an ASCII fallback), or the original character if no substitution applies
+     */
+    private static char substituteChar(char c, String altIn, String altOut) {
+        if (altIn != null && altOut != null) {
+            switch (c) {
+                case '┘': return 'j';
+                case '┐': return 'k';
+                case '┌': return 'l';
+                case '└': return 'm';
+                case '┼': return 'n';
+                case '─': return 'q';
+                case '├': return 't';
+                case '┤': return 'u';
+                case '┴': return 'v';
+                case '┬': return 'w';
+                case '│': return 'x';
+                default:  return c;
+            }
+        } else {
+            switch (c) {
+                case '┘': case '┐': case '┌': case '└': return '+';
+                case '┼': return '+';
+                case '─': return '-';
+                case '├': case '┤': case '┴': case '┬': return '+';
+                case '│': return '|';
+                default:  return c;
+            }
+        }
+    }
+
+    /**
+     * Determines whether the given character is one of the supported Unicode box-drawing characters.
+     *
+     * @param c the character to test
+     * @return true if the character is a box-drawing glyph handled by this class, false otherwise
+     */
+    private static boolean isBoxDrawing(char c) {
+        switch (c) {
+            case '┘': case '┐': case '┌': case '└':
+            case '┼': case '─': case '├': case '┤':
+            case '┴': case '┬': case '│':
+                return true;
+            default:
+                return false;
+        }
+    }
+    // @spotless:on
+
+    /**
+     * Append a CSI parameter string to the byte buffer, prefixing with ';' when not the first parameter.
+     *
+     * @param buf   destination ByteArrayBuilder to append ASCII bytes to
+     * @param s     parameter string to append (ASCII)
+     * @param first whether this is the first parameter in the CSI sequence
+     * @return      `false` to indicate subsequent parameters must be separated by ';'
+     */
+    private static boolean attrB(ByteArrayBuilder buf, String s, boolean first) {
+        if (!first) buf.appendAscii(';');
+        buf.appendAscii(s);
+        return false;
+    }
+
+    /**
+     * Append an integer parameter to the byte buffer, prefixing it with ';' when it is not the first parameter.
+     *
+     * @param buf   the byte buffer to append into
+     * @param value the integer value to append as a parameter
+     * @param first true if this is the first CSI parameter (no leading ';'), false otherwise
+     * @return      `false` to indicate subsequent parameters are not the first
+     */
+    private static boolean attrIntB(ByteArrayBuilder buf, int value, boolean first) {
+        if (!first) buf.appendAscii(';');
+        buf.appendInt(value);
+        return false;
+    }
+
+    /**
+     * Append an RGB color parameter sequence to the provided ByteArrayBuilder for a CSI sequence.
+     *
+     * Appends the form "{prefix};2;{r};{g};{b}" and writes a leading ';' if `first` is false.
+     *
+     * @param buf    the byte-oriented builder to append CSI parameters to
+     * @param prefix CSI color prefix (typically 38 for foreground or 48 for background)
+     * @param r      red component (0–255)
+     * @param g      green component (0–255)
+     * @param b      blue component (0–255)
+     * @param first  true when this is the first CSI parameter (omit leading ';'); false otherwise
+     * @return       `false` indicating subsequent parameters are not the first
+     */
+    private static boolean attrRgbB(ByteArrayBuilder buf, int prefix, int r, int g, int b, boolean first) {
+        if (!first) buf.appendAscii(';');
+        buf.appendInt(prefix)
+                .appendAscii(";2;")
+                .appendInt(r)
+                .appendAscii(';')
+                .appendInt(g)
+                .appendAscii(';')
+                .appendInt(b);
+        return false;
+    }
+
+    /**
+     * Appends a CSI indexed-color parameter of the form `prefix;5;idx` to the byte buffer,
+     * inserting a leading `;` only if this is not the first parameter.
+     *
+     * @param buf the byte buffer to append into
+     * @param prefix the CSI color prefix (commonly `38` for foreground or `48` for background)
+     * @param idx the palette index to emit
+     * @param first true if this is the first CSI parameter (omits a leading `;`), false otherwise
+     * @return false (marks that subsequent parameters are no longer the first)
+     */
+    private static boolean attrIdxB(ByteArrayBuilder buf, int prefix, int idx, boolean first) {
+        if (!first) buf.appendAscii(';');
+        buf.appendInt(prefix).appendAscii(";5;").appendInt(idx);
         return false;
     }
 

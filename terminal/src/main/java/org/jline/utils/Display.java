@@ -8,6 +8,9 @@
  */
 package org.jline.utils;
 
+import java.io.IOError;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -93,6 +96,28 @@ public class Display {
     protected boolean delayedWrapAtEol;
     protected final boolean cursorDownIsNewLine;
 
+    // Byte-mode fields: when the terminal uses UTF-8, we accumulate all output
+    // in a ByteArrayBuilder and write directly to terminal.output(), bypassing
+    // PrintWriter/OutputStreamWriter overhead.
+    private ByteArrayBuilder byteBuilder;
+    private Appendable byteAppendable;
+    private boolean useByteMode;
+    private int ansiColors;
+    private AttributedCharSequence.ForceMode ansiForceMode;
+    private ColorPalette ansiPalette;
+    private String ansiAltIn;
+    private String ansiAltOut;
+
+    /**
+     * Create a Display bound to the given Terminal and configured for either full-screen
+     * or inline (partial-screen) usage.
+     *
+     * <p>Queries the terminal for capabilities and initializes internal flags that
+     * control scrolling, wrap-at-end-of-line behavior, and cursor movement semantics.
+     *
+     * @param terminal the target terminal used for rendering
+     * @param fullscreen true to enable full-screen (application-takes-over) mode, false for partial-screen mode
+     */
     @SuppressWarnings("this-escape")
     public Display(Terminal terminal, boolean fullscreen) {
         this.terminal = terminal;
@@ -180,15 +205,37 @@ public class Display {
      * @param flush whether the output should be flushed or not
      */
     public void update(List<AttributedString> newLines, int targetCursorPos, boolean flush) {
+        // Set up byte mode: accumulate all output in a byte buffer for UTF-8 terminals.
+        // This avoids String allocations and charset encoding for ANSI escape sequences.
+        Integer cols = terminal.getNumericCapability(Capability.max_colors);
+        useByteMode = (cols != null && cols >= 8) && StandardCharsets.UTF_8.equals(terminal.outputEncoding());
+        if (useByteMode) {
+            if (byteBuilder == null) {
+                byteBuilder = new ByteArrayBuilder(4096);
+                byteAppendable = byteBuilder.asAsciiAppendable();
+            } else {
+                byteBuilder.reset();
+            }
+            ansiColors = cols;
+            ansiForceMode = AttributedCharSequence.ForceMode.None;
+            ansiPalette = terminal.getPalette();
+            if (!AttributedCharSequence.DISABLE_ALTERNATE_CHARSET) {
+                ansiAltIn = Curses.tputs(terminal.getStringCapability(Capability.enter_alt_charset_mode));
+                ansiAltOut = Curses.tputs(terminal.getStringCapability(Capability.exit_alt_charset_mode));
+            } else {
+                ansiAltIn = null;
+                ansiAltOut = null;
+            }
+        }
+
         if (reset) {
-            terminal.puts(Capability.clear_screen);
+            puts(Capability.clear_screen);
             oldLines.clear();
             cursorPos = 0;
             reset = false;
         }
 
         // If dumb display, get rid of ansi sequences now
-        Integer cols = terminal.getNumericCapability(Capability.max_colors);
         if (cols == null || cols < 8) {
             newLines = newLines.stream()
                     .map(s -> new AttributedString(s.toString()))
@@ -276,7 +323,7 @@ public class Display {
                 if (newLength == 0 || newLine.isHidden(0)) {
                     // go to next line column zero
                     rawPrint(' ');
-                    terminal.puts(Capability.cursor_left);
+                    puts(Capability.cursor_left);
                 } else {
                     AttributedString firstChar = newLine.substring(0, 1);
                     // go to next line column one
@@ -297,7 +344,7 @@ public class Display {
             // based on char-level diffs. Force a full line repaint in this case.
             if (terminal.getGraphemeClusterMode() && !oldLine.equals(newLine)) {
                 cursorPos = moveVisualCursorTo(currentPos);
-                if (!terminal.puts(Capability.clr_eol)) {
+                if (!puts(Capability.clr_eol)) {
                     int oldLen = oldLine.columnLength(terminal);
                     if (oldLen > 0) {
                         rawPrint(' ', oldLen);
@@ -375,7 +422,7 @@ public class Display {
                         int newLen = newLine.columnLength(terminal);
                         int nb = Math.max(oldLen, newLen) - (currentPos - curCol);
                         moveVisualCursorTo(currentPos);
-                        if (!terminal.puts(Capability.clr_eol)) {
+                        if (!puts(Capability.clr_eol)) {
                             rawPrint(' ', nb);
                             cursorPos += nb;
                         }
@@ -394,17 +441,17 @@ public class Display {
                 if (newWrap != oldWrap && !(oldWrap && cleared)) {
                     moveVisualCursorTo(lineIndex * columns1 - 1, newLines);
                     if (newWrap) wrapNeeded = true;
-                    else terminal.puts(Capability.clr_eol);
+                    else puts(Capability.clr_eol);
                 }
             } else if (atRight) {
                 if (this.wrapAtEol) {
                     if (!fullScreen || (fullScreen && lineIndex < numLines)) {
                         rawPrint(' ');
-                        terminal.puts(Capability.cursor_left);
+                        puts(Capability.cursor_left);
                         cursorPos++;
                     }
                 } else {
-                    terminal.puts(Capability.carriage_return); // CR / not newline.
+                    puts(Capability.carriage_return); // CR / not newline.
                     cursorPos = curCol;
                 }
                 currentPos = cursorPos;
@@ -415,11 +462,35 @@ public class Display {
         }
         oldLines = newLines;
 
-        if (flush) {
-            terminal.flush();
+        if (useByteMode && byteBuilder.length() > 0) {
+            // Flush any pending writer data, then write accumulated bytes
+            terminal.writer().flush();
+            try {
+                byteBuilder.writeTo(terminal.output());
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
         }
+        if (flush) {
+            if (useByteMode) {
+                try {
+                    terminal.output().flush();
+                } catch (IOException e) {
+                    throw new IOError(e);
+                }
+            } else {
+                terminal.flush();
+            }
+        }
+        useByteMode = false;
     }
 
+    /**
+     * Emits terminal control sequences to delete the specified number of lines.
+     *
+     * @param nb the number of lines to delete
+     * @return `true` if a delete-line capability was available and the operation was issued, `false` otherwise
+     */
     protected boolean deleteLines(int nb) {
         return perform(Capability.delete_line, Capability.parm_delete_line, nb);
     }
@@ -440,15 +511,23 @@ public class Display {
         return terminal.getStringCapability(single) != null || terminal.getStringCapability(multi) != null;
     }
 
+    /**
+     * Emits a terminal capability to affect a repeated action, using the parameterized (multi) form when available and preferable, otherwise repeating the single-capability.
+     *
+     * @param single the single-invocation capability to use repeatedly if a multi-parameter form is unavailable or not preferable
+     * @param multi the multi-parameter capability that can perform the action for a specified count in one invocation
+     * @param nb the number of times the action should be applied
+     * @return {@code true} if a capability sequence was emitted to perform the action, {@code false} if neither capability is available
+     */
     protected boolean perform(Capability single, Capability multi, int nb) {
         boolean hasMulti = terminal.getStringCapability(multi) != null;
         boolean hasSingle = terminal.getStringCapability(single) != null;
         if (hasMulti && (!hasSingle || cost(single) * nb > cost(multi))) {
-            terminal.puts(multi, nb);
+            puts(multi, nb);
             return true;
         } else if (hasSingle) {
             for (int i = 0; i < nb; i++) {
-                terminal.puts(single);
+                puts(single);
             }
             return true;
         } else {
@@ -509,12 +588,16 @@ public class Display {
         }
     }
 
-    /*
-     * Move cursor from cursorPos to argument, updating cursorPos
-     * We're at the right margin if {@code (cursorPos % columns1) == columns}.
-     * This method knows how to move *from* the right margin,
-     * but does not know how to move *to* the right margin.
-     * I.e. {@code (i1 % columns1) == column} is not allowed.
+    /**
+     * Move the visual cursor to the specified wrapped-line position without allowing movement to a right-margin target.
+     *
+     * Moves the terminal cursor from the current visual position (stored in {@code cursorPos}) to {@code i1},
+     * handling line and column transitions, and updating {@code cursorPos}. If the current position is at the right
+     * margin a carriage return is emitted before further movement. The target position must not lie on a right-margin
+     * column (i.e. {@code i1 % columns1 != columns}).
+     *
+     * @param i1 the target visual cursor position in wrapped-line coordinates
+     * @return the updated cursor position (equal to {@code i1})
      */
     protected int moveVisualCursorTo(int i1) {
         int i0 = cursorPos;
@@ -525,7 +608,7 @@ public class Display {
         int l1 = i1 / width;
         int c1 = i1 % width;
         if (c0 == columns) { // at right margin
-            terminal.puts(Capability.carriage_return);
+            puts(Capability.carriage_return);
             c0 = 0;
         }
         if (l0 > l1) {
@@ -533,22 +616,22 @@ public class Display {
         } else if (l0 < l1) {
             // TODO: clean the following
             if (fullScreen) {
-                if (!terminal.puts(Capability.parm_down_cursor, l1 - l0)) {
+                if (!puts(Capability.parm_down_cursor, l1 - l0)) {
                     for (int i = l0; i < l1; i++) {
-                        terminal.puts(Capability.cursor_down);
+                        puts(Capability.cursor_down);
                     }
                     if (cursorDownIsNewLine) {
                         c0 = 0;
                     }
                 }
             } else {
-                terminal.puts(Capability.carriage_return);
+                puts(Capability.carriage_return);
                 rawPrint('\n', l1 - l0);
                 c0 = 0;
             }
         }
         if (c0 != 0 && c1 == 0) {
-            terminal.puts(Capability.carriage_return);
+            puts(Capability.carriage_return);
         } else if (c0 < c1) {
             perform(Capability.cursor_right, Capability.parm_right_cursor, c1 - c0);
         } else if (c0 > c1) {
@@ -558,20 +641,75 @@ public class Display {
         return i1;
     }
 
+    /**
+     * Prints the specified character to the terminal output the given number of times.
+     *
+     * @param c   the character to print
+     * @param num the number of times to print {@code c}; if less than or equal to zero, nothing is printed
+     */
     void rawPrint(char c, int num) {
         for (int i = 0; i < num; i++) {
             rawPrint(c);
         }
     }
 
+    /**
+     * Append or write a single Unicode code point to the terminal output buffer.
+     *
+     * If byte-mode is enabled, append the code point's UTF-8 bytes to the internal byte buffer;
+     * otherwise write the code point to the terminal's writer.
+     *
+     * @param c the Unicode code point to output
+     */
     void rawPrint(int c) {
-        terminal.writer().write(c);
+        if (useByteMode) {
+            byteBuilder.appendUtf8(c);
+        } else {
+            terminal.writer().write(c);
+        }
     }
 
+    /**
+     * Writes the given attributed string to the display output.
+     *
+     * When byte-mode is enabled, the string is encoded as ANSI/UTF-8 bytes and appended to the internal output buffer; otherwise it is printed through the terminal's print path.
+     *
+     * @param str the attributed string to write (may contain styling/ANSI sequences)
+     */
     void rawPrint(AttributedString str) {
-        str.print(terminal);
+        if (useByteMode) {
+            str.toAnsiBytes(byteBuilder, ansiColors, ansiForceMode, ansiPalette, ansiAltIn, ansiAltOut);
+        } else {
+            str.print(terminal);
+        }
     }
 
+    /**
+     * Emit the terminal control sequence for the given capability, using the byte buffer when byte mode is enabled.
+     *
+     * @param capability the terminal capability to emit
+     * @param params parameters to format into the capability string, if applicable
+     * @return `true` if the capability sequence was emitted; `false` if the capability string is unavailable
+     */
+    private boolean puts(Capability capability, Object... params) {
+        if (useByteMode) {
+            String str = terminal.getStringCapability(capability);
+            if (str == null) {
+                return false;
+            }
+            Curses.tputs(byteAppendable, str, params);
+            return true;
+        } else {
+            return terminal.puts(capability, params);
+        }
+    }
+
+    /**
+     * Compute the number of terminal columns required to display a string, interpreting ANSI escape sequences.
+     *
+     * @param str the input string, which may contain ANSI escape sequences; if `null` it is treated as empty
+     * @return the displayed column width of the string (0 if `str` is `null`)
+     */
     public int wcwidth(String str) {
         return str != null ? AttributedString.fromAnsi(str).columnLength(terminal) : 0;
     }
