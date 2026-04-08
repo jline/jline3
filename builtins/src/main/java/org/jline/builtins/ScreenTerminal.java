@@ -1979,7 +1979,7 @@ public class ScreenTerminal {
             int fwidth,
             int[] cursor)
             throws InterruptedException {
-        if (forceDump || waitDirty(timeout)) {
+        if (waitDirty(timeout) || forceDump) {
             dump(fullscreen, ftop, fleft, fheight, fwidth, cursor);
             return true;
         } else {
@@ -1999,7 +1999,7 @@ public class ScreenTerminal {
      */
     public synchronized boolean dump(long timeout, boolean forceDump, long[] fullscreen, int[] cursor)
             throws InterruptedException {
-        if (forceDump || waitDirty(timeout)) {
+        if (waitDirty(timeout) || forceDump) {
             dump(fullscreen, cursor);
             return true;
         } else {
@@ -2016,7 +2016,7 @@ public class ScreenTerminal {
      * @throws InterruptedException if interrupted
      */
     public synchronized String dump(long timeout, boolean forceDump) throws InterruptedException {
-        if (forceDump || waitDirty(timeout)) {
+        if (waitDirty(timeout) || forceDump) {
             return dump();
         } else {
             return null;
