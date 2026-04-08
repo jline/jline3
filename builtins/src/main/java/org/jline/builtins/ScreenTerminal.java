@@ -2108,7 +2108,7 @@ public class ScreenTerminal {
         int numRows = getRows();
         long[] dumpBuffer = new long[cols * numRows];
         int[] cursor = new int[2];
-        dump(screen, cursor);
+        dump(dumpBuffer, cursor);
         int cursorX = cursor[0];
         int cursorY = cursor[1];
         StringBuilder sb = new StringBuilder();
