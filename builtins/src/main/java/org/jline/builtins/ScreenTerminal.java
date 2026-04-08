@@ -1942,10 +1942,7 @@ public class ScreenTerminal {
     }
 
     public synchronized String dump(long timeout, boolean forceDump) throws InterruptedException {
-        if (!dirty.get() && timeout > 0) {
-            wait(timeout);
-        }
-        if (dirty.compareAndSet(true, false) || forceDump) {
+        if (waitDirty(timeout) || forceDump) {
             StringBuilder sb = new StringBuilder();
             int prev_attr = -1;
             int cx = Math.min(this.cx, width - 1);

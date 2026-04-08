@@ -8,6 +8,8 @@
  */
 package org.jline.builtins;
 
+import java.time.Duration;
+
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -16,6 +18,66 @@ import static org.junit.jupiter.api.Assertions.*;
  * Tests for the {@link ScreenTerminal} class.
  */
 public class ScreenTerminalTest {
+
+    /**
+     * isDirty() returns true after construction (initial dirty state),
+     * then false on subsequent call, then true again after write.
+     */
+    @Test
+    public void testDirtyFlag() {
+        ScreenTerminal terminal = new ScreenTerminal(80, 24);
+
+        assertTrue(terminal.isDirty(), "Should be dirty after construction");
+        assertFalse(terminal.isDirty(), "Should not be dirty after consuming");
+
+        terminal.write("X");
+        assertTrue(terminal.isDirty(), "Should be dirty after write");
+        assertFalse(terminal.isDirty(), "Should not be dirty after consuming again");
+    }
+
+    /**
+     * dump(timeout, forceDump=true) must still wait for the timeout before dumping
+     * when the screen is not dirty. This prevents busy-loop spinning when callers
+     * use forceDump in a loop.
+     * Regression: #1768
+     */
+    @Test
+    void testForceDumpWaitsForTimeout() {
+        ScreenTerminal terminal = new ScreenTerminal(10, 3);
+        terminal.write("Hello");
+
+        // Consume the dirty flag
+        terminal.isDirty();
+
+        long minWaitMs = 200;
+        long start = System.nanoTime();
+        assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {
+            terminal.dump(minWaitMs, true);
+        });
+        long elapsedMs = (System.nanoTime() - start) / 1_000_000;
+
+        assertTrue(
+                elapsedMs >= minWaitMs / 2,
+                "forceDump should still wait for timeout when not dirty, but returned in " + elapsedMs + "ms");
+    }
+
+    /**
+     * waitDirty(0) must return immediately rather than blocking indefinitely.
+     * Regression: Object.wait(0) waits forever, so timeout==0 must skip the wait.
+     */
+    @Test
+    void testWaitDirtyZeroTimeoutReturnsImmediately() {
+        ScreenTerminal terminal = new ScreenTerminal(80, 24);
+
+        // Consume the initial dirty flag
+        terminal.isDirty();
+
+        // waitDirty(0) on a non-dirty screen must return false immediately
+        assertTimeoutPreemptively(Duration.ofSeconds(1), () -> {
+            boolean result = terminal.waitDirty(0);
+            assertFalse(result, "Non-dirty screen should return false");
+        });
+    }
 
     /**
      * Test for issue #1206: Missing history length check in ScreenTerminal
