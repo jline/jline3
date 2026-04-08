@@ -203,8 +203,15 @@ public class GraphemeClusterExample {
     }
 
     /**
-     * Diagnostic mode — tests the rendering paths to identify where ZWJ
-     * combining breaks.
+     * Run a multi-step diagnostic that exercises various terminal rendering paths to
+     * identify where ZWJ (zero-width joiner) grapheme-cluster combining breaks.
+     *
+     * <p>The diagnostic performs numbered tests that emit the configured family emoji
+     * sequence via different output paths (direct writer, AttributedString.print/toAnsi,
+     * flush-separated writes, per-code-point writes), simulates Display diffs and updates,
+     * and compares reported column widths with and without grapheme-cluster mode enabled.
+     *
+     * @throws IOException if opening or communicating with the terminal fails
      */
     public static void diagMode() throws IOException {
         try (Terminal terminal = TerminalBuilder.builder().build()) {
@@ -302,7 +309,7 @@ public class GraphemeClusterExample {
             writer.println("8. Actual Display.update():");
             {
                 Display display = new Display(terminal, false);
-                display.resize(terminal.getHeight(), terminal.getWidth());
+                display.resize(terminal.getSize());
                 // First update: just the prompt
                 display.update(Collections.singletonList(new AttributedString("emoji> ")), 7, true);
                 writer.println();

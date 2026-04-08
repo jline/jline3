@@ -115,12 +115,22 @@ public class Status {
         resize(terminal.getSize());
     }
 
+    /**
+     * Resize the status display to the provided terminal character-grid size and adjust terminal state accordingly.
+     *
+     * <p>If the status feature is supported and the supplied size is valid, this updates the internal display
+     * dimensions, recomputes and applies the scroll region reserved for the status area, and clears any leftover
+     * status output that may remain after the resize. The terminal cursor position is preserved across these changes.
+     * If the status feature is not supported or the size is invalid, this method is a no-op.
+     *
+     * @param size the new terminal character-grid size to apply
+     */
     public void resize(Size size) {
         if (supported && isValid(size)) {
             int oldRows = display.rows;
             int oldColumns = display.columns;
 
-            display.resize(size.getRows(), size.getColumns());
+            display.resize(size);
 
             // Only process if the character grid size actually changed
             if (display.rows != oldRows || display.columns != oldColumns) {

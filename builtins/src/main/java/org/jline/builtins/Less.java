@@ -1326,6 +1326,14 @@ public class Less {
         return display(oneScreen, null);
     }
 
+    /**
+     * Render the current viewport to the terminal, constructing visible content lines and the status/message row.
+     *
+     * @param oneScreen if true, render without updating the pager state and return whether the file fits on a single screen
+     * @param curPos an optional cursor column index for positioning the cursor on the final status line; null to leave cursor unspecified
+     * @return {@code true} if {@code oneScreen} is true and the file fits entirely on one screen, {@code false} otherwise
+     * @throws IOException if an I/O error occurs while writing to the terminal
+     */
     synchronized boolean display(boolean oneScreen, Integer curPos) throws IOException {
         List<AttributedString> newLines = new ArrayList<>();
         int width = size.getColumns() - (printLineNumbers ? 8 : 0);
@@ -1420,7 +1428,7 @@ public class Less {
         }
         newLines.add(msg.toAttributedString());
 
-        display.resize(size.getRows(), size.getColumns());
+        display.resize(size);
         if (curPos == null) {
             display.update(newLines, -1);
         } else {

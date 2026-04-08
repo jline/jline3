@@ -263,6 +263,19 @@ public class Shell {
         stopping.set(true);
     }
 
+    /**
+     * Start a Gogo shell or execute a script/command using the provided session and arguments.
+     *
+     * Parses the supplied argv as shell options and either launches an interactive shell
+     * or executes the specified script/command. When not run as a login shell, a child
+     * session is created and terminal/session variables are installed; recognized options
+     * include --command, --nointeractive, --nohistory, --login, --noshutdown, --xtrace,
+     * and --help.
+     *
+     * @param currentSession the current command session (used as the parent session or, if --login is set, used directly)
+     * @param argv the command-line arguments and options passed to the shell
+     * @return the result of executing the script/command or the interactive shell, or `null` if no result was produced
+     */
     public Object gosh(CommandSession currentSession, String[] argv) throws Exception {
         final String[] usage = {
             "gosh - execute script with arguments in a new session",
@@ -312,8 +325,8 @@ public class Shell {
         session.put(Shell.VAR_PROCESSOR, processor);
         session.put(Shell.VAR_SESSION, session);
         session.put("#TERM", (Function) (s, arguments) -> terminal.getType());
-        session.put("#COLUMNS", (Function) (s, arguments) -> terminal.getWidth());
-        session.put("#LINES", (Function) (s, arguments) -> terminal.getHeight());
+        session.put("#COLUMNS", (Function) (s, arguments) -> terminal.getColumns());
+        session.put("#LINES", (Function) (s, arguments) -> terminal.getRows());
         session.put("#PWD", (Function) (s, arguments) -> s.currentDir().toString());
         if (!opt.isSet("nohistory")) {
             session.put(LineReader.HISTORY_FILE, Paths.get(System.getProperty("user.home"), ".gogo.history"));
@@ -491,6 +504,22 @@ public class Shell {
         }
     }
 
+    /**
+     * Runs the interactive shell loop: reads lines from the given reader, executes them
+     * in the provided session, and displays results and errors on the terminal until
+     * the shell is requested to stop.
+     *
+     * Sets a job listener on the session and installs handlers for INT and TSTP signals,
+     * restores the original handlers on exit, and attempts to save history on end-of-file.
+     * Updates session variables: Shell.VAR_RESULT with the last execution result and
+     * Shell.VAR_EXCEPTION when an execution throws.
+     *
+     * @param session the command session used to execute parsed programs and track jobs
+     * @param terminal the terminal used for prompt rendering and status/output display
+     * @param reader the line reader used to obtain user input and parsed lines
+     * @return the last evaluated result produced by executing a parsed line, or null if none
+     * @throws InterruptedException if the thread is interrupted while waiting for job completion
+     */
     private Object doRunShell(final CommandSession session, Terminal terminal, LineReader reader)
             throws InterruptedException {
         AtomicBoolean reading = new AtomicBoolean();
@@ -499,7 +528,7 @@ public class Shell {
                     || current == Status.Background
                     || previous == Status.Suspended
                     || current == Status.Suspended) {
-                int width = terminal.getWidth();
+                int width = terminal.getColumns();
                 String status = current.name().toLowerCase();
                 terminal.writer().write(getStatusLine(job, width, status));
                 terminal.flush();

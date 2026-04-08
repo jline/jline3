@@ -1287,7 +1287,7 @@ public class Commands {
             }
             if (!opt.isSet("view")) {
                 boolean rgb = opt.isSet("rgb");
-                int columns = terminal.getWidth() > (rgb ? 71 : 122) ? 6 : 5;
+                int columns = terminal.getColumns() > (rgb ? 71 : 122) ? 6 : 5;
                 String findName = null;
                 boolean nameTable = opt.isSet("name");
                 boolean table16 = opt.isSet("small");
@@ -1456,13 +1456,26 @@ public class Commands {
             return out;
         }
 
+        /**
+         * Prints color tables or named/RGB color listings to the terminal using the current style/format settings.
+         *
+         * <p>The method renders either a 16/256-color grid, a named-color table, or a 24-bit RGB table depending on the flags.
+         *
+         * @param name if true, render the named-color table (ignored when {@code rgb} is true)
+         * @param rgb if true, render the 24-bit RGB table instead of the name/256 tables
+         * @param small if true, use the compact 16-color presentation when applicable
+         * @param columns maximum number of columns to use when laying out the table
+         * @param findName optional filter; when non-null restricts output to names or hex strings that match (leading '#' or 'x' are accepted and ignored)
+         * @param style optional style lock applied to every cell (affects foreground/background selection)
+         * @throws IOException if writing the generated output to the terminal fails
+         */
         public void printColors(boolean name, boolean rgb, boolean small, int columns, String findName, String style)
                 throws IOException {
             this.name = !rgb && name;
             this.rgb = rgb;
             setFixedStyle(style);
             AttributedStringBuilder asb = new AttributedStringBuilder();
-            int width = terminal.getWidth();
+            int width = terminal.getColumns();
             String tableName = small ? " 16-color " : "256-color ";
             if (!name && !rgb) {
                 out.print(tableName);
@@ -1694,6 +1707,19 @@ public class Commands {
             }
         }
 
+        /**
+         * Display detailed information and a visual swatch for the specified color.
+         *
+         * <p>Interprets the `name` as one of: 24-bit hex (`RRGGBB`), prefixed hex (`#RRGGBB` or `xRRGGBB`),
+         * one of the 16-color names, a 256-color name/prefix/substring, or a hue spec `hueN`. Prints the
+         * color's HSL values, a grid of RGB variations, and—when applicable—a hue bar.
+         *
+         * @param name  the color identifier (hex, `#`/`x`-prefixed hex, 16-color name, 256-color name or
+         *              prefix/substring, or `hueN` where N is 0–360)
+         * @param style a style lock to apply when rendering (controls fixed foreground/background/style)
+         * @throws IOException if writing output to the terminal fails
+         * @throws IllegalArgumentException if the `name` cannot be resolved to a color or a `hueN` value is out of range
+         */
         public void printColor(String name, String style) throws IOException {
             setFixedStyle(style);
             int hueAngle;
@@ -1755,7 +1781,7 @@ public class Commands {
             }
             double step = 32;
             int barSize = 14;
-            int width = terminal.getWidth();
+            int width = terminal.getColumns();
             if (width > 287) {
                 step = 8;
                 barSize = 58;

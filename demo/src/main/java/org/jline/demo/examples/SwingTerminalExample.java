@@ -119,9 +119,18 @@ public class SwingTerminalExample {
 
     // SNIPPET_START: SwingTerminalReplExample
     /**
-     * Runs a simple REPL loop using the given terminal.
-     * Demonstrates that SwingTerminal works with LineReader for
-     * line editing, tab completion, and history.
+     * Start an interactive REPL on the supplied Terminal for demonstration purposes.
+     *
+     * The loop reads lines, offers tab completion for `help`, `info`, `clear`, and `exit`,
+     * echoes unknown input, and handles the following commands:
+     * - `help`: prints available commands
+     * - `info`: prints terminal name, type, size (columns x rows), and encoding
+     * - `clear`: clears the screen
+     * - `exit`: prints a goodbye message and exits the REPL
+     *
+     * Ctrl+C is ignored (continues the loop) and Ctrl+D ends the REPL.
+     *
+     * @param terminal the Terminal to use for input/output (for example, a SwingTerminal)
      */
     private static void runRepl(Terminal terminal) {
         LineReader reader = LineReaderBuilder.builder()
@@ -156,7 +165,7 @@ public class SwingTerminalExample {
                     case "info":
                         terminal.writer().println("Terminal: " + terminal.getName());
                         terminal.writer().println("Type:     " + terminal.getType());
-                        terminal.writer().println("Size:     " + terminal.getWidth() + "x" + terminal.getHeight());
+                        terminal.writer().println("Size:     " + terminal.getColumns() + "x" + terminal.getRows());
                         terminal.writer().println("Encoding: " + terminal.encoding());
                         break;
                     case "clear":

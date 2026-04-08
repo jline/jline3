@@ -57,12 +57,12 @@ public class SwingTerminal extends LineDisciplineTerminal {
     /**
      * Creates a new SwingTerminal with the specified dimensions.
      *
-     * @param width  the terminal width in columns
-     * @param height the terminal height in rows
+     * @param columns the number of columns
+     * @param rows    the number of rows
      * @throws IOException if an I/O error occurs during initialization
      */
-    public SwingTerminal(int width, int height) throws IOException {
-        this("SwingTerminal", width, height);
+    public SwingTerminal(int columns, int rows) throws IOException {
+        this("SwingTerminal", columns, rows);
     }
 
     /**
@@ -77,20 +77,20 @@ public class SwingTerminal extends LineDisciplineTerminal {
     /**
      * Creates a new SwingTerminal with the specified name and dimensions.
      *
-     * @param name   the terminal name
-     * @param width  the terminal width in columns
-     * @param height the terminal height in rows
+     * @param name    the terminal name
+     * @param columns the number of columns
+     * @param rows    the number of rows
      * @throws IOException if an I/O error occurs during initialization
      */
     @SuppressWarnings("this-escape")
-    public SwingTerminal(String name, int width, int height) throws IOException {
+    public SwingTerminal(String name, int columns, int rows) throws IOException {
         super(name, "screen-256color", new SwingTerminalOutputStream(), StandardCharsets.UTF_8);
 
         // Create the terminal component
-        this.component = new TerminalComponent(width, height);
+        this.component = new TerminalComponent(columns, rows);
 
         // Initialize after construction to avoid this-escape warnings
-        initializeTerminal(width, height);
+        initializeTerminal(columns, rows);
 
         // Start a thread to read from SwingTerminal and process input
         inputThread = new Thread(
@@ -114,11 +114,15 @@ public class SwingTerminal extends LineDisciplineTerminal {
     }
 
     /**
-     * Initializes the terminal after construction to avoid this-escape issues.
+     * Finalizes terminal setup after construction by setting its logical size and wiring
+     * the UI component and output stream to this terminal.
+     *
+     * @param columns the number of columns for the terminal display
+     * @param rows    the number of rows for the terminal display
      */
-    private void initializeTerminal(int width, int height) {
+    private void initializeTerminal(int columns, int rows) {
         // Set initial size
-        setSize(new Size(width, height));
+        setSize(new Size(columns, rows));
 
         // Connect the component output to our master output and set the terminal reference
         SwingTerminalOutputStream outputStream = (SwingTerminalOutputStream) masterOutput;
@@ -457,9 +461,16 @@ public class SwingTerminal extends LineDisciplineTerminal {
         private final AtomicBoolean cursorVisible = new AtomicBoolean(true);
         private transient Timer cursorTimer;
 
+        /**
+         * Create a TerminalComponent for rendering and capturing input for a terminal with the specified
+         * character grid size.
+         *
+         * @param columns the number of character columns in the terminal
+         * @param rows    the number of character rows in the terminal
+         */
         @SuppressWarnings("this-escape")
-        public TerminalComponent(int width, int height) {
-            this.screenTerminal = new ScreenTerminal(width, height);
+        public TerminalComponent(int columns, int rows) {
+            this.screenTerminal = new ScreenTerminal(columns, rows);
 
             // Set up font directly to avoid this-escape warning
             this.terminalFont = new Font(Font.MONOSPACED, Font.PLAIN, 14);
@@ -556,12 +567,25 @@ public class SwingTerminal extends LineDisciplineTerminal {
             return terminalFont;
         }
 
+        /**
+         * Updates this component's preferred size to match the terminal grid.
+         *
+         * Calculates width as `columns * charWidth` and height as `rows * charHeight`
+         * using the associated ScreenTerminal's column/row counts and the current
+         * character cell dimensions, then sets the preferred size accordingly.
+         */
         private void updatePreferredSize() {
-            int width = screenTerminal.getWidth() * charWidth;
-            int height = screenTerminal.getHeight() * charHeight;
+            int width = screenTerminal.getColumns() * charWidth;
+            int height = screenTerminal.getRows() * charHeight;
             setPreferredSize(new Dimension(width, height));
         }
 
+        /**
+         * Paints this Swing component and its terminal contents.
+         *
+         * <p>Prepares a Graphics2D context with high-quality text rendering and the component's terminal font,
+         * then delegates actual terminal rendering to the paintTerminalContent method.
+         */
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
@@ -583,19 +607,22 @@ public class SwingTerminal extends LineDisciplineTerminal {
             }
         }
 
+        /**
+         * Render the terminal's current screen buffer onto the given Graphics2D, painting each cell and the cursor.
+         */
         private void paintTerminalContent(Graphics2D g2d) {
-            int termWidth = screenTerminal.getWidth();
-            int termHeight = screenTerminal.getHeight();
+            int cols = screenTerminal.getColumns();
+            int rows = screenTerminal.getRows();
 
             // Get terminal screen data
-            long[] screenData = new long[termWidth * termHeight];
+            long[] screenData = new long[cols * rows];
             int[] cursor = new int[2];
             screenTerminal.dump(screenData, cursor);
 
             // Paint each character
-            for (int y = 0; y < termHeight; y++) {
-                for (int x = 0; x < termWidth; x++) {
-                    int index = y * termWidth + x;
+            for (int y = 0; y < rows; y++) {
+                for (int x = 0; x < cols; x++) {
+                    int index = y * cols + x;
                     if (index < screenData.length) {
                         long cell = screenData[index];
                         paintCell(g2d, x, y, cell, cursor[0] == x && cursor[1] == y);

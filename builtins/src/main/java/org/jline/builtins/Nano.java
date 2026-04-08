@@ -1989,6 +1989,18 @@ public class Nano implements Editor {
         }
     }
 
+    /**
+     * Run the editor: initialize terminal state, open the current buffer, enter the interactive
+     * event loop, and process user operations until the editor exits.
+     *
+     * <p>This method configures terminal attributes (raw mode, keypad, optional mouse tracking),
+     * installs a WINCH handler, displays the buffer, and then continuously reads and executes
+     * editor operations (navigation, editing, file I/O, search/replace, help, etc.). On exit
+     * it restores terminal state, mouse tracking, signal handlers, and persists pattern history.
+     *
+     * @throws IOException if an I/O or terminal operation (file read/write, terminal attributes,
+     *                     or related I/O) fails during initialization or while running the editor
+     */
     public void run() throws IOException {
         if (buffers.isEmpty()) {
             buffers.add(new Buffer(null));
@@ -2033,7 +2045,7 @@ public class Nano implements Editor {
 
             display.clear();
             display.reset();
-            display.resize(size.getRows(), size.getColumns());
+            display.resize(size);
             prevHandler = terminal.handle(Signal.WINCH, this::handle);
 
             display();
@@ -3360,9 +3372,16 @@ public class Nano implements Editor {
         return title;
     }
 
+    /**
+     * Reset the terminal display and synchronize all buffers' view state to the current terminal size.
+     *
+     * Clears the display, resizes it using the editor's current Size instance, and calls each
+     * buffer's resetDisplay() to recompute offsets and view-related state so the UI reflects the
+     * new/cleared display dimensions.
+     */
     void resetDisplay() {
         display.clear();
-        display.resize(size.getRows(), size.getColumns());
+        display.resize(size);
         for (Buffer buffer : buffers) {
             buffer.resetDisplay();
         }
