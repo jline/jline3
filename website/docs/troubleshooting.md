@@ -187,33 +187,54 @@ This commonly happens with:
 
 #### Why It Happens
 
-JLine checks whether its standard streams (stdin, stdout, and stderr) are connected to a TTY
-(terminal device) using `isatty()`. When a process launcher forks a JVM and connects its
-streams through pipes, `isatty()` returns false for all file descriptors, and JLine creates
-a dumb terminal with limited capabilities.
+JLine checks whether stdin is connected to a TTY (terminal device). When a process launcher
+forks a JVM and connects its streams through pipes, `isatty()` returns false for all file
+descriptors, and JLine creates a dumb terminal with limited capabilities.
 
-On POSIX systems (Linux, macOS), the controlling terminal is still accessible via `/dev/tty`
-even when stdin/stdout are pipes. Tools like `less` and `vim` use this technique to provide
-interactive UIs while reading piped input. JLine does not currently use `/dev/tty`
-automatically, but this is planned for a future release (see [#1728](https://github.com/jline/jline3/issues/1728)).
+#### Solution: Use the `/dev/tty` Fallback
 
-#### Workarounds
+On POSIX systems (Linux, macOS), even when stdin/stdout are pipes, the process usually still
+has access to the controlling terminal via `/dev/tty`. JLine can use this device directly
+for terminal I/O.
+
+Enable the `/dev/tty` fallback with the system property:
+
+```bash
+java -Dorg.jline.terminal.devtty=true -jar myapp.jar
+```
+
+For Maven `exec:exec`, add it to the JVM arguments:
+
+```xml
+<plugin>
+    <groupId>org.codehaus.mojo</groupId>
+    <artifactId>exec-maven-plugin</artifactId>
+    <configuration>
+        <executable>java</executable>
+        <arguments>
+            <argument>-Dorg.jline.terminal.devtty=true</argument>
+            <argument>--module-path</argument>
+            <argument>${project.build.directory}/modules</argument>
+            <argument>-m</argument>
+            <argument>mymodule/com.example.Main</argument>
+        </arguments>
+    </configuration>
+</plugin>
+```
+
+Or programmatically via the builder:
+
+```java
+Terminal terminal = TerminalBuilder.builder()
+        .devTty(true)
+        .build();
+```
+
+#### Alternative Workarounds
 
 - **Use `exec:java` instead of `exec:exec`** if your project does not require JPMS module path
-  support. The `exec:java` goal runs in the same JVM as Maven and inherits the terminal directly:
-
-  ```xml
-  <plugin>
-      <groupId>org.codehaus.mojo</groupId>
-      <artifactId>exec-maven-plugin</artifactId>
-      <configuration>
-          <mainClass>com.example.Main</mainClass>
-      </configuration>
-  </plugin>
-  ```
-
-- **Wrap with `script`** to allocate a PTY around the forked process:
-
+  support. `exec:java` runs in the same JVM as Maven and inherits the terminal.
+- **Wrap with `script`** to allocate a PTY:
   ```bash
   # macOS / BSD
   script -q /dev/null mvn exec:exec
@@ -221,15 +242,19 @@ automatically, but this is planned for a future release (see [#1728](https://git
   # Linux (util-linux)
   script -q -c "mvn exec:exec" /dev/null
   ```
-
 - **Use `ProcessBuilder` with `inheritIO()`** if you control the launcher. This preserves the
   TTY connection to the child process:
-
   ```java
   new ProcessBuilder("java", "-jar", "myapp.jar")
           .inheritIO()
           .start();
   ```
+
+:::note
+The `/dev/tty` fallback is opt-in because it changes the source of terminal input. When enabled,
+JLine reads from the controlling terminal instead of stdin. This means piped input
+(e.g., `echo "command" | myapp`) would be ignored in favor of interactive terminal input.
+:::
 
 ### ANSI Color Codes Not Working
 

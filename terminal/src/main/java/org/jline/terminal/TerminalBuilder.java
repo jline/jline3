@@ -157,6 +157,23 @@ public final class TerminalBuilder {
     public static final String PROP_OUTPUT_FORCED_OUT = "forced-out";
     public static final String PROP_OUTPUT_FORCED_ERR = "forced-err";
 
+    /**
+     * System property to enable the {@code /dev/tty} fallback for creating a terminal
+     * when no system stream is connected to a TTY.
+     *
+     * <p>When set to {@code "true"} and running on a POSIX system where stdin, stdout,
+     * and stderr are all pipes (not TTYs), JLine will attempt to open {@code /dev/tty}
+     * (the controlling terminal) directly and use it for terminal I/O. This allows
+     * interactive features to work even when the process was launched with redirected
+     * streams (e.g., via Maven's {@code exec-maven-plugin} with the {@code exec:exec} goal).</p>
+     *
+     * <p>Defaults to {@code false}. Can also be set programmatically via
+     * {@link #devTty(boolean)}.</p>
+     *
+     * @see #devTty(boolean)
+     */
+    public static final String PROP_DEV_TTY = "org.jline.terminal.devtty";
+
     //
     // Other system properties controlling various jline parts
     //
@@ -347,6 +364,7 @@ public final class TerminalBuilder {
     private Boolean ffm;
     private Boolean dumb;
     private Boolean color;
+    private Boolean devTty;
     private Attributes attributes;
     private Size size;
     private boolean nativeSignals = true;
@@ -493,6 +511,31 @@ public final class TerminalBuilder {
      */
     public TerminalBuilder dumb(boolean dumb) {
         this.dumb = dumb;
+        return this;
+    }
+
+    /**
+     * Enables or disables the {@code /dev/tty} fallback for creating a terminal when
+     * no system stream is connected to a TTY (e.g., when stdin/stdout are pipes).
+     *
+     * <p>When enabled and running on a POSIX system where no system stream (stdin, stdout,
+     * stderr) is connected to a terminal, JLine will attempt to open {@code /dev/tty}
+     * (the controlling terminal) directly and use it for terminal I/O. This allows
+     * interactive features like tab completion, syntax highlighting, and history navigation
+     * to work even when the process was launched with redirected streams.</p>
+     *
+     * <p>A common use case is running a JLine application via Maven's
+     * {@code exec-maven-plugin} with the {@code exec:exec} goal, which forks a new JVM
+     * with piped stdin/stdout.</p>
+     *
+     * <p>If not specified, the system property {@link #PROP_DEV_TTY} will be used.
+     * Defaults to {@code false}.</p>
+     *
+     * @param devTty true to enable the /dev/tty fallback
+     * @return this builder
+     */
+    public TerminalBuilder devTty(boolean devTty) {
+        this.devTty = devTty;
         return this;
     }
 
@@ -869,6 +912,41 @@ public final class TerminalBuilder {
                             "Unable to create a system terminal. On Windows, either JLine's native libraries, JNA "
                                     + "or Jansi library is required.  Make sure to add one of those in the classpath.",
                             exception);
+                }
+            }
+            // When no system stream is a TTY but a controlling terminal may still be
+            // available (e.g., when running via exec-maven-plugin's exec:exec goal),
+            // try to open /dev/tty directly and create a terminal using it.
+            if (terminal == null && !forceDumb && !OSUtils.IS_WINDOWS) {
+                Boolean useDevTty = this.devTty;
+                if (useDevTty == null) {
+                    useDevTty = getBoolean(PROP_DEV_TTY, false);
+                }
+                if (Boolean.TRUE.equals(useDevTty)) {
+                    for (TerminalProvider prov : providers) {
+                        if (terminal == null) {
+                            try {
+                                terminal = prov.sysTerminal(
+                                        name,
+                                        type,
+                                        OSUtils.IS_CONEMU,
+                                        encoding,
+                                        stdinEncoding,
+                                        stdoutEncoding,
+                                        nativeSignals,
+                                        signalHandler,
+                                        paused);
+                            } catch (UnsupportedOperationException e) {
+                                // Provider doesn't support /dev/tty, try next
+                            } catch (Throwable t) {
+                                Log.debug(
+                                        "Error creating terminal via /dev/tty with " + prov.name() + ": ",
+                                        t.getMessage(),
+                                        t);
+                                exception.addSuppressed(t);
+                            }
+                        }
+                    }
                 }
             }
             if (terminal instanceof AbstractTerminal) {

@@ -102,6 +102,52 @@ public interface TerminalProvider {
             throws IOException;
 
     /**
+     * Creates a terminal connected to the controlling terminal device ({@code /dev/tty}).
+     *
+     * <p>
+     * This method creates a terminal using the process's controlling terminal,
+     * bypassing the standard system streams (stdin, stdout, stderr). This is useful
+     * when all standard streams are redirected (e.g., when running via Maven's
+     * {@code exec-maven-plugin} with the {@code exec:exec} goal) but the controlling
+     * terminal is still available.
+     * </p>
+     *
+     * <p>
+     * The default implementation throws {@link UnsupportedOperationException}.
+     * Providers that support this functionality (e.g., the exec provider on
+     * POSIX systems) should override this method.
+     * </p>
+     *
+     * @param name the name of the terminal
+     * @param type the terminal type (e.g., "xterm", "dumb")
+     * @param ansiPassThrough whether to pass through ANSI escape sequences
+     * @param encoding the general character encoding to use
+     * @param inputEncoding the character encoding to use for input
+     * @param outputEncoding the character encoding to use for output
+     * @param nativeSignals whether to use native signal handling
+     * @param signalHandler the signal handler to use
+     * @param paused whether the terminal should start in a paused state
+     * @return a new terminal connected to the controlling terminal
+     * @throws IOException if an I/O error occurs
+     * @throws UnsupportedOperationException if this provider does not support
+     *         creating a terminal from the controlling terminal device
+     */
+    default Terminal sysTerminal(
+            String name,
+            String type,
+            boolean ansiPassThrough,
+            Charset encoding,
+            Charset inputEncoding,
+            Charset outputEncoding,
+            boolean nativeSignals,
+            Terminal.SignalHandler signalHandler,
+            boolean paused)
+            throws IOException {
+        throw new UnsupportedOperationException(
+                "Provider " + name() + " does not support creating a terminal from /dev/tty");
+    }
+
+    /**
      * Creates a new terminal with custom input and output streams.
      *
      * <p>
