@@ -193,10 +193,11 @@ public class AnsiConsole {
     static synchronized void doInstall() {
         try {
             if (terminal == null) {
-                TerminalBuilder builder = TerminalBuilder.builder()
-                        .system(true)
-                        .name("jansi")
-                        .providers(System.getProperty(JANSI_PROVIDERS));
+                TerminalBuilder builder = TerminalBuilder.builder().system(true).name("jansi");
+                String providers = System.getProperty(JANSI_PROVIDERS);
+                if (providers != null) {
+                    builder.providers(providers);
+                }
                 String graceful = System.getProperty(JANSI_GRACEFUL);
                 if (graceful != null) {
                     builder.dumb(Boolean.parseBoolean(graceful));
