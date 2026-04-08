@@ -28,6 +28,7 @@ import org.jline.terminal.spi.Pty;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
+import org.jline.utils.Signals;
 
 public class FfmTerminalProvider implements TerminalProvider {
 
@@ -51,6 +52,22 @@ public class FfmTerminalProvider implements TerminalProvider {
         return -1;
     }
 
+    /**
+     * Creates a Terminal bound to the process system streams (stdin/stdout/stderr) or an equivalent PTY-backed terminal.
+     *
+     * @param name            terminal name or identifier
+     * @param type            terminal type (TERM)
+     * @param ansiPassThrough if true, pass ANSI/VT sequences through without filtering
+     * @param encoding        overall character set for the terminal
+     * @param inputEncoding   character set used for input decoding
+     * @param outputEncoding  character set used for output encoding
+     * @param nativeSignals   if true, attempt to use native signal handling when available
+     * @param signalHandler   handler invoked for terminal signals
+     * @param paused          if true, create the terminal in a paused state (input/output suspended)
+     * @param systemStream    which system stream this terminal should be associated with
+     * @return a Terminal instance bound to the specified system stream (or an equivalent PTY-backed terminal)
+     * @throws IOException if the native PTY or system terminal cannot be created or accessed
+     */
     @Override
     public Terminal sysTerminal(
             String name,
@@ -89,7 +106,7 @@ public class FfmTerminalProvider implements TerminalProvider {
                     systemStream == SystemStream.Output ? FileDescriptor.out : FileDescriptor.err,
                     CLibrary.ttyName(0));
             return new PosixSysTerminal(
-                    name, type, pty, encoding, inputEncoding, outputEncoding, nativeSignals, signalHandler);
+                    this, name, type, pty, encoding, inputEncoding, outputEncoding, nativeSignals, signalHandler);
         }
     }
 
@@ -134,11 +151,69 @@ public class FfmTerminalProvider implements TerminalProvider {
         return FfmNativePty.posixSystemStreamName(stream);
     }
 
+    /**
+     * Obtain the current width, in columns, of the specified system stream.
+     *
+     * @param stream the system stream whose width to query
+     * @return the width in columns of the given system stream
+     */
     @Override
     public int systemStreamWidth(SystemStream stream) {
         return FfmNativePty.systemStreamWidth(stream);
     }
 
+    /**
+     * Register a handler to be invoked when the specified signal is delivered.
+     *
+     * @param signal the name of the signal to handle (platform-specific string)
+     * @param handler the runnable to execute when the signal is received
+     * @return an opaque registration handle that can be passed to {@code unregisterSignal} to remove the handler
+     */
+    @Override
+    public Object registerSignal(String signal, Runnable handler) {
+        Object reg = FfmSignalHandler.register(signal, handler);
+        if (reg != null) {
+            return reg;
+        }
+        return Signals.register(signal, handler);
+    }
+
+    /**
+     * Register the default handler for the specified signal, preferring the FFM handler if available.
+     *
+     * @param signal the name of the signal (for example, "INT" or "TERM")
+     * @return an object representing the installed registration; the FFM registration if one was created, otherwise the fallback Signals registration
+     */
+    @Override
+    public Object registerDefaultSignal(String signal) {
+        Object reg = FfmSignalHandler.registerDefault(signal);
+        if (reg != null) {
+            return reg;
+        }
+        return Signals.registerDefault(signal);
+    }
+
+    /**
+     * Unregisters a previously registered signal handler; uses FFM unregistration when the
+     * provided registration is an FFM registration, otherwise uses the platform fallback.
+     *
+     * @param signal the name of the signal to unregister (e.g., "INT", "TERM")
+     * @param registration the registration token returned by a prior register call
+     */
+    @Override
+    public void unregisterSignal(String signal, Object registration) {
+        if (registration instanceof FfmSignalHandler.Registration) {
+            FfmSignalHandler.unregister(signal, registration);
+        } else {
+            Signals.unregister(signal, registration);
+        }
+    }
+
+    /**
+     * Provide a short identifying string for this terminal provider.
+     *
+     * @return a string of the form "TerminalProvider[<name>]" identifying the provider
+     */
     @Override
     public String toString() {
         return "TerminalProvider[" + name() + "]";

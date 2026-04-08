@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
+import org.jline.utils.Signals;
 
 /**
  * Service provider interface for terminal implementations.
@@ -229,18 +230,48 @@ public interface TerminalProvider {
     int systemStreamWidth(SystemStream stream);
 
     /**
-     * Returns the Windows console output codepage.
+     * Retrieve the Windows console output code page.
      *
-     * <p>
-     * On Windows, this method returns the console output codepage (equivalent to
-     * {@code GetConsoleOutputCP()}). On non-Windows platforms, or if the codepage
-     * cannot be determined, this method returns {@code -1}.
-     * </p>
+     * On Windows this returns the console output code page; on non-Windows platforms or when the code page
+     * cannot be determined this returns {@code -1}.
      *
-     * @return the console output codepage, or {@code -1} if not available
+     * @return the console output code page, or {@code -1} if not available
      */
     default int getConsoleCodepage() {
         return -1;
+    }
+
+    /**
+     * Registers a handler for the specified signal.
+     *
+     * Providers may override this to use platform-specific signal handling.
+     *
+     * @param signal the signal name (e.g., "INT", "WINCH")
+     * @param handler the callback to run when the signal is received
+     * @return an opaque registration object suitable for use with {@link #unregisterSignal(String, Object)}
+     */
+    default Object registerSignal(String signal, Runnable handler) {
+        return Signals.register(signal, handler);
+    }
+
+    /**
+     * Registers the default handler for the specified signal.
+     *
+     * @param signal the signal name (e.g., "INT", "WINCH")
+     * @return an opaque registration object for use with {@link #unregisterSignal}
+     */
+    default Object registerDefaultSignal(String signal) {
+        return Signals.registerDefault(signal);
+    }
+
+    /**
+     * Unregisters a previously registered signal handler, restoring the prior handler.
+     *
+     * @param signal the signal name
+     * @param registration the object returned by {@link #registerSignal} or {@link #registerDefaultSignal}
+     */
+    default void unregisterSignal(String signal, Object registration) {
+        Signals.unregister(signal, registration);
     }
 
     /**
