@@ -210,6 +210,7 @@ public class WebTerminal extends LineDisciplineTerminal {
 
     @Override
     public void setSize(Sized sz) {
+        checkClosed();
         if (component.setSize(sz)) {
             super.setSize(component);
         }
@@ -221,9 +222,10 @@ public class WebTerminal extends LineDisciplineTerminal {
      * @param columns the new number of columns
      * @param rows the new number of rows
      * @return `true` if the terminal was resized, `false` otherwise
+     * @deprecated Use {@link #setSize(Sized)} instead.
      */
     @Deprecated
-    @SuppressWarnings("java:S1133")
+    @SuppressWarnings("java:S1133") // Intentional deprecation; removal planned for a future major version
     public boolean setSize(int columns, int rows) {
         return component.setSize(columns, rows);
     }

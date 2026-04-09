@@ -1768,6 +1768,7 @@ public class ScreenTerminal implements Sized {
      * @param columns the target number of columns (2–256)
      * @param rows    the target number of rows (2–256)
      * @return        `true` if the size was changed; `false` if the requested dimensions are out of range
+     * @deprecated Use {@link #setSize(Sized)} instead.
      */
     @Deprecated
     @SuppressWarnings("java:S1133") // Intentional deprecation; removal planned for a future major version

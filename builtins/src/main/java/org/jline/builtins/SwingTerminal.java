@@ -249,6 +249,7 @@ public class SwingTerminal extends LineDisciplineTerminal {
 
     @Override
     public void setSize(Sized sz) {
+        checkClosed();
         if (component.setSize(sz)) {
             super.setSize(component);
         }
