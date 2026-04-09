@@ -82,7 +82,7 @@ import org.jline.utils.NonBlockingReader;
  * @see Cursor
  * @see MouseEvent
  */
-public interface Terminal extends Closeable, Flushable {
+public interface Terminal extends Closeable, Flushable, Sized {
 
     /**
      * Type identifier for dumb terminals with minimal capabilities.
@@ -756,7 +756,23 @@ public interface Terminal extends Closeable, Flushable {
      * @param size the desired terminal size (columns and rows)
      * @see #getSize()
      */
-    void setSize(Size size);
+    // Deprecation is awkward, as in its current state setSize(Size) would always cause deprecation warnings,
+    // because it doesn't auto-map to setSize(Sized)
+    // @Deprecated
+    // @SuppressWarnings("java:S1133") // Intentional deprecation; removal planned for a future major version
+    default void setSize(Size size) {
+        setSize((Sized) size);
+    }
+
+    /**
+     * Requests that the terminal adopt the specified window dimensions.
+     *
+     * Implementations may apply constraints or ignore the request if resizing is unsupported; callers should use {@link #getSize()} to observe the effective size after calling this method.
+     *
+     * @param size the desired terminal size (columns and rows)
+     * @see #getSize()
+     */
+    void setSize(Sized size);
 
     /**
      * Get the terminal's column count.
@@ -764,6 +780,7 @@ public interface Terminal extends Closeable, Flushable {
      * @return the number of columns in the terminal
      * @see #getSize()
      */
+    @Override
     default int getColumns() {
         return getSize().getColumns();
     }
@@ -776,6 +793,7 @@ public interface Terminal extends Closeable, Flushable {
      * @return the number of rows in the terminal
      * @see #getSize()
      */
+    @Override
     default int getRows() {
         return getSize().getRows();
     }

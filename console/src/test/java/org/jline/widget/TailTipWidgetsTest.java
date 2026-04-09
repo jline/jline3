@@ -54,7 +54,7 @@ public final class TailTipWidgetsTest {
     private static final class ZeroSizeLineReader extends LineReaderImpl {
         private ZeroSizeLineReader(Terminal terminal) throws IOException {
             super(terminal);
-            display.resize(0, 0);
+            display.resize(new Size(0, 0));
         }
     }
 

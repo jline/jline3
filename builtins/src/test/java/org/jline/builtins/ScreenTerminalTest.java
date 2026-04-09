@@ -10,6 +10,7 @@ package org.jline.builtins;
 
 import java.time.Duration;
 
+import org.jline.terminal.Size;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -157,7 +158,7 @@ public class ScreenTerminalTest {
     public void testSetSizeWidthShrink() {
         ScreenTerminal terminal = new ScreenTerminal(80, 24);
         terminal.write("Hello, World!");
-        terminal.setSize(40, 24);
+        terminal.setSize(new Size(40, 24));
 
         // Should not throw on any subsequent operation
         String content = terminal.toString();
@@ -184,7 +185,7 @@ public class ScreenTerminalTest {
         terminal.write("\0337");
 
         // Shrink terminal
-        terminal.setSize(40, 12);
+        terminal.setSize(new Size(40, 12));
 
         // DECRC - restore cursor
         terminal.write("\0338");
@@ -207,7 +208,7 @@ public class ScreenTerminalTest {
         terminal.write("\033[s");
 
         // Shrink terminal
-        terminal.setSize(40, 12);
+        terminal.setSize(new Size(40, 12));
 
         // CSI u - restore cursor position
         terminal.write("\033[u");
@@ -337,9 +338,9 @@ public class ScreenTerminalTest {
         terminal.write("\033[3J");
 
         // Shrink terminal to try pulling from scrollback
-        terminal.setSize(10, 3);
+        terminal.setSize(new Size(10, 3));
         // Grow terminal back — if scrollback is empty, new lines should be blank
-        terminal.setSize(10, 8);
+        terminal.setSize(new Size(10, 8));
 
         String content = terminal.toString();
         String[] lines = content.split("\n", -1);
@@ -442,7 +443,7 @@ public class ScreenTerminalTest {
         terminal.write("ALT");
 
         // Resize while on alt-screen
-        terminal.setSize(20, 10);
+        terminal.setSize(new Size(20, 10));
 
         // Switch back
         terminal.write("\033[?1049l");
@@ -715,12 +716,12 @@ public class ScreenTerminalTest {
 
         // Reduce the height to push more lines into history
         int reducedHeight = 10;
-        terminal.setSize(initialWidth, reducedHeight);
+        terminal.setSize(new Size(initialWidth, reducedHeight));
 
         // Now increase the width and height
         int newWidth = 100;
         int newHeight = 20;
-        terminal.setSize(newWidth, newHeight);
+        terminal.setSize(new Size(newWidth, newHeight));
 
         // The test passes if no exception is thrown during rendering
         // We can verify this by dumping the terminal content
@@ -754,7 +755,7 @@ public class ScreenTerminalTest {
 
         // Increase the width
         int newWidth = 100;
-        terminal.setSize(newWidth, initialHeight);
+        terminal.setSize(new Size(newWidth, initialHeight));
 
         // Dump the terminal content
         String dump = terminal.dump(0, true);

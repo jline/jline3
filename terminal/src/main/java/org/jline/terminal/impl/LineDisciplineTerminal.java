@@ -23,6 +23,7 @@ import org.jline.terminal.Attributes.InputFlag;
 import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Attributes.OutputFlag;
 import org.jline.terminal.Size;
+import org.jline.terminal.Sized;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
@@ -236,12 +237,10 @@ public class LineDisciplineTerminal extends AbstractTerminal {
 
     public Size getSize() {
         checkClosed();
-        Size sz = new Size();
-        sz.copy(size);
-        return sz;
+        return new Size(size);
     }
 
-    public void setSize(Size sz) {
+    public void setSize(Sized sz) {
         checkClosed();
         size.copy(sz);
     }

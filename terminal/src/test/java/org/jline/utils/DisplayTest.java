@@ -21,10 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.jline.terminal.Attributes;
-import org.jline.terminal.Size;
-import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.*;
 import org.jline.terminal.impl.LineDisciplineTerminal;
 import org.junit.jupiter.api.Test;
 
@@ -44,7 +41,7 @@ public class DisplayTest {
             int height = terminal.getRows();
 
             Display display = new Display(terminal, true);
-            display.resize(terminal.getSize());
+            display.resize(terminal);
 
             // Build Strings to displayed
             List<AttributedString> lines1 = new ArrayList<>();
@@ -191,7 +188,7 @@ public class DisplayTest {
             int height = terminal.getRows();
 
             Display display = new Display(terminal, true);
-            display.resize(terminal.getSize());
+            display.resize(terminal);
 
             // Build Strings to displayed
             List<AttributedString> lines1 = new ArrayList<>();
