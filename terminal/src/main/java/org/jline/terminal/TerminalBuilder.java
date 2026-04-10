@@ -51,20 +51,18 @@ import org.jline.utils.OSUtils;
  * <ul>
  *   <li><b>FFM</b> - Foreign Function Memory (Java 22+) based implementation</li>
  *   <li><b>JNI</b> - Java Native Interface based implementation</li>
- *   <li><b>Jansi</b> - Implementation based on the Jansi library</li>
- *   <li><b>JNA</b> - Java Native Access based implementation</li>
  *   <li><b>Exec</b> - Implementation using external commands</li>
- *   <li><b>Dumb</b> - Fallback implementation with limited capabilities</li>
+ *   <li><b>Dumb</b> - Fallback-only implementation with limited capabilities (not included in default provider order)</li>
  * </ul>
  * <p>
  * The provider selection can be controlled using the {@link #provider(String)} method or the
  * {@code org.jline.terminal.provider} system property. By default, providers are tried in the
- * order: FFM, JNI, Jansi, JNA, Exec.
+ * order: FFM, JNI, Exec.
  * </p>
  *
  * <h2>Native Library Support</h2>
  * <p>
- * When using providers that require native libraries (such as JNI, JNA, or Jansi), the appropriate
+ * When using providers that require native libraries (such as JNI), the appropriate
  * native library will be loaded automatically. The loading of these libraries is handled by
  * {@link org.jline.nativ.JLineNativeLoader} for the JNI provider.
  * </p>
@@ -909,8 +907,8 @@ public final class TerminalBuilder {
                 }
                 if (terminal == null && OSUtils.IS_WINDOWS && providers.isEmpty() && (dumb == null || !dumb)) {
                     throw new IllegalStateException(
-                            "Unable to create a system terminal. On Windows, either JLine's native libraries, JNA "
-                                    + "or Jansi library is required.  Make sure to add one of those in the classpath.",
+                            "Unable to create a system terminal. On Windows, JLine's native libraries are required. "
+                                    + "Make sure the FFM provider (Java 22+) or JNI provider is available.",
                             exception);
                 }
             }
