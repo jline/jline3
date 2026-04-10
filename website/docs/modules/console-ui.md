@@ -12,7 +12,7 @@ The JLine Console UI module provides interactive prompt components for console a
 
 ## Introduction
 
-ConsoleUI is a library for prompting the user for different types of input. It provides simple UI elements on ANSI console-based terminals. ConsoleUI was initially implemented using JLine2 by Andreas Wegmann and was later upgraded to use JLine3 and merged into the JLine project.
+ConsoleUI is a library for prompting the user for different types of input. It provides simple UI elements on ANSI console-based terminals. ConsoleUI was initially implemented using JLine2 by Andreas Wegmann and was later upgraded to use JLine 3 and merged into the JLine project.
 
 ## Features
 
