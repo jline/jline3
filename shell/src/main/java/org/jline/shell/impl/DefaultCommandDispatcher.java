@@ -9,6 +9,7 @@
 package org.jline.shell.impl;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
@@ -276,16 +277,9 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
             String cmdName = parts[0];
             String argsStr = parts.length > 1 ? parts[1] : "";
 
-            // Handle pipe input: prepend to args
-            if (lastOutput != null && i > 0) {
-                Pipeline.Stage prevStage = stages.get(i - 1);
-                if (prevStage.operator() == Operator.PIPE) {
-                    // For pipe, we pass input via session variable
-                    session.put("_pipe_input", lastOutput);
-                } else if (prevStage.operator() == Operator.FLIP) {
-                    // For flip, append output as argument
-                    argsStr = argsStr.isEmpty() ? lastOutput.trim() : argsStr + " " + lastOutput.trim();
-                }
+            // Handle FLIP: append previous output as argument
+            if (lastOutput != null && i > 0 && stages.get(i - 1).operator() == Operator.FLIP) {
+                argsStr = argsStr.isEmpty() ? lastOutput.trim() : argsStr + " " + lastOutput.trim();
             }
 
             Command cmd = findCommand(cmdName);
@@ -304,9 +298,13 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
                 }
             }
 
-            // Handle input redirection
+            // Handle input redirection (pipe input from previous stage, or explicit < redirect)
             InputStream originalIn = session.in();
             boolean inputRedirected = false;
+            if (lastOutput != null && i > 0 && stages.get(i - 1).operator() == Operator.PIPE) {
+                session.setIn(new ByteArrayInputStream(lastOutput.getBytes(StandardCharsets.UTF_8)));
+                inputRedirected = true;
+            }
             if (stage.inputSource() != null) {
                 byte[] inputBytes = Files.readAllBytes(stage.inputSource());
                 session.setIn(new ByteArrayInputStream(inputBytes));

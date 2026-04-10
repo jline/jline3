@@ -8,6 +8,8 @@
  */
 package org.jline.demo.examples;
 
+import java.nio.charset.StandardCharsets;
+
 import org.jline.reader.LineReader.Option;
 import org.jline.shell.CommandSession;
 import org.jline.shell.Shell;
@@ -51,13 +53,9 @@ public class ShellJobExample {
 
         @Override
         public Object execute(CommandSession session, String[] args) {
-            // Check for pipe input
-            Object pipeInput = session.get("_pipe_input");
             String msg;
             if (args.length > 0) {
                 msg = String.join(" ", args);
-            } else if (pipeInput != null) {
-                msg = pipeInput.toString();
             } else {
                 msg = "";
             }
@@ -77,14 +75,12 @@ public class ShellJobExample {
         }
 
         @Override
-        public Object execute(CommandSession session, String[] args) {
-            // Check for pipe input first
-            Object pipeInput = session.get("_pipe_input");
+        public Object execute(CommandSession session, String[] args) throws Exception {
             String input;
-            if (pipeInput != null) {
-                input = pipeInput.toString().trim();
-            } else {
+            if (args.length > 0) {
                 input = String.join(" ", args);
+            } else {
+                input = new String(session.in().readAllBytes(), StandardCharsets.UTF_8).trim();
             }
             String result = input.toUpperCase();
             session.out().println(result);

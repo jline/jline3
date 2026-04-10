@@ -9,6 +9,7 @@
 package org.jline.shell.impl;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -81,13 +82,17 @@ public class DefaultCommandDispatcherTest {
 
         @Override
         public String description() {
-            return "Convert pipe input to upper case";
+            return "Convert stdin (or args) to upper case";
         }
 
         @Override
-        public Object execute(CommandSession session, String[] args) {
-            Object pipeInput = session.get("_pipe_input");
-            String input = pipeInput != null ? pipeInput.toString().trim() : String.join(" ", args);
+        public Object execute(CommandSession session, String[] args) throws IOException {
+            String input;
+            if (args.length > 0) {
+                input = String.join(" ", args);
+            } else {
+                input = new String(session.in().readAllBytes(), StandardCharsets.UTF_8).trim();
+            }
             String result = input.toUpperCase();
             session.out().println(result);
             return result;
