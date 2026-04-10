@@ -6,11 +6,11 @@ sidebar_position: 6
 
 import CodeSnippet from '@site/src/components/CodeSnippet';
 
-The JLine Prompt module provides a modern, native JLine3 implementation for interactive console prompts. It offers a complete replacement for the console-ui module with enhanced features including multi-column layouts, advanced navigation, and script integration capabilities.
+The JLine Prompt module provides a modern, native JLine implementation for interactive console prompts. It offers a complete replacement for the console-ui module with enhanced features including multi-column layouts, advanced navigation, and script integration capabilities.
 
 ## Introduction
 
-The Prompt module is a comprehensive prompt system built natively on JLine3, providing all the functionality of console-ui while adding significant enhancements. It features a fluent builder API, multi-column layouts, grid-based navigation, and command-line integration for scripts and automation.
+The Prompt module is a comprehensive prompt system built natively on JLine, providing all the functionality of console-ui while adding significant enhancements. It features a fluent builder API, multi-column layouts, grid-based navigation, and command-line integration for scripts and automation.
 
 ## Key Features
 
@@ -25,7 +25,7 @@ The Prompt module offers:
 - **Pagination and scrolling** for large item lists
 - **Script integration** via PromptCommands for shell scripts and automation
 - **Terminal capability detection** with graceful fallbacks
-- **Native JLine3 implementation** with no external dependencies
+- **Native JLine implementation** with no external dependencies
 
 ## Quick Start Example
 
