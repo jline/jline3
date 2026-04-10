@@ -148,7 +148,7 @@ Still functional but superseded by the [Prompt Module](./modules/prompt.md), whi
 5. **Migrate Console API** to Shell if writing new code (or use adapters for existing code)
 6. **Migrate Console UI** to Prompt module for new prompt code
 7. **Add `--enable-native-access`** if using Java 22+ with modules:
-   ```
+   ```text
    --enable-native-access=org.jline.terminal.ffm
    ```
 8. **Test on target platforms** — provider auto-selection handles most cases
