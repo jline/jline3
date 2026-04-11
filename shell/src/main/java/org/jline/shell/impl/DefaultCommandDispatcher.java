@@ -10,6 +10,7 @@ package org.jline.shell.impl;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -309,31 +310,10 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
                     continue;
                 }
 
-                // Parse command name and args
-                String[] parts = cmdLine.trim().split("\\s+", 2);
-                String cmdName = parts[0];
-                String argsStr = parts.length > 1 ? parts[1] : "";
-
-                // Handle FLIP args from previous group
-                if (flipArgs != null) {
-                    argsStr = argsStr.isEmpty() ? flipArgs : argsStr + " " + flipArgs;
-                }
-
-                Command cmd = findCommand(cmdName);
-                if (cmd == null) {
-                    throw new IllegalArgumentException("Unknown command: " + cmdName);
-                }
-
-                String[] args = argsStr.isEmpty() ? new String[0] : argsStr.split("\\s+");
-
-                // Subcommand routing: check if first arg matches a subcommand
-                if (args.length > 0 && !cmd.subcommands().isEmpty()) {
-                    Command sub = cmd.subcommands().get(args[0]);
-                    if (sub != null) {
-                        cmd = sub;
-                        args = Arrays.copyOfRange(args, 1, args.length);
-                    }
-                }
+                // Resolve command and arguments
+                Object[] resolved = resolveCommand(cmdLine, flipArgs);
+                Command cmd = (Command) resolved[0];
+                String[] args = (String[]) resolved[1];
 
                 // Handle input redirection
                 InputStream originalIn = session.in();
@@ -358,23 +338,15 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
                     capture = new ByteArrayOutputStream();
                     session.setOut(new PrintStream(capture));
                 } else if ((op == Operator.REDIRECT || op == Operator.APPEND) && stage.redirectTarget() != null) {
-                    redirectStream = Files.newOutputStream(
-                            stage.redirectTarget(),
-                            op == Operator.APPEND
-                                    ? new StandardOpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.APPEND}
-                                    : new StandardOpenOption[] {
-                                        StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING
-                                    });
+                    redirectStream = openRedirectStream(op, stage.redirectTarget());
                     session.setOut(new PrintStream(redirectStream));
                     outputRedirected = true;
                 } else if (op == Operator.STDERR_REDIRECT && stage.redirectTarget() != null) {
-                    redirectStream = Files.newOutputStream(
-                            stage.redirectTarget(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                    redirectStream = openRedirectStream(op, stage.redirectTarget());
                     session.setErr(new PrintStream(redirectStream));
                     outputRedirected = true;
                 } else if (op == Operator.COMBINED_REDIRECT && stage.redirectTarget() != null) {
-                    redirectStream = Files.newOutputStream(
-                            stage.redirectTarget(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                    redirectStream = openRedirectStream(op, stage.redirectTarget());
                     PrintStream combinedStream = new PrintStream(redirectStream);
                     session.setOut(combinedStream);
                     session.setErr(combinedStream);
@@ -471,32 +443,14 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
                 throw new IllegalArgumentException("Empty command in pipeline");
             }
 
-            String[] parts = cmdLine.trim().split("\\s+", 2);
-            String cmdName = parts[0];
-            String argsStr = parts.length > 1 ? parts[1] : "";
-
-            // FLIP args apply to the first stage only
-            if (s == 0 && flipArgs != null) {
-                argsStr = argsStr.isEmpty() ? flipArgs : argsStr + " " + flipArgs;
-            }
-
-            Command cmd = findCommand(cmdName);
-            if (cmd == null) {
+            try {
+                Object[] resolved = resolveCommand(cmdLine, s == 0 ? flipArgs : null);
+                commands[s] = (Command) resolved[0];
+                argsArrays[s] = (String[]) resolved[1];
+            } catch (IllegalArgumentException e) {
                 closePumps(pumps);
-                throw new IllegalArgumentException("Unknown command: " + cmdName);
+                throw e;
             }
-
-            String[] cmdArgs = argsStr.isEmpty() ? new String[0] : argsStr.split("\\s+");
-            if (cmdArgs.length > 0 && !cmd.subcommands().isEmpty()) {
-                Command sub = cmd.subcommands().get(cmdArgs[0]);
-                if (sub != null) {
-                    cmd = sub;
-                    cmdArgs = Arrays.copyOfRange(cmdArgs, 1, cmdArgs.length);
-                }
-            }
-
-            commands[s] = cmd;
-            argsArrays[s] = cmdArgs;
         }
 
         // Set up first stage input
@@ -516,20 +470,13 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
         OutputStream redirectStream = null;
         if ((lastGroupOp == Operator.REDIRECT || lastGroupOp == Operator.APPEND)
                 && lastGroupStage.redirectTarget() != null) {
-            redirectStream = Files.newOutputStream(
-                    lastGroupStage.redirectTarget(),
-                    lastGroupOp == Operator.APPEND
-                            ? new StandardOpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.APPEND}
-                            : new StandardOpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING
-                            });
+            redirectStream = openRedirectStream(lastGroupOp, lastGroupStage.redirectTarget());
             lastOut = new PrintStream(redirectStream);
         } else if (lastGroupOp == Operator.STDERR_REDIRECT && lastGroupStage.redirectTarget() != null) {
-            redirectStream = Files.newOutputStream(
-                    lastGroupStage.redirectTarget(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            redirectStream = openRedirectStream(lastGroupOp, lastGroupStage.redirectTarget());
             lastErr = new PrintStream(redirectStream);
         } else if (lastGroupOp == Operator.COMBINED_REDIRECT && lastGroupStage.redirectTarget() != null) {
-            redirectStream = Files.newOutputStream(
-                    lastGroupStage.redirectTarget(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            redirectStream = openRedirectStream(lastGroupOp, lastGroupStage.redirectTarget());
             PrintStream combinedStream = new PrintStream(redirectStream);
             lastOut = combinedStream;
             lastErr = combinedStream;
@@ -629,6 +576,47 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
      *
      * @param pumps the pumps to close
      */
+    /**
+     * Parses a command line, resolves the command and any subcommand, and applies
+     * optional flip arguments. Returns a two-element array: {@code [Command, String[]]}.
+     */
+    private Object[] resolveCommand(String cmdLine, String flipArgs) {
+        String[] parts = cmdLine.trim().split("\\s+", 2);
+        String cmdName = parts[0];
+        String argsStr = parts.length > 1 ? parts[1] : "";
+
+        if (flipArgs != null) {
+            argsStr = argsStr.isEmpty() ? flipArgs : argsStr + " " + flipArgs;
+        }
+
+        Command cmd = findCommand(cmdName);
+        if (cmd == null) {
+            throw new IllegalArgumentException("Unknown command: " + cmdName);
+        }
+
+        String[] args = argsStr.isEmpty() ? new String[0] : argsStr.split("\\s+");
+
+        if (args.length > 0 && !cmd.subcommands().isEmpty()) {
+            Command sub = cmd.subcommands().get(args[0]);
+            if (sub != null) {
+                cmd = sub;
+                args = Arrays.copyOfRange(args, 1, args.length);
+            }
+        }
+
+        return new Object[] {cmd, args};
+    }
+
+    /**
+     * Opens an output stream for a redirect operator.
+     */
+    private static OutputStream openRedirectStream(Operator op, Path target) throws IOException {
+        if (op == Operator.APPEND) {
+            return Files.newOutputStream(target, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        }
+        return Files.newOutputStream(target, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+    }
+
     private static void closePumps(PipePumpInputStream[] pumps) {
         for (PipePumpInputStream pump : pumps) {
             try {
