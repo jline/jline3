@@ -39,69 +39,6 @@ import org.jline.shell.widget.CommandTailTipWidgets;
 public class ShellJobExample {
 
     // SNIPPET_START: ShellJobExample
-    static class EchoCommand extends AbstractCommand {
-        EchoCommand() {
-            super("echo");
-        }
-
-        @Override
-        public String description() {
-            return "Echo arguments to output";
-        }
-
-        /**
-         * Echoes the provided arguments (joined with spaces) to the session output and returns the resulting message.
-         *
-         * @param args the arguments to echo; joined with spaces to form the output
-         * @return the message that was printed
-         */
-        @Override
-        public Object execute(CommandSession session, String[] args) {
-            String msg = String.join(" ", args);
-            session.out().println(msg);
-            return msg;
-        }
-    }
-
-    static class UpperCommand extends AbstractCommand {
-        UpperCommand() {
-            super("upper");
-        }
-
-        /**
-         * Provide the command's short description.
-         *
-         * @return the command description "Convert text to upper case"
-         */
-        @Override
-        public String description() {
-            return "Convert text to upper case";
-        }
-
-        /**
-         * Convert the provided input to upper case and write it to the session output.
-         *
-         * If command-line arguments are present they are joined with spaces and used as the input;
-         * otherwise the method reads remaining bytes from the session's input and trims them before converting.
-         *
-         * @param session the command session used for reading input and writing output
-         * @param args command-line arguments to be used as input when non-empty
-         * @return the resulting upper-case string
-         */
-        @Override
-        public Object execute(CommandSession session, String[] args) throws Exception {
-            String input;
-            if (args.length > 0) {
-                input = String.join(" ", args);
-            } else {
-                input = new String(session.in().readAllBytes()).trim();
-            }
-            String result = input.toUpperCase();
-            session.out().println(result);
-            return result;
-        }
-    }
-
     static class SleepCommand extends AbstractCommand {
         SleepCommand() {
             super("sleep");
@@ -154,7 +91,11 @@ public class ShellJobExample {
                 .optionCommands(true) // HIGHLIGHT
                 .commandHighlighter(true) // HIGHLIGHT
                 .groups(new SimpleCommandGroup(
-                        "demo", new EchoCommand(), new UpperCommand(), new SleepCommand(), new CountCommand()))
+                        "demo",
+                        new DemoCommands.EchoCommand(),
+                        new DemoCommands.UpperCommand(),
+                        new SleepCommand(),
+                        new CountCommand()))
                 .option(Option.INSERT_BRACKET, true)
                 .option(Option.DISABLE_EVENT_EXPANSION, true)
                 .onReaderReady((reader, dispatcher) -> {
