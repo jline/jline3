@@ -49,6 +49,12 @@ public class ShellJobExample {
             return "Echo arguments to output";
         }
 
+        /**
+         * Echoes the provided arguments (joined with spaces) to the session output and returns the resulting message.
+         *
+         * @param args the arguments to echo; joined with spaces to form the output
+         * @return the message that was printed
+         */
         @Override
         public Object execute(CommandSession session, String[] args) {
             String msg = String.join(" ", args);
@@ -62,11 +68,26 @@ public class ShellJobExample {
             super("upper");
         }
 
+        /**
+         * Provide the command's short description.
+         *
+         * @return the command description "Convert text to upper case"
+         */
         @Override
         public String description() {
             return "Convert text to upper case";
         }
 
+        /**
+         * Convert the provided input to upper case and write it to the session output.
+         *
+         * If command-line arguments are present they are joined with spaces and used as the input;
+         * otherwise the method reads remaining bytes from the session's input and trims them before converting.
+         *
+         * @param session the command session used for reading input and writing output
+         * @param args command-line arguments to be used as input when non-empty
+         * @return the resulting upper-case string
+         */
         @Override
         public Object execute(CommandSession session, String[] args) throws Exception {
             String input;

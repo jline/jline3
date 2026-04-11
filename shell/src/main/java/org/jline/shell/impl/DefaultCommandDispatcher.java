@@ -246,6 +246,19 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
         }
     }
 
+    /**
+     * Execute the pipeline's stages, honoring pipes, conditional operators, FLIP semantics,
+     * redirections (redirect/append/stderr/combined), and sequencing.
+     *
+     * <p>Stages connected by PIPE are grouped and executed as a concurrent pipeline; single-stage
+     * stages are executed inline. The method updates the session's last exit code, applies
+     * FLIP by passing trimmed previous output as arguments to the first stage of the next group,
+     * captures or redirects stdout/stderr as required, and applies redirect/append targets
+     * after a group's execution when present.</p>
+     *
+     * @return the result object produced by the last executed stage, or `null` if no result was produced
+     * @throws Exception if execution or I/O fails and the error is not suppressed by conditional operators
+     */
     private Object doExecutePipelineStages(Pipeline pipeline) throws Exception {
         List<Pipeline.Stage> stages = pipeline.stages();
         Object lastResult = null;
@@ -594,6 +607,11 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
         return new Object[] {lastResult, lastOutput};
     }
 
+    /**
+     * Closes the given array of PipePumpInputStream instances, suppressing any IOException thrown by individual closes.
+     *
+     * @param pumps the pumps to close
+     */
     private static void closePumps(PipePumpInputStream[] pumps) {
         for (PipePumpInputStream pump : pumps) {
             try {
@@ -603,6 +621,14 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
         }
     }
 
+    /**
+     * Creates a completer that provides completions for every registered command name and its aliases.
+     *
+     * Builds a SystemCompleter, registers a completer for each command and each of its alias strings, and
+     * finalizes it into a candidate-producing completer.
+     *
+     * @return a Completer that offers argument and command-name completions for all registered commands and aliases
+     */
     @Override
     public Completer completer() {
         SystemCompleter completer = new SystemCompleter();
@@ -704,14 +730,13 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
     }
 
     /**
-     * Checks whether a line is a bare variable assignment ({@code NAME=VALUE}).
-     * <p>
-     * A line is a variable assignment if it contains {@code =} and the part before
-     * it is a valid identifier (letters, digits, underscores, starting with a letter
-     * or underscore). The line must not contain spaces before the {@code =}.
+     * Determines whether a trimmed line is a bare variable assignment of the form NAME=VALUE.
+     *
+     * The name portion must contain no spaces, start with a letter or underscore, and consist only of letters,
+     * digits, or underscores.
      *
      * @param line the trimmed input line
-     * @return true if the line is a variable assignment
+     * @return {@code true} if the line matches `NAME=VALUE` with a valid name, {@code false} otherwise
      */
     private static boolean isVariableAssignment(String line) {
         int eq = line.indexOf('=');
@@ -747,6 +772,12 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
      * is empty and the stream is closed.
      */
     private static class PipePumpInputStream extends NonBlockingPumpInputStream {
+        /**
+         * No-op override that permits reading any buffered bytes after the pump is closed.
+         *
+         * This prevents the stream from enforcing a strict closed state so consumers can
+         * drain remaining data instead of encountering an immediate closed error.
+         */
         @Override
         protected void checkClosed() throws IOException {
             // Allow reads on a closed pump so buffered data can be drained.
@@ -755,6 +786,11 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
         }
     }
 
+    /**
+     * No-op default implementation; does nothing.
+     *
+     * Subclasses may override to release or close allocated resources. 
+     */
     @Override
     public void close() {
         // Nothing to close by default

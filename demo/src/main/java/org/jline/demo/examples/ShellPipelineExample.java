@@ -45,6 +45,13 @@ public class ShellPipelineExample {
             return "Echo arguments to output";
         }
 
+        /**
+         * Prints the command arguments joined by spaces to the session output.
+         *
+         * @param session the command session used for input/output
+         * @param args the arguments to join and print
+         * @return the joined arguments string
+         */
         @Override
         public Object execute(CommandSession session, String[] args) {
             String msg = String.join(" ", args);
@@ -58,11 +65,26 @@ public class ShellPipelineExample {
             super("upper");
         }
 
+        /**
+         * Provide the one-line help text for the command.
+         *
+         * @return the one-line help text describing the command's behavior: "Convert pipe input to upper case"
+         */
         @Override
         public String description() {
             return "Convert pipe input to upper case";
         }
 
+        /**
+         * Converts input text to uppercase, writes it to the session output, and returns it.
+         *
+         * If command arguments are provided they are joined with spaces and used as the input;
+         * otherwise all available bytes from the session's input stream are read and trimmed.
+         *
+         * @param session the command session providing input and output streams
+         * @param args    command arguments; when non-empty they are joined into the input text
+         * @return        the resulting uppercase string
+         */
         @Override
         public Object execute(CommandSession session, String[] args) throws Exception {
             String input;
