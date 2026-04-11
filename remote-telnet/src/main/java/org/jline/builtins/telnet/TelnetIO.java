@@ -587,27 +587,6 @@ public class TelnetIO {
         connection.processConnectionEvent(new ConnectionEvent(connection, ConnectionEvent.Type.CONNECTION_BREAK));
     } // nvtBreak
 
-    /**
-     * Method that checks reported terminal sizes and sets the
-     * asserted values in the ConnectionData instance associated with
-     * the connection.
-     *
-     * @param width  Integer that represents the Window width in chars
-     * @param height Integer that represents the Window height in chars
-     */
-    private void setTerminalGeometry(int width, int height) {
-        if (width < SMALLEST_BELIEVABLE_WIDTH) {
-            width = DEFAULT_WIDTH;
-        }
-        if (height < SMALLEST_BELIEVABLE_HEIGHT) {
-            height = DEFAULT_HEIGHT;
-        }
-        // DEBUG: write("[New Window Size " + window_width + "x" + window_height + "]");
-        connectionData.setTerminalGeometry(width, height);
-        connection.processConnectionEvent(
-                new ConnectionEvent(connection, ConnectionEvent.Type.CONNECTION_TERMINAL_GEOMETRY_CHANGED));
-    } // setTerminalGeometry
-
     public void setEcho(boolean b) {} // setEcho
 
     /**
@@ -885,7 +864,19 @@ public class TelnetIO {
             }
             skipToSE();
             setTerminalGeometry(width, height);
-        } // handleNAWS
+        }
+
+        private void setTerminalGeometry(int columns, int rows) {
+            if (columns < SMALLEST_BELIEVABLE_WIDTH) {
+                columns = DEFAULT_WIDTH;
+            }
+            if (rows < SMALLEST_BELIEVABLE_HEIGHT) {
+                rows = DEFAULT_HEIGHT;
+            }
+            connectionData.setTerminalGeometry(columns, rows);
+            connection.processConnectionEvent(
+                    new ConnectionEvent(connection, ConnectionEvent.Type.CONNECTION_TERMINAL_GEOMETRY_CHANGED));
+        }
 
         /**
          * Method that reads a TTYPE Subnegotiation String that ends up with a IAC SE

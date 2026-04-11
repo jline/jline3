@@ -20,6 +20,13 @@ import org.jline.utils.InfoCmp.Capability;
 public class TerminalCursorExample {
 
     // SNIPPET_START: TerminalCursorExample
+    /**
+     * Demonstrates terminal cursor control by clearing the screen, moving the cursor to several positions,
+     * saving and restoring the cursor position, and waiting for the user to press Enter before exiting.
+     *
+     * @throws IOException if an I/O error occurs interacting with the terminal
+     * @throws InterruptedException if the thread is interrupted while sleeping
+     */
     public static void main(String[] args) throws IOException, InterruptedException {
         Terminal terminal = TerminalBuilder.builder().build();
 
@@ -58,7 +65,7 @@ public class TerminalCursorExample {
         Thread.sleep(2000);
 
         // Move cursor to bottom
-        terminal.puts(Capability.cursor_address, terminal.getHeight() - 1, 0);
+        terminal.puts(Capability.cursor_address, terminal.getRows() - 1, 0);
         terminal.writer().println("Press Enter to exit");
         terminal.flush();
 

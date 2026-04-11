@@ -25,6 +25,16 @@ import org.jline.utils.Display;
 public class ResponsiveUIExample {
 
     // SNIPPET_START: ResponsiveUIExample
+    /**
+     * Launches an interactive example that displays a responsive terminal UI and exits when Enter is pressed.
+     *
+     * Sets up a JLine Terminal and Display, renders content based on the current terminal size, registers a
+     * window-resize handler to recompute and re-render content when the terminal is resized, and blocks until
+     * the user presses Enter.
+     *
+     * @throws IOException if an I/O error occurs while building, updating, or interacting with the terminal
+     * @throws InterruptedException if the thread is interrupted while waiting for user input
+     */
     public static void main(String[] args) throws IOException, InterruptedException {
         Terminal terminal = TerminalBuilder.builder().build();
 
@@ -38,7 +48,7 @@ public class ResponsiveUIExample {
         List<AttributedString> content = createContent(size);
 
         // Update the display
-        display.resize(size.getRows(), size.getColumns());
+        display.resize(size);
         display.update(content, -1);
 
         // Register a signal handler for window resize events
@@ -49,7 +59,7 @@ public class ResponsiveUIExample {
             List<AttributedString> newContent = createContent(newSize);
 
             // Update the display
-            display.resize(newSize.getRows(), newSize.getColumns());
+            display.resize(newSize);
             display.update(newContent, -1);
         });
 

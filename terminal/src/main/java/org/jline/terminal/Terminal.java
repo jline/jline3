@@ -749,51 +749,61 @@ public interface Terminal extends Closeable, Flushable {
     Size getSize();
 
     /**
-     * Sets the size of the terminal.
+     * Requests that the terminal adopt the specified window dimensions.
      *
-     * <p>
-     * This method attempts to resize the terminal to the specified dimensions. Note that
-     * not all terminals support resizing, and the actual size after this operation may
-     * differ from the requested size depending on terminal capabilities and constraints.
-     * </p>
+     * Implementations may apply constraints or ignore the request if resizing is unsupported; callers should use {@link #getSize()} to observe the effective size after calling this method.
      *
-     * <p>
-     * For virtual terminals or terminal emulators, this may update the internal size
-     * representation. For physical terminals, this may send appropriate escape sequences
-     * to adjust the viewable area.
-     * </p>
-     *
-     * @param size the new terminal size (columns and rows)
+     * @param size the desired terminal size (columns and rows)
      * @see #getSize()
      */
     void setSize(Size size);
 
     /**
-     * Returns the width (number of columns) of the terminal.
-     *
-     * <p>
-     * This is a convenience method equivalent to {@code getSize().getColumns()}.
-     * </p>
+     * Get the terminal's column count.
      *
      * @return the number of columns in the terminal
      * @see #getSize()
      */
-    default int getWidth() {
+    default int getColumns() {
         return getSize().getColumns();
     }
 
     /**
-     * Returns the height (number of rows) of the terminal.
+     * Get the terminal's visible row count.
      *
-     * <p>
-     * This is a convenience method equivalent to {@code getSize().getRows()}.
-     * </p>
+     * <p>Convenience method for {@code getSize().getRows()}.</p>
      *
      * @return the number of rows in the terminal
      * @see #getSize()
      */
-    default int getHeight() {
+    default int getRows() {
         return getSize().getRows();
+    }
+
+    /**
+     * Get the terminal width in columns.
+     *
+     * @return the number of columns in the terminal
+     * @see #getColumns()
+     * @deprecated Use {@link #getColumns()} instead.
+     */
+    @Deprecated
+    @SuppressWarnings("java:S1133") // Intentional deprecation; removal planned for a future major version
+    default int getWidth() {
+        return getColumns();
+    }
+
+    /**
+     * Get the terminal height in rows.
+     *
+     * @return the number of rows in the terminal
+     * @see #getRows()
+     * @deprecated Use {@link #getRows()} instead.
+     */
+    @Deprecated
+    @SuppressWarnings("java:S1133") // Intentional deprecation; removal planned for a future major version
+    default int getHeight() {
+        return getRows();
     }
 
     /**

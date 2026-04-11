@@ -239,17 +239,14 @@ public class ConnectionData {
     } // setWarned
 
     /**
-     * Sets the terminal geometry data.<br>
-     * <em>This method should not be called explicitly
-     * by the application (i.e. the its here for the io subsystem).</em><br>
-     * A call will set the terminal geometry changed flag.
+     * Update the stored terminal dimensions and mark the geometry as changed.
      *
-     * @param width  of the terminal in columns.
-     * @param height of the terminal in rows.
+     * @param columns the number of columns
+     * @param rows    the number of rows
      */
-    public void setTerminalGeometry(int width, int height) {
-        terminalGeometry[0] = width;
-        terminalGeometry[1] = height;
+    public void setTerminalGeometry(int columns, int rows) {
+        terminalGeometry[0] = columns;
+        terminalGeometry[1] = rows;
         terminalGeometryChanged = true;
     } // setTerminalGeometry
 

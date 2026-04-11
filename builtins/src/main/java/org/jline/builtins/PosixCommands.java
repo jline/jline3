@@ -2046,9 +2046,22 @@ public class PosixCommands {
         }
     }
 
+    /**
+     * Lay out ANSI-encoded strings into a columnar grid and write the result to the provided output.
+     *
+     * <p>The method measures each string's display width (respecting ANSI attributes), computes a
+     * column count that fits the terminal width (uses the terminal's columns when TTY, otherwise 80),
+     * arranges items in either row-major (horizontal) or column-major order, pads entries to align
+     * columns, and emits the combined ANSI output to {@code out}.
+     *
+     * @param context   used to obtain the terminal and determine TTY state and column width
+     * @param out       destination print stream for the rendered column output
+     * @param ansi      stream of strings containing ANSI escape sequences to be placed in columns
+     * @param horizontal if {@code true}, fill rows first (horizontal layout); if {@code false}, fill columns first (vertical layout)
+     */
     private static void toColumn(Context context, PrintStream out, Stream<String> ansi, boolean horizontal) {
         Terminal terminal = context.terminal();
-        int width = context.isTty() ? terminal.getWidth() : 80;
+        int width = context.isTty() ? terminal.getColumns() : 80;
         List<AttributedString> strings = ansi.map(AttributedString::fromAnsi).collect(Collectors.toList());
         if (!strings.isEmpty()) {
             int max = strings.stream()

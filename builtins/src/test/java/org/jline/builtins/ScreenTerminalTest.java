@@ -21,8 +21,8 @@ public class ScreenTerminalTest {
 
     // Helper: get cursor position as [x, y]
     private int[] getCursor(ScreenTerminal terminal) {
-        int w = terminal.getWidth();
-        int h = terminal.getHeight();
+        int w = terminal.getColumns();
+        int h = terminal.getRows();
         long[] screen = new long[w * h];
         int[] cursor = new int[2];
         terminal.dump(screen, cursor);
@@ -31,8 +31,8 @@ public class ScreenTerminalTest {
 
     // Helper: get the character at a screen position from the raw dump
     private int getChar(ScreenTerminal terminal, int row, int col) {
-        int w = terminal.getWidth();
-        int h = terminal.getHeight();
+        int w = terminal.getColumns();
+        int h = terminal.getRows();
         long[] screen = new long[w * h];
         terminal.dump(screen, null);
         return (int) (screen[row * w + col] & 0xffffffffL);
@@ -40,8 +40,8 @@ public class ScreenTerminalTest {
 
     // Helper: get the attribute at a screen position from the raw dump
     private long getAttr(ScreenTerminal terminal, int row, int col) {
-        int w = terminal.getWidth();
-        int h = terminal.getHeight();
+        int w = terminal.getColumns();
+        int h = terminal.getRows();
         long[] screen = new long[w * h];
         terminal.dump(screen, null);
         return screen[row * w + col] >>> 32;

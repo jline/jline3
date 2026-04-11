@@ -63,11 +63,9 @@ public class Size {
     public Size() {}
 
     /**
-     * Creates a new Size instance with the specified dimensions.
+     * Constructs a Size with the specified number of columns and rows.
      *
-     * <p>
-     * This constructor creates a Size object with the specified number of columns and rows.
-     * </p>
+     * <p>Input values are truncated to a 16-bit signed range when stored.</p>
      *
      * @param columns the number of columns (width)
      * @param rows the number of rows (height)
@@ -77,6 +75,15 @@ public class Size {
         this();
         setColumns(columns);
         setRows(rows);
+    }
+
+    /**
+     * Constructs a new Size with the same columns and rows as the given size.
+     *
+     * @param size the source Size from which to copy columns and rows
+     */
+    public Size(Size size) {
+        this(size.getColumns(), size.getRows());
     }
 
     /**

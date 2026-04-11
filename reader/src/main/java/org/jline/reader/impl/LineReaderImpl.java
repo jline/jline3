@@ -831,13 +831,20 @@ public class LineReaderImpl implements LineReader, Flushable {
         return Terminal.TYPE_DUMB.equals(terminal.getType()) || Terminal.TYPE_DUMB_COLOR.equals(terminal.getType());
     }
 
+    /**
+     * Initialize the display using the current terminal buffer size.
+     *
+     * Caches the terminal's buffer size into the reader's size, creates a new
+     * Display bound to the terminal, applies the cached size to the Display,
+     * and enables delayed line wrapping when the DELAY_LINE_WRAP option is set.
+     */
     private void doDisplay() {
         // Cache terminal size for the duration of the call to readLine()
         // It will eventually be updated with WINCH signals
         size.copy(terminal.getBufferSize());
 
         display = new Display(terminal, false);
-        display.resize(size.getRows(), size.getColumns());
+        display.resize(size);
         if (isSet(Option.DELAY_LINE_WRAP)) display.setDelayLineWrap(true);
     }
 
@@ -1269,6 +1276,21 @@ public class LineReaderImpl implements LineReader, Flushable {
         return str;
     }
 
+    /**
+     * Handle terminal signals that affect the reader's display and terminal state.
+     *
+     * <p>For SIGWINCH (window change) this checks whether the terminal's character
+     * grid (rows/columns) changed and, if so, recreates the display, resizes the
+     * status bar, resets the cursor to column 0, and triggers a redisplay.
+     *
+     * <p>For SIGCONT (continue) this re-enters raw mode, updates the cached size,
+     * resizes the active display, enables keypad transmit, redraws the current
+     * prompt/line and triggers a redisplay.
+     *
+     * <p>Autosuggestions are disabled when any handled signal is received.
+     *
+     * @param signal the received terminal signal (e.g. WINCH or CONT)
+     */
     protected synchronized void handleSignal(Signal signal) {
         doAutosuggestion = false;
         if (signal == Signal.WINCH) {
@@ -1293,7 +1315,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         } else if (signal == Signal.CONT) {
             terminal.enterRawMode();
             size.copy(terminal.getBufferSize());
-            display.resize(size.getRows(), size.getColumns());
+            display.resize(size);
             terminal.puts(Capability.keypad_xmit);
             redrawLine();
             redisplay();
@@ -5484,6 +5506,19 @@ public class LineReaderImpl implements LineReader, Flushable {
         return doList(possible, completed, runLoop, escaper, false);
     }
 
+    /**
+     * Displays an interactive list of completion candidates and processes user interaction
+     * (filtering, paging, and switching to the menu) for the current buffer state.
+     *
+     * @param possible   the candidate list to display
+     * @param completed  the already-completed prefix to prepend to filtered candidates
+     * @param runLoop    when true, enter the interactive listing loop; when false, only prepares listing state
+     * @param escaper    function that returns the escaped display form for a candidate fragment;
+     *                   receives the fragment and a boolean indicating whether to escape for insertion
+     * @param forSuggestion  true when listing is being requested for an inline autosuggestion (suppresses prompts)
+     * @return `false` if the listing was not shown or the user aborted the listing (no candidates, user declined,
+     *         or listing suppressed); `true` if the listing was shown and consumed control.
+     */
     protected boolean doList(
             List<Candidate> possible,
             String completed,
@@ -5557,7 +5592,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                     List<AttributedString> ls =
                             pr.post.columnSplitLength(size.getColumns(), false, display.delayLineWrap());
                     Display d = new Display(terminal, false);
-                    d.resize(size.getRows(), size.getColumns());
+                    d.resize(size);
                     d.update(ls, -1);
                     println();
                     redrawLine();

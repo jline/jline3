@@ -256,4 +256,4 @@ See the `TerminalGraphicsExample` class for complete working examples:
    -Djline.terminal.graphics.kitty.timeout=50
    -Djline.terminal.graphics.sixel.timeout=50
    ```
-6. **Escape sequences visible in terminal**: This should not happen with JLine 3.30.5+ as raw mode prevents echo during detection. If you see this, please report it as a bug.
+6. **Escape sequences visible in terminal**: This should not happen as raw mode prevents echo during detection. If you see this, please report it as a bug.

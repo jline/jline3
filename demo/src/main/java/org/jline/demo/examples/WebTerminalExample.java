@@ -74,9 +74,16 @@ public class WebTerminalExample {
 
     // SNIPPET_START: WebTerminalReplExample
     /**
-     * Runs a simple REPL loop using the given terminal.
-     * Demonstrates that WebTerminal works with LineReader for
-     * line editing, tab completion, and history.
+     * Run an interactive REPL on the provided terminal.
+     *
+     * The REPL reads lines from a "web> " prompt and handles the following commands:
+     * "exit" (terminate session), "help" (show available commands), "info" (print terminal
+     * name, type, size, and encoding), "clear" (clear the screen), and "colors" (show ANSI
+     * color demo). Empty input is ignored; other input is echoed back.
+     *
+     * Ctrl+C is ignored and the REPL continues; Ctrl+D ends the REPL.
+     *
+     * @param terminal the Terminal used for input and output
      */
     private static void runRepl(Terminal terminal) {
         LineReader reader = LineReaderBuilder.builder()
@@ -112,7 +119,7 @@ public class WebTerminalExample {
                     case "info":
                         terminal.writer().println("Terminal: " + terminal.getName());
                         terminal.writer().println("Type:     " + terminal.getType());
-                        terminal.writer().println("Size:     " + terminal.getWidth() + "x" + terminal.getHeight());
+                        terminal.writer().println("Size:     " + terminal.getColumns() + "x" + terminal.getRows());
                         terminal.writer().println("Encoding: " + terminal.encoding());
                         break;
                     case "clear":

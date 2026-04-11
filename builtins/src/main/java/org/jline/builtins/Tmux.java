@@ -1082,6 +1082,14 @@ public class Tmux {
     int INACTIVE_COLOR = 0x44F;
     int CLOCK_COLOR = 0x44F;
 
+    /**
+     * Render all panes and the status line into the display and update the terminal screen.
+     *
+     * Builds a composed screen from each pane's contents (or a clock string when a pane's
+     * clock mode is enabled), draws pane borders and optional pane identifiers, converts the
+     * composed buffer into attributed text lines, and submits them with the active cursor
+     * position to the Display for rendering.
+     */
     protected synchronized void redraw() {
         long[] screen = new long[size.getRows() * size.getColumns()];
         // Fill
@@ -1193,7 +1201,7 @@ public class Tmux {
             }
             lines.add(sb.toAttributedString());
         }
-        display.resize(size.getRows(), size.getColumns());
+        display.resize(size);
         display.update(lines, size.cursorPos(cursor[1], cursor[0]));
     }
 
@@ -2022,18 +2030,38 @@ public class Tmux {
             return left() + width();
         }
 
+        /**
+         * Get the row index immediately after this pane's bottom edge.
+         *
+         * @return the one-past-last row index (top + height)
+         */
         public int bottom() {
             return top() + height();
         }
 
+        /**
+         * Get the current width of this pane in character columns.
+         *
+         * @return the pane width in columns
+         */
         public int width() {
-            return console.getWidth();
+            return console.getColumns();
         }
 
+        /**
+         * Get the current pane height in terminal rows.
+         *
+         * @return the pane height measured in character rows
+         */
         public int height() {
-            return console.getHeight();
+            return console.getRows();
         }
 
+        /**
+         * Get the LineDisciplineTerminal backing this virtual console.
+         *
+         * @return the {@link LineDisciplineTerminal} used by this pane
+         */
         public LineDisciplineTerminal getConsole() {
             return console;
         }

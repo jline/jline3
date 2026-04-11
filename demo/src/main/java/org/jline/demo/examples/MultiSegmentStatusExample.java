@@ -24,6 +24,16 @@ import org.jline.utils.Status;
 public class MultiSegmentStatusExample {
 
     // SNIPPET_START: MultiSegmentStatusExample
+    /**
+     * Demonstrates creating a multi-segment status line (left, centered padding, right) and running a simple REPL that exits on "exit".
+     *
+     * Sets up a Terminal and LineReader, obtains a Status for the terminal, builds a colored status line with a left
+     * segment ("Server: Connected"), a centered padding region, and a right segment ("Users: 42"), updates the status,
+     * then reads lines from the user printing each entry until "exit" is entered.
+     *
+     * @param args command-line arguments
+     * @throws Exception if terminal or reader creation or I/O operations fail
+     */
     public static void main(String[] args) throws Exception {
         Terminal terminal = TerminalBuilder.builder().build();
         LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
@@ -39,7 +49,7 @@ public class MultiSegmentStatusExample {
             asb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE)).append("Server: Connected");
 
             // Center segment (with padding)
-            int width = terminal.getWidth();
+            int width = terminal.getColumns();
             int leftLen = "Server: Connected".length();
             int rightLen = "Users: 42".length();
             int padding = (width - leftLen - rightLen) / 2;

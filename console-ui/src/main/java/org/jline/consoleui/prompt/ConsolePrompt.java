@@ -103,9 +103,16 @@ public class ConsolePrompt {
         }
     }
 
+    /**
+     * Exits raw mode and restores the terminal to its previous state.
+     *
+     * <p>If the terminal is currently in raw mode, this updates the displayed header,
+     * restores the saved terminal attributes, disables keypad local mode, emits a
+     * newline to the terminal, and clears the saved raw-mode attributes.</p>
+     */
     protected void close() {
         if (terminalInRawMode()) {
-            int cursor = (terminal.getWidth() + 1) * header.size();
+            int cursor = (terminal.getColumns() + 1) * header.size();
             display.update(header, cursor);
             terminal.setAttributes(attributes);
             terminal.puts(InfoCmp.Capability.keypad_local);
@@ -416,11 +423,17 @@ public class ConsolePrompt {
     }
 
     /**
+     * Compute the number of terminal rows to use for paginated prompts.
+     *
+     * @param terminal the terminal from which to read the current row count
+     * @param pageSize when {@code sizeType} is ABSOLUTE, the requested number of rows; when treated as a percentage, the requested percent (0-100)
+     * @param sizeType determines whether {@code pageSize} is an absolute row count or a percentage of terminal rows
+     * @return the computed page size in rows; for ABSOLUTE, the smaller of the terminal's row count and {@code pageSize}; otherwise {@code pageSize} percent of the terminal's rows
      * @deprecated This method is deprecated along with the ConsolePrompt class. Use the new jline-prompt module instead.
      */
     @Deprecated(since = "4.0.0", forRemoval = true)
     public static int computePageSize(Terminal terminal, int pageSize, PageSizeType sizeType) {
-        int rows = terminal.getHeight();
+        int rows = terminal.getRows();
         return sizeType == PageSizeType.ABSOLUTE ? Math.min(rows, pageSize) : (rows * pageSize) / 100;
     }
 

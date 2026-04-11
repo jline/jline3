@@ -564,6 +564,21 @@ public class DefaultPrompter implements Prompter {
         }
     }
 
+    /**
+     * Run an interactive search prompt that updates results as the user types and lets the user select a result.
+     *
+     * The prompt displays the provided header and an inline input field, performs searches when the input
+     * length meets the prompt's minimum, and renders a selectable result list. The user may type characters,
+     * use backspace, navigate the results with the arrow keys, press Enter to accept the highlighted result,
+     * press Escape to cancel and return {@code null}, or trigger a cancel operation which throws
+     * {@link UserInterruptException}.
+     *
+     * @param header optional list of already-rendered lines to display above the search input
+     * @param prompt the search prompt configuration and callback functions
+     * @return the selected {@link SearchResult} containing the chosen value, or {@code null} if the prompt was cancelled via Escape
+     * @throws IOException if an I/O error occurs while interacting with the terminal
+     * @throws UserInterruptException if the user triggers a cancel operation (e.g., interrupt)
+     */
     private <T> SearchResult<T> executeSearchPrompt(List<AttributedString> header, SearchPrompt<T> prompt)
             throws IOException, UserInterruptException {
 
@@ -600,7 +615,7 @@ public class DefaultPrompter implements Prompter {
             List<AttributedString> out = buildSearchDisplay(
                     header, asb, searchTerm.toString(), currentResults, selectedIndex, prompt, startColumn);
 
-            display.resize(size.getRows(), size.getColumns());
+            display.resize(size);
             int cursorRow = (header != null ? header.size() : 0);
             int column = startColumn + searchTerm.length();
             display.update(out, size.cursorPos(cursorRow, column));
@@ -649,6 +664,20 @@ public class DefaultPrompter implements Prompter {
         }
     }
 
+    /**
+     * Prompt the user to open an external editor and return the edited content.
+     *
+     * Renders the provided header and a message instructing the user to press Enter to open
+     * the configured editor or Escape to cancel, then waits for a key binding and acts
+     * accordingly.
+     *
+     * @param header prior prompt lines to render above the editor prompt; may be null
+     * @param prompt the EditorPrompt describing editor configuration and initial text
+     * @return an EditorResult containing the text produced by the editor, or `null` if the user
+     *         cancelled/escaped or if launching the editor failed
+     * @throws IOException if an I/O error occurs while updating or interacting with the terminal
+     * @throws UserInterruptException if the user issues a cancel (e.g., Ctrl+C)
+     */
     private EditorResult executeEditorPrompt(List<AttributedString> header, EditorPrompt prompt)
             throws IOException, UserInterruptException {
 
@@ -663,7 +692,7 @@ public class DefaultPrompter implements Prompter {
         displayLines.add(asb.toAttributedString());
 
         size.copy(terminal.getSize());
-        display.resize(size.getRows(), size.getColumns());
+        display.resize(size);
         display.update(displayLines, -1);
 
         // Wait for user input
@@ -1231,11 +1260,23 @@ public class DefaultPrompter implements Prompter {
         }
     }
 
+    /**
+     * Present a single-key choice prompt, handle interactive key input, and produce the selected choice.
+     *
+     * Renders the provided header and choice items, accepts single-character commands for selection,
+     * supports an expanded full-list view via the "h" key, applies a default when Enter is pressed,
+     * and returns to the caller when a choice is made or when the user escapes.
+     *
+     * @param header prior prompt output lines to render above the choice prompt; may be null
+     * @param prompt the ChoicePrompt describing available items and presentation options
+     * @return the chosen ChoiceResult, or `null` if the user presses Escape to cancel/go back
+     * @throws UserInterruptException if the user issues an explicit cancel operation (Ctrl+C)
+     */
     private ChoiceResult executeChoicePrompt(List<AttributedString> header, ChoicePrompt prompt)
             throws IOException, UserInterruptException {
 
         size.copy(terminal.getSize());
-        display.resize(size.getRows(), size.getColumns());
+        display.resize(size);
 
         List<ChoiceItem> items = prompt.getItems();
         if (items.isEmpty()) {
@@ -1290,7 +1331,7 @@ public class DefaultPrompter implements Prompter {
                 out.addAll(buildChoiceItemsDisplay(items));
                 out.add(choiceBuilder.toAttributedString());
                 size.copy(terminal.getSize());
-                display.resize(size.getRows(), size.getColumns());
+                display.resize(size);
                 display.update(out, out.size() - 1);
                 redrawNeeded = false;
             }
@@ -1353,8 +1394,14 @@ public class DefaultPrompter implements Prompter {
     }
 
     /**
-     * Execute an expanded choice prompt that shows all choices as a navigable list.
-     * This is triggered when the user presses 'h' in a choice prompt.
+     * Show all choice items as a navigable list and let the user pick one.
+     *
+     * @param header prior lines to render above the prompt; may be null
+     * @param prompt the ChoicePrompt describing the prompt message and options
+     * @param items the list of ChoiceItem entries to display
+     * @return the chosen ChoiceResult, or `null` if the user escaped/backed out
+     * @throws IOException if an I/O error occurs while updating or reading the terminal
+     * @throws UserInterruptException if the user cancels the prompt (e.g., Ctrl+C)
      */
     private ChoiceResult executeExpandedChoicePrompt(
             List<AttributedString> header, ChoicePrompt prompt, List<ChoiceItem> items)
@@ -1392,7 +1439,7 @@ public class DefaultPrompter implements Prompter {
                 out.add(buildSingleItemLine(items.get(i), i + firstItemRow == selectRow, true));
             }
 
-            display.resize(size.getRows(), size.getColumns());
+            display.resize(size);
             display.update(out, size.cursorPos(Math.min(size.getRows() - 1, firstItemRow + items.size()), 0));
 
             ListOperation op = bindingReader.readBinding(keyMap);
@@ -1434,6 +1481,19 @@ public class DefaultPrompter implements Prompter {
         display.update(out, -1);
     }
 
+    /**
+     * Prompt the user for a yes/no confirmation and return the selected result.
+     *
+     * Renders the provided header and a confirmation prompt with the prompt's message
+     * and default indicator, updates the terminal display while reading key bindings,
+     * and maps user actions to a ConfirmResult.
+     *
+     * @param header optional lines to render above the confirmation prompt; may be null
+     * @param prompt the ConfirmPrompt containing the message and default choice
+     * @return the ConfirmResult representing the chosen confirmation value, or `null` if the user pressed escape to go back
+     * @throws IOException if an I/O error occurs while interacting with the terminal
+     * @throws UserInterruptException if the user explicitly cancels the prompt (e.g., Ctrl+C)
+     */
     private ConfirmResult executeConfirmPrompt(List<AttributedString> header, ConfirmPrompt prompt)
             throws IOException, UserInterruptException {
 
@@ -1467,7 +1527,7 @@ public class DefaultPrompter implements Prompter {
             out.add(messageBuilder.toAttributedString());
 
             // Update display exactly like ConsolePrompt
-            display.resize(size.getRows(), size.getColumns());
+            display.resize(size);
             int cursorRow = out.size() - 1;
             int column = asb.columnLength(terminal) + buffer.length();
             display.update(out, size.cursorPos(cursorRow, column));
@@ -1497,6 +1557,15 @@ public class DefaultPrompter implements Prompter {
         }
     }
 
+    /**
+     * Renders the provided header followed by the text prompt's lines to the terminal display.
+     *
+     * @param header prior output lines to render above the prompt; may be {@code null}
+     * @param prompt the text prompt whose lines will be displayed
+     * @return {@code NoResult.INSTANCE} indicating the prompt produces no user-entered value
+     * @throws IOException if an I/O error occurs while updating the display
+     * @throws UserInterruptException if the user interrupts the prompt (e.g., Ctrl+C)
+     */
     private PromptResult<? extends Prompt> executeTextPrompt(List<AttributedString> header, TextPrompt prompt)
             throws IOException, UserInterruptException {
 
@@ -1511,13 +1580,21 @@ public class DefaultPrompter implements Prompter {
 
         // Update size and display using Display system
         size.copy(terminal.getSize());
-        display.resize(size.getRows(), size.getColumns());
+        display.resize(size);
         display.update(displayLines, -1);
 
         // Text prompts don't require user input, just display
         return NoResult.INSTANCE;
     }
 
+    /**
+     * Display a toggle prompt, allow the user to switch between the active and inactive labels, and return the chosen state.
+     *
+     * @param header optional lines to render above the prompt (may be null)
+     * @param prompt the toggle prompt configuration and labels
+     * @return a {@code ToggleResult} containing the chosen boolean state, or {@code null} if the user cancelled via escape
+     * @throws UserInterruptException if the user issues an interrupt (e.g., Ctrl+C)
+     */
     private ToggleResult executeTogglePrompt(List<AttributedString> header, TogglePrompt prompt)
             throws IOException, UserInterruptException {
 
@@ -1553,7 +1630,7 @@ public class DefaultPrompter implements Prompter {
             }
             out.add(asb.toAttributedString());
 
-            display.resize(size.getRows(), size.getColumns());
+            display.resize(size);
             display.update(out, size.cursorPos(out.size() - 1, asb.columnLength(terminal)));
 
             ConfirmOperation op = bindingReader.readBinding(keyMap);
@@ -1573,6 +1650,19 @@ public class DefaultPrompter implements Prompter {
         }
     }
 
+    /**
+     * Reads one key press from the terminal and produces a KeyPressResult for that key.
+     *
+     * Renders the provided header and prompt message, consumes multi-byte escape sequences
+     * (arrow/function keys) so they do not leak into subsequent prompts, and maps special
+     * controls: Escape returns `null`, Ctrl+C raises a user interrupt.
+     *
+     * @param header optional lines rendered above the prompt; may be null
+     * @param prompt the KeyPressPrompt describing the prompt message and hint
+     * @return the pressed key as a KeyPressResult, or `null` if the user pressed Escape
+     * @throws IOException if an I/O error occurs while reading key bindings
+     * @throws UserInterruptException if the user cancels the prompt (Ctrl+C)
+     */
     private KeyPressResult executeKeyPressPrompt(List<AttributedString> header, KeyPressPrompt prompt)
             throws IOException, UserInterruptException {
 
@@ -1587,7 +1677,7 @@ public class DefaultPrompter implements Prompter {
         asb.styled(config.style(PrompterConfig.ME), prompt.getHint());
         out.add(asb.toAttributedString());
 
-        display.resize(size.getRows(), size.getColumns());
+        display.resize(size);
         display.update(out, -1);
 
         // Use a KeyMap to properly consume multi-byte escape sequences (arrow keys, function keys)
@@ -1629,11 +1719,20 @@ public class DefaultPrompter implements Prompter {
         }
     }
 
+    /**
+     * Restore the terminal to normal mode and render the final header if the prompter is in raw mode.
+     *
+     * If the terminal is currently in raw mode, update the display with the accumulated header (ignoring
+     * possible ArithmeticException), restore saved terminal attributes, enable keypad-local mode, print a
+     * trailing newline and flush the terminal output, and clear the cached attributes marker.
+     *
+     * @throws IOException if restoring terminal attributes or writing to the terminal fails
+     */
     private void close() throws IOException {
         if (terminalInRawMode()) {
             // Update display with final header state
             try {
-                int cursor = (terminal.getWidth() + 1) * header.size();
+                int cursor = (terminal.getColumns() + 1) * header.size();
                 display.update(header, cursor);
             } catch (ArithmeticException e) {
                 // Ignore division by zero errors in display update (can happen with test terminals)
@@ -1676,12 +1775,23 @@ public class DefaultPrompter implements Prompter {
     }
 
     /**
-     * Refresh the display for list prompts using JLine's Display class.
+     * Update the terminal display to show a paginated list prompt composed of the given header,
+     * message, and items.
+     *
+     * Renders header and list lines, resizes the display to the current terminal size, and
+     * positions the cursor to the row corresponding to the provided cursorRow (relative to
+     * firstItemRow).
+     *
+     * @param header    previously rendered prompt output lines to display above the list
+     * @param message   the prompt message line shown above the items (may include filter text)
+     * @param items     the list of items to render
+     * @param cursorRow the index of the currently highlighted item within {@code items}
+     * @param prompt    configuration and metadata for rendering the list prompt
      */
     private void refreshListDisplay(
             List<AttributedString> header, String message, List<ListItem> items, int cursorRow, ListPrompt prompt) {
         size.copy(terminal.getSize());
-        display.resize(size.getRows(), size.getColumns());
+        display.resize(size);
         display.update(
                 buildListDisplayLines(header, message, items, cursorRow, prompt),
                 size.cursorPos(Math.min(size.getRows() - 1, firstItemRow + items.size()), 0));
@@ -1814,7 +1924,17 @@ public class DefaultPrompter implements Prompter {
     }
 
     /**
-     * Refresh the display for checkbox prompts using JLine's Display class.
+     * Update the terminal view to show the current checkbox prompt state.
+     *
+     * Renders the provided header, the prompt message, and the checkbox items (with pagination and styles),
+     * and places the cursor on the line identified by cursorRow.
+     *
+     * @param header      lines shown above the prompt (previous prompt outputs)
+     * @param message     the message line for this prompt
+     * @param items       list of checkbox items to display (may include separators and disabled items)
+     * @param cursorRow   index of the currently highlighted item (relative to firstItemRow)
+     * @param selectedIds set of item names that are currently selected
+     * @param prompt      the CheckboxPrompt containing display-related options (hints, limits, styles)
      */
     private void refreshCheckboxDisplay(
             List<AttributedString> header,
@@ -1824,7 +1944,7 @@ public class DefaultPrompter implements Prompter {
             Set<String> selectedIds,
             CheckboxPrompt prompt) {
         size.copy(terminal.getSize());
-        display.resize(size.getRows(), size.getColumns());
+        display.resize(size);
         display.update(
                 buildCheckboxDisplayLines(header, message, items, cursorRow, selectedIds, prompt),
                 size.cursorPos(Math.min(size.getRows() - 1, firstItemRow + items.size()), 0));

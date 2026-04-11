@@ -22,7 +22,7 @@ JLine is organized into several core components that work together to provide a 
 │                            Terminal                             │
 │                                                                 │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────┐ │
-│  │    Jansi    │  │     JNA     │  │     FFM     │  │   Exec  │ │
+│  │     JNI     │  │     FFM     │  │    Exec     │  │  Dumb   │ │
 │  │   Provider  │  │   Provider  │  │   Provider  │  │ Provider│ │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────┘ │
 └─────────────────────────────────────────────────────────────────┘
@@ -58,7 +58,7 @@ The `Terminal` component is the foundation of JLine. It provides:
 - Terminal size information
 - Signal handling (e.g., window resize, Ctrl+C)
 
-The Terminal layer uses different providers (Jansi, JNA, FFM, etc.) to interact with the native terminal capabilities on different platforms.
+The Terminal layer uses different providers (JNI, FFM, Exec, etc.) to interact with the native terminal capabilities on different platforms.
 
 ### LineReader
 

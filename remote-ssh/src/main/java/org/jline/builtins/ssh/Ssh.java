@@ -141,6 +141,25 @@ public class Ssh {
         this.clientBuilder = clientBuilder;
     }
 
+    /**
+     * Connects to an SSH server and either executes a remote command or opens an interactive shell.
+     *
+     * Parses connection target from argv (optionally containing user and port), establishes an SSH
+     * client session, and forwards local stdin/stdout/stderr to the remote side. In interactive mode
+     * configures a PTY from the provided Terminal, installs signal handlers for window changes and
+     * job-control signals, and restores terminal state on exit.
+     *
+     * @param terminal the Terminal used for raw-mode control, PTY geometry, and signal handling
+     * @param reader   a LineReader used for user interaction (passwords/prompts)
+     * @param user     the default username to use if not specified in argv
+     * @param stdin    input stream to forward to the remote session
+     * @param stdout   output stream to receive remote standard output
+     * @param stderr   output stream to receive remote standard error and interaction errors
+     * @param argv     command-line arguments; first positional is target ([user@]host[:port]) and
+     *                 remaining tokens form an optional remote command; supports --help
+     * @throws Exception for SSH, authentication, or I/O errors that occur while connecting or during
+     *                   remote command/shell execution
+     */
     public void ssh(
             Terminal terminal,
             LineReader reader,
@@ -247,8 +266,8 @@ public class Ssh {
                         setMode(modes, PtyMode.ONOCR, getFlag(attributes, Attributes.OutputFlag.ONOCR));
                         setMode(modes, PtyMode.ONLRET, getFlag(attributes, Attributes.OutputFlag.ONLRET));
                         channel.setPtyModes(modes);
-                        channel.setPtyColumns(terminal.getWidth());
-                        channel.setPtyLines(terminal.getHeight());
+                        channel.setPtyColumns(terminal.getColumns());
+                        channel.setPtyLines(terminal.getRows());
                         channel.setAgentForwarding(true);
                         channel.setEnv("TERM", terminal.getType());
                         // TODO: channel.setEnv("LC_CTYPE", terminal.encoding().toString());

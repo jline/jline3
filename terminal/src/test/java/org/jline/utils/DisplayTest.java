@@ -41,10 +41,10 @@ public class DisplayTest {
         try (VirtualTerminal terminal = new VirtualTerminal("jline", "xterm", StandardCharsets.UTF_8, cols, rows)) {
             Attributes savedAttributes = terminal.enterRawMode();
             terminal.puts(enter_ca_mode);
-            int height = terminal.getHeight();
+            int height = terminal.getRows();
 
             Display display = new Display(terminal, true);
-            display.resize(height, terminal.getWidth());
+            display.resize(terminal.getSize());
 
             // Build Strings to displayed
             List<AttributedString> lines1 = new ArrayList<>();
@@ -188,10 +188,10 @@ public class DisplayTest {
         try (Terminal terminal = TerminalBuilder.builder().build()) {
             Attributes savedAttributes = terminal.enterRawMode();
             terminal.puts(enter_ca_mode);
-            int height = terminal.getHeight();
+            int height = terminal.getRows();
 
             Display display = new Display(terminal, true);
-            display.resize(height, terminal.getWidth());
+            display.resize(terminal.getSize());
 
             // Build Strings to displayed
             List<AttributedString> lines1 = new ArrayList<>();

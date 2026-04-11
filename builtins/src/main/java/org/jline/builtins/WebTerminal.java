@@ -73,21 +73,22 @@ public class WebTerminal extends LineDisciplineTerminal {
     }
 
     /**
-     * Creates a new WebTerminal with specified host, port, and terminal size.
+     * Initialize a WebTerminal bound to the given host and port and configured with the specified columns and rows.
      *
-     * @param host the host to bind to
-     * @param port the port to bind to
-     * @param width terminal width in characters
-     * @param height terminal height in characters
+     * @param host the host address to bind the embedded HTTP server to
+     * @param port the preferred port for the embedded HTTP server (use 0 to select an ephemeral port)
+     * @param columns the initial number of terminal columns
+     * @param rows the initial number of terminal rows
+     * @throws IOException if an I/O error occurs while initializing terminal resources
      */
     @SuppressWarnings("this-escape")
-    public WebTerminal(String host, int port, int width, int height) throws IOException {
+    public WebTerminal(String host, int port, int columns, int rows) throws IOException {
         super("WebTerminal", "screen-256color", new WebTerminalOutputStream(), StandardCharsets.UTF_8);
         this.host = host;
         this.port = port;
 
         // Create the terminal component
-        this.component = new WebTerminalComponent(width, height);
+        this.component = new WebTerminalComponent(columns, rows);
         this.component.setWebTerminal(this);
 
         // Connect the output stream to the component
@@ -207,14 +208,14 @@ public class WebTerminal extends LineDisciplineTerminal {
     }
 
     /**
-     * Sets the terminal size.
+     * Set the terminal dimensions in columns and rows.
      *
-     * @param width the new width
-     * @param height the new height
-     * @return true if successful
+     * @param columns the new number of columns
+     * @param rows the new number of rows
+     * @return `true` if the terminal was resized, `false` otherwise
      */
-    public boolean setSize(int width, int height) {
-        return component.setSize(width, height);
+    public boolean setSize(int columns, int rows) {
+        return component.setSize(columns, rows);
     }
 
     /**
@@ -496,11 +497,11 @@ public class WebTerminal extends LineDisciplineTerminal {
         /**
          * Creates a new WebTerminalComponent with the specified dimensions.
          *
-         * @param width terminal width in characters
-         * @param height terminal height in characters
+         * @param columns the number of columns
+         * @param rows the number of rows
          */
-        public WebTerminalComponent(int width, int height) {
-            super(width, height);
+        public WebTerminalComponent(int columns, int rows) {
+            super(columns, rows);
         }
 
         /**
@@ -536,18 +537,18 @@ public class WebTerminal extends LineDisciplineTerminal {
         }
 
         /**
-         * Sets the terminal size.
+         * Set the terminal size to the given columns and rows if they are within allowed bounds.
          *
-         * @param width the new width
-         * @param height the new height
-         * @return true if successful
+         * @param columns the new number of columns; must be between 10 and 200 inclusive
+         * @param rows the new number of rows; must be between 5 and 100 inclusive
+         * @return true if the size was applied, false if the provided dimensions are out of range
          */
-        public boolean setSize(int width, int height) {
-            if (width < 10 || height < 5 || width > MAX_SIZE || height > MAX_SIZE) {
+        @Override
+        public synchronized boolean setSize(int columns, int rows) {
+            if (columns < 10 || rows < 5 || columns > MAX_SIZE || rows > MAX_SIZE) {
                 return false;
             }
-            // ScreenTerminal.setSize takes width and height directly
-            return super.setSize(width, height);
+            return super.setSize(columns, rows);
         }
     }
 

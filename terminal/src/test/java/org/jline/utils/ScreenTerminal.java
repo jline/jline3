@@ -89,13 +89,24 @@ public class ScreenTerminal {
 
     private AtomicBoolean dirty = new AtomicBoolean(true);
 
+    /**
+     * Creates a ScreenTerminal initialized to 80 columns by 24 rows.
+     */
     public ScreenTerminal() {
         this(80, 24);
     }
 
-    public ScreenTerminal(int width, int height) {
-        this.width = width;
-        this.height = height;
+    /**
+     * Create a ScreenTerminal with the specified number of columns and rows.
+     *
+     * Initializes internal terminal state and screen buffers by performing a hard reset.
+     *
+     * @param columns the number of character columns (width)
+     * @param rows the number of character rows (height)
+     */
+    public ScreenTerminal(int columns, int rows) {
+        this.width = columns;
+        this.height = rows;
         reset_hard();
     }
 

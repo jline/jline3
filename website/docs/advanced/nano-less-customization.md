@@ -60,7 +60,7 @@ Note that the history log is saved in the user-specific directory, and the file 
 
 ## Theme System
 
-JLine version > 3.21.0 includes a [Theme System](theme-system.md) that allows highlight rules to be specified in terms of token type names, mixins, and parser configurations, instead of hard-coded colors in nanorc files.
+JLine includes a [Theme System](theme-system.md) that allows highlight rules to be specified in terms of token type names, mixins, and parser configurations, instead of hard-coded colors in nanorc files.
 
 Optional theme system configuration is set by adding a '**theme** theme-system-file' command in `jnanorc`/`jlessrc` configuration files.
 

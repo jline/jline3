@@ -145,6 +145,14 @@ public class Example {
             map.bind(Operation.EXIT, "\r");
         }
 
+        /**
+         * Displays an interactive option selector in the terminal and returns the user's choice.
+         *
+         * Blocks until the user confirms a selection. The menu shows a title (first line) followed by
+         * selectable option lines; the returned value is one of those option lines.
+         *
+         * @return the selected option line (one of the menu entries following the title)
+         */
         public String select() {
             Display display = new Display(terminal, true);
             Attributes attr = terminal.enterRawMode();
@@ -159,7 +167,7 @@ public class Example {
                 KeyMap<Operation> keyMap = new KeyMap<>();
                 bindKeys(keyMap);
                 while (true) {
-                    display.resize(size.getRows(), size.getColumns());
+                    display.resize(size);
                     display.update(
                             displayLines(selectRow),
                             size.cursorPos(0, lines.get(0).length()));
@@ -190,6 +198,23 @@ public class Example {
         }
     }
 
+    /**
+     * Runs the interactive example application and enters a configurable REPL driven by command-line options.
+     *
+     * <p>The method parses {@code args} to configure the terminal, parser/completer behavior, mouse and timer
+     * support, masking triggers, colorized prompts, and background callbacks; it then builds a {@code Terminal}
+     * and {@code LineReader}, executes any configured callbacks, and runs a command loop implementing the
+     * example commands (e.g., {@code printAbove}, {@code set}, {@code tput}, {@code nano}, {@code less},
+     * {@code history}, {@code setopt}/{@code unsetopt}, {@code ttop}, {@code help}, and {@code select}). The
+     * loop handles user interrupts, help and EOF, and prints output to the terminal.
+     *
+     * @param args command-line options controlling example behavior (examples: {@code timer}, {@code -system},
+     *             {@code +system}, {@code files}, {@code simple}, {@code quotes}, {@code brackets}, {@code status},
+     *             {@code argument}, {@code param}, {@code tree}, {@code regexp}, {@code color}, {@code mouse},
+     *             {@code mousetrack}, or a pair {@code <trigger> <maskChar>} to enable masking); if {@code args}
+     *             is null or empty the usage message is printed and the method returns.
+     * @throws IOException if an I/O error occurs while building or interacting with the terminal
+     */
     public static void main(String[] args) throws IOException {
         try {
             String prompt = "prompt> ";
@@ -421,7 +446,7 @@ public class Example {
                         Cursor cursor = terminal.getCursorPosition(c -> tsb.append((char) c));
                         reader.runMacro(tsb.toString());
                         String msg = "          " + event.toString();
-                        int w = terminal.getWidth();
+                        int w = terminal.getColumns();
                         terminal.puts(Capability.cursor_address, 0, Math.max(0, w - msg.length()));
                         terminal.writer().append(msg);
                         terminal.puts(Capability.cursor_address, cursor.getY(), cursor.getX());

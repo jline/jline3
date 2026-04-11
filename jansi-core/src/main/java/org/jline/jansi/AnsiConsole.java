@@ -227,6 +227,18 @@ public class AnsiConsole {
         }
     }
 
+    /**
+     * Creates an AnsiPrintStream configured for either standard output or standard error using the current
+     * terminal's capabilities and relevant system properties/environment variables.
+     *
+     * The returned stream's ANSI mode, color depth, output type, and reset-on-uninstall behavior are derived
+     * from the terminal and from properties such as `jansi.mode`, `jansi.out.mode`, `jansi.err.mode`,
+     * `jansi.colors`, `jansi.out.colors`, `jansi.err.colors`, and environment variables like `COLORTERM` and `TERM`.
+     *
+     * @param stdout true to create a stream configured for standard output, false for standard error
+     * @return a configured AnsiPrintStream that writes to the terminal's output stream
+     * @throws IOException if the terminal output cannot be accessed or the underlying stream cannot be created
+     */
     private static AnsiPrintStream ansiStream(boolean stdout) throws IOException {
         final OutputStream out;
         final AnsiOutputStream.WidthSupplier width;
@@ -236,7 +248,7 @@ public class AnsiConsole {
         final AnsiOutputStream.IoRunnable uninstaller = null;
 
         out = terminal.output();
-        width = terminal::getWidth;
+        width = terminal::getColumns;
         type = terminal instanceof DumbTerminal
                 ? AnsiType.Unsupported
                 : ((TerminalExt) terminal).getSystemStream() != null ? AnsiType.Native : AnsiType.Redirected;
