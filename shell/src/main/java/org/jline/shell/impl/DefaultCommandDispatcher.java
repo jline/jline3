@@ -337,38 +337,48 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
 
                 // Handle input redirection
                 InputStream originalIn = session.in();
-                boolean inputRedirected = false;
+                InputStream inputRedirect = null;
                 if (stage.inputSource() != null) {
-                    byte[] inputBytes = Files.readAllBytes(stage.inputSource());
-                    session.setIn(new ByteArrayInputStream(inputBytes));
-                    inputRedirected = true;
+                    inputRedirect = Files.newInputStream(stage.inputSource());
+                    session.setIn(inputRedirect);
                 }
 
                 // If this stage pipes into the next, capture stdout instead of printing to terminal
                 Operator op = stage.operator();
                 boolean captureOutput = (op == Operator.PIPE || op == Operator.FLIP);
 
-                // For stderr/combined redirect, we redirect streams before execution
+                // Redirect streams before execution
                 PrintStream originalOut = session.out();
                 PrintStream originalErr = session.err();
                 ByteArrayOutputStream capture = null;
-                boolean stderrRedirected = false;
+                OutputStream redirectStream = null;
+                boolean outputRedirected = false;
 
                 if (captureOutput) {
                     capture = new ByteArrayOutputStream();
                     session.setOut(new PrintStream(capture));
+                } else if ((op == Operator.REDIRECT || op == Operator.APPEND) && stage.redirectTarget() != null) {
+                    redirectStream = Files.newOutputStream(
+                            stage.redirectTarget(),
+                            op == Operator.APPEND
+                                    ? new StandardOpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.APPEND}
+                                    : new StandardOpenOption[] {
+                                        StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING
+                                    });
+                    session.setOut(new PrintStream(redirectStream));
+                    outputRedirected = true;
                 } else if (op == Operator.STDERR_REDIRECT && stage.redirectTarget() != null) {
-                    OutputStream errFile = Files.newOutputStream(
+                    redirectStream = Files.newOutputStream(
                             stage.redirectTarget(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-                    session.setErr(new PrintStream(errFile));
-                    stderrRedirected = true;
+                    session.setErr(new PrintStream(redirectStream));
+                    outputRedirected = true;
                 } else if (op == Operator.COMBINED_REDIRECT && stage.redirectTarget() != null) {
-                    OutputStream combinedFile = Files.newOutputStream(
+                    redirectStream = Files.newOutputStream(
                             stage.redirectTarget(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-                    PrintStream combinedStream = new PrintStream(combinedFile);
+                    PrintStream combinedStream = new PrintStream(redirectStream);
                     session.setOut(combinedStream);
                     session.setErr(combinedStream);
-                    stderrRedirected = true;
+                    outputRedirected = true;
                 }
 
                 try {
@@ -396,34 +406,27 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
                     if (captureOutput) {
                         session.setOut(originalOut);
                     }
-                    if (stderrRedirected) {
+                    if (outputRedirected) {
                         session.out().flush();
                         session.err().flush();
                         session.setOut(originalOut);
                         session.setErr(originalErr);
+                        if (redirectStream != null) {
+                            redirectStream.close();
+                        }
                     }
-                    if (inputRedirected) {
+                    if (inputRedirect != null) {
                         session.setIn(originalIn);
+                        inputRedirect.close();
                     }
                 }
             }
 
-            // Post-execution: handle redirect/append for the last stage of the group
-            if (lastGroupOp == Operator.REDIRECT || lastGroupOp == Operator.APPEND) {
-                if (lastGroupStage.redirectTarget() != null && lastOutput != null) {
-                    if (lastGroupOp == Operator.APPEND) {
-                        Files.writeString(
-                                lastGroupStage.redirectTarget(),
-                                lastOutput + System.lineSeparator(),
-                                StandardOpenOption.CREATE,
-                                StandardOpenOption.APPEND);
-                    } else {
-                        Files.writeString(lastGroupStage.redirectTarget(), lastOutput + System.lineSeparator());
-                    }
-                    lastResult = null;
-                    lastOutput = null;
-                }
-            } else if (lastGroupOp == Operator.STDERR_REDIRECT || lastGroupOp == Operator.COMBINED_REDIRECT) {
+            // Post-execution: update result tracking based on trailing operator
+            if (lastGroupOp == Operator.REDIRECT
+                    || lastGroupOp == Operator.APPEND
+                    || lastGroupOp == Operator.STDERR_REDIRECT
+                    || lastGroupOp == Operator.COMBINED_REDIRECT) {
                 lastResult = null;
                 lastOutput = null;
             } else if (lastGroupOp == Operator.SEQUENCE) {
@@ -499,8 +502,10 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
         // Set up first stage input
         InputStream firstIn = session.in();
         Pipeline.Stage firstStage = groupStages.get(0);
+        InputStream inputRedirect = null;
         if (firstStage.inputSource() != null) {
-            firstIn = new ByteArrayInputStream(Files.readAllBytes(firstStage.inputSource()));
+            inputRedirect = Files.newInputStream(firstStage.inputSource());
+            firstIn = inputRedirect;
         }
 
         // Set up last stage output and error
@@ -508,19 +513,26 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
         ByteArrayOutputStream lastCapture = captureLastOutput ? new ByteArrayOutputStream() : null;
         PrintStream lastOut = captureLastOutput ? new PrintStream(lastCapture) : session.out();
         PrintStream lastErr = session.err();
-        boolean lastStderrRedirected = false;
-        if (lastGroupOp == Operator.STDERR_REDIRECT && lastGroupStage.redirectTarget() != null) {
-            OutputStream errFile = Files.newOutputStream(
+        OutputStream redirectStream = null;
+        if ((lastGroupOp == Operator.REDIRECT || lastGroupOp == Operator.APPEND)
+                && lastGroupStage.redirectTarget() != null) {
+            redirectStream = Files.newOutputStream(
+                    lastGroupStage.redirectTarget(),
+                    lastGroupOp == Operator.APPEND
+                            ? new StandardOpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.APPEND}
+                            : new StandardOpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING
+                            });
+            lastOut = new PrintStream(redirectStream);
+        } else if (lastGroupOp == Operator.STDERR_REDIRECT && lastGroupStage.redirectTarget() != null) {
+            redirectStream = Files.newOutputStream(
                     lastGroupStage.redirectTarget(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-            lastErr = new PrintStream(errFile);
-            lastStderrRedirected = true;
+            lastErr = new PrintStream(redirectStream);
         } else if (lastGroupOp == Operator.COMBINED_REDIRECT && lastGroupStage.redirectTarget() != null) {
-            OutputStream combinedFile = Files.newOutputStream(
+            redirectStream = Files.newOutputStream(
                     lastGroupStage.redirectTarget(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-            PrintStream combinedStream = new PrintStream(combinedFile);
+            PrintStream combinedStream = new PrintStream(redirectStream);
             lastOut = combinedStream;
             lastErr = combinedStream;
-            lastStderrRedirected = true;
         }
 
         // Create per-stage sessions with wired I/O
@@ -545,7 +557,7 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
             // Per-stage input redirect overrides pipe input
             Pipeline.Stage stage = groupStages.get(s);
             if (s > 0 && stage.inputSource() != null) {
-                stageIn = new ByteArrayInputStream(Files.readAllBytes(stage.inputSource()));
+                stageIn = Files.newInputStream(stage.inputSource());
             }
 
             stageSessions[s] = session.fork(stageIn, stageOut, stageErr);
@@ -597,10 +609,15 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
             for (Thread t : threads) {
                 t.join();
             }
-            // Flush redirected streams
-            if (lastStderrRedirected) {
+            // Close redirected output stream
+            if (redirectStream != null) {
                 lastOut.flush();
                 lastErr.flush();
+                redirectStream.close();
+            }
+            // Close redirected input stream
+            if (inputRedirect != null) {
+                inputRedirect.close();
             }
         }
 
