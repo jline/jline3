@@ -806,7 +806,7 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
     /**
      * No-op default implementation; does nothing.
      *
-     * Subclasses may override to release or close allocated resources. 
+     * Subclasses may override to release or close allocated resources.
      */
     @Override
     public void close() {
