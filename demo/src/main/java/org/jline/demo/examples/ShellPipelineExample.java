@@ -47,15 +47,7 @@ public class ShellPipelineExample {
 
         @Override
         public Object execute(CommandSession session, String[] args) {
-            Object pipeInput = session.get("_pipe_input");
-            String msg;
-            if (args.length > 0) {
-                msg = String.join(" ", args);
-            } else if (pipeInput != null) {
-                msg = pipeInput.toString();
-            } else {
-                msg = "";
-            }
+            String msg = String.join(" ", args);
             session.out().println(msg);
             return msg;
         }
@@ -72,9 +64,13 @@ public class ShellPipelineExample {
         }
 
         @Override
-        public Object execute(CommandSession session, String[] args) {
-            Object pipeInput = session.get("_pipe_input");
-            String input = pipeInput != null ? pipeInput.toString().trim() : String.join(" ", args);
+        public Object execute(CommandSession session, String[] args) throws Exception {
+            String input;
+            if (args.length > 0) {
+                input = String.join(" ", args);
+            } else {
+                input = new String(session.in().readAllBytes()).trim();
+            }
             String result = input.toUpperCase();
             session.out().println(result);
             return result;

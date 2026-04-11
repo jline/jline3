@@ -228,4 +228,24 @@ public class CommandSession {
     public void setForegroundJob(Job foregroundJob) {
         this.foregroundJob = foregroundJob;
     }
+
+    /**
+     * Creates a child session that shares the same terminal but uses independent I/O streams.
+     * <p>
+     * The child session gets a copy of the current variables and working directory.
+     * This is used for concurrent pipeline execution where each stage needs its own
+     * I/O streams.
+     *
+     * @param in the input stream for the child session
+     * @param out the output stream for the child session
+     * @param err the error stream for the child session
+     * @return a new child session
+     */
+    public CommandSession fork(InputStream in, PrintStream out, PrintStream err) {
+        CommandSession child = new CommandSession(this.terminal, in, out, err);
+        child.variables.putAll(this.variables);
+        child.workingDirectory = this.workingDirectory;
+        child.lastExitCode = this.lastExitCode;
+        return child;
+    }
 }

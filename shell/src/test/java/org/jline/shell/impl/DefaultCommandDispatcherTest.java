@@ -35,7 +35,12 @@ public class DefaultCommandDispatcherTest {
         terminal = TerminalBuilder.builder().dumb(true).build();
         dispatcher = new DefaultCommandDispatcher(terminal);
         dispatcher.addGroup(new SimpleCommandGroup(
-                "test", new EchoCommand(), new FailCommand(), new UpperCommand(), new NoopCommand()));
+                "test",
+                new EchoCommand(),
+                new FailCommand(),
+                new UpperCommand(),
+                new NoopCommand(),
+                new ReverseCommand()));
     }
 
     // --- Fixture commands ---
@@ -85,10 +90,38 @@ public class DefaultCommandDispatcherTest {
         }
 
         @Override
-        public Object execute(CommandSession session, String[] args) {
-            Object pipeInput = session.get("_pipe_input");
-            String input = pipeInput != null ? pipeInput.toString().trim() : String.join(" ", args);
+        public Object execute(CommandSession session, String[] args) throws Exception {
+            String input;
+            if (args.length > 0) {
+                input = String.join(" ", args);
+            } else {
+                input = new String(session.in().readAllBytes()).trim();
+            }
             String result = input.toUpperCase();
+            session.out().println(result);
+            return result;
+        }
+    }
+
+    static class ReverseCommand extends AbstractCommand {
+        ReverseCommand() {
+            super("reverse");
+        }
+
+        @Override
+        public String description() {
+            return "Reverse pipe input";
+        }
+
+        @Override
+        public Object execute(CommandSession session, String[] args) throws Exception {
+            String input;
+            if (args.length > 0) {
+                input = String.join(" ", args);
+            } else {
+                input = new String(session.in().readAllBytes()).trim();
+            }
+            String result = new StringBuilder(input).reverse().toString();
             session.out().println(result);
             return result;
         }
@@ -135,6 +168,12 @@ public class DefaultCommandDispatcherTest {
     void multiStagePipe() throws Exception {
         Object result = dispatcher.execute("echo test | upper | upper");
         assertEquals("TEST", result);
+    }
+
+    @Test
+    void threeStagePipe() throws Exception {
+        Object result = dispatcher.execute("echo hello | upper | reverse");
+        assertEquals("OLLEH", result);
     }
 
     @Test

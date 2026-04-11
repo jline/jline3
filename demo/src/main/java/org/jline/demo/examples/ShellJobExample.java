@@ -51,16 +51,7 @@ public class ShellJobExample {
 
         @Override
         public Object execute(CommandSession session, String[] args) {
-            // Check for pipe input
-            Object pipeInput = session.get("_pipe_input");
-            String msg;
-            if (args.length > 0) {
-                msg = String.join(" ", args);
-            } else if (pipeInput != null) {
-                msg = pipeInput.toString();
-            } else {
-                msg = "";
-            }
+            String msg = String.join(" ", args);
             session.out().println(msg);
             return msg;
         }
@@ -77,14 +68,12 @@ public class ShellJobExample {
         }
 
         @Override
-        public Object execute(CommandSession session, String[] args) {
-            // Check for pipe input first
-            Object pipeInput = session.get("_pipe_input");
+        public Object execute(CommandSession session, String[] args) throws Exception {
             String input;
-            if (pipeInput != null) {
-                input = pipeInput.toString().trim();
-            } else {
+            if (args.length > 0) {
                 input = String.join(" ", args);
+            } else {
+                input = new String(session.in().readAllBytes()).trim();
             }
             String result = input.toUpperCase();
             session.out().println(result);
