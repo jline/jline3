@@ -144,17 +144,6 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
     }
 
     @Override
-    public Command findCommand(String name) {
-        for (CommandGroup group : groups) {
-            Command cmd = group.command(name);
-            if (cmd != null) {
-                return cmd;
-            }
-        }
-        return null;
-    }
-
-    @Override
     public Object execute(String line) throws Exception {
         if (line == null || line.trim().isEmpty()) {
             return null;
@@ -658,16 +647,12 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
      * Waits for all producer threads to complete, handling interruption gracefully.
      */
     private static void joinProducers(Thread[] threads) {
-        boolean interrupted = false;
         for (Thread t : threads) {
             try {
                 t.join();
             } catch (InterruptedException e) {
-                interrupted = true;
+                Thread.currentThread().interrupt();
             }
-        }
-        if (interrupted) {
-            Thread.currentThread().interrupt();
         }
     }
 
@@ -678,13 +663,15 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
         if (redirectStream != null) {
             try {
                 redirectStream.close();
-            } catch (IOException ignored) {
+            } catch (IOException e) {
+                // Best-effort cleanup; the command already completed
             }
         }
         for (InputStream is : inputRedirects) {
             try {
                 is.close();
-            } catch (IOException ignored) {
+            } catch (IOException e) {
+                // Best-effort cleanup; the command already completed
             }
         }
     }
@@ -693,7 +680,8 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
         for (PipePumpInputStream pump : pumps) {
             try {
                 pump.close();
-            } catch (IOException ignored) {
+            } catch (IOException e) {
+                // Best-effort cleanup; unblocking stuck producers is the priority
             }
         }
     }

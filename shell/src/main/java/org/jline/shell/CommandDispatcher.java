@@ -56,7 +56,15 @@ public interface CommandDispatcher extends AutoCloseable {
      * @param name the command name or alias
      * @return the command, or null if not found
      */
-    Command findCommand(String name);
+    default Command findCommand(String name) {
+        for (CommandGroup group : groups()) {
+            Command cmd = group.command(name);
+            if (cmd != null) {
+                return cmd;
+            }
+        }
+        return null;
+    }
 
     /**
      * Executes a command line string.
