@@ -28,7 +28,7 @@ package org.jline.terminal;
  * <p>
  * Size objects are typically obtained from a {@link Terminal} using {@link Terminal#getSize()},
  * and can be used to adjust display formatting or to set the terminal size using
- * {@link Terminal#setSize(Size)}.
+ * {@link Terminal#setSize(Sized)}.
  * </p>
  *
  * <p>Example usage:</p>
@@ -45,9 +45,9 @@ package org.jline.terminal;
  * </pre>
  *
  * @see Terminal#getSize()
- * @see Terminal#setSize(Size)
+ * @see Terminal#setSize(Sized)
  */
-public class Size {
+public class Size implements Sized {
 
     private int rows;
     private int cols;
@@ -80,10 +80,10 @@ public class Size {
     /**
      * Constructs a new Size with the same columns and rows as the given size.
      *
-     * @param size the source Size from which to copy columns and rows
+     * @param sized the source Size from which to copy columns and rows
      */
-    public Size(Size size) {
-        this(size.getColumns(), size.getRows());
+    public Size(Sized sized) {
+        this(sized.getColumns(), sized.getRows());
     }
 
     /**
@@ -96,6 +96,7 @@ public class Size {
      * @return the number of columns
      * @see #setColumns(int)
      */
+    @Override
     public int getColumns() {
         return cols;
     }
@@ -124,6 +125,7 @@ public class Size {
      * @return the number of rows
      * @see #setRows(int)
      */
+    @Override
     public int getRows() {
         return rows;
     }
@@ -167,7 +169,25 @@ public class Size {
      *
      * @param size the Size object to copy dimensions from
      */
+    // Deprecation is awkward, as in its current state copy(Size) would always cause deprecation warnings,
+    // because it doesn't auto-map to setSize(Sized)
+    // @Deprecated
+    // @SuppressWarnings("java:S1133") // Intentional deprecation; removal planned for a future major version
     public void copy(Size size) {
+        copy((Sized) size);
+    }
+
+    /**
+     * Copies the dimensions from another Size object to this one.
+     *
+     * <p>
+     * This method updates this Size object to have the same dimensions
+     * (rows and columns) as the specified Size object.
+     * </p>
+     *
+     * @param size the Size object to copy dimensions from
+     */
+    public void copy(Sized size) {
         setColumns(size.getColumns());
         setRows(size.getRows());
     }

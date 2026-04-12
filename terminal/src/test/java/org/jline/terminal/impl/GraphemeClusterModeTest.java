@@ -18,11 +18,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 
-import org.jline.terminal.Attributes;
-import org.jline.terminal.Cursor;
-import org.jline.terminal.MouseEvent;
-import org.jline.terminal.Size;
-import org.jline.terminal.Terminal;
+import org.jline.terminal.*;
 import org.jline.utils.ColorPalette;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.NonBlockingReader;
@@ -327,7 +323,7 @@ public class GraphemeClusterModeTest {
                 return new Size(80, 24);
             }
 
-            public void setSize(Size size) {}
+            public void setSize(Sized size) {}
 
             public void flush() {}
 

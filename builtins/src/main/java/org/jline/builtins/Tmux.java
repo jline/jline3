@@ -2010,7 +2010,7 @@ public class Tmux {
                     closer.accept(VirtualConsole.this);
                 }
             };
-            this.console.setSize(new Size(columns, rows));
+            this.console.setSize(this.terminal);
             this.layout = layout;
         }
 
@@ -2073,8 +2073,9 @@ public class Tmux {
         public void resize(int left, int top, int width, int height) {
             this.left = left;
             this.top = top;
-            console.setSize(new Size(width, height));
-            terminal.setSize(width, height);
+            // Resize ScreenTerminal first, as it may not resize depending on requested size.
+            terminal.setSize(new Size(width, height));
+            console.setSize(this.terminal);
             console.raise(Signal.WINCH);
         }
 

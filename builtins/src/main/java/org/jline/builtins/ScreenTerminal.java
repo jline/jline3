@@ -22,7 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.jline.terminal.Size;
+import org.jline.terminal.Sized;
 import org.jline.utils.Colors;
 import org.jline.utils.WCWidth;
 
@@ -46,7 +46,7 @@ import org.jline.utils.WCWidth;
  * It follows the ECMA-48 standard for terminal control sequences.
  * </p>
  */
-public class ScreenTerminal {
+public class ScreenTerminal implements Sized {
 
     public static final int MIN_SIZE = 2;
     public static final int MAX_SIZE = 4096;
@@ -1710,6 +1710,7 @@ public class ScreenTerminal {
      *
      * @return the current number of columns
      */
+    @Override
     public synchronized int getColumns() {
         return columns;
     }
@@ -1719,6 +1720,7 @@ public class ScreenTerminal {
      *
      * @return the number of rows
      */
+    @Override
     public synchronized int getRows() {
         return rows;
     }
@@ -1750,11 +1752,11 @@ public class ScreenTerminal {
     /**
      * Resize the terminal to the specified columns and rows.
      *
-     * @param size the new Size whose columns and rows will be applied
+     * @param sized the new Size whose columns and rows will be applied
      * @return true if the size was set successfully, false otherwise
      */
-    public synchronized boolean setSize(Size size) {
-        return setSize(size.getColumns(), size.getRows());
+    public synchronized boolean setSize(Sized sized) {
+        return setSize(sized.getColumns(), sized.getRows());
     }
 
     /**
@@ -1766,7 +1768,10 @@ public class ScreenTerminal {
      * @param columns the target number of columns (2–256)
      * @param rows    the target number of rows (2–256)
      * @return        `true` if the size was changed; `false` if the requested dimensions are out of range
+     * @deprecated Use {@link #setSize(Sized)} instead.
      */
+    @Deprecated
+    @SuppressWarnings("java:S1133") // Intentional deprecation; removal planned for a future major version
     public synchronized boolean setSize(int columns, int rows) {
         if (columns < MIN_SIZE || columns > MAX_SIZE || rows < MIN_SIZE || rows > MAX_SIZE) {
             return false;

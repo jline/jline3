@@ -18,6 +18,7 @@ import java.nio.charset.Charset;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.ControlChar;
 import org.jline.terminal.Size;
+import org.jline.terminal.Sized;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.NonBlocking;
@@ -214,12 +215,10 @@ public class DumbTerminal extends AbstractTerminal {
 
     public Size getSize() {
         checkClosed();
-        Size sz = new Size();
-        sz.copy(size);
-        return sz;
+        return new Size(size);
     }
 
-    public void setSize(Size sz) {
+    public void setSize(Sized sz) {
         checkClosed();
         size.copy(sz);
     }

@@ -18,7 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.jline.terminal.Attributes;
-import org.jline.terminal.Size;
+import org.jline.terminal.Sized;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.AttributedCharSequence;
@@ -297,7 +297,7 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
         return (Character.toUpperCase(key) & 0x1f);
     }
 
-    public void setSize(Size size) {
+    public void setSize(Sized size) {
         checkClosed();
         throw new UnsupportedOperationException("Can not resize windows terminal");
     }

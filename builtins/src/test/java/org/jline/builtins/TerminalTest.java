@@ -180,7 +180,7 @@ public class TerminalTest {
         // Test that both terminals inherit ScreenTerminal functionality
 
         // Test size setting
-        assertTrue(webTerminal.setSize(30, 15));
+        assertTrue(webTerminal.getComponent().setSize(new Size(30, 15)));
         swingTerminal.setSize(new Size(30, 15));
 
         // Test writing
@@ -247,7 +247,7 @@ public class TerminalTest {
     @Test
     public void testTerminalResizing() {
         // Test resizing functionality
-        assertTrue(webTerminal.setSize(40, 20));
+        assertTrue(webTerminal.getComponent().setSize(new Size(40, 20)));
         swingTerminal.setSize(new Size(40, 20));
 
         // Write content after resize
@@ -267,14 +267,14 @@ public class TerminalTest {
     @Test
     public void testInvalidSizes() {
         // Test that invalid sizes are rejected
-        assertFalse(webTerminal.setSize(1, 10)); // Too small width
-        assertFalse(webTerminal.setSize(10, 1)); // Too small height
+        assertFalse(webTerminal.getComponent().setSize(new Size(1, 10))); // Too small width
+        assertFalse(webTerminal.getComponent().setSize(new Size(10, 1))); // Too small height
         // Boundary checks at MAX_SIZE
         int max = ScreenTerminal.MAX_SIZE;
-        assertTrue(webTerminal.setSize(max, 10)); // Exactly at max width
-        assertTrue(webTerminal.setSize(10, max)); // Exactly at max height
-        assertFalse(webTerminal.setSize(max + 1, 10)); // One past max width
-        assertFalse(webTerminal.setSize(10, max + 1)); // One past max height
+        assertTrue(webTerminal.getComponent().setSize(new Size(max, 10))); // Exactly at max width
+        assertTrue(webTerminal.getComponent().setSize(new Size(10, max))); // Exactly at max height
+        assertFalse(webTerminal.getComponent().setSize(new Size(max + 1, 10))); // One past max width
+        assertFalse(webTerminal.getComponent().setSize(new Size(10, max + 1))); // One past max height
 
         swingTerminal.setSize(new Size(1, 10));
         swingTerminal.setSize(new Size(10, 1));
