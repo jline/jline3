@@ -265,14 +265,8 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
             i++;
 
             // Skip based on previous group's trailing operator
-            if (groupStart > 0) {
-                Operator prevOp = stages.get(groupStart - 1).operator();
-                if (prevOp == Operator.AND && session.lastExitCode() != 0) {
-                    continue;
-                }
-                if (prevOp == Operator.OR && session.lastExitCode() == 0) {
-                    continue;
-                }
+            if (shouldSkipGroup(stages, groupStart)) {
+                continue;
             }
 
             // FLIP: previous output becomes arguments for first stage
@@ -295,72 +289,10 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
                 Pipeline.Stage stage = stages.get(groupStart);
                 String cmdLine = stage.commandLine();
 
-                if (cmdLine == null || cmdLine.trim().isEmpty()) {
-                    continue;
-                }
-
-                // Resolve command and arguments
-                Object[] resolved = resolveCommand(cmdLine, flipArgs);
-                Command cmd = (Command) resolved[0];
-                String[] args = (String[]) resolved[1];
-
-                // Handle input redirection
-                InputStream originalIn = session.in();
-                InputStream inputRedirect = null;
-                if (stage.inputSource() != null) {
-                    inputRedirect = Files.newInputStream(stage.inputSource());
-                    session.setIn(inputRedirect);
-                }
-
-                // If this stage pipes into the next, capture stdout instead of printing to terminal
-                Operator op = stage.operator();
-                boolean captureOutput = (op == Operator.PIPE || op == Operator.FLIP);
-
-                // Redirect streams before execution
-                PrintStream originalOut = session.out();
-                PrintStream originalErr = session.err();
-                ByteArrayOutputStream capture = null;
-                OutputStream redirectStream = null;
-
-                if (captureOutput) {
-                    capture = new ByteArrayOutputStream();
-                    session.setOut(new PrintStream(capture));
-                } else {
-                    PrintStream[] outErr = {originalOut, originalErr};
-                    redirectStream = setupRedirectStreams(op, stage.redirectTarget(), outErr);
-                    if (redirectStream != null) {
-                        session.setOut(outErr[0]);
-                        session.setErr(outErr[1]);
-                    }
-                }
-
-                try {
-                    lastResult = cmd.execute(session, args);
-                    if (captureOutput) {
-                        session.out().flush();
-                    }
-                    lastOutput = resolveOutputString(captureOutput ? capture : null, lastResult);
-                    session.setLastExitCode(0);
-                } catch (Exception e) {
-                    session.setLastExitCode(1);
-                    lastResult = null;
-                    lastOutput = null;
-
-                    // For conditionals and sequence, swallow the exception and continue
-                    if (op == Operator.AND || op == Operator.OR || op == Operator.SEQUENCE) {
-                        continue;
-                    }
-                    throw e;
-                } finally {
-                    session.setOut(originalOut);
-                    session.setErr(originalErr);
-                    if (redirectStream != null) {
-                        redirectStream.close();
-                    }
-                    if (inputRedirect != null) {
-                        session.setIn(originalIn);
-                        inputRedirect.close();
-                    }
+                if (cmdLine != null && !cmdLine.trim().isEmpty()) {
+                    Object[] stageResult = executeSingleStage(stage, cmdLine, flipArgs);
+                    lastResult = stageResult[0];
+                    lastOutput = (String) stageResult[1];
                 }
             }
 
@@ -377,6 +309,90 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
         }
 
         return lastResult;
+    }
+
+    /**
+     * Returns true if the group at {@code groupStart} should be skipped based on the
+     * preceding stage's trailing operator and the last exit code.
+     */
+    private boolean shouldSkipGroup(List<Pipeline.Stage> stages, int groupStart) {
+        if (groupStart <= 0) {
+            return false;
+        }
+        Operator prevOp = stages.get(groupStart - 1).operator();
+        return (prevOp == Operator.AND && session.lastExitCode() != 0)
+                || (prevOp == Operator.OR && session.lastExitCode() == 0);
+    }
+
+    /**
+     * Executes a single pipeline stage, handling I/O redirection and output capture.
+     *
+     * @return a two-element array: {@code [result, output]}
+     */
+    private Object[] executeSingleStage(Pipeline.Stage stage, String cmdLine, String flipArgs) throws Exception {
+        Object[] resolved = resolveCommand(cmdLine, flipArgs);
+        Command cmd = (Command) resolved[0];
+        String[] args = (String[]) resolved[1];
+
+        // Handle input redirection
+        InputStream originalIn = session.in();
+        InputStream inputRedirect = null;
+        if (stage.inputSource() != null) {
+            inputRedirect = Files.newInputStream(stage.inputSource());
+            session.setIn(inputRedirect);
+        }
+
+        // If this stage pipes into the next, capture stdout instead of printing to terminal
+        Operator op = stage.operator();
+        boolean captureOutput = (op == Operator.PIPE || op == Operator.FLIP);
+
+        // Redirect streams before execution
+        PrintStream originalOut = session.out();
+        PrintStream originalErr = session.err();
+        ByteArrayOutputStream capture = null;
+        OutputStream redirectStream = null;
+
+        if (captureOutput) {
+            capture = new ByteArrayOutputStream();
+            session.setOut(new PrintStream(capture));
+        } else {
+            PrintStream[] outErr = {originalOut, originalErr};
+            redirectStream = setupRedirectStreams(op, stage.redirectTarget(), outErr);
+            if (redirectStream != null) {
+                session.setOut(outErr[0]);
+                session.setErr(outErr[1]);
+            }
+        }
+
+        Object lastResult;
+        String lastOutput;
+        try {
+            lastResult = cmd.execute(session, args);
+            if (captureOutput) {
+                session.out().flush();
+            }
+            lastOutput = resolveOutputString(captureOutput ? capture : null, lastResult);
+            session.setLastExitCode(0);
+        } catch (Exception e) {
+            session.setLastExitCode(1);
+            lastResult = null;
+            lastOutput = null;
+            if (op != Operator.AND && op != Operator.OR && op != Operator.SEQUENCE) {
+                throw e;
+            }
+        } finally {
+            session.setOut(originalOut);
+            session.setErr(originalErr);
+            if (redirectStream != null) {
+                redirectStream.close();
+            }
+            if (inputRedirect != null) {
+                session.setIn(originalIn);
+                inputRedirect.close();
+            }
+        }
+
+        return new Object[] {lastResult, lastOutput};
     }
 
     /**

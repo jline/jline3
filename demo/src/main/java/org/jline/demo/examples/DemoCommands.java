@@ -16,6 +16,8 @@ import org.jline.shell.impl.AbstractCommand;
  */
 public class DemoCommands {
 
+    private DemoCommands() {}
+
     /**
      * Echoes arguments to output.
      */
