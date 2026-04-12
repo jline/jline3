@@ -337,8 +337,9 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
         // Handle input redirection
         InputStream originalIn = session.in();
         InputStream inputRedirect = null;
-        if (stage.inputSource() != null) {
-            inputRedirect = Files.newInputStream(stage.inputSource());
+        Path inputSource = resolvePath(stage.inputSource());
+        if (inputSource != null) {
+            inputRedirect = Files.newInputStream(inputSource);
             session.setIn(inputRedirect);
         }
 
@@ -357,7 +358,7 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
             session.setOut(new PrintStream(capture));
         } else {
             PrintStream[] outErr = {originalOut, originalErr};
-            redirectStream = setupRedirectStreams(op, stage.redirectTarget(), outErr);
+            redirectStream = setupRedirectStreams(op, resolvePath(stage.redirectTarget()), outErr);
             if (redirectStream != null) {
                 session.setOut(outErr[0]);
                 session.setErr(outErr[1]);
@@ -431,8 +432,9 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
         boolean captureLastOutput = (lastGroupOp == Operator.PIPE || lastGroupOp == Operator.FLIP);
         ByteArrayOutputStream lastCapture = captureLastOutput ? new ByteArrayOutputStream() : null;
         PrintStream[] outErr = {captureLastOutput ? new PrintStream(lastCapture) : session.out(), session.err()};
-        OutputStream redirectStream =
-                captureLastOutput ? null : setupRedirectStreams(lastGroupOp, lastGroupStage.redirectTarget(), outErr);
+        OutputStream redirectStream = captureLastOutput
+                ? null
+                : setupRedirectStreams(lastGroupOp, resolvePath(lastGroupStage.redirectTarget()), outErr);
 
         // Create per-stage sessions and start producer threads
         CommandSession[] stageSessions =
@@ -501,10 +503,11 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
      * Sets up input redirection for a stage, tracking the opened stream for cleanup.
      * Returns the redirect stream if the stage has an input source, or the default otherwise.
      */
-    private static InputStream setupInputRedirect(
+    private InputStream setupInputRedirect(
             Pipeline.Stage stage, InputStream defaultIn, List<InputStream> inputRedirects) throws IOException {
-        if (stage.inputSource() != null) {
-            InputStream redirect = Files.newInputStream(stage.inputSource());
+        Path inputSource = resolvePath(stage.inputSource());
+        if (inputSource != null) {
+            InputStream redirect = Files.newInputStream(inputSource);
             inputRedirects.add(redirect);
             return redirect;
         }
@@ -788,6 +791,31 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
      */
     public CommandSession session() {
         return session;
+    }
+
+    /**
+     * Resolves a path against the session's working directory.
+     * <p>
+     * If the session has a working directory set, the path string is resolved
+     * against it. For relative paths, this resolves them relative to the working
+     * directory. For absolute paths, this creates the path in the working
+     * directory's {@link java.nio.file.FileSystem}, which is important when the
+     * session operates on a non-default file system (e.g., an in-memory FS).
+     * <p>
+     * If no working directory is set, the path is returned as-is.
+     *
+     * @param path the path to resolve
+     * @return the resolved path, or null if the input is null
+     */
+    private Path resolvePath(Path path) {
+        if (path == null) {
+            return null;
+        }
+        Path workingDir = session.workingDirectory();
+        if (workingDir != null) {
+            return workingDir.resolve(path.toString());
+        }
+        return path;
     }
 
     /**

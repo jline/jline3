@@ -34,7 +34,29 @@ class IORedirectionTest {
     void setUp() throws IOException {
         terminal = TerminalBuilder.builder().dumb(true).build();
         dispatcher = new DefaultCommandDispatcher(terminal);
-        dispatcher.addGroup(new SimpleCommandGroup("test", new CatCommand(), new ErrCommand(), new BothCommand()));
+        dispatcher.addGroup(new SimpleCommandGroup(
+                "test", new CatCommand(), new EchoCommand(), new ErrCommand(), new BothCommand()));
+    }
+
+    @AfterEach
+    void tearDown() throws IOException {
+        terminal.close();
+    }
+
+    /**
+     * Echoes arguments to output.
+     */
+    static class EchoCommand extends AbstractCommand {
+        EchoCommand() {
+            super("echo");
+        }
+
+        @Override
+        public Object execute(CommandSession session, String[] args) {
+            String msg = String.join(" ", args);
+            session.out().println(msg);
+            return msg;
+        }
     }
 
     @AfterEach
@@ -175,5 +197,56 @@ class IORedirectionTest {
         Pipeline pipeline = Pipeline.of("cmd").combinedRedirect(file).build();
         Pipeline.Stage stage = pipeline.stages().get(0);
         assertEquals(Pipeline.Operator.COMBINED_REDIRECT, stage.operator());
+    }
+
+    @Test
+    void redirectResolvesAgainstWorkingDirectory(@TempDir Path tempDir) throws Exception {
+        dispatcher.session().setWorkingDirectory(tempDir);
+        dispatcher.execute("echo hello > out.txt");
+        Path expected = tempDir.resolve("out.txt");
+        assertTrue(Files.exists(expected), "File should be created in working directory");
+        String content = Files.readString(expected);
+        assertTrue(content.trim().contains("hello"));
+    }
+
+    @Test
+    void appendResolvesAgainstWorkingDirectory(@TempDir Path tempDir) throws Exception {
+        dispatcher.session().setWorkingDirectory(tempDir);
+        dispatcher.execute("echo line1 > out.txt");
+        dispatcher.execute("echo line2 >> out.txt");
+        Path expected = tempDir.resolve("out.txt");
+        String content = Files.readString(expected);
+        assertTrue(content.contains("line1"));
+        assertTrue(content.contains("line2"));
+    }
+
+    @Test
+    void inputRedirectResolvesAgainstWorkingDirectory(@TempDir Path tempDir) throws Exception {
+        Path inputFile = tempDir.resolve("input.txt");
+        Files.writeString(inputFile, "hello from wd\n");
+        dispatcher.session().setWorkingDirectory(tempDir);
+        Object result = dispatcher.execute("cat < input.txt");
+        assertEquals("hello from wd", result);
+    }
+
+    @Test
+    void stderrRedirectResolvesAgainstWorkingDirectory(@TempDir Path tempDir) throws Exception {
+        dispatcher.session().setWorkingDirectory(tempDir);
+        dispatcher.execute("errcmd some error 2> errors.txt");
+        Path expected = tempDir.resolve("errors.txt");
+        assertTrue(Files.exists(expected), "Error file should be created in working directory");
+        String content = Files.readString(expected);
+        assertTrue(content.contains("some error"));
+    }
+
+    @Test
+    void combinedRedirectResolvesAgainstWorkingDirectory(@TempDir Path tempDir) throws Exception {
+        dispatcher.session().setWorkingDirectory(tempDir);
+        dispatcher.execute("bothcmd &> all.txt");
+        Path expected = tempDir.resolve("all.txt");
+        assertTrue(Files.exists(expected), "Combined file should be created in working directory");
+        String content = Files.readString(expected);
+        assertTrue(content.contains("stdout line"));
+        assertTrue(content.contains("stderr line"));
     }
 }
