@@ -39,59 +39,6 @@ import org.jline.shell.widget.CommandTailTipWidgets;
 public class ShellJobExample {
 
     // SNIPPET_START: ShellJobExample
-    static class EchoCommand extends AbstractCommand {
-        EchoCommand() {
-            super("echo");
-        }
-
-        @Override
-        public String description() {
-            return "Echo arguments to output";
-        }
-
-        @Override
-        public Object execute(CommandSession session, String[] args) {
-            // Check for pipe input
-            Object pipeInput = session.get("_pipe_input");
-            String msg;
-            if (args.length > 0) {
-                msg = String.join(" ", args);
-            } else if (pipeInput != null) {
-                msg = pipeInput.toString();
-            } else {
-                msg = "";
-            }
-            session.out().println(msg);
-            return msg;
-        }
-    }
-
-    static class UpperCommand extends AbstractCommand {
-        UpperCommand() {
-            super("upper");
-        }
-
-        @Override
-        public String description() {
-            return "Convert text to upper case";
-        }
-
-        @Override
-        public Object execute(CommandSession session, String[] args) {
-            // Check for pipe input first
-            Object pipeInput = session.get("_pipe_input");
-            String input;
-            if (pipeInput != null) {
-                input = pipeInput.toString().trim();
-            } else {
-                input = String.join(" ", args);
-            }
-            String result = input.toUpperCase();
-            session.out().println(result);
-            return result;
-        }
-    }
-
     static class SleepCommand extends AbstractCommand {
         SleepCommand() {
             super("sleep");
@@ -144,7 +91,11 @@ public class ShellJobExample {
                 .optionCommands(true) // HIGHLIGHT
                 .commandHighlighter(true) // HIGHLIGHT
                 .groups(new SimpleCommandGroup(
-                        "demo", new EchoCommand(), new UpperCommand(), new SleepCommand(), new CountCommand()))
+                        "demo",
+                        new DemoCommands.EchoCommand(),
+                        new DemoCommands.UpperCommand(),
+                        new SleepCommand(),
+                        new CountCommand()))
                 .option(Option.INSERT_BRACKET, true)
                 .option(Option.DISABLE_EVENT_EXPANSION, true)
                 .onReaderReady((reader, dispatcher) -> {
