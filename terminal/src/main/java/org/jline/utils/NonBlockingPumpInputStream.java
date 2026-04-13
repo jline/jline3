@@ -82,6 +82,20 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
     }
 
     @Override
+    public synchronized int read(byte[] b, int off, int len) throws IOException {
+        if (b == null) {
+            throw new NullPointerException();
+        } else if (off < 0 || len < 0 || len > b.length - off) {
+            throw new IndexOutOfBoundsException();
+        } else if (len == 0) {
+            return 0;
+        }
+        checkClosed();
+        checkIoException();
+        return copyAvailable(b, off, len, 0L);
+    }
+
+    @Override
     public synchronized int read(long timeout, boolean isPeek) throws IOException {
         checkClosed();
         checkIoException();
@@ -98,23 +112,37 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
     public synchronized int readBuffered(byte[] b, int off, int len, long timeout) throws IOException {
         if (b == null) {
             throw new NullPointerException();
-        } else if (off < 0 || len < 0 || off + len < b.length) {
+        } else if (off < 0 || len < 0 || len > b.length - off) {
             throw new IllegalArgumentException();
         } else if (len == 0) {
             return 0;
-        } else {
-            checkClosed();
-            checkIoException();
-            int res = wait(readBuffer, timeout);
-            if (res >= 0) {
-                res = 0;
-                while (res < len && readBuffer.hasRemaining()) {
-                    b[off + res++] = (byte) (readBuffer.get() & 0x00FF);
-                }
-            }
-            rewind(readBuffer, writeBuffer);
-            return res;
         }
+        checkClosed();
+        checkIoException();
+        return copyAvailable(b, off, len, timeout);
+    }
+
+    /**
+     * Waits for data and copies available bytes from the circular buffer into {@code b}.
+     * Handles wrap-around by reading both segments when the read position crosses
+     * the end of the underlying array.
+     */
+    private int copyAvailable(byte[] b, int off, int len, long timeout) throws IOException {
+        int res = wait(readBuffer, timeout);
+        if (res >= 0) {
+            res = 0;
+            int count = Math.min(len, readBuffer.remaining());
+            readBuffer.get(b, off, count);
+            res += count;
+            // If we consumed the entire segment and the buffer wraps, read the second segment
+            if (rewind(readBuffer, writeBuffer) && res < len && readBuffer.hasRemaining()) {
+                count = Math.min(len - res, readBuffer.remaining());
+                readBuffer.get(b, off + res, count);
+                res += count;
+            }
+        }
+        rewind(readBuffer, writeBuffer);
+        return res;
     }
 
     public synchronized void setIoException(IOException exception) {
