@@ -93,6 +93,16 @@ public interface ListBuilder extends BaseBuilder<ListBuilder> {
     }
 
     /**
+     * Set whether the list supports inline text filtering.
+     * When enabled (the default), the user can type characters to filter the displayed items.
+     * When disabled, typed characters are ignored.
+     *
+     * @param filterable true to enable filtering, false to disable
+     * @return this builder
+     */
+    ListBuilder filterable(boolean filterable);
+
+    /**
      * Set the page size for pagination.
      *
      * @param pageSize the page size, or 0 for no pagination

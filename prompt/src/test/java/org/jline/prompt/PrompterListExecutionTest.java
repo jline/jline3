@@ -166,6 +166,70 @@ public class PrompterListExecutionTest {
         assertTrue(selected.contains("pepperoni"));
     }
 
+    private Prompter createPrompter(String input) throws Exception {
+        PipedInputStream in = new PipedInputStream();
+        PipedOutputStream outIn = new PipedOutputStream(in);
+        outIn.write(input.getBytes(StandardCharsets.UTF_8));
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        Terminal terminal =
+                TerminalBuilder.builder().type("ansi").streams(in, out).build();
+        terminal.setSize(new Size(160, 80));
+        return PrompterFactory.create(terminal);
+    }
+
+    private ListBuilder buildFruitListPrompt(Prompter prompter) {
+        return prompter.newBuilder()
+                .createListPrompt()
+                .name("fruit")
+                .message("Choose a fruit:")
+                .add("apple", "Apple")
+                .add("banana", "Banana")
+                .add("cherry", "Cherry");
+    }
+
+    @Test
+    void testListPromptFilterableSelectsFilteredItem() throws Exception {
+        // Type "ch" to filter, then Enter to select the filtered result ("Cherry")
+        Prompter prompter = createPrompter("ch\n");
+        PromptBuilder builder = buildFruitListPrompt(prompter).addPrompt();
+
+        ListResult result = (ListResult)
+                prompter.prompt(Collections.emptyList(), builder.build()).get("fruit");
+        assertEquals("cherry", result.getSelectedId());
+    }
+
+    @Test
+    void testListPromptNotFilterableIgnoresTypedCharacters() throws Exception {
+        // Type "ch" (should be ignored), then Enter to select first item
+        Prompter prompter = createPrompter("ch\n");
+        PromptBuilder builder = buildFruitListPrompt(prompter).filterable(false).addPrompt();
+
+        ListResult result = (ListResult)
+                prompter.prompt(Collections.emptyList(), builder.build()).get("fruit");
+        assertEquals("apple", result.getSelectedId());
+    }
+
+    @Test
+    void testCheckboxPromptNotFilterableIgnoresTypedCharacters() throws Exception {
+        // Type "abc" (should be ignored since filterable=false), Space to toggle first item, Enter
+        Prompter prompter = createPrompter("abc \n");
+        PromptBuilder builder = prompter.newBuilder();
+        builder.createCheckboxPrompt()
+                .name("toppings")
+                .message("Select toppings:")
+                .filterable(false)
+                .add("cheese", "Cheese")
+                .add("pepperoni", "Pepperoni")
+                .add("mushrooms", "Mushrooms")
+                .addPrompt();
+
+        CheckboxResult result = (CheckboxResult)
+                prompter.prompt(Collections.emptyList(), builder.build()).get("toppings");
+        Set<String> selected = result.getSelectedIds();
+        assertEquals(1, selected.size());
+        assertTrue(selected.contains("cheese"));
+    }
+
     @Test
     void testChoicePromptSelectByKey() throws Exception {
         // Setup input/output streams
