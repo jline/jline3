@@ -10,6 +10,7 @@ package org.jline.utils;
 
 import java.text.BreakIterator;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.jline.terminal.Terminal;
@@ -35,7 +36,6 @@ import static org.jline.utils.AttributedStyle.F_HIDDEN;
 import static org.jline.utils.AttributedStyle.F_INVERSE;
 import static org.jline.utils.AttributedStyle.F_ITALIC;
 import static org.jline.utils.AttributedStyle.F_UNDERLINE;
-import static org.jline.utils.AttributedStyle.MASK;
 
 /**
  * A character sequence with ANSI style attributes.
@@ -358,9 +358,18 @@ public abstract class AttributedCharSequence implements CharSequence {
         return 1;
     }
 
+    private static final long[] DECORATION_FLAGS = {F_ITALIC, F_UNDERLINE, F_BLINK, F_INVERSE, F_CONCEAL, F_CROSSED_OUT
+    };
+    private static final String[] DECORATION_ON = {"3", "4", "5", "7", "8", "9"};
+    private static final String[] DECORATION_OFF = {"23", "24", "25", "27", "28", "29"};
+
+    private static final long COLOR_BITS = F_FOREGROUND | F_BACKGROUND | FG_COLOR | BG_COLOR;
+    private static final long BOLD_FAINT_BITS = F_BOLD | F_FAINT;
+    private static final long DECORATION_BITS = Arrays.stream(DECORATION_FLAGS).reduce(0L, (a, b) -> a | b);
+
     /**
      * Emit a single CSI SGR sequence that transitions terminal attributes from prevStyle to newStyle.
-     *
+     * <p>
      * Writes ANSI SGR parameters into the provided ByteArrayBuilder and updates colorState to reflect the
      * currently applied foreground (index 0) and background (index 1) encodings. If newStyle is zero, a
      * reset sequence is emitted and colorState entries are cleared.
@@ -372,47 +381,40 @@ public abstract class AttributedCharSequence implements CharSequence {
      * @param force      force mode controlling preference for 256/true color output
      * @param palette    color palette used to round/lookup colors when not emitting direct RGB
      */
-    private static final long COLOR_BITS = F_FOREGROUND | F_BACKGROUND | FG_COLOR | BG_COLOR;
-
     private static void emitStyleChange(
             ByteArrayBuilder buf, long prevStyle, long newStyle, int colors, ForceMode force, ColorPalette palette) {
-        if (newStyle == 0) {
-            buf.csi().appendAscii("0m");
-            return;
-        }
-        long d = (prevStyle ^ newStyle) & MASK;
-        // Fast path: if only text attributes changed (no color change), skip color extraction
-        if (((prevStyle ^ newStyle) & COLOR_BITS) == 0) {
-            buf.csi();
-            boolean first = appendDecorationAttrsB(buf, d, newStyle, true);
-            first = appendBoldFaintB(buf, d, newStyle, first);
-            buf.appendAscii('m');
-            return;
-        }
-        long fg = (newStyle & F_FOREGROUND) != 0 ? newStyle & (FG_COLOR | F_FOREGROUND) : 0;
-        long bg = (newStyle & F_BACKGROUND) != 0 ? newStyle & (BG_COLOR | F_BACKGROUND) : 0;
-        long prevFg = (prevStyle & F_FOREGROUND) != 0 ? prevStyle & (FG_COLOR | F_FOREGROUND) : 0;
-        long prevBg = (prevStyle & F_BACKGROUND) != 0 ? prevStyle & (BG_COLOR | F_BACKGROUND) : 0;
         buf.csi();
+        if (newStyle == 0) {
+            buf.appendAscii("0m");
+            return;
+        }
         boolean first = true;
-        first = appendDecorationAttrsB(buf, d, newStyle, first);
-        if (prevFg != fg) {
-            first = appendColorB(buf, fg, true, colors, force, palette, first);
-            if (fg > 0 && usedBasicFgColor(fg, colors, force, palette)) {
-                d |= (newStyle & F_BOLD);
+        long diff = prevStyle ^ newStyle;
+        if ((diff & DECORATION_BITS) != 0) {
+            first = appendDecorationAttrsB(buf, diff, newStyle, first);
+        }
+        if ((diff & COLOR_BITS) != 0) {
+            long fg = (newStyle & F_FOREGROUND) != 0 ? newStyle & (FG_COLOR | F_FOREGROUND) : 0;
+            long bg = (newStyle & F_BACKGROUND) != 0 ? newStyle & (BG_COLOR | F_BACKGROUND) : 0;
+            long prevFg = (prevStyle & F_FOREGROUND) != 0 ? prevStyle & (FG_COLOR | F_FOREGROUND) : 0;
+            long prevBg = (prevStyle & F_BACKGROUND) != 0 ? prevStyle & (BG_COLOR | F_BACKGROUND) : 0;
+
+            first = appendDecorationAttrsB(buf, diff, newStyle, first);
+            if (prevFg != fg) {
+                first = appendColorB(buf, fg, true, colors, force, palette, first);
+                if (fg > 0 && usedBasicFgColor(fg, colors, force, palette)) {
+                    diff |= (newStyle & F_BOLD);
+                }
+            }
+            if (prevBg != bg) {
+                first = appendColorB(buf, bg, false, colors, force, palette, first);
             }
         }
-        if (prevBg != bg) {
-            first = appendColorB(buf, bg, false, colors, force, palette, first);
+        if ((diff & BOLD_FAINT_BITS) != 0) {
+            appendBoldFaintB(buf, diff, newStyle, first);
         }
-        first = appendBoldFaintB(buf, d, newStyle, first);
         buf.appendAscii('m');
     }
-
-    private static final long[] DECORATION_FLAGS = {F_ITALIC, F_UNDERLINE, F_BLINK, F_INVERSE, F_CONCEAL, F_CROSSED_OUT
-    };
-    private static final String[] DECORATION_ON = {"3", "4", "5", "7", "8", "9"};
-    private static final String[] DECORATION_OFF = {"23", "24", "25", "27", "28", "29"};
 
     /**
      * Appends CSI decoration parameters for each decoration flag present in `d` to `buf`, using the
