@@ -370,8 +370,7 @@ public abstract class AttributedCharSequence implements CharSequence {
     /**
      * Emit a single CSI SGR sequence that transitions terminal attributes from prevStyle to newStyle.
      * <p>
-     * Writes ANSI SGR parameters into the provided ByteArrayBuilder and updates colorState to reflect the
-     * currently applied foreground (index 0) and background (index 1) encodings. If newStyle is zero, a
+     * Writes ANSI SGR parameters into the provided ByteArrayBuilder. If newStyle is zero, a
      * reset sequence is emitted and colorState entries are cleared.
      *
      * @param buf        the byte-oriented builder to which CSI parameters and the final 'm' are appended
@@ -399,7 +398,6 @@ public abstract class AttributedCharSequence implements CharSequence {
             long prevFg = (prevStyle & F_FOREGROUND) != 0 ? prevStyle & (FG_COLOR | F_FOREGROUND) : 0;
             long prevBg = (prevStyle & F_BACKGROUND) != 0 ? prevStyle & (BG_COLOR | F_BACKGROUND) : 0;
 
-            first = appendDecorationAttrsB(buf, diff, newStyle, first);
             if (prevFg != fg) {
                 first = appendColorB(buf, fg, true, colors, force, palette, first);
                 if (fg > 0 && usedBasicFgColor(fg, colors, force, palette)) {
