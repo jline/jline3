@@ -9,6 +9,7 @@
 package org.jline.utils;
 
 import java.text.BreakIterator;
+import java.text.CharacterIterator;
 
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.AbstractTerminal;
@@ -433,6 +434,112 @@ public final class WCWidth {
         BreakIterator bi = BreakIterator.getCharacterInstance();
         bi.setText(cs.toString());
         return bi;
+    }
+
+    /**
+     * Resets a pre-allocated {@link BreakIterator} to iterate over the given
+     * character sequence, using the supplied {@link CharSequenceCharacterIterator}
+     * to avoid the {@code toString()} allocation.
+     *
+     * @param bi   a pre-allocated BreakIterator (from {@link BreakIterator#getCharacterInstance()})
+     * @param cs   the character sequence to iterate over
+     * @param iter a reusable CharSequenceCharacterIterator
+     */
+    static void resetGraphemeBreakIterator(BreakIterator bi, CharSequence cs, CharSequenceCharacterIterator iter) {
+        if (bi == null) return;
+        if (iter.cs == cs) return; // already bound to this sequence
+        iter.reset(cs);
+        bi.setText(iter);
+    }
+
+    /**
+     * A reusable {@link CharacterIterator} that wraps a {@link CharSequence}
+     * without copying it to a {@code String}.
+     */
+    static final class CharSequenceCharacterIterator implements CharacterIterator, Cloneable {
+        private CharSequence cs;
+        private int begin;
+        private int end;
+        private int pos;
+
+        CharSequenceCharacterIterator() {
+            this.cs = "";
+        }
+
+        void reset(CharSequence cs) {
+            this.cs = cs;
+            this.begin = 0;
+            this.end = cs.length();
+            this.pos = 0;
+        }
+
+        @Override
+        public char first() {
+            pos = begin;
+            return current();
+        }
+
+        @Override
+        public char last() {
+            pos = (end > begin) ? end - 1 : end;
+            return current();
+        }
+
+        @Override
+        public char current() {
+            return (pos >= begin && pos < end) ? cs.charAt(pos) : DONE;
+        }
+
+        @Override
+        public char next() {
+            if (pos < end - 1) {
+                return cs.charAt(++pos);
+            }
+            pos = end;
+            return DONE;
+        }
+
+        @Override
+        public char previous() {
+            if (pos > begin) {
+                return cs.charAt(--pos);
+            }
+            return DONE;
+        }
+
+        @Override
+        public char setIndex(int position) {
+            if (position < begin || position > end) {
+                throw new IllegalArgumentException("Invalid index");
+            }
+            pos = position;
+            return current();
+        }
+
+        @Override
+        public int getBeginIndex() {
+            return begin;
+        }
+
+        @Override
+        public int getEndIndex() {
+            return end;
+        }
+
+        @Override
+        public int getIndex() {
+            return pos;
+        }
+
+        @Override
+        @SuppressWarnings("java:S2975") // clone() required: BreakIterator.setText() calls it internally
+        public Object clone() {
+            try {
+                return super.clone();
+            } catch (CloneNotSupportedException e) {
+                throw new AssertionError(e);
+            }
+        }
     }
 
     /**
