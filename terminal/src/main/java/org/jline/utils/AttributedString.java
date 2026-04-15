@@ -189,7 +189,7 @@ public class AttributedString extends AttributedCharSequence {
      * @param start the start index in the buffers
      * @param end the end index in the buffers
      */
-    AttributedString(char[] buffer, long[] style, int start, int end) {
+    protected AttributedString(char[] buffer, long[] style, int start, int end) {
         this.buffer = buffer;
         this.style = style;
         this.start = start;
@@ -333,6 +333,11 @@ public class AttributedString extends AttributedCharSequence {
     @Override
     protected char[] buffer() {
         return buffer;
+    }
+
+    @Override
+    long[] styleBuffer() {
+        return style;
     }
 
     /**

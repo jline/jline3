@@ -193,6 +193,11 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
         return buffer;
     }
 
+    @Override
+    long[] styleBuffer() {
+        return style;
+    }
+
     /**
      * Returns the offset in the buffer where this attributed string builder starts.
      *
