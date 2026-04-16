@@ -1064,12 +1064,6 @@ public abstract class AttributedCharSequence implements CharSequence {
     }
 
     /**
-     * Returns a subsequence of this attributed string based on column positions.
-     *
-     * @param start    the starting column position (inclusive)
-     * @param stop     the ending column position (exclusive)
-     * @param terminal the terminal to query for grapheme cluster mode, or {@code null}
-     * @return the subsequence spanning the specified column range
      * @deprecated Use {@link #columnSubSequence(Terminal, int, int)} instead
      */
     @Deprecated
@@ -1155,13 +1149,6 @@ public abstract class AttributedCharSequence implements CharSequence {
     }
 
     /**
-     * Splits this attributed string into multiple lines based on column width.
-     *
-     * @param columns         the maximum width of each line in columns
-     * @param includeNewlines whether to include newline characters in the resulting lines
-     * @param delayLineWrap   whether to delay line wrapping until the last possible moment
-     * @param terminal        the terminal to query for grapheme cluster mode, or {@code null}
-     * @return a list of attributed strings, each representing a line
      * @deprecated Use {@link #columnSplitLength(Terminal, int, boolean, boolean)} instead
      */
     @Deprecated
