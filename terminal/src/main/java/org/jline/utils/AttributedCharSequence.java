@@ -947,24 +947,8 @@ public abstract class AttributedCharSequence implements CharSequence {
      * @return the display width in columns
      */
     public int columnLength(Terminal terminal) {
-        return columnLength(terminal, 0, length());
-    }
-
-    /**
-     * Returns the display width in columns for a range of this attributed string.
-     *
-     * <p>This is an allocation-free alternative to creating a subSequence and calling
-     * {@link #columnLength(Terminal)} on it.</p>
-     *
-     * @param terminal   the terminal to query for grapheme cluster mode, or {@code null}
-     * @param rangeStart start index in this sequence (inclusive)
-     * @param rangeEnd   end index in this sequence (exclusive)
-     * @return the display width in columns for the specified range
-     * @since 4.1.0
-     */
-    public int columnLength(Terminal terminal, int rangeStart, int rangeEnd) {
         BreakIterator bi = WCWidth.HAS_JDK_GRAPHEME_SUPPORT ? BreakIterator.getCharacterInstance() : null;
-        return columnLength(terminal, bi, new WCWidth.CharSequenceCharacterIterator(), rangeStart, rangeEnd);
+        return columnLength(terminal, bi, new WCWidth.CharSequenceCharacterIterator(), 0, length());
     }
 
     /**

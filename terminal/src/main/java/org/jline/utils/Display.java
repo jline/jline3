@@ -304,97 +304,6 @@ public class Display {
     /**
      * Update the display according to the new lines.
      *
-     * <p>Accepts any {@link AttributedCharSequence} implementation (including
-     * {@link AttributedStringBuilder}). When mutable sequences are passed,
-     * only lines that have changed since the last frame are snapshotted via
-     * {@link AttributedCharSequence#toAttributedString()}; unchanged lines
-     * reuse the existing {@link AttributedString} from the previous frame.</p>
-     *
-     * @param newLines the lines to display
-     * @param targetCursorPos desired cursor position - see Size.cursorPos.
-     * @since 4.1.0
-     */
-    public void updateSequences(List<? extends AttributedCharSequence> newLines, int targetCursorPos) {
-        updateSequences(newLines, targetCursorPos, true);
-    }
-
-    /**
-     * Update the display according to the new lines.
-     *
-     * <p>Accepts any {@link AttributedCharSequence} implementation (including
-     * {@link AttributedStringBuilder}). When mutable sequences are passed,
-     * only lines that have changed since the last frame are snapshotted via
-     * {@link AttributedCharSequence#toAttributedString()}; unchanged lines
-     * reuse the existing {@link AttributedString} from the previous frame.</p>
-     *
-     * @param newLines the lines to display
-     * @param targetCursorPos desired cursor position - see Size.cursorPos.
-     * @param flush whether the output should be flushed or not
-     * @since 4.1.0
-     */
-    public void updateSequences(List<? extends AttributedCharSequence> newLines, int targetCursorPos, boolean flush) {
-        update(snapshotLines(newLines), targetCursorPos, flush);
-    }
-
-    /**
-     * Update the display from flat character and style arrays representing a cell grid.
-     *
-     * <p>The arrays are row-major: position {@code y * width + x} holds the data for
-     * column x, row y. The caller fills both arrays for every cell in the grid;
-     * Display compares against its internal {@code oldLines} state and only
-     * creates new {@link AttributedString} instances for rows that have changed.</p>
-     *
-     * <p>Unchanged rows reuse the existing {@code oldLines} entry by identity,
-     * so scroll detection via {@link #update(List, int, boolean)} works without
-     * additional cost.</p>
-     *
-     * @param chars  character data, length &gt;= width * height
-     * @param styles style codes (from {@link AttributedStyle#getStyle()}), same layout
-     * @param widths number of actual characters per row, length &gt;= height.
-     *               Use {@code null} if every row is exactly {@code width} chars.
-     * @param width  the column count (grid width)
-     * @param height the row count (grid height)
-     * @param targetCursorPos desired cursor position — see Size.cursorPos
-     * @param flush  whether the output should be flushed
-     * @since 4.1.0
-     */
-    public void update(
-            char[] chars, long[] styles, int[] widths, int width, int height, int targetCursorPos, boolean flush) {
-        List<AttributedString> newLines = new ArrayList<>(height);
-        for (int y = 0; y < height; y++) {
-            int offset = y * width;
-            int len = widths != null ? widths[y] : width;
-            // Compare against oldLines — skip unchanged rows
-            if (y < oldLines.size()) {
-                AttributedString old = oldLines.get(y);
-                if (old.length() == len && rowEquals(chars, styles, offset, len, old)) {
-                    newLines.add(old);
-                    continue;
-                }
-            }
-            // Changed row: snapshot into a new AttributedString
-            char[] rowChars = Arrays.copyOfRange(chars, offset, offset + len);
-            long[] rowStyles = Arrays.copyOfRange(styles, offset, offset + len);
-            newLines.add(new AttributedString(rowChars, rowStyles, 0, len));
-        }
-        update(newLines, targetCursorPos, flush);
-    }
-
-    private static boolean rowEquals(char[] chars, long[] styles, int offset, int len, AttributedString old) {
-        char[] oldBuf = old.buffer();
-        long[] oldStyle = old.styleBuffer();
-        int oldOff = old.offset();
-        for (int i = 0; i < len; i++) {
-            if (chars[offset + i] != oldBuf[oldOff + i] || styles[offset + i] != oldStyle[oldOff + i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Update the display according to the new lines.
-     *
      * @param newLines the lines to display
      * @param targetCursorPos desired cursor position - see Size.cursorPos.
      * @param flush whether the output should be flushed or not
@@ -783,38 +692,6 @@ public class Display {
     private int computeCost(Capability cap) {
         String s = Curses.tputs(terminal.getStringCapability(cap), 0);
         return s != null ? s.length() : Integer.MAX_VALUE;
-    }
-
-    /*
-     * Snapshot a list of AttributedCharSequence into immutable AttributedString
-     * objects, reusing unchanged lines from oldLines to avoid unnecessary array copies.
-     */
-    private List<AttributedString> snapshotLines(List<? extends AttributedCharSequence> lines) {
-        List<AttributedString> result = new ArrayList<>(lines.size());
-        for (int i = 0; i < lines.size(); i++) {
-            AttributedCharSequence line = lines.get(i);
-            if (line instanceof AttributedString) {
-                result.add((AttributedString) line);
-            } else if (i < oldLines.size() && contentEquals(line, oldLines.get(i))) {
-                result.add(oldLines.get(i));
-            } else {
-                result.add(line.toAttributedString());
-            }
-        }
-        return result;
-    }
-
-    /*
-     * Compare two attributed char sequences for content equality using direct
-     * array access to avoid per-character virtual dispatch.
-     */
-    private static boolean contentEquals(AttributedCharSequence a, AttributedCharSequence b) {
-        int len = a.length();
-        if (len != b.length()) return false;
-        int offA = a.offset();
-        int offB = b.offset();
-        return Arrays.equals(a.buffer(), offA, offA + len, b.buffer(), offB, offB + len)
-                && Arrays.equals(a.styleBuffer(), offA, offA + len, b.styleBuffer(), offB, offB + len);
     }
 
     /*
