@@ -76,15 +76,6 @@ public class Size {
     }
 
     /**
-     * Constructs a new Size with the same columns and rows as the given size.
-     *
-     * @param size the source Size from which to copy columns and rows
-     */
-    public Size(Size size) {
-        this(size.getColumns(), size.getRows());
-    }
-
-    /**
      * Returns the number of columns (width) in this terminal size.
      *
      * <p>
