@@ -647,7 +647,7 @@ public class TailTipWidgets extends Widgets {
                     asb.append("\t");
                     asb.append(cmdDesc.optionDescription(key));
                     if (asb.columnLength(reader.getTerminal()) > columnWidth - 2) {
-                        AttributedString trunc = asb.columnSubSequence(0, columnWidth - 5, reader.getTerminal());
+                        AttributedString trunc = asb.columnSubSequence(reader.getTerminal(), 0, columnWidth - 5);
                         asb = new AttributedStringBuilder().tabs(tabs);
                         asb.append(trunc);
                         asb.append("...", new AttributedStyle(AttributedStyle.INVERSE));
@@ -657,7 +657,7 @@ public class TailTipWidgets extends Widgets {
                             asb.append(" ");
                         }
                     }
-                    keyList.add(asb.toAttributedString().columnSubSequence(0, columnWidth, reader.getTerminal()));
+                    keyList.add(asb.toAttributedString().columnSubSequence(reader.getTerminal(), 0, columnWidth));
                 } else {
                     asb.append(keyList.get(row - descriptionSize));
                     asb.append(HelpException.highlightSyntax(key, resolver));

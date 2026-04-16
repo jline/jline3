@@ -231,7 +231,7 @@ public class Status {
             AttributedString str = lines.get(i);
             if (str.columnLength(terminal) > columns) {
                 str = new AttributedStringBuilder(columns)
-                        .append(lines.get(i).columnSubSequence(0, columns - ellipsis.columnLength(terminal), terminal))
+                        .append(lines.get(i).columnSubSequence(terminal, 0, columns - ellipsis.columnLength(terminal)))
                         .append(ellipsis)
                         .toAttributedString();
             } else if (str.columnLength(terminal) < columns) {
