@@ -104,7 +104,7 @@ public class Size {
      * @see #getColumns()
      */
     public void setColumns(int columns) {
-        cols = (short) columns;
+        cols = columns;
     }
 
     /**
@@ -132,7 +132,7 @@ public class Size {
      * @see #getRows()
      */
     public void setRows(int rows) {
-        this.rows = (short) rows;
+        this.rows = rows;
     }
 
     /**
