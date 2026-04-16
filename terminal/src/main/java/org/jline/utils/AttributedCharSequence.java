@@ -1024,18 +1024,18 @@ public abstract class AttributedCharSequence implements CharSequence {
      * @return the subsequence spanning the specified column range
      */
     public AttributedString columnSubSequence(int start, int stop) {
-        return columnSubSequence(start, stop, null);
+        return columnSubSequence(null, start, stop);
     }
 
     /**
      * Returns a subsequence of this attributed string based on column positions.
      *
+     * @param terminal the terminal to query for grapheme cluster mode, or {@code null}
      * @param start    the starting column position (inclusive)
      * @param stop     the ending column position (exclusive)
-     * @param terminal the terminal to query for grapheme cluster mode, or {@code null}
      * @return the subsequence spanning the specified column range
      */
-    public AttributedString columnSubSequence(int start, int stop, Terminal terminal) {
+    public AttributedString columnSubSequence(Terminal terminal, int start, int stop) {
         BreakIterator bi = WCWidth.createGraphemeBreakIterator(this);
         int begin = 0;
         int col = 0;
@@ -1061,6 +1061,14 @@ public abstract class AttributedCharSequence implements CharSequence {
             col += w;
         }
         return subSequence(begin, end);
+    }
+
+    /**
+     * @deprecated Use {@link #columnSubSequence(Terminal, int, int)} instead
+     */
+    @Deprecated
+    public AttributedString columnSubSequence(int start, int stop, Terminal terminal) {
+        return columnSubSequence(terminal, start, stop);
     }
 
     /**
@@ -1102,20 +1110,20 @@ public abstract class AttributedCharSequence implements CharSequence {
      * @return a list of attributed strings, each representing a line
      */
     public List<AttributedString> columnSplitLength(int columns, boolean includeNewlines, boolean delayLineWrap) {
-        return columnSplitLength(columns, includeNewlines, delayLineWrap, (Terminal) null);
+        return columnSplitLength(null, columns, includeNewlines, delayLineWrap);
     }
 
     /**
      * Splits this attributed string into multiple lines based on column width.
      *
+     * @param terminal        the terminal to query for grapheme cluster mode, or {@code null}
      * @param columns         the maximum width of each line in columns
      * @param includeNewlines whether to include newline characters in the resulting lines
      * @param delayLineWrap   whether to delay line wrapping until the last possible moment
-     * @param terminal        the terminal to query for grapheme cluster mode, or {@code null}
      * @return a list of attributed strings, each representing a line
      */
     public List<AttributedString> columnSplitLength(
-            int columns, boolean includeNewlines, boolean delayLineWrap, Terminal terminal) {
+            Terminal terminal, int columns, boolean includeNewlines, boolean delayLineWrap) {
         List<AttributedString> strings = new ArrayList<>();
         int cur = 0;
         int beg = cur;
@@ -1138,6 +1146,15 @@ public abstract class AttributedCharSequence implements CharSequence {
         }
         strings.add(subSequence(beg, cur));
         return strings;
+    }
+
+    /**
+     * @deprecated Use {@link #columnSplitLength(Terminal, int, boolean, boolean)} instead
+     */
+    @Deprecated
+    public List<AttributedString> columnSplitLength(
+            int columns, boolean includeNewlines, boolean delayLineWrap, Terminal terminal) {
+        return columnSplitLength(terminal, columns, includeNewlines, delayLineWrap);
     }
 
     @Override

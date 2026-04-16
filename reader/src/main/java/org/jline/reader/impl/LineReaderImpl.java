@@ -4264,13 +4264,13 @@ public class LineReaderImpl implements LineReader, Flushable {
                 if (smallTerminalOffset > 0) {
                     sb.setLength(0);
                     sb.append("…");
-                    sb.append(full.columnSubSequence(smallTerminalOffset + w, Integer.MAX_VALUE, terminal));
+                    sb.append(full.columnSubSequence(terminal, smallTerminalOffset + w, Integer.MAX_VALUE));
                     full = sb.toAttributedString();
                 }
                 int length = full.columnLength(terminal);
                 if (length >= smallTerminalOffset + width) {
                     sb.setLength(0);
-                    sb.append(full.columnSubSequence(0, width - w, terminal));
+                    sb.append(full.columnSubSequence(terminal, 0, width - w));
                     sb.append("…");
                     full = sb.toAttributedString();
                 }
@@ -4287,7 +4287,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                 newLines = new ArrayList<>();
                 newLines.add(full);
             } else {
-                newLines = full.columnSplitLength(size.getColumns(), true, display.delayLineWrap(), terminal);
+                newLines = full.columnSplitLength(terminal, size.getColumns(), true, display.delayLineWrap());
             }
 
             List<AttributedString> rightPromptLines;
@@ -4316,7 +4316,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                 }
                 sb.append(insertSecondaryPrompts(new AttributedString(buffer), secondaryPrompts, false));
                 List<AttributedString> promptLines =
-                        sb.columnSplitLength(size.getColumns(), false, display.delayLineWrap(), terminal);
+                        sb.columnSplitLength(terminal, size.getColumns(), false, display.delayLineWrap());
                 if (!promptLines.isEmpty()) {
                     cursorNewLinesId = promptLines.size() - 1;
                     cursorColPos = promptLines.get(promptLines.size() - 1).columnLength(terminal);
@@ -6000,7 +6000,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                             rw = right.columnLength(terminal);
                             if (rw > rem) {
                                 right = AttributedStringBuilder.append(
-                                        right.columnSubSequence(0, rem - WCWidth.wcwidth('…'), terminal), "…");
+                                        right.columnSubSequence(terminal, 0, rem - WCWidth.wcwidth('…')), "…");
                                 rw = right.columnLength(terminal);
                             }
                             right = AttributedStringBuilder.append(DESC_PREFIX, right, DESC_SUFFIX);

@@ -200,15 +200,15 @@ public class AttributedCharSequenceTest {
             String text = "AB" + FAMILY_EMOJI + "CD";
             AttributedString as = new AttributedString(text);
 
-            assertEquals("AB", as.columnSubSequence(0, 2, t).toString());
-            assertEquals(FAMILY_EMOJI, as.columnSubSequence(2, 4, t).toString());
-            assertEquals("CD", as.columnSubSequence(4, 6, t).toString());
+            assertEquals("AB", as.columnSubSequence(t, 0, 2).toString());
+            assertEquals(FAMILY_EMOJI, as.columnSubSequence(t, 2, 4).toString());
+            assertEquals("CD", as.columnSubSequence(t, 4, 6).toString());
 
             // Two flags: extract each one
             String twoFlags = FLAG_FR + FLAG_FR;
             AttributedString flags = new AttributedString(twoFlags);
-            assertEquals(FLAG_FR, flags.columnSubSequence(0, 2, t).toString());
-            assertEquals(FLAG_FR, flags.columnSubSequence(2, 4, t).toString());
+            assertEquals(FLAG_FR, flags.columnSubSequence(t, 0, 2).toString());
+            assertEquals(FLAG_FR, flags.columnSubSequence(t, 2, 4).toString());
         } finally {
             t.close();
         }
@@ -222,9 +222,9 @@ public class AttributedCharSequenceTest {
             String text = "AB" + RAINBOW_FLAG + "CD";
             AttributedString as = new AttributedString(text);
 
-            assertEquals("AB", as.columnSubSequence(0, 2, t).toString());
-            assertEquals(RAINBOW_FLAG, as.columnSubSequence(2, 4, t).toString());
-            assertEquals("CD", as.columnSubSequence(4, 6, t).toString());
+            assertEquals("AB", as.columnSubSequence(t, 0, 2).toString());
+            assertEquals(RAINBOW_FLAG, as.columnSubSequence(t, 2, 4).toString());
+            assertEquals("CD", as.columnSubSequence(t, 4, 6).toString());
         } finally {
             t.close();
         }
@@ -259,7 +259,7 @@ public class AttributedCharSequenceTest {
     public void testColumnSubSequenceNoArgDelegatesToNull() {
         AttributedString as = new AttributedString("Hello");
         assertEquals(
-                as.columnSubSequence(1, 3, null).toString(),
+                as.columnSubSequence(null, 1, 3).toString(),
                 as.columnSubSequence(1, 3).toString());
     }
 
@@ -270,7 +270,7 @@ public class AttributedCharSequenceTest {
             // "AB" + family + "CD" = 6 columns; split at 4
             String text = "AB" + FAMILY_EMOJI + "CD";
             AttributedString as = new AttributedString(text);
-            List<AttributedString> lines = as.columnSplitLength(4, false, true, t);
+            List<AttributedString> lines = as.columnSplitLength(t, 4, false, true);
             assertEquals(2, lines.size());
             assertEquals("AB" + FAMILY_EMOJI, lines.get(0).toString());
             assertEquals("CD", lines.get(1).toString());
@@ -278,7 +278,7 @@ public class AttributedCharSequenceTest {
             // Three families = 6 columns; split at 5 → [family+family, family]
             String three = FAMILY_EMOJI + FAMILY_EMOJI + FAMILY_EMOJI;
             AttributedString as3 = new AttributedString(three);
-            List<AttributedString> lines3 = as3.columnSplitLength(5, false, true, t);
+            List<AttributedString> lines3 = as3.columnSplitLength(t, 5, false, true);
             assertEquals(2, lines3.size());
             assertEquals(FAMILY_EMOJI + FAMILY_EMOJI, lines3.get(0).toString());
             assertEquals(FAMILY_EMOJI, lines3.get(1).toString());
@@ -294,7 +294,7 @@ public class AttributedCharSequenceTest {
             // "AB" + rainbow flag (2 cols) + "CD" = 6 columns; split at 4
             String text = "AB" + RAINBOW_FLAG + "CD";
             AttributedString as = new AttributedString(text);
-            List<AttributedString> lines = as.columnSplitLength(4, false, true, t);
+            List<AttributedString> lines = as.columnSplitLength(t, 4, false, true);
             assertEquals(2, lines.size());
             assertEquals("AB" + RAINBOW_FLAG, lines.get(0).toString());
             assertEquals("CD", lines.get(1).toString());
@@ -302,7 +302,7 @@ public class AttributedCharSequenceTest {
             // Three rainbow flags = 6 columns; split at 5 → [flag+flag, flag]
             String three = RAINBOW_FLAG + RAINBOW_FLAG + RAINBOW_FLAG;
             AttributedString as3 = new AttributedString(three);
-            List<AttributedString> lines3 = as3.columnSplitLength(5, false, true, t);
+            List<AttributedString> lines3 = as3.columnSplitLength(t, 5, false, true);
             assertEquals(2, lines3.size());
             assertEquals(RAINBOW_FLAG + RAINBOW_FLAG, lines3.get(0).toString());
             assertEquals(RAINBOW_FLAG, lines3.get(1).toString());
@@ -316,7 +316,7 @@ public class AttributedCharSequenceTest {
         Terminal t = GraphemeClusterTestTerminal.create();
         try {
             AttributedString as = new AttributedString("AB\nCD");
-            List<AttributedString> lines = as.columnSplitLength(80, false, true, t);
+            List<AttributedString> lines = as.columnSplitLength(t, 80, false, true);
             assertEquals(2, lines.size());
             assertEquals("AB", lines.get(0).toString());
             assertEquals("CD", lines.get(1).toString());
@@ -328,7 +328,7 @@ public class AttributedCharSequenceTest {
     @Test
     public void testColumnSplitLengthNoArgDelegatesToNull() {
         AttributedString as = new AttributedString("Hello World");
-        List<AttributedString> a = as.columnSplitLength(5, false, true, null);
+        List<AttributedString> a = as.columnSplitLength(null, 5, false, true);
         List<AttributedString> b = as.columnSplitLength(5, false, true);
         assertEquals(a.size(), b.size());
         for (int i = 0; i < a.size(); i++) {

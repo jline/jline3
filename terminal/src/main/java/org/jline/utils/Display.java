@@ -217,7 +217,7 @@ public class Display {
             this.columns = columns;
             this.columns1 = columns + 1;
             oldLines = AttributedString.join(AttributedString.EMPTY, oldLines)
-                    .columnSplitLength(columns, true, delayLineWrap(), terminal);
+                    .columnSplitLength(terminal, columns, true, delayLineWrap());
         }
         // When the terminal buffer is wider than the visible window (e.g. Windows with
         // a wide screen buffer), auto-wrap occurs at the buffer width, not the visible
@@ -937,7 +937,7 @@ public class Display {
                 int row = targetPos / columns1;
                 AttributedString lastChar = row >= newLines.size()
                         ? AttributedString.EMPTY
-                        : newLines.get(row).columnSubSequence(columns - 1, columns, terminal);
+                        : newLines.get(row).columnSubSequence(terminal, columns - 1, columns);
                 if (lastChar.length() == 0) rawPrint((int) ' ');
                 else rawPrint(lastChar);
                 cursorPos++;
