@@ -17,25 +17,7 @@ import org.jline.terminal.Terminal;
 import org.jline.utils.InfoCmp.Capability;
 
 import static org.jline.terminal.TerminalBuilder.PROP_DISABLE_ALTERNATE_CHARSET;
-import static org.jline.utils.AttributedStyle.BG_COLOR;
-import static org.jline.utils.AttributedStyle.BG_COLOR_EXP;
-import static org.jline.utils.AttributedStyle.FG_COLOR;
-import static org.jline.utils.AttributedStyle.FG_COLOR_EXP;
-import static org.jline.utils.AttributedStyle.F_BACKGROUND;
-import static org.jline.utils.AttributedStyle.F_BACKGROUND_IND;
-import static org.jline.utils.AttributedStyle.F_BACKGROUND_RGB;
-import static org.jline.utils.AttributedStyle.F_BLINK;
-import static org.jline.utils.AttributedStyle.F_BOLD;
-import static org.jline.utils.AttributedStyle.F_CONCEAL;
-import static org.jline.utils.AttributedStyle.F_CROSSED_OUT;
-import static org.jline.utils.AttributedStyle.F_FAINT;
-import static org.jline.utils.AttributedStyle.F_FOREGROUND;
-import static org.jline.utils.AttributedStyle.F_FOREGROUND_IND;
-import static org.jline.utils.AttributedStyle.F_FOREGROUND_RGB;
-import static org.jline.utils.AttributedStyle.F_HIDDEN;
-import static org.jline.utils.AttributedStyle.F_INVERSE;
-import static org.jline.utils.AttributedStyle.F_ITALIC;
-import static org.jline.utils.AttributedStyle.F_UNDERLINE;
+import static org.jline.utils.AttributedStyle.*;
 
 /**
  * A character sequence with ANSI style attributes.
@@ -392,18 +374,16 @@ public abstract class AttributedCharSequence implements CharSequence {
             first = appendDecorationAttrsB(buf, diff, newStyle, first);
         }
         if ((diff & COLOR_BITS) != 0) {
-            long fg = (newStyle & F_FOREGROUND) != 0 ? newStyle & (FG_COLOR | F_FOREGROUND) : 0;
-            long bg = (newStyle & F_BACKGROUND) != 0 ? newStyle & (BG_COLOR | F_BACKGROUND) : 0;
-            long prevFg = (prevStyle & F_FOREGROUND) != 0 ? prevStyle & (FG_COLOR | F_FOREGROUND) : 0;
-            long prevBg = (prevStyle & F_BACKGROUND) != 0 ? prevStyle & (BG_COLOR | F_BACKGROUND) : 0;
+            long fg = getNewColor(prevStyle, newStyle, F_FOREGROUND, FG_COLOR | F_FOREGROUND);
+            long bg = getNewColor(prevStyle, newStyle, F_BACKGROUND, BG_COLOR | F_BACKGROUND);
 
-            if (prevFg != fg) {
+            if (fg != MASK) {
                 first = appendColorB(buf, fg, true, colors, force, palette, first);
                 if (fg > 0 && usedBasicFgColor(fg, colors, force, palette)) {
                     diff |= (newStyle & F_BOLD);
                 }
             }
-            if (prevBg != bg) {
+            if (bg != MASK) {
                 first = appendColorB(buf, bg, false, colors, force, palette, first);
             }
         }
@@ -411,6 +391,24 @@ public abstract class AttributedCharSequence implements CharSequence {
             appendBoldFaintB(buf, diff, newStyle, first);
         }
         buf.appendAscii('m');
+    }
+
+    /**
+     * Computes the color bits that should be carried into a style transition.
+     *
+     * @param prevStyle the previously active style bits
+     * @param newStyle the target style bits
+     * @param flagMask the style family mask to compare, such as foreground or background flags
+     * @param fullColorMask the full mask used to extract the color payload for that family
+     * @return the color payload to emit for the transition, or {@link AttributedStyle#MASK} if no color change is needed
+     */
+    private static long getNewColor(long prevStyle, long newStyle, long flagMask, long fullColorMask) {
+        long cur = (newStyle & flagMask) != 0 ? newStyle & fullColorMask : 0;
+        long prev = (prevStyle & flagMask) != 0 ? prevStyle & fullColorMask : 0;
+        if (cur != prev) {
+            return cur;
+        }
+        return MASK;
     }
 
     /**
