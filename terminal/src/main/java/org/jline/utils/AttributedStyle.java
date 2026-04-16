@@ -628,8 +628,8 @@ public class AttributedStyle {
      */
     public AttributedStyle foreground(int color) {
         return new AttributedStyle(
-                style & ~FG_COLOR | F_FOREGROUND_IND | (((long) color << FG_COLOR_EXP) & FG_COLOR),
-                mask | F_FOREGROUND_IND);
+                style & ~(FG_COLOR | F_FOREGROUND) | F_FOREGROUND_IND | (((long) color << FG_COLOR_EXP) & FG_COLOR),
+                (mask & ~F_FOREGROUND) | F_FOREGROUND_IND);
     }
 
     /**
@@ -682,8 +682,10 @@ public class AttributedStyle {
      */
     public AttributedStyle foregroundRgb(int color) {
         return new AttributedStyle(
-                style & ~FG_COLOR | F_FOREGROUND_RGB | ((((long) color & 0xFFFFFF) << FG_COLOR_EXP) & FG_COLOR),
-                mask | F_FOREGROUND_RGB);
+                style & ~(FG_COLOR | F_FOREGROUND)
+                        | F_FOREGROUND_RGB
+                        | ((((long) color & 0xFFFFFF) << FG_COLOR_EXP) & FG_COLOR),
+                (mask & ~F_FOREGROUND) | F_FOREGROUND_RGB);
     }
 
     /**
@@ -748,8 +750,8 @@ public class AttributedStyle {
      */
     public AttributedStyle background(int color) {
         return new AttributedStyle(
-                style & ~BG_COLOR | F_BACKGROUND_IND | (((long) color << BG_COLOR_EXP) & BG_COLOR),
-                mask | F_BACKGROUND_IND);
+                style & ~(BG_COLOR | F_BACKGROUND) | F_BACKGROUND_IND | (((long) color << BG_COLOR_EXP) & BG_COLOR),
+                (mask & ~F_BACKGROUND) | F_BACKGROUND_IND);
     }
 
     /**
@@ -802,8 +804,10 @@ public class AttributedStyle {
      */
     public AttributedStyle backgroundRgb(int color) {
         return new AttributedStyle(
-                style & ~BG_COLOR | F_BACKGROUND_RGB | ((((long) color & 0xFFFFFF) << BG_COLOR_EXP) & BG_COLOR),
-                mask | F_BACKGROUND_RGB);
+                style & ~(BG_COLOR | F_BACKGROUND)
+                        | F_BACKGROUND_RGB
+                        | ((((long) color & 0xFFFFFF) << BG_COLOR_EXP) & BG_COLOR),
+                (mask & ~F_BACKGROUND) | F_BACKGROUND_RGB);
     }
 
     /**
