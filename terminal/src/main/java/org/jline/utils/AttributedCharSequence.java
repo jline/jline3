@@ -370,8 +370,7 @@ public abstract class AttributedCharSequence implements CharSequence {
     /**
      * Emit a single CSI SGR sequence that transitions terminal attributes from prevStyle to newStyle.
      * <p>
-     * Writes ANSI SGR parameters into the provided ByteArrayBuilder. If newStyle is zero, a
-     * reset sequence is emitted and colorState entries are cleared.
+     * Writes ANSI SGR parameters into the provided ByteArrayBuilder. If newStyle is zero, a reset sequence is emitted.
      *
      * @param buf        the byte-oriented builder to which CSI parameters and the final 'm' are appended
      * @param prevStyle  previously applied style code
