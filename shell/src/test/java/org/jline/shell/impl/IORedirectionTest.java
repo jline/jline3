@@ -39,8 +39,15 @@ class IORedirectionTest {
 
     @AfterEach
     void tearDown() throws IOException {
-        terminal.close();
-        dispatcher.close();
+        try {
+            if (terminal != null) {
+                terminal.close();
+            }
+        } finally {
+            if (dispatcher != null) {
+                dispatcher.close();
+            }
+        }
     }
 
     /**

@@ -38,7 +38,7 @@ class MultiEncodingTerminalTest {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         // Create terminal with ISO-8859-1 for stdin
-        Terminal terminal = new DumbTerminal(
+        try (Terminal terminal = new DumbTerminal(
                 null,
                 null,
                 "test",
@@ -48,28 +48,29 @@ class MultiEncodingTerminalTest {
                 StandardCharsets.UTF_8,
                 StandardCharsets.ISO_8859_1,
                 StandardCharsets.UTF_8,
-                Terminal.SignalHandler.SIG_DFL);
+                Terminal.SignalHandler.SIG_DFL)) {
 
-        // Read characters from the terminal
-        NonBlockingReader reader = terminal.reader();
-        StringBuilder result = new StringBuilder();
-        int c;
-        int timeoutCount = 0;
-        while (timeoutCount < 1000) { // Allow up to 1000 timeouts before giving up
-            c = reader.read(1);
-            if (c == -1) { // EOF
-                break;
-            } else if (c == -2) { // READ_EXPIRED (timeout)
-                timeoutCount++;
-                continue; // Keep trying
+            // Read characters from the terminal
+            NonBlockingReader reader = terminal.reader();
+            StringBuilder result = new StringBuilder();
+            int c;
+            int timeoutCount = 0;
+            while (timeoutCount < 1000) { // Allow up to 1000 timeouts before giving up
+                c = reader.read(1);
+                if (c == -1) { // EOF
+                    break;
+                } else if (c == -2) { // READ_EXPIRED (timeout)
+                    timeoutCount++;
+                    continue; // Keep trying
+                }
+                if (c >= 0) { // Valid character
+                    result.append((char) c);
+                }
             }
-            if (c >= 0) { // Valid character
-                result.append((char) c);
-            }
+
+            // Verify the text was correctly decoded using ISO-8859-1
+            assertEquals(testString, result.toString());
         }
-
-        // Verify the text was correctly decoded using ISO-8859-1
-        assertEquals(testString, result.toString());
     }
 
     /**

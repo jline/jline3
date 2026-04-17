@@ -354,7 +354,7 @@ class TerminalReaderTest extends ReaderTestSupport {
      * Validates that an 'event not found' IllegalArgumentException is thrown
      * for the expansion event.
      */
-    protected void assertExpansionIllegalArgumentException(Expander expander, History history, String event) {
+    private void assertExpansionIllegalArgumentException(Expander expander, History history, String event) {
         try {
             expander.expandHistory(history, event);
             fail("Expected IllegalArgumentException for " + event);

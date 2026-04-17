@@ -79,8 +79,10 @@ public abstract class ReaderTestSupport {
     }
 
     @AfterEach
-    void tearDown() throws IOException {
-        terminal.close();
+    public void tearDown() throws IOException {
+        if (terminal != null) {
+            terminal.close();
+        }
     }
 
     protected void assertConsoleOutputContains(String s) {

@@ -36,8 +36,10 @@ class TerminalTest {
 
     @AfterEach
     void tearDown() throws IOException {
-        if (webTerminal != null && webTerminal.isRunning()) {
-            webTerminal.stop();
+        if (webTerminal != null) {
+            if (webTerminal.isRunning()) {
+                webTerminal.stop();
+            }
             webTerminal.close();
         }
         if (swingTerminal != null) {

@@ -47,7 +47,7 @@ class ViMoveModeTest extends ReaderTestSupport {
         testMoveLeft("\010"); /* CTRL-H */
     }
 
-    void testMoveLeft(String left) {
+    private void testMoveLeft(String left) {
         /*
          * Move left
          */
@@ -139,7 +139,7 @@ class ViMoveModeTest extends ReaderTestSupport {
         testMoveRight(" "); /* space */
     }
 
-    void testMoveRight(String right) {
+    private void testMoveRight(String right) {
         /*
          * Move right
          */

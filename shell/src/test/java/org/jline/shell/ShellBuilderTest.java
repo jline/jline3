@@ -64,7 +64,7 @@ class ShellBuilderTest {
                         .variable(LineReader.SECONDARY_PROMPT_PATTERN, "%M> ")
                         .variable(LineReader.INDENTATION, 4)
                         .option(LineReader.Option.INSERT_BRACKET, true)
-                        .build(); ) {
+                        .build()) {
             assertNotNull(shell);
             assertEquals(4, shell.reader().getVariable(LineReader.INDENTATION));
             assertTrue(shell.reader().isSet(LineReader.Option.INSERT_BRACKET));

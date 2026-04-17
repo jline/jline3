@@ -44,14 +44,10 @@ class WebTerminalIntegrationTest {
     }
 
     @AfterEach
-    void tearDown() {
+    void tearDown() throws IOException {
         if (terminal != null) {
             terminal.stop();
-            try {
-                terminal.close();
-            } catch (IOException e) {
-                // ignore
-            }
+            terminal.close();
         }
     }
 

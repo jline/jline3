@@ -46,8 +46,15 @@ class DefaultCommandDispatcherTest {
 
     @AfterEach
     void tearDown() throws IOException {
-        terminal.close();
-        dispatcher.close();
+        try {
+            if (terminal != null) {
+                terminal.close();
+            }
+        } finally {
+            if (dispatcher != null) {
+                dispatcher.close();
+            }
+        }
     }
 
     // --- Fixture commands ---
@@ -252,13 +259,14 @@ class DefaultCommandDispatcherTest {
     @Test
     void backgroundExecution() throws Exception {
         DefaultJobManager jobManager = new DefaultJobManager();
-        DefaultCommandDispatcher bgDispatcher = new DefaultCommandDispatcher(terminal, jobManager);
-        bgDispatcher.addGroup(new SimpleCommandGroup("test", new NoopCommand()));
-        bgDispatcher.execute("noop &");
-        // Give the background thread time to complete
-        Thread.sleep(200);
-        // Job should have been created
-        assertFalse(jobManager.jobs().isEmpty());
+        try (DefaultCommandDispatcher bgDispatcher = new DefaultCommandDispatcher(terminal, jobManager)) {
+            bgDispatcher.addGroup(new SimpleCommandGroup("test", new NoopCommand()));
+            bgDispatcher.execute("noop &");
+            // Give the background thread time to complete
+            Thread.sleep(200);
+            // Job should have been created
+            assertFalse(jobManager.jobs().isEmpty());
+        }
     }
 
     @Test

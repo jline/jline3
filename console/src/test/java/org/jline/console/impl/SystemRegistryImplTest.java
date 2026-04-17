@@ -62,8 +62,15 @@ class SystemRegistryImplTest {
 
     @AfterEach
     void tearDown() throws IOException {
-        terminal.close();
-        registry.close();
+        try {
+            if (terminal != null) {
+                terminal.close();
+            }
+        } finally {
+            if (registry != null) {
+                registry.close();
+            }
+        }
     }
 
     /**

@@ -17,6 +17,7 @@ import java.util.regex.PatternSyntaxException;
 
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,7 @@ class PosixCommandsTest {
     @TempDir
     Path tempDir;
 
+    private Terminal terminal;
     private PosixCommands.Context context;
     private ByteArrayOutputStream out;
 
@@ -44,9 +46,16 @@ class PosixCommandsTest {
         Map<String, Object> vars = new HashMap<>();
         vars.put("HOME", System.getProperty("user.home"));
 
-        Terminal terminal = new DumbTerminal(System.in, out);
+        terminal = new DumbTerminal(System.in, out);
         context = new PosixCommands.Context(
                 System.in, new PrintStream(out), new PrintStream(err), tempDir, terminal, vars::get);
+    }
+
+    @AfterEach
+    void tearDown() throws IOException {
+        if (terminal != null) {
+            terminal.close();
+        }
     }
 
     /**

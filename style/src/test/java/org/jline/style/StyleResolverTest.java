@@ -97,7 +97,7 @@ class StyleResolverTest extends StyleTestSupport {
     }
 
     @Test
-    void resolveReferencedStyleMissingWitDirectAndWhitespace() {
+    void resolveReferencedStyleMissingWithDirectAndWhitespace() {
         AttributedStyle style = underTest.resolve(".very-red   :-   bold,fg:red");
         assertEquals(BOLD.foreground(RED), style);
     }

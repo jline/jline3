@@ -43,7 +43,9 @@ class DefaultPrompterTest {
 
     @AfterEach
     void tearDown() throws IOException {
-        terminal.close();
+        if (terminal != null) {
+            terminal.close();
+        }
     }
 
     @Test

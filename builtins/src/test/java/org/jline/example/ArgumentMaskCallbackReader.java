@@ -51,9 +51,9 @@ class ArgumentMaskCallbackReader {
         private final int pos;
 
         public CommandArgumentMask(String command, int pos) {
-            String regex = Pattern.quote(command) + " +([^ ]+)".repeat(Math.max(0, pos));
+            this.pos = Math.max(0, pos);
+            String regex = Pattern.quote(command) + " +([^ ]+)".repeat(this.pos);
             this.pattern = Pattern.compile(regex);
-            this.pos = pos;
         }
 
         @Override

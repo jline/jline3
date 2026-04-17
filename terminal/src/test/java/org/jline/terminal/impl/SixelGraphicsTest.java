@@ -63,21 +63,27 @@ class SixelGraphicsTest {
     }
 
     @Test
-    void testTerminalDetection() {
+    void testTerminalDetection() throws IOException {
         // Test known sixel-supporting terminals (excluding xterm variants due to false positives)
-        assertTrue(SixelGraphics.isSixelSupported(createMockTerminal("mintty")));
-        assertTrue(SixelGraphics.isSixelSupported(createMockTerminal("foot")));
-        assertTrue(SixelGraphics.isSixelSupported(createMockTerminal("iterm2")));
-        assertTrue(SixelGraphics.isSixelSupported(createMockTerminal("konsole")));
-        assertTrue(SixelGraphics.isSixelSupported(createMockTerminal("mlterm")));
-        assertTrue(SixelGraphics.isSixelSupported(createMockTerminal("wezterm")));
+        assertTrue(isSixelSupported("mintty"));
+        assertTrue(isSixelSupported("foot"));
+        assertTrue(isSixelSupported("iterm2"));
+        assertTrue(isSixelSupported("konsole"));
+        assertTrue(isSixelSupported("mlterm"));
+        assertTrue(isSixelSupported("wezterm"));
 
         // Test terminals that don't support sixel (including xterm variants without runtime detection)
-        assertFalse(SixelGraphics.isSixelSupported(createMockTerminal("xterm")));
-        assertFalse(SixelGraphics.isSixelSupported(createMockTerminal("xterm-256color")));
-        assertFalse(SixelGraphics.isSixelSupported(createMockTerminal("dumb")));
-        assertFalse(SixelGraphics.isSixelSupported(createMockTerminal("vt100")));
-        assertFalse(SixelGraphics.isSixelSupported(createMockTerminal("unknown")));
+        assertFalse(isSixelSupported("xterm"));
+        assertFalse(isSixelSupported("xterm-256color"));
+        assertFalse(isSixelSupported("dumb"));
+        assertFalse(isSixelSupported("vt100"));
+        assertFalse(isSixelSupported("unknown"));
+    }
+
+    private static boolean isSixelSupported(String type) throws IOException {
+        try (Terminal terminal = createMockTerminal(type)) {
+            return SixelGraphics.isSixelSupported(terminal);
+        }
     }
 
     @Test
@@ -209,7 +215,7 @@ class SixelGraphicsTest {
     /**
      * Creates a mock terminal for testing purposes.
      */
-    private Terminal createMockTerminal(String type) {
+    private static Terminal createMockTerminal(String type) {
         try {
             ByteArrayOutputStream output = new ByteArrayOutputStream();
             ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);
