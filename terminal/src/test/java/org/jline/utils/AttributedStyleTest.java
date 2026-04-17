@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class AttributedStyleTest {
+class AttributedStyleTest {
 
     /**
      * Verifies that chained RGB and indexed color updates produce the expected final styles.
