@@ -43,10 +43,11 @@ class PosixCommandsTest {
     void setUp() throws IOException {
         out = new ByteArrayOutputStream();
         ByteArrayOutputStream err = new ByteArrayOutputStream();
+        ByteArrayInputStream in = new ByteArrayInputStream(new byte[0]);
         Map<String, Object> vars = new HashMap<>();
         vars.put("HOME", System.getProperty("user.home"));
 
-        terminal = new DumbTerminal(System.in, out);
+        terminal = new DumbTerminal(in, out);
         context = new PosixCommands.Context(
                 System.in, new PrintStream(out), new PrintStream(err), tempDir, terminal, vars::get);
     }
