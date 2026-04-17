@@ -127,6 +127,66 @@ public class AttributedCharSequenceTest {
         assertEquals(org, rndTrip);
     }
 
+    @Test
+    public void testMixedStyleAnsiOrderingWithStyleChanges() {
+        AttributedStringBuilder sb = new AttributedStringBuilder();
+        sb.append("start");
+        sb.style(AttributedStyle.DEFAULT.underline().italic().foreground(AttributedStyle.BLUE));
+        sb.append("one");
+        sb.style(AttributedStyle.DEFAULT.underline().italic().crossedOut().foreground(AttributedStyle.BLUE));
+        sb.append("two");
+        sb.style(AttributedStyle.DEFAULT
+                .underline()
+                .foreground(AttributedStyle.BLUE)
+                .bold());
+        sb.append("three");
+        sb.style(AttributedStyle.DEFAULT);
+        sb.append("end");
+        assertEquals("start\u001b[3;4;34mone\u001b[9mtwo\u001b[23;29;1mthree\u001b[0mend", sb.toAnsi());
+
+        sb = new AttributedStringBuilder();
+        sb.append("start");
+        sb.style(AttributedStyle.DEFAULT
+                .underline()
+                .italic()
+                .foreground(AttributedStyle.YELLOW)
+                .bold());
+        sb.append("one");
+        sb.style(AttributedStyle.DEFAULT.crossedOut().italic().foreground(AttributedStyle.CYAN));
+        sb.append("two");
+        sb.style(AttributedStyle.DEFAULT.bold().foreground(AttributedStyle.RED));
+        sb.append("three");
+        sb.style(AttributedStyle.DEFAULT);
+        sb.append("end");
+        assertEquals("start\u001b[3;4;33;1mone\u001b[24;9;36;22mtwo\u001b[23;29;31;1mthree\u001b[0mend", sb.toAnsi());
+
+        sb = new AttributedStringBuilder();
+        sb.append("start");
+        sb.style(AttributedStyle.DEFAULT.underline().italic().foreground(123).bold());
+        sb.append("one");
+        sb.style(AttributedStyle.DEFAULT.underline().crossedOut().foreground(196));
+        sb.append("two");
+        sb.style(AttributedStyle.DEFAULT);
+        sb.append("end");
+        assertEquals(
+                "start\u001b[3;4;38;5;123;1mone\u001b[23;9;38;5;196;22mtwo\u001b[0mend",
+                sb.toAnsi(256, AttributedCharSequence.ForceMode.Force256Colors));
+
+        sb = new AttributedStringBuilder();
+        sb.style(AttributedStyle.DEFAULT
+                .underline()
+                .italic()
+                .crossedOut()
+                .foreground(AttributedStyle.RED)
+                .bold());
+        sb.append("one");
+        sb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN));
+        sb.append("two");
+        sb.style(AttributedStyle.DEFAULT);
+        sb.append("end");
+        assertEquals("\u001b[3;4;9;31;1mone\u001b[23;24;29;32;22mtwo\u001b[0mend", sb.toAnsi());
+    }
+
     // --- grapheme cluster mode tests (columnLength, columnSubSequence, columnSplitLength) ---
 
     @Test
