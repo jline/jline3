@@ -108,7 +108,7 @@ class InfoCmpTest {
                 .collect(Collectors.toList());
 
         allCaps.forEach((capsName) -> assertNotNull(
-                String.format("%s.caps was not registered in InfoCmp class", capsName),
-                InfoCmp.getLoadedInfoCmp(capsName)));
+                InfoCmp.getLoadedInfoCmp(capsName),
+                String.format("%s.caps was not registered in InfoCmp class", capsName)));
     }
 }

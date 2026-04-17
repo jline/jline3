@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Integration test for the JLine Prompt API.
  */
+// TODO: Fix terminals created with TerminalBuilder.builder().system(false).build() NPE'ing when closed.
 class IntegrationTest {
 
     @Test
