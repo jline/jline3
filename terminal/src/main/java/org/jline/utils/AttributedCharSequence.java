@@ -347,6 +347,7 @@ public abstract class AttributedCharSequence implements CharSequence {
 
     private static final long COLOR_BITS = F_FOREGROUND | F_BACKGROUND | FG_COLOR | BG_COLOR;
     private static final long BOLD_FAINT_BITS = F_BOLD | F_FAINT;
+    // Where the above value OR's the bold & faint flags, this reduction below OR's all flags in DECORATION_FLAGS.
     private static final long DECORATION_BITS = Arrays.stream(DECORATION_FLAGS).reduce(0L, (a, b) -> a | b);
     // MASK includes all flag bits. Since a color index and color rgb flag can never be set at the same time, this value
     // is never a valid style.
