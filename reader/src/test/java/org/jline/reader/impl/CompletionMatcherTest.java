@@ -37,8 +37,7 @@ class CompletionMatcherTest {
     @Test
     void uniqueCandidates() {
         Candidate c = new Candidate("foo");
-        assertEquals(
-                1, compileCompletionMatcher("").matches(List.of(c, c)).size(), "Expected only one element");
+        assertEquals(1, compileCompletionMatcher("").matches(List.of(c, c)).size(), "Expected only one element");
     }
 
     @Test

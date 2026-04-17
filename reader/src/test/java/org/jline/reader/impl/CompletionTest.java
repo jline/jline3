@@ -194,7 +194,8 @@ class CompletionTest extends ReaderTestSupport {
 
     @Test
     void testMenuOrder() {
-        reader.setCompleter(new StringsCompleter(List.of("ae_helloWorld1", "ad_helloWorld12", "ac_helloWorld1234", "ab_helloWorld123", "aa_helloWorld12345")));
+        reader.setCompleter(new StringsCompleter(List.of(
+                "ae_helloWorld1", "ad_helloWorld12", "ac_helloWorld1234", "ab_helloWorld123", "aa_helloWorld12345")));
         reader.unsetOpt(Option.AUTO_LIST);
         reader.setOpt(Option.AUTO_MENU);
 
@@ -206,7 +207,8 @@ class CompletionTest extends ReaderTestSupport {
     @Test
     void testDumbTerminalNoSizeComplete() {
         terminal.setSize(new Size());
-        reader.setCompleter(new StringsCompleter(List.of("ae_helloWorld", "ad_helloWorld", "ac_helloWorld", "ab_helloWorld", "aa_helloWorld")));
+        reader.setCompleter(new StringsCompleter(
+                List.of("ae_helloWorld", "ad_helloWorld", "ac_helloWorld", "ab_helloWorld", "aa_helloWorld")));
 
         assertLine("a", new TestBuffer("a\t\n"));
     }
@@ -216,7 +218,8 @@ class CompletionTest extends ReaderTestSupport {
         terminal.setSize(new Size());
         reader.doAutosuggestion = true;
         reader.autosuggestion = LineReader.SuggestionType.COMPLETER;
-        reader.setCompleter(new StringsCompleter(List.of("ae_helloWorld", "ad_helloWorld", "ac_helloWorld", "ab_helloWorld", "aa_helloWorld")));
+        reader.setCompleter(new StringsCompleter(
+                List.of("ae_helloWorld", "ad_helloWorld", "ac_helloWorld", "ab_helloWorld", "aa_helloWorld")));
 
         assertLine("a", new TestBuffer("a\t\n"));
     }
