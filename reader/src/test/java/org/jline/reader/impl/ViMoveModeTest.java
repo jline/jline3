@@ -30,6 +30,7 @@ class ViMoveModeTest extends ReaderTestSupport {
     /**
      * For all tests we will start out in insert/edit mode.
      */
+    @Override
     @BeforeEach
     public void setUp() throws Exception {
         super.setUp();

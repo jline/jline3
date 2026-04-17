@@ -26,6 +26,7 @@ class StyleExpressionTest extends StyleTestSupport {
 
     private StyleExpression underTest;
 
+    @Override
     @BeforeEach
     void setUp() {
         super.setUp();

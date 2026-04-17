@@ -35,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  */
 class TerminalReaderTest extends ReaderTestSupport {
 
+    @Override
     @BeforeEach
     public void setUp() throws Exception {
         super.setUp();

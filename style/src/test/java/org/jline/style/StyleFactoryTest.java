@@ -24,6 +24,7 @@ class StyleFactoryTest extends StyleTestSupport {
 
     private StyleFactory underTest;
 
+    @Override
     @BeforeEach
     void setUp() {
         super.setUp();

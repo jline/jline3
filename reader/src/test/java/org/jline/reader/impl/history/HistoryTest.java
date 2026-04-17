@@ -36,15 +36,18 @@ import static org.junit.jupiter.api.Assertions.fail;
 class HistoryTest extends ReaderTestSupport {
     private DefaultHistory history;
 
+    @Override
     @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
         history = new DefaultHistory(reader);
     }
 
+    @Override
     @AfterEach
-    void tearDown() {
+    public void tearDown() throws IOException {
         history = null;
+        super.tearDown();
     }
 
     @Test

@@ -37,15 +37,18 @@ class HistoryPersistenceTest extends ReaderTestSupport {
 
     private final Object lock = new Object();
 
+    @Override
     @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
         Files.deleteIfExists(Paths.get("test"));
     }
 
+    @Override
     @AfterEach
-    void tearDown() throws IOException {
+    public void tearDown() throws IOException {
         Files.deleteIfExists(Paths.get("test"));
+        super.tearDown();
     }
 
     private void doTestFileHistory(int count, CyclicBarrier barrier) {
