@@ -348,6 +348,9 @@ public abstract class AttributedCharSequence implements CharSequence {
     private static final long COLOR_BITS = F_FOREGROUND | F_BACKGROUND | FG_COLOR | BG_COLOR;
     private static final long BOLD_FAINT_BITS = F_BOLD | F_FAINT;
     private static final long DECORATION_BITS = Arrays.stream(DECORATION_FLAGS).reduce(0L, (a, b) -> a | b);
+    // MASK includes all flag bits. Since a color index and color rgb flag can never be set at the same time, this value
+    // is never a valid style.
+    private static final long NO_COLOR_CHANGE = 0xffffffffffffffffL;
 
     /**
      * Emit a single CSI SGR sequence that transitions terminal attributes from prevStyle to newStyle.
@@ -377,13 +380,13 @@ public abstract class AttributedCharSequence implements CharSequence {
             long fg = getNewColor(prevStyle, newStyle, F_FOREGROUND, FG_COLOR | F_FOREGROUND);
             long bg = getNewColor(prevStyle, newStyle, F_BACKGROUND, BG_COLOR | F_BACKGROUND);
 
-            if (fg != MASK) {
+            if (fg != NO_COLOR_CHANGE) {
                 first = appendColorB(buf, fg, true, colors, force, palette, first);
                 if (fg > 0 && usedBasicFgColor(fg, colors, force, palette)) {
                     diff |= (newStyle & F_BOLD);
                 }
             }
-            if (bg != MASK) {
+            if (bg != NO_COLOR_CHANGE) {
                 first = appendColorB(buf, bg, false, colors, force, palette, first);
             }
         }
@@ -400,7 +403,7 @@ public abstract class AttributedCharSequence implements CharSequence {
      * @param newStyle the target style bits
      * @param flagMask the style family mask to compare, such as foreground or background flags
      * @param fullColorMask the full mask used to extract the color payload for that family
-     * @return the color payload to emit for the transition, or {@link AttributedStyle#MASK} if no color change is needed
+     * @return the color payload to emit for the transition, or {@link AttributedCharSequence#NO_COLOR_CHANGE} if no color change is needed
      */
     private static long getNewColor(long prevStyle, long newStyle, long flagMask, long fullColorMask) {
         long cur = (newStyle & flagMask) != 0 ? newStyle & fullColorMask : 0;
@@ -408,7 +411,7 @@ public abstract class AttributedCharSequence implements CharSequence {
         if (cur != prev) {
             return cur;
         }
-        return MASK;
+        return NO_COLOR_CHANGE;
     }
 
     /**
