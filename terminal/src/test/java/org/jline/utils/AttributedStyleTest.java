@@ -20,7 +20,7 @@ class AttributedStyleTest {
      * Verifies that chained RGB and indexed color updates produce the expected final styles.
      */
     @Test
-    public void testMixedColors() {
+    void testMixedColors() {
         assertEquals(
                 AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE),
                 AttributedStyle.DEFAULT.foregroundRgb(0xf00ff0).foreground(AttributedStyle.BLUE));
