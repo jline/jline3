@@ -209,19 +209,35 @@ public class PrompterListExecutionTest {
         assertEquals("apple", result.getSelectedId());
     }
 
+    private CheckboxBuilder buildToppingsCheckboxPrompt(Prompter prompter) {
+        return prompter.newBuilder()
+                .createCheckboxPrompt()
+                .name("toppings")
+                .message("Select toppings:")
+                .add("cheese", "Cheese")
+                .add("pepperoni", "Pepperoni")
+                .add("mushrooms", "Mushrooms");
+    }
+
+    @Test
+    void testCheckboxPromptFilterableSelectsFilteredItem() throws Exception {
+        // Type "ch" to filter to items matching "ch", Space to toggle, Enter to confirm
+        Prompter prompter = createPrompter("ch \n");
+        PromptBuilder builder = buildToppingsCheckboxPrompt(prompter).addPrompt();
+
+        CheckboxResult result = (CheckboxResult)
+                prompter.prompt(Collections.emptyList(), builder.build()).get("toppings");
+        Set<String> selected = result.getSelectedIds();
+        assertEquals(1, selected.size());
+        assertTrue(selected.contains("cheese"));
+    }
+
     @Test
     void testCheckboxPromptNotFilterableIgnoresTypedCharacters() throws Exception {
         // Type "abc" (should be ignored since filterable=false), Space to toggle first item, Enter
         Prompter prompter = createPrompter("abc \n");
-        PromptBuilder builder = prompter.newBuilder();
-        builder.createCheckboxPrompt()
-                .name("toppings")
-                .message("Select toppings:")
-                .filterable(false)
-                .add("cheese", "Cheese")
-                .add("pepperoni", "Pepperoni")
-                .add("mushrooms", "Mushrooms")
-                .addPrompt();
+        PromptBuilder builder =
+                buildToppingsCheckboxPrompt(prompter).filterable(false).addPrompt();
 
         CheckboxResult result = (CheckboxResult)
                 prompter.prompt(Collections.emptyList(), builder.build()).get("toppings");
