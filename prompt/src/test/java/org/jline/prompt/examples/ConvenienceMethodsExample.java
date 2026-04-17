@@ -20,7 +20,7 @@ import org.jline.terminal.TerminalBuilder;
  * Example demonstrating the convenience methods for adding items to prompts.
  * Shows the difference between the verbose builder pattern and the convenient add() methods.
  */
-public class ConvenienceMethodsExample {
+class ConvenienceMethodsExample {
 
     public static void main(String[] args) throws IOException {
         try (Terminal terminal = TerminalBuilder.builder().build()) {

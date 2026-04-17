@@ -16,6 +16,7 @@ import java.util.Map;
 import org.jline.shell.*;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -25,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Integration tests for {@link DefaultCommandDispatcher}.
  */
-public class DefaultCommandDispatcherTest {
+class DefaultCommandDispatcherTest {
 
     private Terminal terminal;
     private DefaultCommandDispatcher dispatcher;
@@ -41,6 +42,12 @@ public class DefaultCommandDispatcherTest {
                 new UpperCommand(),
                 new NoopCommand(),
                 new ReverseCommand()));
+    }
+
+    @AfterEach
+    void tearDown() throws IOException {
+        terminal.close();
+        dispatcher.close();
     }
 
     // --- Fixture commands ---

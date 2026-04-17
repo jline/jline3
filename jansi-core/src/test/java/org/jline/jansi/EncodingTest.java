@@ -20,10 +20,10 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class EncodingTest {
+class EncodingTest {
 
     @Test
-    public void testEncoding8859() throws UnsupportedEncodingException {
+    void testEncoding8859() throws UnsupportedEncodingException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         final AtomicReference<String> newLabel = new AtomicReference<>();
         PrintStream ansi = new AnsiPrintStream(
@@ -52,7 +52,7 @@ public class EncodingTest {
     }
 
     @Test
-    public void testEncodingUtf8() throws UnsupportedEncodingException {
+    void testEncodingUtf8() {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         final AtomicReference<String> newLabel = new AtomicReference<>();
         PrintStream ansi = new PrintStream(
@@ -73,7 +73,7 @@ public class EncodingTest {
                         null,
                         false),
                 true,
-                "UTF-8");
+                StandardCharsets.UTF_8);
 
         ansi.print("\033]0;ひらがな\007");
         ansi.flush();

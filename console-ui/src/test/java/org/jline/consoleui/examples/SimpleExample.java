@@ -22,7 +22,7 @@ import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 
 @SuppressWarnings("removal")
-public class SimpleExample {
+class SimpleExample {
 
     public static void main(String[] args) {
         List<AttributedString> header = new ArrayList<>();

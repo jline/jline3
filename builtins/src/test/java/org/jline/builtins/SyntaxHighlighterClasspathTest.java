@@ -23,46 +23,47 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Test for loading nanorc files from the classpath.
  */
-public class SyntaxHighlighterClasspathTest {
+class SyntaxHighlighterClasspathTest {
 
     @Test
-    public void testLoadNanorcFromClasspath() throws Exception {
+    void testLoadNanorcFromClasspath() {
         // Test loading a nanorc file from the classpath
         SyntaxHighlighter highlighter = SyntaxHighlighter.build("classpath:/nano/jnanorc");
         assertNotNull(highlighter, "Highlighter should not be null");
     }
 
     @Test
-    public void testNanoWithClasspathConfig(@TempDir Path tempDir) throws Exception {
+    void testNanoWithClasspathConfig(@TempDir Path tempDir) throws Exception {
         // Create a test file
         Path testFile = tempDir.resolve("test.txt");
         Files.write(testFile, "Test content".getBytes(StandardCharsets.UTF_8));
 
         // Set up a terminal
-        Terminal terminal = TerminalBuilder.builder().build();
+        try (Terminal terminal = TerminalBuilder.builder().build()) {
 
-        // Get the resource path for the nanorc file
-        Path appConfig = getResourcePath("/nano/jnanorc").getParent();
+            // Get the resource path for the nanorc file
+            Path appConfig = getResourcePath("/nano/jnanorc").getParent();
 
-        // Create a ConfigurationPath with the classpath resource
-        ConfigurationPath configPath = new ConfigurationPath(appConfig, null);
+            // Create a ConfigurationPath with the classpath resource
+            ConfigurationPath configPath = new ConfigurationPath(appConfig, null);
 
-        // Create a Nano instance with the configuration
-        String[] argv = new String[] {testFile.toString()};
-        Options opt = Options.compile(Nano.usage()).parse(argv);
+            // Create a Nano instance with the configuration
+            String[] argv = new String[] {testFile.toString()};
+            Options opt = Options.compile(Nano.usage()).parse(argv);
 
-        // This just tests that we can create a Nano instance with a classpath config
-        // We don't actually run it since that would be interactive
-        Nano nano = new Nano(terminal, tempDir, opt, configPath);
+            // This just tests that we can create a Nano instance with a classpath config
+            // We don't actually run it since that would be interactive
+            Nano nano = new Nano(terminal, tempDir, opt, configPath);
 
-        // Verify the configuration was loaded
-        assertNotNull(nano);
+            // Verify the configuration was loaded
+            assertNotNull(nano);
+        }
     }
 
     /**
      * Helper method to get a Path from a classpath resource.
      */
-    static Path getResourcePath(String name) throws IOException, URISyntaxException {
+    private static Path getResourcePath(String name) throws IOException, URISyntaxException {
         return ClasspathResourceUtil.getResourcePath(name, SyntaxHighlighterClasspathTest.class);
     }
 }

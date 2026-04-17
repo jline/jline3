@@ -20,10 +20,10 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Test for using ConfigurationPath with classpath resources.
  */
-public class ClasspathConfigurationPathTest {
+class ClasspathConfigurationPathTest {
 
     @Test
-    public void testClasspathConfigurationPath() throws Exception {
+    void testClasspathConfigurationPath() throws Exception {
         // Get the resource path for the nanorc file
         Path appConfig = getResourcePath("/nano/jnanorc").getParent();
 

@@ -27,10 +27,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * and is emitted when no providers could be loaded.
  */
 @SuppressWarnings("missing-explicit-ctor")
-public class DumbTerminalWarningTest {
+class DumbTerminalWarningTest {
 
     @Test
-    public void testNoWarningWhenNoTtyAndProvidersAvailable() throws IOException {
+    void testNoWarningWhenNoTtyAndProvidersAvailable() throws IOException {
         // In a CI/test environment, no streams are TTYs.
         // With providers available, this is an expected dumb fallback — no warning should be emitted.
         List<LogRecord> records = new ArrayList<>();
@@ -53,7 +53,7 @@ public class DumbTerminalWarningTest {
     }
 
     @Test
-    public void testWarningWhenNoProvidersLoaded() throws IOException {
+    void testWarningWhenNoProvidersLoaded() throws IOException {
         // When no providers can be loaded, we can't determine TTY status,
         // so the warning should still be emitted.
         List<LogRecord> records = new ArrayList<>();

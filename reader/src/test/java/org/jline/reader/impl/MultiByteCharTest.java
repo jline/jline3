@@ -19,10 +19,10 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class MultiByteCharTest extends ReaderTestSupport {
+class MultiByteCharTest extends ReaderTestSupport {
 
     @Test
-    public void testInputStreamReader() throws IOException {
+    void testInputStreamReader() throws IOException {
         String str = "e\uD834\uDD21";
 
         PipedOutputStream pos = new PipedOutputStream();
@@ -39,7 +39,7 @@ public class MultiByteCharTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testMbs() throws IOException {
+    void testMbs() {
         TestBuffer b = new TestBuffer("\uD834\uDD21").enter();
         assertLine("\uD834\uDD21", b, true);
 

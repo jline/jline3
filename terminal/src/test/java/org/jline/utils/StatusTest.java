@@ -19,11 +19,9 @@ import org.jline.terminal.Terminal;
 import org.jline.utils.DisplayTest.VirtualTerminal;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class StatusTest {
+class StatusTest {
 
     private static final int COLS = 40;
     private static final int ROWS = 10;
@@ -52,7 +50,7 @@ public class StatusTest {
     }
 
     @Test
-    public void testStatusBarRendersAtBottom() throws IOException {
+    void testStatusBarRendersAtBottom() throws IOException {
         try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, COLS, ROWS)) {
             Status status = Status.getStatus(terminal);
             assertNotNull(status);
@@ -65,7 +63,7 @@ public class StatusTest {
     }
 
     @Test
-    public void testStatusBarWithBorder() throws IOException {
+    void testStatusBarWithBorder() throws IOException {
         try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, COLS, ROWS)) {
             Status status = Status.getStatus(terminal);
             assertNotNull(status);
@@ -76,14 +74,14 @@ public class StatusTest {
 
             // Border row should not be empty
             String borderRow = getRow(terminal, ROWS - 2).trim();
-            assertTrue(borderRow.length() > 0, "Expected border row to be non-empty");
+            assertFalse(borderRow.isEmpty(), "Expected border row to be non-empty");
 
             assertEquals("status line", getRow(terminal, ROWS - 1).trim());
         }
     }
 
     @Test
-    public void testStatusBarMultipleLines() throws IOException {
+    void testStatusBarMultipleLines() throws IOException {
         try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, COLS, ROWS)) {
             Status status = Status.getStatus(terminal);
             assertNotNull(status);
@@ -99,7 +97,7 @@ public class StatusTest {
     }
 
     @Test
-    public void testStatusBarHide() throws IOException {
+    void testStatusBarHide() throws IOException {
         try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, COLS, ROWS)) {
             Status status = Status.getStatus(terminal);
             assertNotNull(status);
@@ -116,7 +114,7 @@ public class StatusTest {
     }
 
     @Test
-    public void testVerticalGrowPreservesContent() throws IOException {
+    void testVerticalGrowPreservesContent() throws IOException {
         try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, COLS, ROWS)) {
             Status status = Status.getStatus(terminal);
             assertNotNull(status);
@@ -137,7 +135,7 @@ public class StatusTest {
     }
 
     @Test
-    public void testVerticalShrinkPreservesContent() throws IOException {
+    void testVerticalShrinkPreservesContent() throws IOException {
         try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, COLS, ROWS)) {
             Status status = Status.getStatus(terminal);
             assertNotNull(status);
@@ -156,7 +154,7 @@ public class StatusTest {
     }
 
     @Test
-    public void testHorizontalResizePreservesStatus() throws IOException {
+    void testHorizontalResizePreservesStatus() throws IOException {
         try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, COLS, ROWS)) {
             Status status = Status.getStatus(terminal);
             assertNotNull(status);
@@ -175,7 +173,7 @@ public class StatusTest {
     }
 
     @Test
-    public void testNoOpResizeDoesNotScroll() throws IOException {
+    void testNoOpResizeDoesNotScroll() throws IOException {
         try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, COLS, ROWS)) {
             Status status = Status.getStatus(terminal);
             assertNotNull(status);
@@ -197,7 +195,7 @@ public class StatusTest {
     }
 
     @Test
-    public void testSuspendAndRestore() throws IOException {
+    void testSuspendAndRestore() throws IOException {
         try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, COLS, ROWS)) {
             Status status = Status.getStatus(terminal);
             assertNotNull(status);
@@ -218,7 +216,7 @@ public class StatusTest {
     }
 
     @Test
-    public void testStatusUpdateChangesContent() throws IOException {
+    void testStatusUpdateChangesContent() throws IOException {
         try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, COLS, ROWS)) {
             Status status = Status.getStatus(terminal);
             assertNotNull(status);
@@ -234,7 +232,7 @@ public class StatusTest {
     }
 
     @Test
-    public void testWinchSignalTriggersResize() throws IOException {
+    void testWinchSignalTriggersResize() throws IOException {
         try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, COLS, ROWS)) {
             Status status = Status.getStatus(terminal);
             assertNotNull(status);
@@ -255,7 +253,7 @@ public class StatusTest {
     }
 
     @Test
-    public void testStatusLineTruncation() throws IOException {
+    void testStatusLineTruncation() throws IOException {
         try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, 20, ROWS)) {
             Status status = Status.getStatus(terminal);
             assertNotNull(status);
@@ -270,7 +268,7 @@ public class StatusTest {
     }
 
     @Test
-    public void testGrowThenShrinkStatusLines() throws IOException {
+    void testGrowThenShrinkStatusLines() throws IOException {
         try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, COLS, ROWS)) {
             Status status = Status.getStatus(terminal);
             assertNotNull(status);

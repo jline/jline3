@@ -9,6 +9,7 @@
 package org.jline.builtins;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,6 +18,7 @@ import org.jline.shell.Command;
 import org.jline.shell.CommandSession;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -26,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for {@link PosixCommandGroup}.
  */
-public class PosixCommandGroupTest {
+class PosixCommandGroupTest {
 
     private PosixCommandGroup group;
     private Terminal terminal;
@@ -35,6 +37,11 @@ public class PosixCommandGroupTest {
     void setUp() throws Exception {
         group = new PosixCommandGroup();
         terminal = TerminalBuilder.builder().dumb(true).build();
+    }
+
+    @AfterEach
+    void tearDown() throws IOException {
+        terminal.close();
     }
 
     @Test

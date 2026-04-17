@@ -14,10 +14,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class BufferTest {
+class BufferTest {
 
     @Test
-    public void testUpDown() {
+    void testUpDown() {
         BufferImpl buffer = new BufferImpl();
         buffer.write("a\ncd\nefg\nhijk\nlmn\nop\nq");
         buffer.cursor(13); // after k

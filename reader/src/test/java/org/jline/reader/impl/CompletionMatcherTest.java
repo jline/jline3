@@ -8,7 +8,6 @@
  */
 package org.jline.reader.impl;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
@@ -19,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class CompletionMatcherTest {
+class CompletionMatcherTest {
 
     private CompletionMatcher compileCompletionMatcher(String line) {
         CompletionMatcher completionMatcher = new CompletionMatcherImpl();
@@ -36,15 +35,15 @@ public class CompletionMatcherTest {
     }
 
     @Test
-    public void uniqueCandidates() {
+    void uniqueCandidates() {
         Candidate c = new Candidate("foo");
         assertEquals(
-                1, compileCompletionMatcher("").matches(Arrays.asList(c, c)).size(), "Expected only one element");
+                1, compileCompletionMatcher("").matches(List.of(c, c)).size(), "Expected only one element");
     }
 
     @Test
-    public void test() {
-        List<Candidate> candidates = Arrays.asList(new Candidate("foo"), new Candidate("foobar"), new Candidate("bar"));
+    void test() {
+        List<Candidate> candidates = List.of(new Candidate("foo"), new Candidate("foobar"), new Candidate("bar"));
         CompletionMatcher completionMatcher = compileCompletionMatcher("foo");
         List<Candidate> matches = completionMatcher.matches(candidates);
         assertEquals(2, matches.size(), "Number of matches");
@@ -54,9 +53,9 @@ public class CompletionMatcherTest {
     }
 
     @Test
-    public void testEmptyWordWithNonZeroCursor() {
+    void testEmptyWordWithNonZeroCursor() {
         // Test for issue #1565: StringIndexOutOfBoundsException when word is empty but wordCursor > 0
-        List<Candidate> candidates = Arrays.asList(new Candidate("foo"), new Candidate("bar"));
+        List<Candidate> candidates = List.of(new Candidate("foo"), new Candidate("bar"));
 
         // Create a ParsedLine with empty word but wordCursor = 1
         ParsedLine line = new ArgumentCompleter.ArgumentLine("", 1);

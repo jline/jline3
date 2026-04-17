@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for the terminal graphics functionality.
  */
-public class TerminalGraphicsTest {
+class TerminalGraphicsTest {
 
     private BufferedImage testImage;
 
@@ -148,7 +148,7 @@ public class TerminalGraphicsTest {
                 .build();
 
         // Test basic graphics support check
-        boolean supported = TerminalGraphicsManager.isGraphicsSupported(terminal);
+        TerminalGraphicsManager.isGraphicsSupported(terminal);
         // Don't assert the result since it depends on the environment
 
         // Test getting available protocols
@@ -157,40 +157,44 @@ public class TerminalGraphicsTest {
         assertFalse(protocols.isEmpty());
     }
 
+    // TODO: Make this test actually test what docs imply (kitty support for ghostty)
     @Test
     void testGhosttyTerminalDetection() throws IOException {
         // Test that Ghostty terminal type is recognized
-        Terminal ghosttyTerminal = TerminalBuilder.builder()
+        try (Terminal ghosttyTerminal = TerminalBuilder.builder()
                 .type("ghostty")
                 .streams(new ByteArrayInputStream(new byte[0]), new ByteArrayOutputStream())
-                .build();
+                .build()) {
 
-        // Kitty graphics should be supported for Ghostty
-        KittyGraphics kittyGraphics = new KittyGraphics();
-        // Note: This test may not work in CI since it depends on environment variables
-        // but it verifies the terminal type detection logic
+            // Kitty graphics should be supported for Ghostty
+            KittyGraphics kittyGraphics = new KittyGraphics();
+            // Note: This test may not work in CI since it depends on environment variables
+            // but it verifies the terminal type detection logic
 
-        // Test that the protocol exists and can be instantiated
-        assertNotNull(kittyGraphics);
-        assertEquals(TerminalGraphics.Protocol.KITTY, kittyGraphics.getProtocol());
+            // Test that the protocol exists and can be instantiated
+            assertNotNull(kittyGraphics);
+            assertEquals(TerminalGraphics.Protocol.KITTY, kittyGraphics.getProtocol());
+        }
     }
 
+    // TODO: Make this test actually test what docs imply (no kitty support for listed terminals)
     @Test
     void testBasicTerminalTypesSkipRuntimeDetection() throws IOException {
         // Test that basic terminal types that don't support graphics skip runtime detection
         String[] basicTermTypes = {"dumb", "vt100", "vt102", "ansi"};
 
         for (String termType : basicTermTypes) {
-            Terminal terminal = TerminalBuilder.builder()
+            try (Terminal terminal = TerminalBuilder.builder()
                     .type(termType)
                     .streams(new ByteArrayInputStream(new byte[0]), new ByteArrayOutputStream())
-                    .build();
+                    .build()) {
 
-            // These terminals should not support Kitty graphics
-            KittyGraphics kittyGraphics = new KittyGraphics();
-            // The test verifies that the method can be called without hanging
-            // (actual support depends on environment, but runtime detection should be skipped)
-            assertNotNull(kittyGraphics);
+                // These terminals should not support Kitty graphics
+                KittyGraphics kittyGraphics = new KittyGraphics();
+                // The test verifies that the method can be called without hanging
+                // (actual support depends on environment, but runtime detection should be skipped)
+                assertNotNull(kittyGraphics);
+            }
         }
     }
 
@@ -314,16 +318,15 @@ public class TerminalGraphicsTest {
         // Create a terminal for testing
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ByteArrayInputStream bais = new ByteArrayInputStream(new byte[0]);
-        Terminal terminal = TerminalBuilder.builder()
+
+        try (Terminal terminal = TerminalBuilder.builder()
                 .streams(bais, baos)
                 .type("xterm-256color")
-                .build();
-
-        try {
+                .build()) {
             // Force Kitty protocol
             TerminalGraphicsManager.forceProtocol(TerminalGraphics.Protocol.KITTY);
 
-            // Get best protocol - should check isSupported even though protocol is forced
+            // Get the best protocol - should check isSupported even though protocol is forced
             Optional<TerminalGraphics> protocol = TerminalGraphicsManager.getBestProtocol(terminal);
 
             // Since this is a basic xterm terminal without Kitty support,
@@ -334,14 +337,12 @@ public class TerminalGraphicsTest {
 
             // The key point is that getBestProtocol should not return a protocol
             // that isSupported() returns false for, even when forced
-            if (protocol.isPresent()) {
-                // If a protocol is returned, it must be supported
-                assertTrue(protocol.get().isSupported(terminal), "Forced protocol should still check isSupported()");
-            }
+            // If a protocol is returned, it must be supported
+            protocol.ifPresent(terminalGraphics -> assertTrue(
+                    terminalGraphics.isSupported(terminal), "Forced protocol should still check isSupported()"));
         } finally {
             // Clean up: reset forced protocol
             TerminalGraphicsManager.forceProtocol(null);
-            terminal.close();
         }
     }
 }

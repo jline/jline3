@@ -30,7 +30,7 @@ package org.jline.builtins;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
+import java.util.List;
 
 import org.jline.builtins.Options.HelpException;
 import org.jline.terminal.Terminal;
@@ -43,10 +43,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class OptionsTest {
+class OptionsTest {
 
     @Test
-    public void testOptions() {
+    void testOptions() {
         final String[] usage = {
             "test - test Options usage",
             "  text before Usage: is displayed when usage() is called and no error has occurred.",
@@ -74,12 +74,12 @@ public class OptionsTest {
         assertEquals(2, opt.getNumber("count"));
         assertFalse(opt.isSet("no-filename"));
         assertTrue(opt.isSet("binary-files"));
-        assertEquals(Arrays.asList("foo", "bar"), opt.getList("binary-files"));
-        assertEquals(Arrays.asList("test", "pattern"), opt.args());
+        assertEquals(List.of("foo", "bar"), opt.getList("binary-files"));
+        assertEquals(List.of("test", "pattern"), opt.args());
     }
 
     @Test
-    public void testColor() throws IOException {
+    void testColor() throws IOException {
         final String[] usage = {
             "test - test Options usage",
             "  text before Usage: is displayed when usage() is called and no error has occurred.",
@@ -112,7 +112,7 @@ public class OptionsTest {
     }
 
     @Test
-    public void testSingleDigitOptions() {
+    void testSingleDigitOptions() {
         // Test that single digit options like -1 are recognized as options, not arguments
         final String[] usage = {
             "ls - list files",
@@ -126,7 +126,7 @@ public class OptionsTest {
         // Test that -1 is recognized as an option
         Options opt = Options.compile(usage).parse("ls -1".split("\\s"));
         assertTrue(opt.isSet("1"), "Option -1 should be recognized as an option");
-        assertEquals(Arrays.asList("ls"), opt.args());
+        assertEquals(List.of("ls"), opt.args());
 
         // Test that -1 combined with other options works
         opt = Options.compile(usage).parse("ls -1a".split("\\s"));
@@ -136,6 +136,6 @@ public class OptionsTest {
         // Test that multi-digit negative numbers are still treated as arguments
         opt = Options.compile(usage).parse("ls -123".split("\\s"));
         assertFalse(opt.isSet("1"), "Multi-digit -123 should not be treated as option -1");
-        assertEquals(Arrays.asList("ls", "-123"), opt.args());
+        assertEquals(List.of("ls", "-123"), opt.args());
     }
 }

@@ -27,6 +27,7 @@ import org.jline.reader.Parser;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -37,40 +38,43 @@ import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
  * Tests for SystemRegistryImpl class.
  */
 @SuppressWarnings("deprecation")
-public class SystemRegistryImplTest {
+class SystemRegistryImplTest {
 
     private Terminal terminal;
-    private Parser parser;
-    private Supplier<Path> workDir;
-    private ConfigurationPath configPath;
     private SystemRegistryImpl registry;
-    private TestCommandRegistry testRegistry;
     private StringBuilder output;
 
     @BeforeEach
-    public void setUp() throws IOException {
+    void setUp() throws IOException {
         terminal = TerminalBuilder.builder().dumb(true).build();
-        parser = new DefaultParser();
-        workDir = () -> Paths.get(System.getProperty("user.dir"));
-        configPath = new ConfigurationPath(Paths.get("."), Paths.get("."));
+        Parser parser = new DefaultParser();
+        Supplier<Path> workDir = () -> Paths.get(System.getProperty("user.dir"));
+        Path cfgPath = Paths.get(".");
+        ConfigurationPath configPath = new ConfigurationPath(cfgPath, cfgPath);
         output = new StringBuilder();
 
         registry = new SystemRegistryImpl(parser, terminal, workDir, configPath);
-        testRegistry = new TestCommandRegistry(output);
+        TestCommandRegistry testRegistry = new TestCommandRegistry(output);
 
         // Set up the registry with our test command registry
         registry.setCommandRegistries(testRegistry);
     }
 
+    @AfterEach
+    void tearDown() throws IOException {
+        terminal.close();
+        registry.close();
+    }
+
     /**
      * Test that demonstrates the ability to override built-in commands like "exit"
      * with custom implementations in a command registry.
-     *
+     * <p>
      * This test verifies the fix for issue #1232 where the order of command execution
      * checking in the execute method was inconsistent with other methods.
      */
     @Test
-    public void testOverrideBuiltinCommand() throws Exception {
+    void testOverrideBuiltinCommand() throws Exception {
         // The "exit" command is a built-in command in SystemRegistryImpl
         // Our TestCommandRegistry also has an "exit" command
         // After our fix, the registry should use the TestCommandRegistry's "exit" command
@@ -84,11 +88,11 @@ public class SystemRegistryImplTest {
 
     /**
      * Test that variable assignment operations don't hang on macOS.
-     *
+     * <p>
      * This test verifies the fix for issues #1361 and #1360 where variable assignments
      * would hang on macOS due to PTY terminal creation in CommandOutputStream.
      * The fix removes PTY terminal usage and uses simple Java streams instead.
-     *
+     * <p>
      * Variable assignments trigger CommandOutputStream.open() which previously created
      * PTY terminals that could hang on BSD/macOS platforms.
      */
@@ -126,13 +130,13 @@ public class SystemRegistryImplTest {
         private final Map<String, CommandMethods> commandExecute = new HashMap<>();
         private final StringBuilder output;
 
-        public TestCommandRegistry(StringBuilder output) {
+        TestCommandRegistry(StringBuilder output) {
             this.output = output;
             // Register our custom "exit" command
             commandExecute.put("exit", new CommandMethods(this::exit, this::defaultCompleter));
         }
 
-        public void addCommand(String name, java.util.function.Function<CommandInput, Object> executor) {
+        void addCommand(String name, java.util.function.Function<CommandInput, Object> executor) {
             commandExecute.put(name, new CommandMethods(executor, this::defaultCompleter));
         }
 
@@ -146,7 +150,7 @@ public class SystemRegistryImplTest {
         }
 
         @Override
-        public Object invoke(CommandRegistry.CommandSession session, String command, Object... args) throws Exception {
+        public Object invoke(CommandRegistry.CommandSession session, String command, Object... args) {
             return commandExecute.get(command).execute().apply(new CommandInput(command, args, session));
         }
 

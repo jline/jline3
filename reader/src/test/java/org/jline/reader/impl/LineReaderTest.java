@@ -39,12 +39,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class LineReaderTest {
+class LineReaderTest {
 
     @Test
     @Disabled
-    @SuppressWarnings("deprecation")
-    public void emptyStringGivesEOFWithJna() throws Exception {
+    void emptyStringGivesEOFWithJna() throws Exception {
         String inputString = "";
         InputStream inputStream = new ByteArrayInputStream(inputString.getBytes());
 
@@ -56,13 +55,12 @@ public class LineReaderTest {
         LineReader reader = builder.build();
 
         // this gets trapped in an infinite loop
-        assertThrows(EndOfFileException.class, () -> reader.readLine());
+        assertThrows(EndOfFileException.class, reader::readLine);
     }
 
     @Test
     @Disabled
-    @SuppressWarnings("deprecation")
-    public void emptyStringGivesEOFNoJna() throws Exception {
+    void emptyStringGivesEOFNoJna() throws Exception {
         String inputString = "";
         InputStream inputStream = new ByteArrayInputStream(inputString.getBytes());
 
@@ -74,11 +72,11 @@ public class LineReaderTest {
         LineReader reader = builder.build();
 
         // this gets trapped in an infinite loop
-        assertThrows(EndOfFileException.class, () -> reader.readLine());
+        assertThrows(EndOfFileException.class, reader::readLine);
     }
 
     @Test
-    public void testGroup() throws Exception {
+    void testGroup() throws Exception {
         List<Candidate> c = new ArrayList<>();
         c.add(new Candidate("option1", "option1", "group1", null, null, null, false));
         c.add(new Candidate("option2", "option2", "group1", null, null, null, false));
@@ -109,11 +107,11 @@ public class LineReaderTest {
     }
 
     @Test
-    public void testConEmuLineReaderClearScreen() throws IOException {
+    void testConEmuLineReaderClearScreen() throws IOException {
         System.setProperty("org.jline.terminal.conemu.disable-activate", "false");
         StringWriter sw = new StringWriter();
         AbstractWindowsTerminal<?> terminal =
-                new AbstractWindowsTerminal<Object>(
+                new AbstractWindowsTerminal<>(
                         null,
                         null,
                         new BufferedWriter(sw),
@@ -145,7 +143,7 @@ public class LineReaderTest {
                     }
 
                     @Override
-                    protected boolean processConsoleInput() throws IOException {
+                    protected boolean processConsoleInput() {
                         return false;
                     }
 
@@ -168,13 +166,13 @@ public class LineReaderTest {
                     }
                 })
                 .start();
-        String line = reader.readLine();
+        reader.readLine();
         assertTrue(sw.toString().contains("\u001b[H\u001b[J"));
         assertTrue(sw.toString().contains("\u001b[9999E"));
     }
 
     @Test
-    public void testInheritAppNameFromTerminal() throws IOException {
+    void testInheritAppNameFromTerminal() throws IOException {
         final String expectedAppName = "BOB";
         final Terminal terminal =
                 TerminalBuilder.builder().name(expectedAppName).build();
@@ -184,7 +182,7 @@ public class LineReaderTest {
     }
 
     @Test
-    public void testPreferAppNameFromConstructor() throws IOException {
+    void testPreferAppNameFromConstructor() throws IOException {
         final String expectedAppName = "NANCY";
         final Terminal terminal =
                 TerminalBuilder.builder().name(expectedAppName + "X").build();
@@ -194,7 +192,7 @@ public class LineReaderTest {
     }
 
     @Test
-    public void terminalLineInfiniteLoop() throws IOException {
+    void terminalLineInfiniteLoop() throws IOException {
         PipedInputStream in = new PipedInputStream();
         PipedOutputStream outIn = new PipedOutputStream(in);
         outIn.write("hello\nworld\n".getBytes(StandardCharsets.UTF_8));
@@ -215,7 +213,7 @@ public class LineReaderTest {
     }
 
     @Test
-    public void testSecondaryPromptMultiCharPad() throws IOException {
+    void testSecondaryPromptMultiCharPad() throws IOException {
         ByteArrayInputStream in = new ByteArrayInputStream(new byte[0]);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Terminal terminal = TerminalBuilder.builder().streams(in, out).build();
@@ -255,7 +253,7 @@ public class LineReaderTest {
     }
 
     @Test
-    public void testNoBackspaceInOutputOnDumbTerminal() throws IOException {
+    void testNoBackspaceInOutputOnDumbTerminal() throws IOException {
         ByteArrayInputStream in = new ByteArrayInputStream(new byte[] {'\n'});
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try (Terminal terminal = new DumbTerminal(in, out)) {

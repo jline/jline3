@@ -23,13 +23,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Tests for terminal functionality with multiple encodings.
  */
-public class MultiEncodingTerminalTest {
+class MultiEncodingTerminalTest {
 
     /**
      * Test reading from stdin with a specific encoding.
      */
     @Test
-    public void testReadWithEncoding() throws IOException {
+    void testReadWithEncoding() throws IOException {
         // Create input with ISO-8859-1 encoded text
         String testString = "café"; // é is 0xE9 in ISO-8859-1
         byte[] isoBytes = testString.getBytes(StandardCharsets.ISO_8859_1);
@@ -62,7 +62,8 @@ public class MultiEncodingTerminalTest {
             } else if (c == -2) { // READ_EXPIRED (timeout)
                 timeoutCount++;
                 continue; // Keep trying
-            } else if (c >= 0) { // Valid character
+            }
+            if (c >= 0) { // Valid character
                 result.append((char) c);
             }
         }
@@ -75,7 +76,7 @@ public class MultiEncodingTerminalTest {
      * Test writing to stdout with a specific encoding.
      */
     @Test
-    public void testWriteWithEncoding() throws IOException {
+    void testWriteWithEncoding() throws IOException {
         ByteArrayInputStream in = new ByteArrayInputStream(new byte[0]);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
@@ -114,14 +115,13 @@ public class MultiEncodingTerminalTest {
      * Test that different encodings can be used simultaneously.
      */
     @Test
-    public void testMultipleEncodings() throws IOException {
+    void testMultipleEncodings() throws IOException {
         // Create input with ISO-8859-1 encoded text
         String inputString = "café"; // é is 0xE9 in ISO-8859-1
         byte[] isoBytes = inputString.getBytes(StandardCharsets.ISO_8859_1);
 
         ByteArrayInputStream in = new ByteArrayInputStream(isoBytes);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ByteArrayOutputStream err = new ByteArrayOutputStream();
 
         // Create terminal with different encodings for each stream
         // DumbTerminal doesn't have a constructor that takes an error stream
@@ -150,7 +150,8 @@ public class MultiEncodingTerminalTest {
             } else if (c == -2) { // READ_EXPIRED (timeout)
                 timeoutCount++;
                 continue; // Keep trying
-            } else if (c >= 0) { // Valid character
+            }
+            if (c >= 0) { // Valid character
                 result.append((char) c);
             }
         }
@@ -164,7 +165,7 @@ public class MultiEncodingTerminalTest {
         assertEquals(inputString, result.toString());
 
         // Verify stdout was correctly encoded using UTF-16
-        String outputResult = new String(out.toByteArray(), StandardCharsets.UTF_16);
+        String outputResult = out.toString(StandardCharsets.UTF_16);
         assertEquals(outputString, outputResult);
     }
 }

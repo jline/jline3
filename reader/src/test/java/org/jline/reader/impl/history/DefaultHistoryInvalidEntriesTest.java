@@ -26,14 +26,14 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for handling invalid entries in history files.
  */
-public class DefaultHistoryInvalidEntriesTest extends ReaderTestSupport {
+class DefaultHistoryInvalidEntriesTest extends ReaderTestSupport {
 
     /**
      * Test that the DefaultHistory class can handle invalid entries in the history file
      * when loading history.
      */
     @Test
-    public void testHandleInvalidHistoryEntries(@TempDir Path tempDir) throws IOException {
+    void testHandleInvalidHistoryEntries(@TempDir Path tempDir) throws IOException {
         // Create a history file with valid and invalid entries
         Path historyFile = tempDir.resolve("history");
         try (BufferedWriter writer = Files.newBufferedWriter(historyFile)) {

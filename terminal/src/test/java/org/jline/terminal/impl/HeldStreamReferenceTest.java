@@ -34,10 +34,10 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
  * then restores the previous value after the test completes.
  * </p>
  */
-public class HeldStreamReferenceTest {
+class HeldStreamReferenceTest {
 
     @Test
-    public void testHeldWriterReferenceLogsWarningAfterClose() throws IOException {
+    void testHeldWriterReferenceLogsWarningAfterClose() throws IOException {
         // Save the previous value and set warn mode before creating the terminal
         String previousValue = System.getProperty("jline.terminal.closeMode");
         System.setProperty("jline.terminal.closeMode", "warn");
@@ -66,7 +66,7 @@ public class HeldStreamReferenceTest {
     }
 
     @Test
-    public void testHeldReaderReferenceLogsWarningAfterClose() throws IOException {
+    void testHeldReaderReferenceLogsWarningAfterClose() throws IOException {
         // Save the previous value and set soft close mode before creating the terminal
         String previousValue = System.getProperty("jline.terminal.closeMode");
         System.setProperty("jline.terminal.closeMode", "warn");
@@ -95,7 +95,7 @@ public class HeldStreamReferenceTest {
     }
 
     @Test
-    public void testHeldInputStreamReferenceLogsWarningAfterClose() throws IOException {
+    void testHeldInputStreamReferenceLogsWarningAfterClose() throws IOException {
         // Save the previous value and set soft close mode before creating the terminal
         String previousValue = System.getProperty("jline.terminal.closeMode");
         System.setProperty("jline.terminal.closeMode", "warn");
@@ -125,7 +125,7 @@ public class HeldStreamReferenceTest {
     }
 
     @Test
-    public void testHeldOutputStreamReferenceLogsWarningAfterClose() throws IOException {
+    void testHeldOutputStreamReferenceLogsWarningAfterClose() throws IOException {
         // Save the previous value and set soft close mode before creating the terminal
         String previousValue = System.getProperty("jline.terminal.closeMode");
         System.setProperty("jline.terminal.closeMode", "warn");
@@ -155,7 +155,7 @@ public class HeldStreamReferenceTest {
     }
 
     @Test
-    public void testHeldExternalTerminalWriterReferenceLogsWarningAfterClose() throws IOException {
+    void testHeldExternalTerminalWriterReferenceLogsWarningAfterClose() throws IOException {
         // Save the previous value and set soft close mode before creating the terminal
         String previousValue = System.getProperty("jline.terminal.closeMode");
         System.setProperty("jline.terminal.closeMode", "warn");
@@ -185,7 +185,7 @@ public class HeldStreamReferenceTest {
     }
 
     @Test
-    public void testHeldExternalTerminalReaderReferenceLogsWarningAfterClose() throws IOException {
+    void testHeldExternalTerminalReaderReferenceLogsWarningAfterClose() throws IOException {
         // Save the previous value and set soft close mode before creating the terminal
         String previousValue = System.getProperty("jline.terminal.closeMode");
         System.setProperty("jline.terminal.closeMode", "warn");

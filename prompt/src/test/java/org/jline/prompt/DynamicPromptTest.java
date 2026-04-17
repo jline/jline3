@@ -26,17 +26,20 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Test for dynamic prompting functionality.
  */
-public class DynamicPromptTest {
+class DynamicPromptTest {
 
     @Test
-    public void testDynamicPromptLogic() throws Exception {
-        // Create a terminal (in test mode)
-        Terminal terminal = TerminalBuilder.builder().system(false).build();
+    void testCreatePrompter() throws Exception {
+        try (Terminal terminal = TerminalBuilder.builder().build()) {
 
-        // Create a prompter
-        Prompter prompter = PrompterFactory.create(terminal);
-        assertNotNull(prompter);
+            // Create a prompter
+            Prompter prompter = PrompterFactory.create(terminal);
+            assertNotNull(prompter);
+        }
+    }
 
+    @Test
+    void testDynamicPromptLogic() {
         // Test the dynamic prompt provider logic
         List<String> promptSequence = new ArrayList<>();
 
@@ -130,7 +133,7 @@ public class DynamicPromptTest {
         private final String result;
         private final Prompt prompt;
 
-        public MockInputResult(String result, Prompt prompt) {
+        private MockInputResult(String result, Prompt prompt) {
             this.result = result;
             this.prompt = prompt;
         }
@@ -160,7 +163,7 @@ public class DynamicPromptTest {
         private final boolean result;
         private final Prompt prompt;
 
-        public MockConfirmResult(boolean result, Prompt prompt) {
+        private MockConfirmResult(boolean result, Prompt prompt) {
             this.result = result;
             this.prompt = prompt;
         }

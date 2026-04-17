@@ -11,11 +11,13 @@ package org.jline.builtins;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.function.Consumer;
 
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.Macro;
 import org.jline.reader.Reference;
+import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.junit.jupiter.api.Test;
 
@@ -23,39 +25,48 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-public class InputRCTest {
+class InputRCTest {
 
     @Test
-    public void testInput() throws Exception {
-        LineReader lr = createReader(null, "config1");
-        assertEquals(new Reference("universal-argument"), lr.getKeys().getBound("" + ((char) ('U' - 'A' + 1))));
-        assertEquals(new Macro("Function Key \u2671"), lr.getKeys().getBound("\u001b[11~"));
-        assertNull(lr.getKeys().getBound(((char) ('X' - 'A' + 1)) + "q"));
+    void testInput() throws Exception {
+        testLineReader(null, "config1", lr -> {
+            assertEquals(new Reference("universal-argument"), lr.getKeys().getBound("" + ((char) ('U' - 'A' + 1))));
+            assertEquals(new Macro("Function Key \u2671"), lr.getKeys().getBound("\u001b[11~"));
+            assertNull(lr.getKeys().getBound(((char) ('X' - 'A' + 1)) + "q"));
+        });
 
-        lr = createReader("Bash", "config1");
-        assertEquals(new Macro("\u001bb\"\u001bf\""), lr.getKeys().getBound(((char) ('X' - 'A' + 1)) + "q"));
+        testLineReader(
+                "Bash",
+                "config1",
+                lr -> assertEquals(
+                        new Macro("\u001bb\"\u001bf\""), lr.getKeys().getBound(((char) ('X' - 'A' + 1)) + "q")));
     }
 
     @Test
-    public void testInput2() throws Exception {
-        LineReader lr = createReader("Bash", "config2");
-        assertNotNull(lr.getKeys().getBound("\u001b" + ((char) ('V' - 'A' + 1))));
+    void testInput2() throws Exception {
+        testLineReader(
+                "Bash", "config2", lr -> assertNotNull(lr.getKeys().getBound("\u001b" + ((char) ('V' - 'A' + 1)))));
     }
 
     @Test
-    public void testInputBadConfig() throws Exception {
-        LineReader lr = createReader("Bash", "config-bad");
-        assertEquals(new Macro("\u001bb\"\u001bf\""), lr.getKeys().getBound(((char) ('X' - 'A' + 1)) + "q"));
+    void testInputBadConfig() throws Exception {
+        testLineReader(
+                "Bash",
+                "config-bad",
+                lr -> assertEquals(
+                        new Macro("\u001bb\"\u001bf\""), lr.getKeys().getBound(((char) ('X' - 'A' + 1)) + "q")));
     }
 
-    private LineReader createReader(String appName, String config) throws IOException {
-        LineReader lr = LineReaderBuilder.builder()
-                .terminal(TerminalBuilder.builder()
-                        .streams(new ByteArrayInputStream(new byte[0]), new ByteArrayOutputStream())
-                        .build())
-                .appName(appName)
-                .build();
-        InputRC.configure(lr, getClass().getResource(config));
-        return lr;
+    private void testLineReader(String appName, String config, Consumer<LineReader> consumer) throws IOException {
+        try (Terminal terminal = TerminalBuilder.builder()
+                .streams(new ByteArrayInputStream(new byte[0]), new ByteArrayOutputStream())
+                .build()) {
+            LineReader lr = LineReaderBuilder.builder()
+                    .terminal(terminal)
+                    .appName(appName)
+                    .build();
+            InputRC.configure(lr, getClass().getResource(config));
+            consumer.accept(lr);
+        }
     }
 }

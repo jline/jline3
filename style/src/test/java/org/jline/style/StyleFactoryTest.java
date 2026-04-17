@@ -20,25 +20,25 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Tests for {@link StyleFactory}.
  */
-public class StyleFactoryTest extends StyleTestSupport {
+class StyleFactoryTest extends StyleTestSupport {
 
     private StyleFactory underTest;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         super.setUp();
         this.underTest = new StyleFactory(new StyleResolver(source, "test"));
     }
 
     @Test
-    public void styleDirect() {
+    void styleDirect() {
         AttributedString string = underTest.style("bold,fg:red", "foo bar");
         System.out.println(string.toAnsi());
         assertEquals(new AttributedString("foo bar", BOLD.foreground(RED)), string);
     }
 
     @Test
-    public void styleReferenced() {
+    void styleReferenced() {
         source.set("test", "very-red", "bold,fg:red");
         AttributedString string = underTest.style(".very-red", "foo bar");
         System.out.println(string.toAnsi());
@@ -46,14 +46,14 @@ public class StyleFactoryTest extends StyleTestSupport {
     }
 
     @Test
-    public void missingReferencedStyleWithDefault() {
+    void missingReferencedStyleWithDefault() {
         AttributedString string = underTest.style(".very-red:-bold,fg:red", "foo bar");
         System.out.println(string.toAnsi());
         assertEquals(new AttributedString("foo bar", BOLD.foreground(RED)), string);
     }
 
     @Test
-    public void missingReferencedStyleWithCustomized() {
+    void missingReferencedStyleWithCustomized() {
         source.set("test", "very-red", "bold,fg:yellow");
         AttributedString string = underTest.style(".very-red:-bold,fg:red", "foo bar");
         System.out.println(string.toAnsi());
@@ -61,21 +61,21 @@ public class StyleFactoryTest extends StyleTestSupport {
     }
 
     @Test
-    public void styleFormat() {
+    void styleFormat() {
         AttributedString string = underTest.style("bold", "%s", "foo");
         System.out.println(string.toAnsi());
         assertEquals(new AttributedString("foo", BOLD), string);
     }
 
     @Test
-    public void evaluateExpression() {
+    void evaluateExpression() {
         AttributedString string = underTest.evaluate("@{bold foo}");
         System.out.println(string.toAnsi());
         assertEquals(new AttributedString("foo", BOLD), string);
     }
 
     @Test
-    public void evaluateExpressionWithFormat() {
+    void evaluateExpressionWithFormat() {
         AttributedString string = underTest.evaluate("@{bold %s}", "foo");
         System.out.println(string.toAnsi());
         assertEquals(new AttributedString("foo", BOLD), string);

@@ -15,10 +15,10 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Test to verify the API structure is correct.
  */
-public class ApiTest {
+class ApiTest {
 
     @Test
-    public void testApiStructure() {
+    void testApiStructure() {
         // Test that all interfaces exist and can be loaded
         assertNotNull(Prompter.class);
         assertNotNull(Prompt.class);
@@ -59,7 +59,7 @@ public class ApiTest {
     }
 
     @Test
-    public void testInheritanceStructure() {
+    void testInheritanceStructure() {
         // Test that prompt interfaces extend Prompt
         assertTrue(Prompt.class.isAssignableFrom(CheckboxPrompt.class));
         assertTrue(Prompt.class.isAssignableFrom(ListPrompt.class));
@@ -95,7 +95,7 @@ public class ApiTest {
     }
 
     @Test
-    public void testBuilderInterfaces() {
+    void testBuilderInterfaces() {
         // Test that builder interfaces exist
         assertNotNull(InputBuilder.class);
         assertNotNull(ListBuilder.class);
@@ -122,14 +122,14 @@ public class ApiTest {
     }
 
     @Test
-    public void testNoResultSingleton() {
+    void testNoResultSingleton() {
         // Test that NoResult has a singleton instance
         assertNotNull(NoResult.INSTANCE);
         assertTrue(NoResult.INSTANCE instanceof NoResult);
     }
 
     @Test
-    public void testConfirmResultEnum() {
+    void testConfirmResultEnum() {
         // Test that ConfirmResult has the expected enum values
         assertEquals(2, ConfirmResult.ConfirmationValue.values().length);
         assertNotNull(ConfirmResult.ConfirmationValue.YES);

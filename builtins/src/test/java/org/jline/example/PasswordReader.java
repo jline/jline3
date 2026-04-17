@@ -15,7 +15,7 @@ import org.jline.reader.LineReaderBuilder;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
-public class PasswordReader {
+class PasswordReader {
     public static void usage() {
         System.out.println("Usage: java " + PasswordReader.class.getName() + " [mask]");
     }

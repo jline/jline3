@@ -15,10 +15,10 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class WriterOutputStreamTest {
+class WriterOutputStreamTest {
 
     @Test
-    public void testWideChar() throws Exception {
+    void testWideChar() throws Exception {
         StringWriter sw = new StringWriter();
         WriterOutputStream wos = new WriterOutputStream(sw, StandardCharsets.UTF_8);
         byte[] bytes = "㐀".getBytes(StandardCharsets.UTF_8);

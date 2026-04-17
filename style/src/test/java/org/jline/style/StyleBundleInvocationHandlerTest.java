@@ -18,23 +18,23 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * Tests for {@link StyleBundleInvocationHandler}.
  */
-public class StyleBundleInvocationHandlerTest extends StyleTestSupport {
+class StyleBundleInvocationHandlerTest extends StyleTestSupport {
 
     @Test
-    public void bundleMissingStyleGroup() {
-        assertThrows(StyleBundleInvocationHandler.InvalidStyleGroupException.class, () -> {
-            StyleBundleInvocationHandler.create(source, MissingStyleGroupStyles.class);
-        });
+    void bundleMissingStyleGroup() {
+        assertThrows(
+                StyleBundleInvocationHandler.InvalidStyleGroupException.class,
+                () -> StyleBundleInvocationHandler.create(source, MissingStyleGroupStyles.class));
     }
 
     @Test
-    public void bundleProxyToString() {
+    void bundleProxyToString() {
         Styles styles = StyleBundleInvocationHandler.create(source, Styles.class);
         assertEquals(Styles.class.getName(), styles.toString());
     }
 
     @Test
-    public void bundleDefaultStyle() {
+    void bundleDefaultStyle() {
         Styles styles = StyleBundleInvocationHandler.create(source, Styles.class);
         AttributedString string = styles.boldRed("foo bar");
         System.out.println(string.toAnsi());
@@ -42,15 +42,15 @@ public class StyleBundleInvocationHandlerTest extends StyleTestSupport {
     }
 
     @Test
-    public void bundleDefaultStyleMissing() {
+    void bundleDefaultStyleMissing() {
         Styles styles = StyleBundleInvocationHandler.create(source, Styles.class);
-        assertThrows(StyleBundleInvocationHandler.StyleBundleMethodMissingDefaultStyleException.class, () -> {
-            styles.missingDefaultStyle("foo bar");
-        });
+        assertThrows(
+                StyleBundleInvocationHandler.StyleBundleMethodMissingDefaultStyleException.class,
+                () -> styles.missingDefaultStyle("foo bar"));
     }
 
     @Test
-    public void bundleDefaultStyleMissingButSourceReferenced() {
+    void bundleDefaultStyleMissingButSourceReferenced() {
         source.set("test", "missingDefaultStyle", "bold");
         Styles styles = StyleBundleInvocationHandler.create(source, Styles.class);
         AttributedString string = styles.missingDefaultStyle("foo bar");
@@ -59,7 +59,7 @@ public class StyleBundleInvocationHandlerTest extends StyleTestSupport {
     }
 
     @Test
-    public void bundleStyleNameWithDefaultStyle() {
+    void bundleStyleNameWithDefaultStyle() {
         Styles styles = StyleBundleInvocationHandler.create(source, Styles.class);
         AttributedString string = styles.boldRedObjectWithStyleName("foo bar");
         System.out.println(string.toAnsi());
@@ -67,7 +67,7 @@ public class StyleBundleInvocationHandlerTest extends StyleTestSupport {
     }
 
     @Test
-    public void bundleSourcedStyle() {
+    void bundleSourcedStyle() {
         source.set("test", "boldRed", "bold,fg:yellow");
         Styles styles = StyleBundleInvocationHandler.create(source, Styles.class);
         AttributedString string = styles.boldRed("foo bar");
@@ -76,7 +76,7 @@ public class StyleBundleInvocationHandlerTest extends StyleTestSupport {
     }
 
     @Test
-    public void bundleExplicitStyleGroup() {
+    void bundleExplicitStyleGroup() {
         source.set("test2", "boldRed", "bold,fg:yellow");
         Styles styles = StyleBundleInvocationHandler.create(new StyleResolver(source, "test2"), Styles.class);
         AttributedString string = styles.boldRed("foo bar");
@@ -85,24 +85,22 @@ public class StyleBundleInvocationHandlerTest extends StyleTestSupport {
     }
 
     @Test
-    public void bundleMethodValidation() {
+    void bundleMethodValidation() {
         Styles styles = StyleBundleInvocationHandler.create(source, Styles.class);
 
-        assertThrows(StyleBundleInvocationHandler.InvalidStyleBundleMethodException.class, () -> {
-            styles.invalidReturn("foo");
-        });
+        assertThrows(
+                StyleBundleInvocationHandler.InvalidStyleBundleMethodException.class,
+                () -> styles.invalidReturn("foo"));
 
-        assertThrows(StyleBundleInvocationHandler.InvalidStyleBundleMethodException.class, () -> {
-            styles.notEnoughArguments();
-        });
+        assertThrows(StyleBundleInvocationHandler.InvalidStyleBundleMethodException.class, styles::notEnoughArguments);
 
-        assertThrows(StyleBundleInvocationHandler.InvalidStyleBundleMethodException.class, () -> {
-            styles.tooManyArguments(1, 2);
-        });
+        assertThrows(
+                StyleBundleInvocationHandler.InvalidStyleBundleMethodException.class,
+                () -> styles.tooManyArguments(1, 2));
     }
 
     @StyleBundle.StyleGroup("test")
-    public interface Styles extends StyleBundle {
+    interface Styles extends StyleBundle {
 
         @DefaultStyle("bold,fg:red")
         AttributedString boldRed(String value);
@@ -120,8 +118,9 @@ public class StyleBundleInvocationHandlerTest extends StyleTestSupport {
         AttributedString tooManyArguments(int a, int b);
     }
 
-    public interface MissingStyleGroupStyles extends StyleBundle {
+    interface MissingStyleGroupStyles extends StyleBundle {
 
+        @SuppressWarnings("unused")
         @DefaultStyle("bold,fg:red")
         AttributedString boldRed(String value);
     }

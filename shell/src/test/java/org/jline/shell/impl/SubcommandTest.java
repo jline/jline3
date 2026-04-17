@@ -14,6 +14,7 @@ import java.util.Map;
 import org.jline.shell.*;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for subcommand support in {@link DefaultCommandDispatcher}.
  */
-public class SubcommandTest {
+class SubcommandTest {
 
     private Terminal terminal;
     private DefaultCommandDispatcher dispatcher;
@@ -32,6 +33,12 @@ public class SubcommandTest {
         terminal = TerminalBuilder.builder().dumb(true).build();
         dispatcher = new DefaultCommandDispatcher(terminal);
         dispatcher.addGroup(new SimpleCommandGroup("test", new GitCommand()));
+    }
+
+    @AfterEach
+    void tearDown() throws IOException {
+        terminal.close();
+        dispatcher.close();
     }
 
     /**

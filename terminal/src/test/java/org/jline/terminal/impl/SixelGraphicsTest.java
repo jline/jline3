@@ -26,43 +26,44 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for the SixelGraphics utility class.
  */
-public class SixelGraphicsTest {
+class SixelGraphicsTest {
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         // Reset any override before each test
         SixelGraphics.setSixelSupportOverride(null);
     }
 
     @AfterEach
-    public void tearDown() {
+    void tearDown() {
         // Clean up after each test
         SixelGraphics.setSixelSupportOverride(null);
     }
 
     @Test
-    public void testSixelSupportOverride() {
+    void testSixelSupportOverride() throws IOException {
         // Create a mock terminal
-        Terminal terminal = createMockTerminal("dumb");
+        try (Terminal terminal = createMockTerminal("dumb")) {
 
-        // Test default behavior (should be false for dumb terminal)
-        assertFalse(SixelGraphics.isSixelSupported(terminal));
+            // Test default behavior (should be false for dumb terminal)
+            assertFalse(SixelGraphics.isSixelSupported(terminal));
 
-        // Test force enable
-        SixelGraphics.setSixelSupportOverride(true);
-        assertTrue(SixelGraphics.isSixelSupported(terminal));
+            // Test force enable
+            SixelGraphics.setSixelSupportOverride(true);
+            assertTrue(SixelGraphics.isSixelSupported(terminal));
 
-        // Test force disable
-        SixelGraphics.setSixelSupportOverride(false);
-        assertFalse(SixelGraphics.isSixelSupported(terminal));
+            // Test force disable
+            SixelGraphics.setSixelSupportOverride(false);
+            assertFalse(SixelGraphics.isSixelSupported(terminal));
 
-        // Test reset to automatic detection
-        SixelGraphics.setSixelSupportOverride(null);
-        assertFalse(SixelGraphics.isSixelSupported(terminal));
+            // Test reset to automatic detection
+            SixelGraphics.setSixelSupportOverride(null);
+            assertFalse(SixelGraphics.isSixelSupported(terminal));
+        }
     }
 
     @Test
-    public void testTerminalDetection() {
+    void testTerminalDetection() {
         // Test known sixel-supporting terminals (excluding xterm variants due to false positives)
         assertTrue(SixelGraphics.isSixelSupported(createMockTerminal("mintty")));
         assertTrue(SixelGraphics.isSixelSupported(createMockTerminal("foot")));
@@ -80,7 +81,7 @@ public class SixelGraphicsTest {
     }
 
     @Test
-    public void testConvertToSixelBasic() throws IOException {
+    void testConvertToSixelBasic() throws IOException {
         // Create a simple 2x2 black and white image
         BufferedImage image = new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = image.createGraphics();
@@ -100,7 +101,7 @@ public class SixelGraphicsTest {
     }
 
     @Test
-    public void testConvertToSixelSingleColor() throws IOException {
+    void testConvertToSixelSingleColor() throws IOException {
         // Create a simple single-color image
         BufferedImage image = new BufferedImage(6, 6, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = image.createGraphics();
@@ -119,36 +120,34 @@ public class SixelGraphicsTest {
     }
 
     @Test
-    public void testDisplayImageUnsupportedTerminal() {
-        Terminal terminal = createMockTerminal("dumb");
-        BufferedImage image = new BufferedImage(10, 10, BufferedImage.TYPE_INT_RGB);
+    void testDisplayImageUnsupportedTerminal() throws IOException {
+        try (Terminal terminal = createMockTerminal("dumb")) {
+            BufferedImage image = new BufferedImage(10, 10, BufferedImage.TYPE_INT_RGB);
 
-        // Should throw exception for unsupported terminal
-        assertThrows(UnsupportedOperationException.class, () -> {
-            new SixelGraphics().displayImage(terminal, image);
-        });
+            // Should throw exception for unsupported terminal
+            assertThrows(UnsupportedOperationException.class, () -> new SixelGraphics().displayImage(terminal, image));
+        }
     }
 
     @Test
-    public void testDisplayImageSupportedTerminal() throws IOException {
+    void testDisplayImageSupportedTerminal() throws IOException {
         // Force enable sixel support
         SixelGraphics.setSixelSupportOverride(true);
 
-        Terminal terminal = createMockTerminal("mintty"); // Use a terminal that actually supports sixel
-        BufferedImage image = new BufferedImage(10, 10, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g = image.createGraphics();
-        g.setColor(Color.BLUE);
-        g.fillRect(0, 0, 10, 10);
-        g.dispose();
+        try (Terminal terminal = createMockTerminal("mintty")) { // Use a terminal that actually supports sixel
+            BufferedImage image = new BufferedImage(10, 10, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g = image.createGraphics();
+            g.setColor(Color.BLUE);
+            g.fillRect(0, 0, 10, 10);
+            g.dispose();
 
-        // Should not throw exception
-        assertDoesNotThrow(() -> {
-            new SixelGraphics().displayImage(terminal, image);
-        });
+            // Should not throw exception
+            assertDoesNotThrow(() -> new SixelGraphics().displayImage(terminal, image));
+        }
     }
 
     @Test
-    public void testImageResizing() throws IOException {
+    void testImageResizing() throws IOException {
         // Create a large image that should be resized
         BufferedImage largeImage = new BufferedImage(1000, 800, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = largeImage.createGraphics();
@@ -164,14 +163,12 @@ public class SixelGraphicsTest {
     }
 
     @Test
-    public void testNullImageHandling() {
-        assertThrows(NullPointerException.class, () -> {
-            SixelGraphics.convertToSixel(null);
-        });
+    void testNullImageHandling() {
+        assertThrows(NullPointerException.class, () -> SixelGraphics.convertToSixel(null));
     }
 
     @Test
-    public void testSixelDataStructure() throws IOException {
+    void testSixelDataStructure() throws IOException {
         // Create a simple 1x6 image with alternating black and white pixels
         BufferedImage image = new BufferedImage(1, 6, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = image.createGraphics();
@@ -197,7 +194,7 @@ public class SixelGraphicsTest {
     }
 
     @Test
-    public void testEmptyImage() throws IOException {
+    void testEmptyImage() throws IOException {
         // Create a 1x1 transparent image
         BufferedImage image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
         // Leave it transparent/empty

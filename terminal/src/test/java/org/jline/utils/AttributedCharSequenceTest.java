@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-public class AttributedCharSequenceTest {
+class AttributedCharSequenceTest {
 
     // Family emoji: 👨‍👩‍👧‍👦 (man ZWJ woman ZWJ girl ZWJ boy)
     private static final String FAMILY_EMOJI = "\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67\u200D\uD83D\uDC66";
@@ -46,7 +46,7 @@ public class AttributedCharSequenceTest {
     private static final String FLAG_DE = "\uD83C\uDDE9\uD83C\uDDEA";
 
     @Test
-    public void testGraphemeClusterColumnLength() {
+    void testGraphemeClusterColumnLength() {
         // columnLength() without terminal: on JDK 21+ uses grapheme cluster widths
         AttributedString family = new AttributedString(FAMILY_EMOJI);
         AttributedString flag = new AttributedString(FLAG_FR);
@@ -71,13 +71,13 @@ public class AttributedCharSequenceTest {
     }
 
     @Test
-    public void testUnderline() throws IOException {
+    void testUnderline() {
         AttributedString as = AttributedString.fromAnsi("\33[38;5;0m\33[48;5;15mtest\33[0m");
-        assertEquals(as.toAnsi(256, AttributedCharSequence.ForceMode.Force256Colors), "\33[38;5;0;48;5;15mtest\33[0m");
+        assertEquals("\33[38;5;0;48;5;15mtest\33[0m", as.toAnsi(256, AttributedCharSequence.ForceMode.Force256Colors));
     }
 
     @Test
-    public void testBoldOnWindows() throws IOException {
+    void testBoldOnWindows() {
         String HIC = "\33[36;1m";
         AttributedStringBuilder sb = new AttributedStringBuilder();
         sb.appendAnsi(HIC);
@@ -89,46 +89,48 @@ public class AttributedCharSequenceTest {
     }
 
     @Test
-    public void testBold() throws IOException {
-        ExternalTerminal terminal = new ExternalTerminal(
+    void testBold() throws IOException {
+        try (ExternalTerminal terminal = new ExternalTerminal(
                 "my term",
                 "windows",
                 new ByteArrayInputStream(new byte[0]),
                 new ByteArrayOutputStream(),
-                StandardCharsets.UTF_8);
+                StandardCharsets.UTF_8)) {
 
-        assertEquals(
-                "\33[34;47;1mblue on white\33[31;42;1mred on green\33[0m",
-                AttributedString.fromAnsi(
-                                "\33[34m\33[47m\33[1mblue on white\33[0m\33[31m\33[42m\33[1mred on green\33[0m")
-                        .toAnsi(terminal));
+            assertEquals(
+                    "\33[34;47;1mblue on white\33[31;42;1mred on green\33[0m",
+                    AttributedString.fromAnsi(
+                                    "\33[34m\33[47m\33[1mblue on white\33[0m\33[31m\33[42m\33[1mred on green\33[0m")
+                            .toAnsi(terminal));
 
-        assertEquals(
-                "\33[32;1mtest\33[0m",
-                AttributedString.fromAnsi("\33[32m\33[1mtest\33[0m").toAnsi(terminal));
-        assertEquals(
-                "\33[32;1mtest\33[0m",
-                AttributedString.fromAnsi("\33[1m\33[32mtest\33[0m").toAnsi(terminal));
+            assertEquals(
+                    "\33[32;1mtest\33[0m",
+                    AttributedString.fromAnsi("\33[32m\33[1mtest\33[0m").toAnsi(terminal));
+            assertEquals(
+                    "\33[32;1mtest\33[0m",
+                    AttributedString.fromAnsi("\33[1m\33[32mtest\33[0m").toAnsi(terminal));
+        }
     }
 
     @Test
-    public void testRoundTrip() throws IOException {
-        ExternalTerminal terminal = new ExternalTerminal(
+    void testRoundTrip() throws IOException {
+        try (ExternalTerminal terminal = new ExternalTerminal(
                 "my term",
                 "xterm",
                 new ByteArrayInputStream(new byte[0]),
                 new ByteArrayOutputStream(),
-                StandardCharsets.UTF_8);
+                StandardCharsets.UTF_8)) {
 
-        AttributedString org = new AttributedStringBuilder().append("─").toAttributedString();
+            AttributedString org = new AttributedStringBuilder().append("─").toAttributedString();
 
-        AttributedString rndTrip = AttributedString.fromAnsi(org.toAnsi(terminal), terminal);
+            AttributedString rndTrip = AttributedString.fromAnsi(org.toAnsi(terminal), terminal);
 
-        assertEquals(org, rndTrip);
+            assertEquals(org, rndTrip);
+        }
     }
 
     @Test
-    public void testMixedStyleAnsiOrderingWithStyleChanges() {
+    void testMixedStyleAnsiOrderingWithStyleChanges() {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         sb.append("start");
         sb.style(AttributedStyle.DEFAULT.underline().italic().foreground(AttributedStyle.BLUE));
@@ -190,9 +192,8 @@ public class AttributedCharSequenceTest {
     // --- grapheme cluster mode tests (columnLength, columnSubSequence, columnSplitLength) ---
 
     @Test
-    public void testColumnLengthWithGcMode() throws Exception {
-        Terminal t = GraphemeClusterTestTerminal.create();
-        try {
+    void testColumnLengthWithGcMode() throws Exception {
+        try (Terminal t = GraphemeClusterTestTerminal.create()) {
             // Family emoji: as one cluster = width 2
             assertEquals(2, new AttributedString(FAMILY_EMOJI).columnLength(t));
 
@@ -210,15 +211,12 @@ public class AttributedCharSequenceTest {
 
             // CJK unchanged
             assertEquals(4, new AttributedString("中文").columnLength(t));
-        } finally {
-            t.close();
         }
     }
 
     @Test
-    public void testColumnLengthVS16WithGcMode() throws Exception {
-        Terminal t = GraphemeClusterTestTerminal.create();
-        try {
+    void testColumnLengthVS16WithGcMode() throws Exception {
+        try (Terminal t = GraphemeClusterTestTerminal.create()) {
             // Rainbow flag: VS16 upgrades white flag to emoji presentation → width 2
             assertEquals(2, new AttributedString(RAINBOW_FLAG).columnLength(t));
 
@@ -247,15 +245,12 @@ public class AttributedCharSequenceTest {
                 // Rainbow flag: wcwidth(0x1F3F3)=1 + 0(FE0F) + 0(ZWJ) + wcwidth(0x1F308)=2 = 3
                 assertEquals(3, new AttributedString(RAINBOW_FLAG).columnLength());
             }
-        } finally {
-            t.close();
         }
     }
 
     @Test
-    public void testColumnSubSequenceWithGcMode() throws Exception {
-        Terminal t = GraphemeClusterTestTerminal.create();
-        try {
+    void testColumnSubSequenceWithGcMode() throws Exception {
+        try (Terminal t = GraphemeClusterTestTerminal.create()) {
             // "AB" + family + "CD" — gc: A(1) B(1) family(2) C(1) D(1) = 6 columns
             String text = "AB" + FAMILY_EMOJI + "CD";
             AttributedString as = new AttributedString(text);
@@ -269,15 +264,12 @@ public class AttributedCharSequenceTest {
             AttributedString flags = new AttributedString(twoFlags);
             assertEquals(FLAG_FR, flags.columnSubSequence(t, 0, 2).toString());
             assertEquals(FLAG_FR, flags.columnSubSequence(t, 2, 4).toString());
-        } finally {
-            t.close();
         }
     }
 
     @Test
-    public void testColumnSubSequenceVS16WithGcMode() throws Exception {
-        Terminal t = GraphemeClusterTestTerminal.create();
-        try {
+    void testColumnSubSequenceVS16WithGcMode() throws Exception {
+        try (Terminal t = GraphemeClusterTestTerminal.create()) {
             // "AB" + rainbow flag (2 cols) + "CD" = 6 columns
             String text = "AB" + RAINBOW_FLAG + "CD";
             AttributedString as = new AttributedString(text);
@@ -285,8 +277,6 @@ public class AttributedCharSequenceTest {
             assertEquals("AB", as.columnSubSequence(t, 0, 2).toString());
             assertEquals(RAINBOW_FLAG, as.columnSubSequence(t, 2, 4).toString());
             assertEquals("CD", as.columnSubSequence(t, 4, 6).toString());
-        } finally {
-            t.close();
         }
     }
 
@@ -316,7 +306,7 @@ public class AttributedCharSequenceTest {
     }
 
     @Test
-    public void testColumnSubSequenceNoArgDelegatesToNull() {
+    void testColumnSubSequenceNoArgDelegatesToNull() {
         AttributedString as = new AttributedString("Hello");
         assertEquals(
                 as.columnSubSequence(null, 1, 3).toString(),
@@ -324,9 +314,8 @@ public class AttributedCharSequenceTest {
     }
 
     @Test
-    public void testColumnSplitLengthWithGcMode() throws Exception {
-        Terminal t = GraphemeClusterTestTerminal.create();
-        try {
+    void testColumnSplitLengthWithGcMode() throws Exception {
+        try (Terminal t = GraphemeClusterTestTerminal.create()) {
             // "AB" + family + "CD" = 6 columns; split at 4
             String text = "AB" + FAMILY_EMOJI + "CD";
             AttributedString as = new AttributedString(text);
@@ -342,15 +331,12 @@ public class AttributedCharSequenceTest {
             assertEquals(2, lines3.size());
             assertEquals(FAMILY_EMOJI + FAMILY_EMOJI, lines3.get(0).toString());
             assertEquals(FAMILY_EMOJI, lines3.get(1).toString());
-        } finally {
-            t.close();
         }
     }
 
     @Test
-    public void testColumnSplitLengthVS16WithGcMode() throws Exception {
-        Terminal t = GraphemeClusterTestTerminal.create();
-        try {
+    void testColumnSplitLengthVS16WithGcMode() throws Exception {
+        try (Terminal t = GraphemeClusterTestTerminal.create()) {
             // "AB" + rainbow flag (2 cols) + "CD" = 6 columns; split at 4
             String text = "AB" + RAINBOW_FLAG + "CD";
             AttributedString as = new AttributedString(text);
@@ -366,27 +352,22 @@ public class AttributedCharSequenceTest {
             assertEquals(2, lines3.size());
             assertEquals(RAINBOW_FLAG + RAINBOW_FLAG, lines3.get(0).toString());
             assertEquals(RAINBOW_FLAG, lines3.get(1).toString());
-        } finally {
-            t.close();
         }
     }
 
     @Test
-    public void testColumnSplitLengthWithNewlines() throws Exception {
-        Terminal t = GraphemeClusterTestTerminal.create();
-        try {
+    void testColumnSplitLengthWithNewlines() throws Exception {
+        try (Terminal t = GraphemeClusterTestTerminal.create()) {
             AttributedString as = new AttributedString("AB\nCD");
             List<AttributedString> lines = as.columnSplitLength(t, 80, false, true);
             assertEquals(2, lines.size());
             assertEquals("AB", lines.get(0).toString());
             assertEquals("CD", lines.get(1).toString());
-        } finally {
-            t.close();
         }
     }
 
     @Test
-    public void testColumnSplitLengthNoArgDelegatesToNull() {
+    void testColumnSplitLengthNoArgDelegatesToNull() {
         AttributedString as = new AttributedString("Hello World");
         List<AttributedString> a = as.columnSplitLength(null, 5, false, true);
         List<AttributedString> b = as.columnSplitLength(5, false, true);

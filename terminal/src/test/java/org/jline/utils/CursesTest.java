@@ -15,16 +15,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Tests for the Curses utility class.
  */
-public class CursesTest {
+class CursesTest {
 
     @Test
-    public void testTputs() throws Exception {
+    void testTputs() {
 
         assertEquals("{\033[3;4r", Curses.tputs("\\173\\E[%i%p1%d;%p2%dr", 2, 3));
     }
 
     @Test
-    public void testInitc() throws Exception {
+    void testInitc() {
 
         assertEquals(
                 "\033]4;123;rgb:3F/00/22\033\\",

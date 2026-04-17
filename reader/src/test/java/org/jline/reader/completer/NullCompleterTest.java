@@ -17,9 +17,9 @@ import org.junit.jupiter.api.Test;
  *
  * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
  */
-public class NullCompleterTest extends ReaderTestSupport {
+class NullCompleterTest extends ReaderTestSupport {
     @Test
-    public void test1() throws Exception {
+    void test1() throws Exception {
         reader.setCompleter(NullCompleter.INSTANCE);
 
         assertBuffer("f", new TestBuffer("f").tab());

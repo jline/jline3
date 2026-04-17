@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for {@link AliasCommands}.
  */
-public class AliasCommandsTest {
+class AliasCommandsTest {
 
     private AliasManager aliasManager;
     private AliasCommands commands;

@@ -13,6 +13,7 @@ import java.io.IOException;
 import org.jline.shell.CommandSession;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Tests for {@link VariableCommands} and bare variable assignment in
  * {@link DefaultCommandDispatcher}.
  */
-public class VariableCommandsTest {
+class VariableCommandsTest {
 
     private Terminal terminal;
     private DefaultCommandDispatcher dispatcher;
@@ -41,6 +42,12 @@ public class VariableCommandsTest {
                 return msg;
             }
         }));
+    }
+
+    @AfterEach
+    void tearDown() throws IOException {
+        terminal.close();
+        dispatcher.close();
     }
 
     @Test

@@ -24,7 +24,7 @@ import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 
 @SuppressWarnings("removal")
-public class LongList {
+class LongList {
 
     public static void main(String[] args) {
         List<AttributedString> header = new ArrayList<>();

@@ -25,7 +25,7 @@ import static org.jline.reader.impl.LineReaderImpl.VISUAL;
  * These tests are primarily intended to test "move-mode" in VI, but
  * as a necessary by-product they use quite a bit of insert mode as well.
  */
-public class ViMoveModeTest extends ReaderTestSupport {
+class ViMoveModeTest extends ReaderTestSupport {
 
     /**
      * For all tests we will start out in insert/edit mode.
@@ -38,7 +38,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testMoveLeft() throws Exception {
+    void testMoveLeft() {
         /*
          * There are various keys that will move you left.
          */
@@ -47,7 +47,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
         testMoveLeft("\010"); /* CTRL-H */
     }
 
-    public void testMoveLeft(String left) throws Exception {
+    void testMoveLeft(String left) {
         /*
          * Move left
          */
@@ -133,13 +133,13 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testMoveRight() throws Exception {
+    void testMoveRight() {
         testMoveRight("\033[C"); /* right arrow */
         testMoveRight("l"); /* "l" key */
         testMoveRight(" "); /* space */
     }
 
-    public void testMoveRight(String right) throws Exception {
+    void testMoveRight(String right) {
         /*
          * Move right
          */
@@ -207,7 +207,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testCtrlJ() throws Exception {
+    void testCtrlJ() {
         /*
          * ENTER is CTRL-J.
          */
@@ -215,7 +215,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testCtrlK() throws Exception {
+    void testCtrlK() {
         /*
          * Ctrl-K should delete to end-of-line
          */
@@ -235,7 +235,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testCtrlL() throws Exception {
+    void testCtrlL() {
         /*
          * CTRL-L clears the screen. I can't test much but to make sure
          * that the cursor is where it is supposed to be.
@@ -259,12 +259,12 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testCtrlM() throws Exception {
+    void testCtrlM() {
         testEnter('M');
     }
 
     @Test
-    public void testCtrlP_CtrlN() throws Exception {
+    void testCtrlP_CtrlN() throws Exception {
         TestBuffer b = (new TestBuffer("line1"))
                 .enter()
                 .append("line2")
@@ -309,7 +309,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testCtrlT() throws Exception {
+    void testCtrlT() {
         /*
          * Transpose every character exactly.
          */
@@ -340,7 +340,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testCtrlU() throws Exception {
+    void testCtrlU() {
         reader.getKeyMaps().get(VICMD).bind(new Reference(BACKWARD_KILL_LINE), ctrl('U'));
         /*
          * CTRL-U is "backward-kill-line", it deletes everything prior to the
@@ -375,7 +375,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testCtrlW() throws Exception {
+    void testCtrlW() {
         /*
          * CTRL-W is word rubout. It deletes to the beginning of the word
          * you are currently sitting in, or if you are one a break character
@@ -407,7 +407,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testInsertComment() throws Exception {
+    void testInsertComment() {
         /*
          * The # key causes a comment to get inserted.
          */
@@ -416,7 +416,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testD() throws Exception {
+    void testD() {
         // D is a vim extension for delete-to-end-of-line
         TestBuffer b =
                 (new TestBuffer("banana")).escape().left(2).append("Dadaid").enter();
@@ -424,14 +424,14 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testC() throws Exception {
+    void testC() {
         // C is a vim extension for change-to-end-of-line
         TestBuffer b = (new TestBuffer("yogurt")).escape().left(3).append("Cyo").enter();
         assertLine("yoyo", b, false);
     }
 
     @Test
-    public void testS() throws Exception {
+    void testS() {
         // S is a vim extension that is a synonum for 'cc' (clear whole line)
         TestBuffer b = (new TestBuffer("great lakes brewery"))
                 .escape()
@@ -442,7 +442,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testO() throws Exception {
+    void testO() {
         // O insert a line
         TestBuffer b = (new TestBuffer("great lakes brewery"))
                 .escape()
@@ -453,7 +453,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testo() throws Exception {
+    void testo() {
         // O insert a line
         TestBuffer b = (new TestBuffer("great lakes brewery"))
                 .escape()
@@ -464,7 +464,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testJ() throws Exception {
+    void testJ() {
         // J joins the current line with the following one
         TestBuffer b = (new TestBuffer("bar"))
                 .escape()
@@ -478,7 +478,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testEndOfLine() throws Exception {
+    void testEndOfLine() {
         /*
          * The $ key causes the cursor to move to the end of the line
          */
@@ -509,7 +509,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testYankLines() {
+    void testYankLines() {
         /*
          * Yank whole line and put after
          */
@@ -544,13 +544,13 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void firstPrintable() throws Exception {
+    void firstPrintable() {
         TestBuffer b = (new TestBuffer(" foo bar")).escape().append("^dw").enter();
         assertLine(" bar", b, false);
     }
 
     @Test
-    public void testMatch() throws Exception {
+    void testMatch() {
         /*
          * The % character matches brackets (square, parens, or curly).
          * First, test close paren w/nesting
@@ -607,7 +607,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testSearch() throws Exception {
+    void testSearch() throws Exception {
         /*
          * Tests the "/" forward search
          */
@@ -709,7 +709,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testWordRight() throws Exception {
+    void testWordRight() {
         reader.getKeyMaps().get(VICMD).bind(new Reference(BACKWARD_KILL_LINE), ctrl('U'));
         TestBuffer b = (new TestBuffer("buttery frog necks"))
                 .escape()
@@ -774,7 +774,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testWordLeft() throws Exception {
+    void testWordLeft() {
         reader.getKeyMaps().get(VICMD).bind(new Reference(BACKWARD_KILL_LINE), ctrl('U'));
         TestBuffer b = (new TestBuffer("lucious lark liquid    "))
                 .escape()
@@ -800,7 +800,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testEndWord() throws Exception {
+    void testEndWord() {
         reader.getKeyMaps().get(VICMD).bind(new Reference(BACKWARD_KILL_LINE), ctrl('U'));
 
         TestBuffer b = (new TestBuffer("putrid pidgen porridge"))
@@ -827,7 +827,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testInsertBeginningOfLine() throws Exception {
+    void testInsertBeginningOfLine() {
         TestBuffer b = (new TestBuffer("dessicated dog droppings"))
                 .escape()
                 .append("Itasty ")
@@ -836,7 +836,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testRubout() throws Exception {
+    void testRubout() {
         TestBuffer b = (new TestBuffer("gross animal stuff"))
                 .escape()
                 .left()
@@ -849,7 +849,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testDelete() throws Exception {
+    void testDelete() {
         TestBuffer b =
                 (new TestBuffer("thing to delete")).escape().append("bbxxx").enter();
         assertLine("thing delete", b, false);
@@ -859,7 +859,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testChangeCase() throws Exception {
+    void testChangeCase() {
         TestBuffer b =
                 (new TestBuffer("big.LITTLE")).escape().append("0~~~~~~~~~~").enter();
         assertLine("BIG.little", b, false);
@@ -869,7 +869,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testChangeChar() throws Exception {
+    void testChangeChar() {
         TestBuffer b = (new TestBuffer("abcdefhij")).escape().append("0rXiY").enter();
         assertLine("YXbcdefhij", b, false);
 
@@ -892,7 +892,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testCharSearch_f() throws Exception {
+    void testCharSearch_f() {
         /*
          * f = search forward for character
          */
@@ -940,7 +940,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testCharSearch_F() throws Exception {
+    void testCharSearch_F() {
         /*
          * f = search forward for character
          */
@@ -988,7 +988,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testCharSearch_t() throws Exception {
+    void testCharSearch_t() {
         /*
          * r = search forward for character, stopping before
          */
@@ -1021,7 +1021,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testCharSearch_T() throws Exception {
+    void testCharSearch_T() {
         /*
          * r = search backward for character, stopping after
          */
@@ -1051,7 +1051,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void test_dd() throws Exception {
+    void test_dd() {
         /*
          * This tests "dd" or delete-to + delete-to, which should kill the
          * current line.
@@ -1067,7 +1067,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void test_yy() throws Exception {
+    void test_yy() {
         /*
          * This tests "yy" or yank-to + yank-to, which should yank the whole line
          */
@@ -1076,7 +1076,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void test_cc() throws Exception {
+    void test_cc() {
         /*
          * This tests "cc" or change-to + change-to, which changes the whole line
          */
@@ -1085,7 +1085,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testRegion() throws Exception {
+    void testRegion() {
         reader.getKeyMaps().get(VISUAL).bind(new Reference("kill-region"), "p");
         TestBuffer b = new TestBuffer("abc def ghi")
                 .escape()
@@ -1132,7 +1132,7 @@ public class ViMoveModeTest extends ReaderTestSupport {
      *
      * @param enterChar The escape character that acts as enter.
      */
-    private void testEnter(char enterChar) throws Exception {
+    private void testEnter(char enterChar) {
         /*
          * I want to test to make sure that I am re-entering insert mode
          * when enter is hit.

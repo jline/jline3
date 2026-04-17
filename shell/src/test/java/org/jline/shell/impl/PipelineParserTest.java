@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for {@link PipelineParser}.
  */
-public class PipelineParserTest {
+class PipelineParserTest {
 
     private PipelineParser parser;
 
@@ -291,7 +291,7 @@ public class PipelineParserTest {
             @Override
             protected String matchOperator(String line, int pos) {
                 // Custom: treat "::" as a pipe
-                if (pos + 1 < line.length() && line.substring(pos, pos + 2).equals("::")) {
+                if (line.startsWith("::", pos)) {
                     return "::";
                 }
                 return super.matchOperator(line, pos);

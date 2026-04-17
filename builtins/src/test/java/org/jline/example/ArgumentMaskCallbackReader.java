@@ -18,7 +18,7 @@ import org.jline.reader.MaskingCallback;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
-public class ArgumentMaskCallbackReader {
+class ArgumentMaskCallbackReader {
     /**
      * Mask a certain argument for a given command in the console. So for example 'add-user 2', 'add-user username password'
      * will be displayed as 'add-user username ********'.
@@ -51,12 +51,8 @@ public class ArgumentMaskCallbackReader {
         private final int pos;
 
         public CommandArgumentMask(String command, int pos) {
-            StringBuilder regex = new StringBuilder();
-            regex.append(Pattern.quote(command));
-            for (int i = 0; i < pos; i++) {
-                regex.append(" +([^ ]+)");
-            }
-            this.pattern = Pattern.compile(regex.toString());
+            String regex = Pattern.quote(command) + " +([^ ]+)".repeat(Math.max(0, pos));
+            this.pattern = Pattern.compile(regex);
             this.pos = pos;
         }
 

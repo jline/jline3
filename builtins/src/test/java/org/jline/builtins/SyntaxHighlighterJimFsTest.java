@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Test SyntaxHighlighter.addFiles() with JimFS to verify cross-platform behavior
  * on both Unix and Windows file systems.
  */
-public class SyntaxHighlighterJimFsTest {
+class SyntaxHighlighterJimFsTest {
 
     private static Stream<Arguments> fileSystemConfigurations() {
         return Stream.of(Arguments.of("Unix", Configuration.unix()), Arguments.of("Windows", Configuration.windows()));
@@ -39,7 +39,7 @@ public class SyntaxHighlighterJimFsTest {
 
     @ParameterizedTest(name = "{0} file system")
     @MethodSource("fileSystemConfigurations")
-    public void testRelativeRecursiveGlobPattern(String fsName, Configuration config) throws IOException {
+    void testRelativeRecursiveGlobPattern(String fsName, Configuration config) throws IOException {
         try (FileSystem fs = Jimfs.newFileSystem(config)) {
             // Create nested directory structure: foo/bar/baz/
             Path root = getFileSystemRoot(fs, config);
@@ -74,7 +74,7 @@ public class SyntaxHighlighterJimFsTest {
         }
     }
 
-    private Path getFileSystemRoot(FileSystem fs, Configuration config) {
+    private static Path getFileSystemRoot(FileSystem fs, Configuration config) {
         if (config == Configuration.windows()) {
             return fs.getPath("C:\\");
         } else {
@@ -84,7 +84,7 @@ public class SyntaxHighlighterJimFsTest {
 
     @ParameterizedTest(name = "{0} file system")
     @MethodSource("fileSystemConfigurations")
-    public void testAbsoluteRecursiveGlobPattern(String fsName, Configuration config) throws IOException {
+    void testAbsoluteRecursiveGlobPattern(String fsName, Configuration config) throws IOException {
         try (FileSystem fs = Jimfs.newFileSystem(config)) {
             // Create nested directory structure
             Path root = getFileSystemRoot(fs, config);
@@ -129,7 +129,7 @@ public class SyntaxHighlighterJimFsTest {
 
     @ParameterizedTest(name = "{0} file system")
     @MethodSource("fileSystemConfigurations")
-    public void testSimpleGlobPattern(String fsName, Configuration config) throws IOException {
+    void testSimpleGlobPattern(String fsName, Configuration config) throws IOException {
         try (FileSystem fs = Jimfs.newFileSystem(config)) {
             Path root = getFileSystemRoot(fs, config);
 
@@ -161,7 +161,7 @@ public class SyntaxHighlighterJimFsTest {
 
     @ParameterizedTest(name = "{0} file system")
     @MethodSource("fileSystemConfigurations")
-    public void testNonExistentDirectory(String fsName, Configuration config) throws IOException {
+    void testNonExistentDirectory(String fsName, Configuration config) throws IOException {
         try (FileSystem fs = Jimfs.newFileSystem(config)) {
             Path root = getFileSystemRoot(fs, config);
 
@@ -174,9 +174,8 @@ public class SyntaxHighlighterJimFsTest {
             List<Path> foundFiles = new ArrayList<>();
 
             // Should not throw an exception
-            assertDoesNotThrow(() -> {
-                SyntaxHighlighter.addFiles(nanorc, nonExistentPattern, stream -> stream.forEach(foundFiles::add));
-            });
+            assertDoesNotThrow(() ->
+                    SyntaxHighlighter.addFiles(nanorc, nonExistentPattern, stream -> stream.forEach(foundFiles::add)));
 
             assertEquals(0, foundFiles.size(), "Should find no files when directory doesn't exist");
         }
@@ -184,7 +183,7 @@ public class SyntaxHighlighterJimFsTest {
 
     @ParameterizedTest(name = "{0} file system")
     @MethodSource("fileSystemConfigurations")
-    public void testNonGlobPattern(String fsName, Configuration config) throws IOException {
+    void testNonGlobPattern(String fsName, Configuration config) throws IOException {
         try (FileSystem fs = Jimfs.newFileSystem(config)) {
             Path root = getFileSystemRoot(fs, config);
 
@@ -208,7 +207,7 @@ public class SyntaxHighlighterJimFsTest {
     }
 
     @Test
-    public void testExtractStaticPathPrefix() {
+    void testExtractStaticPathPrefix() {
         // Test the extractStaticPathPrefix method indirectly by verifying behavior
         try (FileSystem fs = Jimfs.newFileSystem(Configuration.unix())) {
             Path root = fs.getPath("/");

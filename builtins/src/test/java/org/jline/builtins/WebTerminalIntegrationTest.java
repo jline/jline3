@@ -30,13 +30,13 @@ import static org.junit.jupiter.api.Assertions.*;
  * These tests start a real HTTP server and verify that the terminal
  * responds correctly to browser-like HTTP requests.
  */
-public class WebTerminalIntegrationTest {
+class WebTerminalIntegrationTest {
 
     private WebTerminal terminal;
     private String baseUrl;
 
     @BeforeEach
-    public void setUp() throws IOException {
+    void setUp() throws IOException {
         // Use port 0 to get a random available port
         terminal = new WebTerminal("localhost", 0, 80, 24);
         terminal.start();
@@ -44,7 +44,7 @@ public class WebTerminalIntegrationTest {
     }
 
     @AfterEach
-    public void tearDown() {
+    void tearDown() {
         if (terminal != null) {
             terminal.stop();
             try {
@@ -56,14 +56,14 @@ public class WebTerminalIntegrationTest {
     }
 
     @Test
-    public void testServerStartsOnRandomPort() {
+    void testServerStartsOnRandomPort() {
         assertTrue(terminal.isRunning());
         // Port should not be 0 since the OS assigns one
         assertFalse(baseUrl.endsWith(":0"), "URL should have actual port, got: " + baseUrl);
     }
 
     @Test
-    public void testGetMainPage() throws IOException {
+    void testGetMainPage() throws IOException {
         HttpURLConnection conn = (HttpURLConnection) new URL(baseUrl + "/").openConnection();
         conn.setRequestMethod("GET");
         try {
@@ -81,7 +81,7 @@ public class WebTerminalIntegrationTest {
     }
 
     @Test
-    public void testPollReturnsScreenContent() throws IOException {
+    void testPollReturnsScreenContent() throws IOException {
         // Write something to the terminal first
         terminal.write("Hello Web");
 
@@ -95,7 +95,7 @@ public class WebTerminalIntegrationTest {
     }
 
     @Test
-    public void testPollWithNoChangesReturnsContent() throws IOException {
+    void testPollWithNoChangesReturnsContent() throws IOException {
         // Force update should always return content
         String response = postToTerminal("f=1");
         assertNotNull(response);
@@ -104,7 +104,7 @@ public class WebTerminalIntegrationTest {
     }
 
     @Test
-    public void testSendKeyboardInput() throws Exception {
+    void testSendKeyboardInput() throws Exception {
         // Start a LineReader in a background thread
         CountDownLatch readerReady = new CountDownLatch(1);
         CountDownLatch lineRead = new CountDownLatch(1);
@@ -144,7 +144,7 @@ public class WebTerminalIntegrationTest {
     }
 
     @Test
-    public void testSpecialKeysAreSentCorrectly() throws Exception {
+    void testSpecialKeysAreSentCorrectly() throws Exception {
         // Start a LineReader
         CountDownLatch readerReady = new CountDownLatch(1);
         CountDownLatch lineRead = new CountDownLatch(1);
@@ -180,7 +180,7 @@ public class WebTerminalIntegrationTest {
     }
 
     @Test
-    public void testTabCompletion() throws Exception {
+    void testTabCompletion() throws Exception {
         // Start a LineReader with a completer
         CountDownLatch readerReady = new CountDownLatch(1);
 
@@ -222,7 +222,7 @@ public class WebTerminalIntegrationTest {
     }
 
     @Test
-    public void testArrowKeysForEditing() throws Exception {
+    void testArrowKeysForEditing() throws Exception {
         CountDownLatch readerReady = new CountDownLatch(1);
         CountDownLatch lineRead = new CountDownLatch(1);
         AtomicReference<String> readLine = new AtomicReference<>();
@@ -258,7 +258,7 @@ public class WebTerminalIntegrationTest {
     }
 
     @Test
-    public void testScreenContentAfterRefresh() throws IOException {
+    void testScreenContentAfterRefresh() throws IOException {
         // Write content
         terminal.write("Persistent content");
 
@@ -272,7 +272,7 @@ public class WebTerminalIntegrationTest {
     }
 
     @Test
-    public void testGzipCompression() throws IOException {
+    void testGzipCompression() throws IOException {
         terminal.write("Some content for compression test");
 
         HttpURLConnection conn = (HttpURLConnection) new URL(baseUrl + "/terminal").openConnection();
@@ -292,7 +292,7 @@ public class WebTerminalIntegrationTest {
     }
 
     @Test
-    public void test404ForUnknownPaths() throws IOException {
+    void test404ForUnknownPaths() throws IOException {
         HttpURLConnection conn = (HttpURLConnection) new URL(baseUrl + "/nonexistent").openConnection();
         conn.setRequestMethod("GET");
         try {
@@ -303,7 +303,7 @@ public class WebTerminalIntegrationTest {
     }
 
     @Test
-    public void testMethodNotAllowed() throws IOException {
+    void testMethodNotAllowed() throws IOException {
         // GET on /terminal should be 405
         HttpURLConnection conn = (HttpURLConnection) new URL(baseUrl + "/terminal").openConnection();
         conn.setRequestMethod("GET");

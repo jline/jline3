@@ -19,146 +19,146 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Tests for {@link StyleResolver}.
  */
-public class StyleResolverTest extends StyleTestSupport {
+class StyleResolverTest extends StyleTestSupport {
 
     private StyleResolver underTest;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         super.setUp();
         this.underTest = new StyleResolver(source, "test");
     }
 
     @Test
-    public void resolveBold() {
+    void resolveBold() {
         AttributedStyle style = underTest.resolve("bold");
         assertEquals(BOLD, style);
     }
 
     @Test
-    public void resolveFgRed() {
+    void resolveFgRed() {
         AttributedStyle style = underTest.resolve("fg:red");
         assertEquals(DEFAULT.foreground(RED), style);
     }
 
     @Test
-    public void resolveFgRedWithWhitespace() {
+    void resolveFgRedWithWhitespace() {
         AttributedStyle style = underTest.resolve(" fg:  red ");
         assertEquals(DEFAULT.foreground(RED), style);
     }
 
     @Test
-    public void resolveBgRed() {
+    void resolveBgRed() {
         AttributedStyle style = underTest.resolve("bg:red");
         assertEquals(DEFAULT.background(RED), style);
     }
 
     @Test
-    public void resolveInvalidColorMode() {
+    void resolveInvalidColorMode() {
         AttributedStyle style = underTest.resolve("invalid:red");
         assertEquals(DEFAULT, style);
     }
 
     @Test
-    public void resolveInvalidColorName() {
+    void resolveInvalidColorName() {
         AttributedStyle style = underTest.resolve("fg:invalid");
         assertEquals(DEFAULT, style);
     }
 
     @Test
-    public void resolveBoldFgRed() {
+    void resolveBoldFgRed() {
         AttributedStyle style = underTest.resolve("bold,fg:red");
         assertEquals(BOLD.foreground(RED), style);
     }
 
     @Test
-    public void resolveWithWhitespace() {
+    void resolveWithWhitespace() {
         AttributedStyle style = underTest.resolve("  bold ,   fg:red   ");
         assertEquals(BOLD.foreground(RED), style);
     }
 
     @Test
-    public void resolveWithMissingValues() {
+    void resolveWithMissingValues() {
         AttributedStyle style = underTest.resolve("bold,,,,,fg:red");
         assertEquals(BOLD.foreground(RED), style);
     }
 
     @Test
-    public void resolveReferencedStyle() {
+    void resolveReferencedStyle() {
         source.set("test", "very-red", "bold,fg:red");
         AttributedStyle style = underTest.resolve(".very-red");
         assertEquals(BOLD.foreground(RED), style);
     }
 
     @Test
-    public void resolveReferencedStyleMissingWithDefaultDirect() {
+    void resolveReferencedStyleMissingWithDefaultDirect() {
         AttributedStyle style = underTest.resolve(".very-red:-bold,fg:red");
         assertEquals(BOLD.foreground(RED), style);
     }
 
     @Test
-    public void resolveReferencedStyleMissingWitDirectAndWhitespace() {
+    void resolveReferencedStyleMissingWitDirectAndWhitespace() {
         AttributedStyle style = underTest.resolve(".very-red   :-   bold,fg:red");
         assertEquals(BOLD.foreground(RED), style);
     }
 
     @Test
-    public void resolveReferencedStyleMissingWithDefaultReferenced() {
+    void resolveReferencedStyleMissingWithDefaultReferenced() {
         source.set("test", "more-red", "bold,fg:red");
         AttributedStyle style = underTest.resolve(".very-red:-.more-red");
         assertEquals(BOLD.foreground(RED), style);
     }
 
     @Test
-    public void resolveFgBrightRed() {
+    void resolveFgBrightRed() {
         AttributedStyle style = underTest.resolve("fg:bright-red");
         assertEquals(DEFAULT.foreground(BRIGHT + RED), style);
     }
 
     @Test
-    public void resolveFgNotRed() {
+    void resolveFgNotRed() {
         AttributedStyle style = underTest.resolve("fg:!red");
         assertEquals(DEFAULT.foreground(BRIGHT + RED), style);
     }
 
     @Test
-    public void resolveFgOlive() {
+    void resolveFgOlive() {
         AttributedStyle style = underTest.resolve("fg:~olive");
         assertEquals(DEFAULT.foreground(Colors.rgbColor("olive")), style);
     }
 
     @Test
-    public void resolveFgRgbOrchid() {
+    void resolveFgRgbOrchid() {
         AttributedStyle style = underTest.resolve("fg-rgb:~orchid");
         assertEquals(DEFAULT.foreground(0xD7, 0x5F, 0xD7), style);
     }
 
     @Test
-    public void resolveFgRgbHexa() {
+    void resolveFgRgbHexa() {
         AttributedStyle style = underTest.resolve("fg-rgb:xaf740b");
         assertEquals(DEFAULT.foreground(0xAF, 0x74, 0x0B), style);
     }
 
     @Test
-    public void resolveFgRgbHexaHash() {
+    void resolveFgRgbHexaHash() {
         AttributedStyle style = underTest.resolve("fg-rgb:#af740b");
         assertEquals(DEFAULT.foreground(0xAF, 0x74, 0x0B), style);
     }
 
     @Test
-    public void resolveInvalidXterm256Syntax() {
+    void resolveInvalidXterm256Syntax() {
         AttributedStyle style = underTest.resolve("fg:~");
         assertEquals(DEFAULT, style);
     }
 
     @Test
-    public void resolveInvalidXterm256ColorName() {
+    void resolveInvalidXterm256ColorName() {
         AttributedStyle style = underTest.resolve("fg:~foo");
         assertEquals(DEFAULT, style);
     }
 
     @Test
-    public void checkColorOrdinal() {
+    void checkColorOrdinal() {
         assertEquals(86, Colors.rgbColor("aquamarine1").longValue());
     }
 }

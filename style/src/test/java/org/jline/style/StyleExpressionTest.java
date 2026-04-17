@@ -22,18 +22,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Tests for {@link StyleExpression}.
  */
-public class StyleExpressionTest extends StyleTestSupport {
+class StyleExpressionTest extends StyleTestSupport {
 
     private StyleExpression underTest;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         super.setUp();
         this.underTest = new StyleExpression(new StyleResolver(source, "test"));
     }
 
     @Test
-    public void evaluateExpressionWithPrefixAndSuffix() {
+    void evaluateExpressionWithPrefixAndSuffix() {
         AttributedString result = underTest.evaluate("foo @{bold bar} baz");
         System.out.println(result.toAnsi());
         assertEquals(
@@ -46,7 +46,7 @@ public class StyleExpressionTest extends StyleTestSupport {
     }
 
     @Test
-    public void evaluateExpressionWithPrefix() {
+    void evaluateExpressionWithPrefix() {
         AttributedString result = underTest.evaluate("foo @{bold bar}");
         System.out.println(result.toAnsi());
         assertEquals(
@@ -54,7 +54,7 @@ public class StyleExpressionTest extends StyleTestSupport {
     }
 
     @Test
-    public void evaluateExpressionWithSuffix() {
+    void evaluateExpressionWithSuffix() {
         AttributedString result = underTest.evaluate("@{bold foo} bar");
         System.out.println(result.toAnsi());
         assertEquals(
@@ -62,14 +62,14 @@ public class StyleExpressionTest extends StyleTestSupport {
     }
 
     @Test
-    public void evaluateExpression() {
+    void evaluateExpression() {
         AttributedString result = underTest.evaluate("@{bold foo}");
         System.out.println(result.toAnsi());
         assertEquals(new AttributedString("foo", BOLD), result);
     }
 
     @Test
-    public void evaluateExpressionWithDefault() {
+    void evaluateExpressionWithDefault() {
 
         AttributedString result = underTest.evaluate("@{.foo:-bold foo}");
         System.out.println(result.toAnsi());
@@ -77,7 +77,7 @@ public class StyleExpressionTest extends StyleTestSupport {
     }
 
     @Test
-    public void evaluateExpressionWithMultipleReplacements() {
+    void evaluateExpressionWithMultipleReplacements() {
         AttributedString result = underTest.evaluate("@{bold foo} @{fg:red bar} @{underline baz}");
         System.out.println(result.toAnsi());
         assertEquals(
@@ -92,7 +92,7 @@ public class StyleExpressionTest extends StyleTestSupport {
     }
 
     @Test
-    public void evaluateExpressionWithRecursiveReplacements() {
+    void evaluateExpressionWithRecursiveReplacements() {
         AttributedString result = underTest.evaluate("@{underline foo @{fg:cyan bar}}");
         System.out.println(result.toAnsi());
         assertEquals(
@@ -104,28 +104,28 @@ public class StyleExpressionTest extends StyleTestSupport {
     }
 
     @Test
-    public void evaluateExpressionMissingVvalue() {
+    void evaluateExpressionMissingVvalue() {
         AttributedString result = underTest.evaluate("@{bold}");
         System.out.println(result.toAnsi());
         assertEquals(new AttributedString("@{bold}", DEFAULT), result);
     }
 
     @Test
-    public void evaluateExpressionMissingTokens() {
+    void evaluateExpressionMissingTokens() {
         AttributedString result = underTest.evaluate("foo");
         System.out.println(result.toAnsi());
         assertEquals(new AttributedString("foo", DEFAULT), result);
     }
 
     @Test
-    public void evaluateExpressionWithPlaceholderValue() {
+    void evaluateExpressionWithPlaceholderValue() {
         AttributedString result = underTest.evaluate("@{bold,fg:cyan ${foo\\}}");
         System.out.println(result.toAnsi());
         assertEquals(new AttributedString("${foo}", DEFAULT.bold().foreground(CYAN)), result);
     }
 
     @Test
-    public void evaluateWithStyleReference() {
+    void evaluateWithStyleReference() {
         source.set("test", "very-red", "bold,fg:red");
         AttributedString string = underTest.evaluate("@{.very-red foo bar}");
         assertEquals(new AttributedString("foo bar", BOLD.foreground(RED)), string);

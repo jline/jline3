@@ -9,17 +9,16 @@
 package org.jline.reader.impl;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 
 import org.jline.reader.Candidate;
 import org.jline.reader.ParsedLine;
 import org.junit.jupiter.api.Test;
 
-public class CompletionWithParserTest extends ReaderTestSupport {
+class CompletionWithParserTest extends ReaderTestSupport {
 
     @Test
-    public void testComplete() throws IOException {
+    void testComplete() throws IOException {
         reader.setCompleter((reader, line, candidates) -> candidates.add(new Candidate(
                 /* value    = */ "range",
                 /* displ    = */ "range",
@@ -46,7 +45,7 @@ public class CompletionWithParserTest extends ReaderTestSupport {
 
             @Override
             public List<String> words() {
-                return Arrays.asList("{", "List", ".", "", "}");
+                return List.of("{", "List", ".", "", "}");
             }
 
             @Override

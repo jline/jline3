@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Timeout;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class StylesTest {
+class StylesTest {
     private static final int TIMEOUT = 1;
 
     private static final String STANDARD_COLORS = "di=1;91:ex=1;92:ln=1;96:fi=";
@@ -28,7 +28,7 @@ public class StylesTest {
     private static final int REPEATED_ELEMENTS = 1000;
 
     @Test
-    public void testIsStylePatternStandardColors() {
+    void testIsStylePatternStandardColors() {
         final boolean stylePattern = Styles.isStylePattern(STANDARD_COLORS);
 
         assertTrue(stylePattern);
@@ -36,7 +36,7 @@ public class StylesTest {
 
     @Test
     @Timeout(TIMEOUT)
-    public void testIsStylePatternRepeatedDirectory() {
+    void testIsStylePatternRepeatedDirectory() {
         final StringBuilder builder = getRepeatedStyleBuilder();
 
         final String style = builder.toString();
@@ -47,7 +47,7 @@ public class StylesTest {
 
     @Test
     @Timeout(TIMEOUT)
-    public void testIsStylePatternAsteriskTilde() {
+    void testIsStylePatternAsteriskTilde() {
         final StringBuilder builder = getRepeatedStyleBuilder();
         builder.append(ASTERISK_TILDE_STYLE_ELEMENT);
         builder.append(SEPARATOR);

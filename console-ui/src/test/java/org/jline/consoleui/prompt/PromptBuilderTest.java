@@ -20,10 +20,10 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SuppressWarnings("removal")
-public class PromptBuilderTest {
+class PromptBuilderTest {
 
     @Test
-    public void testBuilder() throws IOException {
+    void testBuilder() throws IOException {
         ConsolePrompt prompt = new ConsolePrompt(TerminalBuilder.builder().build());
         PromptBuilder promptBuilder = prompt.getPromptBuilder();
 

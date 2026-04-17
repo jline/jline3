@@ -18,9 +18,9 @@ import org.junit.jupiter.api.Test;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class ArgumentCompleterTest extends ReaderTestSupport {
+class ArgumentCompleterTest extends ReaderTestSupport {
     @Test
-    public void test1() throws Exception {
+    void test1() throws Exception {
         reader.setCompleter(new ArgumentCompleter(new StringsCompleter("foo", "bar", "baz")));
 
         assertBuffer("foo foo ", new TestBuffer("foo f").tab());
@@ -28,7 +28,7 @@ public class ArgumentCompleterTest extends ReaderTestSupport {
         assertBuffer("foo ba", new TestBuffer("foo ba").tab());
         assertBuffer("foo baz ", new TestBuffer("foo baz").tab());
 
-        // test completion in the mid range
+        // test completion in the mid-range
         assertBuffer(
                 "foo baz", new TestBuffer("f baz").left().left().left().left().tab());
         assertBuffer(
@@ -42,7 +42,7 @@ public class ArgumentCompleterTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testMultiple() throws Exception {
+    void testMultiple() throws Exception {
         ArgumentCompleter argCompleter = new ArgumentCompleter(
                 new StringsCompleter("bar", "baz"), new StringsCompleter("foo"), new StringsCompleter("ree"));
         reader.setCompleter(argCompleter);
@@ -59,7 +59,7 @@ public class ArgumentCompleterTest extends ReaderTestSupport {
     }
 
     @Test
-    public void test2() throws Exception {
+    void test2() throws Exception {
         reader.setCompleter(
                 new ArgumentCompleter(new StringsCompleter("some", "any"), new StringsCompleter("foo", "bar", "baz")));
 

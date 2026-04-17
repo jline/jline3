@@ -8,8 +8,8 @@
  */
 package org.jline.builtins;
 
-import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
@@ -18,10 +18,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class NfaMatcherTest {
+class NfaMatcherTest {
 
     @Test
-    public void testMultiplicity() {
+    void testMultiplicity() {
         assertFalse(match("C5"));
         assertTrue(match("C5", "arg"));
         assertFalse(match("C5", "arg", "foo"));
@@ -37,35 +37,35 @@ public class NfaMatcherTest {
     }
 
     @Test
-    public void testWeird() {
+    void testWeird() {
         assertTrue(match("a? a? a? a a a", "a", "a", "a", "a"));
         assertTrue(match("a ? * +", "a", "a", "a", "a"));
     }
 
     @Test
-    public void testConcat() {
+    void testConcat() {
         assertTrue(match("C4? C5+", "arg", "foo"));
         assertTrue(match("(C1 | C2 | C3)* C4? C5+", "arg", "foo"));
         assertTrue(match("(C1 | C2 | C3)* C4? C5+", "--opt1=a", "--opt2=b", "--myopt", "arg", "foo"));
     }
 
     @Test
-    public void testPartial() {
+    void testPartial() {
         assertEquals(asSet("C1", "C2", "C3", "C4", "C5"), matchPartial("(C1 | C2 | C3)* C4? C5+", "--opt1=a"));
         assertEquals(asSet("C5"), matchPartial("(C1 | C2 | C3)* C4? C5+", "--opt1=a", "--myopt"));
     }
 
     @Test
-    public void testPartial2() {
+    void testPartial2() {
         assertEquals(asSet("C3"), matchPartial(" ( C1 ( C2 ( C3 )  | C4 | C5 )  ) ", "--opt1", "--opt2"));
     }
 
     boolean match(String regexp, String... args) {
-        return new NfaMatcher<>(regexp, this::matchArg).match(Arrays.asList(args));
+        return new NfaMatcher<>(regexp, this::matchArg).match(List.of(args));
     }
 
     Set<String> matchPartial(String regexp, String... args) {
-        return new NfaMatcher<>(regexp, this::matchArg).matchPartial(Arrays.asList(args));
+        return new NfaMatcher<>(regexp, this::matchArg).matchPartial(List.of(args));
     }
 
     boolean matchArg(String arg, String name) {
@@ -88,10 +88,6 @@ public class NfaMatcherTest {
     }
 
     static Set<String> asSet(String... ts) {
-        Set<String> s = new HashSet<>();
-        for (String t : ts) {
-            s.add(t);
-        }
-        return s;
+        return new HashSet<>(List.of(ts));
     }
 }

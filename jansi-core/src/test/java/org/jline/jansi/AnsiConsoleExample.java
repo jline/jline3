@@ -11,12 +11,7 @@ package org.jline.jansi;
 import java.io.FileInputStream;
 import java.io.IOException;
 
-/**
- *
- */
-public class AnsiConsoleExample {
-
-    private AnsiConsoleExample() {}
+class AnsiConsoleExample {
 
     public static void main(String[] args) throws IOException {
         String file = "src/test/resources/jansi.ans";

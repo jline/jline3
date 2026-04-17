@@ -14,6 +14,7 @@ import java.util.List;
 
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Unit tests for builder patterns and fluent interfaces.
  * Tests the builder API consistency and method chaining.
  */
-public class BuilderPatternsTest {
+class BuilderPatternsTest {
 
     private Terminal terminal;
     private Prompter prompter;
@@ -37,6 +38,11 @@ public class BuilderPatternsTest {
         prompter = PrompterFactory.create(terminal);
     }
 
+    @AfterEach
+    void tearDown() throws IOException {
+        terminal.close();
+    }
+
     @Test
     void testPromptBuilderFluentInterface() {
         // Test that PromptBuilder methods return the correct types for chaining
@@ -46,27 +52,27 @@ public class BuilderPatternsTest {
         // Test that create methods return the correct builder types
         InputBuilder inputBuilder = builder.createInputPrompt();
         assertNotNull(inputBuilder);
-        assertTrue(inputBuilder instanceof InputBuilder);
+        assertInstanceOf(InputBuilder.class, inputBuilder);
 
         ListBuilder listBuilder = builder.createListPrompt();
         assertNotNull(listBuilder);
-        assertTrue(listBuilder instanceof ListBuilder);
+        assertInstanceOf(ListBuilder.class, listBuilder);
 
         CheckboxBuilder checkboxBuilder = builder.createCheckboxPrompt();
         assertNotNull(checkboxBuilder);
-        assertTrue(checkboxBuilder instanceof CheckboxBuilder);
+        assertInstanceOf(CheckboxBuilder.class, checkboxBuilder);
 
         ChoiceBuilder choiceBuilder = builder.createChoicePrompt();
         assertNotNull(choiceBuilder);
-        assertTrue(choiceBuilder instanceof ChoiceBuilder);
+        assertInstanceOf(ChoiceBuilder.class, choiceBuilder);
 
         ConfirmBuilder confirmBuilder = builder.createConfirmPrompt();
         assertNotNull(confirmBuilder);
-        assertTrue(confirmBuilder instanceof ConfirmBuilder);
+        assertInstanceOf(ConfirmBuilder.class, confirmBuilder);
 
         TextBuilder textBuilder = builder.createText();
         assertNotNull(textBuilder);
-        assertTrue(textBuilder instanceof TextBuilder);
+        assertInstanceOf(TextBuilder.class, textBuilder);
     }
 
     @Test
@@ -86,7 +92,7 @@ public class BuilderPatternsTest {
 
         List<Prompt> prompts = builder.build();
         assertEquals(1, prompts.size());
-        assertTrue(prompts.get(0) instanceof InputPrompt);
+        assertInstanceOf(InputPrompt.class, prompts.get(0));
     }
 
     @Test
@@ -109,7 +115,7 @@ public class BuilderPatternsTest {
 
         List<Prompt> prompts = builder.build();
         assertEquals(1, prompts.size());
-        assertTrue(prompts.get(0) instanceof ListPrompt);
+        assertInstanceOf(ListPrompt.class, prompts.get(0));
 
         ListPrompt listPrompt = (ListPrompt) prompts.get(0);
         assertEquals(2, listPrompt.getItems().size());
@@ -140,7 +146,7 @@ public class BuilderPatternsTest {
 
         List<Prompt> prompts = builder.build();
         assertEquals(1, prompts.size());
-        assertTrue(prompts.get(0) instanceof CheckboxPrompt);
+        assertInstanceOf(CheckboxPrompt.class, prompts.get(0));
 
         CheckboxPrompt checkboxPrompt = (CheckboxPrompt) prompts.get(0);
         List<CheckboxItem> items = checkboxPrompt.getItems();
@@ -177,7 +183,7 @@ public class BuilderPatternsTest {
 
         List<Prompt> prompts = builder.build();
         assertEquals(1, prompts.size());
-        assertTrue(prompts.get(0) instanceof ChoicePrompt);
+        assertInstanceOf(ChoicePrompt.class, prompts.get(0));
 
         ChoicePrompt choicePrompt = (ChoicePrompt) prompts.get(0);
         List<ChoiceItem> items = choicePrompt.getItems();
@@ -202,7 +208,7 @@ public class BuilderPatternsTest {
 
         List<Prompt> prompts = builder.build();
         assertEquals(1, prompts.size());
-        assertTrue(prompts.get(0) instanceof ConfirmPrompt);
+        assertInstanceOf(ConfirmPrompt.class, prompts.get(0));
     }
 
     @Test
@@ -235,9 +241,9 @@ public class BuilderPatternsTest {
 
         List<Prompt> prompts = builder.build();
         assertEquals(3, prompts.size());
-        assertTrue(prompts.get(0) instanceof InputPrompt);
-        assertTrue(prompts.get(1) instanceof ListPrompt);
-        assertTrue(prompts.get(2) instanceof ConfirmPrompt);
+        assertInstanceOf(InputPrompt.class, prompts.get(0));
+        assertInstanceOf(ListPrompt.class, prompts.get(1));
+        assertInstanceOf(ConfirmPrompt.class, prompts.get(2));
     }
 
     @Test

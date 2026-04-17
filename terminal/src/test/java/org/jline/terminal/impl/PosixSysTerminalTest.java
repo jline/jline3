@@ -20,10 +20,10 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class PosixSysTerminalTest {
+class PosixSysTerminalTest {
 
     @Test
-    public void testNativeSignalsDefault() throws Exception {
+    void testNativeSignalsDefault() throws Exception {
         Pty pty = EasyMock.createNiceMock(Pty.class);
         EasyMock.expect(pty.getAttr()).andReturn(new Attributes()).anyTimes();
         EasyMock.expect(pty.getSlaveInput())
@@ -39,7 +39,7 @@ public class PosixSysTerminalTest {
     }
 
     @Test
-    public void testNativeSignalsIgnore() throws Exception {
+    void testNativeSignalsIgnore() throws Exception {
         Pty pty = EasyMock.createNiceMock(Pty.class);
         EasyMock.expect(pty.getAttr()).andReturn(new Attributes()).anyTimes();
         EasyMock.expect(pty.getSlaveInput())
@@ -55,7 +55,7 @@ public class PosixSysTerminalTest {
     }
 
     @Test
-    public void testNativeSignalsRegister() throws Exception {
+    void testNativeSignalsRegister() throws Exception {
         Pty pty = EasyMock.createNiceMock(Pty.class);
         EasyMock.expect(pty.getAttr()).andReturn(new Attributes()).anyTimes();
         EasyMock.expect(pty.getSlaveInput())
