@@ -78,3 +78,51 @@ jobs:
           MVX_HTTP_TIMEOUT: 300
         shell: cmd
         if: matrix.os == 'windows-latest'
+
+  native-image:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+        profile: [ native-image-jni, native-image-ffm ]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '25'
+          distribution: 'graalvm-community'
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-graalvm-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-graalvm-
+            ${{ runner.os }}-maven-
+
+      - name: Cache mvx tools
+        uses: actions/cache@v5
+        with:
+          path: ~/.mvx/tools
+          key: ${{ runner.os }}-mvx-tools-${{ hashFiles('.mvx/config.json5', '.mvx/mvx.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-mvx-tools-
+
+      - name: Build project
+        run: ./mvx mvn -B --no-transfer-progress install -DskipTests
+        env:
+          MVX_USE_SYSTEM_JAVA: true
+          MVX_PARALLEL_DOWNLOADS: 1
+          MVX_DOWNLOAD_TIMEOUT: 300
+          MVX_HTTP_TIMEOUT: 300
+
+      - name: Build and verify native image
+        run: ./mvx mvn -B --no-transfer-progress verify -pl graal -P${{ matrix.profile }}
+        env:
+          MVX_USE_SYSTEM_JAVA: true
+          MVX_PARALLEL_DOWNLOADS: 1
+          MVX_DOWNLOAD_TIMEOUT: 300
+          MVX_HTTP_TIMEOUT: 300
