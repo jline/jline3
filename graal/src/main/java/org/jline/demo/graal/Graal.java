@@ -67,7 +67,7 @@ public class Graal {
     private static void check() {
         try {
             TerminalProvider provider = null;
-            for (String name : new String[] {"ffm", "jni"}) {
+            for (String name : new String[] {"ffm", "jni", "exec"}) {
                 try {
                     provider = TerminalProvider.load(name);
                     break;
