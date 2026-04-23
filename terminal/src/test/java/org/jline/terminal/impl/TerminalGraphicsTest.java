@@ -157,31 +157,24 @@ class TerminalGraphicsTest {
         assertFalse(protocols.isEmpty());
     }
 
-    // TODO: Make this test actually test what docs imply (kitty support for ghostty)
     @Test
     void testGhosttyTerminalDetection() throws IOException {
-        // Test that Ghostty terminal type is recognized
         try (Terminal ghosttyTerminal = TerminalBuilder.builder()
                 .type("ghostty")
                 .streams(new ByteArrayInputStream(new byte[0]), new ByteArrayOutputStream())
                 .build()) {
 
-            // Kitty graphics should be supported for Ghostty
             KittyGraphics kittyGraphics = new KittyGraphics();
-            // Note: This test may not work in CI since it depends on environment variables
-            // but it verifies the terminal type detection logic
-
-            // Test that the protocol exists and can be instantiated
-            assertNotNull(kittyGraphics);
-            assertEquals(TerminalGraphics.Protocol.KITTY, kittyGraphics.getProtocol());
+            assertTrue(
+                    kittyGraphics.isSupported(ghosttyTerminal),
+                    "Kitty graphics should be supported for Ghostty terminal");
         }
     }
 
-    // TODO: Make this test actually test what docs imply (no kitty support for listed terminals)
     @Test
     void testBasicTerminalTypesSkipRuntimeDetection() throws IOException {
-        // Test that basic terminal types that don't support graphics skip runtime detection
         String[] basicTermTypes = {"dumb", "vt100", "vt102", "ansi"};
+        KittyGraphics kittyGraphics = new KittyGraphics();
 
         for (String termType : basicTermTypes) {
             try (Terminal terminal = TerminalBuilder.builder()
@@ -189,11 +182,7 @@ class TerminalGraphicsTest {
                     .streams(new ByteArrayInputStream(new byte[0]), new ByteArrayOutputStream())
                     .build()) {
 
-                // These terminals should not support Kitty graphics
-                KittyGraphics kittyGraphics = new KittyGraphics();
-                // The test verifies that the method can be called without hanging
-                // (actual support depends on environment, but runtime detection should be skipped)
-                assertNotNull(kittyGraphics);
+                assertFalse(kittyGraphics.isSupported(terminal), termType + " should not support Kitty graphics");
             }
         }
     }
