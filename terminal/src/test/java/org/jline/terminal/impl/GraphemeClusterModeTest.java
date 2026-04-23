@@ -440,6 +440,11 @@ class GraphemeClusterModeTest {
         assertTrue(terminal.getGraphemeClusterMode());
 
         responder.joinAndAssert();
+
+        // Verify probe emoji was erased (clr_eol = \033[K after each restore_cursor)
+        String output = masterOutput.toString(StandardCharsets.UTF_8);
+        assertTrue(output.contains("\033[K"), "Probe should erase emoji via clr_eol");
+
         terminal.close();
     }
 
