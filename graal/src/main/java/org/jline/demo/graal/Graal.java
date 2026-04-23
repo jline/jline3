@@ -67,6 +67,7 @@ public class Graal {
      * Verify that a terminal provider can be loaded and used.
      * This is used as a smoke test for native image builds.
      */
+    @SuppressWarnings("java:S106")
     private static void check() {
         try {
             TerminalProvider provider = null;
