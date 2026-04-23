@@ -291,6 +291,28 @@ class PosixCommandsTest {
     }
 
     @Test
+    void testTailNoTrailingNewline() throws Exception {
+        Path file = tempDir.resolve("test.txt");
+        Files.write(file, "a\nb\nc\nd\ne".getBytes());
+
+        PosixCommands.tail(context, new String[] {"tail", "-n", "2", "test.txt"});
+
+        String output = normalizeLineEndings(out.toString());
+        assertEquals("d\ne", output);
+    }
+
+    @Test
+    void testTailWithTrailingNewline() throws Exception {
+        Path file = tempDir.resolve("test.txt");
+        Files.write(file, "a\nb\nc\nd\ne\n".getBytes());
+
+        PosixCommands.tail(context, new String[] {"tail", "-n", "2", "test.txt"});
+
+        String output = normalizeLineEndings(out.toString());
+        assertEquals("d\ne\n", output);
+    }
+
+    @Test
     void testWcCommand() throws Exception {
         Path file = tempDir.resolve("test.txt");
         Files.write(file, "Line 1\nLine 2\nLine 3\n".getBytes());
