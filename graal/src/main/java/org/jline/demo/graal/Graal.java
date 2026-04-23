@@ -134,6 +134,7 @@ public class Graal {
         }
     }
 
+    @SuppressWarnings("java:S106")
     private static void check() {
         try {
             TerminalProvider provider = null;
