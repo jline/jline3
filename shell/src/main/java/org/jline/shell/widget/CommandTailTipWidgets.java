@@ -677,7 +677,6 @@ public class CommandTailTipWidgets {
         return out;
     }
 
-    @SuppressWarnings("deprecation")
     private List<AttributedString> compileOptionDescription(
             CommandDescription cmdDesc, String opt, int descriptionSize) {
         if (descriptionSize == 0 || !descriptionEnabled) {

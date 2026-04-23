@@ -11,7 +11,6 @@ package org.jline.shell.impl;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Comparator;
 
 import org.jline.shell.*;
 import org.jline.terminal.Terminal;
@@ -37,11 +36,6 @@ class IORedirectionTest {
         dispatcher = new DefaultCommandDispatcher(terminal);
         dispatcher.addGroup(new SimpleCommandGroup(
                 "test", new CatCommand(), new EchoCommand(), new ErrCommand(), new BothCommand()));
-    }
-
-    @AfterEach
-    void tearDown() throws IOException {
-        terminal.close();
     }
 
     /**
@@ -252,25 +246,14 @@ class IORedirectionTest {
     }
 
     @Test
-    void absoluteRedirectResolvesAgainstWorkingDirectory(@TempDir Path tempDir) throws Exception {
-        Path otherDir = Files.createTempDirectory("other");
-        try {
-            Path abs = otherDir.resolve("out.txt").toAbsolutePath();
-            dispatcher.session().setWorkingDirectory(tempDir);
-            dispatcher.execute("echo hello > " + abs);
-            assertTrue(Files.exists(abs), "File should be created at absolute path");
-            String content = Files.readString(abs);
-            assertTrue(content.trim().contains("hello"));
-        } finally {
-            // Clean up temp directory
-            try (var stream = Files.walk(otherDir)) {
-                stream.sorted(Comparator.reverseOrder()).forEach(p -> {
-                    try {
-                        Files.deleteIfExists(p);
-                    } catch (IOException ignored) {
-                    }
-                });
-            }
-        }
+    void absoluteRedirectResolvesAgainstWorkingDirectory(@TempDir Path tempDir, @TempDir Path otherDir)
+            throws Exception {
+        Path abs = otherDir.resolve("out.txt").toAbsolutePath();
+        dispatcher.session().setWorkingDirectory(tempDir);
+        Pipeline pipeline = Pipeline.of("echo hello").redirect(abs).build();
+        dispatcher.execute(pipeline);
+        assertTrue(Files.exists(abs), "File should be created at absolute path");
+        String content = Files.readString(abs);
+        assertTrue(content.trim().contains("hello"));
     }
 }
