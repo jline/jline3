@@ -334,53 +334,56 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
         Command cmd = (Command) resolved[0];
         String[] args = (String[]) resolved[1];
 
-        // Handle input redirection
-        InputStream originalIn = session.in();
-        InputStream inputRedirect = null;
-        Path inputSource = resolvePath(stage.inputSource());
-        if (inputSource != null) {
-            inputRedirect = Files.newInputStream(inputSource);
-            session.setIn(inputRedirect);
-        }
-
-        // If this stage pipes into the next, capture stdout instead of printing to terminal
         Operator op = stage.operator();
         boolean captureOutput = (op == Operator.PIPE || op == Operator.FLIP);
 
-        // Redirect streams before execution
+        InputStream originalIn = session.in();
         PrintStream originalOut = session.out();
         PrintStream originalErr = session.err();
+        InputStream inputRedirect = null;
         ByteArrayOutputStream capture = null;
         OutputStream redirectStream = null;
 
-        if (captureOutput) {
-            capture = new ByteArrayOutputStream();
-            session.setOut(new PrintStream(capture));
-        } else {
-            PrintStream[] outErr = {originalOut, originalErr};
-            redirectStream = setupRedirectStreams(op, resolvePath(stage.redirectTarget()), outErr);
-            if (redirectStream != null) {
-                session.setOut(outErr[0]);
-                session.setErr(outErr[1]);
-            }
-        }
-
-        Object lastResult;
-        String lastOutput;
         try {
-            lastResult = cmd.execute(session, args);
+            // Handle input redirection
+            Path inputSource = resolvePath(stage.inputSource());
+            if (inputSource != null) {
+                inputRedirect = Files.newInputStream(inputSource);
+                session.setIn(inputRedirect);
+            }
+
+            // Redirect streams before execution
             if (captureOutput) {
-                session.out().flush();
+                capture = new ByteArrayOutputStream();
+                session.setOut(new PrintStream(capture));
+            } else {
+                PrintStream[] outErr = {originalOut, originalErr};
+                redirectStream = setupRedirectStreams(op, resolvePath(stage.redirectTarget()), outErr);
+                if (redirectStream != null) {
+                    session.setOut(outErr[0]);
+                    session.setErr(outErr[1]);
+                }
             }
-            lastOutput = resolveOutputString(captureOutput ? capture : null, lastResult);
-            session.setLastExitCode(0);
-        } catch (Exception e) {
-            session.setLastExitCode(1);
-            lastResult = null;
-            lastOutput = null;
-            if (op != Operator.AND && op != Operator.OR && op != Operator.SEQUENCE) {
-                throw e;
+
+            Object lastResult;
+            String lastOutput;
+            try {
+                lastResult = cmd.execute(session, args);
+                if (captureOutput) {
+                    session.out().flush();
+                }
+                lastOutput = resolveOutputString(captureOutput ? capture : null, lastResult);
+                session.setLastExitCode(0);
+            } catch (Exception e) {
+                session.setLastExitCode(1);
+                lastResult = null;
+                lastOutput = null;
+                if (op != Operator.AND && op != Operator.OR && op != Operator.SEQUENCE) {
+                    throw e;
+                }
             }
+
+            return new Object[] {lastResult, lastOutput};
         } finally {
             session.setOut(originalOut);
             session.setErr(originalErr);
@@ -392,8 +395,6 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
                 inputRedirect.close();
             }
         }
-
-        return new Object[] {lastResult, lastOutput};
     }
 
     /**
@@ -424,41 +425,51 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
         String[][] argsArrays = new String[n][];
         resolveAllCommands(groupStages, flipArgs, pumps, commands, argsArrays);
 
-        // Set up input redirects (tracked for cleanup)
+        // Resource tracking for cleanup
         List<InputStream> inputRedirects = new ArrayList<>();
-        InputStream firstIn = setupInputRedirect(groupStages.get(0), session.in(), inputRedirects);
+        OutputStream redirectStream = null;
+        PrintStream[] outErr = {session.out(), session.err()};
+        Thread[] threads = new Thread[0];
 
-        // Set up last stage output/error redirection
-        boolean captureLastOutput = (lastGroupOp == Operator.PIPE || lastGroupOp == Operator.FLIP);
-        ByteArrayOutputStream lastCapture = captureLastOutput ? new ByteArrayOutputStream() : null;
-        PrintStream[] outErr = {captureLastOutput ? new PrintStream(lastCapture) : session.out(), session.err()};
-        OutputStream redirectStream = captureLastOutput
-                ? null
-                : setupRedirectStreams(lastGroupOp, resolvePath(lastGroupStage.redirectTarget()), outErr);
-
-        // Create per-stage sessions and start producer threads
-        CommandSession[] stageSessions =
-                createStageSessions(groupStages, pumps, firstIn, outErr[0], outErr[1], inputRedirects);
-        Thread[] threads = startProducers(commands, stageSessions, argsArrays);
-
-        // Run last stage in current thread
-        Object lastResult;
-        String lastOutput;
         try {
-            lastResult = commands[n - 1].execute(stageSessions[n - 1], argsArrays[n - 1]);
-            if (captureLastOutput) {
-                stageSessions[n - 1].out().flush();
+            // Set up input redirects
+            InputStream firstIn = setupInputRedirect(groupStages.get(0), session.in(), inputRedirects);
+
+            // Set up last stage output/error redirection
+            boolean captureLastOutput = (lastGroupOp == Operator.PIPE || lastGroupOp == Operator.FLIP);
+            ByteArrayOutputStream lastCapture = captureLastOutput ? new ByteArrayOutputStream() : null;
+            outErr =
+                    new PrintStream[] {captureLastOutput ? new PrintStream(lastCapture) : session.out(), session.err()};
+            redirectStream = captureLastOutput
+                    ? null
+                    : setupRedirectStreams(lastGroupOp, resolvePath(lastGroupStage.redirectTarget()), outErr);
+
+            // Create per-stage sessions and start producer threads
+            CommandSession[] stageSessions =
+                    createStageSessions(groupStages, pumps, firstIn, outErr[0], outErr[1], inputRedirects);
+            threads = startProducers(commands, stageSessions, argsArrays);
+
+            // Run last stage in current thread
+            Object lastResult;
+            String lastOutput;
+            try {
+                lastResult = commands[n - 1].execute(stageSessions[n - 1], argsArrays[n - 1]);
+                if (captureLastOutput) {
+                    stageSessions[n - 1].out().flush();
+                }
+                lastOutput = resolveOutputString(captureLastOutput ? lastCapture : null, lastResult);
+                session.setLastExitCode(0);
+            } catch (Exception e) {
+                session.setLastExitCode(1);
+                if (lastGroupOp == Operator.AND || lastGroupOp == Operator.OR || lastGroupOp == Operator.SEQUENCE) {
+                    lastResult = null;
+                    lastOutput = null;
+                } else {
+                    throw e;
+                }
             }
-            lastOutput = resolveOutputString(captureLastOutput ? lastCapture : null, lastResult);
-            session.setLastExitCode(0);
-        } catch (Exception e) {
-            session.setLastExitCode(1);
-            if (lastGroupOp == Operator.AND || lastGroupOp == Operator.OR || lastGroupOp == Operator.SEQUENCE) {
-                lastResult = null;
-                lastOutput = null;
-            } else {
-                throw e;
-            }
+
+            return new Object[] {lastResult, lastOutput};
         } finally {
             closePumps(pumps);
             joinProducers(threads);
@@ -468,8 +479,6 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
             }
             closeStreams(redirectStream, inputRedirects);
         }
-
-        return new Object[] {lastResult, lastOutput};
     }
 
     /**

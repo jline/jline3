@@ -11,6 +11,7 @@ package org.jline.shell.impl;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 
 import org.jline.shell.*;
 import org.jline.terminal.Terminal;
@@ -248,5 +249,28 @@ class IORedirectionTest {
         String content = Files.readString(expected);
         assertTrue(content.contains("stdout line"));
         assertTrue(content.contains("stderr line"));
+    }
+
+    @Test
+    void absoluteRedirectResolvesAgainstWorkingDirectory(@TempDir Path tempDir) throws Exception {
+        Path otherDir = Files.createTempDirectory("other");
+        try {
+            Path abs = otherDir.resolve("out.txt").toAbsolutePath();
+            dispatcher.session().setWorkingDirectory(tempDir);
+            dispatcher.execute("echo hello > " + abs);
+            assertTrue(Files.exists(abs), "File should be created at absolute path");
+            String content = Files.readString(abs);
+            assertTrue(content.trim().contains("hello"));
+        } finally {
+            // Clean up temp directory
+            try (var stream = Files.walk(otherDir)) {
+                stream.sorted(Comparator.reverseOrder()).forEach(p -> {
+                    try {
+                        Files.deleteIfExists(p);
+                    } catch (IOException ignored) {
+                    }
+                });
+            }
+        }
     }
 }
