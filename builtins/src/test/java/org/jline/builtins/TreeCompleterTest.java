@@ -10,6 +10,7 @@ package org.jline.builtins;
 
 import org.jline.builtins.Completers.TreeCompleter;
 import org.jline.reader.LineReader;
+import org.jline.reader.impl.ReaderTestSupport;
 import org.junit.jupiter.api.Test;
 
 import static org.jline.builtins.Completers.TreeCompleter.node;
