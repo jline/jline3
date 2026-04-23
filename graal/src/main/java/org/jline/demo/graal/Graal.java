@@ -8,12 +8,15 @@
  */
 package org.jline.demo.graal;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.nio.file.Paths;
 
 import org.jline.reader.LineReader;
 import org.jline.shell.Shell;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalExt;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
@@ -64,10 +67,11 @@ public class Graal {
      * Verify that a terminal provider can be loaded and used.
      * This is used as a smoke test for native image builds.
      */
+    @SuppressWarnings("java:S106")
     private static void check() {
         try {
             TerminalProvider provider = null;
-            for (String name : new String[] {"ffm", "jni"}) {
+            for (String name : new String[] {"ffm", "jni", "exec"}) {
                 try {
                     provider = TerminalProvider.load(name);
                     break;
@@ -78,6 +82,19 @@ public class Graal {
                 throw new IllegalStateException("No terminal provider found");
             }
             System.out.println("Provider loaded: " + provider.name());
+
+            for (SystemStream stream : SystemStream.values()) {
+                System.out.println("  " + stream + " is system stream: " + provider.isSystemStream(stream));
+            }
+
+            Terminal terminal = TerminalBuilder.builder()
+                    .name("check")
+                    .system(false)
+                    .streams(new ByteArrayInputStream(new byte[0]), new ByteArrayOutputStream())
+                    .build();
+            System.out.println("Terminal created: " + terminal.getName() + " (" + terminal.getType() + ")");
+            terminal.close();
+
             System.out.println("CHECK PASSED");
         } catch (Throwable t) {
             System.err.println("CHECK FAILED: " + t.getMessage());
