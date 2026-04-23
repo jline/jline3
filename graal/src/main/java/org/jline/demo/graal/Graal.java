@@ -8,6 +8,8 @@
  */
 package org.jline.demo.graal;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.nio.file.Paths;
 
 import org.jline.reader.LineReader;
@@ -15,6 +17,7 @@ import org.jline.shell.Shell;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.spi.TerminalExt;
+import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
 
@@ -78,6 +81,19 @@ public class Graal {
                 throw new IllegalStateException("No terminal provider found");
             }
             System.out.println("Provider loaded: " + provider.name());
+
+            for (SystemStream stream : SystemStream.values()) {
+                System.out.println("  " + stream + " is system stream: " + provider.isSystemStream(stream));
+            }
+
+            Terminal terminal = TerminalBuilder.builder()
+                    .name("check")
+                    .system(false)
+                    .streams(new ByteArrayInputStream(new byte[0]), new ByteArrayOutputStream())
+                    .build();
+            System.out.println("Terminal created: " + terminal.getName() + " (" + terminal.getType() + ")");
+            terminal.close();
+
             System.out.println("CHECK PASSED");
         } catch (Throwable t) {
             System.err.println("CHECK FAILED: " + t.getMessage());
