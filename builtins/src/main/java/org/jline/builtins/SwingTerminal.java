@@ -234,7 +234,12 @@ public class SwingTerminal extends LineDisciplineTerminal {
 
     /**
      * Disposes of the terminal resources.
+     *
+     * @deprecated Use {@link #close()} instead, which properly handles all cleanup
+     *     including disposing of resources. This method will be made package-private
+     *     or removed in a future major release.
      */
+    @Deprecated
     public void dispose() {
         if (inputThread != null) {
             inputThread.interrupt();

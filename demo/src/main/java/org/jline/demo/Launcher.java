@@ -111,7 +111,6 @@ public class Launcher {
             }
         } finally {
             terminal.close();
-            terminal.dispose();
             frame.dispose();
         }
     }
