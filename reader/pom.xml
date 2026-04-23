@@ -50,6 +50,11 @@
                         <goals>
                             <goal>test-jar</goal>
                         </goals>
+                        <configuration>
+                            <includes>
+                                <include>**/ReaderTestSupport*.class</include>
+                            </includes>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

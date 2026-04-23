@@ -24,7 +24,7 @@
 
     <properties>
         <automatic.module.name>org.jline.builtins</automatic.module.name>
-        <reader.test.jar>${project.basedir}/../reader/target/jline-reader-${project.version}-tests.jar</reader.test.jar>
+        <reader.test.jar>${maven.multiModuleProjectDirectory}/reader/target/jline-reader-${project.version}-tests.jar</reader.test.jar>
         <surefire.argLine>--add-opens java.base/java.io=org.jline.nativ --add-opens java.base/java.io=org.jline.terminal --patch-module org.jline.reader=${reader.test.jar} --add-reads org.jline.reader=ALL-UNNAMED</surefire.argLine>
     </properties>
 
