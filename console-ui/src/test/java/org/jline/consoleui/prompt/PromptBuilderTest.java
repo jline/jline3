@@ -17,7 +17,7 @@ import org.jline.consoleui.prompt.builder.PromptBuilder;
 import org.jline.terminal.TerminalBuilder;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SuppressWarnings("removal")
 class PromptBuilderTest {
@@ -95,7 +95,6 @@ class PromptBuilderTest {
                     .add()
                     .addPrompt();
 
-            assertNotNull(promptBuilder);
             promptBuilder
                     .createChoicePrompt()
                     .name("payment")
@@ -123,6 +122,7 @@ class PromptBuilderTest {
                     .addPrompt();
 
             List<PromptableElementIF> promptableElementList = promptBuilder.build();
+            assertEquals(5, promptableElementList.size());
         }
     }
 }
