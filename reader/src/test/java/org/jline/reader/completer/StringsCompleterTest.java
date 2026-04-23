@@ -19,9 +19,9 @@ import org.junit.jupiter.api.Test;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class StringsCompleterTest extends ReaderTestSupport {
+class StringsCompleterTest extends ReaderTestSupport {
     @Test
-    public void test1() throws Exception {
+    void test1() throws Exception {
         reader.setCompleter(new StringsCompleter("foo", "bar", "baz"));
 
         assertBuffer("foo ", new TestBuffer("f").tab());
@@ -32,7 +32,7 @@ public class StringsCompleterTest extends ReaderTestSupport {
     }
 
     @Test
-    public void escapeCharsNull() throws Exception {
+    void escapeCharsNull() throws Exception {
         DefaultParser dp = (DefaultParser) reader.getParser();
         dp.setEscapeChars(null);
         reader.setVariable(LineReader.ERRORS, 0);
@@ -46,7 +46,7 @@ public class StringsCompleterTest extends ReaderTestSupport {
     }
 
     @Test
-    public void escapeCharsEmpty() throws Exception {
+    void escapeCharsEmpty() throws Exception {
         DefaultParser dp = (DefaultParser) reader.getParser();
         dp.setEscapeChars(new char[] {});
         reader.setVariable(LineReader.ERRORS, 0);
@@ -60,7 +60,7 @@ public class StringsCompleterTest extends ReaderTestSupport {
     }
 
     @Test
-    public void escapeChars() throws Exception {
+    void escapeChars() throws Exception {
         DefaultParser dp = (DefaultParser) reader.getParser();
         dp.setEscapeChars(new char[] {'\\'});
         reader.setVariable(LineReader.ERRORS, 0);
@@ -74,7 +74,7 @@ public class StringsCompleterTest extends ReaderTestSupport {
     }
 
     @Test
-    public void middleQuotesEscapeCharsNull() throws Exception {
+    void middleQuotesEscapeCharsNull() throws Exception {
         DefaultParser dp = (DefaultParser) reader.getParser();
         dp.setEscapeChars(null);
         reader.setVariable(LineReader.ERRORS, 0);
@@ -86,7 +86,7 @@ public class StringsCompleterTest extends ReaderTestSupport {
     }
 
     @Test
-    public void middleQuotesEscapeChars() throws Exception {
+    void middleQuotesEscapeChars() throws Exception {
         DefaultParser dp = (DefaultParser) reader.getParser();
         dp.setEscapeChars(new char[] {'\\'});
         reader.setVariable(LineReader.ERRORS, 0);

@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Integration tests for List, Checkbox, and Choice prompts with simulated terminal input.
  */
-public class PrompterListExecutionTest {
+class PrompterListExecutionTest {
 
     @Test
     void testListPromptSelectFirstItem() throws Exception {

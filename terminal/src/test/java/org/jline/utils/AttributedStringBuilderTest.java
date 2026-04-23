@@ -8,20 +8,20 @@
  */
 package org.jline.utils;
 
-import java.util.Arrays;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class AttributedStringBuilderTest {
-    private static String TAB_SIZE_ERR_MSG = "Incorrect tab size";
+class AttributedStringBuilderTest {
+    private static final String TAB_SIZE_ERR_MSG = "Incorrect tab size";
 
     /**
      * Test single line with tabs in
      */
     @Test
-    public void testTabSize() {
+    void testTabSize() {
         AttributedStringBuilder sb;
         sb = new AttributedStringBuilder().tabs(4);
         sb.append("hello\tWorld");
@@ -31,11 +31,11 @@ public class AttributedStringBuilderTest {
         sb.append("hello\tWorld");
         assertEquals("hello     World", sb.toString(), TAB_SIZE_ERR_MSG);
 
-        sb = new AttributedStringBuilder().tabs(Arrays.asList(5));
+        sb = new AttributedStringBuilder().tabs(List.of(5));
         sb.append("hello\tWorld");
         assertEquals("hello     World", sb.toString(), TAB_SIZE_ERR_MSG);
 
-        sb = new AttributedStringBuilder().tabs(Arrays.asList(6, 13));
+        sb = new AttributedStringBuilder().tabs(List.of(6, 13));
         sb.append("one\ttwo\tthree\tfour");
         assertEquals("one   two    three  four", sb.toString(), TAB_SIZE_ERR_MSG);
     }
@@ -44,7 +44,7 @@ public class AttributedStringBuilderTest {
      * Test multiple lines with tabs in
      */
     @Test
-    public void testSplitLineTabSize() {
+    void testSplitLineTabSize() {
         AttributedStringBuilder sb;
         sb = new AttributedStringBuilder().tabs(4);
         sb.append("hello\n\tWorld");
@@ -64,7 +64,7 @@ public class AttributedStringBuilderTest {
     }
 
     @Test
-    public void testAppendToString() {
+    void testAppendToString() {
         AttributedStringBuilder sb;
         String expected = "";
         sb = new AttributedStringBuilder().tabs(4);
@@ -89,7 +89,7 @@ public class AttributedStringBuilderTest {
      * {@code null -> "null"}.
      */
     @Test
-    public void testAppendNullToString() {
+    void testAppendNullToString() {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         String expected = "";
 
@@ -107,7 +107,7 @@ public class AttributedStringBuilderTest {
     }
 
     @Test
-    public void testFromAnsiWithTabs() {
+    void testFromAnsiWithTabs() {
         AttributedStringBuilder sb;
         String expected = "";
         sb = new AttributedStringBuilder().tabs(4);
@@ -128,7 +128,7 @@ public class AttributedStringBuilderTest {
      * Test that tabs are not expanded in strings if tab size has not been set
      */
     @Test
-    public void testUnsetTabSize() {
+    void testUnsetTabSize() {
         AttributedStringBuilder sb;
         String expected = "";
         sb = new AttributedStringBuilder();
@@ -139,14 +139,14 @@ public class AttributedStringBuilderTest {
     }
 
     @Test
-    public void testChangingExistingTabSize() throws Exception {
+    void testChangingExistingTabSize() {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         sb.append("helloWorld");
         assertThrows(IllegalStateException.class, () -> sb.tabs(4));
     }
 
     @Test
-    public void testNegativeTabSize() throws Exception {
+    void testNegativeTabSize() {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         assertThrows(IllegalArgumentException.class, () -> sb.tabs(-1));
     }

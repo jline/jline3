@@ -19,14 +19,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-public class NonBlockingTest {
+class NonBlockingTest {
 
     @Test
-    public void testNonBlockingReaderOnNonBlockingStream() throws IOException {
+    void testNonBlockingReaderOnNonBlockingStream() throws IOException {
         NonBlockingInputStream nbis = new NonBlockingInputStream() {
-            int call = 0;
-            int idx = 0;
-            byte[] input = "中英字典".getBytes(StandardCharsets.UTF_8);
+            private int call = 0;
+            private int idx = 0;
+            private final byte[] input = "中英字典".getBytes(StandardCharsets.UTF_8);
 
             @Override
             public int read(long timeout, boolean isPeek) throws IOException {
@@ -60,13 +60,13 @@ public class NonBlockingTest {
     }
 
     @Test
-    public void testNonBlockingReaderBufferedWithNonBufferedInput() throws IOException {
+    void testNonBlockingReaderBufferedWithNonBufferedInput() throws IOException {
         NonBlockingInputStream nbis = new NonBlockingInputStream() {
-            int idx = 0;
-            byte[] input = "中英字典".getBytes(StandardCharsets.UTF_8);
+            private int idx = 0;
+            private final byte[] input = "中英字典".getBytes(StandardCharsets.UTF_8);
 
             @Override
-            public int read(long timeout, boolean isPeek) throws IOException {
+            public int read(long timeout, boolean isPeek) {
                 if (idx < input.length) {
                     return input[idx++] & 0x00FF;
                 } else {
@@ -87,13 +87,13 @@ public class NonBlockingTest {
     }
 
     @Test
-    public void testNonBlockingReaderBufferedWithBufferedInput() throws IOException {
+    void testNonBlockingReaderBufferedWithBufferedInput() throws IOException {
         NonBlockingInputStream nbis = new NonBlockingInputStream() {
-            int idx = 0;
-            byte[] input = "中英字典".getBytes(StandardCharsets.UTF_8);
+            private int idx = 0;
+            private final byte[] input = "中英字典".getBytes(StandardCharsets.UTF_8);
 
             @Override
-            public int read(long timeout, boolean isPeek) throws IOException {
+            public int read(long timeout, boolean isPeek) {
                 if (idx < input.length) {
                     return input[idx++] & 0x00FF;
                 } else {
@@ -102,7 +102,7 @@ public class NonBlockingTest {
             }
 
             @Override
-            public int readBuffered(byte[] b, int off, int len, long timeout) throws IOException {
+            public int readBuffered(byte[] b, int off, int len, long timeout) {
                 int i = 0;
                 while (i < len && idx < input.length) {
                     b[off + i++] = input[idx++];
@@ -120,7 +120,7 @@ public class NonBlockingTest {
     }
 
     @Test
-    public void testNonBlockingPumpReader() throws IOException {
+    void testNonBlockingPumpReader() throws IOException {
         NonBlockingPumpReader nbr = NonBlocking.nonBlockingPumpReader();
         Writer writer = nbr.getWriter();
 
@@ -146,7 +146,7 @@ public class NonBlockingTest {
     }
 
     @Test
-    public void testNonBlockStreamOnReader() throws IOException {
+    void testNonBlockStreamOnReader() throws IOException {
         NonBlockingPumpReader reader = NonBlocking.nonBlockingPumpReader();
         NonBlockingInputStream is = NonBlocking.nonBlockingStream(reader, StandardCharsets.UTF_8);
 

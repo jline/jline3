@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.jline.shell.*;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -24,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for signal handling in {@link DefaultCommandDispatcher}.
  */
-public class SignalHandlingTest {
+class SignalHandlingTest {
 
     private Terminal terminal;
     private DefaultCommandDispatcher dispatcher;
@@ -34,6 +35,19 @@ public class SignalHandlingTest {
         terminal = TerminalBuilder.builder().dumb(true).build();
         dispatcher = new DefaultCommandDispatcher(terminal);
         dispatcher.addGroup(new SimpleCommandGroup("test", new SleepCommand(), new EchoCommand()));
+    }
+
+    @AfterEach
+    void tearDown() throws IOException {
+        try {
+            if (terminal != null) {
+                terminal.close();
+            }
+        } finally {
+            if (dispatcher != null) {
+                dispatcher.close();
+            }
+        }
     }
 
     static class SleepCommand extends AbstractCommand {
@@ -75,7 +89,9 @@ public class SignalHandlingTest {
                 if (e instanceof InterruptedException
                         || (e.getCause() != null && e.getCause() instanceof InterruptedException)) {
                     interrupted.set(true);
+                    return;
                 }
+                throw new RuntimeException(e);
             }
         });
         execThread.start();

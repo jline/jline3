@@ -9,6 +9,7 @@
 package org.jline.builtins;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
@@ -23,9 +24,9 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class CommandsTest {
+class CommandsTest {
     @Test
-    public void testHistoryForFileWithMoreHistoryRecordsThanAtHistoryFileSize() {
+    void testHistoryForFileWithMoreHistoryRecordsThanAtHistoryFileSize() {
         try {
             final ByteArrayOutputStream os = new ByteArrayOutputStream();
             final File tmpHistoryFile =
@@ -43,22 +44,24 @@ public class CommandsTest {
                         + "1536743115431:!/ 8\n");
                 bw.flush();
             }
-            Terminal terminal =
-                    TerminalBuilder.builder().streams(System.in, System.out).build();
-            terminal.setSize(new Size(50, 30));
-            final History historyFromFile = new DefaultHistory();
-            final LineReaderBuilder lineReaderBuilder = LineReaderBuilder.builder()
-                    .terminal(terminal)
-                    .variable(LineReader.HISTORY_FILE, tmpHistoryFile.getAbsolutePath())
-                    .history(historyFromFile);
-            final LineReader lineReader = lineReaderBuilder.build();
-            historyFromFile.attach(lineReader);
-            final int maxLines = 3;
-            lineReader.setVariable(LineReader.HISTORY_FILE_SIZE, maxLines);
-            lineReader.getHistory().save();
-            PrintStream out = new PrintStream(os, false);
-            Commands.history(lineReader, out, out, Paths.get(""), new String[] {"-d"});
-            assertEquals(maxLines + 1, os.toString("UTF8").split("\\s+\\d{2}:\\d{2}:\\d{2}\\s+").length);
+            try (Terminal terminal =
+                    TerminalBuilder.builder().streams(System.in, System.out).build()) {
+                terminal.setSize(new Size(50, 30));
+                final History historyFromFile = new DefaultHistory();
+                final LineReaderBuilder lineReaderBuilder = LineReaderBuilder.builder()
+                        .terminal(terminal)
+                        .variable(LineReader.HISTORY_FILE, tmpHistoryFile.getAbsolutePath())
+                        .history(historyFromFile);
+                final LineReader lineReader = lineReaderBuilder.build();
+                historyFromFile.attach(lineReader);
+                final int maxLines = 3;
+                lineReader.setVariable(LineReader.HISTORY_FILE_SIZE, maxLines);
+                lineReader.getHistory().save();
+                PrintStream out = new PrintStream(os, false);
+                Commands.history(lineReader, out, out, Paths.get(""), new String[] {"-d"});
+                assertEquals(
+                        maxLines + 1, os.toString(StandardCharsets.UTF_8).split("\\s+\\d{2}:\\d{2}:\\d{2}\\s+").length);
+            }
         } catch (Exception e) {
             throw new RuntimeException("Test failed", e);
         }

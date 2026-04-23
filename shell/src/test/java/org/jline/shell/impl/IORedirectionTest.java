@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import org.jline.shell.*;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -24,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for I/O redirection operators (INPUT_REDIRECT, STDERR_REDIRECT, COMBINED_REDIRECT).
  */
-public class IORedirectionTest {
+class IORedirectionTest {
 
     private Terminal terminal;
     private DefaultCommandDispatcher dispatcher;
@@ -34,6 +35,19 @@ public class IORedirectionTest {
         terminal = TerminalBuilder.builder().dumb(true).build();
         dispatcher = new DefaultCommandDispatcher(terminal);
         dispatcher.addGroup(new SimpleCommandGroup("test", new CatCommand(), new ErrCommand(), new BothCommand()));
+    }
+
+    @AfterEach
+    void tearDown() throws IOException {
+        try {
+            if (terminal != null) {
+                terminal.close();
+            }
+        } finally {
+            if (dispatcher != null) {
+                dispatcher.close();
+            }
+        }
     }
 
     /**

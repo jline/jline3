@@ -23,7 +23,7 @@ import org.junit.jupiter.api.condition.OS;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class JniTerminalProviderTest {
+class JniTerminalProviderTest {
 
     @Test
     void testIsSystemStream() {
@@ -37,7 +37,7 @@ public class JniTerminalProviderTest {
         PipedInputStream pis = new PipedInputStream(pos);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        Terminal terminal = new JniTerminalProvider()
+        try (Terminal terminal = new JniTerminalProvider()
                 .newTerminal(
                         "name",
                         "xterm",
@@ -49,7 +49,8 @@ public class JniTerminalProviderTest {
                         Terminal.SignalHandler.SIG_DFL,
                         true,
                         null,
-                        null);
-        assertNotNull(terminal);
+                        null)) {
+            assertNotNull(terminal);
+        }
     }
 }

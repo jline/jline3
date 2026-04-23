@@ -33,10 +33,10 @@ import static org.jline.utils.InfoCmp.Capability.exit_ca_mode;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class DisplayTest {
+class DisplayTest {
 
     @Test
-    public void i737() throws IOException {
+    void i737() throws IOException {
         int rows = 10;
         int cols = 25;
         try (VirtualTerminal terminal = new VirtualTerminal("jline", "xterm", StandardCharsets.UTF_8, cols, rows)) {
@@ -82,7 +82,7 @@ public class DisplayTest {
         private final ScreenTerminal virtual;
         private final OutputStream masterInputOutput;
 
-        public VirtualTerminal(String name, String type, Charset encoding, int cols, int rows) throws IOException {
+        VirtualTerminal(String name, String type, Charset encoding, int cols, int rows) throws IOException {
             super(name, type, new DelegateOutputStream(), encoding);
             setSize(new Size(cols, rows));
             virtual = new ScreenTerminal(cols, rows);
@@ -95,13 +95,13 @@ public class DisplayTest {
             };
         }
 
-        public long[] dump() {
+        long[] dump() {
             long[] screen = new long[size.getRows() * size.getColumns()];
             virtual.dump(screen, 0, 0, size.getRows(), size.getColumns(), null);
             return screen;
         }
 
-        public void resizeScreen(int cols, int rows) {
+        void resizeScreen(int cols, int rows) {
             virtual.setSize(cols, rows);
             setSize(new Size(cols, rows));
         }

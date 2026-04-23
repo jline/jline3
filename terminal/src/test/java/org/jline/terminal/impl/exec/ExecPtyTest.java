@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class ExecPtyTest {
+class ExecPtyTest {
 
     private final String linuxSttySample = "speed 38400 baud; rows 85; columns 244; line = 0;\n"
             + "intr = ^C; quit = ^\\; erase = ^?; kill = ^U; eof = ^D; eol = M-^?; eol2 = M-^?; swtch = M-^?; start = ^Q; stop = ^S; susp = ^Z; rprnt = ^R; werase = ^W; lnext = ^V; flush = ^O; min = 1; time = 0;\n"
@@ -124,7 +124,7 @@ public class ExecPtyTest {
             + "echoctl echoke -flusho -extproc";
 
     @Test
-    public void testParseSize() throws IOException {
+    void testParseSize() throws IOException {
         assertEquals(new Size(244, 85), ExecPty.doGetSize(linuxSttySample));
         assertEquals(new Size(244, 85), ExecPty.doGetSize(solarisSttySample));
         assertEquals(new Size(244, 85), ExecPty.doGetSize(aixSttySample));
@@ -136,7 +136,7 @@ public class ExecPtyTest {
     }
 
     @Test
-    public void testParseAttributesLinux() throws IOException {
+    void testParseAttributesLinux() throws IOException {
         Attributes attributes = ExecPty.doGetAttr(linuxSttySample);
         // -ignbrk brkint -ignpar -parmrk -inpck -istrip -inlcr -igncr icrnl ixon -ixoff -iuclc ixany imaxbel iutf8
         assertEquals(
@@ -184,7 +184,7 @@ public class ExecPtyTest {
     }
 
     @Test
-    public void testParseAttributesSolaris() throws IOException {
+    void testParseAttributesSolaris() throws IOException {
         Attributes attributes = ExecPty.doGetAttr(solarisSttySample);
         // -ignbrk brkint -ignpar -parmrk -inpck -istrip -inlcr -igncr icrnl -iuclc ixon ixany -ixoff imaxbel
         assertEquals(
@@ -227,7 +227,7 @@ public class ExecPtyTest {
     }
 
     @Test
-    public void testParseAttributesHpux() throws IOException {
+    void testParseAttributesHpux() throws IOException {
         Attributes attributes = ExecPty.doGetAttr(hpuxSttySample);
         // -ignbrk brkint ignpar -parmrk -inpck istrip -inlcr -igncr icrnl -iuclc ixon ixany -ixoff -imaxbel -rtsxoff
         // -ctsxon -ienqak

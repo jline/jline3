@@ -16,6 +16,7 @@ import java.util.Map;
 import org.jline.shell.*;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -25,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Integration tests for {@link DefaultCommandDispatcher}.
  */
-public class DefaultCommandDispatcherTest {
+class DefaultCommandDispatcherTest {
 
     private Terminal terminal;
     private DefaultCommandDispatcher dispatcher;
@@ -41,6 +42,19 @@ public class DefaultCommandDispatcherTest {
                 new UpperCommand(),
                 new NoopCommand(),
                 new ReverseCommand()));
+    }
+
+    @AfterEach
+    void tearDown() throws IOException {
+        try {
+            if (terminal != null) {
+                terminal.close();
+            }
+        } finally {
+            if (dispatcher != null) {
+                dispatcher.close();
+            }
+        }
     }
 
     // --- Fixture commands ---
@@ -245,13 +259,14 @@ public class DefaultCommandDispatcherTest {
     @Test
     void backgroundExecution() throws Exception {
         DefaultJobManager jobManager = new DefaultJobManager();
-        DefaultCommandDispatcher bgDispatcher = new DefaultCommandDispatcher(terminal, jobManager);
-        bgDispatcher.addGroup(new SimpleCommandGroup("test", new NoopCommand()));
-        bgDispatcher.execute("noop &");
-        // Give the background thread time to complete
-        Thread.sleep(200);
-        // Job should have been created
-        assertFalse(jobManager.jobs().isEmpty());
+        try (DefaultCommandDispatcher bgDispatcher = new DefaultCommandDispatcher(terminal, jobManager)) {
+            bgDispatcher.addGroup(new SimpleCommandGroup("test", new NoopCommand()));
+            bgDispatcher.execute("noop &");
+            // Give the background thread time to complete
+            Thread.sleep(200);
+            // Job should have been created
+            assertFalse(jobManager.jobs().isEmpty());
+        }
     }
 
     @Test

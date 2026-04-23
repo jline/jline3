@@ -23,97 +23,97 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * Tests for terminal encoding functionality.
  */
 @SuppressWarnings("missing-explicit-ctor")
-public class EncodingTest {
+class EncodingTest {
 
     /**
      * Test that the default encoding methods return the main encoding when no specific encodings are set.
      */
     @Test
-    public void testDefaultEncodings() throws IOException {
-        Terminal terminal = createTestTerminal(StandardCharsets.UTF_8, null, null, null);
-
-        assertEquals(StandardCharsets.UTF_8, terminal.encoding());
-        assertEquals(StandardCharsets.UTF_8, terminal.inputEncoding());
-        assertEquals(StandardCharsets.UTF_8, terminal.outputEncoding());
+    void testDefaultEncodings() throws IOException {
+        try (Terminal terminal = createTestTerminal(StandardCharsets.UTF_8, null, null, null)) {
+            assertEquals(StandardCharsets.UTF_8, terminal.encoding());
+            assertEquals(StandardCharsets.UTF_8, terminal.inputEncoding());
+            assertEquals(StandardCharsets.UTF_8, terminal.outputEncoding());
+        }
     }
 
     /**
      * Test that specific encodings are used when set.
      */
     @Test
-    public void testSpecificEncodings() throws IOException {
-        Terminal terminal = createTestTerminal(
+    void testSpecificEncodings() throws IOException {
+        try (Terminal terminal = createTestTerminal(
                 StandardCharsets.UTF_8,
                 StandardCharsets.ISO_8859_1,
                 StandardCharsets.UTF_16,
-                StandardCharsets.US_ASCII);
-
-        assertEquals(StandardCharsets.UTF_8, terminal.encoding());
-        assertEquals(StandardCharsets.ISO_8859_1, terminal.inputEncoding());
-        // Output encoding should use stdout encoding since this is not bound to stderr
-        assertEquals(StandardCharsets.UTF_16, terminal.outputEncoding());
+                StandardCharsets.US_ASCII)) {
+            assertEquals(StandardCharsets.UTF_8, terminal.encoding());
+            assertEquals(StandardCharsets.ISO_8859_1, terminal.inputEncoding());
+            // Output encoding should use stdout encoding since this is not bound to stderr
+            assertEquals(StandardCharsets.UTF_16, terminal.outputEncoding());
+        }
     }
 
     /**
      * Test that output encoding uses stderr encoding when terminal is bound to stderr.
      */
     @Test
-    public void testStderrOutputEncoding() throws IOException {
-        Terminal terminal = createTestTerminalWithSystemStream(
+    void testStderrOutputEncoding() throws IOException {
+        try (Terminal terminal = createTestTerminalWithSystemStream(
                 StandardCharsets.UTF_8,
                 StandardCharsets.ISO_8859_1,
                 StandardCharsets.UTF_16,
                 StandardCharsets.US_ASCII,
-                org.jline.terminal.spi.SystemStream.Error);
-
-        assertEquals(StandardCharsets.UTF_8, terminal.encoding());
-        assertEquals(StandardCharsets.ISO_8859_1, terminal.inputEncoding());
-        // Output encoding should use stderr encoding since this is bound to stderr
-        assertEquals(StandardCharsets.US_ASCII, terminal.outputEncoding());
+                org.jline.terminal.spi.SystemStream.Error)) {
+            assertEquals(StandardCharsets.UTF_8, terminal.encoding());
+            assertEquals(StandardCharsets.ISO_8859_1, terminal.inputEncoding());
+            // Output encoding should use stderr encoding since this is bound to stderr
+            assertEquals(StandardCharsets.US_ASCII, terminal.outputEncoding());
+        }
     }
 
     /**
      * Test that output encoding uses stdout encoding when terminal is bound to stdout.
      */
     @Test
-    public void testStdoutOutputEncoding() throws IOException {
-        Terminal terminal = createTestTerminalWithSystemStream(
+    void testStdoutOutputEncoding() throws IOException {
+        try (Terminal terminal = createTestTerminalWithSystemStream(
                 StandardCharsets.UTF_8,
                 StandardCharsets.ISO_8859_1,
                 StandardCharsets.UTF_16,
                 StandardCharsets.US_ASCII,
-                org.jline.terminal.spi.SystemStream.Output);
-
-        assertEquals(StandardCharsets.UTF_8, terminal.encoding());
-        assertEquals(StandardCharsets.ISO_8859_1, terminal.inputEncoding());
-        // Output encoding should use stdout encoding since this is bound to stdout
-        assertEquals(StandardCharsets.UTF_16, terminal.outputEncoding());
+                org.jline.terminal.spi.SystemStream.Output)) {
+            assertEquals(StandardCharsets.UTF_8, terminal.encoding());
+            assertEquals(StandardCharsets.ISO_8859_1, terminal.inputEncoding());
+            // Output encoding should use stdout encoding since this is bound to stdout
+            assertEquals(StandardCharsets.UTF_16, terminal.outputEncoding());
+        }
     }
 
     /**
      * Test that the TerminalBuilder correctly sets encodings.
      */
     @Test
-    public void testTerminalBuilderEncodings() throws IOException {
-        Terminal terminal = TerminalBuilder.builder()
+    void testTerminalBuilderEncodings() throws IOException {
+        try (Terminal terminal = TerminalBuilder.builder()
                 .dumb(true)
                 .encoding(StandardCharsets.UTF_8)
                 .stdinEncoding(StandardCharsets.ISO_8859_1)
                 .stdoutEncoding(StandardCharsets.UTF_16)
                 .stderrEncoding(StandardCharsets.US_ASCII)
-                .build();
-
-        assertEquals(StandardCharsets.UTF_8, terminal.encoding());
-        assertEquals(StandardCharsets.ISO_8859_1, terminal.inputEncoding());
-        // Output encoding should use stdout encoding since this is not bound to stderr
-        assertEquals(StandardCharsets.UTF_16, terminal.outputEncoding());
+                .build()) {
+            assertEquals(StandardCharsets.UTF_8, terminal.encoding());
+            assertEquals(StandardCharsets.ISO_8859_1, terminal.inputEncoding());
+            // Output encoding should use stdout encoding since this is not bound to stderr
+            assertEquals(StandardCharsets.UTF_16, terminal.outputEncoding());
+        }
     }
 
     /**
      * Test that JLine system properties are correctly used for encodings.
      */
     @Test
-    public void testJLineSystemPropertyEncodings() throws IOException {
+    void testJLineSystemPropertyEncodings() throws IOException {
         String oldEncoding = System.getProperty(TerminalBuilder.PROP_ENCODING);
         String oldStdinEncoding = System.getProperty(TerminalBuilder.PROP_STDIN_ENCODING);
         String oldStdoutEncoding = System.getProperty(TerminalBuilder.PROP_STDOUT_ENCODING);
@@ -125,12 +125,12 @@ public class EncodingTest {
             System.setProperty(TerminalBuilder.PROP_STDOUT_ENCODING, "UTF-16");
             System.setProperty(TerminalBuilder.PROP_STDERR_ENCODING, "US-ASCII");
 
-            Terminal terminal = TerminalBuilder.builder().dumb(true).build();
-
-            assertEquals(StandardCharsets.UTF_8, terminal.encoding());
-            assertEquals(StandardCharsets.ISO_8859_1, terminal.inputEncoding());
-            // Output encoding should use stdout encoding since this is not bound to stderr
-            assertEquals(StandardCharsets.UTF_16, terminal.outputEncoding());
+            try (Terminal terminal = TerminalBuilder.builder().dumb(true).build()) {
+                assertEquals(StandardCharsets.UTF_8, terminal.encoding());
+                assertEquals(StandardCharsets.ISO_8859_1, terminal.inputEncoding());
+                // Output encoding should use stdout encoding since this is not bound to stderr
+                assertEquals(StandardCharsets.UTF_16, terminal.outputEncoding());
+            }
         } finally {
             // Restore original system properties
             if (oldEncoding != null) {
@@ -163,7 +163,7 @@ public class EncodingTest {
      * Test that standard Java system properties are correctly used for encodings.
      */
     @Test
-    public void testStandardJavaSystemPropertyEncodings() throws IOException {
+    void testStandardJavaSystemPropertyEncodings() throws IOException {
         String oldStdinEncoding = System.getProperty("stdin.encoding");
         String oldStdoutEncoding = System.getProperty("stdout.encoding");
         String oldStderrEncoding = System.getProperty("stderr.encoding");
@@ -173,11 +173,11 @@ public class EncodingTest {
             System.setProperty("stdout.encoding", "UTF-16");
             System.setProperty("stderr.encoding", "US-ASCII");
 
-            Terminal terminal = TerminalBuilder.builder().dumb(true).build();
-
-            assertEquals(StandardCharsets.ISO_8859_1, terminal.inputEncoding());
-            // Output encoding should use stdout encoding since this is not bound to stderr
-            assertEquals(StandardCharsets.UTF_16, terminal.outputEncoding());
+            try (Terminal terminal = TerminalBuilder.builder().dumb(true).build()) {
+                assertEquals(StandardCharsets.ISO_8859_1, terminal.inputEncoding());
+                // Output encoding should use stdout encoding since this is not bound to stderr
+                assertEquals(StandardCharsets.UTF_16, terminal.outputEncoding());
+            }
         } finally {
             // Restore original system properties
             if (oldStdinEncoding != null) {
@@ -204,7 +204,7 @@ public class EncodingTest {
      * Test that JLine system properties take precedence over standard Java system properties.
      */
     @Test
-    public void testSystemPropertyPrecedence() throws IOException {
+    void testSystemPropertyPrecedence() throws IOException {
         String oldJLineStdinEncoding = System.getProperty(TerminalBuilder.PROP_STDIN_ENCODING);
         String oldJLineStdoutEncoding = System.getProperty(TerminalBuilder.PROP_STDOUT_ENCODING);
         String oldJLineStderrEncoding = System.getProperty(TerminalBuilder.PROP_STDERR_ENCODING);
@@ -221,12 +221,12 @@ public class EncodingTest {
             System.setProperty("stdout.encoding", "UTF-8");
             System.setProperty("stderr.encoding", "UTF-8");
 
-            Terminal terminal = TerminalBuilder.builder().dumb(true).build();
-
-            // JLine properties should take precedence
-            assertEquals(StandardCharsets.ISO_8859_1, terminal.inputEncoding());
-            // Output encoding should use stdout encoding since this is not bound to stderr
-            assertEquals(StandardCharsets.UTF_16, terminal.outputEncoding());
+            try (Terminal terminal = TerminalBuilder.builder().dumb(true).build()) {
+                // JLine properties should take precedence
+                assertEquals(StandardCharsets.ISO_8859_1, terminal.inputEncoding());
+                // Output encoding should use stdout encoding since this is not bound to stderr
+                assertEquals(StandardCharsets.UTF_16, terminal.outputEncoding());
+            }
         } finally {
             // Restore original system properties
             if (oldJLineStdinEncoding != null) {
@@ -271,7 +271,7 @@ public class EncodingTest {
      * Test that the compute methods in TerminalBuilder work correctly.
      */
     @Test
-    public void testComputeEncodings() {
+    void testComputeEncodings() {
         TerminalBuilder builder = TerminalBuilder.builder()
                 .encoding(StandardCharsets.UTF_8)
                 .stdinEncoding(StandardCharsets.ISO_8859_1)
@@ -288,7 +288,7 @@ public class EncodingTest {
      * Test that the compute methods in TerminalBuilder fall back correctly.
      */
     @Test
-    public void testComputeEncodingsFallback() {
+    void testComputeEncodingsFallback() {
         TerminalBuilder builder = TerminalBuilder.builder().encoding(StandardCharsets.UTF_8);
 
         String stdin = System.clearProperty("stdin.encoding");

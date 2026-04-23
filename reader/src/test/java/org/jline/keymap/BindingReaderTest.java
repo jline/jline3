@@ -10,6 +10,7 @@ package org.jline.keymap;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
@@ -22,20 +23,21 @@ import org.jline.reader.impl.ReaderTestSupport.EofPipedInputStream;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-public class BindingReaderTest {
+class BindingReaderTest {
 
     protected Terminal terminal;
     protected EofPipedInputStream in;
     protected ByteArrayOutputStream out;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    void setUp() throws Exception {
         Handler ch = new ConsoleHandler();
         ch.setLevel(Level.FINEST);
         Logger logger = Logger.getLogger("org.jline");
@@ -49,8 +51,15 @@ public class BindingReaderTest {
         terminal.setSize(new Size(160, 80));
     }
 
+    @AfterEach
+    void tearDown() throws IOException {
+        if (terminal != null) {
+            terminal.close();
+        }
+    }
+
     @Test
-    public void testBindingReaderNoUnicode() {
+    void testBindingReaderNoUnicode() {
         in.setIn(new ByteArrayInputStream("\uD834\uDD21abc".getBytes(StandardCharsets.UTF_8)));
         BindingReader reader = new BindingReader(terminal.reader());
         KeyMap<Binding> keyMap = new KeyMap<>();
@@ -61,7 +70,7 @@ public class BindingReaderTest {
     }
 
     @Test
-    public void testBindingReaderUnicode() {
+    void testBindingReaderUnicode() {
         in.setIn(new ByteArrayInputStream("\uD834\uDD21abc".getBytes(StandardCharsets.UTF_8)));
         BindingReader reader = new BindingReader(terminal.reader());
         KeyMap<Binding> keyMap = new KeyMap<>();
@@ -75,7 +84,7 @@ public class BindingReaderTest {
     }
 
     @Test
-    public void testBindingReaderReadString() {
+    void testBindingReaderReadString() {
         in.setIn(new ByteArrayInputStream("\uD834\uDD21abc0123456789defg".getBytes(StandardCharsets.UTF_8)));
         BindingReader reader = new BindingReader(terminal.reader());
         String str = reader.readStringUntil("fg");

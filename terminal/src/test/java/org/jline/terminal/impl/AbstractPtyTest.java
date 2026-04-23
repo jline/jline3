@@ -12,10 +12,10 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class AbstractPtyTest {
+class AbstractPtyTest {
 
     @Test
-    public void testDescriptor() {
+    void testDescriptor() {
         assertNotNull(AbstractPty.newDescriptor(4));
     }
 }

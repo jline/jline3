@@ -33,7 +33,7 @@ import org.jline.utils.AttributedStyle;
 import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("removal")
-public class Issue1025 {
+class Issue1025 {
 
     private static void addInHeader(List<AttributedString> header, String text) {
         addInHeader(header, AttributedStyle.DEFAULT, text);
@@ -197,15 +197,11 @@ public class Issue1025 {
         }
     }
 
-    public static class EofPipedInputStream extends InputStream {
+    static class EofPipedInputStream extends InputStream {
 
         private InputStream in;
 
-        public InputStream getIn() {
-            return in;
-        }
-
-        public void setIn(InputStream in) {
+        void setIn(InputStream in) {
             this.in = in;
         }
 

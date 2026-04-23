@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for {@link DefaultLineExpander}.
  */
-public class DefaultLineExpanderTest {
+class DefaultLineExpanderTest {
 
     private DefaultLineExpander expander;
     private CommandSession session;

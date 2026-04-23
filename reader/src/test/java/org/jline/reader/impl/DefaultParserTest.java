@@ -15,10 +15,10 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class DefaultParserTest {
+class DefaultParserTest {
 
     @Test
-    public void testEscapedWord() {
+    void testEscapedWord() {
         DefaultParser parser = new DefaultParser();
         CompletingParsedLine line = (CompletingParsedLine) parser.parse("foo second\\ param \"quoted param\"", 15);
         assertNotNull(line);
@@ -33,7 +33,7 @@ public class DefaultParserTest {
     }
 
     @Test
-    public void testQuotedWord() {
+    void testQuotedWord() {
         DefaultParser parser = new DefaultParser();
         CompletingParsedLine line = (CompletingParsedLine) parser.parse("foo second\\ param \"quoted param\"", 20);
         assertNotNull(line);
@@ -48,7 +48,7 @@ public class DefaultParserTest {
     }
 
     @Test
-    public void testCommand() {
+    void testCommand() {
         DefaultParser parser = new DefaultParser();
         assertEquals("command", parser.getCommand("variable=command"));
         assertEquals("command", parser.getCommand("variable.key=command"));
@@ -58,7 +58,7 @@ public class DefaultParserTest {
     }
 
     @Test
-    public void testVariable() {
+    void testVariable() {
         DefaultParser parser = new DefaultParser();
         assertEquals("variable", parser.getVariable("variable=command"));
         assertEquals("variable.key", parser.getVariable("variable.key=command"));
@@ -67,7 +67,7 @@ public class DefaultParserTest {
     }
 
     @Test
-    public void testSplitLine() {
+    void testSplitLine() {
         DefaultParser parser = new DefaultParser();
         CompletingParsedLine line =
                 (CompletingParsedLine) parser.parse("foo second\\ param \"quoted param\"", 0, ParseContext.SPLIT_LINE);

@@ -18,10 +18,10 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class CandidateCustomSortTest extends ReaderTestSupport {
+class CandidateCustomSortTest extends ReaderTestSupport {
 
     @Test
-    public void testCandidatesSortedByValue() {
+    void testCandidatesSortedByValue() {
         List<Candidate> candidates = Arrays.asList(
                 new Candidate("cand3", "cand3", null, null, null, null, true),
                 new Candidate("cand1", "cand1", null, null, null, null, true),
@@ -34,7 +34,7 @@ public class CandidateCustomSortTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testCandidatesSortedBySortProperty() {
+    void testCandidatesSortedBySortProperty() {
         List<Candidate> candidates = Arrays.asList(
                 new Candidate("cand3", "cand3", null, null, null, null, true, 3),
                 new Candidate("cand1", "cand1", null, null, null, null, true, 1),
@@ -47,7 +47,7 @@ public class CandidateCustomSortTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testCandidatesSortedByValueAndSortProperty() {
+    void testCandidatesSortedByValueAndSortProperty() {
         List<Candidate> candidates = Arrays.asList(
                 new Candidate("cand3", "cand3", null, null, null, null, true, -3),
                 new Candidate("aaa", "cand1", null, null, null, null, true),
@@ -60,7 +60,7 @@ public class CandidateCustomSortTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testCandidatesSortedByCornerSortProps() {
+    void testCandidatesSortedByCornerSortProps() {
         List<Candidate> candidates = Arrays.asList(
                 new Candidate("cand1", "cand1", null, null, null, null, true, 1),
                 new Candidate("cand2", "cand2", null, null, null, null, true, Integer.MAX_VALUE),
@@ -73,7 +73,7 @@ public class CandidateCustomSortTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testCompletionSort() throws Exception {
+    void testCompletionSort() throws Exception {
         reader.setCompleter((reader, line, candidates) -> {
             candidates.add(new Candidate("foo", "foo", null, null, null, null, true, 0));
             candidates.add(new Candidate("bar", "bar", null, null, null, null, true, 1));
@@ -83,7 +83,7 @@ public class CandidateCustomSortTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testCustomSortIdenticalSortValueGroups() {
+    void testCustomSortIdenticalSortValueGroups() {
         List<Candidate> candidates = Arrays.asList(
                 new Candidate("foo", "foo", null, null, null, null, true, 1),
                 new Candidate("bar", "bar", null, null, null, null, true, 1),
@@ -95,7 +95,7 @@ public class CandidateCustomSortTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testCustomSortIdenticalSortValue() {
+    void testCustomSortIdenticalSortValue() {
         List<Candidate> candidates = Arrays.asList(
                 new Candidate("foo", "foo", null, null, null, null, true, 1),
                 new Candidate("bar", "bar", null, null, null, null, true, 1),

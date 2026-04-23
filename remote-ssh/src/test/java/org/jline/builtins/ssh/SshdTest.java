@@ -21,7 +21,7 @@ import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.UserInterruptException;
 import org.junit.jupiter.api.Test;
 
-public class SshdTest {
+class SshdTest {
 
     @Test
     void test() throws Exception {
@@ -40,9 +40,7 @@ public class SshdTest {
                 while ((line = reader.readLine("sshTest > ")) != null) {
                     System.out.println(line);
                 }
-            } catch (UserInterruptException e) {
-                // Ignore
-            } catch (EndOfFileException e) {
+            } catch (UserInterruptException | EndOfFileException e) {
                 // Ignore
             } catch (Exception e) {
                 // ignore OTHER EXCEPTIONS

@@ -27,13 +27,13 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Test for using Nano with configuration loaded from the classpath.
  */
-public class NanoClasspathConfigTest {
+class NanoClasspathConfigTest {
 
     /**
      * Test class that simulates a command-line tool using Nano with classpath configuration.
      */
     static class NanoCommand {
-        public Integer doCall() throws Exception {
+        Integer doCall() throws Exception {
             Supplier<Path> workDir = () -> Paths.get(System.getProperty("user.dir"));
             try (Terminal terminal = createTestTerminal()) {
                 String[] argv = new String[] {"--ignorercfiles"}; // Ignore default config files
@@ -67,7 +67,7 @@ public class NanoClasspathConfigTest {
 
     @Test
     @Timeout(1)
-    public void testNanoWithClasspathConfig() throws Exception {
+    void testNanoWithClasspathConfig() throws Exception {
         NanoCommand command = new NanoCommand();
         Integer result = command.doCall();
         assertEquals(0, result, "Command should execute successfully");
@@ -76,7 +76,7 @@ public class NanoClasspathConfigTest {
     /**
      * Helper method to get a Path from a classpath resource.
      */
-    static Path getResourcePath(String name) throws IOException, URISyntaxException {
+    private static Path getResourcePath(String name) throws IOException, URISyntaxException {
         return ClasspathResourceUtil.getResourcePath(name, NanoClasspathConfigTest.class);
     }
 }

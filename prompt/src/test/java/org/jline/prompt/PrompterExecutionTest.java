@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Integration tests that actually execute the Prompter.prompt() method
  * with simulated terminal input and verify the results.
  */
-public class PrompterExecutionTest {
+class PrompterExecutionTest {
 
     @Test
     void testInputPromptWithSimpleText() throws Exception {
@@ -58,7 +58,7 @@ public class PrompterExecutionTest {
         assertTrue(results.containsKey("username"));
 
         PromptResult<?> result = results.get("username");
-        assertTrue(result instanceof InputResult);
+        assertInstanceOf(InputResult.class, result);
 
         InputResult inputResult = (InputResult) result;
         assertEquals("John", inputResult.getInput());

@@ -19,10 +19,10 @@ import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.junit.jupiter.api.Test;
 
-public class OptionCompleterTest extends ReaderTestSupport {
+class OptionCompleterTest extends ReaderTestSupport {
 
     @Test
-    public void testOptions() throws Exception {
+    void testOptions() throws Exception {
         List<Completer> argsCompleters = new ArrayList<>();
         List<OptDesc> options = new ArrayList<>();
         argsCompleters.add(new StringsCompleter("bar", "rab"));

@@ -14,10 +14,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  */
-public class AnsiStringTest {
+class AnsiStringTest {
 
     @Test
-    public void testCursorPosition() {
+    void testCursorPosition() {
         Ansi ansi = Ansi.ansi().cursor(3, 6).reset();
         assertEquals("\u001B[3;6H\u001B[m", ansi.toString());
     }

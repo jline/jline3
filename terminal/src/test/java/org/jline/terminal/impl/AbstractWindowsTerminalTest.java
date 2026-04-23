@@ -9,7 +9,6 @@
 package org.jline.terminal.impl;
 
 import java.io.BufferedWriter;
-import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.charset.Charset;
 
@@ -21,14 +20,14 @@ import org.junit.jupiter.api.Test;
 import static org.jline.terminal.impl.AbstractWindowsTerminal.TYPE_WINDOWS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class AbstractWindowsTerminalTest {
+class AbstractWindowsTerminalTest {
 
     @Test
-    public void testWriterBuffering() throws Exception {
+    void testWriterBuffering() throws Exception {
         System.setProperty("org.jline.terminal.conemu.disable-activate", "true");
         StringWriter sw = new StringWriter();
         Terminal terminal =
-                new AbstractWindowsTerminal<Object>(
+                new AbstractWindowsTerminal<>(
                         null,
                         null,
                         new AnsiWriter(new BufferedWriter(sw)),
@@ -60,7 +59,7 @@ public class AbstractWindowsTerminalTest {
                     }
 
                     @Override
-                    protected boolean processConsoleInput() throws IOException {
+                    protected boolean processConsoleInput() {
                         return false;
                     }
 

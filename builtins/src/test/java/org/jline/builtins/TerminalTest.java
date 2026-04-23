@@ -22,37 +22,41 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for WebTerminal and SwingTerminal implementations.
  */
-public class TerminalTest {
+class TerminalTest {
 
     private WebTerminal webTerminal;
     private SwingTerminal swingTerminal;
 
     @BeforeEach
-    public void setUp() throws IOException {
+    void setUp() throws IOException {
         // Create terminals with small sizes for testing
         webTerminal = new WebTerminal("localhost", 0, 20, 10); // Port 0 = random available port
         swingTerminal = new SwingTerminal(20, 10);
     }
 
     @AfterEach
-    public void tearDown() {
-        if (webTerminal != null && webTerminal.isRunning()) {
-            webTerminal.stop();
+    void tearDown() throws IOException {
+        if (webTerminal != null) {
+            if (webTerminal.isRunning()) {
+                webTerminal.stop();
+            }
+            webTerminal.close();
         }
         if (swingTerminal != null) {
             swingTerminal.dispose();
+            swingTerminal.close();
         }
     }
 
     @Test
-    public void testWebTerminalCreation() {
+    void testWebTerminalCreation() {
         assertNotNull(webTerminal);
         assertFalse(webTerminal.isRunning());
         assertTrue(webTerminal.getUrl().startsWith("http://localhost:"));
     }
 
     @Test
-    public void testWebTerminalStartStop() throws IOException {
+    void testWebTerminalStartStop() throws IOException {
         assertFalse(webTerminal.isRunning());
 
         webTerminal.start();
@@ -63,7 +67,7 @@ public class TerminalTest {
     }
 
     @Test
-    public void testWebTerminalWriteAndRead() {
+    void testWebTerminalWriteAndRead() {
         webTerminal.write("Hello, World!");
         String output = webTerminal.read();
         // read() returns escape sequences, not the original text
@@ -71,7 +75,7 @@ public class TerminalTest {
     }
 
     @Test
-    public void testWebTerminalPipe() {
+    void testWebTerminalPipe() {
         String input = "test input";
         String piped = webTerminal.pipe(input);
         assertNotNull(piped);
@@ -79,7 +83,7 @@ public class TerminalTest {
     }
 
     @Test
-    public void testWebTerminalSpecialKeys() {
+    void testWebTerminalSpecialKeys() {
         // Test special key handling - pipe method processes input
         String arrowUp = webTerminal.pipe("~A");
         // The pipe method should process the special key sequence
@@ -93,7 +97,7 @@ public class TerminalTest {
     }
 
     @Test
-    public void testSwingTerminalCreation() {
+    void testSwingTerminalCreation() {
         assertNotNull(swingTerminal);
         assertNotNull(swingTerminal.getComponent());
 
@@ -103,11 +107,10 @@ public class TerminalTest {
     }
 
     @Test
-    public void testSwingTerminalComponent() {
+    void testSwingTerminalComponent() {
         SwingTerminal.TerminalComponent component = swingTerminal.getComponent();
 
         // Test font setting
-        Font originalFont = component.getTerminalFont();
         Font newFont = new Font(Font.MONOSPACED, Font.BOLD, 16);
         component.setTerminalFont(newFont);
         assertEquals(newFont, component.getTerminalFont());
@@ -119,7 +122,7 @@ public class TerminalTest {
     }
 
     @Test
-    public void testSwingTerminalInput() {
+    void testSwingTerminalInput() {
         SwingTerminal.TerminalComponent component = swingTerminal.getComponent();
 
         // Test that input queue is initially empty
@@ -130,7 +133,7 @@ public class TerminalTest {
     }
 
     @Test
-    public void testSwingTerminalWriteAndDisplay() {
+    void testSwingTerminalWriteAndDisplay() {
         swingTerminal.write("Hello, Swing Terminal!");
 
         // Verify that the terminal has been marked as dirty
@@ -154,7 +157,7 @@ public class TerminalTest {
     }
 
     @Test
-    public void testSwingTerminalFrame() {
+    void testSwingTerminalFrame() {
         // Skip this test in headless environments
         if (java.awt.GraphicsEnvironment.isHeadless()) {
             System.out.println("Skipping SwingTerminal frame test in headless environment");
@@ -176,7 +179,7 @@ public class TerminalTest {
     }
 
     @Test
-    public void testScreenTerminalBaseFunctionality() {
+    void testScreenTerminalBaseFunctionality() {
         // Test that both terminals inherit ScreenTerminal functionality
 
         // Test size setting
@@ -209,7 +212,7 @@ public class TerminalTest {
     }
 
     @Test
-    public void testAnsiColorSupport() {
+    void testAnsiColorSupport() {
         // Test ANSI color sequences
         String colorText = "\u001b[31mRed text\u001b[0m";
         webTerminal.write(colorText);
@@ -223,7 +226,7 @@ public class TerminalTest {
     }
 
     @Test
-    public void testCursorMovement() {
+    void testCursorMovement() {
         // Test cursor positioning
         webTerminal.write("Hello");
         webTerminal.write("\u001b[1;1H"); // Move cursor to position 1,1
@@ -245,7 +248,7 @@ public class TerminalTest {
     }
 
     @Test
-    public void testTerminalResizing() {
+    void testTerminalResizing() {
         // Test resizing functionality
         assertTrue(webTerminal.setSize(40, 20));
         swingTerminal.setSize(new Size(40, 20));
@@ -265,7 +268,7 @@ public class TerminalTest {
     }
 
     @Test
-    public void testInvalidSizes() {
+    void testInvalidSizes() {
         // Test that invalid sizes are rejected
         assertFalse(webTerminal.setSize(1, 10)); // Too small width
         assertFalse(webTerminal.setSize(10, 1)); // Too small height

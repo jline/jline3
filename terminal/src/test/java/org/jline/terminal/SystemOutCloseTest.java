@@ -20,10 +20,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Test for issue #1336 - System.out stops working after closing a dumb terminal.
  */
-public class SystemOutCloseTest {
+class SystemOutCloseTest {
 
     @Test
-    public void testSystemOutWorksAfterTerminalClose() throws IOException {
+    void testSystemOutWorksAfterTerminalClose() throws IOException {
         // Capture System.out to verify output
         PrintStream originalOut = System.out;
         ByteArrayOutputStream capturedOutput = new ByteArrayOutputStream();

@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class ColorPaletteTest {
+class ColorPaletteTest {
 
     /**
      * Custom DumbTerminal for testing that returns specific default colors
@@ -31,7 +31,7 @@ public class ColorPaletteTest {
         private final int defaultForeground;
         private final int defaultBackground;
 
-        public TestDumbTerminal(
+        TestDumbTerminal(
                 String name,
                 String type,
                 InputStream in,
@@ -57,7 +57,7 @@ public class ColorPaletteTest {
     }
 
     @Test
-    public void testDefaultColors() throws IOException {
+    void testDefaultColors() throws IOException {
         // Create a mock terminal that returns specific default colors
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);
@@ -77,7 +77,7 @@ public class ColorPaletteTest {
     }
 
     @Test
-    public void testNoDefaultColors() throws IOException {
+    void testNoDefaultColors() throws IOException {
         // Create a mock terminal that doesn't return default colors
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);
@@ -96,7 +96,7 @@ public class ColorPaletteTest {
     }
 
     @Test
-    public void testTerminalConvenienceMethods() throws IOException {
+    void testTerminalConvenienceMethods() throws IOException {
         // Create a mock terminal that returns specific default colors
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);

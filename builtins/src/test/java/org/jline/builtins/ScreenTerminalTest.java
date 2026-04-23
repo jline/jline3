@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for the {@link ScreenTerminal} class.
  */
-public class ScreenTerminalTest {
+class ScreenTerminalTest {
 
     // Helper: get cursor position as [x, y]
     private int[] getCursor(ScreenTerminal terminal) {
@@ -57,7 +57,7 @@ public class ScreenTerminalTest {
      * used {@code x0 < x1 - 1} instead of {@code x0 < x1}.
      */
     @Test
-    public void testFillSingleCell() {
+    void testFillSingleCell() {
         ScreenTerminal terminal = new ScreenTerminal(80, 24);
         terminal.write("A");
         // Move cursor back to column 0
@@ -74,7 +74,7 @@ public class ScreenTerminalTest {
      * partial fill of the first row.
      */
     @Test
-    public void testFillPreservesPartialFirstRow() {
+    void testFillPreservesPartialFirstRow() {
         ScreenTerminal terminal = new ScreenTerminal(10, 4);
         // Fill first row with 'A'
         terminal.write("AAAAAAAAAA");
@@ -97,7 +97,7 @@ public class ScreenTerminalTest {
      * must clamp to width-1, not cause ArrayIndexOutOfBoundsException.
      */
     @Test
-    public void testCursorClampedToWidth() {
+    void testCursorClampedToWidth() {
         ScreenTerminal terminal = new ScreenTerminal(80, 24);
         // CHA 999 = move cursor to column 999 (1-based)
         terminal.write("\033[999G");
@@ -114,7 +114,7 @@ public class ScreenTerminalTest {
      * Regression: (cx-1)/width produced -1 with Java's remainder operator.
      */
     @Test
-    public void testBackspaceAtColumnZero() {
+    void testBackspaceAtColumnZero() {
         ScreenTerminal terminal = new ScreenTerminal(80, 24);
         // Cursor starts at (0,0); send backspace
         terminal.write("\010");
@@ -129,7 +129,7 @@ public class ScreenTerminalTest {
      * Regression: only the last new row was filled (y1-1 instead of y1-i).
      */
     @Test
-    public void testScrollAreaUpMultipleLines() {
+    void testScrollAreaUpMultipleLines() {
         ScreenTerminal terminal = new ScreenTerminal(10, 5);
         // Fill all rows
         for (int i = 0; i < 5; i++) {
@@ -154,7 +154,7 @@ public class ScreenTerminalTest {
      * Regression: only width increases were handled (length < w guard).
      */
     @Test
-    public void testSetSizeWidthShrink() {
+    void testSetSizeWidthShrink() {
         ScreenTerminal terminal = new ScreenTerminal(80, 24);
         terminal.write("Hello, World!");
         terminal.setSize(40, 24);
@@ -176,7 +176,7 @@ public class ScreenTerminalTest {
      * Regression: cursor was restored without bounds checking after resize.
      */
     @Test
-    public void testDECRCClampsAfterResize() {
+    void testDECRCClampsAfterResize() {
         ScreenTerminal terminal = new ScreenTerminal(80, 24);
         // Move cursor to (row 20, col 70), 1-based
         terminal.write("\033[21;71H");
@@ -199,7 +199,7 @@ public class ScreenTerminalTest {
      * Same class of bug as DECRC, but via the SCP/RCP mechanism.
      */
     @Test
-    public void testCSI_RCP_ClampsAfterResize() {
+    void testCSI_RCP_ClampsAfterResize() {
         ScreenTerminal terminal = new ScreenTerminal(80, 24);
         // Move cursor to (row 20, col 70)
         terminal.write("\033[21;71H");
@@ -226,7 +226,7 @@ public class ScreenTerminalTest {
      * and reduce 8-bit channels to the 4-bit encoding.
      */
     @Test
-    public void testTrueColorForeground() throws InterruptedException {
+    void testTrueColorForeground() throws InterruptedException {
         ScreenTerminal terminal = new ScreenTerminal(80, 24);
         // Set foreground to RGB(255, 128, 0) = orange
         terminal.write("\033[38;2;255;128;0mX\033[0m");
@@ -237,7 +237,7 @@ public class ScreenTerminalTest {
     }
 
     @Test
-    public void testTrueColorBackground() throws InterruptedException {
+    void testTrueColorBackground() throws InterruptedException {
         ScreenTerminal terminal = new ScreenTerminal(80, 24);
         // Set background to RGB(0, 255, 128)
         terminal.write("\033[48;2;0;255;128mX\033[0m");
@@ -252,7 +252,7 @@ public class ScreenTerminalTest {
      * using opacity.
      */
     @Test
-    public void testDimAttribute() throws InterruptedException {
+    void testDimAttribute() throws InterruptedException {
         ScreenTerminal terminal = new ScreenTerminal(80, 24);
         // Set dim mode — default foreground is white (#ffffff = 0xfff in 12-bit)
         terminal.write("\033[2mX\033[0m");
@@ -267,7 +267,7 @@ public class ScreenTerminalTest {
      * SGR 3 (italic) must render as font-style:italic.
      */
     @Test
-    public void testItalicAttribute() throws InterruptedException {
+    void testItalicAttribute() throws InterruptedException {
         ScreenTerminal terminal = new ScreenTerminal(80, 24);
         terminal.write("\033[3mX\033[0m");
 
@@ -297,7 +297,7 @@ public class ScreenTerminalTest {
      * SGR 22 (normal intensity) must reset both bold and dim per ECMA-48.
      */
     @Test
-    public void testSGR22ResetsNormalIntensity() throws InterruptedException {
+    void testSGR22ResetsNormalIntensity() throws InterruptedException {
         ScreenTerminal terminal = new ScreenTerminal(80, 24);
         // Set bold + dim, then reset with SGR 22, then write
         terminal.write("\033[1;2m\033[22mX\033[0m");
@@ -312,7 +312,7 @@ public class ScreenTerminalTest {
      * SGR 23 must reset italic without affecting other attributes.
      */
     @Test
-    public void testSGR23ResetsItalicOnly() throws InterruptedException {
+    void testSGR23ResetsItalicOnly() throws InterruptedException {
         ScreenTerminal terminal = new ScreenTerminal(80, 24);
         // Set bold + italic, then reset italic only
         terminal.write("\033[1;3m\033[23mX\033[0m");
@@ -326,7 +326,7 @@ public class ScreenTerminalTest {
      * CSI 3J must clear the scrollback buffer.
      */
     @Test
-    public void testCSI3JClearsScrollback() throws InterruptedException {
+    void testCSI3JClearsScrollback() throws InterruptedException {
         ScreenTerminal terminal = new ScreenTerminal(10, 5);
         // Write enough lines to push content into scrollback
         for (int i = 0; i < 10; i++) {
@@ -342,7 +342,6 @@ public class ScreenTerminalTest {
         terminal.setSize(10, 8);
 
         String content = terminal.toString();
-        String[] lines = content.split("\n", -1);
         // The top lines (pulled from history) should be spaces if history was cleared
         // With empty scrollback, growing height adds blank lines at the bottom, not top
         // Just verify the content is consistent and no crash
@@ -360,7 +359,7 @@ public class ScreenTerminalTest {
      * Regression guard for the switch deduplication refactoring.
      */
     @Test
-    public void testPipeArrowKeysNormalMode() {
+    void testPipeArrowKeysNormalMode() {
         ScreenTerminal terminal = new ScreenTerminal(80, 24);
         // Normal mode (default): arrows use CSI (\033[)
         String result = terminal.pipe("~A~B~C~D~F~H");
@@ -368,7 +367,7 @@ public class ScreenTerminalTest {
     }
 
     @Test
-    public void testPipeArrowKeysCursorKeyMode() {
+    void testPipeArrowKeysCursorKeyMode() {
         ScreenTerminal terminal = new ScreenTerminal(80, 24);
         // Enable cursor key mode via DECCKM
         terminal.write("\033[?1h");
@@ -377,7 +376,7 @@ public class ScreenTerminalTest {
     }
 
     @Test
-    public void testPipeFunctionKeys() {
+    void testPipeFunctionKeys() {
         ScreenTerminal terminal = new ScreenTerminal(80, 24);
         // Function keys use the same sequences in both modes
         String result = terminal.pipe("~1~2~3~4~a~b~c~d~e~f~g~h~i~j~k~l");
@@ -389,7 +388,7 @@ public class ScreenTerminalTest {
     }
 
     @Test
-    public void testPipeTildeEscape() {
+    void testPipeTildeEscape() {
         ScreenTerminal terminal = new ScreenTerminal(80, 24);
         // ~~ should produce a single ~
         String result = terminal.pipe("~~");
@@ -405,7 +404,7 @@ public class ScreenTerminalTest {
      * restore the main screen content.
      */
     @Test
-    public void testAltScreenSwitchPreservesMainScreen() {
+    void testAltScreenSwitchPreservesMainScreen() {
         ScreenTerminal terminal = new ScreenTerminal(10, 5);
         // Write content on main screen
         terminal.write("MAIN");
@@ -433,7 +432,7 @@ public class ScreenTerminalTest {
      * Resizing while on the alt-screen must not corrupt the main screen.
      */
     @Test
-    public void testResizeOnAltScreen() {
+    void testResizeOnAltScreen() {
         ScreenTerminal terminal = new ScreenTerminal(10, 5);
         terminal.write("MAIN");
 
@@ -604,7 +603,7 @@ public class ScreenTerminalTest {
      * then false on subsequent call, then true again after write.
      */
     @Test
-    public void testDirtyFlag() {
+    void testDirtyFlag() {
         ScreenTerminal terminal = new ScreenTerminal(80, 24);
 
         assertTrue(terminal.isDirty(), "Should be dirty after construction");
@@ -695,18 +694,14 @@ public class ScreenTerminalTest {
      * adjusted to match the new width.
      */
     @Test
-    public void testHistoryLinesWidthAdjustmentOnResize() throws InterruptedException {
+    void testHistoryLinesWidthAdjustmentOnResize() throws InterruptedException {
         // Create a terminal with initial size
         int initialWidth = 80;
         int initialHeight = 24;
         ScreenTerminal terminal = new ScreenTerminal(initialWidth, initialHeight);
 
         // Fill the terminal with some content
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < initialWidth; i++) {
-            sb.append('X');
-        }
-        String line = sb.toString();
+        String line = "X".repeat(initialWidth);
 
         // Write enough content to push some lines into history
         for (int i = 0; i < initialHeight + 5; i++) {
@@ -734,18 +729,14 @@ public class ScreenTerminalTest {
      * filled with spaces rather than null characters.
      */
     @Test
-    public void testScreenLinesSpaceFillingOnWidthIncrease() throws InterruptedException {
+    void testScreenLinesSpaceFillingOnWidthIncrease() throws InterruptedException {
         // Create a terminal with initial size
         int initialWidth = 80;
         int initialHeight = 24;
         ScreenTerminal terminal = new ScreenTerminal(initialWidth, initialHeight);
 
         // Fill the terminal with some content
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < initialWidth; i++) {
-            sb.append('X');
-        }
-        String line = sb.toString();
+        String line = "X".repeat(initialWidth);
 
         // Write content to fill the screen
         for (int i = 0; i < initialHeight; i++) {
@@ -773,7 +764,7 @@ public class ScreenTerminalTest {
      * This test verifies that the terminal HTML dump method correctly outputs properties like fg/bg colors.
      */
     @Test
-    public void testHTMLDump() throws InterruptedException {
+    void testHTMLDump() throws InterruptedException {
         // Create a terminal with initial size
         int initialWidth = 80;
         int initialHeight = 24;

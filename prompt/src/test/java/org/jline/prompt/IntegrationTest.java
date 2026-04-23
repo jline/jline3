@@ -19,10 +19,11 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Integration test for the JLine Prompt API.
  */
-public class IntegrationTest {
+// TODO: Fix terminals created with TerminalBuilder.builder().system(false).build() NPE'ing when closed.
+class IntegrationTest {
 
     @Test
-    public void testBasicPromptCreation() throws Exception {
+    void testBasicPromptCreation() throws Exception {
         // Create a terminal (in test mode)
         Terminal terminal = TerminalBuilder.builder().system(false).build();
 
@@ -55,7 +56,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testFluentBuilderAPI() throws Exception {
+    void testFluentBuilderAPI() throws Exception {
         Terminal terminal = TerminalBuilder.builder().system(false).build();
 
         Prompter prompter = PrompterFactory.create(terminal);
@@ -132,7 +133,7 @@ public class IntegrationTest {
     }
 
     @Test
-    public void testPromptTypes() throws Exception {
+    void testPromptTypes() throws Exception {
         Terminal terminal = TerminalBuilder.builder().system(false).build();
 
         Prompter prompter = PrompterFactory.create(terminal);
@@ -178,16 +179,16 @@ public class IntegrationTest {
         assertEquals(6, prompts.size());
 
         // Verify prompt types
-        assertTrue(prompts.get(0) instanceof InputPrompt);
-        assertTrue(prompts.get(1) instanceof ListPrompt);
-        assertTrue(prompts.get(2) instanceof CheckboxPrompt);
-        assertTrue(prompts.get(3) instanceof ChoicePrompt);
-        assertTrue(prompts.get(4) instanceof ConfirmPrompt);
-        assertTrue(prompts.get(5) instanceof TextPrompt);
+        assertInstanceOf(InputPrompt.class, prompts.get(0));
+        assertInstanceOf(ListPrompt.class, prompts.get(1));
+        assertInstanceOf(CheckboxPrompt.class, prompts.get(2));
+        assertInstanceOf(ChoicePrompt.class, prompts.get(3));
+        assertInstanceOf(ConfirmPrompt.class, prompts.get(4));
+        assertInstanceOf(TextPrompt.class, prompts.get(5));
     }
 
     @Test
-    public void testNoResultSingleton() {
+    void testNoResultSingleton() {
         NoResult instance1 = NoResult.INSTANCE;
         NoResult instance2 = NoResult.INSTANCE;
 

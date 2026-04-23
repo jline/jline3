@@ -22,10 +22,10 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for the DoubleSizeCharacters utility class.
  */
-public class DoubleSizeCharactersTest {
+class DoubleSizeCharactersTest {
 
     @Test
-    public void testDoubleSizeSupport() {
+    void testDoubleSizeSupport() {
         // Test terminals that should support double-size characters
         assertTrue(DoubleSizeCharacters.isDoubleSizeSupported(createMockTerminal("xterm")));
         assertTrue(DoubleSizeCharacters.isDoubleSizeSupported(createMockTerminal("xterm-256color")));
@@ -40,13 +40,13 @@ public class DoubleSizeCharactersTest {
     }
 
     @Test
-    public void testSetMode() throws IOException {
+    void testSetMode() throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         Terminal terminal = createMockTerminalWithOutput(output);
 
         // Test normal mode
         DoubleSizeCharacters.setMode(terminal, DoubleSizeCharacters.Mode.NORMAL);
-        String result = output.toString(StandardCharsets.UTF_8.name());
+        String result = output.toString(StandardCharsets.UTF_8);
         assertTrue(result.contains("\u001b#5"), "Should contain normal size escape sequence");
 
         // Reset output
@@ -54,7 +54,7 @@ public class DoubleSizeCharactersTest {
 
         // Test double width mode
         DoubleSizeCharacters.setMode(terminal, DoubleSizeCharacters.Mode.DOUBLE_WIDTH);
-        result = output.toString(StandardCharsets.UTF_8.name());
+        result = output.toString(StandardCharsets.UTF_8);
         assertTrue(result.contains("\u001b#6"), "Should contain double width escape sequence");
 
         // Reset output
@@ -62,7 +62,7 @@ public class DoubleSizeCharactersTest {
 
         // Test double height top mode
         DoubleSizeCharacters.setMode(terminal, DoubleSizeCharacters.Mode.DOUBLE_HEIGHT_TOP);
-        result = output.toString(StandardCharsets.UTF_8.name());
+        result = output.toString(StandardCharsets.UTF_8);
         assertTrue(result.contains("\u001b#3"), "Should contain double height top escape sequence");
 
         // Reset output
@@ -70,41 +70,41 @@ public class DoubleSizeCharactersTest {
 
         // Test double height bottom mode
         DoubleSizeCharacters.setMode(terminal, DoubleSizeCharacters.Mode.DOUBLE_HEIGHT_BOTTOM);
-        result = output.toString(StandardCharsets.UTF_8.name());
+        result = output.toString(StandardCharsets.UTF_8);
         assertTrue(result.contains("\u001b#4"), "Should contain double height bottom escape sequence");
     }
 
     @Test
-    public void testPrintNormal() throws IOException {
+    void testPrintNormal() throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         Terminal terminal = createMockTerminalWithOutput(output);
 
         DoubleSizeCharacters.printNormal(terminal, "Test text");
-        String result = output.toString(StandardCharsets.UTF_8.name());
+        String result = output.toString(StandardCharsets.UTF_8);
 
         assertTrue(result.contains("\u001b#5"), "Should set normal mode");
         assertTrue(result.contains("Test text"), "Should contain the text");
     }
 
     @Test
-    public void testPrintDoubleWidth() throws IOException {
+    void testPrintDoubleWidth() throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         Terminal terminal = createMockTerminalWithOutput(output);
 
         DoubleSizeCharacters.printDoubleWidth(terminal, "Wide text");
-        String result = output.toString(StandardCharsets.UTF_8.name());
+        String result = output.toString(StandardCharsets.UTF_8);
 
         assertTrue(result.contains("\u001b#6"), "Should set double width mode");
         assertTrue(result.contains("Wide text"), "Should contain the text");
     }
 
     @Test
-    public void testPrintDoubleHeight() throws IOException {
+    void testPrintDoubleHeight() throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         Terminal terminal = createMockTerminalWithOutput(output);
 
         DoubleSizeCharacters.printDoubleHeight(terminal, "Tall text");
-        String result = output.toString(StandardCharsets.UTF_8.name());
+        String result = output.toString(StandardCharsets.UTF_8);
 
         assertTrue(result.contains("\u001b#3"), "Should set double height top mode");
         assertTrue(result.contains("\u001b#4"), "Should set double height bottom mode");
@@ -113,12 +113,12 @@ public class DoubleSizeCharactersTest {
     }
 
     @Test
-    public void testPrintBannerWithSupport() throws IOException {
+    void testPrintBannerWithSupport() throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         Terminal terminal = createMockTerminalWithOutput("xterm", output);
 
         DoubleSizeCharacters.printBanner(terminal, "Banner", '*');
-        String result = output.toString(StandardCharsets.UTF_8.name());
+        String result = output.toString(StandardCharsets.UTF_8);
 
         assertTrue(result.contains("Banner"), "Should contain the banner text");
         assertTrue(result.contains("*"), "Should contain the border character");
@@ -126,12 +126,12 @@ public class DoubleSizeCharactersTest {
     }
 
     @Test
-    public void testPrintBannerWithoutSupport() throws IOException {
+    void testPrintBannerWithoutSupport() throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         Terminal terminal = createMockTerminalWithOutput("dumb", output);
 
         DoubleSizeCharacters.printBanner(terminal, "Banner", '*');
-        String result = output.toString(StandardCharsets.UTF_8.name());
+        String result = output.toString(StandardCharsets.UTF_8);
 
         assertTrue(result.contains("Banner"), "Should contain the banner text");
         assertTrue(result.contains("*"), "Should contain the border character");
@@ -139,12 +139,12 @@ public class DoubleSizeCharactersTest {
     }
 
     @Test
-    public void testReset() throws IOException {
+    void testReset() throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         Terminal terminal = createMockTerminalWithOutput(output);
 
         DoubleSizeCharacters.reset(terminal);
-        String result = output.toString(StandardCharsets.UTF_8.name());
+        String result = output.toString(StandardCharsets.UTF_8);
 
         assertTrue(result.contains("\u001b#5"), "Should reset to normal mode");
     }

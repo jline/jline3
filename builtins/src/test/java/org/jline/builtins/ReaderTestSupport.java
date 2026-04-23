@@ -8,11 +8,7 @@
  */
 package org.jline.builtins;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +27,7 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp.Capability;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
 import static org.jline.reader.LineReader.ACCEPT_LINE;
@@ -43,6 +40,7 @@ import static org.jline.reader.LineReader.COMPLETE_WORD;
 import static org.jline.reader.LineReader.DOWN_HISTORY;
 import static org.jline.reader.LineReader.END_OF_LINE;
 import static org.jline.reader.LineReader.FORWARD_WORD;
+import static org.jline.reader.LineReader.KILL_WHOLE_LINE;
 import static org.jline.reader.LineReader.KILL_WORD;
 import static org.jline.reader.LineReader.UP_HISTORY;
 import static org.jline.reader.LineReader.YANK;
@@ -53,7 +51,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Provides support for reader tests.
  */
+@SuppressWarnings("unused") // TODO: This class is a duplicate from the LineReader tests
 public abstract class ReaderTestSupport {
+
     protected Terminal terminal;
     protected TestLineReader reader;
     protected EofPipedInputStream in;
@@ -76,6 +76,13 @@ public abstract class ReaderTestSupport {
         reader = new TestLineReader(terminal, "JLine", null);
         reader.setKeyMap(LineReaderImpl.EMACS);
         mask = null;
+    }
+
+    @AfterEach
+    public void tearDown() throws IOException {
+        if (terminal != null) {
+            terminal.close();
+        }
     }
 
     protected void assertConsoleOutputContains(String s) {
@@ -105,19 +112,7 @@ public abstract class ReaderTestSupport {
         in.setIn(new ByteArrayInputStream(buffer.getBytes()));
 
         // run it through the reader
-        // String line;
-        // while ((line = reader.readLine((String) null)) != null) {
-        // System.err.println("Read line: " + line);
-        try {
-            while (true) {
-                reader.readLine(null, null, mask, null);
-            }
-        } catch (EndOfFileException e) {
-            // noop
-        }
-        //        while ((reader.readLine(null, null, mask, null)) != null) {
-        // noop
-        //        }
+        readAll();
 
         assertEquals(expected, reader.getBuffer().toString());
     }
@@ -147,6 +142,15 @@ public abstract class ReaderTestSupport {
 
         in.setIn(new ByteArrayInputStream(buffer.getBytes()));
 
+        String line = readAll();
+
+        assertEquals(expected, line);
+    }
+
+    /**
+     * Reads until the reader hits EOF, returns the last line read.
+     */
+    private String readAll() {
         String line = null;
         try {
             while (true) {
@@ -155,8 +159,7 @@ public abstract class ReaderTestSupport {
         } catch (EndOfFileException e) {
             // ignore
         }
-
-        assertEquals(expected, line);
+        return line;
     }
 
     private String getKeyForAction(final String key) {
@@ -171,6 +174,8 @@ public abstract class ReaderTestSupport {
                 return "\u0005";
             case KILL_WORD:
                 return "\u001Bd";
+            case KILL_WHOLE_LINE:
+                return "\u0015";
             case BACKWARD_KILL_WORD:
                 return "\u0017";
             case ACCEPT_LINE:
@@ -205,17 +210,9 @@ public abstract class ReaderTestSupport {
             append(str);
         }
 
-        public TestBuffer(char[] chars) {
-            append(new String(chars));
-        }
-
         @Override
         public String toString() {
-            try {
-                return out.toString(StandardCharsets.UTF_8.name());
-            } catch (UnsupportedEncodingException e) {
-                throw new RuntimeException(e);
-            }
+            return out.toString(StandardCharsets.UTF_8);
         }
 
         public byte[] getBytes() {
@@ -321,10 +318,6 @@ public abstract class ReaderTestSupport {
 
         private InputStream in;
 
-        public InputStream getIn() {
-            return in;
-        }
-
         public void setIn(InputStream in) {
             this.in = in;
         }
@@ -344,7 +337,7 @@ public abstract class ReaderTestSupport {
         boolean list = false;
         boolean menu = false;
 
-        public TestLineReader(Terminal terminal, String appName, Map<String, Object> variables) {
+        private TestLineReader(Terminal terminal, String appName, Map<String, Object> variables) {
             super(terminal, appName, variables);
         }
 

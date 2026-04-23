@@ -16,6 +16,7 @@ import org.jline.shell.Command;
 import org.jline.shell.CommandSession;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -24,8 +25,9 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for {@link HelpCommands}.
  */
-public class HelpCommandsTest {
+class HelpCommandsTest {
 
+    private Terminal terminal;
     private DefaultCommandDispatcher dispatcher;
     private HelpCommands commands;
     private CommandSession session;
@@ -34,7 +36,7 @@ public class HelpCommandsTest {
 
     @BeforeEach
     void setUp() throws IOException {
-        Terminal terminal = TerminalBuilder.builder().dumb(true).build();
+        terminal = TerminalBuilder.builder().dumb(true).build();
         dispatcher = new DefaultCommandDispatcher(terminal);
         dispatcher.addGroup(new SimpleCommandGroup("demo", new TestEchoCmd(), new TestUpperCmd()));
         commands = new HelpCommands(dispatcher);
@@ -42,6 +44,19 @@ public class HelpCommandsTest {
         outCapture = new ByteArrayOutputStream();
         errCapture = new ByteArrayOutputStream();
         session = new CommandSession(null, System.in, new PrintStream(outCapture), new PrintStream(errCapture));
+    }
+
+    @AfterEach
+    void tearDown() throws IOException {
+        try {
+            if (terminal != null) {
+                terminal.close();
+            }
+        } finally {
+            if (dispatcher != null) {
+                dispatcher.close();
+            }
+        }
     }
 
     static class TestEchoCmd extends AbstractCommand {

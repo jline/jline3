@@ -23,11 +23,12 @@ import org.junit.jupiter.api.condition.OS;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class FfmTest {
+// TODO: Figure out why try-with-resources in these tests hang on MAC-OS.
+class FfmTest {
 
     @Test
     @DisabledOnOs(OS.WINDOWS) // non system terminals are not supported on windows
-    public void testNewTerminalWithNull() throws IOException {
+    void testNewTerminalWithNull() throws IOException {
         Terminal terminal = new FfmTerminalProvider()
                 .newTerminal(
                         "name",
@@ -46,7 +47,7 @@ public class FfmTest {
 
     @Test
     @DisabledOnOs(OS.WINDOWS) // non system terminals are not supported on windows
-    public void testNewTerminalNoNull() throws IOException {
+    void testNewTerminalNoNull() throws IOException {
         Terminal terminal = new FfmTerminalProvider()
                 .newTerminal(
                         "name",

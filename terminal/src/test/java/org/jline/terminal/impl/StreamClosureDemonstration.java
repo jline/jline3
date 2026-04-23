@@ -20,23 +20,14 @@ import org.jline.utils.NonBlockingReader;
 /**
  * Demonstration of terminal stream closure behavior.
  * This class shows how held references to terminal streams behave after terminal closure.
- *
+ * <p>
  * Run this class to see the behavior in action.
  */
-public class StreamClosureDemonstration {
-
-    // Helper method for Java 8 compatibility (String.repeat() was added in Java 11)
-    private static String repeat(String str, int count) {
-        StringBuilder sb = new StringBuilder(str.length() * count);
-        for (int i = 0; i < count; i++) {
-            sb.append(str);
-        }
-        return sb.toString();
-    }
+class StreamClosureDemonstration {
 
     public static void main(String[] args) {
         demonstrateCorrectBehavior();
-        System.out.println("\n" + repeat("=", 80) + "\n");
+        System.out.println("\n" + "=".repeat(80) + "\n");
         demonstrateHeldReferenceBehavior();
     }
 
@@ -45,7 +36,7 @@ public class StreamClosureDemonstration {
      */
     private static void demonstrateCorrectBehavior() {
         System.out.println("DEMONSTRATION 1: Accessing streams through terminal after close");
-        System.out.println(repeat("-", 80));
+        System.out.println("-".repeat(80));
 
         try {
             ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);
@@ -83,7 +74,7 @@ public class StreamClosureDemonstration {
      */
     private static void demonstrateHeldReferenceBehavior() {
         System.out.println("DEMONSTRATION 2: Held stream references after terminal close");
-        System.out.println(repeat("-", 80));
+        System.out.println("-".repeat(80));
 
         try {
             ByteArrayInputStream input = new ByteArrayInputStream("test\n".getBytes(StandardCharsets.UTF_8));
@@ -140,7 +131,7 @@ public class StreamClosureDemonstration {
     @SuppressWarnings("unused")
     private static void demonstrateRecommendedPattern() {
         System.out.println("\nRECOMMENDED PATTERN: Use try-with-resources");
-        System.out.println(repeat("-", 80));
+        System.out.println("-".repeat(80));
 
         try {
             ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);

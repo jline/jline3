@@ -14,10 +14,10 @@ import java.util.Map;
 import org.jline.reader.*;
 import org.junit.jupiter.api.Test;
 
-public class CompletionWithCustomMatcherTest extends ReaderTestSupport {
+class CompletionWithCustomMatcherTest extends ReaderTestSupport {
 
     @Test
-    public void testComplete() throws IOException {
+    void testComplete() throws IOException {
         reader.setCompletionMatcher(new CompletionMatcherImpl() {
 
             @Override
@@ -30,7 +30,7 @@ public class CompletionWithCustomMatcherTest extends ReaderTestSupport {
                     String originalGroupName) {
                 reset(caseInsensitive);
                 defaultMatchers(options, prefix, line, caseInsensitive, errors, originalGroupName);
-                if (line.word().length() > 0 && !prefix) {
+                if (!line.word().isEmpty() && !prefix) {
                     // add custom matcher before typo matcher
                     int pos = matchers.size() + (LineReader.Option.COMPLETE_MATCHER_TYPO.isSet(options) ? -1 : 0);
                     matchers.add(pos, simpleMatcher(candidate -> camelMatch(line.word(), 0, candidate, 0)));

@@ -16,29 +16,30 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class LineReaderBuilderTest {
+class LineReaderBuilderTest {
 
     @Test
-    public void testInheritAppNameFromTerminal() throws IOException {
+    void testInheritAppNameFromTerminal() throws IOException {
         final String expectedAppName = "BOB";
-        final Terminal terminal =
-                TerminalBuilder.builder().name(expectedAppName).build();
-        final LineReader lineReader =
-                LineReaderBuilder.builder().terminal(terminal).build();
+        try (Terminal terminal = TerminalBuilder.builder().name(expectedAppName).build()) {
+            final LineReader lineReader =
+                    LineReaderBuilder.builder().terminal(terminal).build();
 
-        assertEquals(expectedAppName, lineReader.getAppName(), "Did not inherit appName from terminal");
+            assertEquals(expectedAppName, lineReader.getAppName(), "Did not inherit appName from terminal");
+        }
     }
 
     @Test
-    public void testPreferAppNameFromBuilder() throws IOException {
+    void testPreferAppNameFromBuilder() throws IOException {
         final String expectedAppName = "NANCY";
-        final Terminal terminal =
-                TerminalBuilder.builder().name(expectedAppName + "X").build();
-        final LineReader lineReader = LineReaderBuilder.builder()
-                .appName(expectedAppName)
-                .terminal(terminal)
-                .build();
+        try (Terminal terminal =
+                TerminalBuilder.builder().name(expectedAppName + "X").build()) {
+            final LineReader lineReader = LineReaderBuilder.builder()
+                    .appName(expectedAppName)
+                    .terminal(terminal)
+                    .build();
 
-        assertEquals(expectedAppName, lineReader.getAppName(), "Did not prefer appName from builder");
+            assertEquals(expectedAppName, lineReader.getAppName(), "Did not prefer appName from builder");
+        }
     }
 }

@@ -45,37 +45,36 @@ import org.jline.widget.TailTipWidgets;
 import org.jline.widget.TailTipWidgets.TipType;
 
 @SuppressWarnings("deprecation")
-public class Console {
+class Console {
     private static Map<String, CmdDesc> compileTailTips() {
         Map<String, CmdDesc> tailTips = new HashMap<>();
         Map<String, List<AttributedString>> optDesc = new HashMap<>();
-        optDesc.put("--optionA", Arrays.asList(new AttributedString("optionA description...")));
-        optDesc.put("--noitpoB", Arrays.asList(new AttributedString("noitpoB description...")));
+        optDesc.put("--optionA", List.of(new AttributedString("optionA description...")));
+        optDesc.put("--noitpoB", List.of(new AttributedString("noitpoB description...")));
         optDesc.put(
-                "--optionC",
-                Arrays.asList(new AttributedString("optionC description..."), new AttributedString("line2")));
+                "--optionC", List.of(new AttributedString("optionC description..."), new AttributedString("line2")));
         Map<String, List<AttributedString>> widgetOpts = new HashMap<>();
-        List<AttributedString> mainDesc = Arrays.asList(
+        List<AttributedString> mainDesc = List.of(
                 new AttributedString("widget -N new-widget [function-name]"),
                 new AttributedString("widget -D widget ..."),
                 new AttributedString("widget -A old-widget new-widget"),
                 new AttributedString("widget -U string ..."),
                 new AttributedString("widget -l [options]"));
-        widgetOpts.put("-N", Arrays.asList(new AttributedString("Create new widget")));
-        widgetOpts.put("-D", Arrays.asList(new AttributedString("Delete widgets")));
-        widgetOpts.put("-A", Arrays.asList(new AttributedString("Create alias to widget")));
-        widgetOpts.put("-U", Arrays.asList(new AttributedString("Push characters to the stack")));
-        widgetOpts.put("-l", Arrays.asList(new AttributedString("List user-defined widgets")));
+        widgetOpts.put("-N", List.of(new AttributedString("Create new widget")));
+        widgetOpts.put("-D", List.of(new AttributedString("Delete widgets")));
+        widgetOpts.put("-A", List.of(new AttributedString("Create alias to widget")));
+        widgetOpts.put("-U", List.of(new AttributedString("Push characters to the stack")));
+        widgetOpts.put("-l", List.of(new AttributedString("List user-defined widgets")));
 
-        tailTips.put("widget", new CmdDesc(mainDesc, ArgDesc.doArgNames(Arrays.asList("[pN...]")), widgetOpts));
-        tailTips.put("foo12", new CmdDesc(ArgDesc.doArgNames(Arrays.asList("param1", "param2", "[paramN...]"))));
+        tailTips.put("widget", new CmdDesc(mainDesc, ArgDesc.doArgNames(List.of("[pN...]")), widgetOpts));
+        tailTips.put("foo12", new CmdDesc(ArgDesc.doArgNames(List.of("param1", "param2", "[paramN...]"))));
         tailTips.put(
                 "foo11",
                 new CmdDesc(
-                        Arrays.asList(
+                        List.of(
                                 new ArgDesc(
                                         "param1",
-                                        Arrays.asList(
+                                        List.of(
                                                 new AttributedString("Param1 description..."),
                                                 new AttributedString(
                                                         "line 2: This is a very long line that does exceed the terminal width."
@@ -86,7 +85,7 @@ public class Console {
                                                 new AttributedString("line 6"))),
                                 new ArgDesc(
                                         "param2",
-                                        Arrays.asList(
+                                        List.of(
                                                 new AttributedString("Param2 description..."),
                                                 new AttributedString("line 2"))),
                                 new ArgDesc("param3", new ArrayList<>())),
@@ -106,7 +105,7 @@ public class Console {
         private final Printer printer;
         private final Printer myPrinter;
 
-        public ExampleCommands(Printer printer, Printer myPrinter) {
+        ExampleCommands(Printer printer, Printer myPrinter) {
             this.printer = printer;
             this.myPrinter = myPrinter;
             commandExecute.put("testprint", new CommandMethods(this::testprint, this::defaultCompleter));
@@ -118,28 +117,27 @@ public class Console {
 
             commandInfo.put(
                     "testprint",
-                    Arrays.asList("print table using DefaultPrinter (args.length=0) or MyPrinter (args.length>0)"));
-            commandInfo.put("testkey", Arrays.asList("display key events"));
-            commandInfo.put("clear", Arrays.asList("clear screen"));
-            commandInfo.put("autopair", Arrays.asList("toggle brackets/quotes autopair key bindings"));
+                    List.of("print table using DefaultPrinter (args.length=0) or MyPrinter (args.length>0)"));
+            commandInfo.put("testkey", List.of("display key events"));
+            commandInfo.put("clear", List.of("clear screen"));
+            commandInfo.put("autopair", List.of("toggle brackets/quotes autopair key bindings"));
             commandInfo.put(
-                    "autosuggestion",
-                    Arrays.asList("set autosuggestion modality: history, completer, tailtip or none"));
+                    "autosuggestion", List.of("set autosuggestion modality: history, completer, tailtip or none"));
         }
 
-        public void setLineReader(LineReader reader) {
+        void setLineReader(LineReader reader) {
             this.reader = reader;
         }
 
-        public void setAutosuggestionWidgets(AutosuggestionWidgets autosuggestionWidgets) {
+        void setAutosuggestionWidgets(AutosuggestionWidgets autosuggestionWidgets) {
             this.autosuggestionWidgets = autosuggestionWidgets;
         }
 
-        public void setTailTipWidgets(TailTipWidgets tailtipWidgets) {
+        void setTailTipWidgets(TailTipWidgets tailtipWidgets) {
             this.tailtipWidgets = tailtipWidgets;
         }
 
-        public void setAutopairWidgets(AutopairWidgets autopairWidgets) {
+        void setAutopairWidgets(AutopairWidgets autopairWidgets) {
             this.autopairWidgets = autopairWidgets;
         }
 
@@ -217,7 +215,7 @@ public class Console {
             options.put(Printer.VALUE_STYLE, "classpath:/org/jline/example/gron.nanorc");
             p.println(options, data);
             options.clear();
-            options.put(Printer.COLUMNS, Arrays.asList("name", "age", "address.country", "address.town"));
+            options.put(Printer.COLUMNS, List.of("name", "age", "address.country", "address.town"));
             options.put(Printer.SHORT_NAMES, true);
             p.println(options, data);
         }
@@ -310,7 +308,7 @@ public class Console {
         }
 
         private List<Completer> defaultCompleter(String command) {
-            return Arrays.asList(NullCompleter.INSTANCE);
+            return List.of(NullCompleter.INSTANCE);
         }
 
         private List<Completer> autosuggestionCompleter(String command) {
@@ -338,7 +336,7 @@ public class Console {
     private static class MyPrinter extends DefaultPrinter {
         private final Terminal terminal;
 
-        public MyPrinter(ConfigurationPath configPath, Terminal terminal) {
+        MyPrinter(ConfigurationPath configPath, Terminal terminal) {
             super(configPath);
             this.terminal = terminal;
         }
@@ -363,24 +361,16 @@ public class Console {
     public static void main(String[] args) {
         try {
             Completer completer = new ArgumentCompleter(
-                    new Completer() {
-                        @Override
-                        public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
-                            candidates.add(new Candidate("foo11", "foo11", null, "complete cmdDesc", null, null, true));
-                            candidates.add(
-                                    new Candidate("foo12", "foo12", null, "cmdDesc -names only", null, null, true));
-                            candidates.add(new Candidate("foo13", "foo13", null, "-", null, null, true));
-                            candidates.add(new Candidate(
-                                    "widget", "widget", null, "cmdDesc with short options", null, null, true));
-                        }
+                    (reader, line, candidates) -> {
+                        candidates.add(new Candidate("foo11", "foo11", null, "complete cmdDesc", null, null, true));
+                        candidates.add(new Candidate("foo12", "foo12", null, "cmdDesc -names only", null, null, true));
+                        candidates.add(new Candidate("foo13", "foo13", null, "-", null, null, true));
+                        candidates.add(new Candidate(
+                                "widget", "widget", null, "cmdDesc with short options", null, null, true));
                     },
                     new StringsCompleter("foo21", "foo22", "foo23"),
-                    new Completer() {
-                        @Override
-                        public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
-                            candidates.add(new Candidate("", "", null, "frequency in MHz", null, null, false));
-                        }
-                    });
+                    (reader, line, candidates) ->
+                            candidates.add(new Candidate("", "", null, "frequency in MHz", null, null, false)));
 
             Terminal terminal = TerminalBuilder.builder().build();
             Parser parser = new DefaultParser();

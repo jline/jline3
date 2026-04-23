@@ -18,7 +18,7 @@ import org.jline.reader.MaskingCallback;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
-public class OptionMaskCallbackReader {
+class OptionMaskCallbackReader {
     /**
      * Mask a certain option value in the command line. So for example for the option '--password', '--password mypassword'
      * will be displayed as '--password **********'.

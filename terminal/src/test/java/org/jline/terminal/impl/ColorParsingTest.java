@@ -10,7 +10,6 @@ package org.jline.terminal.impl;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.stream.Stream;
 
 import org.easymock.EasyMock;
@@ -39,12 +38,9 @@ class ColorParsingTest {
     void testParseColorResponseReturnsMinusOneOnEof(String input, int colorType, String scenario) throws Exception {
         NonBlockingReader reader = createReader(input);
 
-        AbstractPosixTerminal terminal = createTerminal();
-        try {
+        try (AbstractPosixTerminal terminal = createTerminal()) {
             int result = terminal.parseColorResponse(reader, colorType);
             assertEquals(-1, result, "parseColorResponse should return -1 on " + scenario);
-        } finally {
-            terminal.close();
         }
     }
 
@@ -53,12 +49,9 @@ class ColorParsingTest {
         // Valid OSC 10 response terminated by BEL (\007)
         NonBlockingReader reader = createReader("\033]10;rgb:ff/ff/ff\007");
 
-        AbstractPosixTerminal terminal = createTerminal();
-        try {
+        try (AbstractPosixTerminal terminal = createTerminal()) {
             int result = terminal.parseColorResponse(reader, 10);
             assertEquals(0xFFFFFF, result, "parseColorResponse should parse white color correctly");
-        } finally {
-            terminal.close();
         }
     }
 
@@ -67,12 +60,9 @@ class ColorParsingTest {
         // Valid OSC 11 response terminated by ST (ESC \)
         NonBlockingReader reader = createReader("\033]11;rgb:00/00/00\033\\");
 
-        AbstractPosixTerminal terminal = createTerminal();
-        try {
+        try (AbstractPosixTerminal terminal = createTerminal()) {
             int result = terminal.parseColorResponse(reader, 11);
             assertEquals(0x000000, result, "parseColorResponse should parse black color correctly");
-        } finally {
-            terminal.close();
         }
     }
 
@@ -87,7 +77,7 @@ class ColorParsingTest {
             private int pos = 0;
 
             @Override
-            protected int read(long timeout, boolean isPeek) throws IOException {
+            protected int read(long timeout, boolean isPeek) {
                 if (pos >= chars.length) {
                     return -1;
                 }
@@ -98,7 +88,7 @@ class ColorParsingTest {
             }
 
             @Override
-            public int readBuffered(char[] b, int off, int len, long timeout) throws IOException {
+            public int readBuffered(char[] b, int off, int len, long timeout) {
                 if (pos >= chars.length) {
                     return -1;
                 }

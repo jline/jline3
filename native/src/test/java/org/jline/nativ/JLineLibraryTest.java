@@ -16,12 +16,12 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class JLineLibraryTest {
+class JLineLibraryTest {
 
     /**
      * Default constructor.
      */
-    public JLineLibraryTest() {
+    JLineLibraryTest() {
         // Default constructor
     }
 
@@ -35,7 +35,7 @@ public class JLineLibraryTest {
     }
 
     @Test
-    void testNewRedirectPipeImpl() throws Exception {
+    void testNewRedirectPipeImpl() {
         ProcessBuilder.Redirect redirect = JLineLibrary.newRedirectPipe(FileDescriptor.out);
         assertNotNull(redirect);
         // This requires '--add-opens java.base/java.lang=org.jline.nativ', but adding this option

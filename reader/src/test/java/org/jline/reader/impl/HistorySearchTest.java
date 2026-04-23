@@ -9,6 +9,7 @@
 package org.jline.reader.impl;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
@@ -20,12 +21,12 @@ import static org.jline.keymap.KeyMap.translate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
-public class HistorySearchTest extends ReaderTestSupport {
+class HistorySearchTest extends ReaderTestSupport {
 
     private DefaultHistory history;
 
     @BeforeEach
-    public void setupHistory() {
+    void setupHistory() {
         history = new DefaultHistory();
         reader.setVariable(LineReader.HISTORY_SIZE, 10);
         reader.setHistory(history);
@@ -35,7 +36,7 @@ public class HistorySearchTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testZshLikeBackspaceNavigation() throws Exception {
+    void testZshLikeBackspaceNavigation() {
         // Test zsh-like behavior: Ctrl+R, type "f", Ctrl+R to go deeper, then backspace should move back up
         // History: ["foo", "fiddle", "faddle"] - "faddle" is most recent
         var zshLikeNavigation = new TestBuffer()
@@ -49,7 +50,7 @@ public class HistorySearchTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testBackspaceWithFailingSearch() throws Exception {
+    void testBackspaceWithFailingSearch() {
         // Test zsh behavior with failing search
         // History: ["foo", "fiddle", "faddle"]
         var failingSearchBackspace = new TestBuffer()
@@ -65,7 +66,7 @@ public class HistorySearchTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testTypingAndBackspaceNavigation() throws Exception {
+    void testTypingAndBackspaceNavigation() {
         // Test zsh behavior: typing changes search term, backspace navigates then deletes
         // History: ["foo", "fiddle", "faddle"]
         var typingAndBackspace = new TestBuffer()
@@ -82,7 +83,7 @@ public class HistorySearchTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testExactZshBehaviorCase3() throws Exception {
+    void testExactZshBehaviorCase3() {
         // Test the exact case 3 behavior you described
         // History: ["foo", "fiddle", "faddle"]
         var exactZshCase3 = new TestBuffer()
@@ -99,7 +100,7 @@ public class HistorySearchTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testCaseInsensitive() throws Exception {
+    void testCaseInsensitive() {
         reader.setOpt(LineReader.Option.CASE_INSENSITIVE_SEARCH);
         try {
             assertLine("fiddle", new TestBuffer().ctrl('R').append("I").enter(), false);
@@ -109,7 +110,7 @@ public class HistorySearchTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testReverseHistorySearch() throws Exception {
+    void testReverseHistorySearch() {
         // TODO: use assertBuffer
         String readLineResult;
         in.setIn(new ByteArrayInputStream(translate("^Rf\n").getBytes()));
@@ -129,7 +130,7 @@ public class HistorySearchTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testForwardHistorySearch() throws Exception {
+    void testForwardHistorySearch() {
         String readLineResult;
         in.setIn(new ByteArrayInputStream(translate("^Rf^R^R^S\n").getBytes()));
         readLineResult = reader.readLine();
@@ -148,7 +149,7 @@ public class HistorySearchTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testSearchHistoryAfterHittingEnd() throws Exception {
+    void testSearchHistoryAfterHittingEnd() {
         String readLineResult;
         in.setIn(new ByteArrayInputStream(translate("^Rf^R^R^R^S\n").getBytes()));
         readLineResult = reader.readLine();
@@ -157,7 +158,7 @@ public class HistorySearchTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testSearchHistoryWithNoMatches() throws Exception {
+    void testSearchHistoryWithNoMatches() {
         String readLineResult;
         in.setIn(new ByteArrayInputStream(translate("x^S^S\n").getBytes()));
         readLineResult = reader.readLine();
@@ -166,7 +167,7 @@ public class HistorySearchTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testAbortingSearchRetainsCurrentBufferAndPrintsDetails() throws Exception {
+    void testAbortingSearchRetainsCurrentBufferAndPrintsDetails() {
         in.setIn(new ByteArrayInputStream(translate("f^Rf^G").getBytes()));
         try {
             reader.readLine();
@@ -179,7 +180,7 @@ public class HistorySearchTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testAbortingAfterSearchingPreviousLinesGivesBlank() throws Exception {
+    void testAbortingAfterSearchingPreviousLinesGivesBlank() {
         String readLineResult;
         in.setIn(new ByteArrayInputStream(translate("f^Rf\nfoo^G").getBytes()));
         readLineResult = reader.readLine();
@@ -197,7 +198,7 @@ public class HistorySearchTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testSearchOnEmptyHistory() throws Exception {
+    void testSearchOnEmptyHistory() throws IOException {
         history.purge();
 
         in.setIn(new ByteArrayInputStream(translate("^Sa").getBytes()));
