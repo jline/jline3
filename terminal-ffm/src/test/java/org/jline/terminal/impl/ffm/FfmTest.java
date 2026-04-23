@@ -21,12 +21,14 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 public class FfmTest {
 
     @Test
     @DisabledOnOs(OS.WINDOWS) // non system terminals are not supported on windows
     public void testNewTerminalWithNull() throws IOException {
-        Terminal terminal = new FfmTerminalProvider()
+        try (Terminal terminal = new FfmTerminalProvider()
                 .newTerminal(
                         "name",
                         "xterm",
@@ -36,14 +38,15 @@ public class FfmTest {
                         Terminal.SignalHandler.SIG_DFL,
                         false,
                         null,
-                        null);
-        // terminal.close();
+                        null)) {
+            assertNotNull(terminal);
+        }
     }
 
     @Test
     @DisabledOnOs(OS.WINDOWS) // non system terminals are not supported on windows
     public void testNewTerminalNoNull() throws IOException {
-        Terminal terminal = new FfmTerminalProvider()
+        try (Terminal terminal = new FfmTerminalProvider()
                 .newTerminal(
                         "name",
                         "xterm",
@@ -53,9 +56,10 @@ public class FfmTest {
                         Terminal.SignalHandler.SIG_DFL,
                         false,
                         new Attributes(),
-                        new Size());
-        Size size = terminal.getSize();
-        // terminal.close();
+                        new Size())) {
+            assertNotNull(terminal);
+            assertNotNull(terminal.getSize());
+        }
     }
 
     @Test
