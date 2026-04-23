@@ -1,0 +1,79 @@
+{
+  "reflection": [
+    {
+      "type": "org.jline.terminal.impl.ffm.FfmTerminalProvider",
+      "allDeclaredConstructors": true,
+      "allPublicConstructors": true
+    }
+  ],
+  "resources": [
+    {"glob": "META-INF/services/org/jline/terminal/provider/ffm"}
+  ],
+  "foreign": {
+    "downcalls": [
+      {
+        "returnType": "int",
+        "parameterTypes": ["int", "long long", "void*"],
+        "options": {
+          "firstVariadicArg": 2
+        }
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["int"]
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["int", "int", "void*"]
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["int", "void*"]
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["int", "void*", "long long"]
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["void*", "void*", "void*", "void*", "void*"]
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["void*", "int"]
+      },
+      {
+        "returnType": "void*",
+        "parameterTypes": ["int"]
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["int", "void*", "int", "int", "void*", "int", "void*"]
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["void*", "short"]
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["void*", "void*"]
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": []
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["void*"]
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["void*", "void*", "int", "void*", "void*"]
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["void*", "void*", "int", "void*"]
+      }
+    ]
+  }
+}
