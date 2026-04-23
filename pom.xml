@@ -157,6 +157,12 @@
             </dependency>
             <dependency>
                 <groupId>org.jline</groupId>
+                <artifactId>jline-reader</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.jline</groupId>
                 <artifactId>jline-shell</artifactId>
                 <version>${project.version}</version>
             </dependency>
