@@ -16,8 +16,8 @@ import org.jline.reader.LineReader;
 import org.jline.shell.Shell;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
-import org.jline.terminal.spi.TerminalExt;
 import org.jline.terminal.spi.SystemStream;
+import org.jline.terminal.spi.TerminalExt;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
 
