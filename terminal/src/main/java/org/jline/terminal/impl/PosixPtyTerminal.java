@@ -149,6 +149,20 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
 
     @Override
     protected void doClose() throws IOException {
+        // Close the slave output to signal EOF on the master side, which
+        // reliably unblocks pumpOut's masterInput.read() on all platforms
+        // (including macOS where closing the master fd from another thread
+        // may not unblock a blocked read on the same fd).
+        try {
+            output.close();
+        } catch (IOException e) {
+            // ignore
+        }
+        try {
+            masterInput.close();
+        } catch (IOException e) {
+            // ignore
+        }
         super.doClose();
         reader.close();
     }
