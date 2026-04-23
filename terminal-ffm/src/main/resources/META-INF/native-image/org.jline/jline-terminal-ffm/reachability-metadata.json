@@ -41,6 +41,10 @@
       },
       {
         "returnType": "int",
+        "parameterTypes": ["int", "void*", "void*"]
+      },
+      {
+        "returnType": "int",
         "parameterTypes": ["void*", "int"]
       },
       {
@@ -74,6 +78,12 @@
       {
         "returnType": "int",
         "parameterTypes": ["void*", "void*", "int", "void*"]
+      }
+    ],
+    "upcalls": [
+      {
+        "returnType": "void",
+        "parameterTypes": ["int"]
       }
     ]
   }
