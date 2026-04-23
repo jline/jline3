@@ -50,3 +50,23 @@ jobs:
           mvnw.cmd --no-transfer-progress verify
         shell: cmd
         if: matrix.os == 'windows-latest'
+
+  native-image:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '23'
+          distribution: 'graalvm-community'
+          cache: maven
+
+      - name: Build and verify native image
+        run: |
+          ./mvnw -B --no-transfer-progress package -Pnative-image -DskipTests
+          ./graal/target/graal --check

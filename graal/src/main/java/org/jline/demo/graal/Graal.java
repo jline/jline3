@@ -8,6 +8,8 @@
  */
 package org.jline.demo.graal;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -26,7 +28,9 @@ import org.jline.reader.impl.DefaultParser;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalExt;
+import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
 import org.jline.widget.TailTipWidgets;
 import org.jline.widget.TailTipWidgets.TipType;
@@ -35,6 +39,10 @@ import org.jline.widget.Widgets;
 public class Graal {
 
     public static void main(String[] args) {
+        if (args.length > 0 && "--check".equals(args[0])) {
+            check();
+            return;
+        }
         try {
             // Init log
             String fname = System.getProperty("java.util.logging.config.file");
@@ -123,6 +131,41 @@ public class Graal {
             systemRegistry.close();
         } catch (Throwable t) {
             t.printStackTrace();
+        }
+    }
+
+    private static void check() {
+        try {
+            TerminalProvider provider = null;
+            for (String name : new String[] {"ffm", "jni", "jansi", "jna", "exec"}) {
+                try {
+                    provider = TerminalProvider.load(name);
+                    break;
+                } catch (Throwable ignored) {
+                }
+            }
+            if (provider == null) {
+                throw new IllegalStateException("No terminal provider found");
+            }
+            System.out.println("Provider loaded: " + provider.name());
+
+            for (SystemStream stream : SystemStream.values()) {
+                System.out.println("  " + stream + " is system stream: " + provider.isSystemStream(stream));
+            }
+
+            Terminal terminal = TerminalBuilder.builder()
+                    .name("check")
+                    .system(false)
+                    .streams(new ByteArrayInputStream(new byte[0]), new ByteArrayOutputStream())
+                    .build();
+            System.out.println("Terminal created: " + terminal.getName() + " (" + terminal.getType() + ")");
+            terminal.close();
+
+            System.out.println("CHECK PASSED");
+        } catch (Throwable t) {
+            System.err.println("CHECK FAILED: " + t.getMessage());
+            t.printStackTrace(System.err);
+            System.exit(1);
         }
     }
 }
