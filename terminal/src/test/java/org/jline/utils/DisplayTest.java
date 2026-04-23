@@ -152,7 +152,7 @@ class DisplayTest {
 
         private class MasterOutputStream extends OutputStream {
             private final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            private final CharsetDecoder decoder = Charset.defaultCharset()
+            private final CharsetDecoder decoder = encoding()
                     .newDecoder()
                     .onMalformedInput(CodingErrorAction.REPLACE)
                     .onUnmappableCharacter(CodingErrorAction.REPLACE);
