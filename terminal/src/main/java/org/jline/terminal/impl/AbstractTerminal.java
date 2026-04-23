@@ -612,6 +612,7 @@ public abstract class AbstractTerminal implements TerminalExt {
         } catch (IOError | IOException e) {
             try {
                 puts(Capability.restore_cursor);
+                puts(Capability.clr_eol);
                 writer().flush();
             } catch (Exception ignored) {
                 // Best-effort cleanup; probing failure should not propagate
