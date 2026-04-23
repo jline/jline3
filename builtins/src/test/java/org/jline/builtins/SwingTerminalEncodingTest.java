@@ -38,7 +38,6 @@ class SwingTerminalEncodingTest {
     @AfterEach
     void tearDown() throws IOException {
         if (swingTerminal != null) {
-            swingTerminal.dispose();
             swingTerminal.close();
         }
     }
