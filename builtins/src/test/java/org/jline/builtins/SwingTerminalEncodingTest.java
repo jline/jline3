@@ -43,9 +43,9 @@ public class SwingTerminalEncodingTest {
     }
 
     @AfterEach
-    public void tearDown() {
+    public void tearDown() throws IOException {
         if (swingTerminal != null) {
-            swingTerminal.dispose();
+            swingTerminal.close();
         }
     }
 

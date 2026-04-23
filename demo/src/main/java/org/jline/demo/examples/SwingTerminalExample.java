@@ -44,7 +44,11 @@ public class SwingTerminalExample {
         frame.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent e) {
-                terminal.dispose();
+                try {
+                    terminal.close();
+                } catch (java.io.IOException ex) {
+                    // ignore
+                }
             }
         });
 
@@ -56,7 +60,11 @@ public class SwingTerminalExample {
                     } catch (Exception e) {
                         e.printStackTrace();
                     } finally {
-                        terminal.dispose();
+                        try {
+                            terminal.close();
+                        } catch (java.io.IOException e) {
+                            // ignore
+                        }
                         frame.dispose();
                     }
                 },
@@ -95,7 +103,11 @@ public class SwingTerminalExample {
         frame.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent e) {
-                terminal.dispose();
+                try {
+                    terminal.close();
+                } catch (java.io.IOException ex) {
+                    // ignore
+                }
             }
         });
 
@@ -107,7 +119,11 @@ public class SwingTerminalExample {
                     } catch (Exception e) {
                         e.printStackTrace();
                     } finally {
-                        terminal.dispose();
+                        try {
+                            terminal.close();
+                        } catch (java.io.IOException e) {
+                            // ignore
+                        }
                         frame.dispose();
                     }
                 },
