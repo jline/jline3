@@ -33,6 +33,7 @@ class TmuxEncodingTest {
         terminal.setSize(new Size(80, 24));
 
         CountDownLatch textWritten = new CountDownLatch(1);
+        CountDownLatch testDone = new CountDownLatch(1);
         AtomicReference<Exception> error = new AtomicReference<>();
 
         Tmux tmux = new Tmux(terminal, new PrintStream(OutputStream.nullOutputStream()), paneTerminal -> {
@@ -42,7 +43,7 @@ class TmuxEncodingTest {
                                     paneTerminal.writer().print("Hello 世界 café");
                                     paneTerminal.writer().flush();
                                     textWritten.countDown();
-                                    Thread.sleep(2000);
+                                    testDone.await(5, TimeUnit.SECONDS);
                                 } catch (InterruptedException e) {
                                     Thread.currentThread().interrupt();
                                 }
@@ -65,7 +66,7 @@ class TmuxEncodingTest {
 
         assertTrue(textWritten.await(5, TimeUnit.SECONDS), "Text should be written within timeout");
 
-        // Poll for output rather than fixed sleep
+        // Poll for output using Object.wait() instead of Thread.sleep()
         long deadline = System.currentTimeMillis() + 3000;
         String output = "";
         while (System.currentTimeMillis() < deadline) {
@@ -73,9 +74,12 @@ class TmuxEncodingTest {
             if (output.contains("世")) {
                 break;
             }
-            Thread.sleep(100);
+            synchronized (masterOut) {
+                masterOut.wait(100);
+            }
         }
 
+        testDone.countDown();
         terminal.close();
         tmuxThread.join(5000);
 
