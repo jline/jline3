@@ -15,7 +15,6 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
@@ -2089,10 +2088,17 @@ public class Tmux {
 
         private class MasterOutputStream extends OutputStream {
             private final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            private final CharsetDecoder decoder = Charset.defaultCharset()
-                    .newDecoder()
-                    .onMalformedInput(CodingErrorAction.REPLACE)
-                    .onUnmappableCharacter(CodingErrorAction.REPLACE);
+            private CharsetDecoder decoder;
+
+            private CharsetDecoder decoder() {
+                if (decoder == null) {
+                    decoder = console.encoding()
+                            .newDecoder()
+                            .onMalformedInput(CodingErrorAction.REPLACE)
+                            .onUnmappableCharacter(CodingErrorAction.REPLACE);
+                }
+                return decoder;
+            }
 
             @Override
             public synchronized void write(int b) {
@@ -2112,7 +2118,7 @@ public class Tmux {
                     for (; ; ) {
                         out = CharBuffer.allocate(size);
                         ByteBuffer in = ByteBuffer.wrap(buffer.toByteArray());
-                        CoderResult result = decoder.decode(in, out, false);
+                        CoderResult result = decoder().decode(in, out, false);
                         if (result.isOverflow()) {
                             size *= 2;
                         } else {
