@@ -25,18 +25,19 @@ public class DefaultCheckboxPrompt extends DefaultPrompt implements CheckboxProm
     private final boolean showPageIndicator;
     private final int minSelections;
     private final int maxSelections;
+    private final boolean filterable;
 
     public DefaultCheckboxPrompt(String name, String message, List<CheckboxItem> items) {
-        this(name, message, items, 0, true, 0, 0);
+        this(name, message, items, 0, true, 0, 0, true);
     }
 
     public DefaultCheckboxPrompt(String name, String message, List<CheckboxItem> items, int pageSize) {
-        this(name, message, items, pageSize, true, 0, 0);
+        this(name, message, items, pageSize, true, 0, 0, true);
     }
 
     public DefaultCheckboxPrompt(
             String name, String message, List<CheckboxItem> items, int pageSize, boolean showPageIndicator) {
-        this(name, message, items, pageSize, showPageIndicator, 0, 0);
+        this(name, message, items, pageSize, showPageIndicator, 0, 0, true);
     }
 
     public DefaultCheckboxPrompt(
@@ -47,12 +48,25 @@ public class DefaultCheckboxPrompt extends DefaultPrompt implements CheckboxProm
             boolean showPageIndicator,
             int minSelections,
             int maxSelections) {
+        this(name, message, items, pageSize, showPageIndicator, minSelections, maxSelections, true);
+    }
+
+    public DefaultCheckboxPrompt(
+            String name,
+            String message,
+            List<CheckboxItem> items,
+            int pageSize,
+            boolean showPageIndicator,
+            int minSelections,
+            int maxSelections,
+            boolean filterable) {
         super(name, message);
         this.items = new ArrayList<>(items);
         this.pageSize = pageSize;
         this.showPageIndicator = showPageIndicator;
         this.minSelections = minSelections;
         this.maxSelections = maxSelections;
+        this.filterable = filterable;
     }
 
     @Override
@@ -78,5 +92,10 @@ public class DefaultCheckboxPrompt extends DefaultPrompt implements CheckboxProm
     @Override
     public int getMaxSelections() {
         return maxSelections;
+    }
+
+    @Override
+    public boolean isFilterable() {
+        return filterable;
     }
 }
