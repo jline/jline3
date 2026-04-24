@@ -63,7 +63,7 @@ public class ScreenTerminalOutputStream extends OutputStream {
                     size *= 2;
                 } else {
                     buffer.reset();
-                    buffer.write(in.array(), in.arrayOffset(), in.remaining());
+                    buffer.write(in.array(), in.arrayOffset() + in.position(), in.remaining());
                     break;
                 }
             }
@@ -83,5 +83,36 @@ public class ScreenTerminalOutputStream extends OutputStream {
     @Override
     public void close() throws IOException {
         flush();
+    }
+
+    /**
+     * A placeholder OutputStream whose delegate can be set after construction.
+     * Used when {@code super()} requires an OutputStream but the real one
+     * cannot be created until after the constructor returns.
+     */
+    public static class DelegateOutputStream extends OutputStream {
+        OutputStream output;
+
+        public DelegateOutputStream() {}
+
+        @Override
+        public void write(int b) throws IOException {
+            if (output != null) output.write(b);
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            if (output != null) output.write(b, off, len);
+        }
+
+        @Override
+        public void flush() throws IOException {
+            if (output != null) output.flush();
+        }
+
+        @Override
+        public void close() throws IOException {
+            if (output != null) output.close();
+        }
     }
 }

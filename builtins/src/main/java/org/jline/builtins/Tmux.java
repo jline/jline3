@@ -13,7 +13,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -1998,8 +1998,8 @@ public class Tmux {
                 }
             };
             this.masterOutput =
-                    new ScreenTerminalOutputStream(this.terminal, Charset.defaultCharset(), masterInputOutput);
-            this.console = new LineDisciplineTerminal(name, type, masterOutput, null) {
+                    new ScreenTerminalOutputStream(this.terminal, StandardCharsets.UTF_8, masterInputOutput);
+            this.console = new LineDisciplineTerminal(name, type, masterOutput, StandardCharsets.UTF_8) {
                 @Override
                 protected void doClose() throws IOException {
                     super.doClose();

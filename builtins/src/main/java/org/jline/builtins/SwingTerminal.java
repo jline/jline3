@@ -78,7 +78,7 @@ public class SwingTerminal extends LineDisciplineTerminal {
      */
     @SuppressWarnings("this-escape")
     public SwingTerminal(String name, int columns, int rows) throws IOException {
-        super(name, "screen-256color", new DelegateOutputStream(), StandardCharsets.UTF_8);
+        super(name, "screen-256color", new ScreenTerminalOutputStream.DelegateOutputStream(), StandardCharsets.UTF_8);
 
         // Create the terminal component
         this.component = new TerminalComponent(columns, rows);
@@ -130,7 +130,7 @@ public class SwingTerminal extends LineDisciplineTerminal {
                         SwingUtilities.invokeLater(component::repaint);
                     }
                 };
-        ((DelegateOutputStream) masterOutput).output = screenOutput;
+        ((ScreenTerminalOutputStream.DelegateOutputStream) masterOutput).output = screenOutput;
         component.setTerminal(this);
     }
 
@@ -252,30 +252,6 @@ public class SwingTerminal extends LineDisciplineTerminal {
             inputThread.interrupt();
         }
         component.dispose();
-    }
-
-    private static class DelegateOutputStream extends OutputStream {
-        OutputStream output;
-
-        @Override
-        public void write(int b) throws IOException {
-            if (output != null) output.write(b);
-        }
-
-        @Override
-        public void write(byte[] b, int off, int len) throws IOException {
-            if (output != null) output.write(b, off, len);
-        }
-
-        @Override
-        public void flush() throws IOException {
-            if (output != null) output.flush();
-        }
-
-        @Override
-        public void close() throws IOException {
-            if (output != null) output.close();
-        }
     }
 
     /**

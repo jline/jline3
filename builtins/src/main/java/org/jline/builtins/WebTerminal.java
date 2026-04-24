@@ -83,7 +83,11 @@ public class WebTerminal extends LineDisciplineTerminal {
      */
     @SuppressWarnings("this-escape")
     public WebTerminal(String host, int port, int columns, int rows) throws IOException {
-        super("WebTerminal", "screen-256color", new DelegateOutputStream(), StandardCharsets.UTF_8);
+        super(
+                "WebTerminal",
+                "screen-256color",
+                new ScreenTerminalOutputStream.DelegateOutputStream(),
+                StandardCharsets.UTF_8);
         this.host = host;
         this.port = port;
 
@@ -98,7 +102,7 @@ public class WebTerminal extends LineDisciplineTerminal {
                 WebTerminal.this.processInputByte(b);
             }
         };
-        ((DelegateOutputStream) masterOutput).output =
+        ((ScreenTerminalOutputStream.DelegateOutputStream) masterOutput).output =
                 new ScreenTerminalOutputStream(this.component, StandardCharsets.UTF_8, feedbackOutput);
     }
 
@@ -393,30 +397,6 @@ public class WebTerminal extends LineDisciplineTerminal {
             try (OutputStream os = exchange.getResponseBody()) {
                 os.write(response);
             }
-        }
-    }
-
-    private static class DelegateOutputStream extends OutputStream {
-        OutputStream output;
-
-        @Override
-        public void write(int b) throws IOException {
-            if (output != null) output.write(b);
-        }
-
-        @Override
-        public void write(byte[] b, int off, int len) throws IOException {
-            if (output != null) output.write(b, off, len);
-        }
-
-        @Override
-        public void flush() throws IOException {
-            if (output != null) output.flush();
-        }
-
-        @Override
-        public void close() throws IOException {
-            if (output != null) output.close();
         }
     }
 
