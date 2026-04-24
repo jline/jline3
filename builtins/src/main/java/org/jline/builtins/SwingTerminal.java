@@ -267,6 +267,16 @@ public class SwingTerminal extends LineDisciplineTerminal {
             this.component = component;
         }
 
+        private void feedbackVt100Response() throws IOException {
+            if (component == null || terminal == null) {
+                return;
+            }
+            String response = component.read();
+            if (!response.isEmpty()) {
+                terminal.processInputBytes(response.getBytes(StandardCharsets.UTF_8));
+            }
+        }
+
         public void setTerminal(SwingTerminal terminal) {
             this.terminal = terminal;
             initializeDecoder();
@@ -337,6 +347,7 @@ public class SwingTerminal extends LineDisciplineTerminal {
             if (pendingOutput.length() > 0) {
                 component.write(pendingOutput.toString());
                 pendingOutput.setLength(0);
+                feedbackVt100Response();
             }
         }
 
@@ -374,6 +385,7 @@ public class SwingTerminal extends LineDisciplineTerminal {
             if (output.position() > 0) {
                 output.flip();
                 component.write(output.toString());
+                feedbackVt100Response();
             }
 
             // If there are remaining bytes (incomplete multi-byte sequence), save them
@@ -855,6 +867,10 @@ public class SwingTerminal extends LineDisciplineTerminal {
          */
         public boolean isDirty() {
             return screenTerminal.isDirty();
+        }
+
+        public String read() {
+            return screenTerminal.read();
         }
 
         // KeyListener implementation
