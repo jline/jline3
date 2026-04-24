@@ -92,7 +92,9 @@ public class WebTerminal extends LineDisciplineTerminal {
         this.component.setWebTerminal(this);
 
         // Connect the output stream to the component
-        ((WebTerminalOutputStream) masterOutput).setComponent(this.component);
+        WebTerminalOutputStream outputStream = (WebTerminalOutputStream) masterOutput;
+        outputStream.setComponent(this.component);
+        outputStream.setWebTerminal(this);
     }
 
     /**
@@ -395,6 +397,7 @@ public class WebTerminal extends LineDisciplineTerminal {
     private static class WebTerminalOutputStream extends OutputStream {
 
         private WebTerminalComponent component;
+        private WebTerminal webTerminal;
         private final byte[] utf8Buf = new byte[4];
         private int utf8Pos;
         private int utf8Len;
@@ -409,6 +412,7 @@ public class WebTerminal extends LineDisciplineTerminal {
                 // Determine expected UTF-8 sequence length from the leading byte
                 if (b < 0x80) {
                     component.write(String.valueOf((char) b));
+                    feedbackVt100Response();
                     return;
                 } else if ((b & 0xE0) == 0xC0) {
                     utf8Len = 2;
@@ -419,6 +423,7 @@ public class WebTerminal extends LineDisciplineTerminal {
                 } else {
                     // Invalid leading byte or continuation byte on its own
                     component.write("\uFFFD");
+                    feedbackVt100Response();
                     return;
                 }
             }
@@ -426,6 +431,7 @@ public class WebTerminal extends LineDisciplineTerminal {
             if (utf8Pos == utf8Len) {
                 String text = new String(utf8Buf, 0, utf8Len, StandardCharsets.UTF_8);
                 component.write(text);
+                feedbackVt100Response();
                 utf8Pos = 0;
                 utf8Len = 0;
             }
@@ -464,6 +470,7 @@ public class WebTerminal extends LineDisciplineTerminal {
                     int completeLen = incompleteStart - (off + i);
                     if (completeLen > 0) {
                         component.write(new String(b, off + i, completeLen, StandardCharsets.UTF_8));
+                        feedbackVt100Response();
                     }
                     for (int j = incompleteStart; j < end; j++) {
                         utf8Buf[utf8Pos++] = b[j];
@@ -474,6 +481,7 @@ public class WebTerminal extends LineDisciplineTerminal {
             }
             // All complete - decode directly
             component.write(new String(b, off + i, len - i, StandardCharsets.UTF_8));
+            feedbackVt100Response();
         }
 
         @Override
@@ -483,6 +491,20 @@ public class WebTerminal extends LineDisciplineTerminal {
 
         public void setComponent(WebTerminalComponent component) {
             this.component = component;
+        }
+
+        public void setWebTerminal(WebTerminal webTerminal) {
+            this.webTerminal = webTerminal;
+        }
+
+        private void feedbackVt100Response() throws IOException {
+            if (component == null || webTerminal == null) {
+                return;
+            }
+            String response = component.read();
+            if (!response.isEmpty()) {
+                webTerminal.processInputBytes(response.getBytes(StandardCharsets.UTF_8));
+            }
         }
     }
 
