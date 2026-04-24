@@ -1267,6 +1267,9 @@ public class PosixCommands {
                                 while ((i = buffer.indexOf("\n", i + 1)) >= 0) {
                                     l++;
                                 }
+                                if (buffer.length() > 0 && buffer.charAt(buffer.length() - 1) != '\n') {
+                                    l++;
+                                }
                                 if (l > lines) {
                                     i = -1;
                                     l = l - lines;
