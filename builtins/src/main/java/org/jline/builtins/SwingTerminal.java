@@ -12,12 +12,6 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CoderResult;
-import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -84,7 +78,7 @@ public class SwingTerminal extends LineDisciplineTerminal {
      */
     @SuppressWarnings("this-escape")
     public SwingTerminal(String name, int columns, int rows) throws IOException {
-        super(name, "screen-256color", new SwingTerminalOutputStream(), StandardCharsets.UTF_8);
+        super(name, "screen-256color", new ScreenTerminalOutputStream.DelegateOutputStream(), StandardCharsets.UTF_8);
 
         // Create the terminal component
         this.component = new TerminalComponent(columns, rows);
@@ -121,13 +115,22 @@ public class SwingTerminal extends LineDisciplineTerminal {
      * @param rows    the number of rows for the terminal display
      */
     private void initializeTerminal(int columns, int rows) {
-        // Set initial size
         setSize(new Size(columns, rows));
-
-        // Connect the component output to our master output and set the terminal reference
-        SwingTerminalOutputStream outputStream = (SwingTerminalOutputStream) masterOutput;
-        outputStream.setComponent(component);
-        outputStream.setTerminal(this);
+        OutputStream feedbackOutput = new OutputStream() {
+            @Override
+            public void write(int b) throws IOException {
+                SwingTerminal.this.processInputByte(b);
+            }
+        };
+        OutputStream screenOutput =
+                new ScreenTerminalOutputStream(component.getScreenTerminal(), StandardCharsets.UTF_8, feedbackOutput) {
+                    @Override
+                    public synchronized void flush() throws IOException {
+                        super.flush();
+                        SwingUtilities.invokeLater(component::repaint);
+                    }
+                };
+        ((ScreenTerminalOutputStream.DelegateOutputStream) masterOutput).output = screenOutput;
         component.setTerminal(this);
     }
 
@@ -249,210 +252,6 @@ public class SwingTerminal extends LineDisciplineTerminal {
             inputThread.interrupt();
         }
         component.dispose();
-    }
-
-    /**
-     * Custom OutputStream that writes to the TerminalComponent.
-     * Uses proper ByteBuffer and CharsetDecoder to handle byte-to-char transformation.
-     */
-    private static class SwingTerminalOutputStream extends OutputStream {
-        private TerminalComponent component;
-        private SwingTerminal terminal;
-        private CharsetDecoder decoder;
-        private ByteBuffer inputBuffer;
-        private CharBuffer outputBuffer;
-        private final StringBuilder pendingOutput = new StringBuilder();
-
-        public void setComponent(TerminalComponent component) {
-            this.component = component;
-        }
-
-        private void feedbackVt100Response() throws IOException {
-            if (component == null || terminal == null) {
-                return;
-            }
-            String response = component.read();
-            if (!response.isEmpty()) {
-                terminal.processInputBytes(response.getBytes(StandardCharsets.UTF_8));
-            }
-        }
-
-        public void setTerminal(SwingTerminal terminal) {
-            this.terminal = terminal;
-            initializeDecoder();
-        }
-
-        private void initializeDecoder() {
-            if (terminal != null) {
-                Charset charset = terminal.outputEncoding();
-                this.decoder = charset.newDecoder()
-                        .onMalformedInput(CodingErrorAction.REPLACE)
-                        .onUnmappableCharacter(CodingErrorAction.REPLACE);
-
-                // Allocate buffers - input buffer for incomplete byte sequences
-                this.inputBuffer = ByteBuffer.allocate(16); // Enough for any multi-byte sequence
-                this.outputBuffer = CharBuffer.allocate(16);
-            }
-        }
-
-        @Override
-        public void write(int b) throws IOException {
-            if (component == null || terminal == null) {
-                return;
-            }
-
-            // Ensure decoder is initialized
-            if (decoder == null) {
-                initializeDecoder();
-            }
-
-            // Add byte to input buffer
-            if (!inputBuffer.hasRemaining()) {
-                // Buffer is full, decode what we have first
-                decodeAndOutput(false);
-                inputBuffer.clear();
-            }
-
-            inputBuffer.put((byte) b);
-
-            // Try to decode the current buffer contents
-            inputBuffer.flip();
-            outputBuffer.clear();
-
-            CoderResult result = decoder.decode(inputBuffer, outputBuffer, false);
-
-            // Handle the result
-            if (result.isUnderflow()) {
-                // Either successful decode or need more input
-                if (outputBuffer.position() > 0) {
-                    // We decoded some characters
-                    outputBuffer.flip();
-                    pendingOutput.append(outputBuffer);
-                }
-                // Compact input buffer to preserve any remaining bytes
-                inputBuffer.compact();
-            } else if (result.isOverflow()) {
-                // Output buffer too small (shouldn't happen with our buffer size)
-                outputBuffer.flip();
-                pendingOutput.append(outputBuffer);
-                inputBuffer.compact();
-            } else {
-                // Error occurred, decoder handled it with replacement chars
-                outputBuffer.flip();
-                pendingOutput.append(outputBuffer);
-                inputBuffer.compact();
-            }
-
-            // Output any complete characters immediately
-            if (pendingOutput.length() > 0) {
-                component.write(pendingOutput.toString());
-                pendingOutput.setLength(0);
-                feedbackVt100Response();
-            }
-        }
-
-        @Override
-        public void write(byte[] b, int off, int len) throws IOException {
-            if (component == null || terminal == null) {
-                return;
-            }
-
-            // Ensure decoder is initialized
-            if (decoder == null) {
-                initializeDecoder();
-            }
-
-            // Check if there are leftover bytes from a previous incomplete sequence
-            if (inputBuffer.position() > 0) {
-                // Feed bytes one at a time until the pending sequence is complete
-                int i = 0;
-                while (i < len && inputBuffer.position() > 0) {
-                    write(b[off + i] & 0xFF);
-                    i++;
-                }
-                if (i >= len) {
-                    return;
-                }
-                off += i;
-                len -= i;
-            }
-
-            // Decode the remaining byte array directly
-            ByteBuffer input = ByteBuffer.wrap(b, off, len);
-            CharBuffer output = CharBuffer.allocate(len);
-            CoderResult result = decoder.decode(input, output, false);
-
-            if (output.position() > 0) {
-                output.flip();
-                component.write(output.toString());
-                feedbackVt100Response();
-            }
-
-            // If there are remaining bytes (incomplete multi-byte sequence), save them
-            if (input.hasRemaining()) {
-                inputBuffer.clear();
-                inputBuffer.put(input);
-            }
-        }
-
-        @Override
-        public void flush() throws IOException {
-            // Flush any remaining bytes in input buffer only if we're closing
-            // For normal flush operations, just repaint the component
-            if (component != null) {
-                SwingUtilities.invokeLater(() -> component.repaint());
-            }
-        }
-
-        /**
-         * Forces decoding of any remaining bytes in the buffer.
-         * This should only be called when the stream is being closed.
-         */
-        public void close() throws IOException {
-            if (component != null && terminal != null && inputBuffer != null && inputBuffer.position() > 0) {
-                decodeAndOutput(true);
-            }
-        }
-
-        /**
-         * Decode any remaining bytes in the input buffer and output them.
-         *
-         * @param endOfInput true if this is the end of input (flush)
-         */
-        private void decodeAndOutput(boolean endOfInput) {
-            if (decoder == null || inputBuffer == null) {
-                return;
-            }
-
-            inputBuffer.flip();
-            outputBuffer.clear();
-
-            decoder.decode(inputBuffer, outputBuffer, endOfInput);
-
-            outputBuffer.flip();
-            if (outputBuffer.hasRemaining()) {
-                pendingOutput.append(outputBuffer);
-            }
-
-            if (endOfInput) {
-                // Final flush - decode may leave state that flush() will emit
-                outputBuffer.clear();
-                decoder.flush(outputBuffer);
-                outputBuffer.flip();
-                if (outputBuffer.hasRemaining()) {
-                    pendingOutput.append(outputBuffer);
-                }
-                // Reset decoder after flush to allow reuse
-                decoder.reset();
-            }
-
-            if (pendingOutput.length() > 0) {
-                component.write(pendingOutput.toString());
-                pendingOutput.setLength(0);
-            }
-
-            inputBuffer.compact();
-        }
     }
 
     /**
@@ -869,8 +668,8 @@ public class SwingTerminal extends LineDisciplineTerminal {
             return screenTerminal.isDirty();
         }
 
-        public String read() {
-            return screenTerminal.read();
+        public ScreenTerminal getScreenTerminal() {
+            return screenTerminal;
         }
 
         // KeyListener implementation

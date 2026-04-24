@@ -83,7 +83,11 @@ public class WebTerminal extends LineDisciplineTerminal {
      */
     @SuppressWarnings("this-escape")
     public WebTerminal(String host, int port, int columns, int rows) throws IOException {
-        super("WebTerminal", "screen-256color", new WebTerminalOutputStream(), StandardCharsets.UTF_8);
+        super(
+                "WebTerminal",
+                "screen-256color",
+                new ScreenTerminalOutputStream.DelegateOutputStream(),
+                StandardCharsets.UTF_8);
         this.host = host;
         this.port = port;
 
@@ -91,10 +95,15 @@ public class WebTerminal extends LineDisciplineTerminal {
         this.component = new WebTerminalComponent(columns, rows);
         this.component.setWebTerminal(this);
 
-        // Connect the output stream to the component
-        WebTerminalOutputStream outputStream = (WebTerminalOutputStream) masterOutput;
-        outputStream.setComponent(this.component);
-        outputStream.setWebTerminal(this);
+        // Connect the output stream via ScreenTerminalOutputStream
+        OutputStream feedbackOutput = new OutputStream() {
+            @Override
+            public void write(int b) throws IOException {
+                WebTerminal.this.processInputByte(b);
+            }
+        };
+        ((ScreenTerminalOutputStream.DelegateOutputStream) masterOutput).output =
+                new ScreenTerminalOutputStream(this.component, StandardCharsets.UTF_8, feedbackOutput);
     }
 
     /**
@@ -387,123 +396,6 @@ public class WebTerminal extends LineDisciplineTerminal {
 
             try (OutputStream os = exchange.getResponseBody()) {
                 os.write(response);
-            }
-        }
-    }
-
-    /**
-     * Custom OutputStream for the WebTerminal that writes to the component.
-     */
-    private static class WebTerminalOutputStream extends OutputStream {
-
-        private WebTerminalComponent component;
-        private WebTerminal webTerminal;
-        private final byte[] utf8Buf = new byte[4];
-        private int utf8Pos;
-        private int utf8Len;
-
-        @Override
-        public void write(int b) throws IOException {
-            if (component == null) {
-                return;
-            }
-            b &= 0xFF;
-            if (utf8Pos == 0) {
-                // Determine expected UTF-8 sequence length from the leading byte
-                if (b < 0x80) {
-                    component.write(String.valueOf((char) b));
-                    feedbackVt100Response();
-                    return;
-                } else if ((b & 0xE0) == 0xC0) {
-                    utf8Len = 2;
-                } else if ((b & 0xF0) == 0xE0) {
-                    utf8Len = 3;
-                } else if ((b & 0xF8) == 0xF0) {
-                    utf8Len = 4;
-                } else {
-                    // Invalid leading byte or continuation byte on its own
-                    component.write("\uFFFD");
-                    feedbackVt100Response();
-                    return;
-                }
-            }
-            utf8Buf[utf8Pos++] = (byte) b;
-            if (utf8Pos == utf8Len) {
-                String text = new String(utf8Buf, 0, utf8Len, StandardCharsets.UTF_8);
-                component.write(text);
-                feedbackVt100Response();
-                utf8Pos = 0;
-                utf8Len = 0;
-            }
-        }
-
-        @Override
-        public void write(byte[] b, int off, int len) throws IOException {
-            if (component == null) {
-                return;
-            }
-            // Flush any pending partial sequence first
-            int i = 0;
-            while (i < len && utf8Pos > 0) {
-                write(b[off + i] & 0xFF);
-                i++;
-            }
-            if (i >= len) {
-                return;
-            }
-            // Find the last complete UTF-8 sequence boundary
-            int end = off + len;
-            int trailingIncomplete = 0;
-            for (int j = end - 1; j >= off + i && (b[j] & 0xC0) == 0x80; j--) {
-                trailingIncomplete++;
-            }
-            if (trailingIncomplete > 0 && end - 1 - trailingIncomplete >= off + i) {
-                int leadByte = b[end - 1 - trailingIncomplete] & 0xFF;
-                int expectedLen;
-                if ((leadByte & 0xE0) == 0xC0) expectedLen = 2;
-                else if ((leadByte & 0xF0) == 0xE0) expectedLen = 3;
-                else if ((leadByte & 0xF8) == 0xF0) expectedLen = 4;
-                else expectedLen = 1;
-                if (trailingIncomplete + 1 < expectedLen) {
-                    // Incomplete sequence at the end - buffer it
-                    int incompleteStart = end - 1 - trailingIncomplete;
-                    int completeLen = incompleteStart - (off + i);
-                    if (completeLen > 0) {
-                        component.write(new String(b, off + i, completeLen, StandardCharsets.UTF_8));
-                        feedbackVt100Response();
-                    }
-                    for (int j = incompleteStart; j < end; j++) {
-                        utf8Buf[utf8Pos++] = b[j];
-                    }
-                    utf8Len = expectedLen;
-                    return;
-                }
-            }
-            // All complete - decode directly
-            component.write(new String(b, off + i, len - i, StandardCharsets.UTF_8));
-            feedbackVt100Response();
-        }
-
-        @Override
-        public void flush() throws IOException {
-            // No buffering beyond partial UTF-8 sequences
-        }
-
-        public void setComponent(WebTerminalComponent component) {
-            this.component = component;
-        }
-
-        public void setWebTerminal(WebTerminal webTerminal) {
-            this.webTerminal = webTerminal;
-        }
-
-        private void feedbackVt100Response() throws IOException {
-            if (component == null || webTerminal == null) {
-                return;
-            }
-            String response = component.read();
-            if (!response.isEmpty()) {
-                webTerminal.processInputBytes(response.getBytes(StandardCharsets.UTF_8));
             }
         }
     }
