@@ -246,6 +246,7 @@ public class FreeBsdNativePty extends JniNativePty {
         tio.c_cc[VMIN] = (byte) t.getControlChar(Attributes.ControlChar.VMIN);
         tio.c_cc[VTIME] = (byte) t.getControlChar(Attributes.ControlChar.VTIME);
         //        tio.c_cc[VSTATUS] = (byte) t.getControlChar(Attributes.ControlChar.VSTATUS);
+        tio.c_cc[VERASE2] = (byte) t.getControlChar(Attributes.ControlChar.VERASE2);
         return tio;
     }
 
@@ -341,6 +342,7 @@ public class FreeBsdNativePty extends JniNativePty {
         cc.put(Attributes.ControlChar.VMIN, (int) tio.c_cc[VMIN]);
         cc.put(Attributes.ControlChar.VTIME, (int) tio.c_cc[VTIME]);
         //        cc.put(Attributes.ControlChar.VSTATUS, (int) tio.c_cc[VSTATUS]);
+        cc.put(Attributes.ControlChar.VERASE2, (int) tio.c_cc[VERASE2]);
         // Return
         return attr;
     }

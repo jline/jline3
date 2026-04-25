@@ -179,10 +179,12 @@ class CLibrary {
             c_iflag = setFlag(t.getInputFlag(Attributes.InputFlag.IXANY), IXANY, c_iflag);
             c_iflag = setFlag(t.getInputFlag(Attributes.InputFlag.IMAXBEL), IMAXBEL, c_iflag);
             c_iflag = setFlag(t.getInputFlag(Attributes.InputFlag.IUTF8), IUTF8, c_iflag);
+            c_iflag = setFlag(t.getInputFlag(Attributes.InputFlag.IUCLC), IUCLC, c_iflag);
             c_iflag(c_iflag);
             // Output flags
             long c_oflag = 0;
             c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.OPOST), OPOST, c_oflag);
+            c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.OLCUC), OLCUC, c_oflag);
             c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.ONLCR), ONLCR, c_oflag);
             c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.OXTABS), OXTABS, c_oflag);
             c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.ONOEOT), ONOEOT, c_oflag);
@@ -228,6 +230,7 @@ class CLibrary {
             c_lflag = setFlag(t.getLocalFlag(Attributes.LocalFlag.ECHOCTL), ECHOCTL, c_lflag);
             c_lflag = setFlag(t.getLocalFlag(Attributes.LocalFlag.ISIG), ISIG, c_lflag);
             c_lflag = setFlag(t.getLocalFlag(Attributes.LocalFlag.ICANON), ICANON, c_lflag);
+            c_lflag = setFlag(t.getLocalFlag(Attributes.LocalFlag.XCASE), XCASE, c_lflag);
             c_lflag = setFlag(t.getLocalFlag(Attributes.LocalFlag.ALTWERASE), ALTWERASE, c_lflag);
             c_lflag = setFlag(t.getLocalFlag(Attributes.LocalFlag.IEXTEN), IEXTEN, c_lflag);
             c_lflag = setFlag(t.getLocalFlag(Attributes.LocalFlag.EXTPROC), EXTPROC, c_lflag);
@@ -260,6 +263,12 @@ class CLibrary {
             c_cc[VTIME] = (byte) t.getControlChar(Attributes.ControlChar.VTIME);
             if (VSTATUS != (-1)) {
                 c_cc[VSTATUS] = (byte) t.getControlChar(Attributes.ControlChar.VSTATUS);
+            }
+            if (VSWTC != (-1)) {
+                c_cc[VSWTC] = (byte) t.getControlChar(Attributes.ControlChar.VSWTC);
+            }
+            if (VERASE2 != (-1)) {
+                c_cc[VERASE2] = (byte) t.getControlChar(Attributes.ControlChar.VERASE2);
             }
             c_cc().copyFrom(MemorySegment.ofArray(c_cc));
         }
@@ -349,10 +358,12 @@ class CLibrary {
             addFlag(c_iflag, iflag, Attributes.InputFlag.IXANY, IXANY);
             addFlag(c_iflag, iflag, Attributes.InputFlag.IMAXBEL, IMAXBEL);
             addFlag(c_iflag, iflag, Attributes.InputFlag.IUTF8, IUTF8);
+            addFlag(c_iflag, iflag, Attributes.InputFlag.IUCLC, IUCLC);
             // Output flags
             long c_oflag = c_oflag();
             EnumSet<Attributes.OutputFlag> oflag = attr.getOutputFlags();
             addFlag(c_oflag, oflag, Attributes.OutputFlag.OPOST, OPOST);
+            addFlag(c_oflag, oflag, Attributes.OutputFlag.OLCUC, OLCUC);
             addFlag(c_oflag, oflag, Attributes.OutputFlag.ONLCR, ONLCR);
             addFlag(c_oflag, oflag, Attributes.OutputFlag.OXTABS, OXTABS);
             addFlag(c_oflag, oflag, Attributes.OutputFlag.ONOEOT, ONOEOT);
@@ -397,6 +408,7 @@ class CLibrary {
             addFlag(c_lflag, lflag, Attributes.LocalFlag.ECHOCTL, ECHOCTL);
             addFlag(c_lflag, lflag, Attributes.LocalFlag.ISIG, ISIG);
             addFlag(c_lflag, lflag, Attributes.LocalFlag.ICANON, ICANON);
+            addFlag(c_lflag, lflag, Attributes.LocalFlag.XCASE, XCASE);
             addFlag(c_lflag, lflag, Attributes.LocalFlag.ALTWERASE, ALTWERASE);
             addFlag(c_lflag, lflag, Attributes.LocalFlag.IEXTEN, IEXTEN);
             addFlag(c_lflag, lflag, Attributes.LocalFlag.EXTPROC, EXTPROC);
@@ -429,6 +441,12 @@ class CLibrary {
             cc.put(Attributes.ControlChar.VTIME, (int) c_cc[VTIME]);
             if (VSTATUS != (-1)) {
                 cc.put(Attributes.ControlChar.VSTATUS, (int) c_cc[VSTATUS]);
+            }
+            if (VSWTC != (-1)) {
+                cc.put(Attributes.ControlChar.VSWTC, (int) c_cc[VSWTC]);
+            }
+            if (VERASE2 != (-1)) {
+                cc.put(Attributes.ControlChar.VERASE2, (int) c_cc[VERASE2]);
             }
             // Return
             return attr;

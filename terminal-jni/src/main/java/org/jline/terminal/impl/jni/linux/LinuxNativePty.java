@@ -217,8 +217,10 @@ public class LinuxNativePty extends JniNativePty {
         tio.c_iflag = setFlag(t.getInputFlag(Attributes.InputFlag.IXANY), IXANY, tio.c_iflag);
         tio.c_iflag = setFlag(t.getInputFlag(Attributes.InputFlag.IMAXBEL), IMAXBEL, tio.c_iflag);
         tio.c_iflag = setFlag(t.getInputFlag(Attributes.InputFlag.IUTF8), IUTF8, tio.c_iflag);
+        tio.c_iflag = setFlag(t.getInputFlag(Attributes.InputFlag.IUCLC), IUCLC, tio.c_iflag);
         // Output flags
         tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.OPOST), OPOST, tio.c_oflag);
+        tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.OLCUC), OLCUC, tio.c_oflag);
         tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.ONLCR), ONLCR, tio.c_oflag);
         //        tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.OXTABS), OXTABS, tio.c_oflag);
         //        tio.c_oflag = setFlag(t.getOutputFlag(Attributes.OutputFlag.ONOEOT), ONOEOT, tio.c_oflag);
@@ -260,6 +262,7 @@ public class LinuxNativePty extends JniNativePty {
         tio.c_lflag = setFlag(t.getLocalFlag(Attributes.LocalFlag.ECHOCTL), ECHOCTL, tio.c_lflag);
         tio.c_lflag = setFlag(t.getLocalFlag(Attributes.LocalFlag.ISIG), ISIG, tio.c_lflag);
         tio.c_lflag = setFlag(t.getLocalFlag(Attributes.LocalFlag.ICANON), ICANON, tio.c_lflag);
+        tio.c_lflag = setFlag(t.getLocalFlag(Attributes.LocalFlag.XCASE), XCASE, tio.c_lflag);
         //        tio.c_lflag = setFlag(t.getLocalFlag(Attributes.LocalFlag.ALTWERASE), ALTWERASE, tio.c_lflag);
         tio.c_lflag = setFlag(t.getLocalFlag(Attributes.LocalFlag.IEXTEN), IEXTEN, tio.c_lflag);
         tio.c_lflag = setFlag(t.getLocalFlag(Attributes.LocalFlag.EXTPROC), EXTPROC, tio.c_lflag);
@@ -286,6 +289,7 @@ public class LinuxNativePty extends JniNativePty {
         tio.c_cc[VMIN] = (byte) t.getControlChar(Attributes.ControlChar.VMIN);
         tio.c_cc[VTIME] = (byte) t.getControlChar(Attributes.ControlChar.VTIME);
         //        tio.c_cc[VSTATUS] = (byte) t.getControlChar(Attributes.ControlChar.VSTATUS);
+        tio.c_cc[VSWTC] = (byte) t.getControlChar(Attributes.ControlChar.VSWTC);
         return tio;
     }
 
@@ -307,9 +311,11 @@ public class LinuxNativePty extends JniNativePty {
         addFlag(tio.c_iflag, iflag, Attributes.InputFlag.IXANY, IXANY);
         addFlag(tio.c_iflag, iflag, Attributes.InputFlag.IMAXBEL, IMAXBEL);
         addFlag(tio.c_iflag, iflag, Attributes.InputFlag.IUTF8, IUTF8);
+        addFlag(tio.c_iflag, iflag, Attributes.InputFlag.IUCLC, IUCLC);
         // Output flags
         EnumSet<Attributes.OutputFlag> oflag = attr.getOutputFlags();
         addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.OPOST, OPOST);
+        addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.OLCUC, OLCUC);
         addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.ONLCR, ONLCR);
         //        addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.OXTABS, OXTABS);
         //        addFlag(tio.c_oflag, oflag, Attributes.OutputFlag.ONOEOT, ONOEOT);
@@ -352,6 +358,7 @@ public class LinuxNativePty extends JniNativePty {
         addFlag(tio.c_lflag, lflag, Attributes.LocalFlag.ECHOCTL, ECHOCTL);
         addFlag(tio.c_lflag, lflag, Attributes.LocalFlag.ISIG, ISIG);
         addFlag(tio.c_lflag, lflag, Attributes.LocalFlag.ICANON, ICANON);
+        addFlag(tio.c_lflag, lflag, Attributes.LocalFlag.XCASE, XCASE);
         //        addFlag(tio.c_lflag, lflag, Attributes.LocalFlag.ALTWERASE, ALTWERASE);
         addFlag(tio.c_lflag, lflag, Attributes.LocalFlag.IEXTEN, IEXTEN);
         addFlag(tio.c_lflag, lflag, Attributes.LocalFlag.EXTPROC, EXTPROC);
@@ -379,6 +386,7 @@ public class LinuxNativePty extends JniNativePty {
         cc.put(Attributes.ControlChar.VMIN, (int) tio.c_cc[VMIN]);
         cc.put(Attributes.ControlChar.VTIME, (int) tio.c_cc[VTIME]);
         //        cc.put(Attributes.ControlChar.VSTATUS, (int) tio.c_cc[VSTATUS]);
+        cc.put(Attributes.ControlChar.VSWTC, (int) tio.c_cc[VSWTC]);
         // Return
         return attr;
     }
