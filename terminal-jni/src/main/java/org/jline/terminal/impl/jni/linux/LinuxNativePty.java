@@ -193,7 +193,7 @@ public class LinuxNativePty extends JniNativePty {
     private static final int ECHOPRT = 0x0000400;
     private static final int ECHOKE = 0x0000800;
     private static final int FLUSHO = 0x0001000;
-    private static final int PENDIN = 0x0002000;
+    private static final int PENDIN = 0x0004000;
     private static final int IEXTEN = 0x0008000;
     private static final int EXTPROC = 0x0010000;
 
