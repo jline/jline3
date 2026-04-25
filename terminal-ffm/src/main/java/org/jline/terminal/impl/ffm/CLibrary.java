@@ -926,7 +926,7 @@ class CLibrary {
             ECHOPRT = 0x0000400;
             ECHOKE = 0x0000800;
             FLUSHO = 0x0001000;
-            PENDIN = 0x0002000;
+            PENDIN = 0x0004000;
             IEXTEN = 0x0008000;
             EXTPROC = 0x0010000;
         } else if (osName.startsWith("Solaris") || osName.startsWith("SunOS")) {
