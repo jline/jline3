@@ -383,6 +383,7 @@ class CLibrary {
             addFlag(c_cflag, cflag, Attributes.ControlFlag.CLOCAL, CLOCAL);
             addFlag(c_cflag, cflag, Attributes.ControlFlag.CCTS_OFLOW, CCTS_OFLOW);
             addFlag(c_cflag, cflag, Attributes.ControlFlag.CRTS_IFLOW, CRTS_IFLOW);
+            addFlag(c_cflag, cflag, Attributes.ControlFlag.CDTR_IFLOW, CDTR_IFLOW);
             addFlag(c_cflag, cflag, Attributes.ControlFlag.CDSR_OFLOW, CDSR_OFLOW);
             addFlag(c_cflag, cflag, Attributes.ControlFlag.CCAR_OFLOW, CCAR_OFLOW);
             // Local flags
