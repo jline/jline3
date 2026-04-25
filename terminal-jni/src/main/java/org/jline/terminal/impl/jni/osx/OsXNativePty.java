@@ -328,6 +328,7 @@ public class OsXNativePty extends JniNativePty {
         addFlag(tio.c_cflag, cflag, Attributes.ControlFlag.CLOCAL, CLOCAL);
         addFlag(tio.c_cflag, cflag, Attributes.ControlFlag.CCTS_OFLOW, CCTS_OFLOW);
         addFlag(tio.c_cflag, cflag, Attributes.ControlFlag.CRTS_IFLOW, CRTS_IFLOW);
+        addFlag(tio.c_cflag, cflag, Attributes.ControlFlag.CDTR_IFLOW, CDTR_IFLOW);
         addFlag(tio.c_cflag, cflag, Attributes.ControlFlag.CDSR_OFLOW, CDSR_OFLOW);
         addFlag(tio.c_cflag, cflag, Attributes.ControlFlag.CCAR_OFLOW, CCAR_OFLOW);
         // Local flags
