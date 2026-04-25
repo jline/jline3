@@ -127,7 +127,11 @@ public class Attributes {
         /** Timeout in deciseconds for non-canonical read */
         VTIME,
         /** Status request character (typically Ctrl+T) */
-        VSTATUS
+        VSTATUS,
+        /** Switch character (Linux/Solaris) */
+        VSWTC,
+        /** Alternate erase character (FreeBSD) */
+        VERASE2
     }
 
     /**
@@ -175,6 +179,7 @@ public class Attributes {
         IXANY, /* any char will restart after stop */
         IMAXBEL, /* ring bell on input queue full */
         IUTF8, /* maintain state for UTF-8 VERASE */
+        IUCLC, /* map upper case to lower case on input (Linux/Solaris) */
 
         INORMEOL /* normalize end-of-line */
     }
@@ -210,6 +215,7 @@ public class Attributes {
      */
     public enum OutputFlag {
         OPOST, /* enable following output processing */
+        OLCUC, /* map lower case to upper case on output (Linux/Solaris) */
         ONLCR, /* map NL to CR-NL (ala CRMOD) */
         OXTABS, /* expand tabs to spaces */
         ONOEOT, /* discard EOT's (^D) on output) */
@@ -319,6 +325,7 @@ public class Attributes {
         ECHOCTL, /* echo control chars as ^(Char) */
         ISIG, /* enable signals INTR, QUIT, [D]SUSP */
         ICANON, /* canonicalize input lines */
+        XCASE, /* canonical upper/lower presentation (Linux/Solaris) */
         ALTWERASE, /* use alternate WERASE algorithm */
         IEXTEN, /* enable DISCARD and LNEXT */
         EXTPROC, /* external processing */
