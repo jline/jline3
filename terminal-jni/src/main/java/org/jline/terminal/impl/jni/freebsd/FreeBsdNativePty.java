@@ -153,8 +153,8 @@ public class FreeBsdNativePty extends JniNativePty {
     private static final int EXTPROC = 0x0000800;
     private static final int TOSTOP = 0x0400000;
     private static final int FLUSHO = 0x0800000;
-    private static final int PENDIN = 0x2000000;
-    private static final int NOFLSH = 0x8000000;
+    private static final int PENDIN = 0x20000000;
+    private static final int NOFLSH = 0x80000000;
 
     protected CLibrary.Termios toTermios(Attributes t) {
         return termios(t);
