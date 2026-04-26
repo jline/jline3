@@ -9,7 +9,7 @@
 package org.jline.example;
 
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -546,11 +546,11 @@ class Example {
                     } else if ("sleep".equals(pl.word())) {
                         Thread.sleep(3000);
                     } else if ("nano".equals(pl.word())) {
-                        Commands.nano(terminal, System.out, System.err, Paths.get(""), argv);
+                        Commands.nano(terminal, System.out, System.err, Path.of(""), argv);
                     } else if ("less".equals(pl.word())) {
-                        Commands.less(terminal, System.in, System.out, System.err, Paths.get(""), argv);
+                        Commands.less(terminal, System.in, System.out, System.err, Path.of(""), argv);
                     } else if ("history".equals(pl.word())) {
-                        Commands.history(reader, System.out, System.err, Paths.get(""), argv);
+                        Commands.history(reader, System.out, System.err, Path.of(""), argv);
                     } else if ("setopt".equals(pl.word())) {
                         Commands.setopt(reader, System.out, System.err, argv);
                     } else if ("unsetopt".equals(pl.word())) {

@@ -13,7 +13,10 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.nio.file.*;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -558,7 +561,7 @@ public class GroovyEngine implements ScriptEngine {
         String syntax = groovyOption(NANORC_SYNTAX, DEFAULT_NANORC_SYNTAX);
         if (syntaxHighlighter == null || syntax == null || !syntax.equals(syntaxHighlighterStyle)) {
             String nanorcString = (String) get(VAR_NANORC);
-            Path nanorc = nanorcString != null ? Paths.get(nanorcString) : null;
+            Path nanorc = nanorcString != null ? Path.of(nanorcString) : null;
             if (syntax == null) {
                 syntaxHighlighter = SyntaxHighlighter.build("");
             } else if (syntax.contains(":") || nanorc == null) {
@@ -826,7 +829,7 @@ public class GroovyEngine implements ScriptEngine {
             dom = "regex:\\." + dom + "[A-Z]+[a-zA-Z]*\\.groovy";
             PathMatcher matcher = FileSystems.getDefault().getPathMatcher(dom);
             Set<String> out = new HashSet<>();
-            try (Stream<Path> pathStream = Files.walk(Paths.get("."))) {
+            try (Stream<Path> pathStream = Files.walk(Path.of("."))) {
                 Stream<String> classes = pathStream
                         .filter(matcher::matches)
                         .filter(p -> p.getFileName().toString().matches("[A-Z]+[a-zA-Z]*\\.groovy"))

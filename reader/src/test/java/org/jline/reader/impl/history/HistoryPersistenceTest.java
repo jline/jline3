@@ -11,7 +11,6 @@ package org.jline.reader.impl.history;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.BrokenBarrierException;
@@ -41,13 +40,13 @@ class HistoryPersistenceTest extends ReaderTestSupport {
     @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
-        Files.deleteIfExists(Paths.get("test"));
+        Files.deleteIfExists(Path.of("test"));
     }
 
     @Override
     @AfterEach
     public void tearDown() throws IOException {
-        Files.deleteIfExists(Paths.get("test"));
+        Files.deleteIfExists(Path.of("test"));
         super.tearDown();
     }
 
@@ -78,7 +77,7 @@ class HistoryPersistenceTest extends ReaderTestSupport {
 
     @Test
     void testFileHistory() throws Exception {
-        Path testPath = Paths.get("test");
+        Path testPath = Path.of("test");
         reader.setVariable(LineReader.HISTORY_FILE, testPath);
         reader.unsetOpt(LineReader.Option.HISTORY_INCREMENTAL);
 
@@ -109,7 +108,7 @@ class HistoryPersistenceTest extends ReaderTestSupport {
         reader.unsetOpt(LineReader.Option.HISTORY_INCREMENTAL);
         reader.option(LineReader.Option.HISTORY_TIMESTAMPED, timestamped);
         reader.setVariable(LineReader.HISTORY_FILE_SIZE, 5);
-        reader.setVariable(LineReader.HISTORY_FILE, Paths.get("test"));
+        reader.setVariable(LineReader.HISTORY_FILE, Path.of("test"));
 
         DefaultHistory history = new DefaultHistory(reader);
         for (int i = 0; i < 50; i++) {

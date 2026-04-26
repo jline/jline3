@@ -98,7 +98,7 @@ class Issue1025 {
                 .defaultValue("John Doe")
                 // .mask('*')
                 .addCompleter(
-                        // new Completers.FilesCompleter(() -> Paths.get(System.getProperty("user.dir"))))
+                        // new Completers.FilesCompleter(() -> Path.of(System.getProperty("user.dir"))))
                         new StringsCompleter("Jim", "Jack", "John", "Donald", "Dock"))
                 .addPrompt();
 

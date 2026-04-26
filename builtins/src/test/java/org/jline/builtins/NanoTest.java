@@ -10,7 +10,7 @@ package org.jline.builtins;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 
 import org.jline.keymap.KeyMap;
 import org.jline.terminal.Size;
@@ -37,7 +37,7 @@ class NanoTest {
             String[] argv = {"--ignorercfiles"};
             Nano nano = new Nano(
                     terminal,
-                    Paths.get("target/test.txt"),
+                    Path.of("target/test.txt"),
                     Options.compile(Nano.usage()).parse(argv));
             assertNotNull(nano);
             nano.run();

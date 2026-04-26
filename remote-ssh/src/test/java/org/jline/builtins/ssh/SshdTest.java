@@ -8,7 +8,7 @@
  */
 package org.jline.builtins.ssh;
 
-import java.nio.file.Paths;
+import java.nio.file.Path;
 
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.channel.ChannelShell;
@@ -27,7 +27,7 @@ class SshdTest {
     void test() throws Exception {
         SshServer sshd = SshServer.setUpDefaultServer();
         sshd.setPort(0);
-        sshd.setKeyPairProvider(new SimpleGeneratorHostKeyProvider(Paths.get("target/hostkey.ser")));
+        sshd.setKeyPairProvider(new SimpleGeneratorHostKeyProvider(Path.of("target/hostkey.ser")));
         sshd.setPasswordAuthenticator((username, password, session) -> true);
         sshd.setShellFactory(new ShellFactoryImpl(shellParams -> {
             LineReader reader = LineReaderBuilder.builder()

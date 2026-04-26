@@ -14,7 +14,6 @@ import java.lang.reflect.Array;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -655,11 +654,11 @@ public class Completers {
         }
 
         protected Path getUserDir() {
-            return Paths.get(System.getProperty("user.dir"));
+            return Path.of(System.getProperty("user.dir"));
         }
 
         protected Path getUserHome() {
-            return Paths.get(System.getProperty("user.home"));
+            return Path.of(System.getProperty("user.home"));
         }
 
         protected String getSeparator(boolean useForwardSlash) {
@@ -1203,7 +1202,7 @@ public class Completers {
                     if (valueCompleter instanceof FileNameCompleter) {
                         FileNameCompleter cc = (FileNameCompleter) valueCompleter;
                         String sep = cc.getSeparator(reader.isSet(LineReader.Option.USE_FORWARD_SLASH));
-                        val = cc.getDisplay(reader.getTerminal(), Paths.get(c.value()), Styles.lsStyle(), sep);
+                        val = cc.getDisplay(reader.getTerminal(), Path.of(c.value()), Styles.lsStyle(), sep);
                     }
                     candidates.add(new Candidate(curBuf + v, val, null, null, null, null, c.complete()));
                 }

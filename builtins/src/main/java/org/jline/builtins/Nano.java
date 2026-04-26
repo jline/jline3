@@ -24,7 +24,6 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
@@ -1788,7 +1787,7 @@ public class Nano implements Editor {
             }
         } else if (new File("/usr/share/nano").exists() && !ignorercfiles) {
             PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:/usr/share/nano/*.nanorc");
-            try (Stream<Path> pathStream = Files.walk(Paths.get("/usr/share/nano"))) {
+            try (Stream<Path> pathStream = Files.walk(Path.of("/usr/share/nano"))) {
                 pathStream.filter(pathMatcher::matches).forEach(syntaxFiles::add);
                 nanorcIgnoreErrors = true;
             } catch (IOException e) {
@@ -2384,7 +2383,7 @@ public class Nano implements Editor {
         Path newPath = root.resolve(name);
         boolean isSame =
                 orgPath != null && Files.exists(orgPath) && Files.exists(newPath) && Files.isSameFile(orgPath, newPath);
-        if (!isSame && Files.exists(Paths.get(name)) && writeMode == WriteMode.WRITE) {
+        if (!isSame && Files.exists(Path.of(name)) && writeMode == WriteMode.WRITE) {
             Operation op = getYNC("File exists, OVERWRITE ? ");
             if (op != Operation.YES) {
                 return false;

@@ -9,7 +9,7 @@
 package org.jline.demo.examples;
 
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -29,7 +29,7 @@ public class PersistentHistoryExample {
         LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
 
         // Set the history file
-        reader.setVariable(LineReader.HISTORY_FILE, Paths.get("~/.myapp_history"));
+        reader.setVariable(LineReader.HISTORY_FILE, Path.of(System.getProperty("user.home"), ".myapp_history"));
 
         // Use the reader...
         String line = reader.readLine("prompt> ");

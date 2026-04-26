@@ -10,7 +10,7 @@ package org.jline.demo.graal;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 
 import org.jline.reader.LineReader;
 import org.jline.shell.Shell;
@@ -42,7 +42,7 @@ public class Graal {
                     .optionCommands(true)
                     .variableCommands(true)
                     .commandHighlighter(true)
-                    .historyFile(Paths.get(System.getProperty("user.home"), ".jline-graal-history"))
+                    .historyFile(Path.of(System.getProperty("user.home"), ".jline-graal-history"))
                     .option(LineReader.Option.INSERT_BRACKET, true)
                     .option(LineReader.Option.EMPTY_WORD_OPTIONS, false)
                     .option(LineReader.Option.USE_FORWARD_SLASH, true)

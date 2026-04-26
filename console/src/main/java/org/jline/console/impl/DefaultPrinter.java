@@ -11,7 +11,6 @@ package org.jline.console.impl;
 import java.io.File;
 import java.math.BigDecimal;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -425,10 +424,10 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         } else {
             Path nanorc = configPath != null ? configPath.getConfig(DEFAULT_NANORC_FILE) : null;
             if (engine != null && engine.hasVariable(VAR_NANORC)) {
-                nanorc = Paths.get((String) engine.get(VAR_NANORC));
+                nanorc = Path.of((String) engine.get(VAR_NANORC));
             }
             if (nanorc == null) {
-                nanorc = Paths.get("/etc/nanorc");
+                nanorc = Path.of("/etc/nanorc");
             }
             out = SyntaxHighlighter.build(nanorc, style);
             highlighters.put(style, out);

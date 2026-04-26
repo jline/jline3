@@ -9,7 +9,7 @@
 package org.jline.demo.examples;
 
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 
 import org.jline.builtins.Completers.FilesCompleter;
 import org.jline.reader.Completer;
@@ -28,7 +28,7 @@ public class ArgumentCompleterExample {
     public static void main(String[] args) throws IOException {
         // First argument is a command, second is a file
         Completer commandCompleter = new StringsCompleter("open", "save", "delete");
-        Completer fileCompleter = new FilesCompleter(Paths.get(System.getProperty("user.dir")));
+        Completer fileCompleter = new FilesCompleter(Path.of(System.getProperty("user.dir")));
 
         // HIGHLIGHT_START: Create an ArgumentCompleter
         Completer argCompleter = new ArgumentCompleter(commandCompleter, fileCompleter);

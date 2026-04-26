@@ -28,7 +28,7 @@ import org.jline.terminal.Terminal;
  * <h3>Usage Example:</h3>
  * <pre>{@code
  * Terminal terminal = TerminalBuilder.builder().build();
- * Path currentDir = Paths.get(".");
+ * Path currentDir = Path.of(".");
  *
  * PosixCommandsRegistry registry = new PosixCommandsRegistry(
  *     terminal.input(),

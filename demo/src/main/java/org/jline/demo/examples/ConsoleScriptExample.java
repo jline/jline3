@@ -11,7 +11,6 @@ package org.jline.demo.examples;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 /**
  * Example demonstrating a console script in JLine.
@@ -58,7 +57,7 @@ public class ConsoleScriptExample {
                 + "exit \"Script completed successfully!\"\n";
 
         // Write the example script to a file for demonstration purposes
-        Path scriptPath = Paths.get("hello.jline");
+        Path scriptPath = Path.of("hello.jline");
         Files.write(scriptPath, consoleScript.getBytes());
 
         System.out.println("Created example console script: " + scriptPath.toAbsolutePath());

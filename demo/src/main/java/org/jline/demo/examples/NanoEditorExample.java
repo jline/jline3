@@ -9,7 +9,7 @@
 package org.jline.demo.examples;
 
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 
 import org.jline.builtins.Nano;
 import org.jline.builtins.Options;
@@ -29,7 +29,7 @@ public class NanoEditorExample {
         Options options = Options.compile(Nano.usage()).parse(new String[] {"--tabsize=4", "--tabstospaces"});
 
         // Launch Nano editor
-        Nano nano = new Nano(terminal, Paths.get(""), options);
+        Nano nano = new Nano(terminal, Path.of(""), options);
         nano.open("example.txt");
     }
     // SNIPPET_END: NanoEditorExample

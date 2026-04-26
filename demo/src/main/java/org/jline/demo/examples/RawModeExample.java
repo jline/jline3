@@ -22,9 +22,7 @@ public class RawModeExample {
 
     // SNIPPET_START: RawModeExample
     public static void main(String[] args) throws IOException {
-        Terminal terminal = TerminalBuilder.builder().build();
-
-        try {
+        try (Terminal terminal = TerminalBuilder.builder().build()) {
             // Save original terminal attributes
             Attributes originalAttributes = terminal.getAttributes();
 
@@ -51,8 +49,6 @@ public class RawModeExample {
 
             // Restore original terminal attributes
             terminal.setAttributes(originalAttributes);
-        } finally {
-            terminal.close();
         }
     }
     // SNIPPET_END: RawModeExample

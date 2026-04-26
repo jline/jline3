@@ -20,33 +20,31 @@ public class MouseSupportBasicsExample {
 
     // SNIPPET_START: MouseSupportBasicsExample
     public static void main(String[] args) throws IOException {
-        Terminal terminal = TerminalBuilder.builder().build();
+        try (Terminal terminal = TerminalBuilder.builder().build()) {
+            try {
+                // Enable mouse tracking
+                terminal.trackMouse(Terminal.MouseTracking.Normal);
+                terminal.flush();
 
-        try {
-            // Enable mouse tracking
-            terminal.trackMouse(Terminal.MouseTracking.Normal);
-            terminal.flush();
+                System.out.println("Mouse tracking enabled. Click anywhere in the terminal...");
+                System.out.println("Press Enter to exit.");
 
-            System.out.println("Mouse tracking enabled. Click anywhere in the terminal...");
-            System.out.println("Press Enter to exit.");
+                // Simple event loop
+                while (true) {
+                    int c = terminal.reader().read();
+                    if (c == '\r' || c == '\n') {
+                        break;
+                    }
 
-            // Simple event loop
-            while (true) {
-                int c = terminal.reader().read();
-                if (c == '\r' || c == '\n') {
-                    break;
+                    // Process input (including mouse events)
+                    // Mouse events come as escape sequences
+                    // We'll see how to properly handle these in the next examples
                 }
-
-                // Process input (including mouse events)
-                // Mouse events come as escape sequences
-                // We'll see how to properly handle these in the next examples
+            } finally {
+                // Disable mouse tracking before exiting
+                terminal.trackMouse(Terminal.MouseTracking.Off);
+                terminal.flush();
             }
-        } finally {
-            // Disable mouse tracking before exiting
-            terminal.trackMouse(Terminal.MouseTracking.Off);
-            terminal.flush();
-
-            terminal.close();
         }
     }
     // SNIPPET_END: MouseSupportBasicsExample

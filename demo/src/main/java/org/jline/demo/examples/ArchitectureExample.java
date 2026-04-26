@@ -9,7 +9,6 @@
 package org.jline.demo.examples;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
@@ -51,7 +50,7 @@ public class ArchitectureExample {
 
         // SNIPPET_START: UsingHistory
         // Create a history file
-        Path historyFile = Paths.get(System.getProperty("user.home"), ".myapp_history");
+        Path historyFile = Path.of(System.getProperty("user.home"), ".myapp_history");
 
         // Create a line reader with history
         LineReader readerWithHistory = LineReaderBuilder.builder()

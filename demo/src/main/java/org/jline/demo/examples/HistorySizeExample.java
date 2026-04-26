@@ -9,7 +9,7 @@
 package org.jline.demo.examples;
 
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -28,7 +28,7 @@ public class HistorySizeExample {
         // Configure history with size limits
         LineReader reader = LineReaderBuilder.builder()
                 .terminal(terminal)
-                .variable(LineReader.HISTORY_FILE, Paths.get("~/.myapp_history"))
+                .variable(LineReader.HISTORY_FILE, Path.of(System.getProperty("user.home"), ".myapp_history"))
                 .variable(LineReader.HISTORY_SIZE, 1000) // Maximum entries in memory
                 .variable(LineReader.HISTORY_FILE_SIZE, 2000) // Maximum entries in file
                 .build();

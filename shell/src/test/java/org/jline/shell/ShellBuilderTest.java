@@ -9,7 +9,6 @@
 package org.jline.shell;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import org.jline.reader.LineReader;
 import org.jline.shell.impl.AbstractCommand;
@@ -73,7 +72,7 @@ class ShellBuilderTest {
 
     @Test
     void builderAcceptsHistoryFile() throws Exception {
-        Path historyFile = Paths.get(System.getProperty("java.io.tmpdir"), "test-history");
+        Path historyFile = Path.of(System.getProperty("java.io.tmpdir"), "test-history");
         try (Terminal terminal = TerminalBuilder.builder().dumb(true).build();
                 Shell shell = Shell.builder()
                         .terminal(terminal)

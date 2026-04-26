@@ -9,7 +9,7 @@
 package org.jline.demo.examples;
 
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -34,7 +34,7 @@ public class LineReaderCreationExample {
         LineReader customReader = LineReaderBuilder.builder()
                 .terminal(terminal)
                 .appName("MyApp")
-                .variable(LineReader.HISTORY_FILE, Paths.get("history.txt"))
+                .variable(LineReader.HISTORY_FILE, Path.of("history.txt"))
                 .option(LineReader.Option.AUTO_FRESH_LINE, true)
                 .option(LineReader.Option.HISTORY_BEEP, false)
                 .build();

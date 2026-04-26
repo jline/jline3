@@ -19,7 +19,6 @@ import java.io.InterruptedIOException;
 import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -360,7 +359,7 @@ public class LineReaderImpl implements LineReader, Flushable {
 
         String inputRc = getString(INPUT_RC_FILE_NAME, null);
         if (inputRc != null) {
-            Path inputRcPath = Paths.get(inputRc);
+            Path inputRcPath = Path.of(inputRc);
             if (Files.exists(inputRcPath)) {
                 try (InputStream is = Files.newInputStream(inputRcPath)) {
                     InputRC.configure(this, is);

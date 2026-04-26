@@ -12,7 +12,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
+import java.nio.file.Path;
 import java.util.function.Supplier;
 
 import org.jline.keymap.KeyMap;
@@ -34,7 +34,7 @@ class NanoClasspathConfigTest {
      */
     static class NanoCommand {
         Integer doCall() throws Exception {
-            Supplier<Path> workDir = () -> Paths.get(System.getProperty("user.dir"));
+            Supplier<Path> workDir = () -> Path.of(System.getProperty("user.dir"));
             try (Terminal terminal = createTestTerminal()) {
                 String[] argv = new String[] {"--ignorercfiles"}; // Ignore default config files
                 Options opt = Options.compile(Nano.usage()).parse(argv);

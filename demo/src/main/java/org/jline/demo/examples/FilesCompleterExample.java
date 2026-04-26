@@ -9,7 +9,7 @@
 package org.jline.demo.examples;
 
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 
 import org.jline.builtins.Completers.FilesCompleter;
 import org.jline.reader.Completer;
@@ -26,7 +26,7 @@ public class FilesCompleterExample {
     // SNIPPET_START: FilesCompleterExample
     public static void main(String[] args) throws IOException {
         // Create a completer that only completes .txt files
-        Completer filesCompleter = new FilesCompleter(Paths.get("."), "*.txt");
+        Completer filesCompleter = new FilesCompleter(Path.of("."), "*.txt");
 
         Terminal terminal = TerminalBuilder.builder().build();
         LineReader reader = LineReaderBuilder.builder()
