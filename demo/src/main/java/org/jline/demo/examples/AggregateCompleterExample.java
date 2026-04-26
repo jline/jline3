@@ -9,7 +9,7 @@
 package org.jline.demo.examples;
 
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 
 import org.jline.builtins.Completers;
 import org.jline.reader.Completer;
@@ -30,7 +30,7 @@ public class AggregateCompleterExample {
     public static void main(String[] args) throws IOException {
         Completer aggregateCompleter = new AggregateCompleter(
                 new StringsCompleter("help", "exit"),
-                new ArgumentCompleter(new StringsCompleter("open"), new Completers.FilesCompleter(Paths.get(""))));
+                new ArgumentCompleter(new StringsCompleter("open"), new Completers.FilesCompleter(Path.of(""))));
 
         Terminal terminal = TerminalBuilder.builder().build();
         LineReader reader = LineReaderBuilder.builder()

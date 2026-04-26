@@ -12,7 +12,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,7 +34,7 @@ class NanoSuggestionBoxTest {
      */
     static class TestableNano extends Nano {
         TestableNano(Terminal terminal) {
-            super(terminal, Paths.get("."));
+            super(terminal, Path.of("."));
         }
 
         /**

@@ -124,7 +124,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
             aliasFile = configPath.getUserConfig("aliases.json", true);
             if (aliasFile == null) {
                 Log.warn("Failed to write in user config path!");
-                aliasFile = OSUtils.IS_WINDOWS ? Paths.get("NUL") : Paths.get("/dev/null");
+                aliasFile = OSUtils.IS_WINDOWS ? Path.of("NUL") : Path.of("/dev/null");
             }
             persist(aliasFile, aliases);
         } else {
@@ -394,13 +394,13 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                     this.extension = fileExtension(command);
                     if (isScript()) {
                         this.extension = "";
-                        this.script = Paths.get(command);
+                        this.script = Path.of(command);
                         if (Files.exists(script)) {
                             scriptExtension(command);
                         }
                     }
                 } else {
-                    this.script = Paths.get(command);
+                    this.script = Path.of(command);
                     if (Files.exists(script)) {
                         scriptExtension(command);
                     } else if (engine.hasVariable(VAR_PATH)) {
@@ -408,7 +408,7 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                         for (String p : (List<String>) engine.get(VAR_PATH)) {
                             for (String e : scriptExtensions()) {
                                 String file = command + "." + e;
-                                Path path = Paths.get(p, file);
+                                Path path = Path.of(p, file);
                                 if (Files.exists(path)) {
                                     script = path;
                                     this.extension = e;
@@ -968,12 +968,12 @@ public class ConsoleEngineImpl extends JlineCommandRegistry implements ConsoleEn
                         ? opt.get("format")
                         : engine.getSerializationFormats().get(0);
                 try {
-                    Path path = Paths.get(arg);
+                    Path path = Path.of(arg);
                     if (Files.exists(path)) {
                         if (!format.equals(SLURP_FORMAT_TEXT)) {
                             out = slurp(path, encoding, format);
                         } else {
-                            out = Files.readAllLines(Paths.get(arg), encoding);
+                            out = Files.readAllLines(Path.of(arg), encoding);
                         }
                     } else {
                         if (!format.equals(SLURP_FORMAT_TEXT)) {

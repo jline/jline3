@@ -11,7 +11,6 @@ package org.jline.builtins;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -162,7 +161,7 @@ class SyntaxHighlighterTest {
         URL resourceUrl = SyntaxHighlighterTest.class.getClassLoader().getResource("nano");
         Assertions.assertNotNull(resourceUrl, "nano test resources directory not found");
 
-        Path nanoResourcesPath = Paths.get(resourceUrl.toURI());
+        Path nanoResourcesPath = Path.of(resourceUrl.toURI());
         try (Stream<Path> list = Files.list(nanoResourcesPath)
                 .filter(Files::isRegularFile)
                 .filter(p -> p.toString().endsWith(".nanorc"))

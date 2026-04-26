@@ -9,7 +9,6 @@
 package org.jline.demo.examples;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 
 import org.jline.builtins.PosixCommandGroup;
@@ -138,7 +137,7 @@ public class ShellBuilderExample {
                 .helpCommands(true)
                 .optionCommands(true)
                 .commandHighlighter(true)
-                .variable(LineReader.HISTORY_FILE, Paths.get(System.getProperty("user.home"), ".demo_history"))
+                .variable(LineReader.HISTORY_FILE, Path.of(System.getProperty("user.home"), ".demo_history"))
                 .option(Option.INSERT_BRACKET, true)
                 .option(Option.DISABLE_EVENT_EXPANSION, true)
                 .build()) {

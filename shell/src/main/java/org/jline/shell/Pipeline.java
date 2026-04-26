@@ -19,7 +19,7 @@ import java.util.List;
  * <pre>
  * Pipeline pipeline = Pipeline.of("ls")
  *     .pipe("grep pattern")       // |
- *     .redirect(Paths.get("out")) // &gt; out
+ *     .redirect(Path.of("out")) // &gt; out
  *     .build();
  * </pre>
  * <p>

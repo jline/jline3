@@ -19,7 +19,6 @@ import java.lang.invoke.MethodType;
 import java.lang.invoke.VarHandle;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.EnumSet;
@@ -520,7 +519,7 @@ class CLibrary {
                     p.waitFor();
                     try (InputStream in = p.getInputStream()) {
                         hwName = readFully(in).trim();
-                        Path libDir = Paths.get("/usr/lib", hwName + "-linux-gnu");
+                        Path libDir = Path.of("/usr/lib", hwName + "-linux-gnu");
                         try (Stream<Path> stream = Files.list(libDir)) {
                             List<Path> libs = stream.filter(
                                             l -> l.getFileName().toString().startsWith("libutil.so."))

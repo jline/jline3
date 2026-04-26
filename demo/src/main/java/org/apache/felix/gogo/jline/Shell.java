@@ -58,7 +58,7 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.CharBuffer;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -329,7 +329,7 @@ public class Shell {
         session.put("#LINES", (Function) (s, arguments) -> terminal.getRows());
         session.put("#PWD", (Function) (s, arguments) -> s.currentDir().toString());
         if (!opt.isSet("nohistory")) {
-            session.put(LineReader.HISTORY_FILE, Paths.get(System.getProperty("user.home"), ".gogo.history"));
+            session.put(LineReader.HISTORY_FILE, Path.of(System.getProperty("user.home"), ".gogo.history"));
         }
 
         if (tio != null) {

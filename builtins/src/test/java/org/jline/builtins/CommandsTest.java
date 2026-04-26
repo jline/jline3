@@ -11,7 +11,7 @@ package org.jline.builtins;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 
 import org.jline.reader.History;
 import org.jline.reader.LineReader;
@@ -58,7 +58,7 @@ class CommandsTest {
                 lineReader.setVariable(LineReader.HISTORY_FILE_SIZE, maxLines);
                 lineReader.getHistory().save();
                 PrintStream out = new PrintStream(os, false);
-                Commands.history(lineReader, out, out, Paths.get(""), new String[] {"-d"});
+                Commands.history(lineReader, out, out, Path.of(""), new String[] {"-d"});
                 assertEquals(
                         maxLines + 1, os.toString(StandardCharsets.UTF_8).split("\\s+\\d{2}:\\d{2}:\\d{2}\\s+").length);
             }

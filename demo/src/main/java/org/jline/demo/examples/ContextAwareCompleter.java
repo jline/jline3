@@ -8,7 +8,7 @@
  */
 package org.jline.demo.examples;
 
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +29,7 @@ public class ContextAwareCompleter implements Completer {
 
     public ContextAwareCompleter() {
         contextCompleters.put("default", new StringsCompleter("help", "context", "exit"));
-        contextCompleters.put("file", new Completers.FilesCompleter(Paths.get("")));
+        contextCompleters.put("file", new Completers.FilesCompleter(Path.of("")));
         contextCompleters.put("user", new StringsCompleter("admin", "guest", "user1", "user2"));
     }
 

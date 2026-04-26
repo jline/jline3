@@ -9,7 +9,6 @@
 package org.jline.example;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.Supplier;
 
@@ -377,8 +376,8 @@ class Console {
             //
             // Command registers
             //
-            Supplier<Path> workDir = () -> Paths.get(System.getProperty("user.dir"));
-            ConfigurationPath configPath = new ConfigurationPath(Paths.get("."), Paths.get("."));
+            Supplier<Path> workDir = () -> Path.of(System.getProperty("user.dir"));
+            ConfigurationPath configPath = new ConfigurationPath(Path.of("."), Path.of("."));
             Builtins builtins = new Builtins(workDir, configPath, null);
             builtins.rename(Builtins.Command.TTOP, "top");
             builtins.alias("zle", "widget");

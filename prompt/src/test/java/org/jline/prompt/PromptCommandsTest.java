@@ -12,7 +12,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
@@ -55,7 +55,7 @@ class PromptCommandsTest {
                 new ByteArrayInputStream(new byte[0]),
                 new PrintStream(outStream),
                 new PrintStream(errStream),
-                Paths.get(System.getProperty("user.dir")),
+                Path.of(System.getProperty("user.dir")),
                 terminal,
                 System::getProperty);
     }

@@ -20,7 +20,6 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -173,7 +172,7 @@ public class Less {
             }
         } else if (new File("/usr/share/nano").exists() && !ignorercfiles) {
             PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:/usr/share/nano/*.nanorc");
-            try (Stream<Path> pathStream = Files.walk(Paths.get("/usr/share/nano"))) {
+            try (Stream<Path> pathStream = Files.walk(Path.of("/usr/share/nano"))) {
                 pathStream.filter(pathMatcher::matches).forEach(syntaxFiles::add);
                 nanorcIgnoreErrors = true;
             } catch (IOException e) {

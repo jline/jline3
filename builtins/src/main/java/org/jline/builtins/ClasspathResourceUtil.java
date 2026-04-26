@@ -16,7 +16,6 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystemAlreadyExistsException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 
 /**
@@ -105,7 +104,7 @@ public class ClasspathResourceUtil {
         String scheme = uri.getScheme();
 
         if (scheme.equals("file")) {
-            return Paths.get(uri);
+            return Path.of(uri);
         }
 
         if (!scheme.equals("jar")) {

@@ -13,7 +13,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.Supplier;
 
@@ -291,7 +290,7 @@ public class SystemHighlighter extends DefaultHighlighter {
         } else {
             String separator = reader.isSet(LineReader.Option.USE_FORWARD_SLASH)
                     ? "/"
-                    : Paths.get(System.getProperty("user.dir")).getFileSystem().getSeparator();
+                    : Path.of(System.getProperty("user.dir")).getFileSystem().getSeparator();
             StringBuilder sb = new StringBuilder();
             try {
                 Path path = new File(arg).toPath();

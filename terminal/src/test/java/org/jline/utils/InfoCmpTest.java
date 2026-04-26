@@ -15,7 +15,6 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -90,7 +89,7 @@ class InfoCmpTest {
         List<String> allCaps = packageLocations.stream()
                 .flatMap(url -> {
                     try {
-                        Path capsLocation = Paths.get(url.toURI());
+                        Path capsLocation = Path.of(url.toURI());
                         PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:**.caps");
                         try (Stream<Path> paths = Files.walk(capsLocation)) {
                             return paths

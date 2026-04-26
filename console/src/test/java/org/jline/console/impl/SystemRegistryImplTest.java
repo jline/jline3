@@ -10,7 +10,6 @@ package org.jline.console.impl;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,8 +47,8 @@ class SystemRegistryImplTest {
     void setUp() throws IOException {
         terminal = TerminalBuilder.builder().dumb(true).build();
         Parser parser = new DefaultParser();
-        Supplier<Path> workDir = () -> Paths.get(System.getProperty("user.dir"));
-        Path cfgPath = Paths.get(".");
+        Supplier<Path> workDir = () -> Path.of(System.getProperty("user.dir"));
+        Path cfgPath = Path.of(".");
         ConfigurationPath configPath = new ConfigurationPath(cfgPath, cfgPath);
         output = new StringBuilder();
 

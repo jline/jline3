@@ -9,7 +9,7 @@
 package org.jline.demo.examples;
 
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 
 import org.jline.builtins.Completers.DirectoriesCompleter;
 import org.jline.reader.Completer;
@@ -26,7 +26,7 @@ public class DirectoriesCompleterExample {
     // SNIPPET_START: DirectoriesCompleterExample
     public static void main(String[] args) throws IOException {
         // Create a completer that only completes directory names
-        Completer dirCompleter = new DirectoriesCompleter(Paths.get("."));
+        Completer dirCompleter = new DirectoriesCompleter(Path.of("."));
 
         Terminal terminal = TerminalBuilder.builder().build();
         LineReader reader = LineReaderBuilder.builder()

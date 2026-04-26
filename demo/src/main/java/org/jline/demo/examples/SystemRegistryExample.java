@@ -9,7 +9,6 @@
 package org.jline.demo.examples;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -32,7 +31,7 @@ public class SystemRegistryExample {
         Terminal terminal = TerminalBuilder.builder().system(true).build();
 
         // Set up working directory
-        Path workDir = Paths.get(System.getProperty("user.dir"));
+        Path workDir = Path.of(System.getProperty("user.dir"));
 
         // Create a line reader
         LineReader reader = LineReaderBuilder.builder()
