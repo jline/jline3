@@ -8,7 +8,6 @@
  */
 package org.jline.terminal.impl.ffm;
 
-import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -23,7 +22,6 @@ import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.impl.PosixPtyTerminal;
-import org.jline.terminal.impl.PosixSysTerminal;
 import org.jline.terminal.spi.Pty;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
@@ -57,13 +55,13 @@ public class FfmTerminalProvider implements TerminalProvider {
      *
      * @param name            terminal name or identifier
      * @param type            terminal type (TERM)
-     * @param ansiPassThrough if true, pass ANSI/VT sequences through without filtering
+     * @param ansiPassThrough ignored on POSIX — only used on Windows
      * @param encoding        overall character set for the terminal
      * @param inputEncoding   character set used for input decoding
      * @param outputEncoding  character set used for output encoding
      * @param nativeSignals   if true, attempt to use native signal handling when available
      * @param signalHandler   handler invoked for terminal signals
-     * @param paused          if true, create the terminal in a paused state (input/output suspended)
+     * @param paused          ignored on POSIX — only used on Windows and PTY-backed terminals
      * @param systemStream    which system stream this terminal should be associated with
      * @return a Terminal instance bound to the specified system stream (or an equivalent PTY-backed terminal)
      * @throws IOException if the native PTY or system terminal cannot be created or accessed
@@ -95,18 +93,16 @@ public class FfmTerminalProvider implements TerminalProvider {
                     signalHandler,
                     paused);
         } else {
-            Pty pty = new FfmNativePty(
+            return new FfmUnixSysTerminal(
                     this,
                     systemStream,
-                    -1,
-                    null,
-                    0,
-                    FileDescriptor.in,
-                    systemStream == SystemStream.Output ? 1 : 2,
-                    systemStream == SystemStream.Output ? FileDescriptor.out : FileDescriptor.err,
-                    CLibrary.ttyName(0));
-            return new PosixSysTerminal(
-                    this, name, type, pty, encoding, inputEncoding, outputEncoding, nativeSignals, signalHandler);
+                    name,
+                    type,
+                    encoding,
+                    inputEncoding,
+                    outputEncoding,
+                    nativeSignals,
+                    signalHandler);
         }
     }
 

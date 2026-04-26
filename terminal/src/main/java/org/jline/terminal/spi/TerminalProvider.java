@@ -76,13 +76,13 @@ public interface TerminalProvider {
      *
      * @param name the name of the terminal
      * @param type the terminal type (e.g., "xterm", "dumb")
-     * @param ansiPassThrough whether to pass through ANSI escape sequences
+     * @param ansiPassThrough whether to pass through ANSI escape sequences (only used on Windows)
      * @param encoding the general character encoding to use
      * @param inputEncoding the character encoding to use for input
      * @param outputEncoding the character encoding to use for output
      * @param nativeSignals whether to use native signal handling
      * @param signalHandler the signal handler to use
-     * @param paused whether the terminal should start in a paused state
+     * @param paused whether the terminal should start in a paused state (only used on Windows)
      * @param systemStream the system stream to connect to
      * @return a new terminal connected to the specified system stream
      * @throws IOException if an I/O error occurs
@@ -119,13 +119,13 @@ public interface TerminalProvider {
      *
      * @param name the name of the terminal
      * @param type the terminal type (e.g., "xterm", "dumb")
-     * @param ansiPassThrough whether to pass through ANSI escape sequences
+     * @param ansiPassThrough whether to pass through ANSI escape sequences (only used on Windows)
      * @param encoding the general character encoding to use
      * @param inputEncoding the character encoding to use for input
      * @param outputEncoding the character encoding to use for output
      * @param nativeSignals whether to use native signal handling
      * @param signalHandler the signal handler to use
-     * @param paused whether the terminal should start in a paused state
+     * @param paused whether the terminal should start in a paused state (only used on Windows)
      * @return a new terminal connected to the controlling terminal
      * @throws IOException if an I/O error occurs
      * @throws UnsupportedOperationException if this provider does not support
