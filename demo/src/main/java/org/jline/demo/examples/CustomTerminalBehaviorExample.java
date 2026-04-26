@@ -26,9 +26,7 @@ public class CustomTerminalBehaviorExample {
 
     // SNIPPET_START: CustomTerminalBehaviorExample
     public static void main(String[] args) throws IOException {
-        Terminal terminal = TerminalBuilder.builder().build();
-
-        try {
+        try (Terminal terminal = TerminalBuilder.builder().build()) {
             // Save original attributes
             Attributes originalAttributes = terminal.getAttributes();
 
@@ -48,23 +46,24 @@ public class CustomTerminalBehaviorExample {
             // Apply custom attributes
             terminal.setAttributes(customAttributes);
 
-            terminal.writer().println("Terminal configured with custom attributes");
-            terminal.writer().println("Type some text and press Enter (Ctrl+D to exit):");
-            terminal.writer().flush();
-
-            // Read lines until EOF
-            String line;
-            LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
-            while ((line = reader.readLine(">")) != null) {
-                terminal.writer().println("You typed: " + line);
-                terminal.writer().println("Type another line (Ctrl+D to exit):");
+            try {
+                terminal.writer().println("Terminal configured with custom attributes");
+                terminal.writer().println("Type some text and press Enter (Ctrl+D to exit):");
                 terminal.writer().flush();
-            }
 
-            // Restore original attributes
-            terminal.setAttributes(originalAttributes);
-        } finally {
-            terminal.close();
+                // Read lines until EOF
+                String line;
+                LineReader reader =
+                        LineReaderBuilder.builder().terminal(terminal).build();
+                while ((line = reader.readLine(">")) != null) {
+                    terminal.writer().println("You typed: " + line);
+                    terminal.writer().println("Type another line (Ctrl+D to exit):");
+                    terminal.writer().flush();
+                }
+            } finally {
+                // Restore original attributes
+                terminal.setAttributes(originalAttributes);
+            }
         }
     }
     // SNIPPET_END: CustomTerminalBehaviorExample

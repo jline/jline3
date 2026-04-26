@@ -29,7 +29,7 @@ public class PersistentHistoryExample {
         LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
 
         // Set the history file
-        reader.setVariable(LineReader.HISTORY_FILE, Path.of("~/.myapp_history"));
+        reader.setVariable(LineReader.HISTORY_FILE, Path.of(System.getProperty("user.home"), ".myapp_history"));
 
         // Use the reader...
         String line = reader.readLine("prompt> ");

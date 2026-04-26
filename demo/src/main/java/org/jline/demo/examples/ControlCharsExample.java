@@ -22,9 +22,7 @@ public class ControlCharsExample {
 
     // SNIPPET_START: ControlCharsExample
     public static void main(String[] args) throws IOException {
-        Terminal terminal = TerminalBuilder.builder().build();
-
-        try {
+        try (Terminal terminal = TerminalBuilder.builder().build()) {
             // Get current attributes
             Attributes attributes = terminal.getAttributes();
 
@@ -55,8 +53,6 @@ public class ControlCharsExample {
             }
 
             terminal.writer().flush();
-        } finally {
-            terminal.close();
         }
     }
     // SNIPPET_END: ControlCharsExample
