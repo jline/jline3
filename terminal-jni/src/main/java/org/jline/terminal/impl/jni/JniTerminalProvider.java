@@ -20,7 +20,7 @@ import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.impl.PosixPtyTerminal;
-import org.jline.terminal.impl.PosixSysTerminal;
+import org.jline.terminal.impl.TermiosMapping;
 import org.jline.terminal.impl.jni.freebsd.FreeBsdNativePty;
 import org.jline.terminal.impl.jni.linux.LinuxNativePty;
 import org.jline.terminal.impl.jni.osx.OsXNativePty;
@@ -275,16 +275,16 @@ public class JniTerminalProvider implements TerminalProvider {
      *
      * @param name human-readable terminal name
      * @param type terminal type (TERM)
-     * @param ansiPassThrough whether ANSI sequences should be passed through unchanged
+     * @param ansiPassThrough ignored — ANSI pass-through is only supported on Windows
      * @param encoding primary charset used by the terminal
      * @param stdinEncoding charset for standard input
      * @param stdoutEncoding charset for standard output
      * @param stderrEncoding charset for standard error
      * @param nativeSignals whether native signal handling is enabled
      * @param signalHandler handler for terminal signals
-     * @param paused whether the terminal should start in a paused state
+     * @param paused ignored — paused mode is only supported on Windows and PTY-backed terminals
      * @param systemStream which system stream the terminal represents (affects output encoding selection)
-     * @return a POSIX system Terminal backed by a native PTY
+     * @return a POSIX system terminal
      * @throws IOException if the underlying PTY cannot be opened
      */
     public Terminal posixSysTerminal(
@@ -300,11 +300,19 @@ public class JniTerminalProvider implements TerminalProvider {
             boolean paused,
             SystemStream systemStream)
             throws IOException {
-        Pty pty = current(systemStream);
-        // Use the appropriate output encoding based on the system stream
+        TermiosMapping mapping = TermiosMapping.forCurrentPlatform();
         Charset outputEncoding = systemStream == SystemStream.Error ? stderrEncoding : stdoutEncoding;
-        return new PosixSysTerminal(
-                this, name, type, pty, encoding, stdinEncoding, outputEncoding, nativeSignals, signalHandler);
+        return new JniUnixSysTerminal(
+                this,
+                systemStream,
+                mapping,
+                name,
+                type,
+                encoding,
+                stdinEncoding,
+                outputEncoding,
+                nativeSignals,
+                signalHandler);
     }
 
     /**

@@ -20,13 +20,15 @@ import org.jline.nativ.Kernel32;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.AbstractPty;
+import org.jline.terminal.impl.TermiosData;
+import org.jline.terminal.impl.TermiosMapping;
 import org.jline.terminal.impl.jni.win.NativeWinSysTerminal;
 import org.jline.terminal.spi.Pty;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
 
-import static org.jline.nativ.CLibrary.TCSANOW;
+import static org.jline.terminal.impl.TermiosData.TCSANOW;
 
 public abstract class JniNativePty extends AbstractPty implements Pty {
 
@@ -138,12 +140,12 @@ public abstract class JniNativePty extends AbstractPty implements Pty {
     public Attributes getAttr() throws IOException {
         CLibrary.Termios tios = new CLibrary.Termios();
         CLibrary.tcgetattr(slave, tios);
-        return toAttributes(tios);
+        return TermiosMapping.forCurrentPlatform().toAttributes(fromNativeTermios(tios));
     }
 
     @Override
     protected void doSetAttr(Attributes attr) throws IOException {
-        CLibrary.Termios tios = toTermios(attr);
+        CLibrary.Termios tios = toNativeTermios(attr);
         CLibrary.tcsetattr(slave, TCSANOW, tios);
     }
 
@@ -166,9 +168,29 @@ public abstract class JniNativePty extends AbstractPty implements Pty {
         }
     }
 
-    protected abstract CLibrary.Termios toTermios(Attributes t);
+    static TermiosData fromNativeTermios(CLibrary.Termios tios) {
+        TermiosData data = new TermiosData();
+        data.iflag(tios.c_iflag);
+        data.oflag(tios.c_oflag);
+        data.cflag(tios.c_cflag);
+        data.lflag(tios.c_lflag);
+        System.arraycopy(tios.c_cc, 0, data.cc(), 0, Math.min(tios.c_cc.length, data.cc().length));
+        return data;
+    }
 
-    protected abstract Attributes toAttributes(CLibrary.Termios tios);
+    static CLibrary.Termios toNativeTermiosData(TermiosData data) {
+        CLibrary.Termios tio = new CLibrary.Termios();
+        tio.c_iflag = data.iflag();
+        tio.c_oflag = data.oflag();
+        tio.c_cflag = data.cflag();
+        tio.c_lflag = data.lflag();
+        System.arraycopy(data.cc(), 0, tio.c_cc, 0, Math.min(data.cc().length, tio.c_cc.length));
+        return tio;
+    }
+
+    protected static CLibrary.Termios toNativeTermios(Attributes t) {
+        return toNativeTermiosData(TermiosMapping.forCurrentPlatform().toTermios(t));
+    }
 
     @Override
     public String toString() {
