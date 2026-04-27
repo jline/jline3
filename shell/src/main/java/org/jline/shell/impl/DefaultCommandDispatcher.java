@@ -10,6 +10,7 @@ package org.jline.shell.impl;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -307,8 +308,9 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
             // Handle input redirection
             InputStream originalIn = session.in();
             boolean inputRedirected = false;
-            if (stage.inputSource() != null) {
-                byte[] inputBytes = Files.readAllBytes(stage.inputSource());
+            Path inputSource = resolvePath(stage.inputSource());
+            if (inputSource != null) {
+                byte[] inputBytes = Files.readAllBytes(inputSource);
                 session.setIn(new ByteArrayInputStream(inputBytes));
                 inputRedirected = true;
             }
@@ -328,12 +330,16 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
                 session.setOut(new PrintStream(capture));
             } else if (op == Operator.STDERR_REDIRECT && stage.redirectTarget() != null) {
                 OutputStream errFile = Files.newOutputStream(
-                        stage.redirectTarget(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                        resolvePath(stage.redirectTarget()),
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.TRUNCATE_EXISTING);
                 session.setErr(new PrintStream(errFile));
                 stderrRedirected = true;
             } else if (op == Operator.COMBINED_REDIRECT && stage.redirectTarget() != null) {
                 OutputStream combinedFile = Files.newOutputStream(
-                        stage.redirectTarget(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                        resolvePath(stage.redirectTarget()),
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.TRUNCATE_EXISTING);
                 PrintStream combinedStream = new PrintStream(combinedFile);
                 session.setOut(combinedStream);
                 session.setErr(combinedStream);
@@ -378,14 +384,15 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
             // Handle redirect/append
             if (op == Operator.REDIRECT || op == Operator.APPEND) {
                 if (stage.redirectTarget() != null && lastOutput != null) {
+                    Path redirectTarget = resolvePath(stage.redirectTarget());
                     if (op == Operator.APPEND) {
                         Files.writeString(
-                                stage.redirectTarget(),
+                                redirectTarget,
                                 lastOutput + System.lineSeparator(),
                                 StandardOpenOption.CREATE,
                                 StandardOpenOption.APPEND);
                     } else {
-                        Files.writeString(stage.redirectTarget(), lastOutput + System.lineSeparator());
+                        Files.writeString(redirectTarget, lastOutput + System.lineSeparator());
                     }
                     lastResult = null;
                     lastOutput = null;
@@ -401,6 +408,17 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
         }
 
         return lastResult;
+    }
+
+    private Path resolvePath(Path path) {
+        if (path == null) {
+            return null;
+        }
+        Path workingDir = session.workingDirectory();
+        if (workingDir != null) {
+            return workingDir.resolve(path.toString());
+        }
+        return path;
     }
 
     @Override
