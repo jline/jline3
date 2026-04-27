@@ -65,7 +65,7 @@ jobs:
       matrix:
         os: [ ubuntu-latest, macos-latest ]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up GraalVM
         uses: graalvm/setup-graalvm@v1
