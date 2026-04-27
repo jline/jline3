@@ -72,6 +72,42 @@ Spotless enforces this header automatically via `spotless:apply`.
 - Spotless enforces Palantir Java Format with import order: `java|javax, org, <others>, static`
 - Follow existing patterns in the codebase (e.g., `hasFocusSupport()`/`trackFocus()` for terminal feature pairs)
 
+## Branches and Releases
+
+### Branch Structure
+
+- **`master`** — main development branch for 4.x. All new features and refactoring land here first.
+- **`4.0.x`** — maintenance branch for 4.0.x patch releases. Only bugfixes are cherry-picked here from master.
+- **`jline-3.x`** — maintenance branch for 3.x patch releases. Only bugfixes are backported here.
+
+### Build Wrappers
+
+- `master` and `4.0.x`: use `./mvx` (Maven 4 with nisse extension for version derivation from git tags)
+- `jline-3.x`: use `./mvnw` (standard Maven wrapper)
+
+### Release Process
+
+**4.x releases (master and 4.0.x):**
+1. Create and push a tag matching `[0-9]*.[0-9]*.[0-9]*` on the correct branch
+2. The `Manual Maven Release` workflow triggers on tag push
+3. Version is derived from the tag by the nisse Maven extension
+4. **Important**: tag `4.0.x` patch releases on the `4.0.x` branch, NOT on `master`
+5. Artifacts must be manually published through central.sonatype.com portal after the workflow completes
+6. Create GitHub release notes via `gh release create`
+
+**3.x releases (jline-3.x):**
+1. Trigger the `Manual Maven Release` workflow via `workflow_dispatch` on branch `jline-3.x`
+2. Provide `version` (e.g., `3.30.11`) and `next-version` (e.g., `3.30.12-SNAPSHOT`) inputs
+3. The workflow runs `./mvnw release:prepare release:perform`
+4. Artifacts must be manually published through central.sonatype.com portal after the workflow completes
+5. Create GitHub release notes via `gh release create`
+
+### Backporting Workflow
+
+1. Cherry-pick bugfix commits from `master` to `4.0.x` and/or `jline-3.x`
+2. Create a PR against the target branch for CI validation
+3. Merge, then release from the maintenance branch
+
 ## Website / Documentation
 
 ```bash
