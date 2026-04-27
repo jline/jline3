@@ -162,7 +162,7 @@ class DefaultCommandDispatcherTest {
 
     @Test
     void unknownCommand() {
-        assertThrows(IllegalArgumentException.class, () -> dispatcher.execute("nonexistent"));
+        assertThrows(UnknownCommandException.class, () -> dispatcher.execute("nonexistent"));
     }
 
     @Test

@@ -501,7 +501,7 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
                 Object[] resolved = resolveCommand(cmdLine, s == 0 ? flipArgs : null);
                 commands[s] = (Command) resolved[0];
                 argsArrays[s] = (String[]) resolved[1];
-            } catch (IllegalArgumentException e) {
+            } catch (UnknownCommandException e) {
                 closePumps(pumps);
                 throw e;
             }
@@ -645,7 +645,7 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
 
         Command cmd = findCommand(cmdName);
         if (cmd == null) {
-            throw new IllegalArgumentException("Unknown command: " + cmdName);
+            throw new UnknownCommandException("Unknown command: " + cmdName);
         }
 
         String[] args = argsStr.isEmpty() ? new String[0] : argsStr.split("\\s+");
