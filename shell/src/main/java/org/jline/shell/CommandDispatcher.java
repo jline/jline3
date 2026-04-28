@@ -13,6 +13,8 @@ import java.util.List;
 
 import org.jline.reader.Completer;
 import org.jline.terminal.Terminal;
+import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.AttributedStyle;
 
 /**
  * Central dispatcher that aggregates {@link CommandGroup}s and handles
@@ -125,12 +127,25 @@ public interface CommandDispatcher extends AutoCloseable {
     default void cleanUp() {}
 
     /**
+     * @return A {@link AttributedStyle} to be used when printing exception messages.
+     */
+    default AttributedStyle errorStyle() {
+        return AttributedStyle.DEFAULT.foreground(AttributedStyle.RED);
+    }
+
+    /**
      * Traces an exception (e.g., prints it to the terminal).
      *
      * @param exception the exception to trace
      */
     default void trace(Throwable exception) {
-        exception.printStackTrace();
+        if (exception instanceof UnknownCommandException) {
+            AttributedStringBuilder asb = new AttributedStringBuilder();
+            asb.styled(errorStyle(), exception.getMessage());
+            asb.toAttributedString().println(terminal());
+            return;
+        }
+        exception.printStackTrace(terminal().writer());
     }
 
     /**
