@@ -222,7 +222,7 @@ public abstract class NonBlockingInputStream extends InputStream {
     public int readBuffered(byte[] b, int off, int len, long timeout) throws IOException {
         if (b == null) {
             throw new NullPointerException();
-        } else if (off < 0 || len < 0 || off + len < b.length) {
+        } else if (off < 0 || len < 0 || len > b.length - off) {
             throw new IllegalArgumentException();
         } else if (len == 0) {
             return 0;
