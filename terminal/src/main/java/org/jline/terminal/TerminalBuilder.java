@@ -251,13 +251,10 @@ public final class TerminalBuilder {
 
     public static final String PROP_GRAPHEME_CLUSTER = "org.jline.terminal.graphemeCluster";
 
-    // Graphics protocol properties
-    public static final String GRAPHICS_SIXEL_TIMEOUT = "org.jline.terminal.graphics.sixel.timeout";
-    public static final String GRAPHICS_SIXEL_SUBSEQUENT_TIMEOUT =
-            "org.jline.terminal.graphics.sixel.subsequent.timeout";
-    public static final String GRAPHICS_KITTY_TIMEOUT = "org.jline.terminal.graphics.kitty.timeout";
-    public static final String GRAPHICS_KITTY_SUBSEQUENT_TIMEOUT =
-            "org.jline.terminal.graphics.kitty.subsequent.timeout";
+    // Timeout for terminal probe queries (DECRQM, DA1, DSR/CPR)
+    public static final String PROP_PROBE_TIMEOUT = "org.jline.terminal.probe.timeout";
+    // Subsequent read timeout for consuming terminal response bytes
+    public static final String PROP_DRAIN_TIMEOUT = "org.jline.terminal.drain.timeout";
 
     //
     // Terminal output control
