@@ -11,7 +11,6 @@ package org.jline.terminal.impl.jni;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 
 import org.jline.nativ.JLineNativeLoader;
@@ -56,56 +55,21 @@ public class JniTerminalProvider implements TerminalProvider {
     /**
      * Creates a new JNI terminal provider instance and ensures the native library is loaded.
      * <p>
-     * The constructor first checks that native access is enabled for this module. On JDK 22+,
-     * calling {@code System.load()} without {@code --enable-native-access} produces a warning
-     * (JDK 24+) or throws {@code IllegalCallerException} (JDK 26+). By checking upfront, this
-     * provider fails cleanly and allows {@link TerminalBuilder} to fall back to other providers.
-     *
-     * @throws UnsupportedOperationException if native access is not enabled for this module
+     * Loading the native library via {@link JLineNativeLoader#initialize()} calls
+     * {@code System.loadLibrary()}, which is a restricted operation. On JDK 24-25 this
+     * produces a JVM warning when {@code --enable-native-access} is not set. On future JDKs
+     * where native access is denied by default, the load will fail and
+     * {@link TerminalBuilder} will fall back to other providers.
      */
     public JniTerminalProvider() {
-        checkNativeAccess();
         // Ensure the native library is loaded
-        JLineNativeLoader.initialize();
-    }
-
-    /**
-     * Checks that native access is enabled for this module.
-     * JNI native access restrictions are only enforced from JDK 24+, so the check
-     * is skipped on earlier versions. Uses reflection because
-     * {@code Module.isNativeAccessEnabled()} is not available on all JDK versions.
-     *
-     * @throws UnsupportedOperationException if native access is not enabled
-     */
-    static void checkNativeAccess() {
-        // JNI native access restrictions are only enforced starting from JDK 24.
-        // Some JDK 21 builds (e.g. 21.0.10) backported Module.isNativeAccessEnabled(),
-        // but it returns false even though JNI works fine without --enable-native-access.
-        // See https://github.com/jline/jline3/issues/1689
         try {
-            int version = Integer.parseInt(System.getProperty("java.specification.version"));
-            if (version < 24) {
-                return;
-            }
-        } catch (NumberFormatException e) {
-            // JDK 8 uses "1.8" format, which means JDK < 24
-            return;
-        }
-        try {
-            Method getModule = Class.class.getMethod("getModule");
-            Object module = getModule.invoke(JniTerminalProvider.class);
-            Method isNativeAccessEnabled = module.getClass().getMethod("isNativeAccessEnabled");
-            Boolean enabled = (Boolean) isNativeAccessEnabled.invoke(module);
-            if (!enabled) {
-                throw new UnsupportedOperationException(
-                        "Native access is not enabled for the current module: " + module);
-            }
-        } catch (NoSuchMethodException e) {
-            // Method not available, no native access restrictions
-        } catch (UnsupportedOperationException e) {
-            throw e;
-        } catch (ReflectiveOperationException e) {
-            // Unexpected reflection error, proceed anyway
+            JLineNativeLoader.initialize();
+        } catch (Exception e) {
+            throw new UnsupportedOperationException(
+                    "JNI native access is not available. Use --enable-native-access=ALL-UNNAMED or"
+                            + " --enable-native-access=org.jline.terminal.jni to enable it.",
+                    e);
         }
     }
 

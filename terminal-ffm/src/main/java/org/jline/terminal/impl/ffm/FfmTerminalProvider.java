@@ -14,6 +14,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemoryLayout.PathElement;
+import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.nio.charset.Charset;
@@ -31,10 +32,18 @@ import org.jline.utils.OSUtils;
 
 public class FfmTerminalProvider implements TerminalProvider {
 
+    @SuppressWarnings("restricted")
     public FfmTerminalProvider() {
-        if (!FfmTerminalProvider.class.getModule().isNativeAccessEnabled()) {
+        // Probe restricted FFM access so the provider fails at load time
+        // when native access is denied (JDK 26+), rather than later during use.
+        // On JDK 24-25, this succeeds with a JVM warning.
+        try {
+            MemorySegment.NULL.reinterpret(0);
+        } catch (UnsupportedOperationException | IllegalCallerException e) {
             throw new UnsupportedOperationException(
-                    "Native access is not enabled for the current module: " + FfmTerminalProvider.class.getModule());
+                    "FFM native access is not available. Use --enable-native-access=ALL-UNNAMED or"
+                            + " --enable-native-access=org.jline.terminal.ffm to enable it.",
+                    e);
         }
     }
 
