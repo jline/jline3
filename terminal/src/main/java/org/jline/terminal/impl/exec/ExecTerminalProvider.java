@@ -14,7 +14,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 
 import org.jline.nativ.JLineLibrary;
@@ -663,7 +662,6 @@ public class ExecTerminalProvider implements TerminalProvider {
 
     static class NativeRedirectPipeCreator implements RedirectPipeCreator {
         public NativeRedirectPipeCreator() {
-            checkNativeAccess();
             // Force load the library
             JLineNativeLoader.initialize();
         }
@@ -671,38 +669,6 @@ public class ExecTerminalProvider implements TerminalProvider {
         @Override
         public ProcessBuilder.Redirect newRedirectPipe(FileDescriptor fd) {
             return JLineLibrary.newRedirectPipe(fd);
-        }
-    }
-
-    /**
-     * Checks that native access is enabled for this module.
-     * JNI native access restrictions are only enforced from JDK 24+, so the check
-     * is skipped on earlier versions. Uses reflection because
-     * {@code Module.isNativeAccessEnabled()} is not available on all JDK versions.
-     *
-     * @throws UnsupportedOperationException if native access is not enabled
-     */
-    static void checkNativeAccess() {
-        // JNI native access restrictions are only enforced starting from JDK 24.
-        // Some JDK 21 builds (e.g. 21.0.10) backported Module.isNativeAccessEnabled(),
-        // but it returns false even though JNI works fine without --enable-native-access.
-        // See https://github.com/jline/jline3/issues/1689
-        if (Runtime.version().feature() < 24) {
-            return;
-        }
-        try {
-            Method m = Module.class.getMethod("isNativeAccessEnabled");
-            Boolean enabled = (Boolean) m.invoke(ExecTerminalProvider.class.getModule());
-            if (!enabled) {
-                throw new UnsupportedOperationException("Native access is not enabled for the current module: "
-                        + ExecTerminalProvider.class.getModule());
-            }
-        } catch (NoSuchMethodException e) {
-            // Method not available, no native access restrictions
-        } catch (UnsupportedOperationException e) {
-            throw e;
-        } catch (ReflectiveOperationException e) {
-            // Unexpected reflection error, proceed anyway
         }
     }
 
