@@ -133,8 +133,19 @@ public class SixelGraphics implements TerminalGraphics {
 
         org.jline.terminal.Attributes originalAttributes = null;
         try {
-            // Enter raw mode to prevent echo and ensure clean query transmission
-            originalAttributes = terminal.enterRawMode();
+            // Use minimal attributes to prevent echoing without setting VTIME=1
+            // (which would add 100ms latency per read). VMIN=0, VTIME=0 means
+            // reads return immediately when no data is available.
+            originalAttributes = terminal.getAttributes();
+            org.jline.terminal.Attributes probeAttrs = new org.jline.terminal.Attributes(originalAttributes);
+            probeAttrs.setLocalFlags(
+                    java.util.EnumSet.of(
+                            org.jline.terminal.Attributes.LocalFlag.ICANON,
+                            org.jline.terminal.Attributes.LocalFlag.ECHO),
+                    false);
+            probeAttrs.setControlChar(org.jline.terminal.Attributes.ControlChar.VMIN, 0);
+            probeAttrs.setControlChar(org.jline.terminal.Attributes.ControlChar.VTIME, 0);
+            terminal.setAttributes(probeAttrs);
 
             // Send Device Attributes query (same method as lsix command)
             terminal.writer().print("\033[c");
@@ -143,25 +154,38 @@ public class SixelGraphics implements TerminalGraphics {
             // Read response with configurable timeout (default: 200ms for faster response)
             long timeoutMs = Long.parseLong(System.getProperty(GRAPHICS_SIXEL_TIMEOUT, "200"));
             long subsequentTimeoutMs = Long.parseLong(System.getProperty(GRAPHICS_SIXEL_SUBSEQUENT_TIMEOUT, "25"));
+            Boolean result = null;
             String response = readTerminalResponse(terminal, timeoutMs, subsequentTimeoutMs);
             if (response != null) {
                 // Look for code "4" which indicates Sixel graphics support
                 // Response format: ESC[?1;2;4;6;9;15;18;21;22c
                 // Code "4" = Sixel graphics support
-                return response.contains(";4;") || response.contains(";4c");
+                result = response.contains(";4;") || response.contains(";4c");
             }
 
-            return null; // Detection failed/timed out
+            return result;
 
         } catch (Exception e) {
             // If runtime detection fails, return null to fall back to static detection
             return null;
         } finally {
-            // Always restore original terminal attributes
+            // Drain any remaining response bytes to prevent leaking to parent shell,
+            // then restore original terminal attributes
             if (originalAttributes != null) {
                 try {
+                    NonBlockingReader reader = terminal.reader();
+                    long deadline = System.currentTimeMillis() + 200;
+                    long remaining;
+                    while ((remaining = deadline - System.currentTimeMillis()) > 0) {
+                        int c = reader.read(Math.min(25, remaining));
+                        if (c < 0) break;
+                    }
+                } catch (Exception ignored) {
+                    // Best-effort drain
+                }
+                try {
                     terminal.setAttributes(originalAttributes);
-                } catch (Exception e) {
+                } catch (Exception ignored) {
                     // Ignore errors during attribute restoration
                 }
             }

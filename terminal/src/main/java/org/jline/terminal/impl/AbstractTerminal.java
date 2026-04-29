@@ -456,8 +456,15 @@ public abstract class AbstractTerminal implements TerminalExt {
         if (TYPE_DUMB.equals(type) || TYPE_DUMB_COLOR.equals(type)) {
             return false;
         }
-        // Enter raw mode to prevent the terminal response from being echoed.
-        Attributes prev = enterRawMode();
+        // Use minimal attributes to prevent echoing without setting VTIME=1
+        // (which would add 100ms latency per read). VMIN=0, VTIME=0 means
+        // reads return immediately when no data is available.
+        Attributes prev = getAttributes();
+        Attributes probeAttrs = new Attributes(prev);
+        probeAttrs.setLocalFlags(EnumSet.of(LocalFlag.ICANON, LocalFlag.ECHO), false);
+        probeAttrs.setControlChar(ControlChar.VMIN, 0);
+        probeAttrs.setControlChar(ControlChar.VTIME, 0);
+        setAttributes(probeAttrs);
         try {
             ProbeResult mode2027 = probeMode2027();
             if (mode2027 == ProbeResult.SUPPORTED) {
@@ -470,6 +477,9 @@ public abstract class AbstractTerminal implements TerminalExt {
             }
             return false;
         } finally {
+            // Drain any remaining terminal response bytes to prevent them
+            // from leaking to the parent shell
+            drainUntilDA1(25, 200);
             setAttributes(prev);
         }
     }
@@ -525,23 +535,23 @@ public abstract class AbstractTerminal implements TerminalExt {
                     // Not DECRPM — likely the DA1 sentinel response,
                     // meaning the terminal does not support DECRQM.
                     // Read remaining DA1 bytes until the 'c' terminator.
-                    drainUntilDA1(timeout);
+                    drainUntilDA1(timeout, 500);
                     return ProbeResult.NOT_SUPPORTED;
                 }
             }
             int ps = reader().read(timeout);
             if (ps < '0' || ps > '4') {
-                drainUntilDA1(timeout);
+                drainUntilDA1(timeout, 500);
                 return ProbeResult.NOT_SUPPORTED;
             }
             int dollar = reader().read(timeout);
             int y = reader().read(timeout);
             if (dollar != '$' || y != 'y') {
-                drainUntilDA1(timeout);
+                drainUntilDA1(timeout, 500);
                 return ProbeResult.NOT_SUPPORTED;
             }
             // Drain the trailing DA1 sentinel response
-            drainUntilDA1(timeout);
+            drainUntilDA1(timeout, 500);
             // Ps: 1=set, 2=reset (can be set), 3=permanently set → supported
             // Ps: 0=not recognized, 4=permanently reset → not supported
             return (ps == '1' || ps == '2' || ps == '3') ? ProbeResult.SUPPORTED : ProbeResult.NOT_SUPPORTED;
@@ -680,18 +690,19 @@ public abstract class AbstractTerminal implements TerminalExt {
     }
 
     /**
-     * Discards input until a DA1 response terminator ('c') is encountered or the reader ends.
+     * Discards input until a DA1 response terminator ('c') is encountered,
+     * the reader ends, or the overall timeout expires.
      *
-     * Reads bytes from the terminal via reader().read(timeout) and stops when the character
-     * 'c' is seen or the reader returns a negative value. IOExceptions during draining are ignored.
-     *
-     * @param timeout the per-read timeout value passed to the reader
+     * @param perReadTimeout timeout for each individual read call
+     * @param overallTimeoutMs maximum total time to spend draining
      */
-    private void drainUntilDA1(long timeout) {
+    private void drainUntilDA1(long perReadTimeout, long overallTimeoutMs) {
         try {
-            int c;
-            while ((c = reader().read(timeout)) >= 0) {
-                if (c == 'c') {
+            long deadline = System.currentTimeMillis() + overallTimeoutMs;
+            long remaining;
+            while ((remaining = deadline - System.currentTimeMillis()) > 0) {
+                int c = reader().read(Math.min(perReadTimeout, remaining));
+                if (c < 0 || c == 'c') {
                     return;
                 }
             }
