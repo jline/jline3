@@ -320,7 +320,7 @@ class GraphemeClusterModeTest {
             public void setAttributes(Attributes attr) {}
 
             public Size getSize() {
-                return new Size(80, 24);
+                return Size.of(80, 24);
             }
 
             public void setSize(Sized size) {}

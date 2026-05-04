@@ -344,7 +344,7 @@ public class ExecPty extends AbstractPty implements Pty {
     }
 
     static Size doGetSize(String cfg) throws IOException {
-        return new Size(doGetInt("columns", cfg), doGetInt("rows", cfg));
+        return Size.of(doGetInt("columns", cfg), doGetInt("rows", cfg));
     }
 
     static int doGetInt(String name, String cfg) throws IOException {

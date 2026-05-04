@@ -119,7 +119,7 @@ public class Less {
     protected String pattern;
     protected String displayPattern;
 
-    protected final Size size = new Size();
+    protected volatile Size size = Size.of(0, 0);
 
     SyntaxHighlighter syntaxHighlighter;
     private final List<Path> syntaxFiles = new ArrayList<>();
@@ -308,7 +308,7 @@ public class Less {
     }
 
     public void handle(Signal signal) {
-        size.copy(terminal.getSize());
+        size = terminal.getSize();
         try {
             display.clear();
             display(false);
@@ -340,7 +340,7 @@ public class Less {
             if (status != null) {
                 status.suspend();
             }
-            size.copy(terminal.getSize());
+            size = terminal.getSize();
 
             if (quitIfOneScreen && sources.size() == 2) {
                 if (display(true)) {
@@ -641,12 +641,12 @@ public class Less {
                                 }
                                 break;
                             case REPAINT:
-                                size.copy(terminal.getSize());
+                                size = terminal.getSize();
                                 display.clear();
                                 break;
                             case REPAINT_AND_DISCARD:
                                 message = null;
-                                size.copy(terminal.getSize());
+                                size = terminal.getSize();
                                 display.clear();
                                 break;
                             case HELP:

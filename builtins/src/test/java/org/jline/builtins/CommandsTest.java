@@ -46,7 +46,7 @@ class CommandsTest {
             }
             try (Terminal terminal =
                     TerminalBuilder.builder().streams(System.in, System.out).build()) {
-                terminal.setSize(new Size(50, 30));
+                terminal.setSize(Size.of(50, 30));
                 final History historyFromFile = new DefaultHistory();
                 final LineReaderBuilder lineReaderBuilder = LineReaderBuilder.builder()
                         .terminal(terminal)

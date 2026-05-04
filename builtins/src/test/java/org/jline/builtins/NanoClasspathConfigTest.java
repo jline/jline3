@@ -57,7 +57,7 @@ class NanoClasspathConfigTest {
             ByteArrayOutputStream output = new ByteArrayOutputStream();
             LineDisciplineTerminal terminal =
                     new LineDisciplineTerminal("nano", "xterm", output, StandardCharsets.UTF_8);
-            terminal.setSize(new Size(80, 25));
+            terminal.setSize(Size.of(80, 25));
             // Simulate pressing Ctrl-X and 'n' to exit without saving
             terminal.processInputByte(KeyMap.ctrl('X').getBytes()[0]);
             terminal.processInputByte('n');

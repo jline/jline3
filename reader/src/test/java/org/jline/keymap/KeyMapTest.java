@@ -61,7 +61,7 @@ class KeyMapTest {
         in = new EofPipedInputStream();
         out = new ByteArrayOutputStream();
         terminal = new DumbTerminal(in, out);
-        terminal.setSize(new Size(160, 80));
+        terminal.setSize(Size.of(160, 80));
     }
 
     @AfterEach

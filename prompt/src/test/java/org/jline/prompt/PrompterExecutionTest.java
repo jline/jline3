@@ -40,7 +40,7 @@ class PrompterExecutionTest {
         // Create terminal and prompter
         Terminal terminal =
                 TerminalBuilder.builder().type("ansi").streams(in, out).build();
-        terminal.setSize(new Size(160, 80));
+        terminal.setSize(Size.of(160, 80));
         Prompter prompter = PrompterFactory.create(terminal);
 
         // Build an input prompt
@@ -75,7 +75,7 @@ class PrompterExecutionTest {
         // Create terminal and prompter
         Terminal terminal =
                 TerminalBuilder.builder().type("ansi").streams(in, out).build();
-        terminal.setSize(new Size(160, 80));
+        terminal.setSize(Size.of(160, 80));
         Prompter prompter = PrompterFactory.create(terminal);
 
         // Build an input prompt with default value
@@ -111,7 +111,7 @@ class PrompterExecutionTest {
         // Create terminal and prompter
         Terminal terminal =
                 TerminalBuilder.builder().type("ansi").streams(in, out).build();
-        terminal.setSize(new Size(160, 80));
+        terminal.setSize(Size.of(160, 80));
         Prompter prompter = PrompterFactory.create(terminal);
 
         // Build a confirm prompt
@@ -143,7 +143,7 @@ class PrompterExecutionTest {
         // Create terminal and prompter
         Terminal terminal =
                 TerminalBuilder.builder().type("ansi").streams(in, out).build();
-        terminal.setSize(new Size(160, 80));
+        terminal.setSize(Size.of(160, 80));
         Prompter prompter = PrompterFactory.create(terminal);
 
         // Build a confirm prompt

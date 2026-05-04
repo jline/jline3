@@ -70,7 +70,7 @@ public abstract class ReaderTestSupport {
         in = new EofPipedInputStream();
         out = new ByteArrayOutputStream();
         terminal = new DumbTerminal("terminal", "ansi", in, out, StandardCharsets.UTF_8);
-        terminal.setSize(new Size(160, 80));
+        terminal.setSize(Size.of(160, 80));
         reader = new TestLineReader(terminal, "JLine", null);
         reader.setKeyMap(LineReaderImpl.EMACS);
         mask = null;

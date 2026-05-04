@@ -121,7 +121,7 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
     public void setSize(Sized size) {
         checkClosed();
         try {
-            pty.setSize(new Size(size));
+            pty.setSize(Size.of(size));
         } catch (IOException e) {
             throw new IOError(e);
         }

@@ -125,14 +125,14 @@ class ExecPtyTest {
 
     @Test
     void testParseSize() throws IOException {
-        assertEquals(new Size(244, 85), ExecPty.doGetSize(linuxSttySample));
-        assertEquals(new Size(244, 85), ExecPty.doGetSize(solarisSttySample));
-        assertEquals(new Size(244, 85), ExecPty.doGetSize(aixSttySample));
-        assertEquals(new Size(244, 85), ExecPty.doGetSize(macOsSttySample));
-        assertEquals(new Size(244, 85), ExecPty.doGetSize(netBsdSttySample));
-        assertEquals(new Size(244, 85), ExecPty.doGetSize(freeBsdSttySample));
-        assertEquals(new Size(244, 85), ExecPty.doGetSize(hpuxSttySample));
-        assertEquals(new Size(0, 0), ExecPty.doGetSize(alpineSample));
+        assertEquals(Size.of(244, 85), ExecPty.doGetSize(linuxSttySample));
+        assertEquals(Size.of(244, 85), ExecPty.doGetSize(solarisSttySample));
+        assertEquals(Size.of(244, 85), ExecPty.doGetSize(aixSttySample));
+        assertEquals(Size.of(244, 85), ExecPty.doGetSize(macOsSttySample));
+        assertEquals(Size.of(244, 85), ExecPty.doGetSize(netBsdSttySample));
+        assertEquals(Size.of(244, 85), ExecPty.doGetSize(freeBsdSttySample));
+        assertEquals(Size.of(244, 85), ExecPty.doGetSize(hpuxSttySample));
+        assertEquals(Size.of(0, 0), ExecPty.doGetSize(alpineSample));
     }
 
     @Test

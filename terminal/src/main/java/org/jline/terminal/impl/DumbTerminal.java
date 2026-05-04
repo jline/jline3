@@ -69,7 +69,7 @@ public class DumbTerminal extends AbstractTerminal {
     private final NonBlockingReader reader;
     private final PrintWriter writer;
     private final Attributes attributes;
-    private final Size size;
+    private volatile Size size;
     private boolean skipNextLf;
 
     public DumbTerminal(InputStream in, OutputStream out) throws IOException {
@@ -177,7 +177,7 @@ public class DumbTerminal extends AbstractTerminal {
         this.attributes.setControlChar(ControlChar.VWERASE, (char) 23);
         this.attributes.setControlChar(ControlChar.VKILL, (char) 21);
         this.attributes.setControlChar(ControlChar.VLNEXT, (char) 22);
-        this.size = new Size();
+        this.size = Size.of(0, 0);
         parseInfoCmp();
     }
 
@@ -215,12 +215,12 @@ public class DumbTerminal extends AbstractTerminal {
 
     public Size getSize() {
         checkClosed();
-        return new Size(size);
+        return size;
     }
 
     public void setSize(Sized sz) {
         checkClosed();
-        size.copy(sz);
+        size = Size.of(sz);
     }
 
     @Override

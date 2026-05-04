@@ -41,7 +41,7 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
     private final AttributedString message;
     protected final List<T> items;
     protected int firstItemRow;
-    private final Size size = new Size();
+    private volatile Size size = Size.of(0, 0);
     protected final ConsolePrompt.UiConfig config;
     private Display display;
     private ListRange range = null;
@@ -68,7 +68,7 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
         this.terminal = terminal;
         this.display = display;
         this.bindingReader = new BindingReader(terminal.reader());
-        this.size.copy(terminal.getSize());
+        this.size = terminal.getSize();
         int listSpace = Math.min(size.getRows(), Math.max(pageSize, 3));
         this.header = header.size() > size.getRows() - listSpace
                 ? header.subList(header.size() - size.getRows() + listSpace, header.size())
@@ -84,7 +84,7 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
     }
 
     protected void resetDisplay() {
-        size.copy(terminal.getSize());
+        size = terminal.getSize();
     }
 
     /**

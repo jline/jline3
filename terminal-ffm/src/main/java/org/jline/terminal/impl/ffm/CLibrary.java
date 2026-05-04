@@ -377,7 +377,7 @@ class CLibrary {
         try {
             winsize ws = new winsize();
             int res = (int) ioctl.invoke(fd, (long) TIOCGWINSZ, ws.segment());
-            return new Size(ws.ws_col(), ws.ws_row());
+            return Size.of(ws.ws_col(), ws.ws_row());
         } catch (Throwable e) {
             throw new RuntimeException("Unable to call ioctl(TIOCGWINSZ)", e);
         }

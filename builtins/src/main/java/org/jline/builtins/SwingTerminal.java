@@ -116,7 +116,7 @@ public class SwingTerminal extends LineDisciplineTerminal {
      * @param rows    the number of rows for the terminal display
      */
     private void initializeTerminal(int columns, int rows) {
-        setSize(new Size(columns, rows));
+        setSize(Size.of(columns, rows));
         OutputStream feedbackOutput = new OutputStream() {
             @Override
             public void write(int b) throws IOException {

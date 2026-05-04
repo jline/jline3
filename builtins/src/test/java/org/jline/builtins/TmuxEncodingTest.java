@@ -30,7 +30,7 @@ class TmuxEncodingTest {
         ByteArrayOutputStream masterOut = new ByteArrayOutputStream();
         LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("test", "screen-256color", masterOut, StandardCharsets.UTF_8);
-        terminal.setSize(new Size(80, 24));
+        terminal.setSize(Size.of(80, 24));
 
         CountDownLatch textWritten = new CountDownLatch(1);
         CountDownLatch testDone = new CountDownLatch(1);

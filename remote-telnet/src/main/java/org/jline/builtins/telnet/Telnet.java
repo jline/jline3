@@ -144,14 +144,14 @@ public class Telnet {
                                 .system(false)
                                 .name("telnet")
                                 .build();
-                        terminal.setSize(new Size(
+                        terminal.setSize(Size.of(
                                 getConnectionData().getTerminalColumns(),
                                 getConnectionData().getTerminalRows()));
                         terminal.setAttributes(Telnet.this.terminal.getAttributes());
                         addConnectionListener(new ConnectionListener() {
                             @Override
                             public void connectionTerminalGeometryChanged(ConnectionEvent ce) {
-                                terminal.setSize(new Size(
+                                terminal.setSize(Size.of(
                                         getConnectionData().getTerminalColumns(),
                                         getConnectionData().getTerminalRows()));
                                 terminal.raise(Signal.WINCH);

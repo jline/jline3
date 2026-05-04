@@ -293,7 +293,7 @@ public class Repl {
                     .lineCommentDelims(new String[] {"//"});
             Terminal terminal = TerminalBuilder.builder().build();
             if (terminal.getColumns() == 0 || terminal.getRows() == 0) {
-                terminal.setSize(new Size(120, 40)); // hard coded terminal size when redirecting
+                terminal.setSize(Size.of(120, 40)); // hard coded terminal size when redirecting
             }
             Thread executeThread = Thread.currentThread();
             terminal.handle(Signal.INT, signal -> executeThread.interrupt());

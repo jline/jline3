@@ -48,7 +48,7 @@ class BindingReaderTest {
         in = new EofPipedInputStream();
         out = new ByteArrayOutputStream();
         terminal = new DumbTerminal("dumb", "dumb", in, out, StandardCharsets.UTF_8);
-        terminal.setSize(new Size(160, 80));
+        terminal.setSize(Size.of(160, 80));
     }
 
     @AfterEach

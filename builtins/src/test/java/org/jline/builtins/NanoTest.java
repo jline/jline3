@@ -28,7 +28,7 @@ class NanoTest {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         try (LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("nano", "xterm", output, StandardCharsets.UTF_8)) {
-            terminal.setSize(new Size(80, 25));
+            terminal.setSize(Size.of(80, 25));
             for (int i = 0; i < 100; i++) {
                 terminal.processInputByte(' ');
             }

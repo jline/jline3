@@ -87,7 +87,7 @@ public class JniUnixSysTerminal extends AbstractUnixSysTerminal {
     protected Size doGetSize() {
         CLibrary.WinSize sz = new CLibrary.WinSize();
         CLibrary.ioctl(outputFd, CLibrary.TIOCGWINSZ, sz);
-        return new Size(sz.ws_col, sz.ws_row);
+        return Size.of(sz.ws_col, sz.ws_row);
     }
 
     @Override

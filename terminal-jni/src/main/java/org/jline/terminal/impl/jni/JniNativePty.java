@@ -156,7 +156,7 @@ public abstract class JniNativePty extends AbstractPty implements Pty {
         if (res != 0) {
             throw new IOException("Error calling ioctl(TIOCGWINSZ): return code is " + res);
         }
-        return new Size(sz.ws_col, sz.ws_row);
+        return Size.of(sz.ws_col, sz.ws_row);
     }
 
     @Override

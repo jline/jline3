@@ -81,7 +81,7 @@ class DisplayTest {
 
         VirtualTerminal(String name, String type, Charset encoding, int cols, int rows) throws IOException {
             super(name, type, new DelegateOutputStream(), encoding);
-            setSize(new Size(cols, rows));
+            setSize(Size.of(cols, rows));
             virtual = new ScreenTerminal(cols, rows);
             ((DelegateOutputStream) masterOutput).output = new MasterOutputStream();
             masterInputOutput = new OutputStream() {
@@ -100,7 +100,7 @@ class DisplayTest {
 
         void resizeScreen(int cols, int rows) {
             virtual.setSize(cols, rows);
-            setSize(new Size(cols, rows));
+            setSize(Size.of(cols, rows));
         }
 
         void startCapture() {
@@ -203,7 +203,7 @@ class DisplayTest {
         try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, cols, rows)) {
             terminal.enterRawMode();
             Display display = new Display(terminal, true);
-            display.resize(new Size(cols, rows));
+            display.resize(Size.of(cols, rows));
 
             // Frame 1: all rows filled with 'a' in default style
             List<AttributedString> frame1 = new ArrayList<>();

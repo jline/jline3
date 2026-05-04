@@ -86,7 +86,7 @@ public class Nano implements Editor {
     protected final Terminal terminal;
     protected final Display display;
     protected final BindingReader bindingReader;
-    protected final Size size;
+    protected volatile Size size;
     protected final Path root;
     protected final int vsusp;
     private final List<Path> syntaxFiles = new ArrayList<>();
@@ -1770,7 +1770,7 @@ public class Nano implements Editor {
         this.root = root;
         this.display = new Display(terminal, true);
         this.bindingReader = new BindingReader(terminal.reader());
-        this.size = new Size();
+        this.size = Size.of(0, 0);
         Attributes attrs = terminal.getAttributes();
         this.vsusp = attrs.getControlChar(ControlChar.VSUSP);
         if (vsusp > 0) {
@@ -2030,7 +2030,7 @@ public class Nano implements Editor {
         SignalHandler prevHandler = null;
         Status status = Status.getStatus(terminal, false);
         try {
-            size.copy(terminal.getSize());
+            size = terminal.getSize();
             if (status != null) {
                 status.suspend();
             }
@@ -3788,7 +3788,7 @@ public class Nano implements Editor {
 
     protected void handle(Signal signal) {
         if (buffer != null) {
-            size.copy(terminal.getSize());
+            size = terminal.getSize();
             buffer.computeAllOffsets();
             buffer.moveToChar(buffer.offsetInLine + buffer.column);
             resetDisplay();

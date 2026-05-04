@@ -60,7 +60,7 @@ class FfmTest {
                         Terminal.SignalHandler.SIG_DFL,
                         false,
                         new Attributes(),
-                        new Size())) {
+                        Size.of(0, 0))) {
             assertNotNull(terminal);
             assertNotNull(terminal.getSize());
         }

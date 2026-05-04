@@ -12,10 +12,13 @@ package org.jline.terminal;
  * Represents the dimensions of a terminal in terms of rows and columns.
  *
  * <p>
- * The Size class encapsulates the dimensions of a terminal screen, providing methods to get and set
+ * The Size class encapsulates the dimensions of a terminal screen, providing methods to get
  * the number of rows and columns. Terminal dimensions are used for various operations such as
  * cursor positioning, screen clearing, and text layout calculations.
  * </p>
+ *
+ * <p>{@code Size} instances are <strong>immutable</strong>. Use the {@link #of(int, int)} or
+ * {@link #of(Sized)} factory methods to create new instances.</p>
  *
  * <p>
  * Terminal dimensions are typically measured in character cells, where:
@@ -40,7 +43,7 @@ package org.jline.terminal;
  * System.out.println("Terminal dimensions: " + size.getColumns() + "x" + size.getRows());
  *
  * // Create a new size and set it
- * Size newSize = new Size(80, 24);
+ * Size newSize = Size.of(80, 24);
  * terminal.setSize(newSize);
  * </pre>
  *
@@ -49,37 +52,63 @@ package org.jline.terminal;
  */
 public class Size implements Sized {
 
-    private int rows;
-    private int cols;
+    private final int rows;
+    private final int cols;
+
+    /**
+     * Creates a new Size with the specified number of columns and rows.
+     *
+     * @param columns the number of columns (width)
+     * @param rows the number of rows (height)
+     * @return a new Size instance
+     */
+    public static Size of(int columns, int rows) {
+        return new Size(columns, rows);
+    }
+
+    /**
+     * Creates a new Size with the same columns and rows as the given source.
+     *
+     * @param sized the source from which to copy columns and rows
+     * @return a new Size instance
+     */
+    public static Size of(Sized sized) {
+        return new Size(sized.getColumns(), sized.getRows());
+    }
 
     /**
      * Creates a new Size instance with default dimensions (0 rows and 0 columns).
      *
-     * <p>
-     * This constructor creates a Size object with zero dimensions. The dimensions
-     * can be set later using {@link #setRows(int)} and {@link #setColumns(int)}.
-     * </p>
+     * @deprecated Size is now immutable. Use {@link #of(int, int)} instead.
      */
-    public Size() {}
+    @Deprecated
+    @SuppressWarnings("java:S1133")
+    public Size() {
+        this(0, 0);
+    }
 
     /**
      * Constructs a Size with the specified number of columns and rows.
      *
      * @param columns the number of columns (width)
      * @param rows the number of rows (height)
+     * @deprecated Use {@link #of(int, int)} instead.
      */
-    @SuppressWarnings("this-escape")
+    @Deprecated
+    @SuppressWarnings("java:S1133")
     public Size(int columns, int rows) {
-        this();
-        setColumns(columns);
-        setRows(rows);
+        this.cols = columns;
+        this.rows = rows;
     }
 
     /**
      * Constructs a new Size with the same columns and rows as the given size.
      *
      * @param sized the source Size from which to copy columns and rows
+     * @deprecated Use {@link #of(Sized)} instead.
      */
+    @Deprecated
+    @SuppressWarnings("java:S1133")
     public Size(Sized sized) {
         this(sized.getColumns(), sized.getRows());
     }
@@ -87,12 +116,7 @@ public class Size implements Sized {
     /**
      * Returns the number of columns (width) in this terminal size.
      *
-     * <p>
-     * The number of columns represents the width of the terminal in character cells.
-     * </p>
-     *
      * @return the number of columns
-     * @see #setColumns(int)
      */
     @Override
     public int getColumns() {
@@ -102,26 +126,20 @@ public class Size implements Sized {
     /**
      * Sets the number of columns (width) for this terminal size.
      *
-     * <p>
-     * The number of columns represents the width of the terminal in character cells.
-     * </p>
-     *
      * @param columns the number of columns to set
-     * @see #getColumns()
+     * @throws UnsupportedOperationException always — Size is immutable
+     * @deprecated Size is now immutable. Use {@link #of(int, int)} instead.
      */
+    @Deprecated
+    @SuppressWarnings("java:S1133")
     public void setColumns(int columns) {
-        cols = columns;
+        throw new UnsupportedOperationException("Size is immutable; use Size.of() instead");
     }
 
     /**
      * Returns the number of rows (height) in this terminal size.
      *
-     * <p>
-     * The number of rows represents the height of the terminal in character cells.
-     * </p>
-     *
      * @return the number of rows
-     * @see #setRows(int)
      */
     @Override
     public int getRows() {
@@ -131,15 +149,14 @@ public class Size implements Sized {
     /**
      * Sets the number of rows (height) for this terminal size.
      *
-     * <p>
-     * The number of rows represents the height of the terminal in character cells.
-     * </p>
-     *
      * @param rows the number of rows to set
-     * @see #getRows()
+     * @throws UnsupportedOperationException always — Size is immutable
+     * @deprecated Size is now immutable. Use {@link #of(int, int)} instead.
      */
+    @Deprecated
+    @SuppressWarnings("java:S1133")
     public void setRows(int rows) {
-        this.rows = rows;
+        throw new UnsupportedOperationException("Size is immutable; use Size.of() instead");
     }
 
     /**
@@ -160,34 +177,27 @@ public class Size implements Sized {
     /**
      * Copies the dimensions from another Size object to this one.
      *
-     * <p>
-     * This method updates this Size object to have the same dimensions
-     * (rows and columns) as the specified Size object.
-     * </p>
-     *
      * @param size the Size object to copy dimensions from
+     * @throws UnsupportedOperationException always — Size is immutable
+     * @deprecated Size is now immutable. Use {@link #of(Sized)} instead.
      */
-    // Deprecation is awkward, as in its current state copy(Size) would always cause deprecation warnings,
-    // because it doesn't auto-map to setSize(Sized)
-    // @Deprecated
-    // @SuppressWarnings("java:S1133") // Intentional deprecation; removal planned for a future major version
+    @Deprecated
+    @SuppressWarnings("java:S1133")
     public void copy(Size size) {
-        copy((Sized) size);
+        throw new UnsupportedOperationException("Size is immutable; use Size.of() instead");
     }
 
     /**
-     * Copies the dimensions from another Size object to this one.
+     * Copies the dimensions from another Sized object to this one.
      *
-     * <p>
-     * This method updates this Size object to have the same dimensions
-     * (rows and columns) as the specified Size object.
-     * </p>
-     *
-     * @param size the Size object to copy dimensions from
+     * @param size the Sized object to copy dimensions from
+     * @throws UnsupportedOperationException always — Size is immutable
+     * @deprecated Size is now immutable. Use {@link #of(Sized)} instead.
      */
+    @Deprecated
+    @SuppressWarnings("java:S1133")
     public void copy(Sized size) {
-        setColumns(size.getColumns());
-        setRows(size.getRows());
+        throw new UnsupportedOperationException("Size is immutable; use Size.of() instead");
     }
 
     /**
@@ -214,10 +224,6 @@ public class Size implements Sized {
     /**
      * Returns a hash code for this Size object.
      *
-     * <p>
-     * The hash code is computed based on the rows and columns values.
-     * </p>
-     *
      * @return a hash code value for this object
      */
     @Override
@@ -227,10 +233,6 @@ public class Size implements Sized {
 
     /**
      * Returns a string representation of this Size object.
-     *
-     * <p>
-     * The string representation includes the number of columns and rows.
-     * </p>
      *
      * @return a string representation of this object
      */

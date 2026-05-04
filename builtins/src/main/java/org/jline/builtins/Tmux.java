@@ -222,7 +222,7 @@ public class Tmux {
     private Integer windowsId = 0;
     private int activeWindow = 0;
     private final AtomicBoolean running = new AtomicBoolean(true);
-    private final Size size = new Size();
+    private volatile Size size = Size.of(0, 0);
     private boolean identify;
     private ScheduledExecutorService executor;
 
@@ -505,7 +505,7 @@ public class Tmux {
         executor = Executors.newSingleThreadScheduledExecutor();
         try {
             // Create first pane
-            size.copy(terminal.getSize());
+            size = terminal.getSize();
             windows.add(new Window(this));
             activeWindow = 0;
             runner.accept(active().getConsole());
@@ -670,7 +670,7 @@ public class Tmux {
     private void handleResize() {
         // Re-compute the layout
         if (resized.compareAndSet(true, false)) {
-            size.copy(terminal.getSize());
+            size = terminal.getSize();
         }
         window().handleResize();
     }
@@ -2070,7 +2070,7 @@ public class Tmux {
             this.left = left;
             this.top = top;
             // Resize ScreenTerminal first, as it may not resize depending on requested size.
-            terminal.setSize(new Size(width, height));
+            terminal.setSize(Size.of(width, height));
             console.setSize(this.terminal);
             console.raise(Signal.WINCH);
         }

@@ -35,7 +35,7 @@ final class TailTipWidgetsTest {
             strings.put(Capability.save_cursor, "");
             strings.put(Capability.restore_cursor, "");
             strings.put(Capability.cursor_address, "");
-            setSize(new Size(160, 50));
+            setSize(Size.of(160, 50));
         }
     }
 
@@ -54,7 +54,7 @@ final class TailTipWidgetsTest {
     private static final class ZeroSizeLineReader extends LineReaderImpl {
         private ZeroSizeLineReader(Terminal terminal) throws IOException {
             super(terminal);
-            display.resize(new Size(0, 0));
+            display.resize(Size.of(0, 0));
         }
     }
 

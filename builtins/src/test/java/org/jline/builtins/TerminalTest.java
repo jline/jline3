@@ -183,9 +183,9 @@ class TerminalTest {
         // Test that both terminals inherit ScreenTerminal functionality
 
         // Test size setting
-        webTerminal.setSize(new Size(30, 15));
-        assertEquals(new Size(30, 15), webTerminal.getSize());
-        swingTerminal.setSize(new Size(30, 15));
+        webTerminal.setSize(Size.of(30, 15));
+        assertEquals(Size.of(30, 15), webTerminal.getSize());
+        swingTerminal.setSize(Size.of(30, 15));
 
         // Test writing
         assertTrue(webTerminal.write("Test content"));
@@ -251,9 +251,9 @@ class TerminalTest {
     @Test
     void testTerminalResizing() {
         // Test resizing functionality
-        webTerminal.setSize(new Size(40, 20));
-        assertEquals(new Size(40, 20), webTerminal.getSize());
-        swingTerminal.setSize(new Size(40, 20));
+        webTerminal.setSize(Size.of(40, 20));
+        assertEquals(Size.of(40, 20), webTerminal.getSize());
+        swingTerminal.setSize(Size.of(40, 20));
 
         // Write content after resize
         webTerminal.write("Resized terminal content");
@@ -272,31 +272,31 @@ class TerminalTest {
     @Test
     void testInvalidSizes() {
         // Set a known valid size first
-        webTerminal.setSize(new Size(20, 10));
+        webTerminal.setSize(Size.of(20, 10));
         Size validSize = webTerminal.getSize();
 
         // Test that invalid sizes are rejected (size should not change)
-        webTerminal.setSize(new Size(1, 10)); // Too small width
+        webTerminal.setSize(Size.of(1, 10)); // Too small width
         assertEquals(validSize, webTerminal.getSize());
-        webTerminal.setSize(new Size(10, 1)); // Too small height
+        webTerminal.setSize(Size.of(10, 1)); // Too small height
         assertEquals(validSize, webTerminal.getSize());
 
         // Boundary checks at MAX_SIZE
         int max = ScreenTerminal.MAX_SIZE;
-        webTerminal.setSize(new Size(max, 10)); // Exactly at max width
-        assertEquals(new Size(max, 10), webTerminal.getSize());
-        webTerminal.setSize(new Size(10, max)); // Exactly at max height
-        assertEquals(new Size(10, max), webTerminal.getSize());
+        webTerminal.setSize(Size.of(max, 10)); // Exactly at max width
+        assertEquals(Size.of(max, 10), webTerminal.getSize());
+        webTerminal.setSize(Size.of(10, max)); // Exactly at max height
+        assertEquals(Size.of(10, max), webTerminal.getSize());
 
         Size lastValidSize = webTerminal.getSize();
-        webTerminal.setSize(new Size(max + 1, 10)); // One past max width
+        webTerminal.setSize(Size.of(max + 1, 10)); // One past max width
         assertEquals(lastValidSize, webTerminal.getSize());
-        webTerminal.setSize(new Size(10, max + 1)); // One past max height
+        webTerminal.setSize(Size.of(10, max + 1)); // One past max height
         assertEquals(lastValidSize, webTerminal.getSize());
 
-        swingTerminal.setSize(new Size(1, 10));
-        swingTerminal.setSize(new Size(10, 1));
-        swingTerminal.setSize(new Size(300, 10));
-        swingTerminal.setSize(new Size(10, 300));
+        swingTerminal.setSize(Size.of(1, 10));
+        swingTerminal.setSize(Size.of(10, 1));
+        swingTerminal.setSize(Size.of(300, 10));
+        swingTerminal.setSize(Size.of(10, 300));
     }
 }

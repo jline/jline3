@@ -263,14 +263,14 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<Long> {
     public Size getSize() {
         CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO();
         Kernel32.GetConsoleScreenBufferInfo(outConsole, info);
-        return new Size(info.windowWidth(), info.windowHeight());
+        return Size.of(info.windowWidth(), info.windowHeight());
     }
 
     @Override
     public Size getBufferSize() {
         CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO();
         Kernel32.GetConsoleScreenBufferInfo(outConsole, info);
-        return new Size(info.size.x, info.size.y);
+        return Size.of(info.size.x, info.size.y);
     }
 
     protected boolean processConsoleInput() throws IOException {

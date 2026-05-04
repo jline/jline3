@@ -69,7 +69,7 @@ public class DefaultPrompter implements Prompter {
     private static final int DEFAULT_PAGE_SIZE = 10;
 
     // Terminal size tracking
-    private final Size size = new Size();
+    private volatile Size size = Size.of(0, 0);
 
     // List range for pagination
     private ListRange range = null;
@@ -591,7 +591,7 @@ public class DefaultPrompter implements Prompter {
         AttributedStringBuilder asb = createMessage(prompt.getMessage(), null);
         int startColumn = asb.columnLength(terminal);
 
-        size.copy(terminal.getSize());
+        size = terminal.getSize();
         KeyMap<InputOperation> keyMap = new KeyMap<>();
         bindInputKeys(keyMap);
 
@@ -691,7 +691,7 @@ public class DefaultPrompter implements Prompter {
         asb.append("Press Enter to open editor, Escape to cancel");
         displayLines.add(asb.toAttributedString());
 
-        size.copy(terminal.getSize());
+        size = terminal.getSize();
         display.resize(size);
         display.update(displayLines, -1);
 
@@ -1279,7 +1279,7 @@ public class DefaultPrompter implements Prompter {
     private ChoiceResult executeChoicePrompt(List<AttributedString> header, ChoicePrompt prompt)
             throws IOException, UserInterruptException {
 
-        size.copy(terminal.getSize());
+        size = terminal.getSize();
         display.resize(size);
 
         List<ChoiceItem> items = prompt.getItems();
@@ -1334,7 +1334,7 @@ public class DefaultPrompter implements Prompter {
                 out.add(messageBuilder.toAttributedString());
                 out.addAll(buildChoiceItemsDisplay(items));
                 out.add(choiceBuilder.toAttributedString());
-                size.copy(terminal.getSize());
+                size = terminal.getSize();
                 display.resize(size);
                 display.update(out, out.size() - 1);
                 redrawNeeded = false;
@@ -1502,7 +1502,7 @@ public class DefaultPrompter implements Prompter {
             throws IOException, UserInterruptException {
 
         // Copy ConsolePrompt's exact behavior for confirm prompts
-        size.copy(terminal.getSize());
+        size = terminal.getSize();
 
         // Set up key bindings like ConsolePrompt
         KeyMap<ConfirmOperation> keyMap = new KeyMap<>();
@@ -1583,7 +1583,7 @@ public class DefaultPrompter implements Prompter {
         displayLines.addAll(prompt.getLines());
 
         // Update size and display using Display system
-        size.copy(terminal.getSize());
+        size = terminal.getSize();
         display.resize(size);
         display.update(displayLines, -1);
 
@@ -1602,7 +1602,7 @@ public class DefaultPrompter implements Prompter {
     private ToggleResult executeTogglePrompt(List<AttributedString> header, TogglePrompt prompt)
             throws IOException, UserInterruptException {
 
-        size.copy(terminal.getSize());
+        size = terminal.getSize();
 
         boolean active = prompt.getDefaultValue();
 
@@ -1670,7 +1670,7 @@ public class DefaultPrompter implements Prompter {
     private KeyPressResult executeKeyPressPrompt(List<AttributedString> header, KeyPressPrompt prompt)
             throws IOException, UserInterruptException {
 
-        size.copy(terminal.getSize());
+        size = terminal.getSize();
 
         List<AttributedString> out = new ArrayList<>();
         if (header != null) {
@@ -1794,7 +1794,7 @@ public class DefaultPrompter implements Prompter {
      */
     private void refreshListDisplay(
             List<AttributedString> header, String message, List<ListItem> items, int cursorRow, ListPrompt prompt) {
-        size.copy(terminal.getSize());
+        size = terminal.getSize();
         display.resize(size);
         display.update(
                 buildListDisplayLines(header, message, items, cursorRow, prompt),
@@ -1947,7 +1947,7 @@ public class DefaultPrompter implements Prompter {
             int cursorRow,
             Set<String> selectedIds,
             CheckboxPrompt prompt) {
-        size.copy(terminal.getSize());
+        size = terminal.getSize();
         display.resize(size);
         display.update(
                 buildCheckboxDisplayLines(header, message, items, cursorRow, selectedIds, prompt),
@@ -2185,6 +2185,6 @@ public class DefaultPrompter implements Prompter {
      * Reset display size tracking.
      */
     private void resetDisplay() {
-        size.copy(terminal.getSize());
+        size = terminal.getSize();
     }
 }

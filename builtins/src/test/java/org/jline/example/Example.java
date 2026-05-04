@@ -113,7 +113,7 @@ class Example {
 
         private final Terminal terminal;
         private final List<String> lines = new ArrayList<>();
-        private final Size size = new Size();
+        private Size size = Size.of(0, 0);
         private final BindingReader bindingReader;
 
         public OptionSelector(Terminal terminal, String title, Collection<String> options) {
@@ -160,7 +160,7 @@ class Example {
                 terminal.puts(Capability.enter_ca_mode);
                 terminal.puts(Capability.keypad_xmit);
                 terminal.writer().flush();
-                size.copy(terminal.getSize());
+                size = terminal.getSize();
                 display.clear();
                 display.reset();
                 int selectRow = 1;
