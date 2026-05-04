@@ -24,6 +24,7 @@ import java.util.function.IntConsumer;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
+import org.jline.terminal.Sized;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.FastBufferedOutputStream;
@@ -159,9 +160,9 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
     }
 
     @Override
-    public void setSize(Size size) {
+    public void setSize(Sized size) {
         checkClosed();
-        doSetSize(size);
+        doSetSize(new Size(size));
     }
 
     @Override
