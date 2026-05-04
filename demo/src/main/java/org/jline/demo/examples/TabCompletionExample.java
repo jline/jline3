@@ -9,7 +9,7 @@
 package org.jline.demo.examples;
 
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 
 import org.jline.builtins.Completers.FilesCompleter;
 import org.jline.reader.Completer;
@@ -48,7 +48,7 @@ public class TabCompletionExample {
         // Create a more complex completer for command arguments
         Completer argCompleter = new ArgumentCompleter(
                 new StringsCompleter("open", "close", "save"),
-                new FilesCompleter(Paths.get(System.getProperty("user.dir"))));
+                new FilesCompleter(Path.of(System.getProperty("user.dir"))));
 
         // Create a line reader with the argument completer
         LineReader argReader = LineReaderBuilder.builder()

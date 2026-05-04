@@ -11,7 +11,6 @@ package org.jline.demo.examples;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -84,7 +83,7 @@ public class NanoLessCustomizationExample {
                 + "# Use theme system\n"
                 + "theme example-theme.nanorctheme\n";
 
-        Path nanorcFile = Paths.get("jnanorc");
+        Path nanorcFile = Path.of("jnanorc");
         Files.write(nanorcFile, nanorcContent.getBytes());
         return nanorcFile;
     }
@@ -100,7 +99,7 @@ public class NanoLessCustomizationExample {
                 + "# Use theme system\n"
                 + "theme example-theme.nanorctheme\n";
 
-        Path lessrcFile = Paths.get("jlessrc");
+        Path lessrcFile = Path.of("jlessrc");
         Files.write(lessrcFile, lessrcContent.getBytes());
         return lessrcFile;
     }
@@ -144,7 +143,7 @@ public class NanoLessCustomizationExample {
                 + "    }\n"
                 + "}\n";
 
-        Path sampleFile = Paths.get("SampleClass.java");
+        Path sampleFile = Path.of("SampleClass.java");
         Files.write(sampleFile, sampleContent.getBytes());
         return sampleFile;
     }

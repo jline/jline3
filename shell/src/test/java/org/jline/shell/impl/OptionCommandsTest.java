@@ -19,6 +19,7 @@ import org.jline.shell.Command;
 import org.jline.shell.CommandSession;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -27,8 +28,9 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for {@link OptionCommands}.
  */
-public class OptionCommandsTest {
+class OptionCommandsTest {
 
+    private Terminal terminal;
     private LineReader reader;
     private OptionCommands commands;
     private CommandSession session;
@@ -37,12 +39,19 @@ public class OptionCommandsTest {
 
     @BeforeEach
     void setUp() throws IOException {
-        Terminal terminal = TerminalBuilder.builder().dumb(true).build();
+        terminal = TerminalBuilder.builder().dumb(true).build();
         reader = LineReaderBuilder.builder().terminal(terminal).build();
         commands = new OptionCommands(reader);
         outCapture = new ByteArrayOutputStream();
         errCapture = new ByteArrayOutputStream();
         session = new CommandSession(null, System.in, new PrintStream(outCapture), new PrintStream(errCapture));
+    }
+
+    @AfterEach
+    void tearDown() throws IOException {
+        if (terminal != null) {
+            terminal.close();
+        }
     }
 
     @Test

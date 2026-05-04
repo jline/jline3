@@ -15,7 +15,6 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -23,8 +22,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.jline.utils.InfoCmp.Capability;
 import org.junit.jupiter.api.Test;
@@ -37,10 +36,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Tests for the InfoCmp class.
  */
-public class InfoCmpTest {
+class InfoCmpTest {
 
     @Test
-    public void testInfoCmp() {
+    void testInfoCmp() {
         Set<Capability> bools = new HashSet<>();
         Map<Capability, Integer> ints = new HashMap<>();
         Map<Capability, String> strings = new HashMap<>();
@@ -52,13 +51,13 @@ public class InfoCmpTest {
     }
 
     @Test
-    public void testGetNames() {
+    void testGetNames() {
         String[] result = Capability.bit_image_entwining.getNames();
         assertArrayEquals(new String[] {"bit_image_entwining", "bitwin"}, result);
     }
 
     @Test
-    public void testInfoCmpWithHexa() {
+    void testInfoCmpWithHexa() {
         Set<Capability> bools = new HashSet<>();
         Map<Capability, Integer> ints = new HashMap<>();
         Map<Capability, String> strings = new HashMap<>();
@@ -73,7 +72,7 @@ public class InfoCmpTest {
     }
 
     @Test
-    public void testClrEos() {
+    void testClrEos() {
         Set<Capability> bools = new HashSet<>();
         Map<Capability, Integer> ints = new HashMap<>();
         Map<Capability, String> strings = new HashMap<>();
@@ -83,31 +82,32 @@ public class InfoCmpTest {
     }
 
     @Test
-    public void testAllCapsFile() throws IOException {
+    void testAllCapsFile() throws IOException {
         String packagePath = InfoCmp.class.getPackage().getName().replace(".", "/");
         ArrayList<URL> packageLocations =
                 Collections.list(Thread.currentThread().getContextClassLoader().getResources(packagePath));
         List<String> allCaps = packageLocations.stream()
-                .map(url -> {
+                .flatMap(url -> {
                     try {
-                        Path capsLocation = Paths.get(url.toURI());
+                        Path capsLocation = Path.of(url.toURI());
                         PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:**.caps");
-                        List<String> s = Files.walk(capsLocation)
-                                .filter(pathMatcher::matches)
-                                .map(Path::getFileName)
-                                .map(Path::toString)
-                                .map(fileName -> fileName.split("\\.")[0])
-                                .collect(Collectors.toList());
-                        return s.stream();
+                        try (Stream<Path> paths = Files.walk(capsLocation)) {
+                            return paths
+                                    .filter(pathMatcher::matches)
+                                    .map(Path::getFileName)
+                                    .map(Path::toString)
+                                    .map(fileName -> fileName.split("\\.")[0])
+                                    .collect(Collectors.toList())
+                                    .stream();
+                        }
                     } catch (URISyntaxException | IOException e) {
                         throw new RuntimeException(e);
                     }
                 })
-                .flatMap(Function.identity())
                 .collect(Collectors.toList());
 
         allCaps.forEach((capsName) -> assertNotNull(
-                String.format("%s.caps was not registered in InfoCmp class", capsName),
-                InfoCmp.getLoadedInfoCmp(capsName)));
+                InfoCmp.getLoadedInfoCmp(capsName),
+                String.format("%s.caps was not registered in InfoCmp class", capsName)));
     }
 }

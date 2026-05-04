@@ -29,9 +29,9 @@ import static org.jline.reader.LineReader.UP_LINE_OR_HISTORY;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class HistoryReaderTest extends ReaderTestSupport {
+class HistoryReaderTest extends ReaderTestSupport {
     @Test
-    public void testSingleHistory() throws Exception {
+    void testSingleHistory() throws Exception {
         KeyMap<Binding> map = reader.getKeys();
 
         // Map in HISTORY_SEARCH_BACKWARD.
@@ -96,7 +96,7 @@ public class HistoryReaderTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testHistorySearchBackwardAndForward() throws Exception {
+    void testHistorySearchBackwardAndForward() throws Exception {
         KeyMap<Binding> map = reader.getKeys();
 
         // Map in HISTORY_SEARCH_BACKWARD.

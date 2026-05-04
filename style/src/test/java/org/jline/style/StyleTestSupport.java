@@ -13,12 +13,12 @@ import org.junit.jupiter.api.BeforeEach;
 /**
  * Support for style tests.
  */
-public abstract class StyleTestSupport {
+abstract class StyleTestSupport {
 
     protected MemoryStyleSource source;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         this.source = new MemoryStyleSource();
     }
 }

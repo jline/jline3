@@ -11,8 +11,8 @@ package org.jline.builtins;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,20 +27,20 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 /**
  * Test for the suggestion box placement in Nano editor.
  */
-public class NanoSuggestionBoxTest {
+class NanoSuggestionBoxTest {
 
     /**
      * A custom Nano implementation that exposes the buildSuggestionBox method for testing.
      */
     static class TestableNano extends Nano {
-        public TestableNano(Terminal terminal) {
-            super(terminal, Paths.get("."));
+        TestableNano(Terminal terminal) {
+            super(terminal, Path.of("."));
         }
 
         /**
          * Expose the buildSuggestionBox method for testing.
          */
-        public Nano.Box buildSuggestionBoxForTest(
+        Nano.Box buildSuggestionBoxForTest(
                 List<AttributedString> suggestions,
                 List<AttributedString> screenLines,
                 int cursorLine,
@@ -74,55 +74,56 @@ public class NanoSuggestionBoxTest {
     }
 
     @Test
-    public void testSuggestionBoxPlacement() throws IOException {
+    void testSuggestionBoxPlacement() throws IOException {
         // Create a dumb terminal for testing
         ByteArrayInputStream in = new ByteArrayInputStream(new byte[0]);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        Terminal terminal = new DumbTerminal("name", "dumb", in, out, Charset.forName("UTF-8"));
-        terminal.setSize(new Size(80, 24));
+        try (Terminal terminal = new DumbTerminal("name", "dumb", in, out, StandardCharsets.UTF_8)) {
+            terminal.setSize(new Size(80, 24));
 
-        TestableNano nano = new TestableNano(terminal);
+            TestableNano nano = new TestableNano(terminal);
 
-        // Create suggestions
-        List<AttributedString> suggestions = new ArrayList<>();
-        suggestions.add(new AttributedString("Suggestion 1"));
-        suggestions.add(new AttributedString("Suggestion 2"));
-        suggestions.add(new AttributedString("Suggestion 3"));
+            // Create suggestions
+            List<AttributedString> suggestions = new ArrayList<>();
+            suggestions.add(new AttributedString("Suggestion 1"));
+            suggestions.add(new AttributedString("Suggestion 2"));
+            suggestions.add(new AttributedString("Suggestion 3"));
 
-        // Create screen lines
-        List<AttributedString> screenLines = new ArrayList<>();
-        for (int i = 0; i < 20; i++) {
-            screenLines.add(new AttributedString("Screen line " + i));
+            // Create screen lines
+            List<AttributedString> screenLines = new ArrayList<>();
+            for (int i = 0; i < 20; i++) {
+                screenLines.add(new AttributedString("Screen line " + i));
+            }
+
+            // Test with cursor at different positions
+
+            // 1. Test with cursor at the top of the screen
+            Nano.Box box1 = nano.buildSuggestionBoxForTest(suggestions, screenLines, 0, 0);
+            assertNotNull(box1, "Box should be created when cursor is at the top");
+
+            // 2. Test with cursor in the middle of the screen
+            Nano.Box box2 = nano.buildSuggestionBoxForTest(suggestions, screenLines, 10, 0);
+            assertNotNull(box2, "Box should be created when cursor is in the middle");
+
+            // 3. Test with cursor at the bottom of the screen
+            Nano.Box box3 = nano.buildSuggestionBoxForTest(suggestions, screenLines, 19, 0);
+            assertNotNull(box3, "Box should be created when cursor is at the bottom");
+
+            // 4. Test with scrolled view (firstLineToDisplay > 0)
+            Nano.Box box4 = nano.buildSuggestionBoxForTest(suggestions, screenLines, 15, 10);
+            assertNotNull(box4, "Box should be created when view is scrolled");
+
+            // 5. Test with cursor at the top of a scrolled view
+            Nano.Box box5 = nano.buildSuggestionBoxForTest(suggestions, screenLines, 10, 10);
+            assertNotNull(box5, "Box should be created when cursor is at the top of a scrolled view");
+
+            // 6. Test with cursor at the bottom of a scrolled view
+            Nano.Box box6 = nano.buildSuggestionBoxForTest(suggestions, screenLines, 29, 10);
+            assertNotNull(box6, "Box should be created when cursor is at the bottom of a scrolled view");
+
+            // The test passes if all boxes are created successfully
+            // Visual verification would require manual testing
+            System.out.println("All suggestion boxes were created successfully");
         }
-
-        // Test with cursor at different positions
-
-        // 1. Test with cursor at the top of the screen
-        Nano.Box box1 = nano.buildSuggestionBoxForTest(suggestions, screenLines, 0, 0);
-        assertNotNull(box1, "Box should be created when cursor is at the top");
-
-        // 2. Test with cursor in the middle of the screen
-        Nano.Box box2 = nano.buildSuggestionBoxForTest(suggestions, screenLines, 10, 0);
-        assertNotNull(box2, "Box should be created when cursor is in the middle");
-
-        // 3. Test with cursor at the bottom of the screen
-        Nano.Box box3 = nano.buildSuggestionBoxForTest(suggestions, screenLines, 19, 0);
-        assertNotNull(box3, "Box should be created when cursor is at the bottom");
-
-        // 4. Test with scrolled view (firstLineToDisplay > 0)
-        Nano.Box box4 = nano.buildSuggestionBoxForTest(suggestions, screenLines, 15, 10);
-        assertNotNull(box4, "Box should be created when view is scrolled");
-
-        // 5. Test with cursor at the top of a scrolled view
-        Nano.Box box5 = nano.buildSuggestionBoxForTest(suggestions, screenLines, 10, 10);
-        assertNotNull(box5, "Box should be created when cursor is at the top of a scrolled view");
-
-        // 6. Test with cursor at the bottom of a scrolled view
-        Nano.Box box6 = nano.buildSuggestionBoxForTest(suggestions, screenLines, 29, 10);
-        assertNotNull(box6, "Box should be created when cursor is at the bottom of a scrolled view");
-
-        // The test passes if all boxes are created successfully
-        // Visual verification would require manual testing
-        System.out.println("All suggestion boxes were created successfully");
     }
 }

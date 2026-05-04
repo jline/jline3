@@ -33,22 +33,25 @@ import static org.junit.jupiter.api.Assertions.fail;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class HistoryTest extends ReaderTestSupport {
+class HistoryTest extends ReaderTestSupport {
     private DefaultHistory history;
 
+    @Override
     @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
         history = new DefaultHistory(reader);
     }
 
+    @Override
     @AfterEach
-    public void tearDown() {
+    public void tearDown() throws IOException {
         history = null;
+        super.tearDown();
     }
 
     @Test
-    public void testAdd() {
+    void testAdd() {
         assertEquals(0, history.size());
 
         history.add("test");
@@ -68,7 +71,7 @@ public class HistoryTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testOffset() {
+    void testOffset() {
         reader.setVariable(LineReader.HISTORY_SIZE, 5);
 
         assertEquals(0, history.size());
@@ -94,7 +97,7 @@ public class HistoryTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testTrimIterate() throws IOException {
+    void testTrimIterate() throws IOException {
         Path histFile = Files.createTempFile(null, null);
 
         reader.setVariable(LineReader.HISTORY_FILE, histFile);
@@ -127,7 +130,7 @@ public class HistoryTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testTrim() {
+    void testTrim() {
         List<History.Entry> entries = new ArrayList<>();
         entries.add(new DefaultHistory.EntryImpl(0, Instant.now(), "a"));
         entries.add(new DefaultHistory.EntryImpl(1, Instant.now(), "b"));
@@ -151,7 +154,7 @@ public class HistoryTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testAddHistoryLine() throws IOException {
+    void testAddHistoryLine() throws IOException {
         final Path histFile = Files.createTempFile(null, null);
 
         reader.setOpt(LineReader.Option.HISTORY_TIMESTAMPED);
@@ -178,7 +181,7 @@ public class HistoryTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testMatchPatterns() {
+    void testMatchPatterns() {
         DefaultHistory defaultHistory = new DefaultHistory();
         assertFalse(defaultHistory.matchPatterns("foo", "bar"));
         assertTrue(defaultHistory.matchPatterns("foo", "foo"));

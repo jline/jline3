@@ -34,6 +34,7 @@ public class DefaultListBuilder implements ListBuilder {
     private String currentItemDisabledText;
     private int pageSize = 0;
     private boolean showPageIndicator = true;
+    private boolean filterable = true;
     private Function<String, String> transformer;
     private Function<String, String> filter;
 
@@ -136,6 +137,12 @@ public class DefaultListBuilder implements ListBuilder {
     }
 
     @Override
+    public ListBuilder filterable(boolean filterable) {
+        this.filterable = filterable;
+        return this;
+    }
+
+    @Override
     public ListBuilder pageSize(int pageSize) {
         this.pageSize = pageSize;
         return this;
@@ -185,7 +192,7 @@ public class DefaultListBuilder implements ListBuilder {
      */
     @Override
     public PromptBuilder addPrompt() {
-        DefaultListPrompt prompt = new DefaultListPrompt(name, message, items, pageSize, showPageIndicator);
+        DefaultListPrompt prompt = new DefaultListPrompt(name, message, items, pageSize, showPageIndicator, filterable);
         prompt.setTransformer(transformer);
         prompt.setFilter(filter);
         parent.addPrompt(prompt);

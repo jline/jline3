@@ -9,7 +9,10 @@
 package org.jline.script;
 
 import java.io.File;
-import java.nio.file.*;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -290,7 +293,7 @@ public class GroovyCommand extends AbstractCommandRegistry implements CommandReg
                                 .getPathMatcher("regex:"
                                         + arg.replace("\\", "\\\\").replace(".", "\\.")
                                         + separator.replace("\\", "\\\\") + ".*\\.jar");
-                        try (Stream<Path> pathStream = Files.walk(Paths.get(arg))) {
+                        try (Stream<Path> pathStream = Files.walk(Path.of(arg))) {
                             pathStream
                                     .filter(matcher::matches)
                                     .map(Path::toString)

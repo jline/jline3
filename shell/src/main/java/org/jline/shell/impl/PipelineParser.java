@@ -9,7 +9,6 @@
 package org.jline.shell.impl;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 
 import org.jline.shell.Pipeline;
@@ -140,7 +139,7 @@ public class PipelineParser {
                     Path target = null;
                     if (i + 1 < tokens.size()) {
                         i++;
-                        target = Paths.get(tokens.get(i).value.trim());
+                        target = Path.of(tokens.get(i).value.trim());
                     }
                     stages.add(new DefaultPipeline.DefaultStage(cmd, op, target, op == Operator.APPEND));
                 } else if (op == Operator.INPUT_REDIRECT) {
@@ -148,7 +147,7 @@ public class PipelineParser {
                     Path inputFile = null;
                     if (i + 1 < tokens.size()) {
                         i++;
-                        inputFile = Paths.get(tokens.get(i).value.trim());
+                        inputFile = Path.of(tokens.get(i).value.trim());
                     }
                     stages.add(new DefaultPipeline.DefaultStage(cmd, null, null, false, inputFile));
                 } else if (op == Operator.HEREDOC) {

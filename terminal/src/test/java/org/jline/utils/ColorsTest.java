@@ -12,10 +12,10 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class ColorsTest {
+class ColorsTest {
 
     @Test
-    public void testRounding() {
+    void testRounding() {
         assertEquals(2, Colors.roundColor(71, 16, "cam02"));
         assertEquals(2, Colors.roundColor(71, 16, "camlab(1,2)"));
 
@@ -27,7 +27,7 @@ public class ColorsTest {
     }
 
     @Test
-    public void testRgb() {
+    void testRgb() {
         assertEquals(2, Colors.roundRgbColor(0, 128, 0, 16));
     }
 }

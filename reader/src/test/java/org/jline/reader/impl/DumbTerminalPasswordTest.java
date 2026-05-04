@@ -20,10 +20,10 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class DumbTerminalPasswordTest {
+class DumbTerminalPasswordTest {
 
     @Test
-    public void testPasswordMaskingWithDumbTerminal() throws IOException {
+    void testPasswordMaskingWithDumbTerminal() throws IOException {
         // Setup a dumb terminal with input and output streams
         ByteArrayInputStream in = new ByteArrayInputStream("password\n".getBytes());
         ByteArrayOutputStream out = new ByteArrayOutputStream();

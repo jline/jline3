@@ -17,19 +17,19 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class AttributedStringTest {
+class AttributedStringTest {
 
     @Test
-    public void test() {
+    void test() {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         sb.append("echo ");
         sb.append("foo", AttributedStyle.BOLD);
 
         assertEquals("echo \033[1mfoo\033[0m", sb.toAnsi());
 
-        assertEquals(sb.toString().substring(3, 6), "o f");
-        assertEquals(sb.columnSubSequence(3, 6).toString(), "o f");
-        assertEquals(sb.columnSubSequence(3, 6).toAnsi(), "o \033[1mf\033[0m");
+        assertEquals("o f", sb.toString().substring(3, 6));
+        assertEquals("o f", sb.columnSubSequence(3, 6).toString());
+        assertEquals("o \033[1mf\033[0m", sb.columnSubSequence(3, 6).toAnsi());
 
         sb.append(" ");
         sb.style(AttributedStyle.DEFAULT.background(3));
@@ -67,7 +67,7 @@ public class AttributedStringTest {
     }
 
     @Test
-    public void testRuns() {
+    void testRuns() {
         String ansi = "echo \033[1mfoo\033[0m \033[43mblue\033[0m ";
         AttributedString sb = AttributedString.fromAnsi(ansi);
 
@@ -82,14 +82,14 @@ public class AttributedStringTest {
     }
 
     @Test
-    public void testAnsi() {
+    void testAnsi() {
         String ansi = "echo \033[1mfoo \033[43mblue\033[0m ";
         AttributedString str = AttributedString.fromAnsi(ansi);
         assertEquals(ansi, str.toAnsi());
     }
 
     @Test
-    public void testBoldThenFaint() {
+    void testBoldThenFaint() {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         sb.styled(AttributedStyle::bold, "bold ");
         sb.styled(AttributedStyle::faint, "faint");
@@ -97,14 +97,14 @@ public class AttributedStringTest {
     }
 
     @Test
-    public void testBoldAndFaint() {
+    void testBoldAndFaint() {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         sb.styled(AttributedStyle::bold, s -> s.append("bold ").styled(AttributedStyle::faint, "faint"));
         assertEquals("\u001b[1mbold \u001b[2mfaint\u001b[0m", sb.toAnsi());
     }
 
     @Test
-    public void test256Colors() throws IOException {
+    void test256Colors() throws IOException {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         sb.style(sb.style().background(254));
         sb.append("Hello");
@@ -119,19 +119,19 @@ public class AttributedStringTest {
     }
 
     @Test
-    public void testCharWidth() {
+    void testCharWidth() {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         sb.append("\u2329\u2329\u2329\u2329"); // 〈〈〈
         assertEquals(4, sb.length());
         assertEquals(8, sb.columnLength());
 
         assertEquals("", sb.columnSubSequence(0, 1).toString());
-        assertEquals(sb.columnSubSequence(1, 3).toString(), "\u2329");
-        assertEquals(sb.columnSubSequence(3, 8).toString(), "\u2329\u2329\u2329");
+        assertEquals("\u2329", sb.columnSubSequence(1, 3).toString());
+        assertEquals("\u2329\u2329\u2329", sb.columnSubSequence(3, 8).toString());
     }
 
     @Test
-    public void testColors() {
+    void testColors() {
         String ansiStr = new AttributedStringBuilder()
                 .append("This i")
                 .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE))
@@ -145,7 +145,7 @@ public class AttributedStringTest {
     }
 
     @Test
-    public void testColumns() {
+    void testColumns() {
         AttributedString message = new AttributedString("👍");
         int messageLength = message.columnLength();
         assertEquals(2, messageLength);
@@ -168,7 +168,7 @@ public class AttributedStringTest {
      * See https://github.com/jline/jline3/issues/1648
      */
     @Test
-    public void testBmpEmojiWidth() {
+    void testBmpEmojiWidth() {
         // SMP emoji (0x1F000+) — already handled
         assertEquals(2, new AttributedString("\uD83D\uDE00").columnLength()); // 😀 U+1F600
         assertEquals(2, new AttributedString("\uD83D\uDD34").columnLength()); // 🔴 U+1F534
@@ -224,7 +224,7 @@ public class AttributedStringTest {
      * The old table (from ~Unicode 5.1) missed many newer combining marks.
      */
     @Test
-    public void testUnicode16Combining() {
+    void testUnicode16Combining() {
         // Vedic Extensions (U+1CD0-1CF9) — added in Unicode 5.2+
         assertEquals(0, WCWidth.wcwidth(0x1CD0)); // VEDIC TONE KARSHANA
         assertEquals(0, WCWidth.wcwidth(0x1CF4)); // VEDIC TONE CANDRA ABOVE
@@ -267,7 +267,7 @@ public class AttributedStringTest {
      * The old code missed Hangul Jamo Extended-A, Tangut, Kana extensions, etc.
      */
     @Test
-    public void testUnicode16EastAsianWidth() {
+    void testUnicode16EastAsianWidth() {
         // Hangul Jamo Extended-A (U+A960-A97C) — was missing
         assertEquals(2, WCWidth.wcwidth(0xA960)); // HANGUL CHOSEONG TIKEUT-MIEUM
         assertEquals(2, WCWidth.wcwidth(0xA97C)); // HANGUL CHOSEONG SSANGYEORINHIEUH

@@ -11,7 +11,6 @@ package org.jline.demo.examples;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 /**
  * Example demonstrating a Groovy script in JLine.
@@ -59,7 +58,7 @@ public class GroovyScriptExample {
                 + "return \"Script completed successfully!\"\n";
 
         // Write the example script to a file for demonstration purposes
-        Path scriptPath = Paths.get("hello.groovy");
+        Path scriptPath = Path.of("hello.groovy");
         Files.write(scriptPath, groovyScript.getBytes());
 
         System.out.println("Created example Groovy script: " + scriptPath.toAbsolutePath());

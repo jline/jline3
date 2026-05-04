@@ -22,7 +22,7 @@ import org.jline.shell.impl.DefaultPipeline;
  * <pre>
  * Pipeline pipeline = Pipeline.of("ls -la")
  *     .pipe("grep pattern")
- *     .redirect(Paths.get("output.txt"))
+ *     .redirect(Path.of("output.txt"))
  *     .build();
  * </pre>
  *

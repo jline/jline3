@@ -22,9 +22,7 @@ public class OutputFlagsExample {
 
     // SNIPPET_START: OutputFlagsExample
     public static void main(String[] args) throws IOException {
-        Terminal terminal = TerminalBuilder.builder().build();
-
-        try {
+        try (Terminal terminal = TerminalBuilder.builder().build()) {
             // Get current attributes
             Attributes attributes = terminal.getAttributes();
 
@@ -56,8 +54,6 @@ public class OutputFlagsExample {
             }
 
             terminal.writer().flush();
-        } finally {
-            terminal.close();
         }
     }
     // SNIPPET_END: OutputFlagsExample

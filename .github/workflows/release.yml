@@ -68,7 +68,7 @@ jobs:
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
           MVX_USE_SYSTEM_JAVA: true
         run: |
-          ./mvx mvn -B deploy -Dnjord.autoPublish -Pbundle,javadoc,format-check,sign -s .github/release-settings.xml
+          ./mvx mvn -B deploy -Dnjord.autoPublish -Dnisse.jgit.dynamicVersion=${{ steps.version.outputs.version }} -Pbundle,javadoc,format-check,sign -s .github/release-settings.xml
 
       - name: Post release
         env:

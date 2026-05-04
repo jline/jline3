@@ -9,7 +9,7 @@
 package org.jline.reader.impl;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.List;
 
 import org.jline.reader.*;
 import org.jline.reader.LineReader.Option;
@@ -23,17 +23,17 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class CompletionTest extends ReaderTestSupport {
+class CompletionTest extends ReaderTestSupport {
 
     @Test
-    public void testCompleteEscape() throws IOException {
+    void testCompleteEscape() throws IOException {
         reader.setCompleter(new StringsCompleter("foo bar"));
         assertBuffer("foo\\ bar ", new TestBuffer("fo\t"));
         assertBuffer("\"foo bar\" ", new TestBuffer("\"fo\t"));
     }
 
     @Test
-    public void testCompleteQuotedWithMultipleCandidates() throws IOException {
+    void testCompleteQuotedWithMultipleCandidates() throws IOException {
         // Test MENU_COMPLETE with quoted input and multiple candidates
         reader.setCompleter(new StringsCompleter("Example1", "Example2"));
         reader.setOpt(Option.MENU_COMPLETE);
@@ -42,7 +42,7 @@ public class CompletionTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testCompleteQuotedAutoMenu() throws IOException {
+    void testCompleteQuotedAutoMenu() throws IOException {
         // Test AUTO_MENU with quoted input and multiple candidates
         reader.setCompleter(new StringsCompleter("Example1", "Example2"));
         reader.unsetOpt(Option.MENU_COMPLETE);
@@ -54,7 +54,7 @@ public class CompletionTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testListAndMenu() throws IOException {
+    void testListAndMenu() throws IOException {
         reader.setCompleter(new StringsCompleter("foo", "foobar"));
 
         reader.unsetOpt(Option.MENU_COMPLETE);
@@ -132,7 +132,7 @@ public class CompletionTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testTypoMatcher() throws Exception {
+    void testTypoMatcher() throws Exception {
         reader.setCompleter(new StringsCompleter("foo", "foobar"));
 
         reader.unsetOpt(Option.MENU_COMPLETE);
@@ -146,7 +146,7 @@ public class CompletionTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testCompletePrefix() throws Exception {
+    void testCompletePrefix() {
         Completer nil = new NullCompleter();
         Completer read = new StringsCompleter("read");
         Completer and = new StringsCompleter("and");
@@ -165,7 +165,7 @@ public class CompletionTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testSuffix() {
+    void testSuffix() {
         reader.setCompleter((reader, line, candidates) -> {
             candidates.add(new Candidate(
                     /* value    = */ "range(",
@@ -193,8 +193,8 @@ public class CompletionTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testMenuOrder() {
-        reader.setCompleter(new StringsCompleter(Arrays.asList(
+    void testMenuOrder() {
+        reader.setCompleter(new StringsCompleter(List.of(
                 "ae_helloWorld1", "ad_helloWorld12", "ac_helloWorld1234", "ab_helloWorld123", "aa_helloWorld12345")));
         reader.unsetOpt(Option.AUTO_LIST);
         reader.setOpt(Option.AUTO_MENU);
@@ -205,27 +205,27 @@ public class CompletionTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testDumbTerminalNoSizeComplete() {
+    void testDumbTerminalNoSizeComplete() {
         terminal.setSize(new Size());
         reader.setCompleter(new StringsCompleter(
-                Arrays.asList("ae_helloWorld", "ad_helloWorld", "ac_helloWorld", "ab_helloWorld", "aa_helloWorld")));
+                List.of("ae_helloWorld", "ad_helloWorld", "ac_helloWorld", "ab_helloWorld", "aa_helloWorld")));
 
         assertLine("a", new TestBuffer("a\t\n"));
     }
 
     @Test
-    public void testTerminalNoSizeComplete() {
+    void testTerminalNoSizeComplete() {
         terminal.setSize(new Size());
         reader.doAutosuggestion = true;
         reader.autosuggestion = LineReader.SuggestionType.COMPLETER;
         reader.setCompleter(new StringsCompleter(
-                Arrays.asList("ae_helloWorld", "ad_helloWorld", "ac_helloWorld", "ab_helloWorld", "aa_helloWorld")));
+                List.of("ae_helloWorld", "ad_helloWorld", "ac_helloWorld", "ab_helloWorld", "aa_helloWorld")));
 
         assertLine("a", new TestBuffer("a\t\n"));
     }
 
     @Test
-    public void testParserEofOnEscapedNewLine() {
+    void testParserEofOnEscapedNewLine() {
         DefaultParser parser = new DefaultParser();
         parser.setEofOnEscapedNewLine(true);
         reader.setParser(parser);

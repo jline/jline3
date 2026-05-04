@@ -10,7 +10,7 @@ package org.jline.builtins;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 
 import org.jline.keymap.KeyMap;
 import org.jline.terminal.Size;
@@ -20,25 +20,27 @@ import org.junit.jupiter.api.Timeout;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class NanoTest {
+class NanoTest {
 
     @Test
     @Timeout(1)
     void nanoBufferLineOverflow() throws Exception {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        LineDisciplineTerminal terminal = new LineDisciplineTerminal("nano", "xterm", output, StandardCharsets.UTF_8);
-        terminal.setSize(new Size(80, 25));
-        for (int i = 0; i < 100; i++) {
-            terminal.processInputByte(' ');
+        try (LineDisciplineTerminal terminal =
+                new LineDisciplineTerminal("nano", "xterm", output, StandardCharsets.UTF_8)) {
+            terminal.setSize(new Size(80, 25));
+            for (int i = 0; i < 100; i++) {
+                terminal.processInputByte(' ');
+            }
+            terminal.processInputByte(KeyMap.ctrl('X').getBytes()[0]);
+            terminal.processInputByte('n');
+            String[] argv = {"--ignorercfiles"};
+            Nano nano = new Nano(
+                    terminal,
+                    Path.of("target/test.txt"),
+                    Options.compile(Nano.usage()).parse(argv));
+            assertNotNull(nano);
+            nano.run();
         }
-        terminal.processInputByte(KeyMap.ctrl('X').getBytes()[0]);
-        terminal.processInputByte('n');
-        String[] argv = {"--ignorercfiles"};
-        Nano nano = new Nano(
-                terminal,
-                Paths.get("target/test.txt"),
-                Options.compile(Nano.usage()).parse(argv));
-        assertNotNull(nano);
-        nano.run();
     }
 }

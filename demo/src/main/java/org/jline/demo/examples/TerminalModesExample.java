@@ -23,9 +23,7 @@ public class TerminalModesExample {
 
     // SNIPPET_START: TerminalModesExample
     public static void main(String[] args) throws IOException {
-        Terminal terminal = TerminalBuilder.builder().build();
-
-        try {
+        try (Terminal terminal = TerminalBuilder.builder().build()) {
             // Save original attributes
             Attributes originalAttributes = terminal.getAttributes();
 
@@ -67,8 +65,6 @@ public class TerminalModesExample {
             terminal.writer().println("\nPress Enter to exit...");
             terminal.writer().flush();
             terminal.reader().read();
-        } finally {
-            terminal.close();
         }
     }
     // SNIPPET_END: TerminalModesExample

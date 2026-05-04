@@ -26,44 +26,44 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class GraphemeClusterModeTest {
+class GraphemeClusterModeTest {
 
     // Test emoji for isClusterGrouped assertions
     private static final String FLAG_FR = "\uD83C\uDDEB\uD83C\uDDF7"; // 🇫🇷
     private static final String ZWJ_EMOJI = "\uD83D\uDC69\u200D\uD83D\uDD2C"; // 👩‍🔬
 
     @Test
-    public void testSupportedWhenTerminalRespondsSet() throws Exception {
+    void testSupportedWhenTerminalRespondsSet() throws Exception {
         // DECRPM response: mode 2027 currently set (Ps=1)
         assertProbeResult("\033[?2027;1$y", "xterm-256color", true);
     }
 
     @Test
-    public void testSupportedWhenTerminalRespondsReset() throws Exception {
+    void testSupportedWhenTerminalRespondsReset() throws Exception {
         // DECRPM response: mode 2027 currently reset but recognized (Ps=2)
         assertProbeResult("\033[?2027;2$y", "xterm-256color", true);
     }
 
     @Test
-    public void testSupportedWhenTerminalRespondsPermanentlySet() throws Exception {
+    void testSupportedWhenTerminalRespondsPermanentlySet() throws Exception {
         // DECRPM response: mode 2027 permanently set (Ps=3)
         assertProbeResult("\033[?2027;3$y", "xterm-256color", true);
     }
 
     @Test
-    public void testNotSupportedWhenTerminalRespondsNotRecognized() throws Exception {
+    void testNotSupportedWhenTerminalRespondsNotRecognized() throws Exception {
         // DECRPM response: mode 2027 not recognized (Ps=0)
         assertProbeResult("\033[?2027;0$y", "xterm-256color", false);
     }
 
     @Test
-    public void testNotSupportedWhenTerminalRespondsPermanentlyReset() throws Exception {
+    void testNotSupportedWhenTerminalRespondsPermanentlyReset() throws Exception {
         // DECRPM response: mode 2027 permanently reset (Ps=4)
         assertProbeResult("\033[?2027;4$y", "xterm-256color", false);
     }
 
     @Test
-    public void testNotSupportedOnDumbTerminal() throws Exception {
+    void testNotSupportedOnDumbTerminal() throws Exception {
         ByteArrayOutputStream masterOutput = new ByteArrayOutputStream();
         LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("test", Terminal.TYPE_DUMB, masterOutput, StandardCharsets.UTF_8);
@@ -76,7 +76,7 @@ public class GraphemeClusterModeTest {
     }
 
     @Test
-    public void testNotSupportedOnDumbColorTerminal() throws Exception {
+    void testNotSupportedOnDumbColorTerminal() throws Exception {
         ByteArrayOutputStream masterOutput = new ByteArrayOutputStream();
         LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("test", Terminal.TYPE_DUMB_COLOR, masterOutput, StandardCharsets.UTF_8);
@@ -88,7 +88,7 @@ public class GraphemeClusterModeTest {
     }
 
     @Test
-    public void testNotSupportedWhenOnlyDa1Responds() throws Exception {
+    void testNotSupportedWhenOnlyDa1Responds() throws Exception {
         // Terminal doesn't support DECRQM but responds to DA1 sentinel
         ByteArrayOutputStream masterOutput = new ByteArrayOutputStream();
         LineDisciplineTerminal terminal =
@@ -109,7 +109,7 @@ public class GraphemeClusterModeTest {
     }
 
     @Test
-    public void testProbeSentForNonXtermTerminal() throws Exception {
+    void testProbeSentForNonXtermTerminal() throws Exception {
         // Non-xterm terminals should now be probed (DA1 sentinel makes it safe)
         ByteArrayOutputStream masterOutput = new ByteArrayOutputStream();
         LineDisciplineTerminal terminal =
@@ -124,7 +124,7 @@ public class GraphemeClusterModeTest {
     }
 
     @Test
-    public void testNotSupportedWhenNoResponse() throws Exception {
+    void testNotSupportedWhenNoResponse() throws Exception {
         // No response written to slaveInputPipe → peek() times out
         ByteArrayOutputStream masterOutput = new ByteArrayOutputStream();
         LineDisciplineTerminal terminal =
@@ -141,7 +141,7 @@ public class GraphemeClusterModeTest {
     }
 
     @Test
-    public void testResultIsCached() throws Exception {
+    void testResultIsCached() throws Exception {
         ByteArrayOutputStream masterOutput = new ByteArrayOutputStream();
         LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("test", "xterm-256color", masterOutput, StandardCharsets.UTF_8);
@@ -158,7 +158,7 @@ public class GraphemeClusterModeTest {
     }
 
     @Test
-    public void testSetGraphemeClusterModeEnable() throws Exception {
+    void testSetGraphemeClusterModeEnable() throws Exception {
         ByteArrayOutputStream masterOutput = new ByteArrayOutputStream();
         LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("test", "xterm-256color", masterOutput, StandardCharsets.UTF_8);
@@ -177,7 +177,7 @@ public class GraphemeClusterModeTest {
     }
 
     @Test
-    public void testSetGraphemeClusterModeDisable() throws Exception {
+    void testSetGraphemeClusterModeDisable() throws Exception {
         ByteArrayOutputStream masterOutput = new ByteArrayOutputStream();
         LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("test", "xterm-256color", masterOutput, StandardCharsets.UTF_8);
@@ -199,7 +199,7 @@ public class GraphemeClusterModeTest {
     }
 
     @Test
-    public void testSetGraphemeClusterModeReturnsFalseWhenNotSupported() throws Exception {
+    void testSetGraphemeClusterModeReturnsFalseWhenNotSupported() throws Exception {
         ByteArrayOutputStream masterOutput = new ByteArrayOutputStream();
         LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("test", Terminal.TYPE_DUMB, masterOutput, StandardCharsets.UTF_8);
@@ -211,7 +211,7 @@ public class GraphemeClusterModeTest {
     }
 
     @Test
-    public void testModeDisabledOnClose() throws Exception {
+    void testModeDisabledOnClose() throws Exception {
         ByteArrayOutputStream masterOutput = new ByteArrayOutputStream();
         LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("test", "xterm-256color", masterOutput, StandardCharsets.UTF_8);
@@ -233,7 +233,7 @@ public class GraphemeClusterModeTest {
     }
 
     @Test
-    public void testModeNotDisabledOnCloseIfNeverEnabled() throws Exception {
+    void testModeNotDisabledOnCloseIfNeverEnabled() throws Exception {
         ByteArrayOutputStream masterOutput = new ByteArrayOutputStream();
         LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("test", "xterm-256color", masterOutput, StandardCharsets.UTF_8);
@@ -254,7 +254,7 @@ public class GraphemeClusterModeTest {
     }
 
     @Test
-    public void testDefaultInterfaceMethodsReturnFalse() {
+    void testDefaultInterfaceMethodsReturnFalse() {
         // Verify the Terminal interface default methods
         Terminal terminal = new Terminal() {
             public String getName() {
@@ -513,13 +513,6 @@ public class GraphemeClusterModeTest {
         assertFalse(output.contains("\033[?2027l"), "Close should not send Mode 2027 disable for native mode");
     }
 
-    /**
-     * Starts a responder thread that feeds DA1 (for DECRQM failure) and CPR
-     * responses to the terminal's slave input pipe when the corresponding
-     * probe queries appear in the master output. The returned {@code error}
-     * reference captures any exception so tests can assert the responder
-     * completed cleanly.
-     */
     // CPR responses: initial startCol query + flag probe + ZWJ probe.
     // Displacement of 2 = grouped (single cluster), 4 = ungrouped.
 
@@ -533,6 +526,13 @@ public class GraphemeClusterModeTest {
         return startResponder(terminal, masterOutput, ALL_GROUPED);
     }
 
+    /**
+     * Starts a responder thread that feeds DA1 (for DECRQM failure) and CPR
+     * responses to the terminal's slave input pipe when the corresponding
+     * probe queries appear in the master output. The returned {@code error}
+     * reference captures any exception so tests can assert the responder
+     * completed cleanly.
+     */
     private ResponderHandle startResponder(
             LineDisciplineTerminal terminal, ByteArrayOutputStream masterOutput, String cprResponses) {
         AtomicReference<Exception> error = new AtomicReference<>();
@@ -827,31 +827,30 @@ public class GraphemeClusterModeTest {
 
     private void assertProbeResult(String response, String terminalType, boolean expectedSupport) throws Exception {
         ByteArrayOutputStream masterOutput = new ByteArrayOutputStream();
-        LineDisciplineTerminal terminal =
-                new LineDisciplineTerminal("test", terminalType, masterOutput, StandardCharsets.UTF_8);
+        try (LineDisciplineTerminal terminal =
+                new LineDisciplineTerminal("test", terminalType, masterOutput, StandardCharsets.UTF_8)) {
 
-        // Feed the DECRPM response followed by mock DA1 response
-        terminal.slaveInputPipe.write((response + "\033[?64c").getBytes(StandardCharsets.UTF_8));
-        terminal.slaveInputPipe.flush();
+            // Feed the DECRPM response followed by mock DA1 response
+            terminal.slaveInputPipe.write((response + "\033[?64c").getBytes(StandardCharsets.UTF_8));
+            terminal.slaveInputPipe.flush();
 
-        // When DECRPM says not supported, cursor probe runs as fallback
-        ResponderHandle cprResponder = null;
-        if (!expectedSupport) {
-            cprResponder = startCprResponder(terminal, masterOutput);
-            cprResponder.start();
+            // When DECRPM says not supported, cursor probe runs as fallback
+            ResponderHandle cprResponder = null;
+            if (!expectedSupport) {
+                cprResponder = startCprResponder(terminal, masterOutput);
+                cprResponder.start();
+            }
+
+            assertEquals(expectedSupport, terminal.supportsGraphemeClusterMode());
+
+            if (cprResponder != null) {
+                cprResponder.joinAndAssert();
+            }
+
+            // Verify the DECRQM query and DA1 sentinel were sent
+            String output = masterOutput.toString(StandardCharsets.UTF_8);
+            assertTrue(output.contains("\033[?2027$p"));
+            assertTrue(output.contains("\033[c"));
         }
-
-        assertEquals(expectedSupport, terminal.supportsGraphemeClusterMode());
-
-        if (cprResponder != null) {
-            cprResponder.joinAndAssert();
-        }
-
-        // Verify the DECRQM query and DA1 sentinel were sent
-        String output = masterOutput.toString(StandardCharsets.UTF_8);
-        assertTrue(output.contains("\033[?2027$p"));
-        assertTrue(output.contains("\033[c"));
-
-        terminal.close();
     }
 }

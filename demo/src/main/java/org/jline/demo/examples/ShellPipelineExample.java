@@ -35,52 +35,6 @@ import org.jline.shell.impl.SimpleCommandGroup;
 public class ShellPipelineExample {
 
     // SNIPPET_START: ShellPipelineExample
-    static class EchoCommand extends AbstractCommand {
-        EchoCommand() {
-            super("echo");
-        }
-
-        @Override
-        public String description() {
-            return "Echo arguments to output";
-        }
-
-        @Override
-        public Object execute(CommandSession session, String[] args) {
-            Object pipeInput = session.get("_pipe_input");
-            String msg;
-            if (args.length > 0) {
-                msg = String.join(" ", args);
-            } else if (pipeInput != null) {
-                msg = pipeInput.toString();
-            } else {
-                msg = "";
-            }
-            session.out().println(msg);
-            return msg;
-        }
-    }
-
-    static class UpperCommand extends AbstractCommand {
-        UpperCommand() {
-            super("upper");
-        }
-
-        @Override
-        public String description() {
-            return "Convert pipe input to upper case";
-        }
-
-        @Override
-        public Object execute(CommandSession session, String[] args) {
-            Object pipeInput = session.get("_pipe_input");
-            String input = pipeInput != null ? pipeInput.toString().trim() : String.join(" ", args);
-            String result = input.toUpperCase();
-            session.out().println(result);
-            return result;
-        }
-    }
-
     static class FailCommand extends AbstractCommand {
         FailCommand() {
             super("fail");
@@ -105,7 +59,8 @@ public class ShellPipelineExample {
                 .prompt("pipeline-demo> ")
                 .pipelineParser(customParser) // HIGHLIGHT
                 .helpCommands(true)
-                .groups(new SimpleCommandGroup("demo", new EchoCommand(), new UpperCommand(), new FailCommand()))
+                .groups(new SimpleCommandGroup(
+                        "demo", new DemoCommands.EchoCommand(), new DemoCommands.UpperCommand(), new FailCommand()))
                 .build()) {
             shell.run();
         }

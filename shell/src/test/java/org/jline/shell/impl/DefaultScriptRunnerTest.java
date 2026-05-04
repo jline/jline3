@@ -17,6 +17,7 @@ import java.util.List;
 import org.jline.shell.*;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -26,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for {@link DefaultScriptRunner}.
  */
-public class DefaultScriptRunnerTest {
+class DefaultScriptRunnerTest {
 
     private Terminal terminal;
     private DefaultCommandDispatcher dispatcher;
@@ -49,6 +50,19 @@ public class DefaultScriptRunnerTest {
                 return line;
             }
         }));
+    }
+
+    @AfterEach
+    void tearDown() throws IOException {
+        try {
+            if (terminal != null) {
+                terminal.close();
+            }
+        } finally {
+            if (dispatcher != null) {
+                dispatcher.close();
+            }
+        }
     }
 
     @Test

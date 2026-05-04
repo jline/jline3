@@ -23,7 +23,7 @@ import org.jline.utils.AttributedStyle;
 /**
  * Example demonstrating the new Prompter API.
  */
-public class NewApiExample {
+class NewApiExample {
 
     public static void main(String[] args) {
         List<AttributedString> header = new ArrayList<>();

@@ -96,49 +96,101 @@ public class DiffHelper {
     }
 
     /**
-     * Compute a list of difference between two lines.
-     * The result will contain at most 4 Diff objects, as the method
-     * aims to return the common prefix, inserted text, deleted text and
-     * common suffix.
-     * The computation is done on characters and their attributes expressed
-     * as ansi sequences.
+     * Compute the common prefix and suffix lengths between two attributed strings
+     * without any object allocation.
      *
-     * @param text1 the old line
-     * @param text2 the new line
-     * @return a list of Diff
+     * <p>This is an allocation-free alternative to {@link #diff(AttributedString, AttributedString)}
+     * that stores the common prefix length in {@code result[0]} and the common suffix length
+     * in {@code result[1]}. The caller can derive the diff segments from these two values:
+     * <ul>
+     *   <li>EQUAL prefix: {@code [s1, s1 + result[0])}</li>
+     *   <li>INSERT: {@code [s2 + result[0], e2 - result[1])}</li>
+     *   <li>DELETE: {@code [s1 + result[0], e1 - result[1])}</li>
+     *   <li>EQUAL suffix: {@code [e1 - result[1], e1)}</li>
+     * </ul>
+     *
+     * @param text1  the old line
+     * @param s1     start index in text1 (inclusive)
+     * @param e1     end index in text1 (exclusive)
+     * @param text2  the new line
+     * @param s2     start index in text2 (inclusive)
+     * @param e2     end index in text2 (exclusive)
+     * @param result a reusable two-element array; on return result[0] = commonStart, result[1] = commonEnd
+     */
+    static void diff(AttributedString text1, int s1, int e1, AttributedString text2, int s2, int e2, int[] result) {
+        int n = Math.min(e1 - s1, e2 - s2);
+        int commonStart = commonPrefixLength(text1, s1, e1, text2, s2, e2, n);
+        result[0] = commonStart;
+        result[1] = commonSuffixLength(text1, e1, text2, e2, n - commonStart);
+    }
+
+    /**
+     * Scan forward for the common prefix length, respecting hidden-range boundaries.
+     */
+    private static int commonPrefixLength(
+            AttributedString text1, int s1, int e1, AttributedString text2, int s2, int e2, int n) {
+        int commonStart = 0;
+        int startHiddenRange = -1;
+        while (commonStart < n
+                && text1.charAt(s1 + commonStart) == text2.charAt(s2 + commonStart)
+                && text1.styleCodeAt(s1 + commonStart) == text2.styleCodeAt(s2 + commonStart)) {
+            if (text1.isHidden(s1 + commonStart)) {
+                if (startHiddenRange < 0) startHiddenRange = commonStart;
+            } else {
+                startHiddenRange = -1;
+            }
+            commonStart++;
+        }
+        if (startHiddenRange >= 0
+                && (((e1 - s1) > commonStart && text1.isHidden(s1 + commonStart))
+                        || ((e2 - s2) > commonStart && text2.isHidden(s2 + commonStart)))) {
+            commonStart = startHiddenRange;
+        }
+        return commonStart;
+    }
+
+    /**
+     * Scan backward for the common suffix length, respecting hidden-range boundaries.
+     */
+    private static int commonSuffixLength(AttributedString text1, int e1, AttributedString text2, int e2, int n) {
+        int commonEnd = 0;
+        int startHiddenRange = -1;
+        while (commonEnd < n
+                && text1.charAt(e1 - commonEnd - 1) == text2.charAt(e2 - commonEnd - 1)
+                && text1.styleCodeAt(e1 - commonEnd - 1) == text2.styleCodeAt(e2 - commonEnd - 1)) {
+            if (text1.isHidden(e1 - commonEnd - 1)) {
+                if (startHiddenRange < 0) startHiddenRange = commonEnd;
+            } else {
+                startHiddenRange = -1;
+            }
+            commonEnd++;
+        }
+        if (startHiddenRange >= 0
+                && commonEnd < n
+                && (text1.isHidden(e1 - commonEnd - 1) || text2.isHidden(e2 - commonEnd - 1))) {
+            commonEnd = startHiddenRange;
+        }
+        return commonEnd;
+    }
+
+    /**
+     * Compute the differences between two attributed strings.
+     *
+     * <p>Returns a list of {@link Diff} operations (EQUAL, INSERT, DELETE) that
+     * transform {@code text1} into {@code text2}. Hidden character ranges are
+     * kept intact — they are never split across diff segments.</p>
+     *
+     * @param text1 the original text
+     * @param text2 the modified text
+     * @return a list of diff operations
      */
     public static List<Diff> diff(AttributedString text1, AttributedString text2) {
         int l1 = text1.length();
         int l2 = text2.length();
-        int n = Math.min(l1, l2);
-        int commonStart = 0;
-        // Given a run of contiguous "hidden" characters (which are
-        // sequences of uninterrupted escape sequences) we always want to
-        // print either the entire run or none of it - never a part of it.
-        int startHiddenRange = -1;
-        while (commonStart < n
-                && text1.charAt(commonStart) == text2.charAt(commonStart)
-                && text1.styleAt(commonStart).equals(text2.styleAt(commonStart))) {
-            if (text1.isHidden(commonStart)) {
-                if (startHiddenRange < 0) startHiddenRange = commonStart;
-            } else startHiddenRange = -1;
-            commonStart++;
-        }
-        if (startHiddenRange >= 0
-                && ((l1 > commonStart && text1.isHidden(commonStart))
-                        || (l2 > commonStart && text2.isHidden(commonStart)))) commonStart = startHiddenRange;
-
-        startHiddenRange = -1;
-        int commonEnd = 0;
-        while (commonEnd < n - commonStart
-                && text1.charAt(l1 - commonEnd - 1) == text2.charAt(l2 - commonEnd - 1)
-                && text1.styleAt(l1 - commonEnd - 1).equals(text2.styleAt(l2 - commonEnd - 1))) {
-            if (text1.isHidden(l1 - commonEnd - 1)) {
-                if (startHiddenRange < 0) startHiddenRange = commonEnd;
-            } else startHiddenRange = -1;
-            commonEnd++;
-        }
-        if (startHiddenRange >= 0) commonEnd = startHiddenRange;
+        int[] result = new int[2];
+        diff(text1, 0, l1, text2, 0, l2, result);
+        int commonStart = result[0];
+        int commonEnd = result[1];
         LinkedList<Diff> diffs = new LinkedList<>();
         if (commonStart > 0) {
             diffs.add(new Diff(DiffHelper.Operation.EQUAL, text1.subSequence(0, commonStart)));

@@ -29,7 +29,7 @@ import java.nio.charset.StandardCharsets;
  *   <li>{@link #reset()} reuses the buffer across frames without reallocation</li>
  * </ul>
  */
-public class ByteArrayBuilder {
+class ByteArrayBuilder {
 
     private byte[] buffer;
     private int count;

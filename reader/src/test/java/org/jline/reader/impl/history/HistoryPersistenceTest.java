@@ -10,7 +10,7 @@ package org.jline.reader.impl.history;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.BrokenBarrierException;
@@ -32,17 +32,22 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  *
  * @author <a href="mailto:gnodet@gmail.com">Guillaume Nodet</a>
  */
-public class HistoryPersistenceTest extends ReaderTestSupport {
+class HistoryPersistenceTest extends ReaderTestSupport {
 
+    private final Object lock = new Object();
+
+    @Override
     @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
-        Files.deleteIfExists(Paths.get("test"));
+        Files.deleteIfExists(Path.of("test"));
     }
 
+    @Override
     @AfterEach
     public void tearDown() throws IOException {
-        Files.deleteIfExists(Paths.get("test"));
+        Files.deleteIfExists(Path.of("test"));
+        super.tearDown();
     }
 
     private void doTestFileHistory(int count, CyclicBarrier barrier) {
@@ -61,7 +66,7 @@ public class HistoryPersistenceTest extends ReaderTestSupport {
         // what we're testing here is the fact that only *new* items are
         // written to the file incrementally and that we're not rewriting the
         // whole file
-        synchronized (reader) {
+        synchronized (lock) {
             try {
                 history.save();
             } catch (IOException e) {
@@ -71,8 +76,9 @@ public class HistoryPersistenceTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testFileHistory() throws Exception {
-        reader.setVariable(LineReader.HISTORY_FILE, Paths.get("test"));
+    void testFileHistory() throws Exception {
+        Path testPath = Path.of("test");
+        reader.setVariable(LineReader.HISTORY_FILE, testPath);
         reader.unsetOpt(LineReader.Option.HISTORY_INCREMENTAL);
 
         int cmdsPerThread = 3;
@@ -82,21 +88,19 @@ public class HistoryPersistenceTest extends ReaderTestSupport {
         IntStream.range(0, cmdsPerThread).forEach(i -> history.add("cmd" + i));
         history.save();
 
-        List<String> lines = Files.readAllLines(Paths.get("test"));
+        List<String> lines = Files.readAllLines(testPath);
         assertEquals(cmdsPerThread, lines.size());
 
         final CyclicBarrier barrier = new CyclicBarrier(nbThreads);
         List<Thread> ts = IntStream.range(0, nbThreads)
-                .mapToObj(i -> new Thread(() -> {
-                    doTestFileHistory(cmdsPerThread, barrier);
-                }))
+                .mapToObj(i -> new Thread(() -> doTestFileHistory(cmdsPerThread, barrier)))
                 .collect(toList());
         ts.forEach(Thread::start);
         for (Thread t : ts) {
             t.join();
         }
 
-        lines = Files.readAllLines(Paths.get("test"));
+        lines = Files.readAllLines(testPath);
         assertEquals(cmdsPerThread * (nbThreads + 1), lines.size());
     }
 
@@ -104,7 +108,7 @@ public class HistoryPersistenceTest extends ReaderTestSupport {
         reader.unsetOpt(LineReader.Option.HISTORY_INCREMENTAL);
         reader.option(LineReader.Option.HISTORY_TIMESTAMPED, timestamped);
         reader.setVariable(LineReader.HISTORY_FILE_SIZE, 5);
-        reader.setVariable(LineReader.HISTORY_FILE, Paths.get("test"));
+        reader.setVariable(LineReader.HISTORY_FILE, Path.of("test"));
 
         DefaultHistory history = new DefaultHistory(reader);
         for (int i = 0; i < 50; i++) {
@@ -119,12 +123,12 @@ public class HistoryPersistenceTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testHistoryTrimNonTimestamped() {
+    void testHistoryTrimNonTimestamped() {
         testHistoryTrim(false);
     }
 
     @Test
-    public void testHistoryTrimTimestamped() {
+    void testHistoryTrimTimestamped() {
         testHistoryTrim(true);
     }
 }

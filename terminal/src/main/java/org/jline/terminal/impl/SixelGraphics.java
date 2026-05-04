@@ -16,16 +16,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
 import javax.imageio.ImageIO;
 
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Attributes.ControlChar;
+import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Terminal;
-import org.jline.utils.NonBlockingReader;
-
-import static org.jline.terminal.TerminalBuilder.GRAPHICS_SIXEL_SUBSEQUENT_TIMEOUT;
-import static org.jline.terminal.TerminalBuilder.GRAPHICS_SIXEL_TIMEOUT;
+import org.jline.terminal.TerminalBuilder;
 
 /**
  * Implementation of the Sixel Graphics Protocol.
@@ -131,33 +132,35 @@ public class SixelGraphics implements TerminalGraphics {
             return null; // Skip runtime detection, fall back to static detection
         }
 
-        org.jline.terminal.Attributes originalAttributes = null;
+        Attributes originalAttributes = null;
+        Boolean result = null;
         try {
-            // Enter raw mode to prevent echo and ensure clean query transmission
-            originalAttributes = terminal.enterRawMode();
+            originalAttributes = terminal.getAttributes();
+            Attributes probeAttrs = new Attributes(originalAttributes);
+            probeAttrs.setLocalFlags(EnumSet.of(LocalFlag.ICANON, LocalFlag.ECHO), false);
+            probeAttrs.setControlChar(ControlChar.VMIN, 0);
+            probeAttrs.setControlChar(ControlChar.VTIME, 0);
+            terminal.setAttributes(probeAttrs);
 
-            // Send Device Attributes query (same method as lsix command)
+            // Send Device Attributes query
             terminal.writer().print("\033[c");
             terminal.writer().flush();
 
-            // Read response with configurable timeout (default: 200ms for faster response)
-            long timeoutMs = Long.parseLong(System.getProperty(GRAPHICS_SIXEL_TIMEOUT, "200"));
-            long subsequentTimeoutMs = Long.parseLong(System.getProperty(GRAPHICS_SIXEL_SUBSEQUENT_TIMEOUT, "25"));
-            String response = readTerminalResponse(terminal, timeoutMs, subsequentTimeoutMs);
+            // Read response with configurable timeout
+            String response = ((AbstractTerminal) terminal).readTerminalResponse();
             if (response != null) {
-                // Look for code "4" which indicates Sixel graphics support
-                // Response format: ESC[?1;2;4;6;9;15;18;21;22c
+                // Response format: ESC[?Pp;Ps1;Ps2;...c
                 // Code "4" = Sixel graphics support
-                return response.contains(";4;") || response.contains(";4c");
+                result = response.contains(";4;")
+                        || response.contains(";4c")
+                        || response.contains("?4;")
+                        || response.contains("?4c");
             }
-
-            return null; // Detection failed/timed out
-
         } catch (Exception e) {
             // If runtime detection fails, return null to fall back to static detection
-            return null;
         } finally {
-            // Always restore original terminal attributes
+            long drainTimeout = AbstractTerminal.getLongProperty(TerminalBuilder.PROP_DRAIN_TIMEOUT, 25);
+            AbstractTerminal.drainInput(terminal.reader(), drainTimeout, -1);
             if (originalAttributes != null) {
                 try {
                     terminal.setAttributes(originalAttributes);
@@ -166,6 +169,7 @@ public class SixelGraphics implements TerminalGraphics {
                 }
             }
         }
+        return result;
     }
 
     /**
@@ -697,40 +701,4 @@ public class SixelGraphics implements TerminalGraphics {
      * @param timeoutMs timeout in milliseconds
      * @return the response string, or null if timeout/error
      */
-    private static String readTerminalResponse(Terminal terminal, long timeoutMs, long subsequentTimeoutMs)
-            throws IOException {
-        try {
-            NonBlockingReader reader = terminal.reader();
-            StringBuilder response = new StringBuilder();
-
-            long startTime = System.currentTimeMillis();
-            int c;
-
-            // Read characters until we get a complete response or timeout
-            while ((c = reader.read(timeoutMs)) >= 0) {
-                response.append((char) c);
-
-                // Check if we have a complete Device Attributes response
-                // Format: ESC[?...c or ESC[...c
-                String responseStr = response.toString();
-                if (responseStr.contains("\033[") && responseStr.endsWith("c")) {
-                    return responseStr;
-                }
-
-                // Safety check: don't read forever
-                if (response.length() > 200 || (System.currentTimeMillis() - startTime) > timeoutMs) {
-                    break;
-                }
-
-                // Use shorter timeout for subsequent characters (configurable)
-                timeoutMs = subsequentTimeoutMs;
-            }
-
-            // Return what we got, even if incomplete
-            return response.length() > 0 ? response.toString() : null;
-
-        } catch (Exception e) {
-            return null;
-        }
-    }
 }

@@ -11,7 +11,6 @@ package org.jline.jansi;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import org.jline.jansi.Ansi.Color;
 import org.junit.jupiter.api.Disabled;
@@ -29,18 +28,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Tests for the {@link Ansi} class.
  *
  */
-public class AnsiTest {
+class AnsiTest {
     @Test
-    public void testSetEnabled() throws Exception {
+    void testSetEnabled() throws InterruptedException {
+        Thread t;
+
         Ansi.setEnabled(false);
-        new Thread(() -> assertFalse(Ansi.isEnabled())).run();
+        t = new Thread(() -> assertFalse(Ansi.isEnabled()));
+        t.start();
+        t.join();
 
         Ansi.setEnabled(true);
-        new Thread(() -> assertTrue(Ansi.isEnabled())).run();
+        t = new Thread(() -> assertTrue(Ansi.isEnabled()));
+        t.start();
+        t.join();
     }
 
     @Test
-    public void testClone() throws CloneNotSupportedException {
+    void testClone() {
         Ansi ansi = Ansi.ansi().a("Some text").bg(Color.BLACK).fg(Color.WHITE);
         Ansi clone = new Ansi(ansi);
 
@@ -48,7 +53,7 @@ public class AnsiTest {
     }
 
     @Test
-    public void testApply() {
+    void testApply() {
         assertEquals("test", Ansi.ansi().apply(ansi -> ansi.a("test")).toString());
     }
 
@@ -57,7 +62,7 @@ public class AnsiTest {
         "-2147483648,ESC[2147483647T", "2147483647,ESC[2147483647S",
         "-100000,ESC[100000T", "100000,ESC[100000S"
     })
-    public void testScrollUp(int x, String expected) {
+    void testScrollUp(int x, String expected) {
         assertAnsi(expected, Ansi.ansi().scrollUp(x));
     }
 
@@ -66,7 +71,7 @@ public class AnsiTest {
         "-2147483648,ESC[2147483647S", "2147483647,ESC[2147483647T",
         "-100000,ESC[100000S", "100000,ESC[100000T"
     })
-    public void testScrollDown(int x, String expected) {
+    void testScrollDown(int x, String expected) {
         assertAnsi(expected, Ansi.ansi().scrollDown(x));
     }
 
@@ -77,37 +82,37 @@ public class AnsiTest {
         "1,-1,ESC[1;1H", "1,0,ESC[1;1H", "1,1,ESC[1;1H", "1,2,ESC[1;2H",
         "2,-1,ESC[2;1H", "2,0,ESC[2;1H", "2,1,ESC[2;1H", "2,2,ESC[2;2H"
     })
-    public void testCursor(int x, int y, String expected) {
+    void testCursor(int x, int y, String expected) {
         assertAnsi(expected, new Ansi().cursor(x, y));
     }
 
     @ParameterizedTest
     @CsvSource({"-1,ESC[1G", "0,ESC[1G", "1,ESC[1G", "2,ESC[2G"})
-    public void testCursorToColumn(int x, String expected) {
+    void testCursorToColumn(int x, String expected) {
         assertAnsi(expected, new Ansi().cursorToColumn(x));
     }
 
     @ParameterizedTest
     @CsvSource({"-2,ESC[2B", "-1,ESC[1B", "0,''", "1,ESC[1A", "2,ESC[2A"})
-    public void testCursorUp(int y, String expected) {
+    void testCursorUp(int y, String expected) {
         assertAnsi(expected, new Ansi().cursorUp(y));
     }
 
     @ParameterizedTest
     @CsvSource({"-2,ESC[2A", "-1,ESC[1A", "0,''", "1,ESC[1B", "2,ESC[2B"})
-    public void testCursorDown(int y, String expected) {
+    void testCursorDown(int y, String expected) {
         assertAnsi(expected, new Ansi().cursorDown(y));
     }
 
     @ParameterizedTest
     @CsvSource({"-2,ESC[2D", "-1,ESC[1D", "0,''", "1,ESC[1C", "2,ESC[2C"})
-    public void testCursorRight(int x, String expected) {
+    void testCursorRight(int x, String expected) {
         assertAnsi(expected, new Ansi().cursorRight(x));
     }
 
     @ParameterizedTest
     @CsvSource({"-2,ESC[2C", "-1,ESC[1C", "0,''", "1,ESC[1D", "2,ESC[2D"})
-    public void testCursorLeft(int x, String expected) {
+    void testCursorLeft(int x, String expected) {
         assertAnsi(expected, new Ansi().cursorLeft(x));
     }
 
@@ -119,34 +124,34 @@ public class AnsiTest {
         "1,-2,ESC[1CESC[2A", "1,-1,ESC[1CESC[1A", "1,0,ESC[1C", "1,1,ESC[1CESC[1B", "1,2,ESC[1CESC[2B",
         "2,-2,ESC[2CESC[2A", "2,-1,ESC[2CESC[1A", "2,0,ESC[2C", "2,1,ESC[2CESC[1B", "2,2,ESC[2CESC[2B"
     })
-    public void testCursorMove(int x, int y, String expected) {
+    void testCursorMove(int x, int y, String expected) {
         assertAnsi(expected, new Ansi().cursorMove(x, y));
     }
 
     @Test
-    public void testCursorDownLine() {
+    void testCursorDownLine() {
         assertAnsi("ESC[E", new Ansi().cursorDownLine());
     }
 
     @ParameterizedTest
     @CsvSource({"-2,ESC[2F", "-1,ESC[1F", "0,ESC[0E", "1,ESC[1E", "2,ESC[2E"})
-    public void testCursorDownLine(int n, String expected) {
+    void testCursorDownLine(int n, String expected) {
         assertAnsi(expected, new Ansi().cursorDownLine(n));
     }
 
     @Test
-    public void testCursorUpLine() {
+    void testCursorUpLine() {
         assertAnsi("ESC[F", new Ansi().cursorUpLine());
     }
 
     @ParameterizedTest
     @CsvSource({"-2,ESC[2E", "-1,ESC[1E", "0,ESC[0F", "1,ESC[1F", "2,ESC[2F"})
-    public void testCursorUpLine(int n, String expected) {
+    void testCursorUpLine(int n, String expected) {
         assertAnsi(expected, new Ansi().cursorUpLine(n));
     }
 
     @Test
-    public void testColorDisabled() {
+    void testColorDisabled() {
         Ansi.setEnabled(false);
         try {
             assertEquals(
@@ -169,8 +174,8 @@ public class AnsiTest {
     @Test
     @EnabledOnOs(OS.WINDOWS)
     @Disabled("Does not really fail: launch `javaw -jar jansi-xxx.jar` directly instead")
-    public void testAnsiMainWithNoConsole() throws Exception {
-        Path javaHome = Paths.get(System.getProperty("java.home"));
+    void testAnsiMainWithNoConsole() throws Exception {
+        Path javaHome = Path.of(System.getProperty("java.home"));
         Path java = javaHome.resolve("bin\\javaw.exe");
         String cp = System.getProperty("java.class.path");
 

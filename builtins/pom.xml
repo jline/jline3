@@ -24,6 +24,8 @@
 
     <properties>
         <automatic.module.name>org.jline.builtins</automatic.module.name>
+        <reader.test.jar>${maven.multiModuleProjectDirectory}/reader/target/jline-reader-${project.version}-tests.jar</reader.test.jar>
+        <surefire.argLine>--add-opens java.base/java.io=org.jline.nativ --add-opens java.base/java.io=org.jline.terminal --patch-module org.jline.reader=${reader.test.jar} --add-reads org.jline.reader=ALL-UNNAMED</surefire.argLine>
     </properties>
 
     <dependencies>
@@ -47,6 +49,12 @@
             <optional>true</optional>
         </dependency>
 
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-reader</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
@@ -81,6 +89,15 @@
                             <compilerArgs>
                                 <arg>-Xlint:all,-options,-requires-automatic,-restricted,-exports</arg>
                                 <arg>-Werror</arg>
+                            </compilerArgs>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>default-testCompile</id>
+                        <configuration>
+                            <compilerArgs>
+                                <arg>--patch-module</arg>
+                                <arg>org.jline.reader=${reader.test.jar}</arg>
                             </compilerArgs>
                         </configuration>
                     </execution>

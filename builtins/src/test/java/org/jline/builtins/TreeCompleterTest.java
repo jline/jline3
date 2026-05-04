@@ -10,14 +10,15 @@ package org.jline.builtins;
 
 import org.jline.builtins.Completers.TreeCompleter;
 import org.jline.reader.LineReader;
+import org.jline.reader.impl.ReaderTestSupport;
 import org.junit.jupiter.api.Test;
 
 import static org.jline.builtins.Completers.TreeCompleter.node;
 
-public class TreeCompleterTest extends ReaderTestSupport {
+class TreeCompleterTest extends ReaderTestSupport {
 
     @Test
-    public void testCaseInsensitive() throws Exception {
+    void testCaseInsensitive() throws Exception {
         reader.setCompleter(new TreeCompleter(node("ORA", node("ACTIVES"), node("LONGOPS", node("-ALL")))));
         reader.setOpt(LineReader.Option.CASE_INSENSITIVE);
 

@@ -194,8 +194,18 @@ class ByteArrayBuilderTest {
         String ansiString = str.toAnsi(AttributedCharSequence.TRUE_COLORS, AttributedCharSequence.ForceMode.None);
 
         ByteArrayBuilder buf = new ByteArrayBuilder();
+        long[] state = {0, 0};
         str.toAnsiBytes(
-                buf, AttributedCharSequence.TRUE_COLORS, AttributedCharSequence.ForceMode.None, null, null, null);
+                buf,
+                0,
+                str.length(),
+                AttributedCharSequence.TRUE_COLORS,
+                AttributedCharSequence.ForceMode.None,
+                null,
+                null,
+                null,
+                state);
+        if (state[0] != 0) buf.csi().appendAscii("0m");
         String bytesAsString = buf.toStringUtf8();
 
         assertEquals(ansiString, bytesAsString);
@@ -216,7 +226,9 @@ class ByteArrayBuilderTest {
         String ansiString = str.toAnsi(256, AttributedCharSequence.ForceMode.None);
 
         ByteArrayBuilder buf = new ByteArrayBuilder();
-        str.toAnsiBytes(buf, 256, AttributedCharSequence.ForceMode.None, null, null, null);
+        long[] state = {0, 0};
+        str.toAnsiBytes(buf, 0, str.length(), 256, AttributedCharSequence.ForceMode.None, null, null, null, state);
+        if (state[0] != 0) buf.csi().appendAscii("0m");
 
         assertEquals(ansiString, buf.toStringUtf8());
     }
@@ -232,7 +244,9 @@ class ByteArrayBuilderTest {
         String ansiString = str.toAnsi(256, AttributedCharSequence.ForceMode.None);
 
         ByteArrayBuilder buf = new ByteArrayBuilder();
-        str.toAnsiBytes(buf, 256, AttributedCharSequence.ForceMode.None, null, null, null);
+        long[] state = {0, 0};
+        str.toAnsiBytes(buf, 0, str.length(), 256, AttributedCharSequence.ForceMode.None, null, null, null, state);
+        if (state[0] != 0) buf.csi().appendAscii("0m");
 
         assertEquals(ansiString, buf.toStringUtf8());
     }

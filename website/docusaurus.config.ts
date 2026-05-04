@@ -103,8 +103,8 @@ const config: Config = {
           label: `v${jlineVersion}`,
           position: 'right',
           items: [
-            {label: '3.30.x', href: 'https://jline.org/'},
-            {label: '4.0.x', href: 'https://jline.org/versions/4.0/'},
+            {label: '4.0.x (current)', href: 'https://jline.org/'},
+            {label: '3.30.x', href: 'https://jline.org/versions/3.x/'},
           ],
         },
         {

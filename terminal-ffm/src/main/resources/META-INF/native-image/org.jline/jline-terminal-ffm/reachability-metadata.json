@@ -38,6 +38,52 @@
       {
         "returnType": "int",
         "parameterTypes": ["void*", "void*", "void*", "void*", "void*"]
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["int", "void*", "void*"]
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["void*", "int"]
+      },
+      {
+        "returnType": "void*",
+        "parameterTypes": ["int"]
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["int", "void*", "int", "int", "void*", "int", "void*"]
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["void*", "short"]
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["void*", "void*"]
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": []
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["void*"]
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["void*", "void*", "int", "void*", "void*"]
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["void*", "void*", "int", "void*"]
+      }
+    ],
+    "upcalls": [
+      {
+        "returnType": "void",
+        "parameterTypes": ["int"]
       }
     ]
   }

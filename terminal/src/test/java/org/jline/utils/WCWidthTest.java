@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * {@code charCountForGraphemeCluster}, {@code charCountForDisplay},
  * and {@code isRegionalIndicator}.
  */
-public class WCWidthTest {
+class WCWidthTest {
 
     // Family emoji: 👨‍👩‍👧‍👦 (man ZWJ woman ZWJ girl ZWJ boy)
     private static final String FAMILY_EMOJI = "\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67\u200D\uD83D\uDC66";
@@ -345,45 +345,33 @@ public class WCWidthTest {
 
     @Test
     void charCountForDisplay_withGcMode_returnsClusterSize() throws Exception {
-        Terminal t = GraphemeClusterTestTerminal.create();
-        try {
+        try (Terminal t = GraphemeClusterTestTerminal.create()) {
             assertEquals(11, WCWidth.charCountForDisplay(FAMILY_EMOJI, 0, t));
             assertEquals(4, WCWidth.charCountForDisplay(FLAG_FR, 0, t));
             assertEquals(4, WCWidth.charCountForDisplay(WAVE_SKIN, 0, t));
             assertEquals(5, WCWidth.charCountForDisplay(WOMAN_SCIENTIST, 0, t));
-        } finally {
-            t.close();
         }
     }
 
     @Test
     void charCountForDisplay_withGcMode_asciiUnchanged() throws Exception {
-        Terminal t = GraphemeClusterTestTerminal.create();
-        try {
+        try (Terminal t = GraphemeClusterTestTerminal.create()) {
             assertEquals(1, WCWidth.charCountForDisplay("Hello", 0, t));
             assertEquals(1, WCWidth.charCountForDisplay("Hello", 1, t));
-        } finally {
-            t.close();
         }
     }
 
     @Test
     void charCountForDisplay_withGcMode_cjkUnchanged() throws Exception {
-        Terminal t = GraphemeClusterTestTerminal.create();
-        try {
+        try (Terminal t = GraphemeClusterTestTerminal.create()) {
             assertEquals(1, WCWidth.charCountForDisplay("中文", 0, t));
-        } finally {
-            t.close();
         }
     }
 
     @Test
     void charCountForDisplay_withGcMode_variationSelector() throws Exception {
-        Terminal t = GraphemeClusterTestTerminal.create();
-        try {
+        try (Terminal t = GraphemeClusterTestTerminal.create()) {
             assertEquals(2, WCWidth.charCountForDisplay(STAR_TEXT, 0, t));
-        } finally {
-            t.close();
         }
     }
 

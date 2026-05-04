@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for ClasspathResourceUtil.
  */
-public class ClasspathResourceUtilTest {
+class ClasspathResourceUtilTest {
 
     @Test
     void testGetResourcePathFromURL() throws IOException, URISyntaxException {
@@ -39,18 +39,14 @@ public class ClasspathResourceUtilTest {
     @Test
     void testResourceNotFound() {
         // Test that we get an IOException for non-existent resources
-        assertThrows(IOException.class, () -> {
-            ClasspathResourceUtil.getResourcePath("/nonexistent/resource.txt");
-        });
+        assertThrows(IOException.class, () -> ClasspathResourceUtil.getResourcePath("/nonexistent/resource.txt"));
     }
 
     @Test
-    void testInvalidScheme() throws IOException, URISyntaxException {
+    void testInvalidScheme() throws IOException {
         // Test that we get an IllegalArgumentException for unsupported schemes
         URL invalidUrl = new URL("http://example.com/resource.txt");
-        assertThrows(IllegalArgumentException.class, () -> {
-            ClasspathResourceUtil.getResourcePath(invalidUrl);
-        });
+        assertThrows(IllegalArgumentException.class, () -> ClasspathResourceUtil.getResourcePath(invalidUrl));
     }
 
     @Test

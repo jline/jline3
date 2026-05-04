@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public final class TailTipWidgetsTest {
+final class TailTipWidgetsTest {
 
     /** A simple extension of {@link DumbTerminal} doing the minimal amount of work so that a {@link Status} constructed
      * from it is "supported". */
@@ -59,7 +59,7 @@ public final class TailTipWidgetsTest {
     }
 
     @Test
-    public void enableTest() throws Exception {
+    void enableTest() throws Exception {
         Terminal terminal = new SupportedDumbTerminal();
         assertTrue(new TestStatus(terminal).isSupported());
         LineReader reader = new ZeroSizeLineReader(terminal);

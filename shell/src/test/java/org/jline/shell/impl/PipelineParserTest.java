@@ -8,7 +8,7 @@
  */
 package org.jline.shell.impl;
 
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.Map;
 
 import org.jline.shell.Pipeline;
@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for {@link PipelineParser}.
  */
-public class PipelineParserTest {
+class PipelineParserTest {
 
     private PipelineParser parser;
 
@@ -91,7 +91,7 @@ public class PipelineParserTest {
         assertEquals(1, pipeline.stages().size());
         assertEquals("ls", pipeline.stages().get(0).commandLine());
         assertEquals(Operator.REDIRECT, pipeline.stages().get(0).operator());
-        assertEquals(Paths.get("output.txt"), pipeline.stages().get(0).redirectTarget());
+        assertEquals(Path.of("output.txt"), pipeline.stages().get(0).redirectTarget());
         assertFalse(pipeline.stages().get(0).isAppend());
     }
 
@@ -101,7 +101,7 @@ public class PipelineParserTest {
         assertEquals(1, pipeline.stages().size());
         assertEquals("echo hello", pipeline.stages().get(0).commandLine());
         assertEquals(Operator.APPEND, pipeline.stages().get(0).operator());
-        assertEquals(Paths.get("log.txt"), pipeline.stages().get(0).redirectTarget());
+        assertEquals(Path.of("log.txt"), pipeline.stages().get(0).redirectTarget());
         assertTrue(pipeline.stages().get(0).isAppend());
     }
 
@@ -121,7 +121,7 @@ public class PipelineParserTest {
         assertEquals(Operator.PIPE, pipeline.stages().get(0).operator());
         assertEquals("grep foo", pipeline.stages().get(1).commandLine());
         assertEquals(Operator.REDIRECT, pipeline.stages().get(1).operator());
-        assertEquals(Paths.get("results.txt"), pipeline.stages().get(1).redirectTarget());
+        assertEquals(Path.of("results.txt"), pipeline.stages().get(1).redirectTarget());
     }
 
     @Test
@@ -175,14 +175,14 @@ public class PipelineParserTest {
     void builderCreatesPipeline() {
         Pipeline pipeline = Pipeline.of("ls -la")
                 .pipe("grep pattern")
-                .redirect(Paths.get("output.txt"))
+                .redirect(Path.of("output.txt"))
                 .build();
         assertEquals(2, pipeline.stages().size());
         assertEquals("ls -la", pipeline.stages().get(0).commandLine());
         assertEquals(Operator.PIPE, pipeline.stages().get(0).operator());
         assertEquals("grep pattern", pipeline.stages().get(1).commandLine());
         assertEquals(Operator.REDIRECT, pipeline.stages().get(1).operator());
-        assertEquals(Paths.get("output.txt"), pipeline.stages().get(1).redirectTarget());
+        assertEquals(Path.of("output.txt"), pipeline.stages().get(1).redirectTarget());
     }
 
     @Test
@@ -271,7 +271,7 @@ public class PipelineParserTest {
         assertEquals(1, pipeline.stages().size());
         assertEquals("ls", pipeline.stages().get(0).commandLine());
         assertEquals(Operator.REDIRECT, pipeline.stages().get(0).operator());
-        assertEquals(Paths.get("output.txt"), pipeline.stages().get(0).redirectTarget());
+        assertEquals(Path.of("output.txt"), pipeline.stages().get(0).redirectTarget());
 
         // |>> works as append
         pipeline = custom.parse("echo hello |>> log.txt");
@@ -291,7 +291,7 @@ public class PipelineParserTest {
             @Override
             protected String matchOperator(String line, int pos) {
                 // Custom: treat "::" as a pipe
-                if (pos + 1 < line.length() && line.substring(pos, pos + 2).equals("::")) {
+                if (line.startsWith("::", pos)) {
                     return "::";
                 }
                 return super.matchOperator(line, pos);

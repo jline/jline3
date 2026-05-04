@@ -37,6 +37,7 @@ public class DefaultCheckboxBuilder implements CheckboxBuilder {
     private boolean showPageIndicator = true;
     private int minSelections = 0;
     private int maxSelections = 0;
+    private boolean filterable = true;
     private Function<String, String> transformer;
     private Function<String, String> filter;
 
@@ -153,6 +154,12 @@ public class DefaultCheckboxBuilder implements CheckboxBuilder {
     }
 
     @Override
+    public CheckboxBuilder filterable(boolean filterable) {
+        this.filterable = filterable;
+        return this;
+    }
+
+    @Override
     public CheckboxBuilder pageSize(int pageSize) {
         this.pageSize = pageSize;
         return this;
@@ -217,7 +224,7 @@ public class DefaultCheckboxBuilder implements CheckboxBuilder {
                     + ") cannot be greater than maxSelections (" + maxSelections + ")");
         }
         DefaultCheckboxPrompt prompt = new DefaultCheckboxPrompt(
-                name, message, items, pageSize, showPageIndicator, minSelections, maxSelections);
+                name, message, items, pageSize, showPageIndicator, minSelections, maxSelections, filterable);
         prompt.setTransformer(transformer);
         prompt.setFilter(filter);
         parent.addPrompt(prompt);

@@ -8,7 +8,7 @@
  */
 package org.jline.builtins.ssh;
 
-import java.nio.file.Paths;
+import java.nio.file.Path;
 
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.channel.ChannelShell;
@@ -21,13 +21,13 @@ import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.UserInterruptException;
 import org.junit.jupiter.api.Test;
 
-public class SshdTest {
+class SshdTest {
 
     @Test
     void test() throws Exception {
         SshServer sshd = SshServer.setUpDefaultServer();
         sshd.setPort(0);
-        sshd.setKeyPairProvider(new SimpleGeneratorHostKeyProvider(Paths.get("target/hostkey.ser")));
+        sshd.setKeyPairProvider(new SimpleGeneratorHostKeyProvider(Path.of("target/hostkey.ser")));
         sshd.setPasswordAuthenticator((username, password, session) -> true);
         sshd.setShellFactory(new ShellFactoryImpl(shellParams -> {
             LineReader reader = LineReaderBuilder.builder()
@@ -40,9 +40,7 @@ public class SshdTest {
                 while ((line = reader.readLine("sshTest > ")) != null) {
                     System.out.println(line);
                 }
-            } catch (UserInterruptException e) {
-                // Ignore
-            } catch (EndOfFileException e) {
+            } catch (UserInterruptException | EndOfFileException e) {
                 // Ignore
             } catch (Exception e) {
                 // ignore OTHER EXCEPTIONS

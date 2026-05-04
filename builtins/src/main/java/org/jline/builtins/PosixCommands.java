@@ -198,7 +198,7 @@ public class PosixCommands {
             // No argument - go to home directory
             String home = System.getProperty("user.home");
             if (home != null) {
-                newDir = Paths.get(home);
+                newDir = Path.of(home);
             } else {
                 newDir = cwd; // Stay in current directory if no home
             }
@@ -1267,6 +1267,9 @@ public class PosixCommands {
                                 while ((i = buffer.indexOf("\n", i + 1)) >= 0) {
                                     l++;
                                 }
+                                if (buffer.length() > 0 && buffer.charAt(buffer.length() - 1) != '\n') {
+                                    l++;
+                                }
                                 if (l > lines) {
                                     i = -1;
                                     l = l - lines;
@@ -1739,7 +1742,7 @@ public class PosixCommands {
                 this.abs = abs;
                 try {
                     this.path = Files.isSameFile(abs, root)
-                            ? Paths.get(".")
+                            ? Path.of(".")
                             : abs.startsWith(root) ? root.relativize(abs) : abs;
                 } catch (IOException e) {
                     throw new RuntimeException(e);

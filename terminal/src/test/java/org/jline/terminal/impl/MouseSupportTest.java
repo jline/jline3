@@ -16,10 +16,10 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class MouseSupportTest {
+class MouseSupportTest {
 
     @Test
-    public void testReadMouseX10Format() {
+    void testReadMouseX10Format() {
         // X10 format: ESC [ M Cb Cx Cy
         // Simulate a left button press at position (10, 20)
         // Cb = 0 + 32 = 32 (space)
@@ -36,7 +36,7 @@ public class MouseSupportTest {
     }
 
     @Test
-    public void testReadMouseWithPrefix() {
+    void testReadMouseWithPrefix() {
         // Test that the prefix is correctly handled
         // The sequence should be: ESC [ < 35;11;21M (button 35, x=11, y=21, press)
         // But the ESC [ < has been consumed, so we pass it as a prefix
@@ -50,7 +50,7 @@ public class MouseSupportTest {
     }
 
     @Test
-    public void testReadMouseWithX10Prefix() {
+    void testReadMouseWithX10Prefix() {
         // Test that the X10 prefix is correctly handled
         // The sequence should be: ESC [ M Cb Cx Cy
         // But the ESC [ M has been consumed, so we pass it as a prefix
@@ -65,7 +65,7 @@ public class MouseSupportTest {
     }
 
     @Test
-    public void testReadMouseSGRFormat() {
+    void testReadMouseSGRFormat() {
         // SGR format: ESC [ < Cb ; Cx ; Cy M/m
         // Simulate a left button press at position (10, 20)
         // Cb = 0
@@ -83,7 +83,7 @@ public class MouseSupportTest {
     }
 
     @Test
-    public void testReadMouseSGRReleaseFormat() {
+    void testReadMouseSGRReleaseFormat() {
         // SGR format with release: ESC [ < Cb ; Cx ; Cy m
         // Simulate a left button release at position (10, 20)
         int[] input = {'<', '0', ';', '1', '1', ';', '2', '1', 'm'};
@@ -97,7 +97,7 @@ public class MouseSupportTest {
     }
 
     @Test
-    public void testReadMouseURXVTFormat() {
+    void testReadMouseURXVTFormat() {
         // URXVT format: ESC [ Cb ; Cx ; Cy M
         // Simulate a left button press at position (10, 20)
         int[] input = {'0', ';', '1', '1', ';', '2', '1', 'M'};
@@ -111,7 +111,7 @@ public class MouseSupportTest {
     }
 
     @Test
-    public void testReadMouseWithModifiers() {
+    void testReadMouseWithModifiers() {
         // SGR format with Shift+Ctrl+Alt modifiers
         // Cb = 0 (button 1) + 4 (shift) + 8 (alt) + 16 (ctrl) = 28
         int[] input = {'<', '2', '8', ';', '1', '1', ';', '2', '1', 'M'};
@@ -127,7 +127,7 @@ public class MouseSupportTest {
     }
 
     @Test
-    public void testReadMouseWheel() {
+    void testReadMouseWheel() {
         // SGR format with mouse wheel up
         // Cb = 64 (wheel flag) + 0 (wheel up)
         int[] input = {'<', '6', '4', ';', '1', '1', ';', '2', '1', 'M'};
@@ -152,7 +152,7 @@ public class MouseSupportTest {
     }
 
     @Test
-    public void testReadMouseSGRWithMissingPrefix() {
+    void testReadMouseSGRWithMissingPrefix() {
         // Simulate a mouse event where the '<' character has been consumed
         // The sequence should be: <35;11;21M (button 35, x=11, y=21, press)
         // But the '<' has been consumed, so we start with '35'
@@ -172,7 +172,7 @@ public class MouseSupportTest {
     }
 
     @Test
-    public void testReadMouseSGRWithMissingPrefixAndSemicolonFirst() {
+    void testReadMouseSGRWithMissingPrefixAndSemicolonFirst() {
         // Simulate a mouse event where the '<' character has been consumed
         // and the first character is a semicolon
         // The sequence should be: <;11;21M (button 0, x=11, y=21, press)
@@ -193,7 +193,7 @@ public class MouseSupportTest {
     }
 
     @Test
-    public void testReadMouseSGRWithMissingPrefixAndReleaseEvent() {
+    void testReadMouseSGRWithMissingPrefixAndReleaseEvent() {
         // Simulate a mouse release event where the '<' character has been consumed
         // The sequence should be: <35;11;21m (button 35, x=11, y=21, release)
         // But the '<' has been consumed, so we start with '35'

@@ -10,32 +10,14 @@ package org.jline.utils;
 
 import java.text.BreakIterator;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.jline.terminal.Terminal;
 import org.jline.utils.InfoCmp.Capability;
 
 import static org.jline.terminal.TerminalBuilder.PROP_DISABLE_ALTERNATE_CHARSET;
-import static org.jline.utils.AttributedStyle.BG_COLOR;
-import static org.jline.utils.AttributedStyle.BG_COLOR_EXP;
-import static org.jline.utils.AttributedStyle.FG_COLOR;
-import static org.jline.utils.AttributedStyle.FG_COLOR_EXP;
-import static org.jline.utils.AttributedStyle.F_BACKGROUND;
-import static org.jline.utils.AttributedStyle.F_BACKGROUND_IND;
-import static org.jline.utils.AttributedStyle.F_BACKGROUND_RGB;
-import static org.jline.utils.AttributedStyle.F_BLINK;
-import static org.jline.utils.AttributedStyle.F_BOLD;
-import static org.jline.utils.AttributedStyle.F_CONCEAL;
-import static org.jline.utils.AttributedStyle.F_CROSSED_OUT;
-import static org.jline.utils.AttributedStyle.F_FAINT;
-import static org.jline.utils.AttributedStyle.F_FOREGROUND;
-import static org.jline.utils.AttributedStyle.F_FOREGROUND_IND;
-import static org.jline.utils.AttributedStyle.F_FOREGROUND_RGB;
-import static org.jline.utils.AttributedStyle.F_HIDDEN;
-import static org.jline.utils.AttributedStyle.F_INVERSE;
-import static org.jline.utils.AttributedStyle.F_ITALIC;
-import static org.jline.utils.AttributedStyle.F_UNDERLINE;
-import static org.jline.utils.AttributedStyle.MASK;
+import static org.jline.utils.AttributedStyle.*;
 
 /**
  * A character sequence with ANSI style attributes.
@@ -245,52 +227,70 @@ public abstract class AttributedCharSequence implements CharSequence {
      */
     public String toAnsi(int colors, ForceMode force, ColorPalette palette, String altIn, String altOut) {
         ByteArrayBuilder buf = new ByteArrayBuilder();
-        toAnsiBytes(buf, colors, force, palette, altIn, altOut);
+        long[] state = {0, 0};
+        toAnsiBytes(buf, 0, length(), colors, force, palette, altIn, altOut, state);
+        if (state[1] != 0) {
+            buf.appendAscii(altOut);
+        }
+        if (state[0] != 0) {
+            buf.csi().appendAscii("0m");
+        }
         return buf.toStringUtf8();
     }
 
     /**
-     * Write the ANSI-encoded UTF-8 bytes for this attributed string into the provided buffer.
+     * Write ANSI-encoded UTF-8 bytes for a range, carrying style state across calls.
      *
-     * <p>The method encodes styles, colors, decoration attributes, and alternate-charset
-     * box-drawing sequences as ANSI control sequences and appends their UTF-8 bytes to
-     * {@code buf}. If {@code palette} is null, the default palette is used. The method
-     * ensures any active alternate-charset is exited and final style state is reset
-     * before returning.</p>
+     * <p>This method does not reset style state on entry and does not emit a final
+     * {@code \e[0m} reset on exit. The caller manages the terminal style state via
+     * the {@code state} array:</p>
+     * <ul>
+     *   <li>{@code state[0]} — current style code (long)</li>
+     *   <li>{@code state[1]} — alt charset active (0 or 1)</li>
+     * </ul>
      *
-     * @param buf     the byte buffer to write UTF-8 bytes and ANSI control sequences to
-     * @param colors  the number of displayable colors to target when emitting color sequences
-     * @param force   the force mode that influences whether truecolor/256-color forms are used
-     * @param palette the color palette to use for rounding/indexing, or null to use the default
-     * @param altIn   the sequence to enter the terminal's alternate character set, or null
-     * @param altOut  the sequence to exit the terminal's alternate character set, or null
+     * <p>For self-contained rendering, initialize {@code state} to {@code {0, 0}}
+     * and emit a final reset after the call if {@code state[0] != 0}.</p>
+     *
+     * @param buf        the byte buffer to write UTF-8 bytes and ANSI control sequences to
+     * @param rangeStart start index in this sequence (inclusive)
+     * @param rangeEnd   end index in this sequence (exclusive)
+     * @param colors     the number of displayable colors to target
+     * @param force      the force mode for color rendering
+     * @param palette    the color palette, or null to use the default
+     * @param altIn      the sequence to enter alternate character set, or null
+     * @param altOut     the sequence to exit alternate character set, or null
+     * @param state      a reusable two-element array tracking style [0] and alt charset [1] state
      */
+    @SuppressWarnings("java:S107") // parameter count justified: avoids allocation of a parameter object in hot path
     void toAnsiBytes(
-            ByteArrayBuilder buf, int colors, ForceMode force, ColorPalette palette, String altIn, String altOut) {
-        long style = 0;
-        long[] colorState = {0, 0}; // [foreground, background]
-        boolean alt = false;
+            ByteArrayBuilder buf,
+            int rangeStart,
+            int rangeEnd,
+            int colors,
+            ForceMode force,
+            ColorPalette palette,
+            String altIn,
+            String altOut,
+            long[] state) {
+        long style = state[0];
+        boolean alt = state[1] != 0;
         if (palette == null) {
             palette = ColorPalette.DEFAULT;
         }
-        int i = 0;
-        int len = length();
-        while (i < len) {
+        int i = rangeStart;
+        while (i < rangeEnd) {
             char c = substituteChar(charAt(i), altIn, altOut);
             alt = emitAltCharset(buf, charAt(i), alt, altIn, altOut);
             long s = styleCodeAt(i) & ~F_HIDDEN;
             if (style != s) {
-                emitStyleChange(buf, style, s, colorState, colors, force, palette);
+                emitStyleChange(buf, style, s, colors, force, palette);
                 style = s;
             }
-            i += emitUtf8Char(buf, c, i, len);
+            i += emitUtf8Char(buf, c, i, rangeEnd);
         }
-        if (alt) {
-            buf.appendAscii(altOut);
-        }
-        if (style != 0) {
-            buf.csi().appendAscii("0m");
-        }
+        state[0] = style;
+        state[1] = alt ? 1 : 0;
     }
 
     /**
@@ -340,61 +340,80 @@ public abstract class AttributedCharSequence implements CharSequence {
         return 1;
     }
 
+    private static final long[] DECORATION_FLAGS = {F_ITALIC, F_UNDERLINE, F_BLINK, F_INVERSE, F_CONCEAL, F_CROSSED_OUT
+    };
+    private static final String[] DECORATION_ON = {"3", "4", "5", "7", "8", "9"};
+    private static final String[] DECORATION_OFF = {"23", "24", "25", "27", "28", "29"};
+
+    private static final long COLOR_BITS = F_FOREGROUND | F_BACKGROUND | FG_COLOR | BG_COLOR;
+    private static final long BOLD_FAINT_BITS = F_BOLD | F_FAINT;
+    // Where the above value OR's the bold & faint flags, this reduction below OR's all flags in DECORATION_FLAGS.
+    private static final long DECORATION_BITS = Arrays.stream(DECORATION_FLAGS).reduce(0L, (a, b) -> a | b);
+    // NO_COLOR_CHANGE has all style bits enabled. Since a color index and color rgb flag bit can never be set at the
+    // same time, this value is never a valid style.
+    private static final long NO_COLOR_CHANGE = 0xffffffffffffffffL;
+
     /**
      * Emit a single CSI SGR sequence that transitions terminal attributes from prevStyle to newStyle.
-     *
-     * Writes ANSI SGR parameters into the provided ByteArrayBuilder and updates colorState to reflect the
-     * currently applied foreground (index 0) and background (index 1) encodings. If newStyle is zero, a
-     * reset sequence is emitted and colorState entries are cleared.
+     * <p>
+     * Writes ANSI SGR parameters into the provided ByteArrayBuilder. If newStyle is zero, a reset sequence is emitted.
      *
      * @param buf        the byte-oriented builder to which CSI parameters and the final 'm' are appended
      * @param prevStyle  previously applied style code
      * @param newStyle   target style code to apply
-     * @param colorState two-element array tracking currently applied foreground (0) and background (1);
-     *                   this method mutates its entries to the values actually emitted
      * @param colors     terminal maximum color capability (affects truecolor/256-color selection)
      * @param force      force mode controlling preference for 256/true color output
      * @param palette    color palette used to round/lookup colors when not emitting direct RGB
      */
     private static void emitStyleChange(
-            ByteArrayBuilder buf,
-            long prevStyle,
-            long newStyle,
-            long[] colorState,
-            int colors,
-            ForceMode force,
-            ColorPalette palette) {
-        long fg = (newStyle & F_FOREGROUND) != 0 ? newStyle & (FG_COLOR | F_FOREGROUND) : 0;
-        long bg = (newStyle & F_BACKGROUND) != 0 ? newStyle & (BG_COLOR | F_BACKGROUND) : 0;
+            ByteArrayBuilder buf, long prevStyle, long newStyle, int colors, ForceMode force, ColorPalette palette) {
+        buf.csi();
         if (newStyle == 0) {
-            buf.csi().appendAscii("0m");
-            colorState[0] = 0;
-            colorState[1] = 0;
+            buf.appendAscii("0m");
             return;
         }
-        long d = (prevStyle ^ newStyle) & MASK;
-        buf.csi();
         boolean first = true;
-        first = appendDecorationAttrsB(buf, d, newStyle, first);
-        if (colorState[0] != fg) {
-            first = appendColorB(buf, fg, true, colors, force, palette, first);
-            if (fg > 0 && usedBasicFgColor(fg, colors, force, palette)) {
-                d |= (newStyle & F_BOLD);
+        long diff = prevStyle ^ newStyle;
+        if ((diff & DECORATION_BITS) != 0) {
+            first = appendDecorationAttrsB(buf, diff, newStyle, first);
+        }
+        if ((diff & COLOR_BITS) != 0) {
+            long fg = getNewColor(prevStyle, newStyle, F_FOREGROUND, FG_COLOR | F_FOREGROUND);
+            long bg = getNewColor(prevStyle, newStyle, F_BACKGROUND, BG_COLOR | F_BACKGROUND);
+
+            if (fg != NO_COLOR_CHANGE) {
+                first = appendColorB(buf, fg, true, colors, force, palette, first);
+                if (fg > 0 && usedBasicFgColor(fg, colors, force, palette)) {
+                    diff |= (newStyle & F_BOLD);
+                }
             }
-            colorState[0] = fg;
+            if (bg != NO_COLOR_CHANGE) {
+                first = appendColorB(buf, bg, false, colors, force, palette, first);
+            }
         }
-        if (colorState[1] != bg) {
-            first = appendColorB(buf, bg, false, colors, force, palette, first);
-            colorState[1] = bg;
+        if ((diff & BOLD_FAINT_BITS) != 0) {
+            appendBoldFaintB(buf, diff, newStyle, first);
         }
-        first = appendBoldFaintB(buf, d, newStyle, first);
         buf.appendAscii('m');
     }
 
-    private static final long[] DECORATION_FLAGS = {F_ITALIC, F_UNDERLINE, F_BLINK, F_INVERSE, F_CONCEAL, F_CROSSED_OUT
-    };
-    private static final String[] DECORATION_ON = {"3", "4", "5", "7", "8", "9"};
-    private static final String[] DECORATION_OFF = {"23", "24", "25", "27", "28", "29"};
+    /**
+     * Computes the color bits that should be carried into a style transition.
+     *
+     * @param prevStyle the previously active style bits
+     * @param newStyle the target style bits
+     * @param flagMask the style family mask to compare, such as foreground or background flags
+     * @param fullColorMask the full mask used to extract the color payload for that family
+     * @return the color payload to emit for the transition, or {@link AttributedCharSequence#NO_COLOR_CHANGE} if no color change is needed
+     */
+    private static long getNewColor(long prevStyle, long newStyle, long flagMask, long fullColorMask) {
+        long cur = (newStyle & flagMask) != 0 ? newStyle & fullColorMask : 0;
+        long prev = (prevStyle & flagMask) != 0 ? prevStyle & fullColorMask : 0;
+        if (cur != prev) {
+            return cur;
+        }
+        return NO_COLOR_CHANGE;
+    }
 
     /**
      * Appends CSI decoration parameters for each decoration flag present in `d` to `buf`, using the
@@ -812,6 +831,8 @@ public abstract class AttributedCharSequence implements CharSequence {
 
     protected abstract char[] buffer();
 
+    abstract long[] styleBuffer();
+
     protected abstract int offset();
 
     @Override
@@ -927,10 +948,38 @@ public abstract class AttributedCharSequence implements CharSequence {
      * @return the display width in columns
      */
     public int columnLength(Terminal terminal) {
+        BreakIterator bi = WCWidth.HAS_JDK_GRAPHEME_SUPPORT ? BreakIterator.getCharacterInstance() : null;
+        return columnLength(terminal, bi, new WCWidth.CharSequenceCharacterIterator(), 0, length());
+    }
+
+    /**
+     * Returns the display width in columns for a range of this attributed string,
+     * using a pre-allocated {@link BreakIterator} and {@link WCWidth.CharSequenceCharacterIterator}
+     * to avoid per-call allocation.
+     *
+     * @param terminal   the terminal to query for grapheme cluster mode, or {@code null}
+     * @param rangeStart start index in this sequence (inclusive)
+     * @param rangeEnd   end index in this sequence (exclusive)
+     * @param bi         a pre-allocated BreakIterator, or {@code null}
+     * @param iter       a reusable CharSequenceCharacterIterator
+     * @return the display width in columns for the specified range
+     */
+    int columnLength(
+            Terminal terminal,
+            BreakIterator bi,
+            WCWidth.CharSequenceCharacterIterator iter,
+            int rangeStart,
+            int rangeEnd) {
         int cols = 0;
-        int len = length();
-        BreakIterator bi = WCWidth.createGraphemeBreakIterator(this);
-        for (int cur = 0; cur < len; ) {
+        if (bi != null
+                && ((terminal != null && terminal.getGraphemeClusterMode())
+                        || (terminal == null && WCWidth.HAS_JDK_GRAPHEME_SUPPORT))) {
+            WCWidth.resetGraphemeBreakIterator(bi, this, iter);
+        } else {
+            bi = null;
+        }
+        int cur = rangeStart;
+        while (cur < rangeEnd) {
             int charCount = WCWidth.charCountForDisplay(this, cur, terminal, bi);
             int w = isHidden(cur) ? 0 : WCWidth.wcwidthForDisplay(this, cur, terminal, charCount);
             cur += charCount;
@@ -960,18 +1009,18 @@ public abstract class AttributedCharSequence implements CharSequence {
      * @return the subsequence spanning the specified column range
      */
     public AttributedString columnSubSequence(int start, int stop) {
-        return columnSubSequence(start, stop, null);
+        return columnSubSequence(null, start, stop);
     }
 
     /**
      * Returns a subsequence of this attributed string based on column positions.
      *
+     * @param terminal the terminal to query for grapheme cluster mode, or {@code null}
      * @param start    the starting column position (inclusive)
      * @param stop     the ending column position (exclusive)
-     * @param terminal the terminal to query for grapheme cluster mode, or {@code null}
      * @return the subsequence spanning the specified column range
      */
-    public AttributedString columnSubSequence(int start, int stop, Terminal terminal) {
+    public AttributedString columnSubSequence(Terminal terminal, int start, int stop) {
         BreakIterator bi = WCWidth.createGraphemeBreakIterator(this);
         int begin = 0;
         int col = 0;
@@ -997,6 +1046,14 @@ public abstract class AttributedCharSequence implements CharSequence {
             col += w;
         }
         return subSequence(begin, end);
+    }
+
+    /**
+     * @deprecated Use {@link #columnSubSequence(Terminal, int, int)} instead
+     */
+    @Deprecated
+    public AttributedString columnSubSequence(int start, int stop, Terminal terminal) {
+        return columnSubSequence(terminal, start, stop);
     }
 
     /**
@@ -1038,20 +1095,20 @@ public abstract class AttributedCharSequence implements CharSequence {
      * @return a list of attributed strings, each representing a line
      */
     public List<AttributedString> columnSplitLength(int columns, boolean includeNewlines, boolean delayLineWrap) {
-        return columnSplitLength(columns, includeNewlines, delayLineWrap, (Terminal) null);
+        return columnSplitLength(null, columns, includeNewlines, delayLineWrap);
     }
 
     /**
      * Splits this attributed string into multiple lines based on column width.
      *
+     * @param terminal        the terminal to query for grapheme cluster mode, or {@code null}
      * @param columns         the maximum width of each line in columns
      * @param includeNewlines whether to include newline characters in the resulting lines
      * @param delayLineWrap   whether to delay line wrapping until the last possible moment
-     * @param terminal        the terminal to query for grapheme cluster mode, or {@code null}
      * @return a list of attributed strings, each representing a line
      */
     public List<AttributedString> columnSplitLength(
-            int columns, boolean includeNewlines, boolean delayLineWrap, Terminal terminal) {
+            Terminal terminal, int columns, boolean includeNewlines, boolean delayLineWrap) {
         List<AttributedString> strings = new ArrayList<>();
         int cur = 0;
         int beg = cur;
@@ -1074,6 +1131,15 @@ public abstract class AttributedCharSequence implements CharSequence {
         }
         strings.add(subSequence(beg, cur));
         return strings;
+    }
+
+    /**
+     * @deprecated Use {@link #columnSplitLength(Terminal, int, boolean, boolean)} instead
+     */
+    @Deprecated
+    public List<AttributedString> columnSplitLength(
+            int columns, boolean includeNewlines, boolean delayLineWrap, Terminal terminal) {
+        return columnSplitLength(terminal, columns, includeNewlines, delayLineWrap);
     }
 
     @Override

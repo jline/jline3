@@ -27,59 +27,63 @@ public class NonBlockingLineReaderExample {
 
     // SNIPPET_START: NonBlockingLineReaderExample
     public static void main(String[] args) throws IOException {
-        Terminal terminal = TerminalBuilder.builder().build();
-        LineReader lineReader = LineReaderBuilder.builder().terminal(terminal).build();
+        try (Terminal terminal = TerminalBuilder.builder().build()) {
+            LineReader lineReader =
+                    LineReaderBuilder.builder().terminal(terminal).build();
 
-        // Flag to control background task
-        AtomicBoolean running = new AtomicBoolean(true);
+            // Flag to control background task
+            AtomicBoolean running = new AtomicBoolean(true);
 
-        // Start background task
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        executor.submit(() -> {
-            try {
-                while (running.get()) {
-                    // Simulate background work
-                    terminal.writer().print(".");
-                    terminal.writer().flush();
-                    TimeUnit.SECONDS.sleep(1);
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            } catch (Exception e) {
-                terminal.writer().println("Error in background task: " + e.getMessage());
-                terminal.writer().flush();
-            }
-        });
-
-        try {
-            // Main input loop
-            while (running.get()) {
+            // Start background task
+            ExecutorService executor = Executors.newSingleThreadExecutor();
+            executor.submit(() -> {
                 try {
-                    // Read a line (this will block)
-                    String line = lineReader.readLine("\nprompt> ");
-
-                    if ("exit".equalsIgnoreCase(line)) {
-                        running.set(false);
-                    } else {
-                        terminal.writer().println("You entered: " + line);
+                    while (running.get()) {
+                        // Simulate background work
+                        terminal.writer().print(".");
+                        terminal.writer().flush();
+                        TimeUnit.SECONDS.sleep(1);
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } catch (Exception e) {
+                    if (running.get()) {
+                        terminal.writer().println("Error in background task: " + e.getMessage());
                         terminal.writer().flush();
                     }
-                } catch (UserInterruptException e) {
-                    // Ctrl+C pressed
-                    running.set(false);
+                }
+            });
+
+            try {
+                // Main input loop
+                while (running.get()) {
+                    try {
+                        // Read a line (this will block)
+                        String line = lineReader.readLine("\nprompt> ");
+
+                        if ("exit".equalsIgnoreCase(line)) {
+                            running.set(false);
+                        } else {
+                            terminal.writer().println("You entered: " + line);
+                            terminal.writer().flush();
+                        }
+                    } catch (UserInterruptException e) {
+                        // Ctrl+C pressed
+                        running.set(false);
+                    }
+                }
+
+                terminal.writer().println("\nExiting...");
+            } finally {
+                // Shutdown background task while terminal is still open
+                running.set(false);
+                executor.shutdownNow();
+                try {
+                    executor.awaitTermination(1, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                 }
             }
-        } finally {
-            // Shutdown background task
-            executor.shutdownNow();
-            try {
-                executor.awaitTermination(1, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-
-            terminal.writer().println("\nExiting...");
-            terminal.close();
         }
     }
     // SNIPPET_END: NonBlockingLineReaderExample

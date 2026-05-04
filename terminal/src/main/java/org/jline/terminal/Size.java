@@ -65,8 +65,6 @@ public class Size implements Sized {
     /**
      * Constructs a Size with the specified number of columns and rows.
      *
-     * <p>Input values are truncated to a 16-bit signed range when stored.</p>
-     *
      * @param columns the number of columns (width)
      * @param rows the number of rows (height)
      */
@@ -112,7 +110,7 @@ public class Size implements Sized {
      * @see #getColumns()
      */
     public void setColumns(int columns) {
-        cols = (short) columns;
+        cols = columns;
     }
 
     /**
@@ -141,7 +139,7 @@ public class Size implements Sized {
      * @see #getRows()
      */
     public void setRows(int rows) {
-        this.rows = (short) rows;
+        this.rows = rows;
     }
 
     /**

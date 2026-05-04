@@ -16,10 +16,10 @@ import static org.jline.keymap.KeyMap.ctrl;
 import static org.jline.keymap.KeyMap.translate;
 import static org.jline.reader.impl.LineReaderImpl.EMACS;
 
-public class DigitArgumentTest extends ReaderTestSupport {
+class DigitArgumentTest extends ReaderTestSupport {
 
     @Test
-    public void testMoveChar() throws Exception {
+    void testMoveChar() {
         reader.setKeyMap(EMACS);
         TestBuffer b = (new TestBuffer("0123456789"))
                 .append(alt('8'))
@@ -32,7 +32,7 @@ public class DigitArgumentTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testSelfInsert() throws Exception {
+    void testSelfInsert() {
         reader.setKeyMap(EMACS);
         TestBuffer b = (new TestBuffer())
                 .append(alt('4'))
@@ -44,7 +44,7 @@ public class DigitArgumentTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testMoveWord() throws Exception {
+    void testMoveWord() {
         reader.setKeyMap(EMACS);
         TestBuffer b = (new TestBuffer("abc def ghi klm nop"))
                 .append(alt('2'))
@@ -58,7 +58,7 @@ public class DigitArgumentTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testCaseTransform() throws Exception {
+    void testCaseTransform() {
         reader.setKeyMap(EMACS);
         TestBuffer b = (new TestBuffer("abc def ghi klm nop"))
                 .append(ctrl('A'))
@@ -74,7 +74,7 @@ public class DigitArgumentTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testTransposeChars() throws Exception {
+    void testTransposeChars() {
         reader.setKeyMap(EMACS);
         TestBuffer b = (new TestBuffer(translate("abcd\\E\refgh")))
                 .append(alt('2'))
@@ -186,7 +186,7 @@ public class DigitArgumentTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testTransposeWords() throws Exception {
+    void testTransposeWords() {
         reader.setKeyMap(EMACS);
         TestBuffer b = (new TestBuffer(translate("abc def ghi\\E\rklm nop qrs")))
                 .append(alt('2'))
@@ -279,7 +279,7 @@ public class DigitArgumentTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testKillLine() {
+    void testKillLine() {
         reader.setKeyMap(EMACS);
         reader.getKeys().bind(new Reference("backward-kill-line"), ctrl('U'));
         TestBuffer b = (new TestBuffer(translate("abc def ghi\\E\rklm nop qrs")))
@@ -374,7 +374,7 @@ public class DigitArgumentTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testKillWholeLine() {
+    void testKillWholeLine() {
         reader.setKeyMap(EMACS);
         TestBuffer b = (new TestBuffer(translate("abc def\\E\rghi klm\\E\rnop qrs")))
                 .append(alt('2'))

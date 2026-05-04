@@ -27,10 +27,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * {@code ClosedException} instead of just logging a warning.
  * </p>
  */
-public class StrictCloseTest {
+class StrictCloseTest {
 
     @Test
-    public void testHeldReaderReferenceThrowsInStrictMode() throws IOException {
+    void testHeldReaderReferenceThrowsInStrictMode() throws IOException {
         ByteArrayInputStream input = new ByteArrayInputStream("test\n".getBytes(StandardCharsets.UTF_8));
         ByteArrayOutputStream output = new ByteArrayOutputStream();
 
@@ -50,7 +50,7 @@ public class StrictCloseTest {
     }
 
     @Test
-    public void testHeldInputStreamReferenceThrowsInStrictMode() throws IOException {
+    void testHeldInputStreamReferenceThrowsInStrictMode() throws IOException {
         ByteArrayInputStream input = new ByteArrayInputStream("test\n".getBytes(StandardCharsets.UTF_8));
         ByteArrayOutputStream output = new ByteArrayOutputStream();
 
@@ -70,7 +70,7 @@ public class StrictCloseTest {
     }
 
     @Test
-    public void testHeldExternalTerminalReaderThrowsInStrictMode() throws IOException {
+    void testHeldExternalTerminalReaderThrowsInStrictMode() throws IOException {
         ByteArrayInputStream input = new ByteArrayInputStream("test\n".getBytes(StandardCharsets.UTF_8));
         ByteArrayOutputStream output = new ByteArrayOutputStream();
 

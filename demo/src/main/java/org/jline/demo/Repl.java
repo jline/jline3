@@ -11,7 +11,6 @@ package org.jline.demo;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -282,7 +281,7 @@ public class Repl {
      */
     public static void main(String[] args) {
         try {
-            Supplier<Path> workDir = () -> Paths.get(System.getProperty("user.dir"));
+            Supplier<Path> workDir = () -> Path.of(System.getProperty("user.dir"));
             //
             // Parser & Terminal
             //
@@ -310,7 +309,7 @@ public class Repl {
             String root = file.getCanonicalPath()
                     .replace("classes", "")
                     .replaceAll("\\\\", "/"); // forward slashes works better also in windows!
-            File jnanorcFile = Paths.get(root, DEFAULT_NANORC_FILE).toFile();
+            File jnanorcFile = Path.of(root, DEFAULT_NANORC_FILE).toFile();
             if (!jnanorcFile.exists()) {
                 try (FileWriter fw = new FileWriter(jnanorcFile)) {
                     fw.write("theme " + root + "nanorc/dark.nanorctheme\n");
@@ -322,7 +321,7 @@ public class Repl {
             //
             GroovyEngine scriptEngine = new GroovyEngine();
             scriptEngine.put("ROOT", root);
-            ConfigurationPath configPath = new ConfigurationPath(Paths.get(root), Paths.get(root));
+            ConfigurationPath configPath = new ConfigurationPath(Path.of(root), Path.of(root));
             Printer printer = new DefaultPrinter(scriptEngine, configPath);
             ConsoleEngineImpl consoleEngine = new ConsoleEngineImpl(scriptEngine, printer, workDir, configPath);
             Builtins builtins = new Builtins(
@@ -361,7 +360,7 @@ public class Repl {
                     .variable(LineReader.SECONDARY_PROMPT_PATTERN, "%M%P > ")
                     .variable(LineReader.INDENTATION, 2)
                     .variable(LineReader.LIST_MAX, 100)
-                    .variable(LineReader.HISTORY_FILE, Paths.get(root, "history"))
+                    .variable(LineReader.HISTORY_FILE, Path.of(root, "history"))
                     .option(Option.INSERT_BRACKET, true)
                     .option(Option.EMPTY_WORD_OPTIONS, false)
                     .option(Option.GROUP_PERSIST, true)
@@ -384,7 +383,7 @@ public class Repl {
             new TailTipWidgets(reader, systemRegistry::commandDescription, 5, TipType.COMPLETER);
             KeyMap<Binding> keyMap = reader.getKeyMaps().get("main");
             keyMap.bind(new Reference(Widgets.TAILTIP_TOGGLE), KeyMap.alt("s"));
-            systemRegistry.initialize(Paths.get(root, "init.jline").toFile());
+            systemRegistry.initialize(Path.of(root, "init.jline").toFile());
             //
             // REPL-loop
             //

@@ -14,7 +14,6 @@ import java.io.Reader;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import org.jline.reader.LineReader;
 
@@ -90,8 +89,8 @@ public final class InputRC {
     public static void configure(LineReader lineReader) throws IOException {
         String userHome = System.getProperty("user.home");
         if (userHome != null) {
-            configure(lineReader, Paths.get(userHome, ".inputrc"));
+            configure(lineReader, Path.of(userHome, ".inputrc"));
         }
-        configure(lineReader, Paths.get("/etc/inputrc"));
+        configure(lineReader, Path.of("/etc/inputrc"));
     }
 }

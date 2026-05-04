@@ -60,4 +60,15 @@ public interface CheckboxPrompt extends Prompt {
     default int getMaxSelections() {
         return 0;
     }
+
+    /**
+     * Whether the checkbox list supports inline text filtering.
+     * When enabled, the user can type characters to filter the displayed items.
+     * When disabled, typed characters are ignored.
+     *
+     * @return true if filtering is enabled, false otherwise
+     */
+    default boolean isFilterable() {
+        return true;
+    }
 }

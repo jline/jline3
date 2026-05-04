@@ -372,6 +372,9 @@ public interface Terminal extends Closeable, Flushable, Sized {
      * This is the standard way to read input from this terminal.
      * The reader is non blocking.
      *
+     * <p>The returned reader is owned by this terminal and will be closed
+     * when the terminal is closed. Callers should not close it directly.</p>
+     *
      * @return The non blocking reader
      */
     NonBlockingReader reader();
@@ -379,6 +382,9 @@ public interface Terminal extends Closeable, Flushable, Sized {
     /**
      * Retrieve the <code>Writer</code> for this terminal.
      * This is the standard way to write to this terminal.
+     *
+     * <p>The returned writer is owned by this terminal and will be closed
+     * when the terminal is closed. Callers should not close it directly.</p>
      *
      * @return The writer
      */
@@ -435,6 +441,9 @@ public interface Terminal extends Closeable, Flushable, Sized {
      * terminal input stream directly. In the usual cases,
      * use the {@link #reader()} instead.
      *
+     * <p>The returned stream is owned by this terminal and will be closed
+     * when the terminal is closed. Callers should not close it directly.</p>
+     *
      * @return The input stream
      *
      * @see #reader()
@@ -446,6 +455,9 @@ public interface Terminal extends Closeable, Flushable, Sized {
      * In some rare cases, there may be a need to access the
      * terminal output stream directly. In the usual cases,
      * use the {@link #writer()} instead.
+     *
+     * <p>The returned stream is owned by this terminal and will be closed
+     * when the terminal is closed. Callers should not close it directly.</p>
      *
      * @return The output stream
      *

@@ -127,7 +127,11 @@ public class Attributes {
         /** Timeout in deciseconds for non-canonical read */
         VTIME,
         /** Status request character (typically Ctrl+T) */
-        VSTATUS
+        VSTATUS,
+        /** Switch character (Linux/Solaris) */
+        VSWTC,
+        /** Alternate erase character (FreeBSD) */
+        VERASE2
     }
 
     /**
@@ -161,22 +165,38 @@ public class Attributes {
      * @see #setInputFlags(EnumSet)
      */
     public enum InputFlag {
-        IGNBRK, /* ignore BREAK condition */
-        BRKINT, /* map BREAK to SIGINTR */
-        IGNPAR, /* ignore (discard) parity errors */
-        PARMRK, /* mark parity and framing errors */
-        INPCK, /* enable checking of parity errors */
-        ISTRIP, /* strip 8th bit off chars */
-        INLCR, /* map NL into CR */
-        IGNCR, /* ignore CR */
-        ICRNL, /* map CR to NL (ala CRMOD) */
-        IXON, /* enable output flow control */
-        IXOFF, /* enable input flow control */
-        IXANY, /* any char will restart after stop */
-        IMAXBEL, /* ring bell on input queue full */
-        IUTF8, /* maintain state for UTF-8 VERASE */
-
-        INORMEOL /* normalize end-of-line */
+        /** Ignore BREAK condition */
+        IGNBRK,
+        /** Map BREAK to SIGINTR */
+        BRKINT,
+        /** Ignore (discard) parity errors */
+        IGNPAR,
+        /** Mark parity and framing errors */
+        PARMRK,
+        /** Enable checking of parity errors */
+        INPCK,
+        /** Strip 8th bit off chars */
+        ISTRIP,
+        /** Map NL into CR */
+        INLCR,
+        /** Ignore CR */
+        IGNCR,
+        /** Map CR to NL */
+        ICRNL,
+        /** Enable output flow control */
+        IXON,
+        /** Enable input flow control */
+        IXOFF,
+        /** Any char will restart after stop */
+        IXANY,
+        /** Ring bell on input queue full */
+        IMAXBEL,
+        /** Maintain state for UTF-8 VERASE */
+        IUTF8,
+        /** Map upper case to lower case on input (Linux/Solaris) */
+        IUCLC,
+        /** Normalize end-of-line */
+        INORMEOL
     }
 
     /**
@@ -209,21 +229,38 @@ public class Attributes {
      * @see #setOutputFlags(EnumSet)
      */
     public enum OutputFlag {
-        OPOST, /* enable following output processing */
-        ONLCR, /* map NL to CR-NL (ala CRMOD) */
-        OXTABS, /* expand tabs to spaces */
-        ONOEOT, /* discard EOT's (^D) on output) */
-        OCRNL, /* map CR to NL on output */
-        ONOCR, /* no CR output at column 0 */
-        ONLRET, /* NL performs CR function */
-        OFILL, /* use fill characters for delay */
-        NLDLY, /* \n delay */
-        TABDLY, /* horizontal tab delay */
-        CRDLY, /* \r delay */
-        FFDLY, /* form feed delay */
-        BSDLY, /* \b delay */
-        VTDLY, /* vertical tab delay */
-        OFDEL /* fill is DEL, else NUL */
+        /** Enable following output processing */
+        OPOST,
+        /** Map lower case to upper case on output (Linux/Solaris) */
+        OLCUC,
+        /** Map NL to CR-NL */
+        ONLCR,
+        /** Expand tabs to spaces */
+        OXTABS,
+        /** Discard EOT's (^D) on output */
+        ONOEOT,
+        /** Map CR to NL on output */
+        OCRNL,
+        /** No CR output at column 0 */
+        ONOCR,
+        /** NL performs CR function */
+        ONLRET,
+        /** Use fill characters for delay */
+        OFILL,
+        /** Newline delay */
+        NLDLY,
+        /** Horizontal tab delay */
+        TABDLY,
+        /** Carriage return delay */
+        CRDLY,
+        /** Form feed delay */
+        FFDLY,
+        /** Backspace delay */
+        BSDLY,
+        /** Vertical tab delay */
+        VTDLY,
+        /** Fill is DEL, else NUL */
+        OFDEL
     }
 
     /**
@@ -256,22 +293,38 @@ public class Attributes {
      * @see #setControlFlags(EnumSet)
      */
     public enum ControlFlag {
-        CIGNORE, /* ignore control flags */
-        CS5, /* 5 bits    (pseudo) */
-        CS6, /* 6 bits */
-        CS7, /* 7 bits */
-        CS8, /* 8 bits */
-        CSTOPB, /* send 2 stop bits */
-        CREAD, /* enable receiver */
-        PARENB, /* parity enable */
-        PARODD, /* odd parity, else even */
-        HUPCL, /* hang up on last close */
-        CLOCAL, /* ignore modem status lines */
-        CCTS_OFLOW, /* CTS flow control of output */
-        CRTS_IFLOW, /* RTS flow control of input */
-        CDTR_IFLOW, /* DTR flow control of input */
-        CDSR_OFLOW, /* DSR flow control of output */
-        CCAR_OFLOW /* DCD flow control of output */
+        /** Ignore control flags */
+        CIGNORE,
+        /** 5 bits per character */
+        CS5,
+        /** 6 bits per character */
+        CS6,
+        /** 7 bits per character */
+        CS7,
+        /** 8 bits per character */
+        CS8,
+        /** Send 2 stop bits */
+        CSTOPB,
+        /** Enable receiver */
+        CREAD,
+        /** Parity enable */
+        PARENB,
+        /** Odd parity, else even */
+        PARODD,
+        /** Hang up on last close */
+        HUPCL,
+        /** Ignore modem status lines */
+        CLOCAL,
+        /** CTS flow control of output */
+        CCTS_OFLOW,
+        /** RTS flow control of input */
+        CRTS_IFLOW,
+        /** DTR flow control of input */
+        CDTR_IFLOW,
+        /** DSR flow control of output */
+        CDSR_OFLOW,
+        /** DCD flow control of output */
+        CCAR_OFLOW
     }
 
     /**
@@ -310,23 +363,42 @@ public class Attributes {
      * @see #setLocalFlags(EnumSet)
      */
     public enum LocalFlag {
-        ECHOKE, /* visual erase for line kill */
-        ECHOE, /* visually erase chars */
-        ECHOK, /* echo NL after line kill */
-        ECHO, /* enable echoing */
-        ECHONL, /* echo NL even if ECHO is off */
-        ECHOPRT, /* visual erase mode for hardcopy */
-        ECHOCTL, /* echo control chars as ^(Char) */
-        ISIG, /* enable signals INTR, QUIT, [D]SUSP */
-        ICANON, /* canonicalize input lines */
-        ALTWERASE, /* use alternate WERASE algorithm */
-        IEXTEN, /* enable DISCARD and LNEXT */
-        EXTPROC, /* external processing */
-        TOSTOP, /* stop background jobs from output */
-        FLUSHO, /* output being flushed (state) */
-        NOKERNINFO, /* no kernel output from VSTATUS */
-        PENDIN, /* XXX retype pending input (state) */
-        NOFLSH /* don't flush after interrupt */
+        /** Visual erase for line kill */
+        ECHOKE,
+        /** Visually erase chars */
+        ECHOE,
+        /** Echo NL after line kill */
+        ECHOK,
+        /** Enable echoing */
+        ECHO,
+        /** Echo NL even if ECHO is off */
+        ECHONL,
+        /** Visual erase mode for hardcopy */
+        ECHOPRT,
+        /** Echo control chars as ^(Char) */
+        ECHOCTL,
+        /** Enable signals INTR, QUIT, [D]SUSP */
+        ISIG,
+        /** Canonicalize input lines */
+        ICANON,
+        /** Canonical upper/lower presentation (Linux/Solaris) */
+        XCASE,
+        /** Use alternate WERASE algorithm */
+        ALTWERASE,
+        /** Enable DISCARD and LNEXT */
+        IEXTEN,
+        /** External processing */
+        EXTPROC,
+        /** Stop background jobs from output */
+        TOSTOP,
+        /** Output being flushed (state) */
+        FLUSHO,
+        /** No kernel output from VSTATUS */
+        NOKERNINFO,
+        /** Retype pending input (state) */
+        PENDIN,
+        /** Don't flush after interrupt */
+        NOFLSH
     }
 
     final EnumSet<InputFlag> iflag = EnumSet.noneOf(InputFlag.class);

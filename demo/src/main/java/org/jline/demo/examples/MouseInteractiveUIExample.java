@@ -25,102 +25,100 @@ public class MouseInteractiveUIExample {
 
     // SNIPPET_START: MouseInteractiveUIExample
     public static void main(String[] args) throws IOException {
-        Terminal terminal = TerminalBuilder.builder().build();
+        try (Terminal terminal = TerminalBuilder.builder().build()) {
+            try {
+                // Enable mouse tracking
+                terminal.trackMouse(Terminal.MouseTracking.Normal);
 
-        try {
-            // Enable mouse tracking
-            terminal.trackMouse(Terminal.MouseTracking.Normal);
+                // Create a display for managing the screen
+                Display display = new Display(terminal, true);
 
-            // Create a display for managing the screen
-            Display display = new Display(terminal, true);
+                // Define some buttons
+                List<Button> buttons = new ArrayList<>();
+                buttons.add(new Button(5, 3, "Button 1", () -> {
+                    terminal.writer().println("Button 1 clicked!");
+                    terminal.flush();
+                }));
+                buttons.add(new Button(5, 5, "Button 2", () -> {
+                    terminal.writer().println("Button 2 clicked!");
+                    terminal.flush();
+                }));
+                buttons.add(new Button(5, 7, "Exit", () -> {
+                    // This will be used to exit the application
+                }));
 
-            // Define some buttons
-            List<Button> buttons = new ArrayList<>();
-            buttons.add(new Button(5, 3, "Button 1", () -> {
-                terminal.writer().println("Button 1 clicked!");
+                // Initial render
+                display.clear();
+                terminal.writer().println("Interactive UI Example");
+                terminal.writer().println("Click on the buttons below:");
+                terminal.writer().println();
+
+                for (Button button : buttons) {
+                    button.render(terminal);
+                }
+
                 terminal.flush();
-            }));
-            buttons.add(new Button(5, 5, "Button 2", () -> {
-                terminal.writer().println("Button 2 clicked!");
-                terminal.flush();
-            }));
-            buttons.add(new Button(5, 7, "Exit", () -> {
-                // This will be used to exit the application
-            }));
 
-            // Initial render
-            display.clear();
-            terminal.writer().println("Interactive UI Example");
-            terminal.writer().println("Click on the buttons below:");
-            terminal.writer().println();
+                // Event loop
+                boolean running = true;
+                StringBuilder buffer = new StringBuilder();
+                boolean esc = false;
+                boolean bracket = false;
+                boolean mouse = false;
 
-            for (Button button : buttons) {
-                button.render(terminal);
-            }
+                while (running) {
+                    int c = terminal.reader().read();
 
-            terminal.flush();
+                    // Parse escape sequences for mouse events
+                    if (c == '\033') {
+                        esc = true;
+                        buffer.setLength(0);
+                    } else if (esc && c == '[') {
+                        bracket = true;
+                    } else if (esc && bracket && c == 'M') {
+                        mouse = true;
+                        buffer.setLength(0);
+                    } else if (mouse && buffer.length() < 3) {
+                        buffer.append((char) c);
 
-            // Event loop
-            boolean running = true;
-            StringBuilder buffer = new StringBuilder();
-            boolean esc = false;
-            boolean bracket = false;
-            boolean mouse = false;
+                        if (buffer.length() == 3) {
+                            int b = buffer.charAt(0) - 32;
+                            int x = buffer.charAt(1) - 32;
+                            int y = buffer.charAt(2) - 32;
 
-            while (running) {
-                int c = terminal.reader().read();
+                            // Check if this is a mouse press event
+                            if ((b & 3) != 3 && (b & 64) == 0) {
+                                // Check if any button was clicked
+                                for (Button button : buttons) {
+                                    if (button.isInside(x, y)) {
+                                        button.click();
 
-                // Parse escape sequences for mouse events
-                if (c == '\033') {
-                    esc = true;
-                    buffer.setLength(0);
-                } else if (esc && c == '[') {
-                    bracket = true;
-                } else if (esc && bracket && c == 'M') {
-                    mouse = true;
-                    buffer.setLength(0);
-                } else if (mouse && buffer.length() < 3) {
-                    buffer.append((char) c);
+                                        // Check if Exit button was clicked
+                                        if (button.getText().equals("Exit")) {
+                                            running = false;
+                                        }
 
-                    if (buffer.length() == 3) {
-                        int b = buffer.charAt(0) - 32;
-                        int x = buffer.charAt(1) - 32;
-                        int y = buffer.charAt(2) - 32;
-
-                        // Check if this is a mouse press event
-                        if ((b & 3) != 3 && (b & 64) == 0) {
-                            // Check if any button was clicked
-                            for (Button button : buttons) {
-                                if (button.isInside(x, y)) {
-                                    button.click();
-
-                                    // Check if Exit button was clicked
-                                    if (button.getText().equals("Exit")) {
-                                        running = false;
+                                        break;
                                     }
-
-                                    break;
                                 }
                             }
-                        }
 
-                        // Reset state
+                            // Reset state
+                            esc = false;
+                            bracket = false;
+                            mouse = false;
+                        }
+                    } else {
+                        // Not a mouse event or incomplete sequence
                         esc = false;
                         bracket = false;
                         mouse = false;
                     }
-                } else {
-                    // Not a mouse event or incomplete sequence
-                    esc = false;
-                    bracket = false;
-                    mouse = false;
                 }
+            } finally {
+                // Disable mouse tracking before exiting
+                terminal.trackMouse(Terminal.MouseTracking.Off);
             }
-        } finally {
-            // Disable mouse tracking before exiting
-            terminal.trackMouse(Terminal.MouseTracking.Off);
-
-            terminal.close();
         }
     }
 

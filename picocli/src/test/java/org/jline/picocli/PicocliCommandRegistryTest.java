@@ -8,7 +8,6 @@
  */
 package org.jline.picocli;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Tests for {@link PicocliCommandRegistry}.
  */
 @SuppressWarnings("deprecation")
-public class PicocliCommandRegistryTest {
+class PicocliCommandRegistryTest {
 
     private CommandLine commandLine;
     private PicocliCommandRegistry registry;
@@ -89,7 +88,7 @@ public class PicocliCommandRegistryTest {
 
     @Test
     void commandDescriptionReturnsDescription() {
-        CmdDesc desc = registry.commandDescription(Arrays.asList("hello"));
+        CmdDesc desc = registry.commandDescription(List.of("hello"));
         assertNotNull(desc);
         assertNotNull(desc.getMainDesc());
         assertFalse(desc.getMainDesc().isEmpty());
@@ -99,13 +98,13 @@ public class PicocliCommandRegistryTest {
 
     @Test
     void commandDescriptionReturnsNullForUnknown() {
-        CmdDesc desc = registry.commandDescription(Arrays.asList("nonexistent"));
+        CmdDesc desc = registry.commandDescription(List.of("nonexistent"));
         assertNull(desc);
     }
 
     @Test
     void commandDescriptionReturnsNullForEmptyArgs() {
-        assertNull(registry.commandDescription(Arrays.asList()));
+        assertNull(registry.commandDescription(List.of()));
         assertNull(registry.commandDescription(null));
     }
 
@@ -146,12 +145,12 @@ public class PicocliCommandRegistryTest {
     static class TopCommand {}
 
     @Command(name = "hello", aliases = "hi", description = "Say hello to someone")
-    public static class HelloCommand implements Callable<Integer> {
+    static class HelloCommand implements Callable<Integer> {
         @Option(
                 names = {"-n", "--name"},
                 description = "Name to greet",
                 defaultValue = "World")
-        public String name;
+        String name;
 
         @Override
         public Integer call() {
@@ -160,14 +159,14 @@ public class PicocliCommandRegistryTest {
     }
 
     @Command(name = "echo", description = "Echo a message")
-    public static class EchoCommand implements Callable<Integer> {
+    static class EchoCommand implements Callable<Integer> {
         @Option(
                 names = {"-u", "--uppercase"},
                 description = "Convert to uppercase")
-        public boolean uppercase;
+        boolean uppercase;
 
         @Parameters(description = "Message to echo")
-        public List<String> message;
+        List<String> message;
 
         @Override
         public Integer call() {

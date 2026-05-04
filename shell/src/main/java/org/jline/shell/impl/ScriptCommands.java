@@ -9,7 +9,6 @@
 package org.jline.shell.impl;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 
@@ -69,7 +68,7 @@ public class ScriptCommands implements CommandGroup {
             if (args.length < 1) {
                 throw new IllegalArgumentException("Usage: source <file>");
             }
-            Path scriptPath = Paths.get(args[0]);
+            Path scriptPath = Path.of(args[0]);
             if (!scriptPath.isAbsolute() && session.workingDirectory() != null) {
                 scriptPath = session.workingDirectory().resolve(scriptPath);
             }

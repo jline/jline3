@@ -39,7 +39,7 @@ jobs:
       - name: Copy 3.x build
         run: |
           mkdir -p combined-site
-          cp -r jline-3.x/website/target/build/* combined-site/
+          cp -r jline-3.x/website/target/build/. combined-site/
 
       # Build 4.0 (at /versions/4.0/)
       - name: Checkout master
@@ -55,16 +55,17 @@ jobs:
       - name: Copy 4.0 build
         run: |
           mkdir -p combined-site/versions/4.0
-          cp -r master/website/target/build/* combined-site/versions/4.0/
+          cp -r master/website/target/build/. combined-site/versions/4.0/
 
       - name: Setup Pages
         uses: actions/configure-pages@v6
         with:
           enablement: true
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: combined-site
+          include-hidden-files: true
 
   deploy:
     environment:

@@ -9,7 +9,7 @@
 package org.jline.demo.examples;
 
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 
 import org.jline.reader.History;
 import org.jline.reader.LineReader;
@@ -35,7 +35,7 @@ public class HistorySetupExample {
         LineReader reader = LineReaderBuilder.builder()
                 .terminal(terminal)
                 .history(history)
-                .variable(LineReader.HISTORY_FILE, Paths.get("history.txt"))
+                .variable(LineReader.HISTORY_FILE, Path.of("history.txt"))
                 .build();
 
         System.out.println("Type commands and use up/down arrows to navigate history");

@@ -17,6 +17,7 @@ import java.util.regex.PatternSyntaxException;
 
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,26 +30,33 @@ import static org.junit.jupiter.api.Assertions.*;
  * This test suite covers all major POSIX commands with both basic functionality
  * and advanced integration scenarios.
  */
-public class PosixCommandsTest {
+class PosixCommandsTest {
 
     @TempDir
     Path tempDir;
 
+    private Terminal terminal;
     private PosixCommands.Context context;
     private ByteArrayOutputStream out;
-    private ByteArrayOutputStream err;
-    private Map<String, Object> vars;
 
     @BeforeEach
     void setUp() throws IOException {
         out = new ByteArrayOutputStream();
-        err = new ByteArrayOutputStream();
-        vars = new HashMap<>();
+        ByteArrayOutputStream err = new ByteArrayOutputStream();
+        ByteArrayInputStream in = new ByteArrayInputStream(new byte[0]);
+        Map<String, Object> vars = new HashMap<>();
         vars.put("HOME", System.getProperty("user.home"));
 
-        Terminal terminal = new DumbTerminal(System.in, out);
+        terminal = new DumbTerminal(in, out);
         context = new PosixCommands.Context(
                 System.in, new PrintStream(out), new PrintStream(err), tempDir, terminal, vars::get);
+    }
+
+    @AfterEach
+    void tearDown() throws IOException {
+        if (terminal != null) {
+            terminal.close();
+        }
     }
 
     /**
@@ -96,11 +104,9 @@ public class PosixCommandsTest {
     }
 
     @Test
-    void testClearCommand() throws Exception {
+    void testClearCommand() {
         // Clear command should not throw an exception
-        assertDoesNotThrow(() -> {
-            PosixCommands.clear(context, new String[] {"clear"});
-        });
+        assertDoesNotThrow(() -> PosixCommands.clear(context, new String[] {"clear"}));
     }
 
     // ========================================
@@ -282,6 +288,28 @@ public class PosixCommandsTest {
         assertTrue(output.contains("Line 16"));
         assertTrue(output.contains("Line 20"));
         assertFalse(output.contains("Line 15"));
+    }
+
+    @Test
+    void testTailNoTrailingNewline() throws Exception {
+        Path file = tempDir.resolve("test.txt");
+        Files.write(file, "a\nb\nc\nd\ne".getBytes());
+
+        PosixCommands.tail(context, new String[] {"tail", "-n", "2", "test.txt"});
+
+        String output = normalizeLineEndings(out.toString());
+        assertEquals("d\ne", output);
+    }
+
+    @Test
+    void testTailWithTrailingNewline() throws Exception {
+        Path file = tempDir.resolve("test.txt");
+        Files.write(file, "a\nb\nc\nd\ne\n".getBytes());
+
+        PosixCommands.tail(context, new String[] {"tail", "-n", "2", "test.txt"});
+
+        String output = normalizeLineEndings(out.toString());
+        assertEquals("d\ne\n", output);
     }
 
     @Test
@@ -535,15 +563,15 @@ public class PosixCommandsTest {
     }
 
     private static void expectAll(String output, String... fruits) {
-        Arrays.stream(fruits).forEach(fruit -> {
-            assertTrue(output.contains(fruit), "Output should contain '" + fruit + "': " + output);
-        });
+        Arrays.stream(fruits)
+                .forEach(fruit ->
+                        assertTrue(output.contains(fruit), "Output should contain '" + fruit + "': " + output));
     }
 
     private static void expectNone(String output, String... fruits) {
-        Arrays.stream(fruits).forEach(fruit -> {
-            assertFalse(output.contains(fruit), "Output should not contain '" + fruit + "': " + output);
-        });
+        Arrays.stream(fruits)
+                .forEach(fruit ->
+                        assertFalse(output.contains(fruit), "Output should not contain '" + fruit + "': " + output));
     }
 
     // ========================================
@@ -595,11 +623,9 @@ public class PosixCommandsTest {
     // ========================================
 
     @Test
-    void testCdValidation() throws Exception {
+    void testCdValidation() {
         // Test cd with existing directory
-        assertDoesNotThrow(() -> {
-            PosixCommands.cd(context, new String[] {"cd", "."});
-        });
+        assertDoesNotThrow(() -> PosixCommands.cd(context, new String[] {"cd", "."}));
     }
 
     @Test
@@ -614,10 +640,8 @@ public class PosixCommandsTest {
     }
 
     @Test
-    void testCdNonExistentDirectory() throws Exception {
-        assertThrows(IOException.class, () -> {
-            PosixCommands.cd(context, new String[] {"cd", "nonexistent"});
-        });
+    void testCdNonExistentDirectory() {
+        assertThrows(IOException.class, () -> PosixCommands.cd(context, new String[] {"cd", "nonexistent"}));
     }
 
     // ========================================
@@ -652,9 +676,7 @@ public class PosixCommandsTest {
 
     @Test
     void testCommandExecutorInterface() {
-        PosixCommands.CommandExecutor executor = command -> {
-            return "Executed: " + String.join(" ", command);
-        };
+        PosixCommands.CommandExecutor executor = command -> "Executed: " + String.join(" ", command);
 
         assertDoesNotThrow(() -> {
             String result = executor.execute(Arrays.asList("test", "command"));
@@ -676,19 +698,13 @@ public class PosixCommandsTest {
     }
 
     @Test
-    void testHelpOptions() throws Exception {
+    void testHelpOptions() {
         // Test that help options work for various commands
-        assertThrows(Options.HelpException.class, () -> {
-            PosixCommands.pwd(context, new String[] {"pwd", "--help"});
-        });
+        assertThrows(Options.HelpException.class, () -> PosixCommands.pwd(context, new String[] {"pwd", "--help"}));
 
-        assertThrows(Options.HelpException.class, () -> {
-            PosixCommands.echo(context, new String[] {"echo", "--help"});
-        });
+        assertThrows(Options.HelpException.class, () -> PosixCommands.echo(context, new String[] {"echo", "--help"}));
 
-        assertThrows(Options.HelpException.class, () -> {
-            PosixCommands.cat(context, new String[] {"cat", "--help"});
-        });
+        assertThrows(Options.HelpException.class, () -> PosixCommands.cat(context, new String[] {"cat", "--help"}));
     }
 
     @Test
@@ -876,9 +892,7 @@ public class PosixCommandsTest {
         // because it becomes src/{{**,}/,}*Test.java (nested braces)
         assertThrows(
                 PatternSyntaxException.class,
-                () -> {
-                    PosixCommands.ls(context, new String[] {"ls", "src/{**/,}*Test.java"});
-                },
+                () -> PosixCommands.ls(context, new String[] {"ls", "src/{**/,}*Test.java"}),
                 "Pattern with ** inside braces should throw PatternSyntaxException due to nested braces");
     }
 

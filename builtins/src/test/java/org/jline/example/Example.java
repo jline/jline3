@@ -9,7 +9,7 @@
 package org.jline.example;
 
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -43,7 +43,7 @@ import static org.jline.builtins.Completers.TreeCompleter.node;
 import static org.jline.keymap.KeyMap.ctrl;
 import static org.jline.keymap.KeyMap.key;
 
-public class Example {
+class Example {
     public static void usage() {
         String[] usage = {
             "Usage: java " + Example.class.getName() + " [cases... [trigger mask]]",
@@ -147,7 +147,7 @@ public class Example {
 
         /**
          * Displays an interactive option selector in the terminal and returns the user's choice.
-         *
+         * <p>
          * Blocks until the user confirms a selection. The menu shows a title (first line) followed by
          * selectable option lines; the returned value is one of those option lines.
          *
@@ -293,8 +293,9 @@ public class Example {
                                     try {
                                         Status status = Status.getStatus(reader.getTerminal());
                                         counter++;
-                                        status.update(Arrays.asList(new AttributedStringBuilder()
-                                                .append("counter: " + counter)
+                                        status.update(List.of(new AttributedStringBuilder()
+                                                .append("counter: ")
+                                                .append(String.valueOf(counter))
                                                 .toAttributedString()));
                                         ((LineReaderImpl) reader).redisplay();
                                         Thread.sleep(1000);
@@ -461,7 +462,7 @@ public class Example {
             }
             AtomicBoolean printAbove = new AtomicBoolean();
             while (true) {
-                String line = null;
+                String line;
                 try {
                     line = reader.readLine(prompt, rightPrompt, (MaskingCallback) null, null);
                     line = line.trim();
@@ -498,6 +499,7 @@ public class Example {
                                             Thread.sleep(1000);
                                         }
                                     } catch (InterruptedException t2) {
+                                        // Ignore
                                     }
                                 });
                                 t.setDaemon(true);
@@ -544,11 +546,11 @@ public class Example {
                     } else if ("sleep".equals(pl.word())) {
                         Thread.sleep(3000);
                     } else if ("nano".equals(pl.word())) {
-                        Commands.nano(terminal, System.out, System.err, Paths.get(""), argv);
+                        Commands.nano(terminal, System.out, System.err, Path.of(""), argv);
                     } else if ("less".equals(pl.word())) {
-                        Commands.less(terminal, System.in, System.out, System.err, Paths.get(""), argv);
+                        Commands.less(terminal, System.in, System.out, System.err, Path.of(""), argv);
                     } else if ("history".equals(pl.word())) {
-                        Commands.history(reader, System.out, System.err, Paths.get(""), argv);
+                        Commands.history(reader, System.out, System.err, Path.of(""), argv);
                     } else if ("setopt".equals(pl.word())) {
                         Commands.setopt(reader, System.out, System.err, argv);
                     } else if ("unsetopt".equals(pl.word())) {

@@ -22,14 +22,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * This test attempts to reproduce the intermittent encoding failures
  * seen in Windows CI environments.
  */
-public class NonBlockingEncodingTest {
+class NonBlockingEncodingTest {
 
     /**
      * Test that simulates slow byte-by-byte reading with timeouts
      * to force decoder underflow conditions.
      */
     @Test
-    public void testSlowByteByByteReading() throws IOException {
+    void testSlowByteByByteReading() throws IOException {
         String testString = "café";
         byte[] bytes = testString.getBytes(StandardCharsets.ISO_8859_1);
 
@@ -49,16 +49,18 @@ public class NonBlockingEncodingTest {
             } else if (c == -2) { // READ_EXPIRED (timeout)
                 timeoutCount++;
                 continue; // Keep trying
-            } else if (c >= 0) { // Valid character
+            }
+            if (c >= 0) { // Valid character
                 result.append((char) c);
                 readCount++;
                 System.out.println("Read " + readCount + ": '" + (char) c + "' (0x" + Integer.toHexString(c) + ")");
             }
         }
+        String resultString = result.toString();
 
         System.out.println("Expected: '" + testString + "'");
-        System.out.println("Actual: '" + result.toString() + "'");
-        assertEquals(testString, result.toString(), "Slow byte-by-byte reading should preserve encoding");
+        System.out.println("Actual: '" + resultString + "'");
+        assertEquals(testString, resultString, "Slow byte-by-byte reading should preserve encoding");
     }
 
     /**
@@ -66,7 +68,7 @@ public class NonBlockingEncodingTest {
      * but with controlled timing.
      */
     @Test
-    public void testControlledTimingReading() throws IOException {
+    void testControlledTimingReading() throws IOException {
         String testString = "café";
         byte[] bytes = testString.getBytes(StandardCharsets.ISO_8859_1);
 
@@ -85,7 +87,8 @@ public class NonBlockingEncodingTest {
             } else if (c == -2) { // READ_EXPIRED (timeout)
                 timeoutCount++;
                 continue; // Keep trying
-            } else if (c >= 0) { // Valid character
+            }
+            if (c >= 0) { // Valid character
                 result.append((char) c);
             }
         }
@@ -97,7 +100,7 @@ public class NonBlockingEncodingTest {
      * Test with multiple iterations to catch intermittent issues.
      */
     @Test
-    public void testRepeatedReading() throws IOException {
+    void testRepeatedReading() throws IOException {
         String testString = "café";
 
         for (int i = 0; i < 100; i++) {
@@ -116,7 +119,8 @@ public class NonBlockingEncodingTest {
                 } else if (c == -2) { // READ_EXPIRED (timeout)
                     timeoutCount++;
                     continue; // Keep trying
-                } else if (c >= 0) { // Valid character
+                }
+                if (c >= 0) { // Valid character
                     result.append((char) c);
                 }
             }
@@ -129,7 +133,7 @@ public class NonBlockingEncodingTest {
      * Test with buffer boundary conditions.
      */
     @Test
-    public void testBufferBoundaryConditions() throws IOException {
+    void testBufferBoundaryConditions() throws IOException {
         String testString = "café";
         byte[] bytes = testString.getBytes(StandardCharsets.ISO_8859_1);
 
@@ -148,7 +152,8 @@ public class NonBlockingEncodingTest {
             } else if (c == -2) { // READ_EXPIRED (timeout)
                 timeoutCount++;
                 continue; // Keep trying
-            } else if (c >= 0) { // Valid character
+            }
+            if (c >= 0) { // Valid character
                 result.append((char) c);
             }
         }
@@ -164,7 +169,7 @@ public class NonBlockingEncodingTest {
         private final long delayMs;
         private final AtomicInteger position = new AtomicInteger(0);
 
-        public SlowInputStream(byte[] data, long delayMs) {
+        SlowInputStream(byte[] data, long delayMs) {
             this.data = data;
             this.delayMs = delayMs;
         }
@@ -189,7 +194,7 @@ public class NonBlockingEncodingTest {
         }
 
         @Override
-        public int available() throws IOException {
+        public int available() {
             return Math.max(0, data.length - position.get());
         }
     }
@@ -201,7 +206,7 @@ public class NonBlockingEncodingTest {
         private final byte[] data;
         private final AtomicInteger position = new AtomicInteger(0);
 
-        public TimedInputStream(byte[] data) {
+        TimedInputStream(byte[] data) {
             this.data = data;
         }
 
@@ -226,7 +231,7 @@ public class NonBlockingEncodingTest {
         }
 
         @Override
-        public int available() throws IOException {
+        public int available() {
             return Math.max(0, data.length - position.get());
         }
     }
@@ -240,7 +245,7 @@ public class NonBlockingEncodingTest {
         private final AtomicInteger position = new AtomicInteger(0);
         private int readCount = 0;
 
-        public BufferStressingInputStream(byte[] data) {
+        BufferStressingInputStream(byte[] data) {
             this.data = data;
         }
 
@@ -267,7 +272,7 @@ public class NonBlockingEncodingTest {
         }
 
         @Override
-        public int available() throws IOException {
+        public int available() {
             return Math.max(0, data.length - position.get());
         }
     }

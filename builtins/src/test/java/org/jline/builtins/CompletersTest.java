@@ -22,10 +22,10 @@ import org.junit.jupiter.api.Test;
 import static org.jline.builtins.Completers.TreeCompleter.node;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class CompletersTest {
+class CompletersTest {
 
     @Test
-    public void testTreeCompleter() {
+    void testTreeCompleter() {
         List<String> words = new ArrayList<>();
         Completer test = new Completer() {
             @Override

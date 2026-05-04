@@ -9,10 +9,9 @@
 package org.jline.keymap;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
@@ -26,6 +25,7 @@ import org.jline.reader.impl.ReaderTestSupport.EofPipedInputStream;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -43,14 +43,14 @@ import static org.jline.reader.LineReader.UP_HISTORY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-public class KeyMapTest {
+class KeyMapTest {
 
     protected Terminal terminal;
     protected EofPipedInputStream in;
     protected ByteArrayOutputStream out;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    void setUp() throws Exception {
         Handler ch = new ConsoleHandler();
         ch.setLevel(Level.FINEST);
         Logger logger = Logger.getLogger("org.jline");
@@ -64,8 +64,15 @@ public class KeyMapTest {
         terminal.setSize(new Size(160, 80));
     }
 
+    @AfterEach
+    void tearDown() throws IOException {
+        if (terminal != null) {
+            terminal.close();
+        }
+    }
+
     @Test
-    public void testBound() throws Exception {
+    void testBound() throws Exception {
         KeyMap<Binding> map = new LineReaderImpl(terminal).emacs();
 
         assertEquals(new Reference(COMPLETE_WORD), map.getBound("\u001B\u001B"));
@@ -90,7 +97,7 @@ public class KeyMapTest {
     }
 
     @Test
-    public void testRemaining() throws Exception {
+    void testRemaining() {
         KeyMap<Binding> map = new KeyMap<>();
 
         int[] remaining = new int[1];
@@ -153,19 +160,19 @@ public class KeyMapTest {
     }
 
     @Test
-    public void testSort() {
+    void testSort() {
         List<String> strings = new ArrayList<>();
         strings.add("abc");
         strings.add("ab");
         strings.add("ad");
-        Collections.sort(strings, KeyMap.KEYSEQ_COMPARATOR);
+        strings.sort(KeyMap.KEYSEQ_COMPARATOR);
         assertEquals("ab", strings.get(0));
         assertEquals("ad", strings.get(1));
         assertEquals("abc", strings.get(2));
     }
 
     @Test
-    public void testTranslate() {
+    void testTranslate() {
         assertEquals(
                 "\\\u0007\b\u001b\u001b\f\n\r\t\u000b\u0053\u0045\u2345",
                 translate("\\\\\\a\\b\\e\\E\\f\\n\\r\\t\\v\\123\\x45\\u2345"));
@@ -175,14 +182,14 @@ public class KeyMapTest {
     }
 
     @Test
-    public void testDisplay() {
+    void testDisplay() {
         assertEquals("\"\\\\^G^H^[^L^J^M^I\\u0098\\u2345\"", display("\\\u0007\b\u001b\f\n\r\t\u0098\u2345"));
         assertEquals("\"^A^B^C^?\\^\\\\\"", display("\u0001\u0002\u0003\u007f^\\"));
     }
 
     @Test
-    public void testRange() {
+    void testRange() {
         Collection<String> range = range("a^A-a^D");
-        assertEquals(Arrays.asList(translate("a^A"), translate("a^B"), translate("a^C"), translate("a^D")), range);
+        assertEquals(List.of(translate("a^A"), translate("a^B"), translate("a^C"), translate("a^D")), range);
     }
 }

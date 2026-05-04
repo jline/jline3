@@ -18,10 +18,10 @@ import org.jline.reader.ParsedLine;
 import org.jline.utils.AttributedString;
 import org.junit.jupiter.api.Test;
 
-public class ColonCommandCompletionTest extends ReaderTestSupport {
+class ColonCommandCompletionTest extends ReaderTestSupport {
 
     @Test
-    public void testColonCommandCompletion() throws IOException {
+    void testColonCommandCompletion() throws IOException {
         reader.setCompleter(new ColonCommandCompleter("power", "paste"));
         assertBuffer(":paste", new TestBuffer(":p\t\t"));
         assertBuffer(":power ", new TestBuffer(":po\t"));
@@ -30,7 +30,7 @@ public class ColonCommandCompletionTest extends ReaderTestSupport {
     private static class ColonCommandCompleter implements Completer {
         String[] commands;
 
-        public ColonCommandCompleter(String... commands) {
+        ColonCommandCompleter(String... commands) {
             this.commands = commands;
         }
 

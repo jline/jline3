@@ -12,10 +12,11 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -25,12 +26,12 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Unit tests for PromptCommands implementation.
  * Tests the command-line interface for prompts.
- *
+ * <p>
  * NOTE: This test class is disabled because it contains interactive tests
  * that wait for user input, which causes hanging in automated test environments.
  */
 @Disabled("Interactive tests that hang in automated environments")
-public class PromptCommandsTest {
+class PromptCommandsTest {
 
     private Terminal terminal;
     private ByteArrayOutputStream outStream;
@@ -54,9 +55,16 @@ public class PromptCommandsTest {
                 new ByteArrayInputStream(new byte[0]),
                 new PrintStream(outStream),
                 new PrintStream(errStream),
-                Paths.get(System.getProperty("user.dir")),
+                Path.of(System.getProperty("user.dir")),
                 terminal,
-                name -> System.getProperty(name));
+                System::getProperty);
+    }
+
+    @AfterEach
+    void tearDown() throws IOException {
+        if (terminal != null) {
+            terminal.close();
+        }
     }
 
     @Test
@@ -132,7 +140,7 @@ public class PromptCommandsTest {
     }
 
     @Test
-    void testPromptCommandWithMessage() throws Exception {
+    void testPromptCommandWithMessage() {
         // Test that message option is parsed correctly
         // This test verifies the option parsing without actually executing the prompt
         try {
@@ -145,7 +153,7 @@ public class PromptCommandsTest {
     }
 
     @Test
-    void testPromptCommandWithTitle() throws Exception {
+    void testPromptCommandWithTitle() {
         // Test that title option is parsed correctly
         try {
             PromptCommands.prompt(
@@ -158,7 +166,7 @@ public class PromptCommandsTest {
     }
 
     @Test
-    void testPromptCommandWithKeys() throws Exception {
+    void testPromptCommandWithKeys() {
         // Test that keys option is parsed correctly for choice prompts
         try {
             PromptCommands.prompt(
@@ -172,7 +180,7 @@ public class PromptCommandsTest {
     }
 
     @Test
-    void testObjectArrayVersion() throws Exception {
+    void testObjectArrayVersion() {
         // Test the Object array version of the prompt command
         Object[] args = {"input", "-m", "Enter text:", "-d", "default"};
 
@@ -186,7 +194,7 @@ public class PromptCommandsTest {
     }
 
     @Test
-    void testPromptCommandArgumentParsing() throws Exception {
+    void testPromptCommandArgumentParsing() {
         // Test various argument combinations
         String[][] testCases = {
             {"list", "item1", "item2", "item3"},
@@ -212,7 +220,7 @@ public class PromptCommandsTest {
     }
 
     @Test
-    void testPromptCommandWithAllOptions() throws Exception {
+    void testPromptCommandWithAllOptions() {
         // Test command with all possible options
         String[] args = {
             "list",
@@ -238,7 +246,7 @@ public class PromptCommandsTest {
     }
 
     @Test
-    void testConfirmPromptDefaultValueParsing() throws Exception {
+    void testConfirmPromptDefaultValueParsing() {
         // Test confirm prompt with different default values
         String[][] testCases = {
             {"confirm", "-d", "y"},

@@ -22,23 +22,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for the {@link AnsiRenderer} class.
- *
  */
-public class AnsiRendererTest {
+class AnsiRendererTest {
     @BeforeAll
     static void setUp() {
         Ansi.setEnabled(true);
     }
 
     @Test
-    public void testTest() throws Exception {
+    void testTest() {
         assertFalse(test("foo"));
         assertTrue(test("@|foo|"));
         assertTrue(test("@|foo"));
     }
 
     @Test
-    public void testRender() {
+    void testRender() {
         String str = render("@|bold foo|@");
         System.out.println(str);
         assertEquals(ansi().a(INTENSITY_BOLD).a("foo").reset().toString(), str);
@@ -46,14 +45,14 @@ public class AnsiRendererTest {
     }
 
     @Test
-    public void testRenderCodes() {
+    void testRenderCodes() {
         String str = renderCodes("bold red");
         System.out.println(str);
         assertEquals(ansi().bold().fg(Color.RED).toString(), str);
     }
 
     @Test
-    public void testRender2() {
+    void testRender2() {
         String str = render("@|bold,red foo|@");
         System.out.println(str);
         assertEquals(Ansi.ansi().a(INTENSITY_BOLD).fg(RED).a("foo").reset().toString(), str);
@@ -61,7 +60,7 @@ public class AnsiRendererTest {
     }
 
     @Test
-    public void testRender3() {
+    void testRender3() {
         String str = render("@|bold,red foo bar baz|@");
         System.out.println(str);
         assertEquals(ansi().a(INTENSITY_BOLD).fg(RED).a("foo bar baz").reset().toString(), str);
@@ -69,7 +68,7 @@ public class AnsiRendererTest {
     }
 
     @Test
-    public void testRender4() {
+    void testRender4() {
         String str = render("@|bold,red foo bar baz|@ ick @|bold,red foo bar baz|@");
         System.out.println(str);
         assertEquals(
@@ -87,7 +86,7 @@ public class AnsiRendererTest {
     }
 
     @Test
-    public void testRender5() {
+    void testRender5() {
         // Check the ansi() render method.
         String str = ansi().render("@|bold Hello|@").toString();
         System.out.println(str);
@@ -95,23 +94,23 @@ public class AnsiRendererTest {
     }
 
     @Test
-    public void testRenderNothing() {
+    void testRenderNothing() {
         assertEquals("foo", render("foo"));
     }
 
     @Test
-    public void testRenderInvalidMissingEnd() {
+    void testRenderInvalidMissingEnd() {
         String str = render("@|bold foo");
         assertEquals("@|bold foo", str);
     }
 
     @Test
-    public void testRenderInvalidEndBeforeStart() {
+    void testRenderInvalidEndBeforeStart() {
         assertThrows(IllegalArgumentException.class, () -> render("@|@"));
     }
 
     @Test
-    public void testRenderInvalidMissingText() {
+    void testRenderInvalidMissingText() {
         String str = render("@|bold|@");
         assertEquals("@|bold|@", str);
     }

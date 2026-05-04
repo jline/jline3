@@ -19,11 +19,12 @@ import org.jline.terminal.spi.Pty;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class PosixSysTerminalTest {
+class PosixSysTerminalTest {
 
     @Test
-    public void testNativeSignalsDefault() throws Exception {
+    void testNativeSignalsDefault() throws Exception {
         Pty pty = EasyMock.createNiceMock(Pty.class);
         EasyMock.expect(pty.getAttr()).andReturn(new Attributes()).anyTimes();
         EasyMock.expect(pty.getSlaveInput())
@@ -39,7 +40,7 @@ public class PosixSysTerminalTest {
     }
 
     @Test
-    public void testNativeSignalsIgnore() throws Exception {
+    void testNativeSignalsIgnore() throws Exception {
         Pty pty = EasyMock.createNiceMock(Pty.class);
         EasyMock.expect(pty.getAttr()).andReturn(new Attributes()).anyTimes();
         EasyMock.expect(pty.getSlaveInput())
@@ -55,7 +56,7 @@ public class PosixSysTerminalTest {
     }
 
     @Test
-    public void testNativeSignalsRegister() throws Exception {
+    void testNativeSignalsRegister() throws Exception {
         Pty pty = EasyMock.createNiceMock(Pty.class);
         EasyMock.expect(pty.getAttr()).andReturn(new Attributes()).anyTimes();
         EasyMock.expect(pty.getSlaveInput())
@@ -71,6 +72,23 @@ public class PosixSysTerminalTest {
             assertEquals(Signal.values().length, terminal.nativeHandlers.size());
             terminal.handle(Signal.INT, prev);
             assertEquals(Signal.values().length, terminal.nativeHandlers.size());
+        }
+    }
+
+    @Test
+    void testNoNativeSignalsWhenDisabled() throws Exception {
+        Pty pty = EasyMock.createNiceMock(Pty.class);
+        EasyMock.expect(pty.getAttr()).andReturn(new Attributes()).anyTimes();
+        EasyMock.expect(pty.getSlaveInput())
+                .andReturn(new ByteArrayInputStream(new byte[0]))
+                .anyTimes();
+        EasyMock.expect(pty.getSlaveOutput())
+                .andReturn(new ByteArrayOutputStream())
+                .anyTimes();
+        EasyMock.replay(pty);
+        try (PosixSysTerminal terminal =
+                new PosixSysTerminal("name", "ansi", pty, null, false, SignalHandler.SIG_DFL)) {
+            assertTrue(terminal.nativeHandlers.isEmpty());
         }
     }
 }

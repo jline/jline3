@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class PumpReaderTest {
+class PumpReaderTest {
 
     private PumpReader writeInput() {
         PumpReader pump = new PumpReader();
@@ -35,7 +35,7 @@ public class PumpReaderTest {
     }
 
     @Test
-    public void testReader() throws IOException {
+    void testReader() throws IOException {
         PumpReader pump = writeInput();
 
         // Read it again
@@ -45,7 +45,7 @@ public class PumpReaderTest {
     }
 
     @Test
-    public void testInputStream() throws IOException {
+    void testInputStream() throws IOException {
         PumpReader pump = writeInput();
 
         // Read it using an input stream
@@ -56,7 +56,7 @@ public class PumpReaderTest {
     }
 
     @Test
-    public void testSmallBuffer() throws IOException {
+    void testSmallBuffer() throws IOException {
         PumpReader pump = new PumpReader(12);
         PrintWriter writer = new PrintWriter(pump.getWriter());
 
@@ -75,7 +75,7 @@ public class PumpReaderTest {
     }
 
     @Test
-    public void testSplitSurrogatePair() throws IOException {
+    void testSplitSurrogatePair() throws IOException {
         PumpReader pump = new PumpReader();
         Writer writer = pump.getWriter();
         // Only provide high surrogate
@@ -109,7 +109,7 @@ public class PumpReaderTest {
     }
 
     @Test
-    public void testTrailingHighSurrogate() throws IOException {
+    void testTrailingHighSurrogate() throws IOException {
         PumpReader pump = new PumpReader();
         Writer writer = pump.getWriter();
         writer.write('\uD83D');

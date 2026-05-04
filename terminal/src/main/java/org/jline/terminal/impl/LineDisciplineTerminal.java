@@ -275,7 +275,7 @@ public class LineDisciplineTerminal extends AbstractTerminal {
     public void processInputByte(int c) throws IOException {
         boolean flushOut = doProcessInputByte(c);
         slaveInputPipe.flush();
-        if (flushOut) {
+        if (flushOut && masterOutput != null) {
             masterOutput.flush();
         }
     }
@@ -290,7 +290,7 @@ public class LineDisciplineTerminal extends AbstractTerminal {
             flushOut |= doProcessInputByte(input[offset + i]);
         }
         slaveInputPipe.flush();
-        if (flushOut) {
+        if (flushOut && masterOutput != null) {
             masterOutput.flush();
         }
     }
@@ -349,6 +349,9 @@ public class LineDisciplineTerminal extends AbstractTerminal {
      * @throws IOException if anything wrong happens
      */
     protected void processOutputByte(int c) throws IOException {
+        if (masterOutput == null) {
+            return;
+        }
         if (attributes.getOutputFlag(OutputFlag.OPOST)) {
             if (c == '\n') {
                 if (attributes.getOutputFlag(OutputFlag.ONLCR)) {
@@ -412,12 +415,16 @@ public class LineDisciplineTerminal extends AbstractTerminal {
 
         @Override
         public void flush() throws IOException {
-            masterOutput.flush();
+            if (masterOutput != null) {
+                masterOutput.flush();
+            }
         }
 
         @Override
         public void close() throws IOException {
-            masterOutput.close();
+            if (masterOutput != null) {
+                masterOutput.close();
+            }
         }
     }
 }

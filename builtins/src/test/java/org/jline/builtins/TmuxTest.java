@@ -13,17 +13,17 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class TmuxTest {
+class TmuxTest {
 
     @Test
-    public void testLayoutParse() {
+    void testLayoutParse() {
         Tmux.Layout l = Tmux.Layout.parse(
                 "b7c7,148x44,0,0[148x26,0,0{69x26,0,0,0,78x26,70,0,3},148x17,0,27{74x17,0,27,1,36x17,75,27,4,36x17,112,27,5}]");
         assertNotNull(l);
     }
 
     @Test
-    public void testLayoutResize() {
+    void testLayoutResize() {
         Tmux.Layout l = Tmux.Layout.parse(
                 "b7c7,148x44,0,0[148x26,0,0{69x26,0,0,0,78x26,70,0,3},148x17,0,27{74x17,0,27,1,36x17,75,27,4,36x17,112,27,5}]");
         l.resize(140, 44);

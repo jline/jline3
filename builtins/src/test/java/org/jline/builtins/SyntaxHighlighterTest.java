@@ -11,7 +11,6 @@ package org.jline.builtins;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,9 +26,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-public class SyntaxHighlighterTest {
+class SyntaxHighlighterTest {
 
-    static String fixRegexesOld(String line) {
+    private static String fixRegexesOld(String line) {
         return line.replaceAll("\\\\<", "\\\\b")
                 .replaceAll("\\\\>", "\\\\b")
                 .replaceAll("\\[:alnum:]", "\\\\p{Alnum}")
@@ -47,7 +46,7 @@ public class SyntaxHighlighterTest {
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
-    void checkRegexFix(String posix, String expectedJava) {
+    private static void checkRegexFix(String posix, String expectedJava) {
         String java = SyntaxHighlighter.Parser.fixRegexes(posix);
 
         expectedJava = fixRegexesOld(expectedJava);
@@ -59,37 +58,36 @@ public class SyntaxHighlighterTest {
 
     @ParameterizedTest
     @MethodSource
-    public void regexFixBrackets(String posix, String expectedJava) {
+    void regexFixBrackets(String posix, String expectedJava) {
         checkRegexFix(posix, expectedJava);
     }
 
     @ParameterizedTest
     @MethodSource
-    public void regexFixBackslash(String posix, String expectedJava) {
+    void regexFixBackslash(String posix, String expectedJava) {
         checkRegexFix(posix, expectedJava);
     }
 
     @ParameterizedTest
     @MethodSource("unescaped")
-    public void regexFixUnescaped(String posix) {
+    void regexFixUnescaped(String posix) {
         checkRegexFix(posix, posix);
     }
 
-    @SuppressWarnings("ResultOfMethodCallIgnored")
     @ParameterizedTest
     @MethodSource("unescaped")
-    public void unescapedChecksWork(String posix) {
+    void unescapedChecksWork(String posix) {
         Assertions.assertDoesNotThrow(() -> Pattern.compile(posix));
     }
 
     @ParameterizedTest
     @MethodSource
     @Disabled("There are two failing expressions, which look suspicious (unclosed groups)")
-    public void failing(String posix) {
+    void failing(String posix) {
         checkRegexFix(posix, posix);
     }
 
-    static Stream<String> failing() {
+    private static Stream<String> failing() {
         return Stream.of(
                 // java.util.regex.PatternSyntaxException: Unmatched closing ')' near index 46
                 //  @(encode|end|implementation|interface)|selector)\>
@@ -106,15 +104,14 @@ public class SyntaxHighlighterTest {
     @MethodSource
     void processLocalNanorcFile(Path nanorcFile) throws Exception {
         Map<String, String> colorTheme = new HashMap<>();
-        String fileName = nanorcFile.getFileName().toString().replaceAll("[.].*", "");
-        String syntaxName = fileName; // Use filename as syntax name for test files
+        // Use filename as syntax name for test files
+        String syntaxName = nanorcFile.getFileName().toString().replaceAll("[.].*", "");
 
         SyntaxHighlighter.NanorcParser nanorcParser =
                 new SyntaxHighlighter.NanorcParser(nanorcFile, syntaxName, "syntax", colorTheme);
 
         // Parse the nanorc file - this should not throw any exceptions
-        Assertions.assertDoesNotThrow(
-                () -> nanorcParser.parse(), "Failed to parse nanorc file: " + nanorcFile.getFileName());
+        Assertions.assertDoesNotThrow(nanorcParser::parse, "Failed to parse nanorc file: " + nanorcFile.getFileName());
 
         // Verify that parsing produced some highlight rules
         Map<String, List<SyntaxHighlighter.HighlightRule>> highlightRules = nanorcParser.getHighlightRules();
@@ -160,11 +157,11 @@ public class SyntaxHighlighterTest {
         });
     }
 
-    static List<Path> processLocalNanorcFile() throws Exception {
+    private static List<Path> processLocalNanorcFile() throws Exception {
         URL resourceUrl = SyntaxHighlighterTest.class.getClassLoader().getResource("nano");
         Assertions.assertNotNull(resourceUrl, "nano test resources directory not found");
 
-        Path nanoResourcesPath = Paths.get(resourceUrl.toURI());
+        Path nanoResourcesPath = Path.of(resourceUrl.toURI());
         try (Stream<Path> list = Files.list(nanoResourcesPath)
                 .filter(Files::isRegularFile)
                 .filter(p -> p.toString().endsWith(".nanorc"))
@@ -175,7 +172,7 @@ public class SyntaxHighlighterTest {
         }
     }
 
-    static Stream<Arguments> regexFixBrackets() {
+    private static Stream<Arguments> regexFixBrackets() {
         return Stream.of(
                 arguments("[][]", "[\\]\\[]"),
                 arguments("[]{}[]", "[\\]{}\\[]"),
@@ -195,7 +192,7 @@ public class SyntaxHighlighterTest {
                         "\\^[\\]/4-8@A-Z\\^_`◂▸▴▾-]\"  \"[◂▸▴▾]\"  \"\\<(M|S[Hh]-[Mm])-[^\")”»“」]\"  \"\\<F([1-9]|1[0-9]|2[0-4])"));
     }
 
-    static Stream<Arguments> regexFixBackslash() {
+    private static Stream<Arguments> regexFixBackslash() {
         return Stream.of(
                 arguments(
                         "'([^'\\]|\\\\(\\[\"'\\abfnrtv]|x[[:xdigit:]]{1,2}|[0-3]?[0-7]{1,2}))'",
@@ -252,7 +249,7 @@ public class SyntaxHighlighterTest {
                 arguments("\\[[^]]+\\]\\([^)]+\\)", "\\[[^\\]]+\\]\\([^)]+\\)"));
     }
 
-    static Stream<String> unescaped() {
+    private static Stream<String> unescaped() {
         return Stream.of(
                 "  $",
                 " !!(binary|bool|float|int|map|null|omap|seq|set|str)( |,|$)",

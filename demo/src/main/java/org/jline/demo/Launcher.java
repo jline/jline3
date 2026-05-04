@@ -83,7 +83,7 @@ public class Launcher {
         System.out.println("WebTerminal started at " + terminal.getUrl());
         System.out.println("Open the URL in your browser to interact with the terminal.");
 
-        try {
+        try (terminal) {
             TerminalBuilder.setTerminalOverride(terminal);
             try {
                 runDemo(demoClass, args);
@@ -92,7 +92,6 @@ public class Launcher {
             }
         } finally {
             terminal.stop();
-            terminal.close();
         }
     }
 
@@ -102,7 +101,7 @@ public class Launcher {
         SwingTerminal terminal = new SwingTerminal(title, 80, 24);
         JFrame frame = terminal.createFrame(title);
 
-        try {
+        try (terminal) {
             TerminalBuilder.setTerminalOverride(terminal);
             try {
                 runDemo(demoClass, args);
@@ -110,8 +109,6 @@ public class Launcher {
                 TerminalBuilder.setTerminalOverride(null);
             }
         } finally {
-            terminal.close();
-            terminal.dispose();
             frame.dispose();
         }
     }

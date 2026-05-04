@@ -9,7 +9,10 @@
 package org.jline.reader.impl.history;
 
 import java.io.*;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.time.DateTimeException;
 import java.time.Instant;
 import java.util.*;
@@ -45,7 +48,7 @@ import static org.jline.reader.impl.ReaderUtils.*;
  * Example usage:
  * <pre>
  * LineReader reader = LineReaderBuilder.builder()
- *     .variable(LineReader.HISTORY_FILE, Paths.get(System.getProperty("user.home"), ".myapp_history"))
+ *     .variable(LineReader.HISTORY_FILE, Path.of(System.getProperty("user.home"), ".myapp_history"))
  *     .build();
  * // History is automatically attached to the reader
  *
@@ -106,7 +109,7 @@ public class DefaultHistory implements History {
         } else if (obj instanceof File) {
             return ((File) obj).toPath();
         } else if (obj != null) {
-            return Paths.get(obj.toString());
+            return Path.of(obj.toString());
         } else {
             return null;
         }

@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for {@link DefaultAliasManager}.
  */
-public class DefaultAliasManagerTest {
+class DefaultAliasManagerTest {
 
     @Test
     void setGetRemoveAlias() {

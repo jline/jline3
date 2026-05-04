@@ -11,6 +11,7 @@ package org.jline.terminal.impl;
 import java.io.IOError;
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -28,6 +29,7 @@ import org.jline.terminal.Attributes.InputFlag;
 import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.MouseEvent;
+import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.spi.TerminalExt;
 import org.jline.utils.AttributedCharSequence;
 import org.jline.utils.ColorPalette;
@@ -35,6 +37,7 @@ import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Log;
+import org.jline.utils.NonBlockingReader;
 import org.jline.utils.Status;
 import org.jline.utils.WCWidth;
 
@@ -456,8 +459,12 @@ public abstract class AbstractTerminal implements TerminalExt {
         if (TYPE_DUMB.equals(type) || TYPE_DUMB_COLOR.equals(type)) {
             return false;
         }
-        // Enter raw mode to prevent the terminal response from being echoed.
-        Attributes prev = enterRawMode();
+        Attributes prev = getAttributes();
+        Attributes probeAttrs = new Attributes(prev);
+        probeAttrs.setLocalFlags(EnumSet.of(LocalFlag.ICANON, LocalFlag.ECHO), false);
+        probeAttrs.setControlChar(ControlChar.VMIN, 0);
+        probeAttrs.setControlChar(ControlChar.VTIME, 0);
+        setAttributes(probeAttrs);
         try {
             ProbeResult mode2027 = probeMode2027();
             if (mode2027 == ProbeResult.SUPPORTED) {
@@ -470,6 +477,8 @@ public abstract class AbstractTerminal implements TerminalExt {
             }
             return false;
         } finally {
+            long drainTimeout = getLongProperty(TerminalBuilder.PROP_DRAIN_TIMEOUT, 25);
+            drainInput(reader(), drainTimeout, -1);
             setAttributes(prev);
         }
     }
@@ -506,48 +515,22 @@ public abstract class AbstractTerminal implements TerminalExt {
         if ("Apple_Terminal".equals(termProgram)) {
             return ProbeResult.NOT_SUPPORTED;
         }
-        try {
-            // Send DECRQM query for mode 2027 followed by DA1 as sentinel
-            writer().write("\033[?2027$p\033[c");
-            writer().flush();
-
-            // Read response — both DECRPM and DA1 start with ESC [ ?
-            // DECRPM: ESC [ ? 2 0 2 7 ; Ps $ y
-            // DA1:    ESC [ ? Pp ; ... c
-            long timeout = 100;
-            if (reader().peek(timeout) < 0) {
-                return ProbeResult.NO_RESPONSE;
-            }
-            int[] expected = {'\033', '[', '?', '2', '0', '2', '7', ';'};
-            for (int e : expected) {
-                int c = reader().read(timeout);
-                if (c != e) {
-                    // Not DECRPM — likely the DA1 sentinel response,
-                    // meaning the terminal does not support DECRQM.
-                    // Read remaining DA1 bytes until the 'c' terminator.
-                    drainUntilDA1(timeout);
-                    return ProbeResult.NOT_SUPPORTED;
-                }
-            }
-            int ps = reader().read(timeout);
-            if (ps < '0' || ps > '4') {
-                drainUntilDA1(timeout);
-                return ProbeResult.NOT_SUPPORTED;
-            }
-            int dollar = reader().read(timeout);
-            int y = reader().read(timeout);
-            if (dollar != '$' || y != 'y') {
-                drainUntilDA1(timeout);
-                return ProbeResult.NOT_SUPPORTED;
-            }
-            // Drain the trailing DA1 sentinel response
-            drainUntilDA1(timeout);
-            // Ps: 1=set, 2=reset (can be set), 3=permanently set → supported
-            // Ps: 0=not recognized, 4=permanently reset → not supported
-            return (ps == '1' || ps == '2' || ps == '3') ? ProbeResult.SUPPORTED : ProbeResult.NOT_SUPPORTED;
-        } catch (IOException e) {
+        // Send DECRQM query for mode 2027 followed by DA1 as sentinel.
+        // readTerminalResponse() reads until the DA1 terminator 'c', capturing
+        // both the DECRPM (ESC[?2027;Ps$y) and the DA1 response.
+        writer().write("\033[?2027$p\033[c");
+        writer().flush();
+        String response = readTerminalResponse();
+        if (response == null) {
             return ProbeResult.NO_RESPONSE;
         }
+        // DECRPM: ESC[?2027;Ps$y where Ps: 1=set, 2=reset (can be set), 3=permanently set
+        if (response.contains("\033[?2027;1$y")
+                || response.contains("\033[?2027;2$y")
+                || response.contains("\033[?2027;3$y")) {
+            return ProbeResult.SUPPORTED;
+        }
+        return ProbeResult.NOT_SUPPORTED;
     }
 
     /**
@@ -584,20 +567,21 @@ public abstract class AbstractTerminal implements TerminalExt {
         // observed together).  A flag probe alone catches partial support.
         String flagEmoji = "\uD83C\uDDEB\uD83C\uDDF7"; // 🇫🇷 French flag
         String zwjEmoji = "\uD83D\uDC69\u200D\uD83D\uDD2C"; // 👩‍🔬 woman scientist
+        long timeout = getLongProperty(TerminalBuilder.PROP_PROBE_TIMEOUT, 200);
         try {
             // Query current cursor column so we can compute displacement
             // rather than relying on the cursor starting at column 1
             puts(Capability.user7);
             writer().flush();
-            int startCol = readCprColumn(200);
+            int startCol = readCprColumn(timeout);
             if (startCol < 0) {
                 return false;
             }
 
             // --- Flag probe ---
-            int flagCol = probeEmojiWidth(flagEmoji);
+            int flagCol = probeEmojiWidth(flagEmoji, startCol, timeout);
             // --- ZWJ probe ---
-            int zwjCol = probeEmojiWidth(zwjEmoji);
+            int zwjCol = probeEmojiWidth(zwjEmoji, startCol, timeout);
 
             // Grouped emoji → 2-column displacement; ungrouped → 4
             groupsRegionalIndicators = (flagCol - startCol == 2);
@@ -612,6 +596,7 @@ public abstract class AbstractTerminal implements TerminalExt {
         } catch (IOError | IOException e) {
             try {
                 puts(Capability.restore_cursor);
+                puts(Capability.clr_eol);
                 writer().flush();
             } catch (Exception ignored) {
                 // Best-effort cleanup; probing failure should not propagate
@@ -626,16 +611,28 @@ public abstract class AbstractTerminal implements TerminalExt {
      * Writes a single emoji to the terminal, queries cursor position via
      * DSR/CPR, then cleans up. Returns the 1-based column value.
      */
-    private int probeEmojiWidth(String emoji) throws IOException {
+    private int probeEmojiWidth(String emoji, int startCol, long timeout) throws IOException {
+        PrintWriter out = writer();
         puts(Capability.save_cursor);
-        writer().write(emoji);
+        out.write(emoji);
         puts(Capability.user7); // DSR — request cursor position
-        writer().flush();
+        out.flush();
 
-        int col = readCprColumn(200);
+        int col = readCprColumn(timeout);
 
+        // Erase the probe glyphs: rewind, overwrite the occupied cells with
+        // spaces, then rewind again to leave the cursor in the original saved position.
         puts(Capability.restore_cursor);
-        writer().flush();
+        int width = col - startCol;
+        if (width > 0) {
+            for (int i = 0; i < width; i++) {
+                out.write(' ');
+            }
+            puts(Capability.restore_cursor);
+        } else {
+            puts(Capability.clr_eol);
+        }
+        out.flush();
         return col;
     }
 
@@ -648,55 +645,91 @@ public abstract class AbstractTerminal implements TerminalExt {
      * parsed.</p>
      */
     private int readCprColumn(long timeout) throws IOException {
+        NonBlockingReader in = reader();
         int c;
         // Skip until ESC
-        while ((c = reader().read(timeout)) != '\033') {
+        while ((c = in.read(timeout)) != '\033') {
             if (c < 0) return -1;
         }
-        if (reader().read(timeout) != '[') return -1;
+        if (in.read(timeout) != '[') return -1;
         // Skip row digits until ';'
-        while ((c = reader().read(timeout)) != ';') {
+        while ((c = in.read(timeout)) != ';') {
             if (c < 0 || c == 'R') return -1;
         }
         // Read column digits until 'R'
         int col = 0;
-        while ((c = reader().read(timeout)) != 'R') {
+        while ((c = in.read(timeout)) != 'R') {
             if (c < '0' || c > '9') return -1;
             col = col * 10 + (c - '0');
         }
         return col;
     }
 
-    /**
-     * Discards input until a DA1 response terminator ('c') is encountered or the reader ends.
-     *
-     * Reads bytes from the terminal via reader().read(timeout) and stops when the character
-     * 'c' is seen or the reader returns a negative value. IOExceptions during draining are ignored.
-     *
-     * @param timeout the per-read timeout value passed to the reader
-     */
-    private void drainUntilDA1(long timeout) {
+    static long getLongProperty(String key, long defaultValue) {
         try {
+            return Math.max(0L, Long.parseLong(System.getProperty(key, Long.toString(defaultValue))));
+        } catch (NumberFormatException ignored) {
+            return defaultValue;
+        }
+    }
+
+    String readTerminalResponse() {
+        long initialTimeout = getLongProperty(TerminalBuilder.PROP_PROBE_TIMEOUT, 200);
+        long subsequentTimeout = getLongProperty(TerminalBuilder.PROP_DRAIN_TIMEOUT, 25);
+        NonBlockingReader in = reader();
+        try {
+            StringBuilder response = new StringBuilder();
+            long deadline = System.currentTimeMillis() + initialTimeout;
+            long timeout = initialTimeout;
             int c;
-            while ((c = reader().read(timeout)) >= 0) {
-                if (c == 'c') {
-                    return;
+
+            while ((c = in.read(timeout)) >= 0) {
+                response.append((char) c);
+
+                // Complete DA1 response: ESC[?...c or ESC[...c
+                String responseStr = response.toString();
+                if (responseStr.contains("\033[") && responseStr.endsWith("c")) {
+                    return responseStr;
                 }
+
+                if (response.length() > 200) break;
+
+                long remaining = deadline - System.currentTimeMillis();
+                if (remaining <= 0) break;
+                timeout = Math.min(subsequentTimeout, remaining);
+            }
+
+            return response.length() > 0 ? response.toString() : null;
+        } catch (IOException ignored) {
+            // Best-effort read; errors are expected when the stream is closed
+            return null;
+        }
+    }
+
+    static void drainInput(NonBlockingReader reader, long overallTimeoutMs, int stopChar) {
+        try {
+            long deadline = System.currentTimeMillis() + overallTimeoutMs;
+            long remaining;
+            while ((remaining = deadline - System.currentTimeMillis()) > 0) {
+                int c = reader.read(remaining);
+                if (c < 0 || c == stopChar) return;
             }
         } catch (IOException ignored) {
+            // Best-effort drain; errors are expected when the stream is closed
         }
     }
 
     /** {@inheritDoc} */
     @Override
     public boolean setGraphemeClusterMode(boolean enable, boolean force) {
+        PrintWriter out = writer();
         if (force) {
             graphemeClusterModeSupported = true;
             // If Mode 2027 was active via escape sequences, disable it
             // before switching to native mode
             if (!enable && graphemeClusterModeEnabled && !graphemeClusterNative) {
-                writer().write("\033[?2027l");
-                writer().flush();
+                out.write("\033[?2027l");
+                out.flush();
             }
             graphemeClusterNative = true;
             graphemeClusterModeEnabled = enable;
@@ -706,8 +739,8 @@ public abstract class AbstractTerminal implements TerminalExt {
         }
         if (supportsGraphemeClusterMode()) {
             if (!graphemeClusterNative) {
-                writer().write(enable ? "\033[?2027h" : "\033[?2027l");
-                writer().flush();
+                out.write(enable ? "\033[?2027h" : "\033[?2027l");
+                out.flush();
                 // Mode 2027 handles all emoji categories
                 groupsRegionalIndicators = enable;
                 groupsZwjSequences = enable;

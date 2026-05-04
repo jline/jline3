@@ -14,7 +14,6 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -267,7 +266,7 @@ public class Commands {
     protected static List<Path> findFiles(Path root, String files) throws IOException {
         files = files.startsWith("~") ? files.replace("~", System.getProperty("user.home")) : files;
         String regex = files;
-        Path searchRoot = Paths.get("/");
+        Path searchRoot = Path.of("/");
         if (new File(files).isAbsolute()) {
             regex = regex.replaceAll("\\\\", "/").replaceAll("//", "/");
             if (regex.contains("/")) {
@@ -275,7 +274,7 @@ public class Commands {
                 while (sr.contains("*") || sr.contains("?")) {
                     sr = sr.substring(0, sr.lastIndexOf("/"));
                 }
-                searchRoot = Paths.get(sr + "/");
+                searchRoot = Path.of(sr + "/");
             }
         } else {
             regex = (root.toString().length() == 0 ? "" : root + "/") + files;
@@ -1922,13 +1921,13 @@ public class Commands {
                         String parameter = replaceFileName(currentTheme, "*" + TYPE_NANORCTHEME);
                         out.println(currentTheme.getParent() + ":");
                         PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + parameter);
-                        try (Stream<Path> pathStream = Files.walk(Paths.get(new File(parameter).getParent()))) {
+                        try (Stream<Path> pathStream = Files.walk(Path.of(new File(parameter).getParent()))) {
                             pathStream.filter(pathMatcher::matches).forEach(p -> out.println(p.getFileName()));
                         }
                     } else {
                         Path themeFile;
                         if (opt.isSet("view")) {
-                            themeFile = Paths.get(replaceFileName(currentTheme, opt.get("view")));
+                            themeFile = Path.of(replaceFileName(currentTheme, opt.get("view")));
                         } else {
                             themeFile = currentTheme;
                         }

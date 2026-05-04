@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for {@link DefaultJobManager} and {@link DefaultJob}.
  */
-public class DefaultJobManagerTest {
+class DefaultJobManagerTest {
 
     private DefaultJobManager manager;
 

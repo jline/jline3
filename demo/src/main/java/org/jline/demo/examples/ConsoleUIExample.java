@@ -27,29 +27,25 @@ public class ConsoleUIExample {
     // SNIPPET_START: ConsoleUIBasicExample
     public static void main(String[] args) throws IOException {
         // Create a terminal
-        Terminal terminal = TerminalBuilder.builder().build();
+        try (Terminal terminal = TerminalBuilder.builder().build()) {
+            // Create a ConsolePrompt with the terminal
+            ConsolePrompt prompt = new ConsolePrompt(terminal);
 
-        // Create a ConsolePrompt with the terminal
-        ConsolePrompt prompt = new ConsolePrompt(terminal);
+            // Get a PromptBuilder to create UI elements
+            PromptBuilder builder = prompt.getPromptBuilder();
 
-        // Get a PromptBuilder to create UI elements
-        PromptBuilder builder = prompt.getPromptBuilder();
+            // Create a simple yes/no prompt
+            builder.createConfirmPromp()
+                    .name("continue")
+                    .message("Do you want to continue?")
+                    .defaultValue(ConfirmChoice.ConfirmationValue.YES)
+                    .addPrompt();
 
-        // Create a simple yes/no prompt
-        builder.createConfirmPromp()
-                .name("continue")
-                .message("Do you want to continue?")
-                .defaultValue(ConfirmChoice.ConfirmationValue.YES)
-                .addPrompt();
-
-        try {
             // Display the prompt and get the result
             Map<String, PromptResultItemIF> result = prompt.prompt(builder.build());
             System.out.println("You chose: " + result.get("continue"));
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            terminal.close();
         }
     }
     // SNIPPET_END: ConsoleUIBasicExample

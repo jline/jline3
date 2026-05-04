@@ -11,7 +11,6 @@ package org.jline.demo.examples;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -146,7 +145,7 @@ public class ThemeSystemExample {
                 + "$LINE_COMMENT   COMMENT \\n TODO: \"(FIXME|TODO|XXX)\"\n"
                 + "$BLOCK_COMMENT  COMMENT \\n DOC_COMMENT: startWith=/** \\n TODO: \"(FIXME|TODO|XXX)\"\n";
 
-        Path themeFile = Paths.get("example-theme.nanorctheme");
+        Path themeFile = Path.of("example-theme.nanorctheme");
         Files.write(themeFile, themeContent.getBytes());
         return themeFile;
     }
@@ -179,7 +178,7 @@ public class ThemeSystemExample {
                 + "# Include the LINT mixin\n"
                 + "+LINT\n";
 
-        Path syntaxFile = Paths.get("java.nanorc");
+        Path syntaxFile = Path.of("java.nanorc");
         Files.write(syntaxFile, syntaxContent.getBytes());
         return syntaxFile;
     }

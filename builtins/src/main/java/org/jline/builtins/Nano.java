@@ -24,7 +24,6 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
@@ -944,56 +943,56 @@ public class Nano implements Editor {
             int[] hls = highlightStart();
             int[] hle = highlightEnd();
             if (hls[0] == -1 || hle[0] == -1) {
-                line.append(disp.columnSubSequence(curOffset, nextOffset, terminal));
+                line.append(disp.columnSubSequence(terminal, curOffset, nextOffset));
             } else if (hls[0] == hle[0]) {
                 if (curLine == hls[0]) {
                     if (hls[1] > nextOffset) {
-                        line.append(disp.columnSubSequence(curOffset, nextOffset, terminal));
+                        line.append(disp.columnSubSequence(terminal, curOffset, nextOffset));
                     } else if (hls[1] < curOffset) {
                         if (hle[1] > nextOffset) {
                             line.append(
-                                    disp.columnSubSequence(curOffset, nextOffset, terminal), AttributedStyle.INVERSE);
+                                    disp.columnSubSequence(terminal, curOffset, nextOffset), AttributedStyle.INVERSE);
                         } else if (hle[1] > curOffset) {
-                            line.append(disp.columnSubSequence(curOffset, hle[1], terminal), AttributedStyle.INVERSE);
-                            line.append(disp.columnSubSequence(hle[1], nextOffset, terminal));
+                            line.append(disp.columnSubSequence(terminal, curOffset, hle[1]), AttributedStyle.INVERSE);
+                            line.append(disp.columnSubSequence(terminal, hle[1], nextOffset));
                         } else {
-                            line.append(disp.columnSubSequence(curOffset, nextOffset, terminal));
+                            line.append(disp.columnSubSequence(terminal, curOffset, nextOffset));
                         }
                     } else {
-                        line.append(disp.columnSubSequence(curOffset, hls[1], terminal));
+                        line.append(disp.columnSubSequence(terminal, curOffset, hls[1]));
                         if (hle[1] > nextOffset) {
-                            line.append(disp.columnSubSequence(hls[1], nextOffset, terminal), AttributedStyle.INVERSE);
+                            line.append(disp.columnSubSequence(terminal, hls[1], nextOffset), AttributedStyle.INVERSE);
                         } else {
-                            line.append(disp.columnSubSequence(hls[1], hle[1], terminal), AttributedStyle.INVERSE);
-                            line.append(disp.columnSubSequence(hle[1], nextOffset, terminal));
+                            line.append(disp.columnSubSequence(terminal, hls[1], hle[1]), AttributedStyle.INVERSE);
+                            line.append(disp.columnSubSequence(terminal, hle[1], nextOffset));
                         }
                     }
                 } else {
-                    line.append(disp.columnSubSequence(curOffset, nextOffset, terminal));
+                    line.append(disp.columnSubSequence(terminal, curOffset, nextOffset));
                 }
             } else {
                 if (curLine > hls[0] && curLine < hle[0]) {
-                    line.append(disp.columnSubSequence(curOffset, nextOffset, terminal), AttributedStyle.INVERSE);
+                    line.append(disp.columnSubSequence(terminal, curOffset, nextOffset), AttributedStyle.INVERSE);
                 } else if (curLine == hls[0]) {
                     if (hls[1] > nextOffset) {
-                        line.append(disp.columnSubSequence(curOffset, nextOffset, terminal));
+                        line.append(disp.columnSubSequence(terminal, curOffset, nextOffset));
                     } else if (hls[1] < curOffset) {
-                        line.append(disp.columnSubSequence(curOffset, nextOffset, terminal), AttributedStyle.INVERSE);
+                        line.append(disp.columnSubSequence(terminal, curOffset, nextOffset), AttributedStyle.INVERSE);
                     } else {
-                        line.append(disp.columnSubSequence(curOffset, hls[1], terminal));
-                        line.append(disp.columnSubSequence(hls[1], nextOffset, terminal), AttributedStyle.INVERSE);
+                        line.append(disp.columnSubSequence(terminal, curOffset, hls[1]));
+                        line.append(disp.columnSubSequence(terminal, hls[1], nextOffset), AttributedStyle.INVERSE);
                     }
                 } else if (curLine == hle[0]) {
                     if (hle[1] < curOffset) {
-                        line.append(disp.columnSubSequence(curOffset, nextOffset, terminal));
+                        line.append(disp.columnSubSequence(terminal, curOffset, nextOffset));
                     } else if (hle[1] > nextOffset) {
-                        line.append(disp.columnSubSequence(curOffset, nextOffset, terminal), AttributedStyle.INVERSE);
+                        line.append(disp.columnSubSequence(terminal, curOffset, nextOffset), AttributedStyle.INVERSE);
                     } else {
-                        line.append(disp.columnSubSequence(curOffset, hle[1], terminal), AttributedStyle.INVERSE);
-                        line.append(disp.columnSubSequence(hle[1], nextOffset, terminal));
+                        line.append(disp.columnSubSequence(terminal, curOffset, hle[1]), AttributedStyle.INVERSE);
+                        line.append(disp.columnSubSequence(terminal, hle[1], nextOffset));
                     }
                 } else {
-                    line.append(disp.columnSubSequence(curOffset, nextOffset, terminal));
+                    line.append(disp.columnSubSequence(terminal, curOffset, nextOffset));
                 }
             }
         }
@@ -1788,7 +1787,7 @@ public class Nano implements Editor {
             }
         } else if (new File("/usr/share/nano").exists() && !ignorercfiles) {
             PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:/usr/share/nano/*.nanorc");
-            try (Stream<Path> pathStream = Files.walk(Paths.get("/usr/share/nano"))) {
+            try (Stream<Path> pathStream = Files.walk(Path.of("/usr/share/nano"))) {
                 pathStream.filter(pathMatcher::matches).forEach(syntaxFiles::add);
                 nanorcIgnoreErrors = true;
             } catch (IOException e) {
@@ -2384,7 +2383,7 @@ public class Nano implements Editor {
         Path newPath = root.resolve(name);
         boolean isSame =
                 orgPath != null && Files.exists(orgPath) && Files.exists(newPath) && Files.isSameFile(orgPath, newPath);
-        if (!isSame && Files.exists(Paths.get(name)) && writeMode == WriteMode.WRITE) {
+        if (!isSame && Files.exists(Path.of(name)) && writeMode == WriteMode.WRITE) {
             Operation op = getYNC("File exists, OVERWRITE ? ");
             if (op != Operation.YES) {
                 return false;

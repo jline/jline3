@@ -11,12 +11,14 @@ package org.jline.utils;
 import java.io.IOError;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.text.BreakIterator;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import org.jline.terminal.Sized;
 import org.jline.terminal.Terminal;
@@ -109,6 +111,23 @@ public class Display implements Sized {
     private String ansiAltIn;
     private String ansiAltOut;
 
+    // Pre-allocated reusable arrays for zero-allocation update path
+    private final int[] diffResult = new int[2];
+    private final int[] lcsResult = new int[3];
+    // Style state: [0]=current style, [1]=alt charset (0/1)
+    private final long[] ansiColorState = new long[2];
+    private final BreakIterator graphemeBreakIterator;
+    private final WCWidth.CharSequenceCharacterIterator graphemeCharIterator;
+    private final boolean hasCursorAddress;
+    private final boolean canSkipIntraLine;
+
+    /*
+     * Minimum number of unchanged characters within a changed region that justifies
+     * a cursor-movement skip instead of re-emitting them.  A CUF escape (\e[nC)
+     * costs 4-6 bytes, so gaps shorter than this are cheaper to re-emit inline.
+     */
+    private static final int INTRA_LINE_SKIP_THRESHOLD = 8;
+
     /**
      * Create a Display bound to the given Terminal and configured for either full-screen
      * or inline (partial-screen) usage.
@@ -132,6 +151,19 @@ public class Display implements Sized {
         this.wrapAtEol = this.terminalWrapAtEol;
         this.delayedWrapAtEol = this.terminalDelayedWrapAtEol;
         this.cursorDownIsNewLine = "\n".equals(Curses.tputs(terminal.getStringCapability(Capability.cursor_down)));
+        if (!AttributedCharSequence.DISABLE_ALTERNATE_CHARSET) {
+            this.ansiAltIn = Curses.tputs(terminal.getStringCapability(Capability.enter_alt_charset_mode));
+            this.ansiAltOut = Curses.tputs(terminal.getStringCapability(Capability.exit_alt_charset_mode));
+        }
+        if (WCWidth.HAS_JDK_GRAPHEME_SUPPORT) {
+            this.graphemeBreakIterator = BreakIterator.getCharacterInstance();
+            this.graphemeCharIterator = new WCWidth.CharSequenceCharacterIterator();
+        } else {
+            this.graphemeBreakIterator = null;
+            this.graphemeCharIterator = null;
+        }
+        this.hasCursorAddress = fullScreen && terminal.getStringCapability(Capability.cursor_address) != null;
+        this.canSkipIntraLine = terminal.getStringCapability(Capability.parm_right_cursor) != null;
     }
 
     /**
@@ -185,7 +217,7 @@ public class Display implements Sized {
             this.columns = columns;
             this.columns1 = columns + 1;
             oldLines = AttributedString.join(AttributedString.EMPTY, oldLines)
-                    .columnSplitLength(columns, true, delayLineWrap(), terminal);
+                    .columnSplitLength(terminal, columns, true, delayLineWrap());
         }
         // When the terminal buffer is wider than the visible window (e.g. Windows with
         // a wide screen buffer), auto-wrap occurs at the buffer width, not the visible
@@ -242,12 +274,28 @@ public class Display implements Sized {
         }
     }
 
+    /**
+     * Update the display with lines containing ANSI escape sequences and flush the output.
+     *
+     * <p>Each string in the list is parsed via {@link AttributedString#fromAnsi(String)}
+     * to convert ANSI escape codes into styled {@link AttributedString}s, then delegated
+     * to {@link #update(List, int)}.</p>
+     *
+     * @param newLines         the new lines to display, with embedded ANSI escape sequences
+     * @param targetCursorPos  the desired cursor position after the update (0-based character offset
+     *                         from the start of the first line, or -1 to leave the cursor at the end)
+     */
     public void updateAnsi(List<String> newLines, int targetCursorPos) {
-        update(newLines.stream().map(AttributedString::fromAnsi).collect(Collectors.toList()), targetCursorPos);
+        List<AttributedString> attrLines = new ArrayList<>(newLines.size());
+        for (int i = 0; i < newLines.size(); i++) {
+            attrLines.add(AttributedString.fromAnsi(newLines.get(i)));
+        }
+        update(attrLines, targetCursorPos);
     }
 
     /**
      * Update the display according to the new lines and flushes the output.
+     *
      * @param newLines the lines to display
      * @param targetCursorPos desired cursor position - see Size.cursorPos.
      */
@@ -257,6 +305,7 @@ public class Display implements Sized {
 
     /**
      * Update the display according to the new lines.
+     *
      * @param newLines the lines to display
      * @param targetCursorPos desired cursor position - see Size.cursorPos.
      * @param flush whether the output should be flushed or not
@@ -276,13 +325,10 @@ public class Display implements Sized {
             ansiColors = cols;
             ansiForceMode = AttributedCharSequence.ForceMode.None;
             ansiPalette = terminal.getPalette();
-            if (!AttributedCharSequence.DISABLE_ALTERNATE_CHARSET) {
-                ansiAltIn = Curses.tputs(terminal.getStringCapability(Capability.enter_alt_charset_mode));
-                ansiAltOut = Curses.tputs(terminal.getStringCapability(Capability.exit_alt_charset_mode));
-            } else {
-                ansiAltIn = null;
-                ansiAltOut = null;
-            }
+            // ansiAltIn / ansiAltOut are cached from the constructor
+            // Reset style state for this update cycle
+            ansiColorState[0] = 0;
+            ansiColorState[1] = 0;
         }
 
         if (reset) {
@@ -294,9 +340,11 @@ public class Display implements Sized {
 
         // If dumb display, get rid of ansi sequences now
         if (cols == null || cols < 8) {
-            newLines = newLines.stream()
-                    .map(s -> new AttributedString(s.toString()))
-                    .collect(Collectors.toList());
+            List<AttributedString> stripped = new ArrayList<>(newLines.size());
+            for (int idx = 0; idx < newLines.size(); idx++) {
+                stripped.add(new AttributedString(newLines.get(idx).toString()));
+            }
+            newLines = stripped;
         }
 
         // Detect scrolling
@@ -314,13 +362,13 @@ public class Display implements Sized {
                             oldLines.get(oldLines.size() - nbFooters - 1))) {
                 nbFooters++;
             }
-            List<AttributedString> o1 = newLines.subList(nbHeaders, newLines.size() - nbFooters);
-            List<AttributedString> o2 = oldLines.subList(nbHeaders, oldLines.size() - nbFooters);
-            int[] common = longestCommon(o1, o2);
-            if (common != null) {
-                int s1 = common[0];
-                int s2 = common[1];
-                int sl = common[2];
+            int fromIndex = nbHeaders;
+            int toIndex = newLines.size() - nbFooters;
+            longestCommon(newLines, fromIndex, toIndex, oldLines, fromIndex, toIndex);
+            if (lcsResult[2] > 0) {
+                int s1 = lcsResult[0];
+                int s2 = lcsResult[1];
+                int sl = lcsResult[2];
                 if (sl > 1 && s1 < s2) {
                     moveVisualCursorTo((nbHeaders + s1) * columns1);
                     int nb = s2 - s1;
@@ -332,7 +380,7 @@ public class Display implements Sized {
                         moveVisualCursorTo((nbHeaders + s1 + sl) * columns1);
                         insertLines(nb);
                         for (int i = 0; i < nb; i++) {
-                            oldLines.add(nbHeaders + s1 + sl, new AttributedString(""));
+                            oldLines.add(nbHeaders + s1 + sl, AttributedString.EMPTY);
                         }
                     }
                 } else if (sl > 1 && s1 > s2) {
@@ -347,7 +395,7 @@ public class Display implements Sized {
                     moveVisualCursorTo((nbHeaders + s2) * columns1);
                     insertLines(nb);
                     for (int i = 0; i < nb; i++) {
-                        oldLines.add(nbHeaders + s2, new AttributedString(""));
+                        oldLines.add(nbHeaders + s2, AttributedString.EMPTY);
                     }
                 }
             }
@@ -362,55 +410,59 @@ public class Display implements Sized {
             AttributedString newLine = lineIndex < newLines.size() ? newLines.get(lineIndex) : AttributedString.EMPTY;
             currentPos = lineIndex * columns1;
             int curCol = currentPos;
-            int oldLength = oldLine.length();
-            int newLength = newLine.length();
-            boolean oldNL = oldLength > 0 && oldLine.charAt(oldLength - 1) == '\n';
-            boolean newNL = newLength > 0 && newLine.charAt(newLength - 1) == '\n';
+            // Track effective ranges instead of creating substrings
+            int oStart = 0;
+            int oEnd = oldLine.length();
+            int nStart = 0;
+            int nEnd = newLine.length();
+            boolean oldNL = oEnd > 0 && oldLine.charAt(oEnd - 1) == '\n';
+            boolean newNL = nEnd > 0 && newLine.charAt(nEnd - 1) == '\n';
             if (oldNL) {
-                oldLength--;
-                oldLine = oldLine.substring(0, oldLength);
+                oEnd--;
             }
             if (newNL) {
-                newLength--;
-                newLine = newLine.substring(0, newLength);
+                nEnd--;
             }
             if (wrapNeeded && lineIndex == (cursorPos + 1) / columns1 && lineIndex < newLines.size()) {
                 // move from right margin to next line's left margin
                 cursorPos++;
-                if (newLength == 0 || newLine.isHidden(0)) {
+                if (nEnd - nStart == 0 || newLine.isHidden(nStart)) {
                     // go to next line column zero
+                    ensureDefaultAnsiStyle();
                     rawPrint(' ');
                     puts(Capability.cursor_left);
                 } else {
-                    AttributedString firstChar = newLine.substring(0, 1);
                     // go to next line column one
-                    rawPrint(firstChar);
-                    cursorPos += firstChar.columnLength(terminal); // normally 1
-                    newLine = newLine.substring(1, newLength);
-                    newLength--;
-                    if (oldLength > 0) {
-                        oldLine = oldLine.substring(1, oldLength);
-                        oldLength--;
+                    rawPrint(newLine, nStart, nStart + 1);
+                    cursorPos += newLine.columnLength(
+                            terminal, graphemeBreakIterator, graphemeCharIterator, nStart, nStart + 1); // normally 1
+                    nStart++;
+                    if (oEnd - oStart > 0) {
+                        oStart++;
                     }
                     currentPos = cursorPos;
                 }
             }
+            int oLen = oEnd - oStart;
+            int nLen = nEnd - nStart;
             // When grapheme cluster mode is active, the terminal may retroactively
             // combine or uncombine characters as ZWJ and other combining code points
             // are added incrementally. This invalidates cursor position tracking
             // based on char-level diffs. Force a full line repaint in this case.
-            if (terminal.getGraphemeClusterMode() && !oldLine.equals(newLine)) {
+            if (terminal.getGraphemeClusterMode() && !equalsRange(oldLine, oStart, oEnd, newLine, nStart, nEnd)) {
                 cursorPos = moveVisualCursorTo(currentPos);
+                ensureDefaultAnsiStyle();
                 if (!puts(Capability.clr_eol)) {
-                    int oldLen = oldLine.columnLength(terminal);
+                    int oldLen =
+                            oldLine.columnLength(terminal, graphemeBreakIterator, graphemeCharIterator, oStart, oEnd);
                     if (oldLen > 0) {
                         rawPrint(' ', oldLen);
                         cursorPos += oldLen;
                         cursorPos = moveVisualCursorTo(currentPos);
                     }
                 }
-                rawPrint(newLine);
-                cursorPos += newLine.columnLength(terminal);
+                rawPrint(newLine, nStart, nEnd);
+                cursorPos += newLine.columnLength(terminal, graphemeBreakIterator, graphemeCharIterator, nStart, nEnd);
                 currentPos = cursorPos;
                 lineIndex++;
                 boolean newWrap2 = !newNL && lineIndex < newLines.size();
@@ -418,74 +470,112 @@ public class Display implements Sized {
                 wrapNeeded = newWrap2;
                 continue;
             }
-            List<DiffHelper.Diff> diffs = DiffHelper.diff(oldLine, newLine);
+            // Inline diff: compute common prefix/suffix lengths without allocation
+            DiffHelper.diff(oldLine, oStart, oEnd, newLine, nStart, nEnd, diffResult);
+            int cs = diffResult[0]; // common prefix length
+            int ce = diffResult[1]; // common suffix length
+            boolean hasInsert = nLen > cs + ce;
+            boolean hasDelete = oLen > cs + ce;
+            boolean hasEqSuffix = ce > 0;
             boolean ident = true;
             boolean cleared = false;
-            for (int i = 0; i < diffs.size(); i++) {
-                DiffHelper.Diff diff = diffs.get(i);
-                int width = diff.text.columnLength(terminal);
-                switch (diff.operation) {
-                    case EQUAL:
-                        if (!ident) {
-                            cursorPos = moveVisualCursorTo(currentPos);
-                            rawPrint(diff.text);
-                            cursorPos += width;
-                            currentPos = cursorPos;
-                        } else {
-                            currentPos += width;
-                        }
-                        break;
-                    case INSERT:
-                        if (i <= diffs.size() - 2 && diffs.get(i + 1).operation == DiffHelper.Operation.EQUAL) {
-                            cursorPos = moveVisualCursorTo(currentPos);
-                            if (insertChars(width)) {
-                                rawPrint(diff.text);
-                                cursorPos += width;
-                                currentPos = cursorPos;
-                                break;
-                            }
-                        } else if (i <= diffs.size() - 2
-                                && diffs.get(i + 1).operation == DiffHelper.Operation.DELETE
-                                && width == diffs.get(i + 1).text.columnLength(terminal)) {
-                            moveVisualCursorTo(currentPos);
-                            rawPrint(diff.text);
-                            cursorPos += width;
-                            currentPos = cursorPos;
-                            i++; // skip delete
-                            break;
-                        }
-                        moveVisualCursorTo(currentPos);
-                        rawPrint(diff.text);
-                        cursorPos += width;
+            // EQUAL prefix
+            if (cs > 0) {
+                currentPos += oldLine.columnLength(
+                        terminal, graphemeBreakIterator, graphemeCharIterator, oStart, oStart + cs);
+            }
+            // INSERT
+            if (hasInsert) {
+                int iStart = nStart + cs;
+                int iEnd = nEnd - ce;
+                int insertWidth =
+                        newLine.columnLength(terminal, graphemeBreakIterator, graphemeCharIterator, iStart, iEnd);
+                boolean insertHandled = false;
+                // Optimization: if followed by EQUAL suffix (no DELETE), try insertChars
+                if (hasEqSuffix && !hasDelete) {
+                    cursorPos = moveVisualCursorTo(currentPos);
+                    ensureDefaultAnsiStyle();
+                    if (insertChars(insertWidth)) {
+                        rawPrint(newLine, iStart, iEnd);
+                        cursorPos += insertWidth;
                         currentPos = cursorPos;
-                        ident = false;
-                        break;
-                    case DELETE:
-                        if (cleared) {
-                            continue;
-                        }
-                        if (currentPos - curCol >= columns) {
-                            continue;
-                        }
-                        if (i <= diffs.size() - 2 && diffs.get(i + 1).operation == DiffHelper.Operation.EQUAL) {
-                            if (currentPos + diffs.get(i + 1).text.columnLength(terminal) < columns) {
-                                moveVisualCursorTo(currentPos);
-                                if (deleteChars(width)) {
-                                    break;
-                                }
-                            }
-                        }
-                        int oldLen = oldLine.columnLength(terminal);
-                        int newLen = newLine.columnLength(terminal);
-                        int nb = Math.max(oldLen, newLen) - (currentPos - curCol);
+                        insertHandled = true;
+                    }
+                }
+                // Optimization: if followed by DELETE with same width, overwrite
+                if (!insertHandled && hasDelete) {
+                    int dStart = oStart + cs;
+                    int dEnd = oEnd - ce;
+                    int deleteWidth =
+                            oldLine.columnLength(terminal, graphemeBreakIterator, graphemeCharIterator, dStart, dEnd);
+                    if (insertWidth == deleteWidth) {
                         moveVisualCursorTo(currentPos);
-                        if (!puts(Capability.clr_eol)) {
-                            rawPrint(' ', nb);
-                            cursorPos += nb;
+                        if (canSkipIntraLine && (iEnd - iStart) == (dEnd - dStart)) {
+                            emitOverwriteWithSkips(newLine, iStart, iEnd, oldLine, dStart);
+                        } else {
+                            rawPrint(newLine, iStart, iEnd);
+                            cursorPos += insertWidth;
                         }
-                        cleared = true;
-                        ident = false;
-                        break;
+                        currentPos = cursorPos;
+                        hasDelete = false; // skip DELETE processing
+                        insertHandled = true;
+                    }
+                }
+                // Default: just print
+                if (!insertHandled) {
+                    moveVisualCursorTo(currentPos);
+                    rawPrint(newLine, iStart, iEnd);
+                    cursorPos += insertWidth;
+                    currentPos = cursorPos;
+                    ident = false;
+                }
+            }
+            // DELETE
+            if (hasDelete && !cleared && currentPos - curCol < columns) {
+                int dStart = oStart + cs;
+                int dEnd = oEnd - ce;
+                int deleteWidth =
+                        oldLine.columnLength(terminal, graphemeBreakIterator, graphemeCharIterator, dStart, dEnd);
+                boolean deleteHandled = false;
+                // Optimization: if followed by EQUAL suffix, try deleteChars
+                if (hasEqSuffix) {
+                    int suffixWidth = oldLine.columnLength(
+                            terminal, graphemeBreakIterator, graphemeCharIterator, oEnd - ce, oEnd);
+                    if ((currentPos - curCol) + suffixWidth < columns) {
+                        moveVisualCursorTo(currentPos);
+                        ensureDefaultAnsiStyle();
+                        if (deleteChars(deleteWidth)) {
+                            deleteHandled = true;
+                        }
+                    }
+                }
+                if (!deleteHandled) {
+                    int oldColLen =
+                            oldLine.columnLength(terminal, graphemeBreakIterator, graphemeCharIterator, oStart, oEnd);
+                    int newColLen =
+                            newLine.columnLength(terminal, graphemeBreakIterator, graphemeCharIterator, nStart, nEnd);
+                    int nb = Math.max(oldColLen, newColLen) - (currentPos - curCol);
+                    moveVisualCursorTo(currentPos);
+                    ensureDefaultAnsiStyle();
+                    if (!puts(Capability.clr_eol)) {
+                        rawPrint(' ', nb);
+                        cursorPos += nb;
+                    }
+                    cleared = true;
+                    ident = false;
+                }
+            }
+            // EQUAL suffix
+            if (hasEqSuffix) {
+                int suffixWidth =
+                        oldLine.columnLength(terminal, graphemeBreakIterator, graphemeCharIterator, oEnd - ce, oEnd);
+                if (!ident) {
+                    cursorPos = moveVisualCursorTo(currentPos);
+                    rawPrint(newLine, nEnd - ce, nEnd);
+                    cursorPos += suffixWidth;
+                    currentPos = cursorPos;
+                } else {
+                    currentPos += suffixWidth;
                 }
             }
             lineIndex++;
@@ -498,11 +588,15 @@ public class Display implements Sized {
                 if (newWrap != oldWrap && !(oldWrap && cleared)) {
                     moveVisualCursorTo(lineIndex * columns1 - 1, newLines);
                     if (newWrap) wrapNeeded = true;
-                    else puts(Capability.clr_eol);
+                    else {
+                        ensureDefaultAnsiStyle();
+                        puts(Capability.clr_eol);
+                    }
                 }
             } else if (atRight) {
                 if (this.wrapAtEol) {
                     if (!fullScreen || (fullScreen && lineIndex < numLines)) {
+                        ensureDefaultAnsiStyle();
                         rawPrint(' ');
                         puts(Capability.cursor_left);
                         cursorPos++;
@@ -518,6 +612,7 @@ public class Display implements Sized {
             moveVisualCursorTo(targetCursorPos < 0 ? currentPos : targetCursorPos, newLines);
         }
         oldLines = newLines;
+        ensureDefaultAnsiStyle();
 
         if (useByteMode && byteBuilder.length() > 0) {
             // Flush any pending writer data, then write accumulated bytes
@@ -601,25 +696,109 @@ public class Display implements Sized {
         return s != null ? s.length() : Integer.MAX_VALUE;
     }
 
-    private static int[] longestCommon(List<AttributedString> l1, List<AttributedString> l2) {
+    /*
+     * Compare ranges of two attributed strings for equality without allocation.
+     */
+    private static boolean equalsRange(
+            AttributedCharSequence a, int aStart, int aEnd, AttributedCharSequence b, int bStart, int bEnd) {
+        if (aEnd - aStart != bEnd - bStart) return false;
+        int offA = a.offset() + aStart;
+        int offB = b.offset() + bStart;
+        int endA = a.offset() + aEnd;
+        return Arrays.equals(a.buffer(), offA, endA, b.buffer(), offB, offB + (aEnd - aStart))
+                && Arrays.equals(a.styleBuffer(), offA, endA, b.styleBuffer(), offB, offB + (aEnd - aStart));
+    }
+
+    /*
+     * Emit the changed region of a same-width overwrite, using cursor movement
+     * to skip runs of unchanged characters that are at least
+     * INTRA_LINE_SKIP_THRESHOLD characters long.
+     *
+     * Both regions must have the same character count (not just the same
+     * display width).  When they differ, the caller should fall back to
+     * rawPrint(newLine, iStart, iEnd).
+     */
+    private void emitOverwriteWithSkips(
+            AttributedString newLine, int iStart, int iEnd, AttributedString oldLine, int dStart) {
+        int len = iEnd - iStart;
+        int pendingStart = -1; // start offset of segment to emit (-1 = none)
+        int pos = 0;
+
+        while (pos < len) {
+            // Detect run of unchanged characters
+            int runStart = pos;
+            while (pos < len
+                    && newLine.charAt(iStart + pos) == oldLine.charAt(dStart + pos)
+                    && newLine.styleCodeAt(iStart + pos) == oldLine.styleCodeAt(dStart + pos)) {
+                pos++;
+            }
+            int unchangedLen = pos - runStart;
+
+            if (unchangedLen >= INTRA_LINE_SKIP_THRESHOLD) {
+                // Gap is long enough to skip — first emit any pending content
+                pendingStart = flushPending(newLine, iStart, pendingStart, runStart);
+                // Skip the gap with cursor movement
+                int gapWidth = newLine.columnLength(
+                        terminal, graphemeBreakIterator, graphemeCharIterator, iStart + runStart, iStart + pos);
+                moveVisualCursorTo(cursorPos + gapWidth);
+            } else if (unchangedLen > 0 && pendingStart < 0) {
+                // Gap too short or at end — include in pending segment
+                pendingStart = runStart;
+            }
+
+            // Advance past the next changed character (if any)
+            if (pos < len) {
+                if (pendingStart < 0) pendingStart = pos;
+                pos++;
+            }
+        }
+
+        // Emit any remaining content
+        if (pendingStart >= 0) {
+            rawPrint(newLine, iStart + pendingStart, iEnd);
+            cursorPos += newLine.columnLength(
+                    terminal, graphemeBreakIterator, graphemeCharIterator, iStart + pendingStart, iEnd);
+        }
+    }
+
+    /*
+     * Emit the pending segment [pendingStart, segEnd) if any, and return -1.
+     */
+    private int flushPending(AttributedString line, int lineStart, int pendingStart, int segEnd) {
+        if (pendingStart >= 0) {
+            rawPrint(line, lineStart + pendingStart, lineStart + segEnd);
+            cursorPos += line.columnLength(
+                    terminal,
+                    graphemeBreakIterator,
+                    graphemeCharIterator,
+                    lineStart + pendingStart,
+                    lineStart + segEnd);
+        }
+        return -1;
+    }
+
+    private void longestCommon(
+            List<AttributedString> l1, int from1, int to1, List<AttributedString> l2, int from2, int to2) {
         int start1 = 0;
         int start2 = 0;
         int max = 0;
-        for (int i = 0; i < l1.size(); i++) {
-            for (int j = 0; j < l2.size(); j++) {
+        for (int i = from1; i < to1; i++) {
+            for (int j = from2; j < to2; j++) {
                 int x = 0;
                 while (Objects.equals(l1.get(i + x), l2.get(j + x))) {
                     x++;
-                    if (((i + x) >= l1.size()) || ((j + x) >= l2.size())) break;
+                    if (((i + x) >= to1) || ((j + x) >= to2)) break;
                 }
                 if (x > max) {
                     max = x;
-                    start1 = i;
-                    start2 = j;
+                    start1 = i - from1;
+                    start2 = j - from2;
                 }
             }
         }
-        return max != 0 ? new int[] {start1, start2, max} : null;
+        lcsResult[0] = start1;
+        lcsResult[1] = start2;
+        lcsResult[2] = max;
     }
 
     /*
@@ -637,7 +816,7 @@ public class Display implements Sized {
                 int row = targetPos / columns1;
                 AttributedString lastChar = row >= newLines.size()
                         ? AttributedString.EMPTY
-                        : newLines.get(row).columnSubSequence(columns - 1, columns, terminal);
+                        : newLines.get(row).columnSubSequence(terminal, columns - 1, columns);
                 if (lastChar.length() == 0) rawPrint((int) ' ');
                 else rawPrint(lastChar);
                 cursorPos++;
@@ -664,6 +843,14 @@ public class Display implements Sized {
         int c0 = i0 % width;
         int l1 = i1 / width;
         int c1 = i1 % width;
+        // Use absolute CUP for diagonal moves (both row and column change).
+        // CUP (\e[r;cH) is typically 6-10 bytes, which is almost always cheaper
+        // than the combined vertical + horizontal relative sequences.
+        if (hasCursorAddress && l0 != l1 && c0 != c1) {
+            puts(Capability.cursor_address, l1, c1);
+            cursorPos = i1;
+            return i1;
+        }
         if (c0 == columns) { // at right margin
             puts(Capability.carriage_return);
             c0 = 0;
@@ -734,10 +921,73 @@ public class Display implements Sized {
      * @param str the attributed string to write (may contain styling/ANSI sequences)
      */
     void rawPrint(AttributedString str) {
+        rawPrint(str, 0, str.length());
+    }
+
+    /**
+     * Writes a range of the given attributed string to the display output without
+     * creating a substring. In byte mode, style state is tracked across calls via
+     * {@code ansiColorState} to avoid redundant style resets and re-emissions.
+     *
+     * @param str   the attributed string to write
+     * @param start start index (inclusive)
+     * @param end   end index (exclusive)
+     */
+    void rawPrint(AttributedString str, int start, int end) {
+        if (start >= end) return;
         if (useByteMode) {
-            str.toAnsiBytes(byteBuilder, ansiColors, ansiForceMode, ansiPalette, ansiAltIn, ansiAltOut);
+            str.toAnsiBytes(
+                    byteBuilder,
+                    start,
+                    end,
+                    ansiColors,
+                    ansiForceMode,
+                    ansiPalette,
+                    ansiAltIn,
+                    ansiAltOut,
+                    ansiColorState);
         } else {
-            str.print(terminal);
+            // Non-byte-mode path: fall back to subSequence (rare path for non-UTF-8 terminals)
+            str.subSequence(start, end).print(terminal);
+        }
+    }
+
+    /*
+     * Ensure the terminal is in default ANSI style before emitting content that
+     * must appear unstyled (blanking spaces, clr_eol, insert/delete chars).
+     * Emits reset only when a non-default style is currently active.
+     */
+    private void ensureDefaultAnsiStyle() {
+        if (!useByteMode) return;
+        if (ansiColorState[1] != 0 && ansiAltOut != null) {
+            byteBuilder.appendAscii(ansiAltOut);
+            ansiColorState[1] = 0;
+        }
+        if (ansiColorState[0] != 0) {
+            byteBuilder.csi().appendAscii("0m");
+            ansiColorState[0] = 0;
+        }
+    }
+
+    private static final Object[] EMPTY_PARAMS = new Object[0];
+
+    /**
+     * Emit the terminal control sequence for a parameter-less capability without
+     * varargs allocation.
+     *
+     * @param capability the terminal capability to emit
+     * @return `true` if the capability sequence was emitted; `false` if unavailable
+     */
+    private boolean puts(Capability capability) {
+        if (useByteMode) {
+            String str = terminal.getStringCapability(capability);
+            if (str == null) {
+                return false;
+            }
+            Curses.tputs(byteAppendable, str, EMPTY_PARAMS);
+            return true;
+        } else {
+            return terminal.puts(capability, EMPTY_PARAMS);
         }
     }
 

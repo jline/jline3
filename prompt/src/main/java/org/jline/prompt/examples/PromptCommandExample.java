@@ -9,7 +9,7 @@
 package org.jline.prompt.examples;
 
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.Map;
 
 import org.jline.prompt.*;
@@ -39,7 +39,7 @@ public class PromptCommandExample {
                     System.in,
                     System.out,
                     System.err,
-                    Paths.get(System.getProperty("user.dir")),
+                    Path.of(System.getProperty("user.dir")),
                     terminal,
                     name -> System.getProperty(name));
 

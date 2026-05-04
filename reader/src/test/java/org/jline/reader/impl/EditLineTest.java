@@ -26,9 +26,9 @@ import static org.jline.reader.LineReader.KILL_WORD;
  *
  * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
  */
-public class EditLineTest extends ReaderTestSupport {
+class EditLineTest extends ReaderTestSupport {
     @Test
-    public void testIssue101() throws Exception {
+    void testIssue101() throws Exception {
         TestBuffer b = new TestBuffer(
                         "config:property-set --pid org.ops4j.pax.url.mvn org.ops4j.pax.url.mvn.globalChecksumPolicy crash")
                 .op(BACKWARD_WORD)
@@ -43,7 +43,7 @@ public class EditLineTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testDeletePreviousWord() throws Exception {
+    void testDeletePreviousWord() throws Exception {
         TestBuffer b = new TestBuffer("This is a test");
 
         assertBuffer("This is a ", b = b.op(BACKWARD_KILL_WORD));
@@ -55,7 +55,7 @@ public class EditLineTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testDeleteNextWord() throws Exception {
+    void testDeleteNextWord() throws Exception {
         TestBuffer b = new TestBuffer("This is a test").op(END_OF_LINE);
 
         assertBuffer("This is a test", b = b.op(KILL_WORD));
@@ -63,7 +63,7 @@ public class EditLineTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testMoveToEnd() throws Exception {
+    void testMoveToEnd() throws Exception {
         assertBuffer(
                 "This is a XtestX",
                 new TestBuffer("This is a test")
@@ -93,7 +93,7 @@ public class EditLineTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testPreviousWord() throws Exception {
+    void testPreviousWord() throws Exception {
         assertBuffer(
                 "This is a Xtest",
                 new TestBuffer("This is a test").op(BACKWARD_WORD).append('X'));
@@ -140,7 +140,7 @@ public class EditLineTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testBackwardWord() throws Exception {
+    void testBackwardWord() throws Exception {
         assertBuffer(
                 "This is a Xtest",
                 new TestBuffer("This is a test").op(BACKWARD_WORD).append('X'));
@@ -154,7 +154,7 @@ public class EditLineTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testForwardWord() throws Exception {
+    void testForwardWord() throws Exception {
         assertBuffer(
                 "This Xis a test",
                 new TestBuffer("This is a test").ctrlA().op(FORWARD_WORD).append('X'));
@@ -169,7 +169,7 @@ public class EditLineTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testBackwardWordWithSeparator() throws Exception {
+    void testBackwardWordWithSeparator() throws Exception {
         // Use an empty string for WORDCHARS so that / is not treated as part of the word
         reader.setVariable(LineReader.WORDCHARS, "");
 
@@ -186,7 +186,7 @@ public class EditLineTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testForwardWordWithSeparator() throws Exception {
+    void testForwardWordWithSeparator() throws Exception {
         // Use an empty string for WORDCHARS so that / is not treated as part of the word
         reader.setVariable(LineReader.WORDCHARS, "");
 
@@ -204,7 +204,7 @@ public class EditLineTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testEmacsBackwardWord() throws Exception {
+    void testEmacsBackwardWord() throws Exception {
         reader.getKeys().bind(new Reference(LineReader.EMACS_BACKWARD_WORD), KeyMap.alt('b'));
 
         assertBuffer(
@@ -220,7 +220,7 @@ public class EditLineTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testEmacsForwardWord() throws Exception {
+    void testEmacsForwardWord() throws Exception {
         reader.getKeys().bind(new Reference(LineReader.EMACS_FORWARD_WORD), KeyMap.alt('f'));
 
         assertBuffer(
@@ -237,7 +237,7 @@ public class EditLineTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testEmacsBackwardWordWithSeparator() throws Exception {
+    void testEmacsBackwardWordWithSeparator() throws Exception {
         reader.getKeys().bind(new Reference(LineReader.EMACS_BACKWARD_WORD), KeyMap.alt('b'));
 
         // Use an empty string for WORDCHARS so that / is not treated as part of the word
@@ -256,7 +256,7 @@ public class EditLineTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testEmacsForwardWordWithSeparator() throws Exception {
+    void testEmacsForwardWordWithSeparator() throws Exception {
         reader.getKeys().bind(new Reference(LineReader.EMACS_FORWARD_WORD), KeyMap.alt('f'));
 
         // Use an empty string for WORDCHARS so that / is not treated as part of the word
@@ -276,7 +276,7 @@ public class EditLineTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testLineStart() throws Exception {
+    void testLineStart() throws Exception {
         assertBuffer("XThis is a test", new TestBuffer("This is a test").ctrlA().append('X'));
         assertBuffer(
                 "TXhis is a test",
@@ -284,7 +284,7 @@ public class EditLineTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testClearLine() throws Exception {
+    void testClearLine() throws Exception {
         reader.getKeys().bind(new Reference(BACKWARD_KILL_LINE), ctrl('U'));
         assertBuffer("", new TestBuffer("This is a test").ctrlU());
         assertBuffer("t", new TestBuffer("This is a test").left().ctrlU());
@@ -292,7 +292,7 @@ public class EditLineTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testRight() throws Exception {
+    void testRight() throws Exception {
         TestBuffer b = new TestBuffer("This is a test");
         b = b.left().right().back();
         assertBuffer("This is a tes", b);
@@ -303,7 +303,7 @@ public class EditLineTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testLeft() throws Exception {
+    void testLeft() throws Exception {
         TestBuffer b = new TestBuffer("This is a test");
         b = b.left().left().left();
         assertBuffer("This is a est", b = b.back());
@@ -324,7 +324,7 @@ public class EditLineTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testBackspace() throws Exception {
+    void testBackspace() throws Exception {
         TestBuffer b = new TestBuffer("This is a test");
         assertBuffer("This is a tes", b = b.back());
         assertBuffer("This is a te", b = b.back());
@@ -347,12 +347,12 @@ public class EditLineTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testBuffer() throws Exception {
+    void testBuffer() throws Exception {
         assertBuffer("This is a test", new TestBuffer("This is a test"));
     }
 
     @Test
-    public void testAbortPartialBuffer() throws Exception {
+    void testAbortPartialBuffer() throws Exception {
         reader.setVariable(LineReader.BELL_STYLE, "audible");
         assertBuffer("", new TestBuffer("This is a test").ctrl('G'));
         assertConsoleOutputContains("\n");
@@ -371,7 +371,7 @@ public class EditLineTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testEscapeNewLine() throws Exception {
+    void testEscapeNewLine() {
         boolean prev = ((DefaultParser) reader.getParser()).isEofOnEscapedNewLine();
         ((DefaultParser) reader.getParser()).setEofOnEscapedNewLine(true);
         try {

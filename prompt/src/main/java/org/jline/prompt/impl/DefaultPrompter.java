@@ -1063,7 +1063,7 @@ public class DefaultPrompter implements Prompter {
         while (true) {
             // Build message with filter text
             String message = prompt.getMessage();
-            if (filterText.length() > 0) {
+            if (prompt.isFilterable() && filterText.length() > 0) {
                 message = prompt.getMessage() + " [" + filterText + "]";
             }
 
@@ -1081,17 +1081,19 @@ public class DefaultPrompter implements Prompter {
                     break;
 
                 case INSERT:
-                    String ch = bindingReader.getLastBinding();
-                    filterText.append(ch);
-                    filteredItems = filterItems(allItems, filterText.toString());
-                    range = null;
-                    if (!filteredItems.isEmpty()) {
-                        selectRow = nextRow(firstItemRow - 1, firstItemRow, filteredItems);
+                    if (prompt.isFilterable()) {
+                        String ch = bindingReader.getLastBinding();
+                        filterText.append(ch);
+                        filteredItems = filterItems(allItems, filterText.toString());
+                        range = null;
+                        if (!filteredItems.isEmpty()) {
+                            selectRow = nextRow(firstItemRow - 1, firstItemRow, filteredItems);
+                        }
                     }
                     break;
 
                 case BACKSPACE:
-                    if (filterText.length() > 0) {
+                    if (prompt.isFilterable() && filterText.length() > 0) {
                         filterText.deleteCharAt(filterText.length() - 1);
                         filteredItems = filterItems(allItems, filterText.toString());
                         range = null;
@@ -1109,7 +1111,7 @@ public class DefaultPrompter implements Prompter {
                     }
                     break;
                 case ESCAPE:
-                    if (filterText.length() > 0) {
+                    if (prompt.isFilterable() && filterText.length() > 0) {
                         // First escape clears filter
                         filterText.setLength(0);
                         filteredItems = allItems;
@@ -1185,7 +1187,7 @@ public class DefaultPrompter implements Prompter {
         while (true) {
             // Build message with filter text
             String message = prompt.getMessage();
-            if (filterText.length() > 0) {
+            if (prompt.isFilterable() && filterText.length() > 0) {
                 message = prompt.getMessage() + " [" + filterText + "]";
             }
 
@@ -1203,17 +1205,19 @@ public class DefaultPrompter implements Prompter {
                     break;
 
                 case INSERT:
-                    String ch = bindingReader.getLastBinding();
-                    filterText.append(ch);
-                    filteredItems = filterItems(allItems, filterText.toString());
-                    range = null;
-                    if (!filteredItems.isEmpty()) {
-                        selectRow = nextRow(firstItemRow - 1, firstItemRow, filteredItems);
+                    if (prompt.isFilterable()) {
+                        String ch = bindingReader.getLastBinding();
+                        filterText.append(ch);
+                        filteredItems = filterItems(allItems, filterText.toString());
+                        range = null;
+                        if (!filteredItems.isEmpty()) {
+                            selectRow = nextRow(firstItemRow - 1, firstItemRow, filteredItems);
+                        }
                     }
                     break;
 
                 case BACKSPACE:
-                    if (filterText.length() > 0) {
+                    if (prompt.isFilterable() && filterText.length() > 0) {
                         filterText.deleteCharAt(filterText.length() - 1);
                         filteredItems = filterItems(allItems, filterText.toString());
                         range = null;
@@ -1243,7 +1247,7 @@ public class DefaultPrompter implements Prompter {
                     }
                     return new DefaultCheckboxResult(selectedIds, prompt);
                 case ESCAPE:
-                    if (filterText.length() > 0) {
+                    if (prompt.isFilterable() && filterText.length() > 0) {
                         filterText.setLength(0);
                         filteredItems = allItems;
                         range = null;

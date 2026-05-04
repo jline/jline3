@@ -8,10 +8,7 @@
  */
 package org.jline.builtins;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,70 +20,30 @@ import static org.junit.jupiter.api.Assertions.*;
  * Tests for SwingTerminal encoding functionality, specifically the
  * SwingTerminalOutputStream ByteBuffer and CharsetDecoder implementation.
  */
-public class SwingTerminalEncodingTest {
+class SwingTerminalEncodingTest {
 
     private SwingTerminal swingTerminal;
-    private TestTerminalComponent testComponent;
 
     @BeforeEach
-    public void setUp() throws IOException {
+    void setUp() throws IOException {
         swingTerminal = new SwingTerminal("EncodingTest", 80, 24);
-        testComponent = new TestTerminalComponent();
 
         // Replace the component with our test component to capture output
         swingTerminal.getComponent().setTerminal(null); // Disconnect original
-        testComponent.setTerminal(swingTerminal);
 
         // Get the output stream and set our test component
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
         swingTerminal.writer().flush(); // Ensure any pending output is flushed
     }
 
     @AfterEach
-    public void tearDown() {
+    void tearDown() throws IOException {
         if (swingTerminal != null) {
-            swingTerminal.dispose();
-        }
-    }
-
-    /**
-     * Test component that captures written text for verification.
-     */
-    private static class TestTerminalComponent {
-        private final StringBuilder capturedText = new StringBuilder();
-        private final CountDownLatch writeLatch = new CountDownLatch(1);
-        private SwingTerminal terminal;
-
-        public void setTerminal(SwingTerminal terminal) {
-            this.terminal = terminal;
-        }
-
-        public void write(String text) {
-            synchronized (capturedText) {
-                capturedText.append(text);
-                writeLatch.countDown();
-            }
-        }
-
-        public String getCapturedText() {
-            synchronized (capturedText) {
-                return capturedText.toString();
-            }
-        }
-
-        public void clearCapturedText() {
-            synchronized (capturedText) {
-                capturedText.setLength(0);
-            }
-        }
-
-        public boolean waitForWrite(long timeout, TimeUnit unit) throws InterruptedException {
-            return writeLatch.await(timeout, unit);
+            swingTerminal.close();
         }
     }
 
     @Test
-    public void testSimpleAsciiText() throws IOException {
+    void testSimpleAsciiText() {
         String testText = "Hello, World!";
 
         // Write through the terminal's writer (which uses the OutputStream internally)
@@ -99,15 +56,13 @@ public class SwingTerminalEncodingTest {
     }
 
     @Test
-    public void testMultiByteUtf8Characters() throws IOException {
+    void testMultiByteUtf8Characters() {
         // Test with a shorter string to isolate the issue
         String testText = "Hello résumé";
 
         // Write through the terminal's writer
         swingTerminal.writer().write(testText);
         swingTerminal.writer().flush();
-
-        String captured = getCapturedTextFromTerminal();
 
         // Now test the full string
         swingTerminal.writer().write("\n");
@@ -125,7 +80,7 @@ public class SwingTerminalEncodingTest {
     }
 
     @Test
-    public void testIncompleteMultiByteSequences() throws IOException {
+    void testIncompleteMultiByteSequences() {
         // This test is more complex since we need to access the OutputStream directly
         // For now, we'll test that complete sequences work correctly
         String testText = "世";
@@ -138,7 +93,7 @@ public class SwingTerminalEncodingTest {
     }
 
     @Test
-    public void testByteArrayWrite() throws IOException {
+    void testByteArrayWrite() {
         String testText = "Byte array test with UTF-8: 测试 🚀";
 
         // Write through the terminal's writer
@@ -152,7 +107,7 @@ public class SwingTerminalEncodingTest {
     }
 
     @Test
-    public void testMixedWrites() throws IOException {
+    void testMixedWrites() {
         // Write mixed content
         String part1 = "Hello ";
         String part2 = "世界 ";
@@ -168,7 +123,7 @@ public class SwingTerminalEncodingTest {
     }
 
     @Test
-    public void testFlushBehavior() throws IOException {
+    void testFlushBehavior() {
         // Test that flush works correctly
         String testText = "世";
 
@@ -180,7 +135,7 @@ public class SwingTerminalEncodingTest {
     }
 
     @Test
-    public void testLargeText() throws IOException {
+    void testLargeText() {
         StringBuilder largeText = new StringBuilder();
         for (int i = 0; i < 23; i++) {
             largeText.append("Line ").append(i).append(" with UTF-8: 测试 🚀\n");
@@ -198,7 +153,7 @@ public class SwingTerminalEncodingTest {
     }
 
     @Test
-    public void testFontMetricsCharacterWidth() {
+    void testFontMetricsCharacterWidth() {
         // Test that character width is calculated properly to prevent overlap
         SwingTerminal.TerminalComponent component = swingTerminal.getComponent();
 
@@ -214,7 +169,6 @@ public class SwingTerminalEncodingTest {
         // Verify that the preferred size is based on character dimensions
         // Width should be terminal width * character width
         // Height should be terminal height * character height
-        int expectedCells = 80 * 24; // Default terminal size
         assertTrue(component.getPreferredSize().width >= 80, "Width should accommodate at least 80 characters");
         assertTrue(component.getPreferredSize().height >= 24, "Height should accommodate at least 24 lines");
     }
