@@ -86,12 +86,12 @@ public class Nano implements Editor {
     protected final Terminal terminal;
     protected final Display display;
     protected final BindingReader bindingReader;
-    protected volatile Size size;
     protected final Path root;
     protected final int vsusp;
     private final List<Path> syntaxFiles = new ArrayList<>();
 
-    // Keys
+    // Mutable state
+    protected volatile Size size;
     protected KeyMap<Operation> keys;
 
     // Configuration

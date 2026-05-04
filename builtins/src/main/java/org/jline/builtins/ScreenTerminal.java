@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.jline.terminal.Size;
 import org.jline.terminal.Sized;
 import org.jline.utils.Colors;
 import org.jline.utils.WCWidth;
@@ -1756,23 +1757,8 @@ public class ScreenTerminal implements Sized {
      * @return true if the size was set successfully, false otherwise
      */
     public synchronized boolean setSize(Sized sized) {
-        return setSize(sized.getColumns(), sized.getRows());
-    }
-
-    /**
-     * Resize the terminal to the given number of columns and rows.
-     *
-     * This adjusts internal screen buffers, clamps cursor and scroll-region positions
-     * to the new dimensions, and marks the terminal as dirty so callers can refresh.
-     *
-     * @param columns the target number of columns (2–256)
-     * @param rows    the target number of rows (2–256)
-     * @return        `true` if the size was changed; `false` if the requested dimensions are out of range
-     * @deprecated Use {@link #setSize(Sized)} instead.
-     */
-    @Deprecated
-    @SuppressWarnings("java:S1133") // Intentional deprecation; removal planned for a future major version
-    public synchronized boolean setSize(int columns, int rows) {
+        int columns = sized.getColumns();
+        int rows = sized.getRows();
         if (columns < MIN_SIZE || columns > MAX_SIZE || rows < MIN_SIZE || rows > MAX_SIZE) {
             return false;
         }
@@ -1804,6 +1790,20 @@ public class ScreenTerminal implements Sized {
 
         setDirty();
         return true;
+    }
+
+    /**
+     * Resize the terminal to the given number of columns and rows.
+     *
+     * @param columns the target number of columns (2–256)
+     * @param rows    the target number of rows (2–256)
+     * @return        `true` if the size was changed; `false` if the requested dimensions are out of range
+     * @deprecated Use {@link #setSize(Sized)} instead.
+     */
+    @Deprecated
+    @SuppressWarnings("java:S1133")
+    public synchronized boolean setSize(int columns, int rows) {
+        return setSize(Size.of(columns, rows));
     }
 
     /**
