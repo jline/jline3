@@ -17,8 +17,9 @@ package org.jline.terminal;
  * cursor positioning, screen clearing, and text layout calculations.
  * </p>
  *
- * <p>{@code Size} instances are <strong>immutable</strong>. Use the {@link #of(int, int)} or
- * {@link #of(Sized)} factory methods to create new instances.</p>
+ * <p>Prefer the {@link #of(int, int)} or {@link #of(Sized)} factory methods to create
+ * new instances. The mutating methods ({@link #setColumns}, {@link #setRows}, {@link #copy})
+ * are deprecated and will be removed in a future major version.</p>
  *
  * <p>
  * Terminal dimensions are typically measured in character cells, where:
@@ -52,8 +53,8 @@ package org.jline.terminal;
  */
 public class Size implements Sized {
 
-    private final int rows;
-    private final int cols;
+    private int rows;
+    private int cols;
 
     /**
      * Creates a new Size with the specified number of columns and rows.
@@ -127,13 +128,12 @@ public class Size implements Sized {
      * Sets the number of columns (width) for this terminal size.
      *
      * @param columns the number of columns to set
-     * @throws UnsupportedOperationException always — Size is immutable
-     * @deprecated Size is now immutable. Use {@link #of(int, int)} instead.
+     * @deprecated Use {@link #of(int, int)} to create a new instance instead.
      */
     @Deprecated
     @SuppressWarnings("java:S1133")
     public void setColumns(int columns) {
-        throw new UnsupportedOperationException("Size is immutable; use Size.of() instead");
+        this.cols = columns;
     }
 
     /**
@@ -150,13 +150,12 @@ public class Size implements Sized {
      * Sets the number of rows (height) for this terminal size.
      *
      * @param rows the number of rows to set
-     * @throws UnsupportedOperationException always — Size is immutable
-     * @deprecated Size is now immutable. Use {@link #of(int, int)} instead.
+     * @deprecated Use {@link #of(int, int)} to create a new instance instead.
      */
     @Deprecated
     @SuppressWarnings("java:S1133")
     public void setRows(int rows) {
-        throw new UnsupportedOperationException("Size is immutable; use Size.of() instead");
+        this.rows = rows;
     }
 
     /**
@@ -178,26 +177,26 @@ public class Size implements Sized {
      * Copies the dimensions from another Size object to this one.
      *
      * @param size the Size object to copy dimensions from
-     * @throws UnsupportedOperationException always — Size is immutable
-     * @deprecated Size is now immutable. Use {@link #of(Sized)} instead.
+     * @deprecated Use {@link #of(Sized)} to create a new instance instead.
      */
     @Deprecated
     @SuppressWarnings("java:S1133")
     public void copy(Size size) {
-        throw new UnsupportedOperationException("Size is immutable; use Size.of() instead");
+        this.rows = size.rows;
+        this.cols = size.cols;
     }
 
     /**
      * Copies the dimensions from another Sized object to this one.
      *
      * @param size the Sized object to copy dimensions from
-     * @throws UnsupportedOperationException always — Size is immutable
-     * @deprecated Size is now immutable. Use {@link #of(Sized)} instead.
+     * @deprecated Use {@link #of(Sized)} to create a new instance instead.
      */
     @Deprecated
     @SuppressWarnings("java:S1133")
     public void copy(Sized size) {
-        throw new UnsupportedOperationException("Size is immutable; use Size.of() instead");
+        this.rows = size.getRows();
+        this.cols = size.getColumns();
     }
 
     /**

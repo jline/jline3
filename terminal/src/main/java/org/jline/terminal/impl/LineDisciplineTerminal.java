@@ -237,7 +237,7 @@ public class LineDisciplineTerminal extends AbstractTerminal {
 
     public Size getSize() {
         checkClosed();
-        return size;
+        return Size.of(size);
     }
 
     public void setSize(Sized sz) {
