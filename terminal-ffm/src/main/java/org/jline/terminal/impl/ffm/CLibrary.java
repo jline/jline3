@@ -29,6 +29,7 @@ import java.util.stream.Stream;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
+import org.jline.terminal.Sized;
 import org.jline.terminal.impl.TermiosData;
 import org.jline.terminal.impl.TermiosMapping;
 import org.jline.terminal.spi.Pty;
@@ -382,7 +383,7 @@ class CLibrary {
         }
     }
 
-    static void setTerminalSize(int fd, Size size) {
+    static void setTerminalSize(int fd, Sized size) {
         try {
             winsize ws = new winsize();
             ws.ws_row((short) size.getRows());
