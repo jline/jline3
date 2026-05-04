@@ -20,6 +20,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.GZIPOutputStream;
 
+import org.jline.terminal.Size;
 import org.jline.terminal.Sized;
 import org.jline.terminal.impl.LineDisciplineTerminal;
 
@@ -236,9 +237,14 @@ public class WebTerminal extends LineDisciplineTerminal {
      * @deprecated Use {@link #setSize(Sized)} instead.
      */
     @Deprecated
-    @SuppressWarnings("java:S1133") // Intentional deprecation; removal planned for a future major version
+    @SuppressWarnings("java:S1133")
     public boolean setSize(int columns, int rows) {
-        return component.setSize(columns, rows);
+        checkClosed();
+        if (component.setSize(Size.of(columns, rows))) {
+            super.setSize(component);
+            return true;
+        }
+        return false;
     }
 
     /**

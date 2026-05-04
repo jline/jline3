@@ -18,7 +18,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 
-import org.jline.terminal.*;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Cursor;
+import org.jline.terminal.MouseEvent;
+import org.jline.terminal.Size;
+import org.jline.terminal.Sized;
+import org.jline.terminal.Terminal;
 import org.jline.utils.ColorPalette;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.NonBlockingReader;

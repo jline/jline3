@@ -273,10 +273,11 @@ public class TTop {
     }
 
     private void handle(Terminal.Signal signal) {
-        int prevw = size.getColumns();
-        size = terminal.getSize();
+        Size prev = this.size;
+        Size cur = terminal.getSize();
+        this.size = cur;
         try {
-            if (size.getColumns() < prevw) {
+            if (cur.getColumns() < prev.getColumns()) {
                 display.clear();
             }
             display();

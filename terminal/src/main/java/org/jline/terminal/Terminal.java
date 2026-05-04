@@ -768,10 +768,9 @@ public interface Terminal extends Closeable, Flushable, Sized {
      * @param size the desired terminal size (columns and rows)
      * @see #getSize()
      */
-    // Deprecation is awkward, as in its current state setSize(Size) would always cause deprecation warnings,
-    // because it doesn't auto-map to setSize(Sized)
-    // @Deprecated
-    // @SuppressWarnings("java:S1133") // Intentional deprecation; removal planned for a future major version
+    // Not @Deprecated: callers passing a Size would always get a warning since
+    // Java resolves setSize(Size) over setSize(Sized) by specificity.
+    // This bridge method cannot be removed without breaking binary compatibility.
     default void setSize(Size size) {
         setSize((Sized) size);
     }

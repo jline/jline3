@@ -26,6 +26,7 @@ import org.jline.terminal.Attributes.InputFlag;
 import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Attributes.OutputFlag;
 import org.jline.terminal.Size;
+import org.jline.terminal.Sized;
 import org.jline.terminal.impl.AbstractPty;
 import org.jline.terminal.spi.Pty;
 import org.jline.terminal.spi.SystemStream;
@@ -361,7 +362,7 @@ public class ExecPty extends AbstractPty implements Pty {
     }
 
     @Override
-    public void setSize(Size size) throws IOException {
+    public void setSize(Sized size) throws IOException {
         if (systemStream != null) {
             exec(
                     true,

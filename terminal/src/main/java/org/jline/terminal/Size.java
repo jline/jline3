@@ -74,6 +74,7 @@ public class Size implements Sized {
      * @return a new Size instance
      */
     public static Size of(Sized sized) {
+        // Always copy: Size is still mutable via deprecated setters
         return new Size(sized.getColumns(), sized.getRows());
     }
 

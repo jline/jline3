@@ -21,7 +21,7 @@ public interface Sized {
      * Returns the number of columns (width) in this object.
      *
      * <p>
-     * The number of columns represents the width of the terminal in character cells.
+     * The number of columns represents the width in character cells.
      * </p>
      *
      * @return The number of columns (width) in this object.
@@ -32,7 +32,7 @@ public interface Sized {
      * Returns the number of rows (height) in this object.
      *
      * <p>
-     * The number of rows represents the height of the terminal in character cells.
+     * The number of rows represents the height in character cells.
      * </p>
      *
      * @return The number of rows (height) in this object.

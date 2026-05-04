@@ -19,6 +19,7 @@ import org.jline.nativ.CLibrary;
 import org.jline.nativ.Kernel32;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
+import org.jline.terminal.Sized;
 import org.jline.terminal.impl.AbstractPty;
 import org.jline.terminal.impl.TermiosData;
 import org.jline.terminal.impl.TermiosMapping;
@@ -160,7 +161,7 @@ public abstract class JniNativePty extends AbstractPty implements Pty {
     }
 
     @Override
-    public void setSize(Size size) throws IOException {
+    public void setSize(Sized size) throws IOException {
         CLibrary.WinSize sz = new CLibrary.WinSize((short) size.getRows(), (short) size.getColumns());
         int res = CLibrary.ioctl(slave, CLibrary.TIOCSWINSZ, sz);
         if (res != 0) {
