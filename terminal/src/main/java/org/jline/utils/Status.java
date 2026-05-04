@@ -159,6 +159,13 @@ public class Status {
                     clearStart = Math.min(clearStart, oldScrollRegion + 1);
                 }
                 if (effectiveLines > 0) {
+                    // When the terminal height shrinks, some terminal emulators
+                    // preserve the old bottom status line just above the new
+                    // status area.  Clear one status-height band above the
+                    // status area so the next redraw does not leave duplicates.
+                    if (newRows < oldRows) {
+                        clearStart = Math.min(clearStart, Math.max(0, scrollRegion + 1 - effectiveLines));
+                    }
                     // Account for wrapped status lines when width decreased
                     if (display.columns < oldColumns) {
                         int wrappedPerLine = (oldColumns + display.columns - 1) / display.columns;
