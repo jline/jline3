@@ -185,13 +185,13 @@ public class ShellFactoryImpl implements ShellFactory {
                         .system(false)
                         .streams(in, out)
                         .attributes(attributes)
-                        .size(new Size(
+                        .size(Size.of(
                                 Integer.parseInt(env.getEnv().get("COLUMNS")),
                                 Integer.parseInt(env.getEnv().get("LINES"))))
                         .build();
                 env.addSignalListener(
                         (channel, signals) -> {
-                            terminal.setSize(new Size(
+                            terminal.setSize(Size.of(
                                     Integer.parseInt(env.getEnv().get("COLUMNS")),
                                     Integer.parseInt(env.getEnv().get("LINES"))));
                             terminal.raise(Terminal.Signal.WINCH);

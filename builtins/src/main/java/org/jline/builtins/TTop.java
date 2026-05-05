@@ -119,7 +119,7 @@ public class TTop {
     private final Display display;
     private final BindingReader bindingReader;
     private final KeyMap<Operation> keys;
-    private final Size size = new Size();
+    private volatile Size size = Size.of(0, 0);
 
     private Comparator<Map<String, Comparable<?>>> comparator;
 
@@ -195,7 +195,7 @@ public class TTop {
             }
         }
 
-        size.copy(terminal.getSize());
+        size = terminal.getSize();
         Terminal.SignalHandler prevHandler = terminal.handle(Terminal.Signal.WINCH, this::handle);
         Attributes attr = terminal.enterRawMode();
         try {
@@ -273,10 +273,11 @@ public class TTop {
     }
 
     private void handle(Terminal.Signal signal) {
-        int prevw = size.getColumns();
-        size.copy(terminal.getSize());
+        Size prev = this.size;
+        Size cur = terminal.getSize();
+        this.size = cur;
         try {
-            if (size.getColumns() < prevw) {
+            if (cur.getColumns() < prev.getColumns()) {
                 display.clear();
             }
             display();

@@ -24,6 +24,7 @@ import java.util.function.IntConsumer;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
+import org.jline.terminal.Sized;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.FastBufferedOutputStream;
@@ -42,7 +43,7 @@ import org.jline.utils.ShutdownHooks.Task;
  *   <li>{@link #doGetAttributes()}</li>
  *   <li>{@link #doSetAttributes(Attributes)}</li>
  *   <li>{@link #doGetSize()}</li>
- *   <li>{@link #doSetSize(Size)}</li>
+ *   <li>{@link #doSetSize(Sized)}</li>
  * </ul>
  *
  * <p>The call chain is reduced from 7 layers to 4:</p>
@@ -138,7 +139,7 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
 
     protected abstract Size doGetSize();
 
-    protected abstract void doSetSize(Size size);
+    protected abstract void doSetSize(Sized size);
 
     @Override
     public Attributes getAttributes() {
@@ -159,7 +160,7 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
     }
 
     @Override
-    public void setSize(Size size) {
+    public void setSize(Sized size) {
         checkClosed();
         doSetSize(size);
     }

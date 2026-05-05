@@ -33,7 +33,7 @@ class DisplayBenchmarkTest {
                 new DisplayTest.VirtualTerminal("bench", "xterm", StandardCharsets.UTF_8, COLS, ROWS)) {
             terminal.enterRawMode();
             Display display = new Display(terminal, true);
-            display.resize(new Size(COLS, ROWS));
+            display.resize(Size.of(COLS, ROWS));
 
             // Build alternating screen content
             List<AttributedString> screenA = buildScreen("A", ROWS, COLS);

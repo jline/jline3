@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import org.jline.terminal.Size;
+import org.jline.terminal.Sized;
 import org.jline.terminal.Terminal;
 import org.jline.utils.InfoCmp.Capability;
 
@@ -79,7 +79,7 @@ import org.jline.utils.InfoCmp.Capability;
  *   <li>Race conditions in screen updates</li>
  * </ul>
  */
-public class Display {
+public class Display implements Sized {
 
     protected final Terminal terminal;
     protected final boolean fullScreen;
@@ -187,10 +187,10 @@ public class Display {
     /**
      * Resize the display to the dimensions specified by the given Size.
      *
-     * @param size the target display dimensions; its rows and columns are applied to the display
+     * @param sized the target display dimensions; its rows and columns are applied to the display
      */
-    public void resize(Size size) {
-        resize(size.getRows(), size.getColumns());
+    public void resize(Sized sized) {
+        resize(sized.getRows(), sized.getColumns());
     }
 
     /**
@@ -203,7 +203,7 @@ public class Display {
      *
      * @param rows    the number of display rows
      * @param columns the number of display columns
-     * @deprecated Use {@link #resize(Size)} instead to avoid parameter order confusion.
+     * @deprecated Use {@link #resize(Sized)} instead to avoid parameter order confusion.
      */
     @Deprecated
     @SuppressWarnings("java:S1133") // Intentional deprecation; removal planned for a future major version
@@ -237,6 +237,7 @@ public class Display {
      *
      * @return the number of columns (display width)
      */
+    @Override
     public int getColumns() {
         return columns;
     }
@@ -246,6 +247,7 @@ public class Display {
      *
      * @return the current number of rows
      */
+    @Override
     public int getRows() {
         return rows;
     }

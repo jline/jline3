@@ -149,7 +149,7 @@ class LineReaderTest {
 
                     @Override
                     public Size getSize() {
-                        return new Size(80, 25);
+                        return Size.of(80, 25);
                     }
                 };
         assertTrue(sw.toString().contains("\u001b[9999E"));
@@ -199,7 +199,7 @@ class LineReaderTest {
         ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
 
         Terminal terminal = TerminalBuilder.builder().streams(in, out).build();
-        terminal.setSize(new Size(0, 48));
+        terminal.setSize(Size.of(0, 48));
         LineReader lineReader = LineReaderBuilder.builder()
                 .terminal(terminal)
                 .variable(LineReader.SECONDARY_PROMPT_PATTERN, "%P ")

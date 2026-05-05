@@ -17,6 +17,7 @@ import java.io.OutputStream;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
+import org.jline.terminal.Sized;
 import org.jline.terminal.impl.AbstractPty;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
@@ -133,7 +134,7 @@ class FfmNativePty extends AbstractPty {
     }
 
     @Override
-    public void setSize(Size size) throws IOException {
+    public void setSize(Sized size) throws IOException {
         CLibrary.setTerminalSize(slave, size);
     }
 

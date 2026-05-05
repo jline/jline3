@@ -206,7 +206,7 @@ class CompletionTest extends ReaderTestSupport {
 
     @Test
     void testDumbTerminalNoSizeComplete() {
-        terminal.setSize(new Size());
+        terminal.setSize(Size.of(0, 0));
         reader.setCompleter(new StringsCompleter(
                 List.of("ae_helloWorld", "ad_helloWorld", "ac_helloWorld", "ab_helloWorld", "aa_helloWorld")));
 
@@ -215,7 +215,7 @@ class CompletionTest extends ReaderTestSupport {
 
     @Test
     void testTerminalNoSizeComplete() {
-        terminal.setSize(new Size());
+        terminal.setSize(Size.of(0, 0));
         reader.doAutosuggestion = true;
         reader.autosuggestion = LineReader.SuggestionType.COMPLETER;
         reader.setCompleter(new StringsCompleter(

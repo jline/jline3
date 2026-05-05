@@ -259,7 +259,7 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<MemorySegment>
         try (Arena arena = Arena.ofConfined()) {
             CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO(arena);
             GetConsoleScreenBufferInfo(outConsole, info);
-            return new Size(info.windowWidth(), info.windowHeight());
+            return Size.of(info.windowWidth(), info.windowHeight());
         }
     }
 
@@ -268,7 +268,7 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<MemorySegment>
         try (Arena arena = Arena.ofConfined()) {
             CONSOLE_SCREEN_BUFFER_INFO info = new CONSOLE_SCREEN_BUFFER_INFO(arena);
             GetConsoleScreenBufferInfo(outConsole, info);
-            return new Size(info.size().x(), info.size().y());
+            return Size.of(info.size().x(), info.size().y());
         }
     }
 

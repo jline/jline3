@@ -205,7 +205,7 @@ public class LineReaderImpl implements LineReader, Flushable {
     protected String tailTip = "";
     protected SuggestionType autosuggestion = SuggestionType.NONE;
 
-    protected final Size size = new Size();
+    protected volatile Size size = Size.of(0, 0);
 
     protected AttributedString prompt = AttributedString.EMPTY;
     protected AttributedString rightPrompt = AttributedString.EMPTY;
@@ -840,7 +840,7 @@ public class LineReaderImpl implements LineReader, Flushable {
     private void doDisplay() {
         // Cache terminal size for the duration of the call to readLine()
         // It will eventually be updated with WINCH signals
-        size.copy(terminal.getBufferSize());
+        size = terminal.getBufferSize();
 
         display = new Display(terminal, false);
         display.resize(size);
@@ -1313,7 +1313,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             }
         } else if (signal == Signal.CONT) {
             terminal.enterRawMode();
-            size.copy(terminal.getBufferSize());
+            size = terminal.getBufferSize();
             display.resize(size);
             terminal.puts(Capability.keypad_xmit);
             redrawLine();
@@ -4889,7 +4889,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         if (possible.isEmpty()) {
             return false;
         }
-        size.copy(terminal.getSize());
+        size = terminal.getSize();
         try {
             // If we only need to display the list, do it now
             if (lst == CompletionType.List) {
@@ -4993,7 +4993,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             }
             return true;
         } finally {
-            size.copy(terminal.getBufferSize());
+            size = terminal.getBufferSize();
         }
     }
 

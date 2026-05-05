@@ -59,7 +59,7 @@ class NanoSuggestionBoxTest {
             buffer.computeAllOffsets(); // Initialize offsets
 
             // Set the terminal size
-            size.copy(terminal.getSize());
+            size = terminal.getSize();
 
             // Call the protected method using reflection
             try {
@@ -79,7 +79,7 @@ class NanoSuggestionBoxTest {
         ByteArrayInputStream in = new ByteArrayInputStream(new byte[0]);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try (Terminal terminal = new DumbTerminal("name", "dumb", in, out, StandardCharsets.UTF_8)) {
-            terminal.setSize(new Size(80, 24));
+            terminal.setSize(Size.of(80, 24));
 
             TestableNano nano = new TestableNano(terminal);
 

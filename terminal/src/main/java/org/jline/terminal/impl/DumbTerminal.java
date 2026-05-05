@@ -18,6 +18,7 @@ import java.nio.charset.Charset;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.ControlChar;
 import org.jline.terminal.Size;
+import org.jline.terminal.Sized;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.NonBlocking;
@@ -68,7 +69,7 @@ public class DumbTerminal extends AbstractTerminal {
     private final NonBlockingReader reader;
     private final PrintWriter writer;
     private final Attributes attributes;
-    private final Size size;
+    private volatile Size size;
     private boolean skipNextLf;
 
     public DumbTerminal(InputStream in, OutputStream out) throws IOException {
@@ -176,7 +177,7 @@ public class DumbTerminal extends AbstractTerminal {
         this.attributes.setControlChar(ControlChar.VWERASE, (char) 23);
         this.attributes.setControlChar(ControlChar.VKILL, (char) 21);
         this.attributes.setControlChar(ControlChar.VLNEXT, (char) 22);
-        this.size = new Size();
+        this.size = Size.of(0, 0);
         parseInfoCmp();
     }
 
@@ -214,14 +215,12 @@ public class DumbTerminal extends AbstractTerminal {
 
     public Size getSize() {
         checkClosed();
-        Size sz = new Size();
-        sz.copy(size);
-        return sz;
+        return Size.of(size);
     }
 
-    public void setSize(Size sz) {
+    public void setSize(Sized sz) {
         checkClosed();
-        size.copy(sz);
+        size = Size.of(sz);
     }
 
     @Override

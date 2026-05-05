@@ -65,7 +65,7 @@ class AbstractWindowsTerminalTest {
 
                     @Override
                     public Size getSize() {
-                        return new Size(80, 25);
+                        return Size.of(80, 25);
                     }
                 };
         terminal.output().write("This is a char.\n".getBytes());

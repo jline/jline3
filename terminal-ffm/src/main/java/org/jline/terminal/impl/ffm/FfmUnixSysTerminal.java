@@ -13,6 +13,7 @@ import java.nio.charset.Charset;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
+import org.jline.terminal.Sized;
 import org.jline.terminal.impl.AbstractUnixSysTerminal;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
@@ -72,7 +73,7 @@ public class FfmUnixSysTerminal extends AbstractUnixSysTerminal {
     }
 
     @Override
-    protected void doSetSize(Size size) {
+    protected void doSetSize(Sized size) {
         CLibrary.setTerminalSize(outputFd, size);
     }
 }

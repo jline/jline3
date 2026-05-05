@@ -29,6 +29,7 @@ import java.util.stream.Stream;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
+import org.jline.terminal.Sized;
 import org.jline.terminal.impl.TermiosData;
 import org.jline.terminal.impl.TermiosMapping;
 import org.jline.terminal.spi.Pty;
@@ -376,13 +377,13 @@ class CLibrary {
         try {
             winsize ws = new winsize();
             int res = (int) ioctl.invoke(fd, (long) TIOCGWINSZ, ws.segment());
-            return new Size(ws.ws_col(), ws.ws_row());
+            return Size.of(ws.ws_col(), ws.ws_row());
         } catch (Throwable e) {
             throw new RuntimeException("Unable to call ioctl(TIOCGWINSZ)", e);
         }
     }
 
-    static void setTerminalSize(int fd, Size size) {
+    static void setTerminalSize(int fd, Sized size) {
         try {
             winsize ws = new winsize();
             ws.ws_row((short) size.getRows());

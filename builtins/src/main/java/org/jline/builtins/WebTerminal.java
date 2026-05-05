@@ -20,6 +20,8 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.GZIPOutputStream;
 
+import org.jline.terminal.Size;
+import org.jline.terminal.Sized;
 import org.jline.terminal.impl.LineDisciplineTerminal;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -218,15 +220,31 @@ public class WebTerminal extends LineDisciplineTerminal {
         return component.dump(timeout, forceUpdate);
     }
 
+    @Override
+    public void setSize(Sized sz) {
+        checkClosed();
+        if (component.setSize(sz)) {
+            super.setSize(component);
+        }
+    }
+
     /**
      * Set the terminal dimensions in columns and rows.
      *
      * @param columns the new number of columns
      * @param rows the new number of rows
      * @return `true` if the terminal was resized, `false` otherwise
+     * @deprecated Use {@link #setSize(Sized)} instead.
      */
+    @Deprecated
+    @SuppressWarnings("java:S1133")
     public boolean setSize(int columns, int rows) {
-        return component.setSize(columns, rows);
+        checkClosed();
+        if (component.setSize(Size.of(columns, rows))) {
+            super.setSize(component);
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -456,8 +474,11 @@ public class WebTerminal extends LineDisciplineTerminal {
          * @param columns the new number of columns; must be between 10 and 200 inclusive
          * @param rows the new number of rows; must be between 5 and 100 inclusive
          * @return true if the size was applied, false if the provided dimensions are out of range
+         * @deprecated Use {@link #setSize(Sized)} instead.
          */
         @Override
+        @Deprecated
+        @SuppressWarnings("deprecation")
         public synchronized boolean setSize(int columns, int rows) {
             if (columns < 10 || rows < 5 || columns > MAX_SIZE || rows > MAX_SIZE) {
                 return false;

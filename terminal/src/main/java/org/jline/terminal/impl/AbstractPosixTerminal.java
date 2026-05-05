@@ -17,6 +17,7 @@ import java.util.function.IntConsumer;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
+import org.jline.terminal.Sized;
 import org.jline.terminal.spi.Pty;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
@@ -117,7 +118,7 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
         }
     }
 
-    public void setSize(Size size) {
+    public void setSize(Sized size) {
         checkClosed();
         try {
             pty.setSize(size);

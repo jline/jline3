@@ -23,6 +23,7 @@ import org.jline.terminal.Attributes.InputFlag;
 import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Attributes.OutputFlag;
 import org.jline.terminal.Size;
+import org.jline.terminal.Sized;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
@@ -108,7 +109,7 @@ public class LineDisciplineTerminal extends AbstractTerminal {
      */
     protected final Attributes attributes;
 
-    protected final Size size;
+    protected volatile Size size;
 
     protected boolean skipNextLf;
 
@@ -143,7 +144,7 @@ public class LineDisciplineTerminal extends AbstractTerminal {
         this.slaveWriter = new PrintWriter(new OutputStreamWriter(slaveOutput, outputEncoding()));
         this.masterOutput = masterOutput;
         this.attributes = getDefaultTerminalAttributes();
-        this.size = new Size(160, 50);
+        this.size = Size.of(160, 50);
         parseInfoCmp();
     }
 
@@ -236,14 +237,12 @@ public class LineDisciplineTerminal extends AbstractTerminal {
 
     public Size getSize() {
         checkClosed();
-        Size sz = new Size();
-        sz.copy(size);
-        return sz;
+        return Size.of(size);
     }
 
-    public void setSize(Size sz) {
+    public void setSize(Sized sz) {
         checkClosed();
-        size.copy(sz);
+        size = Size.of(sz);
     }
 
     @Override

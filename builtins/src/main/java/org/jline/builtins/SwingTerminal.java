@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.*;
 
 import org.jline.terminal.Size;
+import org.jline.terminal.Sized;
 import org.jline.terminal.impl.LineDisciplineTerminal;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp;
@@ -115,7 +116,7 @@ public class SwingTerminal extends LineDisciplineTerminal {
      * @param rows    the number of rows for the terminal display
      */
     private void initializeTerminal(int columns, int rows) {
-        setSize(new Size(columns, rows));
+        setSize(Size.of(columns, rows));
         OutputStream feedbackOutput = new OutputStream() {
             @Override
             public void write(int b) throws IOException {
@@ -254,11 +255,19 @@ public class SwingTerminal extends LineDisciplineTerminal {
         component.dispose();
     }
 
+    @Override
+    public void setSize(Sized sz) {
+        checkClosed();
+        if (component.setSize(sz)) {
+            super.setSize(component);
+        }
+    }
+
     /**
      * JComponent that renders the terminal display.
      * This is the inner class that contains the original ScreenTerminal-based implementation.
      */
-    public static class TerminalComponent extends JComponent implements KeyListener {
+    public static class TerminalComponent extends JComponent implements KeyListener, Sized {
 
         private static final long serialVersionUID = 1L;
 
@@ -394,6 +403,32 @@ public class SwingTerminal extends LineDisciplineTerminal {
             int width = screenTerminal.getColumns() * charWidth;
             int height = screenTerminal.getRows() * charHeight;
             setPreferredSize(new Dimension(width, height));
+        }
+
+        /**
+         * Resize the terminal to the specified columns and rows.
+         *
+         * @param size the new Size whose columns and rows will be applied
+         * @return true if the size was set successfully, false otherwise
+         */
+        public boolean setSize(Sized size) {
+            if (screenTerminal.setSize(size)) {
+                updatePreferredSize();
+                revalidate();
+                repaint();
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public int getColumns() {
+            return screenTerminal.getColumns();
+        }
+
+        @Override
+        public int getRows() {
+            return screenTerminal.getRows();
         }
 
         /**

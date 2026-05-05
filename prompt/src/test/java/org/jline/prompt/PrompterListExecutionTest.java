@@ -40,7 +40,7 @@ class PrompterListExecutionTest {
         // Create terminal and prompter
         Terminal terminal =
                 TerminalBuilder.builder().type("ansi").streams(in, out).build();
-        terminal.setSize(new Size(160, 80));
+        terminal.setSize(Size.of(160, 80));
         Prompter prompter = PrompterFactory.create(terminal);
 
         // Build a list prompt
@@ -85,7 +85,7 @@ class PrompterListExecutionTest {
         // Create terminal and prompter
         Terminal terminal =
                 TerminalBuilder.builder().type("ansi").streams(in, out).build();
-        terminal.setSize(new Size(160, 80));
+        terminal.setSize(Size.of(160, 80));
         Prompter prompter = PrompterFactory.create(terminal);
 
         // Build a list prompt
@@ -130,7 +130,7 @@ class PrompterListExecutionTest {
         // Create terminal and prompter
         Terminal terminal =
                 TerminalBuilder.builder().type("ansi").streams(in, out).build();
-        terminal.setSize(new Size(160, 80));
+        terminal.setSize(Size.of(160, 80));
         Prompter prompter = PrompterFactory.create(terminal);
 
         // Build a checkbox prompt
@@ -173,7 +173,7 @@ class PrompterListExecutionTest {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Terminal terminal =
                 TerminalBuilder.builder().type("ansi").streams(in, out).build();
-        terminal.setSize(new Size(160, 80));
+        terminal.setSize(Size.of(160, 80));
         return PrompterFactory.create(terminal);
     }
 
@@ -257,7 +257,7 @@ class PrompterListExecutionTest {
         // Create terminal and prompter
         Terminal terminal =
                 TerminalBuilder.builder().type("ansi").streams(in, out).build();
-        terminal.setSize(new Size(160, 80));
+        terminal.setSize(Size.of(160, 80));
         Prompter prompter = PrompterFactory.create(terminal);
 
         // Build a choice prompt

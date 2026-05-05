@@ -22,6 +22,7 @@ import org.jline.terminal.Attributes;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.MouseEvent;
 import org.jline.terminal.Size;
+import org.jline.terminal.Sized;
 import org.jline.terminal.Terminal;
 import org.jline.utils.ColorPalette;
 import org.jline.utils.InfoCmp.Capability;
@@ -324,10 +325,10 @@ class GraphemeClusterModeTest {
             public void setAttributes(Attributes attr) {}
 
             public Size getSize() {
-                return new Size(80, 24);
+                return Size.of(80, 24);
             }
 
-            public void setSize(Size size) {}
+            public void setSize(Sized size) {}
 
             public void flush() {}
 

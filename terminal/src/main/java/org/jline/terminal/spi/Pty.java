@@ -15,6 +15,7 @@ import java.io.OutputStream;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
+import org.jline.terminal.Sized;
 
 /**
  * Represents a pseudoterminal (PTY) that provides terminal emulation.
@@ -147,9 +148,9 @@ public interface Pty extends Closeable {
      *
      * @param size the new terminal size to set
      * @throws IOException if an I/O error occurs
-     * @see org.jline.terminal.Size
+     * @see org.jline.terminal.Sized
      */
-    void setSize(Size size) throws IOException;
+    void setSize(Sized size) throws IOException;
 
     /**
      * Returns the system stream associated with this PTY, if any.
