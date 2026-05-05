@@ -474,6 +474,7 @@ public class WebTerminal extends LineDisciplineTerminal {
          * @param columns the new number of columns; must be between 10 and 200 inclusive
          * @param rows the new number of rows; must be between 5 and 100 inclusive
          * @return true if the size was applied, false if the provided dimensions are out of range
+         * @deprecated Use {@link #setSize(Sized)} instead.
          */
         @Override
         @Deprecated
