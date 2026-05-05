@@ -81,7 +81,7 @@ public class Size implements Sized {
     /**
      * Creates a new Size instance with default dimensions (0 rows and 0 columns).
      *
-     * @deprecated Size is now immutable. Use {@link #of(int, int)} instead.
+     * @deprecated Use {@link #of(int, int)} instead.
      */
     @Deprecated
     @SuppressWarnings("java:S1133")

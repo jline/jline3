@@ -414,6 +414,8 @@ public class SwingTerminal extends LineDisciplineTerminal {
         public boolean setSize(Sized size) {
             if (screenTerminal.setSize(size)) {
                 updatePreferredSize();
+                revalidate();
+                repaint();
                 return true;
             }
             return false;
