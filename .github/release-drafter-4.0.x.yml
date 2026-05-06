@@ -15,11 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# Configuration for Release Drafter: https://github.com/toolmantim/release-drafter
-name-template: JLine $NEXT_MINOR_VERSION
-tag-template: $NEXT_MINOR_VERSION
+# Configuration for Release Drafter for 4.0.x maintenance branch
+name-template: JLine $NEXT_PATCH_VERSION
+tag-template: $NEXT_PATCH_VERSION
 version-template: $MAJOR.$MINOR.$PATCH
-commitish: master
+commitish: 4.0.x
 filter-by-commitish: true
 
 # Emoji reference: https://gitmoji.carloscuesta.me/
@@ -49,6 +49,7 @@ categories:
       - fix
       - bugfix
       - regression
+      - backport
   - title: ":construction_worker: Changes for developers"
     labels:
       - developer
@@ -79,4 +80,3 @@ change-template: '- $TITLE ([#$NUMBER]($URL)) @$AUTHOR'
 template: |
   <!-- Optional: add a release summary here -->
   $CHANGES
-

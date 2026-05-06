@@ -9,6 +9,7 @@ on:
     # branches to consider in the event; optional, defaults to all
     branches:
       - master
+      - 4.0.x
       - jline-3.x
   # pull_request event is required only for autolabeler
   pull_request:
@@ -40,6 +41,15 @@ jobs:
       - name: Run release drafter for master branch
         if: github.ref == 'refs/heads/master'
         uses: release-drafter/release-drafter@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Drafts your next Release notes as Pull Requests are merged into "4.0.x"
+      - name: Run release drafter for 4.0.x branch
+        if: github.ref == 'refs/heads/4.0.x'
+        uses: release-drafter/release-drafter@v7
+        with:
+          config-name: release-drafter-4.0.x.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
