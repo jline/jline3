@@ -15,9 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.jline.shell.*;
-import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -27,17 +24,14 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for {@link DefaultScriptRunner}.
  */
-class DefaultScriptRunnerTest {
+class DefaultScriptRunnerTest extends AbstractCommandDispatcherTest {
 
-    private Terminal terminal;
-    private DefaultCommandDispatcher dispatcher;
     private DefaultScriptRunner runner;
     private List<String> executedCommands;
 
     @BeforeEach
-    void setUp() throws IOException {
-        terminal = TerminalBuilder.builder().dumb(true).build();
-        dispatcher = new DefaultCommandDispatcher(terminal);
+    protected void setUp() throws IOException {
+        super.setUp();
         runner = new DefaultScriptRunner();
         executedCommands = new ArrayList<>();
 
@@ -50,19 +44,6 @@ class DefaultScriptRunnerTest {
                 return line;
             }
         }));
-    }
-
-    @AfterEach
-    void tearDown() throws IOException {
-        try {
-            if (terminal != null) {
-                terminal.close();
-            }
-        } finally {
-            if (dispatcher != null) {
-                dispatcher.close();
-            }
-        }
     }
 
     @Test

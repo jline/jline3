@@ -8,15 +8,10 @@
  */
 package org.jline.shell.impl;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 
 import org.jline.shell.Command;
 import org.jline.shell.CommandSession;
-import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -25,38 +20,16 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for {@link HelpCommands}.
  */
-class HelpCommandsTest {
+class HelpCommandsTest extends AbstractCommandsTest {
 
-    private Terminal terminal;
-    private DefaultCommandDispatcher dispatcher;
     private HelpCommands commands;
-    private CommandSession session;
-    private ByteArrayOutputStream outCapture;
-    private ByteArrayOutputStream errCapture;
 
     @BeforeEach
-    void setUp() throws IOException {
-        terminal = TerminalBuilder.builder().dumb(true).build();
-        dispatcher = new DefaultCommandDispatcher(terminal);
+    protected void setUp() throws IOException {
+        super.setUp();
         dispatcher.addGroup(new SimpleCommandGroup("demo", new TestEchoCmd(), new TestUpperCmd()));
         commands = new HelpCommands(dispatcher);
         dispatcher.addGroup(commands);
-        outCapture = new ByteArrayOutputStream();
-        errCapture = new ByteArrayOutputStream();
-        session = new CommandSession(null, System.in, new PrintStream(outCapture), new PrintStream(errCapture));
-    }
-
-    @AfterEach
-    void tearDown() throws IOException {
-        try {
-            if (terminal != null) {
-                terminal.close();
-            }
-        } finally {
-            if (dispatcher != null) {
-                dispatcher.close();
-            }
-        }
     }
 
     static class TestEchoCmd extends AbstractCommand {

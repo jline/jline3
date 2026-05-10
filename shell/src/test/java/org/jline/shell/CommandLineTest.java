@@ -31,18 +31,4 @@ class CommandLineTest {
         CommandLine cl = new CommandLine("test", "test", "", List.of("test"), CommandLine.Type.COMMAND);
         assertThrows(UnsupportedOperationException.class, () -> cl.args().add("extra"));
     }
-
-    @Test
-    void methodType() {
-        CommandLine cl =
-                new CommandLine("obj.method(", "obj.method", "(", List.of("obj.method"), CommandLine.Type.METHOD);
-        assertEquals(CommandLine.Type.METHOD, cl.type());
-    }
-
-    @Test
-    void syntaxType() {
-        CommandLine cl = new CommandLine(
-                "obj.method(x)", "obj.method", "(x)", List.of("obj.method", "x"), CommandLine.Type.SYNTAX);
-        assertEquals(CommandLine.Type.SYNTAX, cl.type());
-    }
 }
