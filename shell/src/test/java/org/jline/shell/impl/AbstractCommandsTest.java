@@ -25,7 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
  * Provides the conveniences of {@link AbstractCommandDispatcherTest}
  * and includes a {@link LineReader} and captured {@link CommandSession}.
  */
-public class AbstractCommandsTest extends AbstractCommandDispatcherTest {
+public abstract class AbstractCommandsTest extends AbstractCommandDispatcherTest {
 
     protected LineReader reader;
     protected CommandSession session;
@@ -54,6 +54,6 @@ public class AbstractCommandsTest extends AbstractCommandDispatcherTest {
         reader = LineReaderBuilder.builder().terminal(terminal).build();
         outCapture = new ByteArrayOutputStream();
         errCapture = new ByteArrayOutputStream();
-        session = new CommandSession(null, System.in, new PrintStream(outCapture), new PrintStream(errCapture));
+        session = new CommandSession(terminal, System.in, new PrintStream(outCapture), new PrintStream(errCapture));
     }
 }

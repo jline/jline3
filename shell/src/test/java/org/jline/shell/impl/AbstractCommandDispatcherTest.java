@@ -22,7 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
  * <p>
  * This base-class also deals with cleanup of the {@link Terminal} and {@link DefaultCommandDispatcher}.
  */
-public class AbstractCommandDispatcherTest {
+public abstract class AbstractCommandDispatcherTest {
 
     protected Terminal terminal;
     protected DefaultCommandDispatcher dispatcher;
