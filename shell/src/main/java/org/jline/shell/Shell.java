@@ -119,30 +119,23 @@ public class Shell implements AutoCloseable {
                     String prompt = promptSupplier.get();
                     String rightPrompt = rightPromptSupplier != null ? rightPromptSupplier.get() : null;
                     line = reader.readLine(prompt, rightPrompt, (MaskingCallback) null, null);
+                    if (line == null) {
+                        break;
+                    }
+
+                    line = line.trim();
+                    if (line.isEmpty()) {
+                        continue;
+                    }
+
+                    dispatcher.execute(line);
                 } catch (UserInterruptException e) {
                     // Ctrl-C: clear line, continue
+                    //noinspection UnnecessaryContinue
                     continue;
                 } catch (EndOfFileException e) {
                     // Ctrl-D: exit
                     break;
-                }
-
-                if (line == null) {
-                    break;
-                }
-
-                line = line.trim();
-                if (line.isEmpty()) {
-                    continue;
-                }
-
-                // Built-in exit/quit
-                if ("exit".equals(line) || "quit".equals(line)) {
-                    break;
-                }
-
-                try {
-                    dispatcher.execute(line);
                 } catch (Exception e) {
                     dispatcher.trace(e);
                 } finally {

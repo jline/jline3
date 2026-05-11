@@ -22,10 +22,6 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class VariableCommandsTest extends AbstractCommandsTest {
 
-    VariableCommandsTest() {
-        super(terminal -> new DefaultCommandDispatcher(terminal, null, null, null, new DefaultLineExpander(), null));
-    }
-
     @Override
     @BeforeEach
     protected void setUp() throws IOException {
@@ -40,6 +36,11 @@ class VariableCommandsTest extends AbstractCommandsTest {
                 return msg;
             }
         }));
+    }
+
+    @Override
+    protected DefaultCommandDispatcher createDispatcher() {
+        return new DefaultCommandDispatcher(terminal, null, null, null, new DefaultLineExpander(), null);
     }
 
     @Test

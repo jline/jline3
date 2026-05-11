@@ -8,9 +8,8 @@
  */
 package org.jline.shell.impl;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.Objects;
-import java.util.function.Function;
 
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
@@ -24,41 +23,50 @@ import org.junit.jupiter.api.BeforeEach;
  */
 public abstract class AbstractCommandDispatcherTest {
 
+    protected PipedOutputStream terminalInput;
+    private PipedInputStream terminalStream;
     protected Terminal terminal;
     protected DefaultCommandDispatcher dispatcher;
-    private final Function<Terminal, DefaultCommandDispatcher> factory;
-
-    /**
-     * Default constructor, creates a simple {@link DefaultCommandDispatcher}.
-     */
-    protected AbstractCommandDispatcherTest() {
-        this(DefaultCommandDispatcher::new);
-    }
-
-    /**
-     * Constructor allowing for customization of the new {@link DefaultCommandDispatcher}.
-     *
-     * @param factory The factory for instantiating custom {@link DefaultCommandDispatcher} instances.
-     */
-    protected AbstractCommandDispatcherTest(Function<Terminal, DefaultCommandDispatcher> factory) {
-        this.factory = factory;
-    }
+    protected ByteArrayOutputStream terminalOutput;
 
     @BeforeEach
     protected void setUp() throws IOException {
-        terminal = TerminalBuilder.builder().dumb(true).build();
-        dispatcher = Objects.requireNonNull(factory.apply(terminal));
+        terminalInput = new PipedOutputStream();
+        terminalStream = new PipedInputStream(terminalInput);
+        terminalOutput = new ByteArrayOutputStream();
+        terminal = TerminalBuilder.builder()
+                .dumb(true)
+                .streams(terminalStream, terminalOutput)
+                .build();
+        dispatcher = Objects.requireNonNull(createDispatcher());
+    }
+
+    /**
+     * The factory for instantiating custom {@link DefaultCommandDispatcher} instances.
+     */
+    protected DefaultCommandDispatcher createDispatcher() {
+        return new DefaultCommandDispatcher(terminal);
     }
 
     @AfterEach
     protected void tearDown() throws IOException {
         try {
-            if (terminal != null) {
-                terminal.close();
+            try {
+                if (terminal != null) {
+                    terminal.close();
+                }
+            } finally {
+                if (dispatcher != null) {
+                    dispatcher.close();
+                }
             }
         } finally {
-            if (dispatcher != null) {
-                dispatcher.close();
+            try {
+                terminalInput.close();
+            } finally {
+                if (terminalStream != null) {
+                    terminalStream.close();
+                }
             }
         }
     }
