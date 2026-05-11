@@ -26,6 +26,7 @@ class VariableCommandsTest extends AbstractCommandsTest {
         super(terminal -> new DefaultCommandDispatcher(terminal, null, null, null, new DefaultLineExpander(), null));
     }
 
+    @Override
     @BeforeEach
     protected void setUp() throws IOException {
         super.setUp();

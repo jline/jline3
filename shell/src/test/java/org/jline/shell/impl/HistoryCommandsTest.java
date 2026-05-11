@@ -23,6 +23,7 @@ class HistoryCommandsTest extends AbstractCommandsTest {
 
     private HistoryCommands commands;
 
+    @Override
     @BeforeEach
     protected void setUp() throws IOException {
         super.setUp();

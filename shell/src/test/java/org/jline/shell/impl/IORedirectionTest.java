@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class IORedirectionTest extends AbstractCommandDispatcherTest {
 
+    @Override
     @BeforeEach
     protected void setUp() throws IOException {
         super.setUp();

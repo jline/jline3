@@ -25,6 +25,7 @@ class CommandHighlighterTest extends AbstractCommandDispatcherTest {
 
     private CommandHighlighter highlighter;
 
+    @Override
     @BeforeEach
     protected void setUp() throws IOException {
         super.setUp();

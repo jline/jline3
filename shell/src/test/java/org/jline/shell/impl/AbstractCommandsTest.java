@@ -48,6 +48,7 @@ public abstract class AbstractCommandsTest extends AbstractCommandDispatcherTest
         super(factory);
     }
 
+    @Override
     @BeforeEach
     protected void setUp() throws IOException {
         super.setUp();

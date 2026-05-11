@@ -24,6 +24,7 @@ class OptionCommandsTest extends AbstractCommandsTest {
 
     private OptionCommands commands;
 
+    @Override
     @BeforeEach
     protected void setUp() throws IOException {
         super.setUp();

@@ -29,6 +29,7 @@ class DefaultScriptRunnerTest extends AbstractCommandDispatcherTest {
     private DefaultScriptRunner runner;
     private List<String> executedCommands;
 
+    @Override
     @BeforeEach
     protected void setUp() throws IOException {
         super.setUp();

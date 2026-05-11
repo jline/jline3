@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class SubcommandTest extends AbstractCommandDispatcherTest {
 
+    @Override
     @BeforeEach
     protected void setUp() throws IOException {
         super.setUp();

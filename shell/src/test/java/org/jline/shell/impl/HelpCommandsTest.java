@@ -24,6 +24,7 @@ class HelpCommandsTest extends AbstractCommandsTest {
 
     private HelpCommands commands;
 
+    @Override
     @BeforeEach
     protected void setUp() throws IOException {
         super.setUp();
