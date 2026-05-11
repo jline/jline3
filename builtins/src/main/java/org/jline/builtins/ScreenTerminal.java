@@ -18,7 +18,6 @@ package org.jline.builtins;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -105,15 +104,15 @@ public class ScreenTerminal implements Sized {
     private boolean vt100_mode_backspace;
     private boolean vt100_mode_column_switch;
     private boolean vt100_keyfilter_escape;
-    private int[] vt100_charset_graph = new int[] {
-        0x25ca, 0x2026, 0x2022, 0x3f,
-        0xb6, 0x3f, 0xb0, 0xb1,
-        0x3f, 0x3f, 0x2b, 0x2b,
-        0x2b, 0x2b, 0x2b, 0xaf,
-        0x2014, 0x2014, 0x2014, 0x5f,
-        0x2b, 0x2b, 0x2b, 0x2b,
-        0x7c, 0x2264, 0x2265, 0xb6,
-        0x2260, 0xa3, 0xb7, 0x7f
+    private static final int[] vt100_charset_graph = new int[] {
+        0x00A0, 0x25C6, 0x2592, 0x2409,
+        0x240C, 0x240D, 0x240A, 0x00B0,
+        0x00B1, 0x2424, 0x240B, 0x2518,
+        0x2510, 0x250C, 0x2514, 0x253C,
+        0x23BA, 0x23BB, 0x2500, 0x23BC,
+        0x23BD, 0x251C, 0x2524, 0x2534,
+        0x252C, 0x2502, 0x2264, 0x2265,
+        0x03C0, 0x2260, 0x00A3, 0x00B7
     };
     private int vt100_charset_g_sel;
     private int[] vt100_charset_g = {0, 0};
@@ -128,7 +127,7 @@ public class ScreenTerminal implements Sized {
     private int scroll_area_y0;
     private int scroll_area_y1;
 
-    private List<Integer> tab_stops;
+    private final List<Integer> tab_stops;
 
     private List<long[]> history = new ArrayList<>();
     private List<long[]> history2 = new ArrayList<>();
@@ -151,6 +150,7 @@ public class ScreenTerminal implements Sized {
     public ScreenTerminal(int columns, int rows) {
         this.columns = columns;
         this.rows = rows;
+        this.tab_stops = new ArrayList<>();
         reset_hard();
     }
 
@@ -238,7 +238,7 @@ public class ScreenTerminal implements Sized {
         cx = 0;
         cy = 0;
         // Tab stops
-        tab_stops = new ArrayList<>();
+        tab_stops.clear();
         for (int i = 7; i < columns; i += 8) {
             tab_stops.add(i);
         }
@@ -309,10 +309,6 @@ public class ScreenTerminal implements Sized {
     // Scrolling functions
     //
 
-    private void scroll_area_up(int y0, int y1) {
-        scroll_area_up(y0, y1, 1);
-    }
-
     private void scroll_area_up(int y0, int y1, int n) {
         n = Math.min(y1 - y0, n);
         if (y0 == 0 && y1 == rows) {
@@ -330,10 +326,6 @@ public class ScreenTerminal implements Sized {
         }
     }
 
-    private void scroll_area_down(int y0, int y1) {
-        scroll_area_down(y0, y1, 1);
-    }
-
     private void scroll_area_down(int y0, int y1, int n) {
         n = Math.min(y1 - y0, n);
         poke(y0 + n, 0, peek(y0, 0, y1 - n, columns));
@@ -349,20 +341,12 @@ public class ScreenTerminal implements Sized {
         }
     }
 
-    private void scroll_line_right(int y, int x) {
-        scroll_line_right(y, x, 1);
-    }
-
     private void scroll_line_right(int y, int x, int n) {
         if (x < columns) {
             n = Math.min(columns - x, n);
             poke(y, x + n, peek(y, x, y + 1, columns - n));
             clear(y, x, y + 1, x + n);
         }
-    }
-
-    private void scroll_line_left(int y, int x) {
-        scroll_line_left(y, x, 1);
     }
 
     private void scroll_line_left(int y, int x, int n) {
@@ -388,17 +372,9 @@ public class ScreenTerminal implements Sized {
         return new int[] {wx, lx};
     }
 
-    private void cursor_up() {
-        cursor_up(1);
-    }
-
     private void cursor_up(int n) {
         cy = Math.max(scroll_area_y0, cy - n);
         setDirty();
-    }
-
-    private void cursor_down() {
-        cursor_down(1);
     }
 
     private void cursor_down(int n) {
@@ -406,18 +382,10 @@ public class ScreenTerminal implements Sized {
         setDirty();
     }
 
-    private void cursor_left() {
-        cursor_left(1);
-    }
-
     private void cursor_left(int n) {
         eol = false;
         cx = Math.max(0, cx - n);
         setDirty();
-    }
-
-    private void cursor_right() {
-        cursor_right(1);
     }
 
     private void cursor_right(int n) {
@@ -482,9 +450,9 @@ public class ScreenTerminal implements Sized {
             ctrl_CR();
         }
         if (cy == scroll_area_y1 - 1) {
-            scroll_area_up(scroll_area_y0, scroll_area_y1);
+            scroll_area_up(scroll_area_y0, scroll_area_y1, 1);
         } else {
-            cursor_down();
+            cursor_down(1);
         }
     }
 
@@ -518,12 +486,12 @@ public class ScreenTerminal implements Sized {
             }
         }
         if (vt100_mode_insert) {
-            scroll_line_right(cy, cx);
+            scroll_line_right(cy, cx, 1);
         }
         if (vt100_charset_is_single_shift) {
             vt100_charset_is_single_shift = false;
-        } else if (vt100_charset_is_graphical && ((c & 0xffe0) == 0x0060)) {
-            c = vt100_charset_graph[c - 0x60];
+        } else if (vt100_charset_is_graphical && ((c - 0x5f) & ~0x1f) == 0) {
+            c = vt100_charset_graph[c - 0x5f];
         }
         int charWidth = utf8_charwidth(c);
         poke(cy, cx, new long[] {attr | c});
@@ -763,9 +731,9 @@ public class ScreenTerminal implements Sized {
 
     private void esc_RI() {
         if (cy == scroll_area_y0) {
-            scroll_area_down(scroll_area_y0, scroll_area_y1);
+            scroll_area_down(scroll_area_y0, scroll_area_y1, 1);
         } else {
-            cursor_up();
+            cursor_up(1);
         }
     }
 
@@ -918,14 +886,14 @@ public class ScreenTerminal implements Sized {
         String[] ps = vt100_parse_params(p, new String[] {"0"});
         for (String m : ps) {
             if ("0".equals(m)) {
-                if (tab_stops.indexOf(cx) < 0) {
+                if (!tab_stops.contains(cx)) {
                     tab_stops.add(cx);
-                    Collections.sort(tab_stops);
+                    tab_stops.sort(null);
                 }
             } else if ("2".equals(m)) {
                 tab_stops.remove(Integer.valueOf(cx));
             } else if ("5".equals(m)) {
-                tab_stops = new ArrayList<>();
+                tab_stops.clear();
             }
         }
     }
@@ -1199,6 +1167,7 @@ public class ScreenTerminal implements Sized {
                 try {
                     value = Integer.parseInt(v);
                 } catch (NumberFormatException e) {
+                    //
                 }
             }
             if (value == null && i < defaults.length) {
@@ -1287,7 +1256,8 @@ public class ScreenTerminal implements Sized {
                 case 0x0058:
                     esc_SOS();
                     break;
-                case 0x005A: /* SCI */
+                case 0x005A:
+                    esc_DECID();
                     break;
                 case 0x005B:
                     esc_CSI();

@@ -8,9 +8,15 @@
  */
 package org.jline.builtins;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 import org.jline.terminal.Size;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.impl.LineDisciplineTerminal;
+import org.jline.utils.AttributedString;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -793,5 +799,48 @@ class ScreenTerminalTest {
         dump = terminal.dump(0, true);
         assertNotNull(dump);
         assertTrue(dump.contains("background-color:#000088;'>" + line + "\n</span>")); // Text BG
+    }
+
+    /**
+     * Verifies that box-drawing characters rendered through an {@link AttributedString}
+     * are preserved when converted to ANSI for a terminal and written to a
+     * {@link ScreenTerminal}.
+     */
+    @Test
+    void testAltCharsetAttributedString() throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        try (Terminal terminal = new LineDisciplineTerminal("test", "xterm", bos, StandardCharsets.UTF_8)) {
+            AttributedString as = new AttributedString("┌──┐");
+            ScreenTerminal screen = new ScreenTerminal(terminal.getColumns(), terminal.getRows());
+            screen.write(as.toAnsi(terminal));
+            long[] dump = new long[screen.getRows() * screen.getColumns()];
+            screen.dump(dump, null);
+            assertEquals('┌', (char) dump[0]);
+            assertEquals('─', (char) dump[1]);
+            assertEquals('─', (char) dump[2]);
+            assertEquals('┐', (char) dump[3]);
+        }
+    }
+
+    /**
+     * Verifies that the terminal's DEC special graphics character set is translated
+     * directly into the expected Unicode characters when alternate character set mode
+     * is enabled.
+     * <p>
+     * The test writes the full supported mapping range,
+     * then checks that each dumped screen cell contains the corresponding Unicode replacement character.
+     */
+    @Test
+    void testAltCharsetDirect() {
+        String base = "_`abcdefghijklmnopqrstuvwxyz{|}~";
+        String alt = " ◆▒␉␌␍␊°±␤␋┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥π≠£·";
+        assertEquals(alt.length(), base.length());
+        ScreenTerminal screen = new ScreenTerminal(50, 5);
+        screen.write("\033(0" + base + "\033(B");
+        long[] dump = new long[screen.getRows() * screen.getColumns()];
+        screen.dump(dump, null);
+        for (int i = 0; i < alt.length(); i++) {
+            assertEquals(alt.charAt(i), (char) dump[i]);
+        }
     }
 }
