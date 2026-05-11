@@ -110,11 +110,7 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
                 } else {
                     nativeHandler = provider.registerSignal(signal.name(), () -> raise(signal));
                 }
-                // Both registration paths can legitimately return null when the
-                // signal is unknown on this platform (e.g. SIGINFO is BSD/macOS
-                // only — the JNI/FFM providers and the sun.misc.Signal fallback
-                // all return null on Linux). Skip the put: ConcurrentHashMap
-                // rejects null values, and there is nothing to unregister later.
+                // Registration returns null for platform-unsupported signals; ConcurrentHashMap rejects null values
                 if (nativeHandler != null) {
                     nativeHandlers.put(signal, nativeHandler);
                 }
@@ -139,8 +135,7 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
             } else {
                 nativeHandler = provider.registerSignal(signal.name(), () -> raise(signal));
             }
-            // Skip the put if registration declined (unknown signal on this
-            // platform). ConcurrentHashMap rejects null values.
+            // See constructor — skip null for unsupported signals
             if (nativeHandler != null) {
                 nativeHandlers.put(signal, nativeHandler);
             }
