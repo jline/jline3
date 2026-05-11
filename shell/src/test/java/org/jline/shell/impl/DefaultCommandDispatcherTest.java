@@ -14,9 +14,6 @@ import java.nio.file.Path;
 import java.util.Map;
 
 import org.jline.shell.*;
-import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -26,15 +23,12 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Integration tests for {@link DefaultCommandDispatcher}.
  */
-class DefaultCommandDispatcherTest {
+class DefaultCommandDispatcherTest extends AbstractCommandDispatcherTest {
 
-    private Terminal terminal;
-    private DefaultCommandDispatcher dispatcher;
-
+    @Override
     @BeforeEach
-    void setUp() throws IOException {
-        terminal = TerminalBuilder.builder().dumb(true).build();
-        dispatcher = new DefaultCommandDispatcher(terminal);
+    protected void setUp() throws IOException {
+        super.setUp();
         dispatcher.addGroup(new SimpleCommandGroup(
                 "test",
                 new EchoCommand(),
@@ -42,19 +36,6 @@ class DefaultCommandDispatcherTest {
                 new UpperCommand(),
                 new NoopCommand(),
                 new ReverseCommand()));
-    }
-
-    @AfterEach
-    void tearDown() throws IOException {
-        try {
-            if (terminal != null) {
-                terminal.close();
-            }
-        } finally {
-            if (dispatcher != null) {
-                dispatcher.close();
-            }
-        }
     }
 
     // --- Fixture commands ---

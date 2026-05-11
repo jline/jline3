@@ -11,9 +11,6 @@ package org.jline.shell.impl;
 import java.io.IOException;
 
 import org.jline.shell.CommandSession;
-import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -23,15 +20,16 @@ import static org.junit.jupiter.api.Assertions.*;
  * Tests for {@link VariableCommands} and bare variable assignment in
  * {@link DefaultCommandDispatcher}.
  */
-class VariableCommandsTest {
+class VariableCommandsTest extends AbstractCommandsTest {
 
-    private Terminal terminal;
-    private DefaultCommandDispatcher dispatcher;
+    VariableCommandsTest() {
+        super(terminal -> new DefaultCommandDispatcher(terminal, null, null, null, new DefaultLineExpander(), null));
+    }
 
+    @Override
     @BeforeEach
-    void setUp() throws IOException {
-        terminal = TerminalBuilder.builder().dumb(true).build();
-        dispatcher = new DefaultCommandDispatcher(terminal, null, null, null, new DefaultLineExpander(), null);
+    protected void setUp() throws IOException {
+        super.setUp();
         dispatcher.addGroup(new VariableCommands());
         // Add echo for verification
         dispatcher.addGroup(new SimpleCommandGroup("test", new AbstractCommand("echo") {
@@ -42,19 +40,6 @@ class VariableCommandsTest {
                 return msg;
             }
         }));
-    }
-
-    @AfterEach
-    void tearDown() throws IOException {
-        try {
-            if (terminal != null) {
-                terminal.close();
-            }
-        } finally {
-            if (dispatcher != null) {
-                dispatcher.close();
-            }
-        }
     }
 
     @Test

@@ -8,18 +8,10 @@
  */
 package org.jline.shell.impl;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 
-import org.jline.reader.LineReader;
 import org.jline.reader.LineReader.Option;
-import org.jline.reader.LineReaderBuilder;
 import org.jline.shell.Command;
-import org.jline.shell.CommandSession;
-import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -28,30 +20,15 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for {@link OptionCommands}.
  */
-class OptionCommandsTest {
+class OptionCommandsTest extends AbstractCommandsTest {
 
-    private Terminal terminal;
-    private LineReader reader;
     private OptionCommands commands;
-    private CommandSession session;
-    private ByteArrayOutputStream outCapture;
-    private ByteArrayOutputStream errCapture;
 
+    @Override
     @BeforeEach
-    void setUp() throws IOException {
-        terminal = TerminalBuilder.builder().dumb(true).build();
-        reader = LineReaderBuilder.builder().terminal(terminal).build();
+    protected void setUp() throws IOException {
+        super.setUp();
         commands = new OptionCommands(reader);
-        outCapture = new ByteArrayOutputStream();
-        errCapture = new ByteArrayOutputStream();
-        session = new CommandSession(null, System.in, new PrintStream(outCapture), new PrintStream(errCapture));
-    }
-
-    @AfterEach
-    void tearDown() throws IOException {
-        if (terminal != null) {
-            terminal.close();
-        }
     }
 
     @Test
