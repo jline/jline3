@@ -104,10 +104,19 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
 
         if (nativeSignals) {
             for (Signal signal : Signal.values()) {
+                Object nativeHandler;
                 if (signalHandler == SignalHandler.SIG_DFL) {
-                    nativeHandlers.put(signal, provider.registerDefaultSignal(signal.name()));
+                    nativeHandler = provider.registerDefaultSignal(signal.name());
                 } else {
-                    nativeHandlers.put(signal, provider.registerSignal(signal.name(), () -> raise(signal)));
+                    nativeHandler = provider.registerSignal(signal.name(), () -> raise(signal));
+                }
+                // Both registration paths can legitimately return null when the
+                // signal is unknown on this platform (e.g. SIGINFO is BSD/macOS
+                // only — the JNI/FFM providers and the sun.misc.Signal fallback
+                // all return null on Linux). Skip the put: ConcurrentHashMap
+                // rejects null values, and there is nothing to unregister later.
+                if (nativeHandler != null) {
+                    nativeHandlers.put(signal, nativeHandler);
                 }
             }
         }
@@ -124,10 +133,16 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
             if (previousNative != null) {
                 provider.unregisterSignal(signal.name(), previousNative);
             }
+            Object nativeHandler;
             if (handler == SignalHandler.SIG_DFL) {
-                nativeHandlers.put(signal, provider.registerDefaultSignal(signal.name()));
+                nativeHandler = provider.registerDefaultSignal(signal.name());
             } else {
-                nativeHandlers.put(signal, provider.registerSignal(signal.name(), () -> raise(signal)));
+                nativeHandler = provider.registerSignal(signal.name(), () -> raise(signal));
+            }
+            // Skip the put if registration declined (unknown signal on this
+            // platform). ConcurrentHashMap rejects null values.
+            if (nativeHandler != null) {
+                nativeHandlers.put(signal, nativeHandler);
             }
         }
         return prev;
