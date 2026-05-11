@@ -221,8 +221,15 @@ public abstract class AbstractTerminal implements TerminalExt {
         Attributes newAttr = new Attributes(prvAttr);
         newAttr.setLocalFlags(EnumSet.of(LocalFlag.ICANON, LocalFlag.ECHO, LocalFlag.IEXTEN), false);
         newAttr.setInputFlags(EnumSet.of(InputFlag.IXON, InputFlag.ICRNL, InputFlag.INLCR), false);
-        newAttr.setControlChar(ControlChar.VMIN, 0);
-        newAttr.setControlChar(ControlChar.VTIME, 1);
+        // Blocking single-byte read — matches POSIX cfmakeraw(3). The
+        // previous setting (VMIN=0, VTIME=1) made the kernel return zero
+        // bytes after a 100 ms idle window; on the JVM, FileInputStream.read()
+        // turns that into -1 (EOF), so any input pump reading from
+        // FileDescriptor.in saw a spurious EOF on every empty tick.
+        // NonBlockingReader.read(timeoutMs) layers its own polling on top
+        // and remains correct with this blocking termios.
+        newAttr.setControlChar(ControlChar.VMIN, 1);
+        newAttr.setControlChar(ControlChar.VTIME, 0);
         setAttributes(newAttr);
         return prvAttr;
     }
