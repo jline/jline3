@@ -84,7 +84,7 @@ public class Shell implements AutoCloseable {
     /**
      * Runs the interactive REPL loop.
      * <p>
-     * This method blocks until the user exits (via EOF or an "exit"/"quit" command),
+     * This method blocks until the user exits (e.g. via EOF or an exit command),
      * or until {@link #stop()} is called.
      *
      * @throws Exception if initialization or execution fails
@@ -119,22 +119,27 @@ public class Shell implements AutoCloseable {
                     String prompt = promptSupplier.get();
                     String rightPrompt = rightPromptSupplier != null ? rightPromptSupplier.get() : null;
                     line = reader.readLine(prompt, rightPrompt, (MaskingCallback) null, null);
-                    if (line == null) {
-                        break;
-                    }
-
-                    line = line.trim();
-                    if (line.isEmpty()) {
-                        continue;
-                    }
-
-                    dispatcher.execute(line);
                 } catch (UserInterruptException e) {
                     // Ctrl-C: clear line, continue
-                    //noinspection UnnecessaryContinue
                     continue;
                 } catch (EndOfFileException e) {
                     // Ctrl-D: exit
+                    break;
+                }
+
+                if (line == null) {
+                    break;
+                }
+
+                line = line.trim();
+                if (line.isEmpty()) {
+                    continue;
+                }
+
+                try {
+                    dispatcher.execute(line);
+                } catch (EndOfFileException e) {
+                    // exit
                     break;
                 } catch (Exception e) {
                     dispatcher.trace(e);

@@ -376,7 +376,7 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
                 lastOutput = resolveOutputString(captureOutput ? capture : null, lastResult);
                 session.setLastExitCode(0);
             } catch (EndOfFileException e) {
-                session.setLastExitCode(1);
+                session.setLastExitCode(0);
                 throw e;
             } catch (Exception e) {
                 session.setLastExitCode(1);
