@@ -79,15 +79,7 @@ class PosixSysTerminalTest {
 
     @Test
     void testEnterRawModeBlocksUntilOneByte() throws Exception {
-        // Regression: enterRawMode used to set VMIN=0/VTIME=1, which makes
-        // the kernel return zero bytes after a 100 ms idle window. The JVM's
-        // FileInputStream.read() turns that zero-byte read into -1 (EOF),
-        // so any input pump reading from FileDescriptor.in saw a spurious
-        // EOF on every empty tick. The POSIX cfmakeraw(3) defaults
-        // (VMIN=1, VTIME=0) make read() block until at least one byte is
-        // available, which is what every JLine caller of enterRawMode
-        // actually wants — NonBlockingReader.read(timeoutMs) layers its
-        // own polling on top.
+        // Regression: VMIN=0/VTIME=1 made FileInputStream.read() return -1 (EOF) on every 100 ms idle tick.
         Pty pty = EasyMock.createNiceMock(Pty.class);
         EasyMock.expect(pty.getAttr()).andReturn(new Attributes()).anyTimes();
         EasyMock.expect(pty.getSlaveInput())
