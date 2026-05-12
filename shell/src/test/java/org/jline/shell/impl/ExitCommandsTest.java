@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for {@link ExitCommands}.
  */
-public class ExitCommandsTest extends AbstractCommandsTest {
+class ExitCommandsTest extends AbstractCommandsTest {
 
     private ExitCommands commands;
 
