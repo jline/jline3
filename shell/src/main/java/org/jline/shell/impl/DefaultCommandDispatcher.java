@@ -366,28 +366,7 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
                 }
             }
 
-            Object lastResult;
-            String lastOutput;
-            try {
-                lastResult = cmd.execute(session, args);
-                if (captureOutput) {
-                    session.out().flush();
-                }
-                lastOutput = resolveOutputString(captureOutput ? capture : null, lastResult);
-                session.setLastExitCode(0);
-            } catch (EndOfFileException e) {
-                session.setLastExitCode(0);
-                throw e;
-            } catch (Exception e) {
-                session.setLastExitCode(1);
-                lastResult = null;
-                lastOutput = null;
-                if (op != Operator.AND && op != Operator.OR && op != Operator.SEQUENCE) {
-                    throw e;
-                }
-            }
-
-            return new Object[] {lastResult, lastOutput};
+            return runCommandStage(cmd, session, args, captureOutput, capture, op, false);
         } finally {
             session.setOut(originalOut);
             session.setErr(originalErr);
@@ -453,27 +432,14 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
                     createStageSessions(groupStages, pumps, firstIn, outErr[0], outErr[1], inputRedirects);
             threads = startProducers(commands, stageSessions, argsArrays);
 
-            // Run last stage in current thread
-            Object lastResult;
-            String lastOutput;
-            try {
-                lastResult = commands[n - 1].execute(stageSessions[n - 1], argsArrays[n - 1]);
-                if (captureLastOutput) {
-                    stageSessions[n - 1].out().flush();
-                }
-                lastOutput = resolveOutputString(captureLastOutput ? lastCapture : null, lastResult);
-                session.setLastExitCode(0);
-            } catch (Exception e) {
-                session.setLastExitCode(1);
-                if (lastGroupOp == Operator.AND || lastGroupOp == Operator.OR || lastGroupOp == Operator.SEQUENCE) {
-                    lastResult = null;
-                    lastOutput = null;
-                } else {
-                    throw e;
-                }
-            }
-
-            return new Object[] {lastResult, lastOutput};
+            return runCommandStage(
+                    commands[n - 1],
+                    stageSessions[n - 1],
+                    argsArrays[n - 1],
+                    captureLastOutput,
+                    lastCapture,
+                    lastGroupOp,
+                    true);
         } finally {
             closePumps(pumps);
             joinProducers(threads);
@@ -483,6 +449,59 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
             }
             closeStreams(redirectStream, inputRedirects);
         }
+    }
+
+    /**
+     * Executes a single command as part of a stage.
+     *
+     * @param stageCmd The command to be run
+     * @param stageSession The session of this stage
+     * @param stageArgs The arguments for this command
+     * @param captureOutput Whether the output should be captured
+     * @param capture The last capture
+     * @param op The operation for this command
+     * @param multi Whether this command is being run as part of a pipe group
+     * @return a two-element array: {@code [result, output]} from the last stage
+     * @throws Exception if the command fails and the error should propagate
+     */
+    private Object[] runCommandStage(
+            Command stageCmd,
+            CommandSession stageSession,
+            String[] stageArgs,
+            boolean captureOutput,
+            ByteArrayOutputStream capture,
+            Operator op,
+            boolean multi)
+            throws Exception {
+        Object lastResult;
+        String lastOutput;
+        try {
+            lastResult = stageCmd.execute(stageSession, stageArgs);
+            if (captureOutput) {
+                stageSession.out().flush();
+            }
+            lastOutput = resolveOutputString(captureOutput ? capture : null, lastResult);
+            session.setLastExitCode(0);
+        } catch (EndOfFileException e) {
+            session.setLastExitCode(0);
+            // Last command in a pipe chain.
+            // Exit does not count here per bash convention.
+            if (op == null && multi) {
+                lastResult = null;
+                lastOutput = null;
+            } else {
+                throw e;
+            }
+        } catch (Exception e) {
+            session.setLastExitCode(1);
+            lastResult = null;
+            lastOutput = null;
+            if (op != Operator.AND && op != Operator.OR && op != Operator.SEQUENCE) {
+                throw e;
+            }
+        }
+
+        return new Object[] {lastResult, lastOutput};
     }
 
     /**

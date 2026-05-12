@@ -228,6 +228,27 @@ class DefaultCommandDispatcherTest extends AbstractCommandDispatcherTest {
     }
 
     @Test
+    void pipeToExitDoesNothing() throws Exception {
+        assertNull(dispatcher.execute("echo test | exit"));
+        assertEquals(0, terminalOutput.toByteArray().length);
+    }
+
+    @Test
+    void andExitExits() {
+        assertThrows(EndOfFileException.class, () -> dispatcher.execute("echo test && exit"));
+    }
+
+    @Test
+    void orExitAfterFailExits() {
+        assertThrows(EndOfFileException.class, () -> dispatcher.execute("fail || exit"));
+    }
+
+    @Test
+    void sequenceStillExits2() {
+        assertThrows(EndOfFileException.class, () -> dispatcher.execute("echo test ; exit"));
+    }
+
+    @Test
     void sequenceOperator() throws Exception {
         Object result = dispatcher.execute("echo first ; echo second");
         assertEquals("second", result);
