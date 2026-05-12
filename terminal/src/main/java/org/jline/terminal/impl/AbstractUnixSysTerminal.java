@@ -104,10 +104,15 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
 
         if (nativeSignals) {
             for (Signal signal : Signal.values()) {
+                Object nativeHandler;
                 if (signalHandler == SignalHandler.SIG_DFL) {
-                    nativeHandlers.put(signal, provider.registerDefaultSignal(signal.name()));
+                    nativeHandler = provider.registerDefaultSignal(signal.name());
                 } else {
-                    nativeHandlers.put(signal, provider.registerSignal(signal.name(), () -> raise(signal)));
+                    nativeHandler = provider.registerSignal(signal.name(), () -> raise(signal));
+                }
+                // Registration returns null for platform-unsupported signals; ConcurrentHashMap rejects null values
+                if (nativeHandler != null) {
+                    nativeHandlers.put(signal, nativeHandler);
                 }
             }
         }
@@ -124,10 +129,15 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
             if (previousNative != null) {
                 provider.unregisterSignal(signal.name(), previousNative);
             }
+            Object nativeHandler;
             if (handler == SignalHandler.SIG_DFL) {
-                nativeHandlers.put(signal, provider.registerDefaultSignal(signal.name()));
+                nativeHandler = provider.registerDefaultSignal(signal.name());
             } else {
-                nativeHandlers.put(signal, provider.registerSignal(signal.name(), () -> raise(signal)));
+                nativeHandler = provider.registerSignal(signal.name(), () -> raise(signal));
+            }
+            // See constructor — skip null for unsupported signals
+            if (nativeHandler != null) {
+                nativeHandlers.put(signal, nativeHandler);
             }
         }
         return prev;
