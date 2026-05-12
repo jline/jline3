@@ -23,12 +23,12 @@ import org.jline.shell.CommandSession;
 public class ExitCommands extends SimpleCommandGroup {
 
     public ExitCommands() {
-        super("exit", List.of(new SetOptCommand()));
+        super("exit", List.of(new ExitCommand()));
     }
 
-    private static class SetOptCommand extends AbstractCommand {
+    private static class ExitCommand extends AbstractCommand {
 
-        private SetOptCommand() {
+        private ExitCommand() {
             super("exit", "quit");
         }
 

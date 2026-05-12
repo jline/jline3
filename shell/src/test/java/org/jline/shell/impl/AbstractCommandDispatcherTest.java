@@ -11,8 +11,8 @@ package org.jline.shell.impl;
 import java.io.*;
 import java.util.Objects;
 
+import org.jline.shell.AbstractTerminalTest;
 import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -21,23 +21,14 @@ import org.junit.jupiter.api.BeforeEach;
  * <p>
  * This base-class also deals with cleanup of the {@link Terminal} and {@link DefaultCommandDispatcher}.
  */
-public abstract class AbstractCommandDispatcherTest {
+public abstract class AbstractCommandDispatcherTest extends AbstractTerminalTest {
 
-    protected PipedOutputStream terminalInput;
-    private PipedInputStream terminalStream;
-    protected Terminal terminal;
     protected DefaultCommandDispatcher dispatcher;
-    protected ByteArrayOutputStream terminalOutput;
 
+    @Override
     @BeforeEach
     protected void setUp() throws IOException {
-        terminalInput = new PipedOutputStream();
-        terminalStream = new PipedInputStream(terminalInput);
-        terminalOutput = new ByteArrayOutputStream();
-        terminal = TerminalBuilder.builder()
-                .dumb(true)
-                .streams(terminalStream, terminalOutput)
-                .build();
+        super.setUp();
         dispatcher = Objects.requireNonNull(createDispatcher());
     }
 
@@ -48,26 +39,13 @@ public abstract class AbstractCommandDispatcherTest {
         return new DefaultCommandDispatcher(terminal);
     }
 
+    @Override
     @AfterEach
     protected void tearDown() throws IOException {
         try {
-            try {
-                if (terminal != null) {
-                    terminal.close();
-                }
-            } finally {
-                if (dispatcher != null) {
-                    dispatcher.close();
-                }
-            }
+            dispatcher.close();
         } finally {
-            try {
-                terminalInput.close();
-            } finally {
-                if (terminalStream != null) {
-                    terminalStream.close();
-                }
-            }
+            super.tearDown();
         }
     }
 }

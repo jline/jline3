@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
+import org.jline.reader.EndOfFileException;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
@@ -126,10 +127,10 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
         this.lineExpander = lineExpander;
         this.scriptRunner = scriptRunner;
         if (this.jobManager != null) {
-            groups.add(new JobCommands(jobManager));
+            this.groups.add(new JobCommands(jobManager));
         }
         if (this.aliasManager != null) {
-            groups.add(new AliasCommands(aliasManager));
+            this.groups.add(new AliasCommands(aliasManager));
         }
     }
 
@@ -374,6 +375,9 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
                 }
                 lastOutput = resolveOutputString(captureOutput ? capture : null, lastResult);
                 session.setLastExitCode(0);
+            } catch (EndOfFileException e) {
+                session.setLastExitCode(1);
+                throw e;
             } catch (Exception e) {
                 session.setLastExitCode(1);
                 lastResult = null;

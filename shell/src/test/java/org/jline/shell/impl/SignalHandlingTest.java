@@ -28,7 +28,7 @@ class SignalHandlingTest extends AbstractCommandDispatcherTest {
     @BeforeEach
     protected void setUp() throws IOException {
         super.setUp();
-        dispatcher.addGroup(new SimpleCommandGroup("test", new SleepCommand(), new EchoCommand()));
+        dispatcher.addGroup(new SimpleCommandGroup("test", new SleepCommand(), new TestEchoCommand()));
     }
 
     static class SleepCommand extends AbstractCommand {
@@ -41,19 +41,6 @@ class SignalHandlingTest extends AbstractCommandDispatcherTest {
             long millis = args.length > 0 ? Long.parseLong(args[0]) : 5000;
             Thread.sleep(millis);
             return "slept";
-        }
-    }
-
-    static class EchoCommand extends AbstractCommand {
-        EchoCommand() {
-            super("echo");
-        }
-
-        @Override
-        public Object execute(CommandSession session, String[] args) {
-            String msg = String.join(" ", args);
-            session.out().println(msg);
-            return msg;
         }
     }
 

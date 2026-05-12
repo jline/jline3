@@ -29,23 +29,7 @@ class IORedirectionTest extends AbstractCommandDispatcherTest {
     protected void setUp() throws IOException {
         super.setUp();
         dispatcher.addGroup(new SimpleCommandGroup(
-                "test", new CatCommand(), new EchoCommand(), new ErrCommand(), new BothCommand()));
-    }
-
-    /**
-     * Echoes arguments to output.
-     */
-    static class EchoCommand extends AbstractCommand {
-        EchoCommand() {
-            super("echo");
-        }
-
-        @Override
-        public Object execute(CommandSession session, String[] args) {
-            String msg = String.join(" ", args);
-            session.out().println(msg);
-            return msg;
-        }
+                "test", new CatCommand(), new TestEchoCommand(), new ErrCommand(), new BothCommand()));
     }
 
     /**
