@@ -13,7 +13,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 
-import org.jline.reader.EndOfFileException;
 import org.jline.shell.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,7 +53,7 @@ class DefaultCommandDispatcherTest extends AbstractCommandDispatcherTest {
 
         @Override
         public Object execute(CommandSession session, String[] args) throws Exception {
-            throw new EndOfFileException();
+            throw new ExitShellException();
         }
     }
 
@@ -214,17 +213,17 @@ class DefaultCommandDispatcherTest extends AbstractCommandDispatcherTest {
 
     @Test
     void andStillExits() {
-        assertThrows(EndOfFileException.class, () -> dispatcher.execute("exit && echo test"));
+        assertThrows(ExitShellException.class, () -> dispatcher.execute("exit && echo test"));
     }
 
     @Test
     void orStillExits() {
-        assertThrows(EndOfFileException.class, () -> dispatcher.execute("exit || echo test"));
+        assertThrows(ExitShellException.class, () -> dispatcher.execute("exit || echo test"));
     }
 
     @Test
     void sequenceStillExits() {
-        assertThrows(EndOfFileException.class, () -> dispatcher.execute("exit ; echo test"));
+        assertThrows(ExitShellException.class, () -> dispatcher.execute("exit ; echo test"));
     }
 
     @Test
@@ -235,17 +234,17 @@ class DefaultCommandDispatcherTest extends AbstractCommandDispatcherTest {
 
     @Test
     void andExitExits() {
-        assertThrows(EndOfFileException.class, () -> dispatcher.execute("echo test && exit"));
+        assertThrows(ExitShellException.class, () -> dispatcher.execute("echo test && exit"));
     }
 
     @Test
     void orExitAfterFailExits() {
-        assertThrows(EndOfFileException.class, () -> dispatcher.execute("fail || exit"));
+        assertThrows(ExitShellException.class, () -> dispatcher.execute("fail || exit"));
     }
 
     @Test
     void sequenceStillExits2() {
-        assertThrows(EndOfFileException.class, () -> dispatcher.execute("echo test ; exit"));
+        assertThrows(ExitShellException.class, () -> dispatcher.execute("echo test ; exit"));
     }
 
     @Test

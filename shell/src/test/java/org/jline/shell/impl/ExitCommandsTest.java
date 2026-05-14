@@ -10,8 +10,8 @@ package org.jline.shell.impl;
 
 import java.io.IOException;
 
-import org.jline.reader.EndOfFileException;
 import org.jline.shell.Command;
+import org.jline.shell.ExitShellException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -33,30 +33,30 @@ class ExitCommandsTest extends AbstractCommandsTest {
     }
 
     /**
-     * Test that the exit command throws the expected {@link EndOfFileException}.
+     * Test that the exit command throws the expected {@link ExitShellException}.
      */
     @Test
     void exitCommand() {
         Command cmd = commands.command("exit");
         assertNotNull(cmd);
-        assertThrows(EndOfFileException.class, () -> cmd.execute(session, new String[0]));
+        assertThrows(ExitShellException.class, () -> cmd.execute(session, new String[0]));
     }
 
     /**
-     * Test that the exit command throws the expected {@link EndOfFileException} when called from a dispatcher.
+     * Test that the exit command throws the expected {@link ExitShellException} when called from a dispatcher.
      */
     @Test
     void exitCommandFull() {
-        assertThrows(EndOfFileException.class, () -> dispatcher.execute("exit"));
+        assertThrows(ExitShellException.class, () -> dispatcher.execute("exit"));
     }
 
     /**
-     * Test that the quit alias throws the expected {@link EndOfFileException}.
+     * Test that the quit alias throws the expected {@link ExitShellException}.
      */
     @Test
     void quitAliasCommand() {
         Command cmd = commands.command("quit");
         assertNotNull(cmd);
-        assertThrows(EndOfFileException.class, () -> cmd.execute(session, new String[0]));
+        assertThrows(ExitShellException.class, () -> cmd.execute(session, new String[0]));
     }
 }

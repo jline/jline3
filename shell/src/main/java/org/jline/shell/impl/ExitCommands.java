@@ -10,8 +10,8 @@ package org.jline.shell.impl;
 
 import java.util.List;
 
-import org.jline.reader.EndOfFileException;
 import org.jline.shell.CommandSession;
+import org.jline.shell.ExitShellException;
 
 /**
  * Built-in exit command.
@@ -23,14 +23,21 @@ import org.jline.shell.CommandSession;
 public class ExitCommands extends SimpleCommandGroup {
 
     public ExitCommands() {
-        super("exit", List.of(new ExitCommand()));
+        this(null);
+    }
+
+    public ExitCommands(String message) {
+        super("exit", List.of(new ExitCommand(message)));
     }
 
     private static class ExitCommand extends AbstractCommand {
 
-        private ExitCommand() {
+        private ExitCommand(String message) {
             super("exit", "quit");
+            this.message = message;
         }
+
+        private final String message;
 
         @Override
         public String description() {
@@ -39,7 +46,7 @@ public class ExitCommands extends SimpleCommandGroup {
 
         @Override
         public Object execute(CommandSession session, String[] args) {
-            throw new EndOfFileException();
+            throw new ExitShellException(this.message);
         }
     }
 }

@@ -17,7 +17,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
-import org.jline.reader.EndOfFileException;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
@@ -482,7 +481,7 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
             }
             lastOutput = resolveOutputString(captureOutput ? capture : null, lastResult);
             session.setLastExitCode(0);
-        } catch (EndOfFileException e) {
+        } catch (ExitShellException e) {
             session.setLastExitCode(0);
             // Last command in a pipe chain.
             // Exit does not count here per bash convention.

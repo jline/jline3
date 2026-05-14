@@ -113,6 +113,24 @@ class ShellBuilderTest extends AbstractTerminalTest {
     }
 
     /**
+     * Test that the exit command exits a {@link Shell} with a custom message.
+     */
+    @Test
+    void customExitShellCommand() throws IOException {
+        String msg = "test shell exit message";
+        terminalInput.write("exit\n".getBytes());
+        try (Shell shell = Shell.builder()
+                .terminal(terminal)
+                .exitCommands(false)
+                .exitMessage(msg)
+                .build()) {
+            assertTimeoutPreemptively(Duration.of(2000, ChronoUnit.MILLIS), shell::run);
+        }
+        // Also contains echoed command & reader prefixes
+        assertTrue(terminalOutput.toString().contains(msg));
+    }
+
+    /**
      * Test that the exit command in a {@link Shell} can be disabled.
      */
     @Test
