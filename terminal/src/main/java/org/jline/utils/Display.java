@@ -14,7 +14,6 @@ import java.nio.charset.StandardCharsets;
 import java.text.BreakIterator;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -83,7 +82,7 @@ public class Display implements Sized {
 
     protected final Terminal terminal;
     protected final boolean fullScreen;
-    protected List<AttributedString> oldLines = Collections.emptyList();
+    protected List<AttributedString> oldLines = new ArrayList<>();
     protected int cursorPos;
     protected int columns;
     protected int columns1; // columns+1
@@ -216,8 +215,8 @@ public class Display implements Sized {
             this.rows = rows;
             this.columns = columns;
             this.columns1 = columns + 1;
-            oldLines = AttributedString.join(AttributedString.EMPTY, oldLines)
-                    .columnSplitLength(terminal, columns, true, delayLineWrap());
+            oldLines = new ArrayList<>(AttributedString.join(AttributedString.EMPTY, oldLines)
+                    .columnSplitLength(terminal, columns, true, delayLineWrap()));
         }
         // When the terminal buffer is wider than the visible window (e.g. Windows with
         // a wide screen buffer), auto-wrap occurs at the buffer width, not the visible
@@ -261,7 +260,7 @@ public class Display implements Sized {
      * before {@code reset()}.</p>
      */
     public void reset() {
-        oldLines = Collections.emptyList();
+        oldLines = new ArrayList<>();
     }
 
     /**
@@ -611,7 +610,7 @@ public class Display implements Sized {
         if (cursorPos != targetCursorPos) {
             moveVisualCursorTo(targetCursorPos < 0 ? currentPos : targetCursorPos, newLines);
         }
-        oldLines = newLines;
+        oldLines = new ArrayList<>(newLines);
         ensureDefaultAnsiStyle();
 
         if (useByteMode && byteBuilder.length() > 0) {
