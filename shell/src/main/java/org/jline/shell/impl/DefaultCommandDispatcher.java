@@ -17,6 +17,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
+import org.jline.reader.LineReader;
+import org.jline.reader.Parser;
+import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
@@ -58,6 +61,7 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
     private final LineExpander lineExpander;
     private final ScriptRunner scriptRunner;
     private volatile Thread commandThread;
+    private final Parser parser;
 
     /**
      * Creates a new dispatcher for the given terminal.
@@ -66,6 +70,15 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
      */
     public DefaultCommandDispatcher(Terminal terminal) {
         this(terminal, null, null, null);
+    }
+
+    /**
+     * Creates a new dispatcher for the given reader.
+     *
+     * @param reader the reader
+     */
+    public DefaultCommandDispatcher(LineReader reader) {
+        this(reader.getTerminal(), null, null, null, null, null, reader.getParser());
     }
 
     /**
@@ -118,7 +131,30 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
             AliasManager aliasManager,
             LineExpander lineExpander,
             ScriptRunner scriptRunner) {
-        this.terminal = terminal;
+        this(terminal, jobManager, pipelineParser, aliasManager, lineExpander, scriptRunner, null);
+    }
+
+    /**
+     * Creates a new dispatcher with all configuration options including line expansion,
+     * script execution and parser.
+     *
+     * @param terminal the terminal
+     * @param jobManager the job manager, or null for no job control
+     * @param pipelineParser the pipeline parser, or null for the default parser
+     * @param aliasManager the alias manager, or null for no alias support
+     * @param lineExpander the line expander, or null for no variable expansion
+     * @param scriptRunner the script runner, or null for no script support
+     * @param parser the argument parser, or null for the default parser
+     */
+    public DefaultCommandDispatcher(
+            Terminal terminal,
+            JobManager jobManager,
+            PipelineParser pipelineParser,
+            AliasManager aliasManager,
+            LineExpander lineExpander,
+            ScriptRunner scriptRunner,
+            Parser parser) {
+        this.terminal = Objects.requireNonNull(terminal);
         this.session = new CommandSession(terminal);
         this.pipelineParser = pipelineParser != null ? pipelineParser : new PipelineParser();
         this.jobManager = jobManager instanceof DefaultJobManager ? (DefaultJobManager) jobManager : null;
@@ -131,6 +167,7 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
         if (this.aliasManager != null) {
             groups.add(new AliasCommands(aliasManager));
         }
+        this.parser = parser != null ? parser : new DefaultParser();
     }
 
     @Override
@@ -637,6 +674,9 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
     private Object[] resolveCommand(String cmdLine, String flipArgs) {
         String[] parts = cmdLine.trim().split("\\s+", 2);
         String cmdName = parts[0];
+        if (!this.parser.validCommandName(cmdName)) {
+            throw new UnknownCommandException("Invalid command: " + cmdName);
+        }
         String argsStr = parts.length > 1 ? parts[1] : "";
 
         if (flipArgs != null) {
@@ -648,7 +688,12 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
             throw new UnknownCommandException("Unknown command: " + cmdName);
         }
 
-        String[] args = argsStr.isEmpty() ? new String[0] : argsStr.split("\\s+");
+        String[] args = argsStr.isEmpty()
+                ? new String[0]
+                : this.parser
+                        .parse(argsStr, argsStr.length(), Parser.ParseContext.ACCEPT_LINE)
+                        .words()
+                        .toArray(String[]::new);
 
         if (args.length > 0 && !cmd.subcommands().isEmpty()) {
             Command sub = cmd.subcommands().get(args[0]);
