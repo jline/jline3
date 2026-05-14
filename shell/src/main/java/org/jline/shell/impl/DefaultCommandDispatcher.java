@@ -538,7 +538,7 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
                 Object[] resolved = resolveCommand(cmdLine, s == 0 ? flipArgs : null);
                 commands[s] = (Command) resolved[0];
                 argsArrays[s] = (String[]) resolved[1];
-            } catch (UnknownCommandException e) {
+            } catch (RuntimeException | Error e) {
                 closePumps(pumps);
                 throw e;
             }
