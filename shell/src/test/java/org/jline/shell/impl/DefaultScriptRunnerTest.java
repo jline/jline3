@@ -116,7 +116,8 @@ class DefaultScriptRunnerTest extends AbstractCommandDispatcherTest {
         CommandSession session = dispatcher.session();
         session.setWorkingDirectory(tempDir);
 
-        dispatcher.execute("source " + script);
+        // TODO: Remove replace after #1877 is fixed
+        dispatcher.execute("source \"" + script.toString().replace("\\", "\\\\") + "\"");
 
         assertEquals(1, executedCommands.size());
         assertEquals("sourced", executedCommands.get(0));

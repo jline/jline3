@@ -406,22 +406,22 @@ public class ShellBuilder {
             ownTerminal = true;
         }
 
+        // Create parser
+        Parser p = this.parser;
+        if (p == null) {
+            p = new DefaultParser();
+        }
+
         // Create or use provided dispatcher
         CommandDispatcher disp = this.dispatcher;
         if (disp == null) {
             disp = new DefaultCommandDispatcher(
-                    term, jobManager, pipelineParser, aliasManager, lineExpander, scriptRunner);
+                    term, jobManager, pipelineParser, aliasManager, lineExpander, scriptRunner, p);
         }
 
         // Add groups to dispatcher
         for (CommandGroup group : groups) {
             disp.addGroup(group);
-        }
-
-        // Create parser
-        Parser p = this.parser;
-        if (p == null) {
-            p = new DefaultParser();
         }
 
         // Determine highlighter
