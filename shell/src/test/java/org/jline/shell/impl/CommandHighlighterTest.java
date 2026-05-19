@@ -11,7 +11,6 @@ package org.jline.shell.impl;
 import java.io.IOException;
 
 import org.jline.reader.Highlighter;
-import org.jline.shell.CommandSession;
 import org.jline.utils.AttributedString;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,17 +30,6 @@ class CommandHighlighterTest extends AbstractCommandDispatcherTest {
         super.setUp();
         dispatcher.addGroup(new SimpleCommandGroup("test", new TestEchoCommand()));
         highlighter = new CommandHighlighter(dispatcher);
-    }
-
-    static class TestEchoCommand extends AbstractCommand {
-        TestEchoCommand() {
-            super("echo");
-        }
-
-        @Override
-        public Object execute(CommandSession session, String[] args) {
-            return String.join(" ", args);
-        }
     }
 
     @Test

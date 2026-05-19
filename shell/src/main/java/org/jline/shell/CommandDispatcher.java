@@ -143,9 +143,11 @@ public interface CommandDispatcher extends AutoCloseable {
             AttributedStringBuilder asb = new AttributedStringBuilder();
             asb.styled(errorStyle(), exception.getMessage());
             asb.toAttributedString().println(terminal());
+            terminal().flush();
             return;
         }
         exception.printStackTrace(terminal().writer());
+        terminal().flush();
     }
 
     /**

@@ -8,12 +8,11 @@
  */
 package org.jline.shell.impl;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.Objects;
-import java.util.function.Function;
 
+import org.jline.shell.AbstractTerminalTest;
 import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -22,44 +21,31 @@ import org.junit.jupiter.api.BeforeEach;
  * <p>
  * This base-class also deals with cleanup of the {@link Terminal} and {@link DefaultCommandDispatcher}.
  */
-public abstract class AbstractCommandDispatcherTest {
+public abstract class AbstractCommandDispatcherTest extends AbstractTerminalTest {
 
-    protected Terminal terminal;
     protected DefaultCommandDispatcher dispatcher;
-    private final Function<Terminal, DefaultCommandDispatcher> factory;
 
-    /**
-     * Default constructor, creates a simple {@link DefaultCommandDispatcher}.
-     */
-    protected AbstractCommandDispatcherTest() {
-        this(DefaultCommandDispatcher::new);
-    }
-
-    /**
-     * Constructor allowing for customization of the new {@link DefaultCommandDispatcher}.
-     *
-     * @param factory The factory for instantiating custom {@link DefaultCommandDispatcher} instances.
-     */
-    protected AbstractCommandDispatcherTest(Function<Terminal, DefaultCommandDispatcher> factory) {
-        this.factory = factory;
-    }
-
+    @Override
     @BeforeEach
     protected void setUp() throws IOException {
-        terminal = TerminalBuilder.builder().dumb(true).build();
-        dispatcher = Objects.requireNonNull(factory.apply(terminal));
+        super.setUp();
+        dispatcher = Objects.requireNonNull(createDispatcher());
     }
 
+    /**
+     * The factory for instantiating custom {@link DefaultCommandDispatcher} instances.
+     */
+    protected DefaultCommandDispatcher createDispatcher() {
+        return new DefaultCommandDispatcher(terminal);
+    }
+
+    @Override
     @AfterEach
     protected void tearDown() throws IOException {
         try {
-            if (terminal != null) {
-                terminal.close();
-            }
+            dispatcher.close();
         } finally {
-            if (dispatcher != null) {
-                dispatcher.close();
-            }
+            super.tearDown();
         }
     }
 }
