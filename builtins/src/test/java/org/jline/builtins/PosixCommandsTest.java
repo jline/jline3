@@ -104,6 +104,15 @@ class PosixCommandsTest {
     }
 
     @Test
+    void testEchoEscapeSequencePreservesBackslash() throws Exception {
+        PosixCommands.echo(context, new String[] {"echo", "hello \\\"world\\\""});
+
+        String output = out.toString();
+        String expected = "hello \\\"world\\\"" + System.lineSeparator();
+        assertEquals(expected, output);
+    }
+
+    @Test
     void testClearCommand() {
         // Clear command should not throw an exception
         assertDoesNotThrow(() -> PosixCommands.clear(context, new String[] {"clear"}));
