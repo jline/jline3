@@ -113,6 +113,22 @@ class PosixCommandsTest {
     }
 
     @Test
+    void testEchoMultipleUnrecognizedEscapes() throws Exception {
+        PosixCommands.echo(context, new String[] {"echo", "\\x\\y\\z"});
+
+        String output = out.toString();
+        assertEquals("\\x\\y\\z" + System.lineSeparator(), output);
+    }
+
+    @Test
+    void testEchoMixedRecognizedAndUnrecognizedEscapes() throws Exception {
+        PosixCommands.echo(context, new String[] {"echo", "line1\\nline2\\ttab\\\"quote"});
+
+        String output = out.toString();
+        assertEquals("line1\nline2\ttab\\\"quote" + System.lineSeparator(), output);
+    }
+
+    @Test
     void testClearCommand() {
         // Clear command should not throw an exception
         assertDoesNotThrow(() -> PosixCommands.clear(context, new String[] {"clear"}));
