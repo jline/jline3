@@ -731,12 +731,12 @@ public class DefaultParser implements Parser {
             return false;
         }
         char quoteChar = line.charAt(quoteStart);
-        if (quoteChar == '\'') {
-            return true;
-        }
         if (pos + 1 < line.length()) {
             char next = line.charAt(pos + 1);
-            return next != quoteChar && next != '\\' && next != '$' && next != '`';
+            if (quoteChar == '\'') {
+                return next != '\'';
+            }
+            return next != quoteChar && next != '\\' && next != '$' && next != '`' && next != '\n';
         }
         return false;
     }
