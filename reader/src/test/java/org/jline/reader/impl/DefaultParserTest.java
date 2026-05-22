@@ -67,6 +67,42 @@ class DefaultParserTest {
     }
 
     @Test
+    void testBackslashPreservedInSingleQuotes() {
+        DefaultParser parser = new DefaultParser();
+        CompletingParsedLine line = (CompletingParsedLine) parser.parse("source 'C:\\windows\\path'", 0);
+        assertNotNull(line);
+        assertEquals(2, line.words().size());
+        assertEquals("C:\\windows\\path", line.words().get(1));
+    }
+
+    @Test
+    void testBackslashPreservedInDoubleQuotes() {
+        DefaultParser parser = new DefaultParser();
+        CompletingParsedLine line = (CompletingParsedLine) parser.parse("source \"C:\\windows\\path\"", 0);
+        assertNotNull(line);
+        assertEquals(2, line.words().size());
+        assertEquals("C:\\windows\\path", line.words().get(1));
+    }
+
+    @Test
+    void testBackslashBeforeQuoteInDoubleQuotes() {
+        DefaultParser parser = new DefaultParser();
+        CompletingParsedLine line = (CompletingParsedLine) parser.parse("echo \"hello \\\"world\\\"\"", 0);
+        assertNotNull(line);
+        assertEquals(2, line.words().size());
+        assertEquals("hello \"world\"", line.words().get(1));
+    }
+
+    @Test
+    void testBackslashStrippedOutsideQuotes() {
+        DefaultParser parser = new DefaultParser();
+        CompletingParsedLine line = (CompletingParsedLine) parser.parse("echo a\\b\\c", 0);
+        assertNotNull(line);
+        assertEquals(2, line.words().size());
+        assertEquals("abc", line.words().get(1));
+    }
+
+    @Test
     void testSplitLine() {
         DefaultParser parser = new DefaultParser();
         CompletingParsedLine line =
