@@ -334,6 +334,7 @@ public class Display implements Sized {
 
         if (reset) {
             puts(Capability.clear_screen);
+            puts(Capability.cursor_address, 0, 0);
             oldLines.clear();
             cursorPos = 0;
             reset = false;
