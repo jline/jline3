@@ -30,8 +30,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.jline.utils.InfoCmp.Capability.enter_ca_mode;
 import static org.jline.utils.InfoCmp.Capability.exit_ca_mode;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class DisplayTest {
 
@@ -268,6 +267,30 @@ class DisplayTest {
             assertEquals('a', (char) screen[10 + cols * 1], "col 10 row 1 should be unchanged");
             assertEquals('a', (char) screen[0 + cols * 1], "col 0 row 1 should be unchanged");
             assertEquals('a', (char) screen[39 + cols * 1], "col 39 row 1 should be unchanged");
+        }
+    }
+
+    @Test
+    void testUpdateImmutableList() throws IOException {
+        int rows = 5;
+        int cols = 40;
+        try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, cols, rows)) {
+            terminal.enterRawMode();
+            Display display = new Display(terminal, true);
+            display.resize(Size.of(cols, rows));
+            List<AttributedString> lines = new ArrayList<>();
+            lines.add(new AttributedString("test1"));
+            lines.add(new AttributedString("test2"));
+            lines.add(new AttributedString("test3"));
+
+            assertDoesNotThrow(() -> display.update(List.copyOf(lines), 0));
+            lines.set(2, new AttributedString("3test"));
+            assertDoesNotThrow(() -> display.update(List.copyOf(lines), 0));
+            lines.add(new AttributedString("test4"));
+            assertDoesNotThrow(() -> display.update(List.copyOf(lines), 0));
+            display.clear();
+            lines.set(0, new AttributedString("non empty line"));
+            assertDoesNotThrow(() -> display.update(List.copyOf(lines), 0));
         }
     }
 
