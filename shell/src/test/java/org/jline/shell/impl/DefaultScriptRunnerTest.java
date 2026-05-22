@@ -116,7 +116,7 @@ class DefaultScriptRunnerTest extends AbstractCommandDispatcherTest {
         CommandSession session = dispatcher.session();
         session.setWorkingDirectory(tempDir);
 
-        dispatcher.execute("source " + script);
+        dispatcher.execute("source \"" + script.toString().replace("\\", "\\\\") + "\"");
 
         assertEquals(1, executedCommands.size());
         assertEquals("sourced", executedCommands.get(0));
