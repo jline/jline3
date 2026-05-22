@@ -8,7 +8,7 @@
  */
 package org.jline.utils;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,7 +56,7 @@ public class Display {
 
     protected final Terminal terminal;
     protected final boolean fullScreen;
-    protected List<AttributedString> oldLines = Collections.emptyList();
+    protected final List<AttributedString> oldLines = new ArrayList<>();
     protected int cursorPos;
     protected int columns;
     protected int columns1; // columns+1
@@ -109,8 +109,10 @@ public class Display {
             this.rows = rows;
             this.columns = columns;
             this.columns1 = columns + 1;
-            oldLines = AttributedString.join(AttributedString.EMPTY, oldLines)
+            List<AttributedString> split = AttributedString.join(AttributedString.EMPTY, oldLines)
                     .columnSplitLength(columns, true, delayLineWrap());
+            oldLines.clear();
+            oldLines.addAll(split);
         }
         // When the terminal buffer is wider than the visible window (e.g. Windows with
         // a wide screen buffer), auto-wrap occurs at the buffer width, not the visible
@@ -126,7 +128,7 @@ public class Display {
     }
 
     public void reset() {
-        oldLines = Collections.emptyList();
+        oldLines.clear();
     }
 
     /**
@@ -369,7 +371,8 @@ public class Display {
         if (cursorPos != targetCursorPos) {
             moveVisualCursorTo(targetCursorPos < 0 ? currentPos : targetCursorPos, newLines);
         }
-        oldLines = newLines;
+        oldLines.clear();
+        oldLines.addAll(newLines);
 
         if (flush) {
             terminal.flush();
