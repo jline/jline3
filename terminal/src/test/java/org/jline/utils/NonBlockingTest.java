@@ -326,4 +326,27 @@ class NonBlockingTest {
         assertArrayEquals(payload, result);
         assertTrue(sawBulk, "At least one bulk read (n > 1) should have occurred");
     }
+
+    @Test
+    void testNonBlockingInputStreamRecoverAfterEof() throws IOException {
+        java.io.InputStream in = new java.io.InputStream() {
+            private int callCount = 0;
+
+            @Override
+            public int read() {
+                int n = callCount++;
+                if (n == 0) {
+                    return -1;
+                }
+                return 'A';
+            }
+        };
+        NonBlockingInputStreamImpl nbis = new NonBlockingInputStreamImpl("test", in);
+        try {
+            assertEquals(-1, nbis.read(200));
+            assertEquals('A', nbis.read(200));
+        } finally {
+            nbis.close();
+        }
+    }
 }
