@@ -610,7 +610,8 @@ public class Display implements Sized {
         if (cursorPos != targetCursorPos) {
             moveVisualCursorTo(targetCursorPos < 0 ? currentPos : targetCursorPos, newLines);
         }
-        oldLines = new ArrayList<>(newLines);
+        oldLines.clear();
+        oldLines.addAll(newLines);
         ensureDefaultAnsiStyle();
 
         if (useByteMode && byteBuilder.length() > 0) {
