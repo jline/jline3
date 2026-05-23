@@ -215,11 +215,6 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
                     threadIsReading = false;
                     notify();
                 }
-
-                // If end of stream, exit the loop thread
-                if (byteRead < 0) {
-                    return;
-                }
             }
         } catch (Throwable t) {
             Log.warn("Error in NonBlockingInputStream thread", t);
