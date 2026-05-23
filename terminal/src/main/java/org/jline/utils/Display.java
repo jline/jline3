@@ -184,6 +184,7 @@ public class Display {
     public void update(List<AttributedString> newLines, int targetCursorPos, boolean flush) {
         if (reset) {
             terminal.puts(Capability.clear_screen);
+            terminal.puts(Capability.cursor_address, 0, 0);
             oldLines.clear();
             cursorPos = 0;
             reset = false;

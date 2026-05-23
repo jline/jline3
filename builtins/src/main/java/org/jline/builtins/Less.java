@@ -360,6 +360,7 @@ public class Less {
                 // Use alternate buffer
                 if (!noInit) {
                     terminal.puts(Capability.enter_ca_mode);
+                    terminal.puts(Capability.cursor_home);
                 }
                 if (!noKeypad) {
                     terminal.puts(Capability.keypad_xmit);
@@ -367,6 +368,7 @@ public class Less {
                 terminal.writer().flush();
 
                 display.clear();
+                display.reset();
                 display(false);
                 checkInterrupted();
 
