@@ -337,6 +337,7 @@ public class PosixCommands {
                         i += parseUnicodeSequence(arg, i + 1, length, buf);
                         break;
                     default:
+                        buf.append('\\');
                         buf.append(nextChar);
                         break;
                 }
