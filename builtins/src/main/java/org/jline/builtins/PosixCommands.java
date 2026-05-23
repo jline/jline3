@@ -331,6 +331,7 @@ public class PosixCommands {
                                 buf.append((char) ch);
                                 break;
                             default:
+                                buf.append('\\');
                                 buf.append((char) c);
                                 break;
                         }
