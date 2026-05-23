@@ -101,7 +101,7 @@ jobs:
             milestone=$(gh milestone list --json id,title,state --jq "map_values(select(.title == \"${next_version}\" and .state == \"OPEN\")).[].number")
             if [ -z "$milestone" ]; then
               echo "Creating milestone $next_version"
-              gh milestone create --title $next_version
+              gh milestone create --title $next_version || echo "Milestone $next_version already exists, skipping"
             fi
           else
             echo "ERROR: Version $version is not a valid semantic version (x.y.z)"
@@ -115,10 +115,15 @@ jobs:
             --jq ".[] | select(.draft == true and .tag_name == \"${version}\") | .tag_name" \
             2>/dev/null || true)
 
+          existing_release=$(gh api repos/${{ github.repository }}/releases/tags/${version} --jq '.tag_name' 2>/dev/null || true)
+
           if [ -n "$draft_tag" ]; then
             echo "Publishing existing draft release for $version"
             gh release edit "$version" --draft=false --verify-tag --title "JLine $version"
+          elif [ -n "$existing_release" ]; then
+            echo "Release $version already exists, updating title"
+            gh release edit "$version" --title "JLine $version"
           else
-            echo "No draft release found, creating release for $version"
+            echo "No existing release found, creating release for $version"
             gh release create "$version" --verify-tag --generate-notes --title "JLine $version"
           fi
