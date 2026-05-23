@@ -11,7 +11,9 @@ package org.jline.shell.impl;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jline.shell.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -130,6 +132,19 @@ class DefaultCommandDispatcherTest extends AbstractCommandDispatcherTest {
         @Override
         public Object execute(CommandSession session, String[] args) {
             return null;
+        }
+    }
+
+    static class ArgTestGroup extends SimpleCommandGroup {
+        ArgTestGroup(AtomicBoolean run, List<String> match) {
+            super("argstest", new AbstractCommand("argstest") {
+                @Override
+                public Object execute(CommandSession session, String[] args) {
+                    assertEquals(match, List.of(args));
+                    run.set(true);
+                    return null;
+                }
+            });
         }
     }
 
@@ -293,5 +308,37 @@ class DefaultCommandDispatcherTest extends AbstractCommandDispatcherTest {
         Pipeline pipeline = Pipeline.of("echo test").pipe("upper").build();
         Object result = dispatcher.execute(pipeline);
         assertEquals("TEST", result);
+    }
+
+    private void testArgs(String cmdArgs, List<String> match) throws Exception {
+        AtomicBoolean completed = new AtomicBoolean();
+        dispatcher.addGroup(new ArgTestGroup(completed, match));
+        dispatcher.execute("argstest " + cmdArgs);
+        assertTrue(completed.get());
+    }
+
+    @Test
+    void simpleArgTest() throws Exception {
+        testArgs("\"arg test\"", List.of("arg test"));
+    }
+
+    @Test
+    void simpleArgDoubleEscapeTest() throws Exception {
+        testArgs("\"\\\"test\"\\\"", List.of("\"test\""));
+    }
+
+    @Test
+    void simpleArgTwoArgsTest() throws Exception {
+        testArgs("\"test\" \"arg two\"", List.of("test", "arg two"));
+    }
+
+    @Test
+    void simpleArgSingleQuoteTest() throws Exception {
+        testArgs("'test arg'", List.of("test arg"));
+    }
+
+    @Test
+    void simpleArgCommandTest() throws Exception {
+        testArgs("\"echo 'test arg'\"", List.of("echo 'test arg'"));
     }
 }

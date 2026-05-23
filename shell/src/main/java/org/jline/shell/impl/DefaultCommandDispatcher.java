@@ -17,6 +17,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
+import org.jline.reader.Parser;
+import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
@@ -58,6 +60,7 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
     private final LineExpander lineExpander;
     private final ScriptRunner scriptRunner;
     private volatile Thread commandThread;
+    private final Parser parser = new DefaultParser();
 
     /**
      * Creates a new dispatcher for the given terminal.
@@ -648,7 +651,11 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
             throw new UnknownCommandException("Unknown command: " + cmdName);
         }
 
-        String[] args = argsStr.isEmpty() ? new String[0] : argsStr.split("\\s+");
+        String[] args = argsStr.isEmpty()
+                ? new String[0]
+                : parser.parse(argsStr, argsStr.length(), Parser.ParseContext.ACCEPT_LINE)
+                        .words()
+                        .toArray(String[]::new);
 
         if (args.length > 0 && !cmd.subcommands().isEmpty()) {
             Command sub = cmd.subcommands().get(args[0]);
