@@ -535,7 +535,7 @@ public class DefaultParser implements Parser {
                 } else if (quoteStart < 0 && !lineCommented && isCommentDelim(line, i, blockCommentEnd)) {
                     current.append(line.charAt(i));
                     blockCommentInRightOrder = false;
-                } else if (!isEscapeChar(line, i)) {
+                } else if (!isEscapeChar(line, i) || isLiteralEscapeInQuote(line, i, quoteStart)) {
                     current.append(line.charAt(i));
                     if (quoteStart < 0) {
                         bracketChecker.check(line, i);
@@ -724,6 +724,21 @@ public class DefaultParser implements Parser {
             return false;
         }
         return isEscapeChar(buffer, pos - 1);
+    }
+
+    private boolean isLiteralEscapeInQuote(final CharSequence line, final int pos, final int quoteStart) {
+        if (quoteStart < 0) {
+            return false;
+        }
+        char quoteChar = line.charAt(quoteStart);
+        if (pos + 1 < line.length()) {
+            char next = line.charAt(pos + 1);
+            if (quoteChar == '\'') {
+                return next != '\'';
+            }
+            return next != quoteChar && next != '\\' && next != '$' && next != '`' && next != '\n';
+        }
+        return false;
     }
 
     /**
