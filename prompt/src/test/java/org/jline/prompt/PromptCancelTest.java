@@ -40,7 +40,6 @@ class PromptCancelTest {
         Terminal terminal =
                 TerminalBuilder.builder().type("ansi").streams(in, out).build();
         terminal.setSize(Size.of(160, 80));
-        // Clear ISIG so 0x03 passes through the line discipline as a raw byte
         Attributes attr = terminal.getAttributes();
         attr.setLocalFlag(LocalFlag.ISIG, false);
         terminal.setAttributes(attr);
@@ -53,27 +52,28 @@ class PromptCancelTest {
         PipedOutputStream outIn = new PipedOutputStream(in);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-        Terminal terminal = createTerminal(in, out);
-        Prompter prompter = PrompterFactory.create(terminal);
+        try (Terminal terminal = createTerminal(in, out)) {
+            Prompter prompter = PrompterFactory.create(terminal);
 
-        PromptBuilder builder = prompter.newBuilder();
-        builder.createListPrompt()
-                .name("x")
-                .message("Pick one")
-                .newItem("a")
-                .text("a")
-                .add()
-                .newItem("b")
-                .text("b")
-                .add()
-                .addPrompt();
+            PromptBuilder builder = prompter.newBuilder();
+            builder.createListPrompt()
+                    .name("x")
+                    .message("Pick one")
+                    .newItem("a")
+                    .text("a")
+                    .add()
+                    .newItem("b")
+                    .text("b")
+                    .add()
+                    .addPrompt();
 
-        List<Prompt> prompts = builder.build();
+            List<Prompt> prompts = builder.build();
 
-        outIn.write(CTRL_C);
-        outIn.flush();
+            outIn.write(CTRL_C);
+            outIn.flush();
 
-        assertThrows(UserInterruptException.class, () -> prompter.prompt(Collections.emptyList(), prompts));
+            assertThrows(UserInterruptException.class, () -> prompter.prompt(Collections.emptyList(), prompts));
+        }
     }
 
     @Test
@@ -82,27 +82,28 @@ class PromptCancelTest {
         PipedOutputStream outIn = new PipedOutputStream(in);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-        Terminal terminal = createTerminal(in, out);
-        Prompter prompter = PrompterFactory.create(terminal);
+        try (Terminal terminal = createTerminal(in, out)) {
+            Prompter prompter = PrompterFactory.create(terminal);
 
-        PromptBuilder builder = prompter.newBuilder();
-        builder.createCheckboxPrompt()
-                .name("items")
-                .message("Select items")
-                .newItem("x")
-                .text("X")
-                .add()
-                .newItem("y")
-                .text("Y")
-                .add()
-                .addPrompt();
+            PromptBuilder builder = prompter.newBuilder();
+            builder.createCheckboxPrompt()
+                    .name("items")
+                    .message("Select items")
+                    .newItem("x")
+                    .text("X")
+                    .add()
+                    .newItem("y")
+                    .text("Y")
+                    .add()
+                    .addPrompt();
 
-        List<Prompt> prompts = builder.build();
+            List<Prompt> prompts = builder.build();
 
-        outIn.write(CTRL_C);
-        outIn.flush();
+            outIn.write(CTRL_C);
+            outIn.flush();
 
-        assertThrows(UserInterruptException.class, () -> prompter.prompt(Collections.emptyList(), prompts));
+            assertThrows(UserInterruptException.class, () -> prompter.prompt(Collections.emptyList(), prompts));
+        }
     }
 
     @Test
@@ -111,18 +112,19 @@ class PromptCancelTest {
         PipedOutputStream outIn = new PipedOutputStream(in);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-        Terminal terminal = createTerminal(in, out);
-        Prompter prompter = PrompterFactory.create(terminal);
+        try (Terminal terminal = createTerminal(in, out)) {
+            Prompter prompter = PrompterFactory.create(terminal);
 
-        PromptBuilder builder = prompter.newBuilder();
-        builder.createConfirmPrompt().name("ok").message("Continue?").addPrompt();
+            PromptBuilder builder = prompter.newBuilder();
+            builder.createConfirmPrompt().name("ok").message("Continue?").addPrompt();
 
-        List<Prompt> prompts = builder.build();
+            List<Prompt> prompts = builder.build();
 
-        outIn.write(CTRL_C);
-        outIn.flush();
+            outIn.write(CTRL_C);
+            outIn.flush();
 
-        assertThrows(UserInterruptException.class, () -> prompter.prompt(Collections.emptyList(), prompts));
+            assertThrows(UserInterruptException.class, () -> prompter.prompt(Collections.emptyList(), prompts));
+        }
     }
 
     @Test
@@ -131,28 +133,29 @@ class PromptCancelTest {
         PipedOutputStream outIn = new PipedOutputStream(in);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-        Terminal terminal = createTerminal(in, out);
-        Prompter prompter = PrompterFactory.create(terminal);
+        try (Terminal terminal = createTerminal(in, out)) {
+            Prompter prompter = PrompterFactory.create(terminal);
 
-        PromptBuilder builder = prompter.newBuilder();
-        builder.createChoicePrompt()
-                .name("choice")
-                .message("Pick one")
-                .newChoice("a")
-                .text("A")
-                .key('a')
-                .add()
-                .newChoice("b")
-                .text("B")
-                .key('b')
-                .add()
-                .addPrompt();
+            PromptBuilder builder = prompter.newBuilder();
+            builder.createChoicePrompt()
+                    .name("choice")
+                    .message("Pick one")
+                    .newChoice("a")
+                    .text("A")
+                    .key('a')
+                    .add()
+                    .newChoice("b")
+                    .text("B")
+                    .key('b')
+                    .add()
+                    .addPrompt();
 
-        List<Prompt> prompts = builder.build();
+            List<Prompt> prompts = builder.build();
 
-        outIn.write(CTRL_C);
-        outIn.flush();
+            outIn.write(CTRL_C);
+            outIn.flush();
 
-        assertThrows(UserInterruptException.class, () -> prompter.prompt(Collections.emptyList(), prompts));
+            assertThrows(UserInterruptException.class, () -> prompter.prompt(Collections.emptyList(), prompts));
+        }
     }
 }
