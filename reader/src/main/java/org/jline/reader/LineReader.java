@@ -163,6 +163,7 @@ public interface LineReader {
     String INFER_NEXT_HISTORY = "infer-next-history";
     String INSERT_COMMENT = "insert-comment";
     String INSERT_LAST_WORD = "insert-last-word";
+    String INTERRUPT = "interrupt";
     String KILL_BUFFER = "kill-buffer";
     String KILL_LINE = "kill-line";
     String KILL_REGION = "kill-region";
