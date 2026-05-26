@@ -89,8 +89,11 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
     @Override
     public void close() throws IOException {
         super.close();
-        shutdown();
-        in.close();
+        try {
+            in.close();
+        } finally {
+            shutdown();
+        }
     }
 
     /**
