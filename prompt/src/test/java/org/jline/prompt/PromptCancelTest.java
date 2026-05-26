@@ -11,151 +11,143 @@ package org.jline.prompt;
 import java.io.ByteArrayOutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
-import java.util.Collections;
+import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.jline.reader.UserInterruptException;
-import org.jline.terminal.Attributes;
-import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
-/**
- * Tests that Ctrl+C (byte 0x03) during prompts throws {@link UserInterruptException}.
- *
- * <p>ISIG must be cleared before writing the byte, otherwise the line discipline
- * consumes it as a signal rather than forwarding it to the binding reader.
- * In production, {@code enterRawMode()} clears ISIG; in tests we clear it
- * manually before feeding the byte into the pipe.
- */
 class PromptCancelTest {
 
-    private static final byte CTRL_C = 3;
-
-    private Terminal createTerminal(PipedInputStream in, ByteArrayOutputStream out) throws Exception {
-        Terminal terminal =
-                TerminalBuilder.builder().type("ansi").streams(in, out).build();
-        terminal.setSize(Size.of(160, 80));
-        Attributes attr = terminal.getAttributes();
-        attr.setLocalFlag(LocalFlag.ISIG, false);
-        terminal.setAttributes(attr);
-        return terminal;
-    }
+    private static final byte CTRL_C = 0x03;
+    private static final Duration TIMEOUT = Duration.ofSeconds(5);
+    private static final long INPUT_DELAY_MS = 200;
 
     @Test
-    void testListPromptCtrlCThrowsUserInterrupt() throws Exception {
-        PipedInputStream in = new PipedInputStream();
-        PipedOutputStream outIn = new PipedOutputStream(in);
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-        try (Terminal terminal = createTerminal(in, out)) {
-            Prompter prompter = PrompterFactory.create(terminal);
-
-            PromptBuilder builder = prompter.newBuilder();
-            builder.createListPrompt()
-                    .name("x")
+    void list() throws Exception {
+        try (Fixture f = new Fixture()) {
+            PromptBuilder b = f.prompter.newBuilder();
+            b.createListPrompt()
+                    .name("pick")
                     .message("Pick one")
                     .newItem("a")
-                    .text("a")
+                    .text("Alpha")
                     .add()
                     .newItem("b")
-                    .text("b")
+                    .text("Bravo")
                     .add()
                     .addPrompt();
-
-            List<Prompt> prompts = builder.build();
-
-            outIn.write(CTRL_C);
-            outIn.flush();
-
-            assertThrows(UserInterruptException.class, () -> prompter.prompt(Collections.emptyList(), prompts));
+            assertCancels(f, b.build());
         }
     }
 
     @Test
-    void testCheckboxPromptCtrlCThrowsUserInterrupt() throws Exception {
-        PipedInputStream in = new PipedInputStream();
-        PipedOutputStream outIn = new PipedOutputStream(in);
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-        try (Terminal terminal = createTerminal(in, out)) {
-            Prompter prompter = PrompterFactory.create(terminal);
-
-            PromptBuilder builder = prompter.newBuilder();
-            builder.createCheckboxPrompt()
-                    .name("items")
-                    .message("Select items")
-                    .newItem("x")
-                    .text("X")
+    void checkbox() throws Exception {
+        try (Fixture f = new Fixture()) {
+            PromptBuilder b = f.prompter.newBuilder();
+            b.createCheckboxPrompt()
+                    .name("toppings")
+                    .message("Pick toppings")
+                    .newItem("cheese")
+                    .text("Cheese")
                     .add()
-                    .newItem("y")
-                    .text("Y")
+                    .newItem("ham")
+                    .text("Ham")
                     .add()
                     .addPrompt();
-
-            List<Prompt> prompts = builder.build();
-
-            outIn.write(CTRL_C);
-            outIn.flush();
-
-            assertThrows(UserInterruptException.class, () -> prompter.prompt(Collections.emptyList(), prompts));
+            assertCancels(f, b.build());
         }
     }
 
     @Test
-    void testConfirmPromptCtrlCThrowsUserInterrupt() throws Exception {
-        PipedInputStream in = new PipedInputStream();
-        PipedOutputStream outIn = new PipedOutputStream(in);
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-        try (Terminal terminal = createTerminal(in, out)) {
-            Prompter prompter = PrompterFactory.create(terminal);
-
-            PromptBuilder builder = prompter.newBuilder();
-            builder.createConfirmPrompt().name("ok").message("Continue?").addPrompt();
-
-            List<Prompt> prompts = builder.build();
-
-            outIn.write(CTRL_C);
-            outIn.flush();
-
-            assertThrows(UserInterruptException.class, () -> prompter.prompt(Collections.emptyList(), prompts));
+    void choice() throws Exception {
+        try (Fixture f = new Fixture()) {
+            PromptBuilder b = f.prompter.newBuilder();
+            b.createChoicePrompt()
+                    .name("color")
+                    .message("Pick a color")
+                    .newChoice("red")
+                    .text("Red")
+                    .key('r')
+                    .add()
+                    .newChoice("green")
+                    .text("Green")
+                    .key('g')
+                    .add()
+                    .addPrompt();
+            assertCancels(f, b.build());
         }
     }
 
     @Test
-    void testChoicePromptCtrlCThrowsUserInterrupt() throws Exception {
-        PipedInputStream in = new PipedInputStream();
-        PipedOutputStream outIn = new PipedOutputStream(in);
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
+    void confirm() throws Exception {
+        try (Fixture f = new Fixture()) {
+            PromptBuilder b = f.prompter.newBuilder();
+            b.createConfirmPrompt().name("agree").message("Do you agree?").addPrompt();
+            assertCancels(f, b.build());
+        }
+    }
 
-        try (Terminal terminal = createTerminal(in, out)) {
-            Prompter prompter = PrompterFactory.create(terminal);
+    private static void assertCancels(Fixture f, List<Prompt> prompts) {
+        assertTimeoutPreemptively(TIMEOUT, () -> {
+            f.sendCtrlCAfter(INPUT_DELAY_MS);
+            assertThrows(UserInterruptException.class, () -> f.prompter.prompt(List.of(), prompts));
+        });
+    }
 
-            PromptBuilder builder = prompter.newBuilder();
-            builder.createChoicePrompt()
-                    .name("choice")
-                    .message("Pick one")
-                    .newChoice("a")
-                    .text("A")
-                    .key('a')
-                    .add()
-                    .newChoice("b")
-                    .text("B")
-                    .key('b')
-                    .add()
-                    .addPrompt();
+    private static final class Fixture implements AutoCloseable {
+        final PipedOutputStream feeder;
+        final Terminal terminal;
+        final Prompter prompter;
+        volatile Thread sender;
 
-            List<Prompt> prompts = builder.build();
+        Fixture() throws Exception {
+            PipedInputStream in = new PipedInputStream();
+            this.feeder = new PipedOutputStream(in);
+            this.terminal = TerminalBuilder.builder()
+                    .type("ansi")
+                    .streams(in, new ByteArrayOutputStream())
+                    .build();
+            terminal.setSize(Size.of(160, 80));
+            this.prompter = PrompterFactory.create(terminal);
+        }
 
-            outIn.write(CTRL_C);
-            outIn.flush();
+        // Delay so prompt() can call enterRawMode() first, else the pump consumes 0x03 as
+        // VINTR under cooked-mode attributes. Block until interrupted so PipedInputStream
+        // does not raise "Write end dead" before the keymap matches.
+        void sendCtrlCAfter(long delayMillis) {
+            sender = new Thread(
+                    () -> {
+                        try {
+                            TimeUnit.MILLISECONDS.sleep(delayMillis);
+                            feeder.write(CTRL_C);
+                            feeder.flush();
+                            Thread.sleep(Long.MAX_VALUE);
+                        } catch (Exception ignored) {
+                        }
+                    },
+                    "ctrl-c-sender");
+            sender.setDaemon(true);
+            sender.start();
+        }
 
-            assertThrows(UserInterruptException.class, () -> prompter.prompt(Collections.emptyList(), prompts));
+        @Override
+        public void close() throws Exception {
+            if (sender != null) {
+                sender.interrupt();
+            }
+            try {
+                terminal.close();
+            } finally {
+                feeder.close();
+            }
         }
     }
 }
