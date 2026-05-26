@@ -60,12 +60,12 @@ class CLibrary {
 
         private final MemorySegment seg;
 
-        winsize() {
-            seg = Arena.ofAuto().allocate(LAYOUT);
+        winsize(Arena arena) {
+            seg = arena.allocate(LAYOUT);
         }
 
-        winsize(short ws_col, short ws_row) {
-            this();
+        winsize(Arena arena, short ws_col, short ws_row) {
+            this(arena);
             ws_col(ws_col);
             ws_row(ws_row);
         }
@@ -157,12 +157,12 @@ class CLibrary {
 
         private final MemorySegment seg;
 
-        termios() {
-            seg = Arena.ofAuto().allocate(LAYOUT);
+        termios(Arena arena) {
+            seg = arena.allocate(LAYOUT);
         }
 
-        termios(Attributes t) {
-            this();
+        termios(Arena arena, Attributes t) {
+            this(arena);
             TermiosData data = TermiosMapping.forCurrentPlatform().toTermios(t);
             c_iflag(data.iflag());
             c_oflag(data.oflag());
@@ -374,8 +374,8 @@ class CLibrary {
     }
 
     static Size getTerminalSize(int fd) {
-        try {
-            winsize ws = new winsize();
+        try (Arena arena = Arena.ofConfined()) {
+            winsize ws = new winsize(arena);
             int res = (int) ioctl.invoke(fd, (long) TIOCGWINSZ, ws.segment());
             return Size.of(ws.ws_col(), ws.ws_row());
         } catch (Throwable e) {
@@ -384,8 +384,8 @@ class CLibrary {
     }
 
     static void setTerminalSize(int fd, Sized size) {
-        try {
-            winsize ws = new winsize();
+        try (Arena arena = Arena.ofConfined()) {
+            winsize ws = new winsize(arena);
             ws.ws_row((short) size.getRows());
             ws.ws_col((short) size.getColumns());
             int res = (int) ioctl.invoke(fd, TIOCSWINSZ, ws.segment());
@@ -395,8 +395,8 @@ class CLibrary {
     }
 
     static Attributes getAttributes(int fd) {
-        try {
-            termios t = new termios();
+        try (Arena arena = Arena.ofConfined()) {
+            termios t = new termios(arena);
             int res = (int) tcgetattr.invoke(fd, t.segment());
             return t.asAttributes();
         } catch (Throwable e) {
@@ -405,8 +405,8 @@ class CLibrary {
     }
 
     static void setAttributes(int fd, Attributes attr) {
-        try {
-            termios t = new termios(attr);
+        try (Arena arena = Arena.ofConfined()) {
+            termios t = new termios(arena, attr);
             int res = (int) tcsetattr.invoke(fd, TermiosData.TCSANOW, t.segment());
         } catch (Throwable e) {
             throw new RuntimeException("Unable to call tcsetattr()", e);
@@ -422,8 +422,8 @@ class CLibrary {
     }
 
     static String ttyName(int fd) {
-        try {
-            MemorySegment buf = Arena.ofAuto().allocate(64);
+        try (Arena arena = Arena.ofConfined()) {
+            MemorySegment buf = arena.allocate(64);
             int res = (int) ttyname_r.invoke(fd, buf, buf.byteSize());
             byte[] data = buf.toArray(ValueLayout.JAVA_BYTE);
             int len = 0;
@@ -440,17 +440,17 @@ class CLibrary {
         if (openptyError != null) {
             throw openptyError;
         }
-        try {
-            MemorySegment buf = Arena.ofAuto().allocate(64);
-            MemorySegment master = Arena.ofAuto().allocate(ValueLayout.JAVA_INT);
-            MemorySegment slave = Arena.ofAuto().allocate(ValueLayout.JAVA_INT);
+        try (Arena arena = Arena.ofConfined()) {
+            MemorySegment buf = arena.allocate(64);
+            MemorySegment master = arena.allocate(ValueLayout.JAVA_INT);
+            MemorySegment slave = arena.allocate(ValueLayout.JAVA_INT);
             int res = (int) openptyHandle.invoke(
                     master,
                     slave,
                     buf,
-                    attr != null ? new termios(attr).segment() : MemorySegment.NULL,
+                    attr != null ? new termios(arena, attr).segment() : MemorySegment.NULL,
                     size != null
-                            ? new winsize((short) size.getColumns(), (short) size.getRows()).segment()
+                            ? new winsize(arena, (short) size.getColumns(), (short) size.getRows()).segment()
                             : MemorySegment.NULL);
             if (res != 0) {
                 throw new UncheckedIOException(new IOException("Unable to call openpty(): return code " + res));

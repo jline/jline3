@@ -11,6 +11,7 @@ package org.jline.terminal.impl.ffm;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.lang.foreign.Arena;
 import java.nio.charset.Charset;
 
 import org.jline.terminal.Attributes;
@@ -70,17 +71,19 @@ class FfmTest {
     @Test
     @DisabledOnOs(OS.WINDOWS)
     void testWinsizeConstructorArgumentOrder() {
-        short cols = 120;
-        short rows = 40;
-        CLibrary.winsize ws = new CLibrary.winsize(cols, rows);
-        assertEquals(cols, ws.ws_col());
-        assertEquals(rows, ws.ws_row());
+        try (Arena arena = Arena.ofConfined()) {
+            short cols = 120;
+            short rows = 40;
+            CLibrary.winsize ws = new CLibrary.winsize(arena, cols, rows);
+            assertEquals(cols, ws.ws_col());
+            assertEquals(rows, ws.ws_row());
+        }
     }
 
     @Test
     @EnabledOnOs(OS.WINDOWS)
     void checkStructLayout() {
-        try (java.lang.foreign.Arena arena = java.lang.foreign.Arena.ofConfined()) {
+        try (Arena arena = Arena.ofConfined()) {
             assertNotNull(new Kernel32.KEY_EVENT_RECORD(arena));
             assertNotNull(new Kernel32.MOUSE_EVENT_RECORD(arena));
             assertNotNull(new Kernel32.WINDOW_BUFFER_SIZE_RECORD(arena));
