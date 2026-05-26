@@ -59,25 +59,38 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
     }
 
     /**
-     * Shuts down the thread that is handling blocking I/O. Note that if the
-     * thread is currently blocked waiting for I/O it will not actually
-     * shut down until the I/O is received.
+     * Shuts down the thread that is handling blocking I/O. Sets
+     * {@code threadIsReading} to false, interrupts the thread (to wake it
+     * from a {@code wait()} call), and waits briefly for the thread to exit.
+     *
+     * <p>If the thread is blocked in a native {@code read()} call, the
+     * interrupt alone may not unblock it — callers can set VMIN=0/VTIME=1
+     * on the terminal beforehand to force the read to time out.</p>
      */
-    public synchronized void shutdown() {
-        if (thread != null) {
-            notify();
+    public void shutdown() {
+        Thread t;
+        synchronized (this) {
+            t = thread;
+            if (t != null) {
+                threadIsReading = false;
+                t.interrupt();
+                notify();
+            }
+        }
+        if (t != null) {
+            try {
+                t.join(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
     }
 
     @Override
     public void close() throws IOException {
-        /*
-         * The underlying input stream is closed first. This means that if the
-         * I/O thread was blocked waiting on input, it will be woken for us.
-         */
-        super.close(); // Mark as closed in base class
-        in.close();
+        super.close();
         shutdown();
+        in.close();
     }
 
     /**

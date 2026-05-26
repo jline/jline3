@@ -22,6 +22,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.IntConsumer;
 
 import org.jline.terminal.Attributes;
+import org.jline.terminal.Attributes.ControlChar;
+import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.Size;
 import org.jline.terminal.Sized;
@@ -231,9 +233,24 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
                 super.doClose();
             } finally {
                 try {
-                    doSetAttributes(originalAttributes);
+                    // Before restoring original terminal attributes, switch to
+                    // non-canonical mode with VMIN=0/VTIME=1 so any pump thread
+                    // blocked in a native read() on stdin will time out within
+                    // 100 ms. On macOS, a blocked read() on a tty can prevent
+                    // tcsetattr() from completing, so the pump thread must exit
+                    // its read() before we restore original attributes.
+                    Attributes unblock = doGetAttributes();
+                    unblock.setLocalFlag(LocalFlag.ICANON, false);
+                    unblock.setControlChar(ControlChar.VMIN, 0);
+                    unblock.setControlChar(ControlChar.VTIME, 1);
+                    doSetAttributes(unblock);
+                    input.shutdown();
                 } finally {
-                    reader.close();
+                    try {
+                        doSetAttributes(originalAttributes);
+                    } finally {
+                        reader.close();
+                    }
                 }
             }
         }
