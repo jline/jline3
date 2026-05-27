@@ -640,7 +640,7 @@ class CLibrary {
                     buf,
                     attr != null ? new termios(attr).segment() : MemorySegment.NULL,
                     size != null
-                            ? new winsize((short) size.getRows(), (short) size.getColumns()).segment()
+                            ? new winsize((short) size.getColumns(), (short) size.getRows()).segment()
                             : MemorySegment.NULL);
             if (res != 0) {
                 throw new UncheckedIOException(new IOException("Unable to call openpty(): return code " + res));
