@@ -64,8 +64,8 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
      * from a {@code wait()} call), and waits briefly for the thread to exit.
      *
      * <p>If the thread is blocked in a native {@code read()} call, the
-     * interrupt alone may not unblock it — callers can set VMIN=0/VTIME=1
-     * on the terminal beforehand to force the read to time out.</p>
+     * interrupt may not unblock it. The thread will exit on its next
+     * iteration once the read completes naturally.</p>
      */
     public void shutdown() {
         Thread t;
