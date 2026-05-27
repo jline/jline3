@@ -21,6 +21,7 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class FfmTest {
@@ -64,6 +65,16 @@ class FfmTest {
             assertNotNull(terminal);
             assertNotNull(terminal.getSize());
         }
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void testWinsizeConstructorArgumentOrder() {
+        short cols = 120;
+        short rows = 40;
+        CLibrary.winsize ws = new CLibrary.winsize(cols, rows);
+        assertEquals(cols, ws.ws_col());
+        assertEquals(rows, ws.ws_row());
     }
 
     @Test
