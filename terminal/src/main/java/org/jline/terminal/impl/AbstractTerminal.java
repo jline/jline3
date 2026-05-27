@@ -219,7 +219,10 @@ public abstract class AbstractTerminal implements TerminalExt {
     public Attributes enterRawMode() {
         Attributes prvAttr = getAttributes();
         Attributes newAttr = new Attributes(prvAttr);
-        newAttr.setLocalFlags(EnumSet.of(LocalFlag.ICANON, LocalFlag.ECHO, LocalFlag.IEXTEN), false);
+        // POSIX cfmakeraw(3) also clears ISIG so Ctrl+C/Ctrl+\/Ctrl+Z arrive as 0x03/0x1c/0x1a
+        // characters rather than as signals. This is required for raw-mode readers (for example,
+        // prompters in the jline-prompt module) whose keymaps bind those bytes to CANCEL/INTERRUPT operations.
+        newAttr.setLocalFlags(EnumSet.of(LocalFlag.ICANON, LocalFlag.ECHO, LocalFlag.IEXTEN, LocalFlag.ISIG), false);
         newAttr.setInputFlags(EnumSet.of(InputFlag.IXON, InputFlag.ICRNL, InputFlag.INLCR), false);
         // POSIX cfmakeraw(3) defaults — VMIN=0/VTIME=1 made FileInputStream.read() see EOF on every 100 ms idle tick.
         newAttr.setControlChar(ControlChar.VMIN, 1);
