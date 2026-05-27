@@ -11,8 +11,6 @@ package org.jline.terminal.impl;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FilterInputStream;
-import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -24,6 +22,8 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
+import org.jline.utils.NonCloseableInputStream;
+import org.jline.utils.NonCloseableOutputStream;
 
 /**
  * Terminal provider implementation for dumb terminals.
@@ -126,36 +126,5 @@ public class DumbTerminalProvider implements TerminalProvider {
     @Override
     public String toString() {
         return "TerminalProvider[" + name() + "]";
-    }
-
-    /**
-     * Wrapper that prevents closing the underlying input stream.
-     * Used for system streams (System.in) to prevent closing the FileDescriptor.
-     */
-    private static class NonCloseableInputStream extends FilterInputStream {
-        NonCloseableInputStream(InputStream in) {
-            super(in);
-        }
-
-        @Override
-        public void close() throws IOException {
-            // Do not close the underlying stream
-        }
-    }
-
-    /**
-     * Wrapper that prevents closing the underlying output stream.
-     * Used for system streams (System.out/err) to prevent closing the FileDescriptor.
-     */
-    private static class NonCloseableOutputStream extends FilterOutputStream {
-        NonCloseableOutputStream(OutputStream out) {
-            super(out);
-        }
-
-        @Override
-        public void close() throws IOException {
-            // Flush but do not close the underlying stream
-            flush();
-        }
     }
 }

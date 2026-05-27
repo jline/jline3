@@ -79,6 +79,9 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
         if (t != null) {
             try {
                 t.join(500);
+                if (t.isAlive()) {
+                    Log.warn("Pump thread did not exit within 500ms");
+                }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }

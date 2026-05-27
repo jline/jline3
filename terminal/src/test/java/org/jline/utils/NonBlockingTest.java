@@ -9,16 +9,26 @@
 package org.jline.utils;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
+import java.io.Reader;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -347,6 +357,194 @@ class NonBlockingTest {
             assertEquals('A', nbis.read(200));
         } finally {
             nbis.close();
+        }
+    }
+
+    // --- Pump thread shutdown/close lifecycle tests ---
+
+    @Test
+    @Timeout(5)
+    void testInputStreamShutdownTerminatesPumpThread() throws Exception {
+        LatchInputStream in = new LatchInputStream();
+        NonBlockingInputStreamImpl nbis = new NonBlockingInputStreamImpl("shutdown-test", in);
+
+        assertEquals(NonBlockingInputStream.READ_EXPIRED, nbis.read(100));
+        assertTrue(in.waitUntilBlocked(), "Pump thread should be blocked in read");
+        Thread pumpThread = findThread("shutdown-test non blocking reader thread");
+        assertNotNull(pumpThread, "Pump thread should have been started");
+
+        in.release();
+        nbis.shutdown();
+        pumpThread.join(2000);
+        assertFalse(pumpThread.isAlive(), "Pump thread should have exited after shutdown");
+    }
+
+    @Test
+    @Timeout(5)
+    void testInputStreamCloseStopsPumpAndMarksClosed() throws Exception {
+        LatchInputStream in = new LatchInputStream();
+        NonBlockingInputStreamImpl nbis = new NonBlockingInputStreamImpl("close-test", in);
+
+        assertEquals(NonBlockingInputStream.READ_EXPIRED, nbis.read(100));
+        assertTrue(in.waitUntilBlocked(), "Pump thread should be blocked in read");
+        Thread pumpThread = findThread("close-test non blocking reader thread");
+        assertNotNull(pumpThread);
+
+        in.release();
+        nbis.close();
+        pumpThread.join(2000);
+        assertFalse(pumpThread.isAlive(), "Pump thread should have exited after close");
+        assertThrows(ClosedException.class, () -> nbis.read(100));
+    }
+
+    @Test
+    @Timeout(5)
+    void testInputStreamCloseWithNonCloseableDoesNotCloseUnderlying() throws Exception {
+        LatchInputStream tracking = new LatchInputStream();
+        NonCloseableInputStream wrapper = new NonCloseableInputStream(tracking);
+        NonBlockingInputStreamImpl nbis = new NonBlockingInputStreamImpl("noncloseable-test", wrapper);
+
+        assertEquals(NonBlockingInputStream.READ_EXPIRED, nbis.read(100));
+        assertTrue(tracking.waitUntilBlocked(), "Pump thread should be blocked in read");
+
+        tracking.release();
+        nbis.close();
+        assertFalse(tracking.closed.get(), "Underlying stream should not be closed through NonCloseable wrapper");
+        assertThrows(ClosedException.class, () -> nbis.read(100));
+    }
+
+    @Test
+    @Timeout(5)
+    void testReaderShutdownTerminatesPumpThread() throws Exception {
+        LatchReader reader = new LatchReader();
+        NonBlockingReaderImpl nbr = new NonBlockingReaderImpl("reader-shutdown-test", reader);
+
+        assertEquals(NonBlockingReader.READ_EXPIRED, nbr.read(100));
+        assertTrue(reader.waitUntilBlocked(), "Pump thread should be blocked in read");
+        Thread pumpThread = findThread("reader-shutdown-test non blocking reader thread");
+        assertNotNull(pumpThread, "Pump thread should have been started");
+
+        reader.release();
+        nbr.shutdown();
+        pumpThread.join(2000);
+        assertFalse(pumpThread.isAlive(), "Pump thread should have exited after shutdown");
+    }
+
+    @Test
+    @Timeout(5)
+    void testReaderCloseStopsPumpAndMarksClosed() throws Exception {
+        LatchReader reader = new LatchReader();
+        NonBlockingReaderImpl nbr = new NonBlockingReaderImpl("reader-close-test", reader);
+
+        assertEquals(NonBlockingReader.READ_EXPIRED, nbr.read(100));
+        assertTrue(reader.waitUntilBlocked(), "Pump thread should be blocked in read");
+        Thread pumpThread = findThread("reader-close-test non blocking reader thread");
+        assertNotNull(pumpThread);
+
+        reader.release();
+        nbr.close();
+        pumpThread.join(2000);
+        assertFalse(pumpThread.isAlive(), "Pump thread should have exited after close");
+        assertThrows(ClosedException.class, () -> nbr.read(100));
+    }
+
+    @Test
+    @Timeout(5)
+    void testCloseFromAnotherThreadDoesNotHang() throws Exception {
+        LatchInputStream in = new LatchInputStream();
+        NonBlockingInputStreamImpl nbis = new NonBlockingInputStreamImpl("cross-thread-test", in);
+
+        AtomicReference<Throwable> readError = new AtomicReference<>();
+        CountDownLatch readStarted = new CountDownLatch(1);
+
+        Thread readThread = new Thread(() -> {
+            try {
+                readStarted.countDown();
+                nbis.read(10_000);
+            } catch (ClosedException | InterruptedIOException e) {
+                // Expected
+            } catch (Throwable t) {
+                readError.set(t);
+            }
+        });
+        readThread.start();
+
+        assertTrue(readStarted.await(1, TimeUnit.SECONDS));
+        assertTrue(in.waitUntilBlocked(), "Pump thread should be blocked in read");
+
+        in.release();
+        nbis.close();
+        readThread.join(2000);
+        assertFalse(readThread.isAlive(), "Read thread should have exited after close");
+        assertNull(readError.get(), "Read thread should not have thrown unexpected error");
+    }
+
+    private static Thread findThread(String name) {
+        return Thread.getAllStackTraces().keySet().stream()
+                .filter(t -> t.getName().equals(name))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static class LatchInputStream extends InputStream {
+        private final CountDownLatch blocked = new CountDownLatch(1);
+        private final CountDownLatch released = new CountDownLatch(1);
+        final AtomicBoolean closed = new AtomicBoolean(false);
+
+        @Override
+        public int read() throws IOException {
+            blocked.countDown();
+            try {
+                released.await();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new InterruptedIOException();
+            }
+            return -1;
+        }
+
+        @Override
+        public void close() throws IOException {
+            closed.set(true);
+            released.countDown();
+        }
+
+        void release() {
+            released.countDown();
+        }
+
+        boolean waitUntilBlocked() throws InterruptedException {
+            return blocked.await(2, TimeUnit.SECONDS);
+        }
+    }
+
+    private static class LatchReader extends Reader {
+        private final CountDownLatch blocked = new CountDownLatch(1);
+        private final CountDownLatch released = new CountDownLatch(1);
+
+        @Override
+        public int read(char[] cbuf, int off, int len) throws IOException {
+            blocked.countDown();
+            try {
+                released.await();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new InterruptedIOException();
+            }
+            return -1;
+        }
+
+        @Override
+        public void close() throws IOException {
+            released.countDown();
+        }
+
+        void release() {
+            released.countDown();
+        }
+
+        boolean waitUntilBlocked() throws InterruptedException {
+            return blocked.await(2, TimeUnit.SECONDS);
         }
     }
 }
