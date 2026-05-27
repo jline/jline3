@@ -640,7 +640,7 @@ class CLibrary {
                     buf,
                     attr != null ? new termios(attr).segment() : MemorySegment.NULL,
                     size != null
-                            ? new winsize((short) size.getRows(), (short) size.getColumns()).segment()
+                            ? new winsize((short) size.getColumns(), (short) size.getRows()).segment()
                             : MemorySegment.NULL);
             byte[] str = buf.toArray(ValueLayout.JAVA_BYTE);
             int len = 0;
