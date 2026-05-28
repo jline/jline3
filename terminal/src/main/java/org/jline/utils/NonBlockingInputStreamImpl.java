@@ -31,10 +31,8 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
     private int b = READ_EXPIRED; // Recently read byte
 
     private String name;
-    private boolean threadIsReading = false;
     private IOException exception = null;
-    private long threadDelay = 60 * 1000;
-    private Thread thread;
+    private final PumpThread pump;
 
     /**
      * Creates a <code>NonBlockingReader</code> out of a normal blocking
@@ -44,40 +42,25 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
      * @param name The stream name
      * @param in The reader to wrap
      */
+    @SuppressWarnings("this-escape")
     public NonBlockingInputStreamImpl(String name, InputStream in) {
         this.in = in;
         this.name = name;
+        this.pump = new PumpThread(this, 60_000);
     }
 
-    private synchronized void startReadingThreadIfNeeded() {
-        if (thread == null) {
-            thread = new Thread(this::run);
-            thread.setName(name + " non blocking reader thread");
-            thread.setDaemon(true);
-            thread.start();
-        }
-    }
-
-    /**
-     * Shuts down the thread that is handling blocking I/O. Note that if the
-     * thread is currently blocked waiting for I/O it will not actually
-     * shut down until the I/O is received.
-     */
-    public synchronized void shutdown() {
-        if (thread != null) {
-            notify();
-        }
+    public void shutdown() {
+        pump.shutdown();
     }
 
     @Override
     public void close() throws IOException {
-        /*
-         * The underlying input stream is closed first. This means that if the
-         * I/O thread was blocked waiting on input, it will be woken for us.
-         */
-        super.close(); // Mark as closed in base class
-        in.close();
-        shutdown();
+        super.close();
+        try {
+            in.close();
+        } finally {
+            pump.shutdown();
+        }
     }
 
     /**
@@ -110,15 +93,15 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
          */
         if (b >= -1) {
             assert exception == null;
-        } else if (!isPeek && timeout <= 0L && !threadIsReading) {
+        } else if (!isPeek && timeout <= 0L && !pump.isReading()) {
             b = in.read();
         } else {
             /*
              * If the thread isn't reading already, then ask it to do so.
              */
-            if (!threadIsReading) {
-                threadIsReading = true;
-                startReadingThreadIfNeeded();
+            if (!pump.isReading()) {
+                pump.setReading(true);
+                pump.startIfNeeded(this::run, name);
                 notifyAll();
             }
 
@@ -166,66 +149,12 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
     }
 
     private void run() {
-        Log.debug("NonBlockingInputStream start");
-        boolean needToRead;
-
-        try {
-            while (true) {
-
-                /*
-                 * Synchronize to grab variables accessed by both this thread
-                 * and the accessing thread.
-                 */
-                synchronized (this) {
-                    needToRead = this.threadIsReading;
-
-                    try {
-                        /*
-                         * Nothing to do? Then wait.
-                         */
-                        if (!needToRead) {
-                            wait(threadDelay);
-                        }
-                    } catch (InterruptedException e) {
-                        /* IGNORED */
-                    }
-
-                    needToRead = this.threadIsReading;
-                    if (!needToRead) {
-                        return;
-                    }
-                }
-
-                /*
-                 * We're not shutting down, but we need to read. This cannot
-                 * happen while we are holding the lock (which we aren't now).
-                 */
-                int byteRead = READ_EXPIRED;
-                IOException failure = null;
-                try {
-                    byteRead = in.read();
-                } catch (IOException e) {
-                    failure = e;
-                }
-
-                /*
-                 * Re-grab the lock to update the state.
-                 */
-                synchronized (this) {
+        pump.runLoop(
+                in::read,
+                (value, failure) -> {
                     exception = failure;
-                    b = byteRead;
-                    threadIsReading = false;
-                    notify();
-                }
-            }
-        } catch (Throwable t) {
-            Log.warn("Error in NonBlockingInputStream thread", t);
-        } finally {
-            Log.debug("NonBlockingInputStream shutdown");
-            synchronized (this) {
-                thread = null;
-                threadIsReading = false;
-            }
-        }
+                    b = value;
+                },
+                "NonBlockingInputStream");
     }
 }
