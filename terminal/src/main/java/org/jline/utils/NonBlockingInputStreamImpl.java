@@ -147,65 +147,13 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
     }
 
     private void run() {
-        Log.debug("NonBlockingInputStream start");
-        boolean needToRead;
-
-        try {
-            while (true) {
-
-                /*
-                 * Synchronize to grab variables accessed by both this thread
-                 * and the accessing thread.
-                 */
-                synchronized (this) {
-                    needToRead = pump.isReading();
-
-                    try {
-                        /*
-                         * Nothing to do? Then wait.
-                         */
-                        if (!needToRead) {
-                            wait(pump.idleTimeout());
-                        }
-                    } catch (InterruptedException e) {
-                        /* IGNORED */
-                    }
-
-                    needToRead = pump.isReading();
-                    if (!needToRead) {
-                        return;
-                    }
-                }
-
-                /*
-                 * We're not shutting down, but we need to read. This cannot
-                 * happen while we are holding the lock (which we aren't now).
-                 */
-                int byteRead = READ_EXPIRED;
-                IOException failure = null;
-                try {
-                    byteRead = in.read();
-                } catch (IOException e) {
-                    failure = e;
-                }
-
-                /*
-                 * Re-grab the lock to update the state.
-                 */
-                synchronized (this) {
+        pump.runLoop(
+                this,
+                in::read,
+                (value, failure) -> {
                     exception = failure;
-                    b = byteRead;
-                    pump.setReading(false);
-                    notify();
-                }
-            }
-        } catch (Throwable t) {
-            Log.warn("Error in NonBlockingInputStream thread", t);
-        } finally {
-            Log.debug("NonBlockingInputStream shutdown");
-            synchronized (this) {
-                pump.clearThread();
-            }
-        }
+                    b = value;
+                },
+                "NonBlockingInputStream");
     }
 }

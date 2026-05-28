@@ -8,6 +8,8 @@
  */
 package org.jline.utils;
 
+import java.io.IOException;
+
 /**
  * Manages the lifecycle of a background pump thread used by
  * {@link NonBlockingInputStreamImpl} and {@link NonBlockingReaderImpl}.
@@ -18,6 +20,16 @@ package org.jline.utils;
  * {@link #shutdown} manages its own synchronization on the provided lock.</p>
  */
 final class PumpThread {
+
+    @FunctionalInterface
+    interface IoReader {
+        int read() throws IOException;
+    }
+
+    @FunctionalInterface
+    interface ResultHandler {
+        void accept(int value, IOException failure);
+    }
 
     private final long idleTimeout;
     private Thread thread;
@@ -54,6 +66,51 @@ final class PumpThread {
             }
             synchronized (lock) {
                 thread = null;
+            }
+        }
+    }
+
+    void runLoop(Object lock, IoReader reader, ResultHandler handler, String logName) {
+        Log.debug(logName + " start");
+        boolean needToRead;
+
+        try {
+            while (true) {
+                synchronized (lock) {
+                    needToRead = reading;
+                    try {
+                        if (!needToRead) {
+                            lock.wait(idleTimeout);
+                        }
+                    } catch (InterruptedException e) {
+                        /* IGNORED */
+                    }
+                    needToRead = reading;
+                    if (!needToRead) {
+                        return;
+                    }
+                }
+
+                int value = NonBlockingInputStream.READ_EXPIRED;
+                IOException failure = null;
+                try {
+                    value = reader.read();
+                } catch (IOException e) {
+                    failure = e;
+                }
+
+                synchronized (lock) {
+                    handler.accept(value, failure);
+                    reading = false;
+                    lock.notify();
+                }
+            }
+        } catch (Throwable t) {
+            Log.warn("Error in " + logName + " thread", t);
+        } finally {
+            Log.debug(logName + " shutdown");
+            synchronized (lock) {
+                clearThread();
             }
         }
     }
