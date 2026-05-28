@@ -34,10 +34,8 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
     private int ch = READ_EXPIRED; // Recently read character
 
     private String name;
-    private boolean threadIsReading = false;
     private IOException exception = null;
-    private long threadDelay = 60 * 1000;
-    private Thread thread;
+    private final PumpThread pump = new PumpThread(60_000);
 
     /**
      * Creates a <code>NonBlockingReader</code> out of a normal blocking
@@ -52,40 +50,8 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
         this.name = name;
     }
 
-    private synchronized void startReadingThreadIfNeeded() {
-        if (thread == null) {
-            thread = new Thread(this::run);
-            thread.setName(name + " non blocking reader thread");
-            thread.setDaemon(true);
-            thread.start();
-        }
-    }
-
-    /**
-     * Shuts down the thread that is handling blocking I/O. Sets
-     * {@code threadIsReading} to false, interrupts the thread (to wake it
-     * from a {@code wait()} call), and waits briefly for the thread to exit.
-     */
     public void shutdown() {
-        Thread t;
-        synchronized (this) {
-            t = thread;
-            if (t != null) {
-                threadIsReading = false;
-                t.interrupt();
-                notify();
-            }
-        }
-        if (t != null) {
-            try {
-                t.join(50);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            synchronized (this) {
-                thread = null;
-            }
-        }
+        pump.shutdown(this);
     }
 
     @Override
@@ -94,7 +60,7 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
         try {
             in.close();
         } finally {
-            shutdown();
+            pump.shutdown(this);
         }
     }
 
@@ -120,7 +86,7 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
             b[0] = (char) ch;
             ch = READ_EXPIRED;
             return 1;
-        } else if (!threadIsReading && timeout <= 0) {
+        } else if (!pump.isReading() && timeout <= 0) {
             return in.read(b, off, len);
         } else {
             // TODO: rework implementation to read as much as possible
@@ -162,15 +128,15 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
          */
         if (ch >= -1) {
             assert exception == null;
-        } else if (!isPeek && timeout <= 0L && !threadIsReading) {
+        } else if (!isPeek && timeout <= 0L && !pump.isReading()) {
             ch = in.read();
         } else {
             /*
              * If the thread isn't reading already, then ask it to do so.
              */
-            if (!threadIsReading) {
-                threadIsReading = true;
-                startReadingThreadIfNeeded();
+            if (!pump.isReading()) {
+                pump.setReading(true);
+                pump.startIfNeeded(this::run, name);
                 notifyAll();
             }
 
@@ -229,20 +195,20 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
                  * and the accessing thread.
                  */
                 synchronized (this) {
-                    needToRead = this.threadIsReading;
+                    needToRead = pump.isReading();
 
                     try {
                         /*
                          * Nothing to do? Then wait.
                          */
                         if (!needToRead) {
-                            wait(threadDelay);
+                            wait(pump.idleTimeout());
                         }
                     } catch (InterruptedException e) {
                         /* IGNORED */
                     }
 
-                    needToRead = this.threadIsReading;
+                    needToRead = pump.isReading();
                     if (!needToRead) {
                         return;
                     }
@@ -270,7 +236,7 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
                 synchronized (this) {
                     exception = failure;
                     ch = charRead;
-                    threadIsReading = false;
+                    pump.setReading(false);
                     notify();
                 }
             }
@@ -279,8 +245,7 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
         } finally {
             Log.debug("NonBlockingReader shutdown");
             synchronized (this) {
-                thread = null;
-                threadIsReading = false;
+                pump.clearThread();
             }
         }
     }

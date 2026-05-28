@@ -31,10 +31,8 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
     private int b = READ_EXPIRED; // Recently read byte
 
     private String name;
-    private boolean threadIsReading = false;
     private IOException exception = null;
-    private long threadDelay = 60 * 1000;
-    private Thread thread;
+    private final PumpThread pump = new PumpThread(60_000);
 
     /**
      * Creates a <code>NonBlockingReader</code> out of a normal blocking
@@ -49,44 +47,8 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
         this.name = name;
     }
 
-    private synchronized void startReadingThreadIfNeeded() {
-        if (thread == null) {
-            thread = new Thread(this::run);
-            thread.setName(name + " non blocking reader thread");
-            thread.setDaemon(true);
-            thread.start();
-        }
-    }
-
-    /**
-     * Shuts down the thread that is handling blocking I/O. Sets
-     * {@code threadIsReading} to false, interrupts the thread (to wake it
-     * from a {@code wait()} call), and waits briefly for the thread to exit.
-     *
-     * <p>If the thread is blocked in a native {@code read()} call, the
-     * interrupt may not unblock it. The thread will exit on its next
-     * iteration once the read completes naturally.</p>
-     */
     public void shutdown() {
-        Thread t;
-        synchronized (this) {
-            t = thread;
-            if (t != null) {
-                threadIsReading = false;
-                t.interrupt();
-                notify();
-            }
-        }
-        if (t != null) {
-            try {
-                t.join(50);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            synchronized (this) {
-                thread = null;
-            }
-        }
+        pump.shutdown(this);
     }
 
     @Override
@@ -95,7 +57,7 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
         try {
             in.close();
         } finally {
-            shutdown();
+            pump.shutdown(this);
         }
     }
 
@@ -129,15 +91,15 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
          */
         if (b >= -1) {
             assert exception == null;
-        } else if (!isPeek && timeout <= 0L && !threadIsReading) {
+        } else if (!isPeek && timeout <= 0L && !pump.isReading()) {
             b = in.read();
         } else {
             /*
              * If the thread isn't reading already, then ask it to do so.
              */
-            if (!threadIsReading) {
-                threadIsReading = true;
-                startReadingThreadIfNeeded();
+            if (!pump.isReading()) {
+                pump.setReading(true);
+                pump.startIfNeeded(this::run, name);
                 notifyAll();
             }
 
@@ -196,20 +158,20 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
                  * and the accessing thread.
                  */
                 synchronized (this) {
-                    needToRead = this.threadIsReading;
+                    needToRead = pump.isReading();
 
                     try {
                         /*
                          * Nothing to do? Then wait.
                          */
                         if (!needToRead) {
-                            wait(threadDelay);
+                            wait(pump.idleTimeout());
                         }
                     } catch (InterruptedException e) {
                         /* IGNORED */
                     }
 
-                    needToRead = this.threadIsReading;
+                    needToRead = pump.isReading();
                     if (!needToRead) {
                         return;
                     }
@@ -233,7 +195,7 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
                 synchronized (this) {
                     exception = failure;
                     b = byteRead;
-                    threadIsReading = false;
+                    pump.setReading(false);
                     notify();
                 }
             }
@@ -242,8 +204,7 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
         } finally {
             Log.debug("NonBlockingInputStream shutdown");
             synchronized (this) {
-                thread = null;
-                threadIsReading = false;
+                pump.clearThread();
             }
         }
     }
