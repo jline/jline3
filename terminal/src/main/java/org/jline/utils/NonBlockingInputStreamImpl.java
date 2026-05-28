@@ -32,7 +32,7 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
 
     private String name;
     private IOException exception = null;
-    private final PumpThread pump = new PumpThread(60_000);
+    private final PumpThread pump;
 
     /**
      * Creates a <code>NonBlockingReader</code> out of a normal blocking
@@ -42,13 +42,15 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
      * @param name The stream name
      * @param in The reader to wrap
      */
+    @SuppressWarnings("this-escape")
     public NonBlockingInputStreamImpl(String name, InputStream in) {
         this.in = in;
         this.name = name;
+        this.pump = new PumpThread(this, 60_000);
     }
 
     public void shutdown() {
-        pump.shutdown(this);
+        pump.shutdown();
     }
 
     @Override
@@ -57,7 +59,7 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
         try {
             in.close();
         } finally {
-            pump.shutdown(this);
+            pump.shutdown();
         }
     }
 
@@ -148,7 +150,6 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
 
     private void run() {
         pump.runLoop(
-                this,
                 in::read,
                 (value, failure) -> {
                     exception = failure;

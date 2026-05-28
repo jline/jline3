@@ -35,7 +35,7 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
 
     private String name;
     private IOException exception = null;
-    private final PumpThread pump = new PumpThread(60_000);
+    private final PumpThread pump;
 
     /**
      * Creates a <code>NonBlockingReader</code> out of a normal blocking
@@ -45,13 +45,15 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
      * @param name The reader name
      * @param in The reader to wrap
      */
+    @SuppressWarnings("this-escape")
     public NonBlockingReaderImpl(String name, Reader in) {
         this.in = in;
         this.name = name;
+        this.pump = new PumpThread(this, 60_000);
     }
 
     public void shutdown() {
-        pump.shutdown(this);
+        pump.shutdown();
     }
 
     @Override
@@ -60,7 +62,7 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
         try {
             in.close();
         } finally {
-            pump.shutdown(this);
+            pump.shutdown();
         }
     }
 
@@ -185,7 +187,6 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
 
     private void run() {
         pump.runLoop(
-                this,
                 in::read,
                 (value, failure) -> {
                     exception = failure;

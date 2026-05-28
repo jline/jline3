@@ -16,8 +16,8 @@ import java.io.IOException;
  *
  * <p>All state-access methods ({@link #isReading()}, {@link #setReading(boolean)},
  * {@link #startIfNeeded}, {@link #clearThread()}) must be called while the caller
- * holds the monitor on the owning NonBlocking* instance.
- * {@link #shutdown} manages its own synchronization on the provided lock.</p>
+ * holds the monitor on {@link #lock} (the owning NonBlocking* instance).
+ * {@link #shutdown} manages its own synchronization.</p>
  */
 final class PumpThread {
 
@@ -31,11 +31,13 @@ final class PumpThread {
         void accept(int value, IOException failure);
     }
 
+    private final Object lock;
     private final long idleTimeout;
     private Thread thread;
     private boolean reading;
 
-    PumpThread(long idleTimeout) {
+    PumpThread(Object lock, long idleTimeout) {
+        this.lock = lock;
         this.idleTimeout = idleTimeout;
     }
 
@@ -48,14 +50,14 @@ final class PumpThread {
         }
     }
 
-    void shutdown(Object lock) {
+    void shutdown() {
         Thread t;
         synchronized (lock) {
             t = thread;
             if (t != null) {
                 reading = false;
                 t.interrupt();
-                lock.notify();
+                lock.notifyAll();
             }
         }
         if (t != null) {
@@ -70,7 +72,7 @@ final class PumpThread {
         }
     }
 
-    void runLoop(Object lock, IoReader reader, ResultHandler handler, String logName) {
+    void runLoop(IoReader reader, ResultHandler handler, String logName) {
         Log.debug(logName + " start");
         boolean needToRead;
 
@@ -83,7 +85,8 @@ final class PumpThread {
                             lock.wait(idleTimeout);
                         }
                     } catch (InterruptedException e) {
-                        /* IGNORED */
+                        Thread.currentThread().interrupt();
+                        return;
                     }
                     needToRead = reading;
                     if (!needToRead) {
@@ -102,7 +105,7 @@ final class PumpThread {
                 synchronized (lock) {
                     handler.accept(value, failure);
                     reading = false;
-                    lock.notify();
+                    lock.notifyAll();
                 }
             }
         } catch (Throwable t) {
