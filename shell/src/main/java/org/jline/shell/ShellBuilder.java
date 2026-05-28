@@ -406,17 +406,11 @@ public class ShellBuilder {
             ownTerminal = true;
         }
 
-        // Create parser
-        Parser p = this.parser;
-        if (p == null) {
-            p = new DefaultParser();
-        }
-
         // Create or use provided dispatcher
         CommandDispatcher disp = this.dispatcher;
         if (disp == null) {
             disp = new DefaultCommandDispatcher(
-                    term, jobManager, pipelineParser, aliasManager, lineExpander, scriptRunner, p);
+                    term, jobManager, pipelineParser, aliasManager, lineExpander, scriptRunner, this.parser);
         }
 
         // Add groups to dispatcher
@@ -433,7 +427,7 @@ public class ShellBuilder {
 
         // Build LineReader
         LineReaderBuilder readerBuilder =
-                LineReaderBuilder.builder().terminal(term).parser(p).completer(disp.completer());
+                LineReaderBuilder.builder().terminal(term).parser(this.parser).completer(disp.completer());
 
         if (hl != null) {
             readerBuilder.highlighter(hl);

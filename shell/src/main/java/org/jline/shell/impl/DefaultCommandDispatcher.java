@@ -17,10 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
-<<<<<<< HEAD
-=======
 import org.jline.reader.LineReader;
->>>>>>> 614e1c70 (Fix command argument parsing)
 import org.jline.reader.Parser;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.completer.ArgumentCompleter;
@@ -693,12 +690,7 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
 
         String[] args = argsStr.isEmpty()
                 ? new String[0]
-<<<<<<< HEAD
                 : parser.parse(argsStr, argsStr.length(), Parser.ParseContext.ACCEPT_LINE)
-=======
-                : this.parser
-                        .parse(argsStr, argsStr.length(), Parser.ParseContext.ACCEPT_LINE)
->>>>>>> 614e1c70 (Fix command argument parsing)
                         .words()
                         .toArray(String[]::new);
 
