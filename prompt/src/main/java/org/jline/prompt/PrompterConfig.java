@@ -160,8 +160,19 @@ public interface PrompterConfig {
     String CB = ".cb";
     /** Error message style */
     String ERROR = ".er";
+    /** Footer/description text style (dimmed) */
+    String FO = ".fo";
 
     default AttributedStyle style(String style) {
         return styleResolver().resolve(style);
+    }
+
+    /**
+     * Maximum height, in rows, of the dimmed footer pane shown below list and checkbox prompts.
+     *
+     * @return the maximum footer pane height in rows
+     */
+    default int footerMaxRows() {
+        return 6;
     }
 }

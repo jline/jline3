@@ -54,4 +54,13 @@ public interface PromptItem {
     default String getDisabledText() {
         return "";
     }
+
+    /**
+     * Optional footer text shown dimmed below a list or checkbox while this item is focused.
+     *
+     * @return the footer text, or {@code null}/empty for no footer
+     */
+    default String getFooter() {
+        return null;
+    }
 }

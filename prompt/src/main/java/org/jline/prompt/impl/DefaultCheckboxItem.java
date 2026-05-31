@@ -20,21 +20,28 @@ public class DefaultCheckboxItem implements CheckboxItem {
     private final boolean checked;
     private final boolean disabled;
     private final String disabledText;
+    private final String footer;
 
-    public DefaultCheckboxItem(String name, String text, boolean checked, boolean disabled, String disabledText) {
+    public DefaultCheckboxItem(
+            String name, String text, boolean checked, boolean disabled, String disabledText, String footer) {
         this.name = name;
         this.text = text;
         this.checked = checked;
         this.disabled = disabled;
         this.disabledText = disabledText;
+        this.footer = footer;
+    }
+
+    public DefaultCheckboxItem(String name, String text, boolean checked, boolean disabled, String disabledText) {
+        this(name, text, checked, disabled, disabledText, null);
     }
 
     public DefaultCheckboxItem(String name, String text, boolean checked) {
-        this(name, text, checked, false, null);
+        this(name, text, checked, false, null, null);
     }
 
     public DefaultCheckboxItem(String name, String text) {
-        this(name, text, false, false, null);
+        this(name, text, false, false, null, null);
     }
 
     @Override
@@ -60,6 +67,11 @@ public class DefaultCheckboxItem implements CheckboxItem {
     @Override
     public String getDisabledText() {
         return disabledText;
+    }
+
+    @Override
+    public String getFooter() {
+        return footer;
     }
 
     @Override
