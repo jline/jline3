@@ -8,8 +8,8 @@
  */
 package org.jline.style;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 
 import org.jline.style.StyleBundle.StyleGroup;
 
@@ -46,7 +46,7 @@ import static java.util.Objects.requireNonNull;
  * @since 3.4
  */
 public class Styler {
-    private static final Logger log = Logger.getLogger(Styler.class.getName());
+    private static final Logger log = System.getLogger(Styler.class.getName());
 
     private static volatile StyleSource source = new NopStyleSource();
 
@@ -96,8 +96,8 @@ public class Styler {
     public static void setSource(final StyleSource source) {
         Styler.source = requireNonNull(source);
 
-        if (log.isLoggable(Level.FINE)) {
-            log.fine("Source: " + source);
+        if (log.isLoggable(Level.DEBUG)) {
+            log.log(Level.DEBUG, "Source: " + source);
         }
     }
 

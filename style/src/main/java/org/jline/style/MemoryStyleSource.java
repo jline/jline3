@@ -8,11 +8,11 @@
  */
 package org.jline.style;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static java.util.Objects.requireNonNull;
 
@@ -43,7 +43,7 @@ import static java.util.Objects.requireNonNull;
  * @see Styler
  */
 public class MemoryStyleSource implements StyleSource {
-    private static final Logger log = Logger.getLogger(MemoryStyleSource.class.getName());
+    private static final Logger log = System.getLogger(MemoryStyleSource.class.getName());
 
     private final Map<String, Map<String, String>> backing = new ConcurrentHashMap<>();
 
@@ -62,8 +62,8 @@ public class MemoryStyleSource implements StyleSource {
             style = styles.get(name);
         }
 
-        if (log.isLoggable(Level.FINEST)) {
-            log.finest(String.format("Get: [%s] %s -> %s", group, name, style));
+        if (log.isLoggable(Level.TRACE)) {
+            log.log(Level.TRACE, String.format("Get: [%s] %s -> %s", group, name, style));
         }
 
         return style;
@@ -76,8 +76,8 @@ public class MemoryStyleSource implements StyleSource {
         requireNonNull(style);
         backing.computeIfAbsent(group, k -> new ConcurrentHashMap<>()).put(name, style);
 
-        if (log.isLoggable(Level.FINEST)) {
-            log.finest(String.format("Set: [%s] %s -> %s", group, name, style));
+        if (log.isLoggable(Level.TRACE)) {
+            log.log(Level.TRACE, String.format("Set: [%s] %s -> %s", group, name, style));
         }
     }
 
@@ -85,8 +85,8 @@ public class MemoryStyleSource implements StyleSource {
     public void remove(final String group) {
         requireNonNull(group);
         if (backing.remove(group) != null) {
-            if (log.isLoggable(Level.FINEST)) {
-                log.finest(String.format("Removed: [%s]", group));
+            if (log.isLoggable(Level.TRACE)) {
+                log.log(Level.TRACE, String.format("Removed: [%s]", group));
             }
         }
     }
@@ -99,8 +99,8 @@ public class MemoryStyleSource implements StyleSource {
         if (styles != null) {
             styles.remove(name);
 
-            if (log.isLoggable(Level.FINEST)) {
-                log.finest(String.format("Removed: [%s] %s", group, name));
+            if (log.isLoggable(Level.TRACE)) {
+                log.log(Level.TRACE, String.format("Removed: [%s] %s", group, name));
             }
         }
     }
@@ -108,7 +108,7 @@ public class MemoryStyleSource implements StyleSource {
     @Override
     public void clear() {
         backing.clear();
-        log.finest("Cleared");
+        log.log(Level.TRACE, "Cleared");
     }
 
     @Override

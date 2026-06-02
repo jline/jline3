@@ -24,7 +24,6 @@ module org.jline.terminal.ffm {
     // Dependencies
     requires transitive org.jline.terminal;
     requires java.base;
-    requires java.logging;
 
     // Export public API
     exports org.jline.terminal.impl.ffm;

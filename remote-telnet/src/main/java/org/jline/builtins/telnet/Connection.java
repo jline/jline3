@@ -39,10 +39,10 @@ package org.jline.builtins.telnet;
  * POSSIBILITY OF SUCH DAMAGE.
  ***/
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Class that implements a connection with this telnet daemon.
@@ -71,7 +71,7 @@ import java.util.logging.Logger;
 @SuppressWarnings("java:S3014")
 public abstract class Connection extends Thread {
 
-    private static final Logger LOG = Logger.getLogger(Connection.class.getName());
+    private static final Logger LOG = System.getLogger(Connection.class.getName());
     private static int number; // unique number for a thread in the thread group
     private boolean dead;
     private List<ConnectionListener> listeners;
@@ -115,14 +115,14 @@ public abstract class Connection extends Thread {
             doRun();
 
         } catch (Exception ex) {
-            LOG.log(Level.SEVERE, "run()", ex); // Handle properly
+            LOG.log(Level.ERROR, "run()", ex); // Handle properly
         } finally {
             // call close if not dead already
             if (!dead) {
                 close();
             }
         }
-        LOG.log(Level.FINE, "run():: Returning from " + this.toString());
+        LOG.log(Level.DEBUG, "run():: Returning from " + this.toString());
     } // run
 
     protected abstract void doRun() throws Exception;
@@ -153,32 +153,32 @@ public abstract class Connection extends Thread {
                 // close i/o
                 doClose();
             } catch (Exception ex) {
-                LOG.log(Level.SEVERE, "close()", ex);
+                LOG.log(Level.ERROR, "close()", ex);
                 // handle
             }
             try {
                 // close socket
                 connectionData.getSocket().close();
             } catch (Exception ex) {
-                LOG.log(Level.SEVERE, "close()", ex);
+                LOG.log(Level.ERROR, "close()", ex);
                 // handle
             }
             try {
                 // register closed connection in ConnectionManager
                 connectionData.getManager().registerClosedConnection(this);
             } catch (Exception ex) {
-                LOG.log(Level.SEVERE, "close()", ex);
+                LOG.log(Level.ERROR, "close()", ex);
                 // handle
             }
             try {
                 // try to interrupt it
                 interrupt();
             } catch (Exception ex) {
-                LOG.log(Level.SEVERE, "close()", ex);
+                LOG.log(Level.ERROR, "close()", ex);
                 // handle
             }
 
-            LOG.log(Level.FINE, "Closed " + this.toString() + " and inactive.");
+            LOG.log(Level.DEBUG, "Closed " + this.toString() + " and inactive.");
         }
     } // close
 

@@ -43,9 +43,9 @@ import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.net.InetAddress;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Class that represents the TelnetIO implementation. It contains
@@ -287,7 +287,7 @@ public class TelnetIO {
     protected static final int SEND_LOC = 23; // Defines Send Location
     protected static final int AUTHENTICATION = 37; // Defines Authentication
     protected static final int ENCRYPT = 38; // Defines Encryption
-    private static final Logger LOG = Logger.getLogger(TelnetIO.class.getName());
+    private static final Logger LOG = System.getLogger(TelnetIO.class.getName());
     /**
      * Window Size Constants
      */
@@ -436,7 +436,7 @@ public class TelnetIO {
 
             out.close();
         } catch (IOException ex) {
-            LOG.log(Level.SEVERE, "closeOutput()", ex);
+            LOG.log(Level.ERROR, "closeOutput()", ex);
             // handle?
         }
     } // close
@@ -542,10 +542,10 @@ public class TelnetIO {
             // start out, some clients just wait
             if (connectionData.isLineMode()) {
                 iacHandler.doLineModeInit();
-                LOG.log(Level.FINE, "Line mode initialized.");
+                LOG.log(Level.DEBUG, "Line mode initialized.");
             } else {
                 iacHandler.doCharacterModeInit();
-                LOG.log(Level.FINE, "Character mode initialized.");
+                LOG.log(Level.DEBUG, "Character mode initialized.");
             }
             // open for a defined timeout so we read incoming negotiation
             connectionData.getSocket().setSoTimeout(1000);
@@ -559,7 +559,7 @@ public class TelnetIO {
             try {
                 connectionData.getSocket().setSoTimeout(0);
             } catch (Exception ex) {
-                LOG.log(Level.SEVERE, "initTelnetCommunication()", ex);
+                LOG.log(Level.ERROR, "initTelnetCommunication()", ex);
             }
         }
         initializing = false;
@@ -576,7 +576,7 @@ public class TelnetIO {
             write("[" + localAddress.toString() + ":Yes]");
             flush();
         } catch (Exception ex) {
-            LOG.log(Level.SEVERE, "IamHere()", ex);
+            LOG.log(Level.ERROR, "IamHere()", ex);
         }
     } // IamHere
 
@@ -888,7 +888,7 @@ public class TelnetIO {
             // specs. hmmm?
             rawread(); // that should be the is :)
             tmpstr = readIACSETerminatedString(40);
-            LOG.log(Level.FINE, "Reported terminal name " + tmpstr);
+            LOG.log(Level.DEBUG, "Reported terminal name " + tmpstr);
             connectionData.setNegotiatedTerminalType(tmpstr);
         } // handleTTYPE
 
@@ -920,7 +920,7 @@ public class TelnetIO {
             if (WAIT_LM_MODE_ACK) {
                 int mask = rawread();
                 if (mask != (LM_EDIT | LM_TRAPSIG | LM_MODEACK)) {
-                    LOG.log(Level.FINE, "Client violates linemodeack sent: " + mask);
+                    LOG.log(Level.DEBUG, "Client violates linemodeack sent: " + mask);
                 }
                 WAIT_LM_MODE_ACK = false;
             }
@@ -983,7 +983,7 @@ public class TelnetIO {
         } // handleLMForward
 
         public void handleNEWENV() throws IOException {
-            LOG.log(Level.FINE, "handleNEWENV()");
+            LOG.log(Level.DEBUG, "handleNEWENV()");
             int c = rawread();
             switch (c) {
                 case IS:
@@ -1007,7 +1007,7 @@ public class TelnetIO {
          undefined.
         */
         private int readNEVariableName(StringBuffer sbuf) throws IOException {
-            LOG.log(Level.FINE, "readNEVariableName()");
+            LOG.log(Level.DEBUG, "readNEVariableName()");
             int i = -1;
             do {
                 i = rawread();
@@ -1057,7 +1057,7 @@ public class TelnetIO {
           it must be sent as IAC IAC.
         */
         private int readNEVariableValue(StringBuffer sbuf) throws IOException {
-            LOG.log(Level.FINE, "readNEVariableValue()");
+            LOG.log(Level.DEBUG, "readNEVariableValue()");
             // check conditions for first character after VALUE
             int i = rawread();
             if (i == -1) {
@@ -1125,13 +1125,13 @@ public class TelnetIO {
         } // readNEVariableValue
 
         public void readNEVariables() throws IOException {
-            LOG.log(Level.FINE, "readNEVariables()");
+            LOG.log(Level.DEBUG, "readNEVariables()");
             StringBuffer sbuf = new StringBuffer(50);
             int i = rawread();
             if (i == IAC) {
                 // invalid or empty response
                 skipToSE();
-                LOG.log(Level.FINE, "readNEVariables()::INVALID VARIABLE");
+                LOG.log(Level.DEBUG, "readNEVariables()::INVALID VARIABLE");
                 return;
             }
             boolean cont = true;
@@ -1139,29 +1139,29 @@ public class TelnetIO {
                 do {
                     switch (readNEVariableName(sbuf)) {
                         case NE_IN_ERROR:
-                            LOG.log(Level.FINE, "readNEVariables()::NE_IN_ERROR");
+                            LOG.log(Level.DEBUG, "readNEVariables()::NE_IN_ERROR");
                             return;
                         case NE_IN_END:
-                            LOG.log(Level.FINE, "readNEVariables()::NE_IN_END");
+                            LOG.log(Level.DEBUG, "readNEVariables()::NE_IN_END");
                             return;
                         case NE_VAR_DEFINED:
-                            LOG.log(Level.FINE, "readNEVariables()::NE_VAR_DEFINED");
+                            LOG.log(Level.DEBUG, "readNEVariables()::NE_VAR_DEFINED");
                             String str = sbuf.toString();
                             sbuf.delete(0, sbuf.length());
                             switch (readNEVariableValue(sbuf)) {
                                 case NE_IN_ERROR:
-                                    LOG.log(Level.FINE, "readNEVariables()::NE_IN_ERROR");
+                                    LOG.log(Level.DEBUG, "readNEVariables()::NE_IN_ERROR");
                                     return;
                                 case NE_IN_END:
-                                    LOG.log(Level.FINE, "readNEVariables()::NE_IN_END");
+                                    LOG.log(Level.DEBUG, "readNEVariables()::NE_IN_END");
                                     return;
                                 case NE_VAR_DEFINED_EMPTY:
-                                    LOG.log(Level.FINE, "readNEVariables()::NE_VAR_DEFINED_EMPTY");
+                                    LOG.log(Level.DEBUG, "readNEVariables()::NE_VAR_DEFINED_EMPTY");
                                     break;
                                 case NE_VAR_OK:
                                     // add variable
                                     LOG.log(
-                                            Level.FINE,
+                                            Level.DEBUG,
                                             "readNEVariables()::NE_VAR_OK:VAR=" + str + " VAL=" + sbuf.toString());
                                     TelnetIO.this
                                             .connectionData
@@ -1172,7 +1172,7 @@ public class TelnetIO {
                             }
                             break;
                         case NE_VAR_UNDEFINED:
-                            LOG.log(Level.FINE, "readNEVariables()::NE_VAR_UNDEFINED");
+                            LOG.log(Level.DEBUG, "readNEVariables()::NE_VAR_UNDEFINED");
                             break;
                     }
                 } while (cont);
@@ -1180,14 +1180,14 @@ public class TelnetIO {
         } // readVariables
 
         public void handleNEIs() throws IOException {
-            LOG.log(Level.FINE, "handleNEIs()");
+            LOG.log(Level.DEBUG, "handleNEIs()");
             if (isEnabled(NEWENV)) {
                 readNEVariables();
             }
         } // handleNEIs
 
         public void handleNEInfo() throws IOException {
-            LOG.log(Level.FINE, "handleNEInfo()");
+            LOG.log(Level.DEBUG, "handleNEInfo()");
             if (isEnabled(NEWENV)) {
                 readNEVariables();
             }

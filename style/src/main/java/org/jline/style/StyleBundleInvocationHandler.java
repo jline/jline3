@@ -8,11 +8,11 @@
  */
 package org.jline.style;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.jline.style.StyleBundle.DefaultStyle;
 import org.jline.style.StyleBundle.StyleGroup;
@@ -29,7 +29,7 @@ import static java.util.Objects.requireNonNull;
  * @since 3.4
  */
 class StyleBundleInvocationHandler implements InvocationHandler {
-    private static final Logger log = Logger.getLogger(StyleBundleInvocationHandler.class.getName());
+    private static final Logger log = System.getLogger(StyleBundleInvocationHandler.class.getName());
 
     private final Class<? extends StyleBundle> type;
 
@@ -101,8 +101,10 @@ class StyleBundleInvocationHandler implements InvocationHandler {
         requireNonNull(resolver);
         requireNonNull(type);
 
-        if (log.isLoggable(Level.FINEST)) {
-            log.finest(String.format("Using style-group: %s for type: %s", resolver.getGroup(), type.getName()));
+        if (log.isLoggable(Level.TRACE)) {
+            log.log(
+                    Level.TRACE,
+                    String.format("Using style-group: %s for type: %s", resolver.getGroup(), type.getName()));
         }
 
         StyleBundleInvocationHandler handler = new StyleBundleInvocationHandler(type, resolver);
@@ -144,8 +146,8 @@ class StyleBundleInvocationHandler implements InvocationHandler {
 
         // resolve the sourced-style, or use the default
         String style = resolver.getSource().get(resolver.getGroup(), styleName);
-        if (log.isLoggable(Level.FINEST)) {
-            log.finest(String.format("Sourced-style: %s -> %s", styleName, style));
+        if (log.isLoggable(Level.TRACE)) {
+            log.log(Level.TRACE, String.format("Sourced-style: %s -> %s", styleName, style));
         }
 
         if (style == null) {
@@ -158,8 +160,8 @@ class StyleBundleInvocationHandler implements InvocationHandler {
         }
 
         String value = String.valueOf(args[0]);
-        if (log.isLoggable(Level.FINEST)) {
-            log.finest(String.format("Applying style: %s -> %s to: %s", styleName, style, value));
+        if (log.isLoggable(Level.TRACE)) {
+            log.log(Level.TRACE, String.format("Applying style: %s -> %s to: %s", styleName, style, value));
         }
 
         AttributedStyle astyle = resolver.resolve(style);

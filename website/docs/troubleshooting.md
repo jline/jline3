@@ -781,7 +781,10 @@ For more complex issues, try these advanced troubleshooting techniques:
 
 ### Enable Debug Logging
 
-JLine uses Java Util Logging (JUL). Enable debug logging to see what's happening:
+JLine logs through the JDK's `System.Logger` facade (part of `java.base`), so it has no
+dependency on the `java.logging` module. On a standard JDK, the default `System.Logger`
+implementation routes to Java Util Logging (JUL), so you can configure JLine's output
+through JUL on the `org.jline` logger:
 
 ```java
 // Configure Java Util Logging
@@ -808,6 +811,17 @@ handlers=java.util.logging.ConsoleHandler
 java.util.logging.ConsoleHandler.level=FINE
 org.jline.level=FINE
 ```
+
+JLine's levels map to JUL as follows: `error` → `SEVERE`, `warn` → `WARNING`, `info` → `INFO`,
+`debug` → `FINE`, `trace` → `FINER`. Use `org.jline.level=FINE` for debug output, or `FINER`
+(or `FINEST`) to also include trace.
+
+:::note jlink images
+If you build a trimmed runtime image that does not include the `java.logging` module, the JUL
+configuration above has no effect, because `System.Logger` falls back to a minimal built-in
+backend. Add `java.logging` to your image, or register a custom `System.LoggerFinder`, to
+capture JLine's logs there.
+:::
 
 ### Inspect Terminal Capabilities
 
