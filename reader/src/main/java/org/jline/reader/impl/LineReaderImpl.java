@@ -1302,9 +1302,9 @@ public class LineReaderImpl implements LineReader, Flushable {
             Size newSize = terminal.getBufferSize();
             if (newSize.getRows() != size.getRows() || newSize.getColumns() != size.getColumns()) {
                 Status status = Status.getStatus(terminal, false);
-                if (status == null) {
+                if (status == null || status.size() == 0) {
                     // The terminal has already reflowed the active reader display to
-                    // the new width. For the normal no-status case, synchronize
+                    // the new width. When no status rows are active, synchronize
                     // Display's model with that reflowed prompt/buffer without
                     // emitting output. Repainting here races the terminal emulator's
                     // own reflow and can leave duplicate prompt fragments or clear

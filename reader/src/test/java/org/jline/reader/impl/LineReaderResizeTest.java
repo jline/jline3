@@ -17,6 +17,7 @@ import java.util.Arrays;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
+import org.jline.utils.Status;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -50,16 +51,46 @@ class LineReaderResizeTest {
             assertEquals(1, screen.count("-- user --"), screen::dump);
             assertEquals(1, screen.count(previousOutput), screen::dump);
 
-            // A height-only resize avoids depending on terminal emulator text reflow;
-            // the active prompt+buffer is already multi-row because the prompt has a newline and the input wraps.
-            terminal.setSize(Size.of(20, 9));
-            screen.resize(20, 9);
+            terminal.setSize(Size.of(18, 9));
+            screen.resize(18, 9);
             reader.handleWinch();
             terminal.flush();
-            screen.write(output.toString(StandardCharsets.UTF_8));
+            assertEquals("", output.toString(StandardCharsets.UTF_8), "WINCH should not repaint without status rows");
+            output.reset();
+
+            reader.redisplay();
+            terminal.flush();
+            assertEquals(
+                    "", output.toString(StandardCharsets.UTF_8), "resized display model should already be current");
 
             assertEquals(1, screen.count("-- user --"), screen::dump);
             assertEquals(1, screen.count(previousOutput), screen::dump);
+        }
+    }
+
+    @Test
+    void winchWithEmptyStatusDoesNotRedrawPromptBuffer() throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (Terminal terminal = new DumbTerminal(
+                "terminal", "ansi", new ByteArrayInputStream(new byte[0]), output, StandardCharsets.UTF_8)) {
+            terminal.setSize(Size.of(20, 8));
+            Status status = Status.getStatus(terminal);
+            ExposedLineReader reader = new ExposedLineReader(terminal);
+            output.reset();
+
+            assertEquals(0, status.size());
+
+            reader.setPrompt("-- user --\n");
+            reader.getBuffer().write("abc def ghi jkl mno pqr");
+            reader.redisplay();
+            terminal.flush();
+            output.reset();
+
+            terminal.setSize(Size.of(18, 9));
+            reader.handleWinch();
+            terminal.flush();
+
+            assertEquals("", output.toString(StandardCharsets.UTF_8));
         }
     }
 
