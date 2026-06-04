@@ -8,7 +8,6 @@
  */
 package org.jline.reader.impl;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -16,7 +15,7 @@ import java.util.Arrays;
 
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
-import org.jline.terminal.impl.DumbTerminal;
+import org.jline.terminal.impl.LineDisciplineTerminal;
 import org.jline.utils.Status;
 import org.junit.jupiter.api.Test;
 
@@ -27,8 +26,7 @@ class LineReaderResizeTest {
     @Test
     void winchRedisplayDoesNotDuplicateMultiRowPromptBuffer() throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        try (Terminal terminal = new DumbTerminal(
-                "terminal", "ansi", new ByteArrayInputStream(new byte[0]), output, StandardCharsets.UTF_8)) {
+        try (Terminal terminal = new LineDisciplineTerminal("terminal", "ansi", output, StandardCharsets.UTF_8)) {
             terminal.setSize(Size.of(20, 8));
             ExposedLineReader reader = new ExposedLineReader(terminal);
             output.reset();
@@ -71,8 +69,7 @@ class LineReaderResizeTest {
     @Test
     void winchWithEmptyStatusDoesNotRedrawPromptBuffer() throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        try (Terminal terminal = new DumbTerminal(
-                "terminal", "ansi", new ByteArrayInputStream(new byte[0]), output, StandardCharsets.UTF_8)) {
+        try (Terminal terminal = new LineDisciplineTerminal("terminal", "ansi", output, StandardCharsets.UTF_8)) {
             terminal.setSize(Size.of(20, 8));
             Status status = Status.getStatus(terminal);
             ExposedLineReader reader = new ExposedLineReader(terminal);
