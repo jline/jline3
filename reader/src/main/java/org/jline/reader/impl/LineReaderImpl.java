@@ -1279,8 +1279,11 @@ public class LineReaderImpl implements LineReader, Flushable {
      * Handle terminal signals that affect the reader's display and terminal state.
      *
      * <p>For SIGWINCH (window change) this checks whether the terminal's character
-     * grid (rows/columns) changed and, if so, recreates the display, resizes the
-     * status bar, resets the cursor to column 0, and triggers a redisplay.
+     * grid (rows/columns) changed and, if so, synchronizes the reader display model
+     * with the resized terminal. Without a status bar, the terminal emulator has
+     * already reflowed the prompt and buffer, so this does not emit repaint output.
+     * With a status bar, the reader keeps the explicit redraw path because status
+     * rows require application coordination.
      *
      * <p>For SIGCONT (continue) this re-enters raw mode, updates the cached size,
      * resizes the active display, enables keypad transmit, redraws the current
@@ -1298,18 +1301,23 @@ public class LineReaderImpl implements LineReader, Flushable {
             // the number of rows/columns.
             Size newSize = terminal.getBufferSize();
             if (newSize.getRows() != size.getRows() || newSize.getColumns() != size.getColumns()) {
-                // Recreate the display to reset cursor tracking. After a resize,
-                // the terminal has reflowed content and the old cursor position
-                // is no longer valid.
-                doDisplay();
                 Status status = Status.getStatus(terminal, false);
-                if (status != null) {
+                if (status == null) {
+                    // The terminal has already reflowed the active reader display to
+                    // the new width. For the normal no-status case, synchronize
+                    // Display's model with that reflowed prompt/buffer without
+                    // emitting output. Repainting here races the terminal emulator's
+                    // own reflow and can leave duplicate prompt fragments or clear
+                    // unrelated scrollback above the active prompt.
+                    size = newSize;
+                    display.resize(size, redisplayLines(size), redisplayCursorPos(size));
+                } else {
+                    // Status bars reserve terminal rows and need explicit resize
+                    // coordination; keep the existing redraw path for that mode.
+                    doDisplay();
                     status.resize(size);
+                    redisplay();
                 }
-                // Position cursor at column 0 to match the new display's
-                // cursor assumption (cursorPos = 0).
-                terminal.puts(Capability.carriage_return);
-                redisplay();
             }
         } else if (signal == Signal.CONT) {
             terminal.enterRawMode();
@@ -1319,6 +1327,43 @@ public class LineReaderImpl implements LineReader, Flushable {
             redrawLine();
             redisplay();
         }
+    }
+
+    private List<AttributedString> redisplayLines(Size targetSize) {
+        List<AttributedString> secondaryPrompts = new ArrayList<>();
+        AttributedString full = getDisplayedBufferWithPrompts(secondaryPrompts);
+        if (targetSize.getColumns() <= 0) {
+            List<AttributedString> lines = new ArrayList<>();
+            lines.add(full);
+            return lines;
+        }
+        return full.columnSplitLength(terminal, targetSize.getColumns(), true, display.delayLineWrap());
+    }
+
+    private int redisplayCursorPos(Size targetSize) {
+        if (targetSize.getColumns() <= 0) {
+            return 0;
+        }
+
+        List<AttributedString> secondaryPrompts = new ArrayList<>();
+        getDisplayedBufferWithPrompts(secondaryPrompts);
+
+        AttributedStringBuilder sb = new AttributedStringBuilder().tabs(getTabWidth());
+        sb.append(prompt);
+        String buffer = buf.upToCursor();
+        if (maskingCallback != null) {
+            buffer = maskingCallback.display(buffer);
+        }
+        sb.append(insertSecondaryPrompts(new AttributedString(buffer), secondaryPrompts, false));
+        List<AttributedString> promptLines = sb.toAttributedString()
+                .columnSplitLength(terminal, targetSize.getColumns(), false, display.delayLineWrap());
+        if (promptLines.isEmpty()) {
+            return 0;
+        }
+
+        int cursorRow = promptLines.size() - 1;
+        int cursorColumn = promptLines.get(cursorRow).columnLength(terminal);
+        return targetSize.cursorPos(cursorRow, cursorColumn);
     }
 
     @SuppressWarnings("unchecked")

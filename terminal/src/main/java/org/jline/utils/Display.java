@@ -193,6 +193,24 @@ public class Display implements Sized {
     }
 
     /**
+     * Resize the display and synchronize its model with content already reflowed by the terminal.
+     *
+     * <p>Terminal resize events can reflow already-rendered content without any bytes being emitted by the
+     * application. Callers that can recompute the reflowed visible lines can use this overload to keep the display
+     * model synchronized without repainting and without clearing surrounding scrollback.</p>
+     *
+     * @param sized the target display dimensions; its rows and columns are applied to the display
+     * @param lines the lines that are already visible after terminal reflow
+     * @param cursorPos the current cursor position in the resized display's wrapped-line coordinates
+     */
+    public void resize(Sized sized, List<AttributedString> lines, int cursorPos) {
+        resize(sized);
+        oldLines.clear();
+        oldLines.addAll(lines);
+        this.cursorPos = Math.max(0, cursorPos);
+    }
+
+    /**
      * Resize the display to the specified number of rows and columns.
      *
      * This updates the display geometry, rewraps previously rendered lines to the new
