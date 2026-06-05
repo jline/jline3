@@ -77,6 +77,40 @@ class DisplayTest {
         }
     }
 
+    @Test
+    void resizeReflowsCursorWithRenderedLines() throws IOException {
+        int rows = 12;
+        int oldCols = 80;
+        int newCols = 49;
+        try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, oldCols, rows)) {
+            Display display = new Display(terminal, false);
+            display.resize(Size.of(oldCols, rows));
+
+            String command = "./validation/manual/jline-readline-state-diagnostics.scala";
+            AttributedString rendered = new AttributedString("-- user --\n" + command + "\n> " + command);
+            List<AttributedString> oldLines =
+                    rendered.columnSplitLength(terminal, oldCols, true, display.delayLineWrap());
+            int oldCursor = Size.of(oldCols, rows)
+                    .cursorPos(
+                            oldLines.size() - 1,
+                            oldLines.get(oldLines.size() - 1).columnLength(terminal));
+            display.update(oldLines, oldCursor);
+
+            List<AttributedString> expectedLines =
+                    rendered.columnSplitLength(terminal, newCols, true, display.delayLineWrap());
+            int expectedCursor = Size.of(newCols, rows)
+                    .cursorPos(
+                            expectedLines.size() - 1,
+                            expectedLines.get(expectedLines.size() - 1).columnLength(terminal));
+
+            terminal.resizeScreen(newCols, rows);
+            display.resize(terminal);
+
+            assertEquals(expectedLines, display.oldLines);
+            assertEquals(expectedCursor, display.cursorPos);
+        }
+    }
+
     static class VirtualTerminal extends LineDisciplineTerminal {
         private final ScreenTerminal virtual;
         private final OutputStream masterInputOutput;

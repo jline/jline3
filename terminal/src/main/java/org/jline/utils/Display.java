@@ -193,24 +193,6 @@ public class Display implements Sized {
     }
 
     /**
-     * Resize the display and synchronize its model with content already reflowed by the terminal.
-     *
-     * <p>Terminal resize events can reflow already-rendered content without any bytes being emitted by the
-     * application. Callers that can recompute the reflowed visible lines can use this overload to keep the display
-     * model synchronized without repainting and without clearing surrounding scrollback.</p>
-     *
-     * @param sized the target display dimensions; its rows and columns are applied to the display
-     * @param lines the lines that are already visible after terminal reflow
-     * @param cursorPos the current cursor position in the resized display's wrapped-line coordinates
-     */
-    public void resize(Sized sized, List<AttributedString> lines, int cursorPos) {
-        resize(sized);
-        oldLines.clear();
-        oldLines.addAll(lines);
-        this.cursorPos = Math.max(0, cursorPos);
-    }
-
-    /**
      * Resize the display to the specified number of rows and columns.
      *
      * This updates the display geometry, rewraps previously rendered lines to the new
@@ -230,6 +212,7 @@ public class Display implements Sized {
             rows = 1;
         }
         if (this.rows != rows || this.columns != columns) {
+            int cursorOffset = cursorOffsetInRenderedLines();
             this.rows = rows;
             this.columns = columns;
             this.columns1 = columns + 1;
@@ -237,6 +220,7 @@ public class Display implements Sized {
                     .columnSplitLength(terminal, columns, true, delayLineWrap());
             oldLines.clear();
             oldLines.addAll(split);
+            cursorPos = cursorPositionInReflowedLines(cursorOffset);
         }
         // When the terminal buffer is wider than the visible window (e.g. Windows with
         // a wide screen buffer), auto-wrap occurs at the buffer width, not the visible
@@ -249,6 +233,52 @@ public class Display implements Sized {
             this.wrapAtEol = this.terminalWrapAtEol;
             this.delayedWrapAtEol = this.terminalDelayedWrapAtEol;
         }
+    }
+
+    private int cursorOffsetInRenderedLines() {
+        if (columns1 <= 0 || cursorPos <= 0 || oldLines.isEmpty()) {
+            return 0;
+        }
+        int cursorRow = cursorPos / columns1;
+        int cursorColumn = cursorPos % columns1;
+        int offset = 0;
+        int rowsBeforeCursor = Math.min(cursorRow, oldLines.size());
+        for (int row = 0; row < rowsBeforeCursor; row++) {
+            offset += oldLines.get(row).length();
+        }
+        if (cursorRow < oldLines.size()) {
+            offset += oldLines.get(cursorRow)
+                    .columnSubSequence(terminal, 0, cursorColumn)
+                    .length();
+        }
+        return offset;
+    }
+
+    private int cursorPositionInReflowedLines(int cursorOffset) {
+        int remaining = Math.max(0, cursorOffset);
+        for (int row = 0; row < oldLines.size(); row++) {
+            AttributedString line = oldLines.get(row);
+            int length = line.length();
+            boolean hardLineEnd = length > 0 && line.charAt(length - 1) == '\n';
+            if (remaining < length || (remaining == length && (!hardLineEnd || row == oldLines.size() - 1))) {
+                return cursorPositionAtLineOffset(row, line, remaining);
+            }
+            remaining -= length;
+        }
+        if (oldLines.isEmpty()) {
+            return 0;
+        }
+        int lastRow = oldLines.size() - 1;
+        AttributedString lastLine = oldLines.get(lastRow);
+        return cursorPositionAtLineOffset(lastRow, lastLine, lastLine.length());
+    }
+
+    private int cursorPositionAtLineOffset(int row, AttributedString line, int lineOffset) {
+        int prefixEnd = lineOffset;
+        if (prefixEnd > 0 && line.charAt(prefixEnd - 1) == '\n') {
+            prefixEnd--;
+        }
+        return row * columns1 + line.subSequence(0, prefixEnd).columnLength(terminal);
     }
 
     /**
