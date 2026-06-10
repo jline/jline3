@@ -274,9 +274,12 @@ public class ScreenTerminal implements Sized {
     }
 
     private void poke(int y, int x, long[] s) {
+        if (x < 0 || x >= columns || y < 0 || y >= rows) {
+            return;
+        }
         int cur = 0;
         int max = s.length;
-        while (cur < max) {
+        while (cur < max && y < rows) {
             int nb = Math.min(columns - x, max - cur);
             System.arraycopy(s, cur, screen[y++], x, nb);
             x = 0;
