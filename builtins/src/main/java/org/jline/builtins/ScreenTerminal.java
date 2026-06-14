@@ -1768,8 +1768,8 @@ public class ScreenTerminal implements Sized {
     /**
      * Resize the terminal to the given number of columns and rows.
      *
-     * @param columns the target number of columns (2–256)
-     * @param rows    the target number of rows (2–256)
+     * @param columns the target number of columns (2–4096)
+     * @param rows    the target number of rows (2–4096)
      * @return        `true` if the size was changed; `false` if the requested dimensions are out of range
      * @deprecated Use {@link #setSize(Sized)} instead.
      */
