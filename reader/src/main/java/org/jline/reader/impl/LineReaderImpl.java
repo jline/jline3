@@ -1314,6 +1314,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                 } else {
                     // Status bars reserve terminal rows and need explicit resize
                     // coordination; keep the existing redraw path for that mode.
+                    size = newSize;
                     doDisplay();
                     status.resize(size);
                     redisplay();

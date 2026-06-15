@@ -260,6 +260,8 @@ public class Display implements Sized {
             AttributedString line = oldLines.get(row);
             int length = line.length();
             boolean hardLineEnd = length > 0 && line.charAt(length - 1) == '\n';
+            // For hard line ends (\n), when remaining == length the cursor sits at the
+            // start of the next line, so we continue rather than stopping here.
             if (remaining < length || (remaining == length && (!hardLineEnd || row == oldLines.size() - 1))) {
                 return cursorPositionAtLineOffset(row, line, remaining);
             }
