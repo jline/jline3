@@ -2508,9 +2508,13 @@ public class LineReaderImpl implements LineReader, Flushable {
             buf.clear();
             println();
             redrawLine();
-            //            state = State.INTERRUPT;
             return false;
         }
+        return true;
+    }
+
+    protected boolean interrupt() {
+        state = State.INTERRUPT;
         return true;
     }
 
@@ -4094,6 +4098,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         addBuiltinWidget(widgets, INSERT_CLOSE_PAREN, this::insertCloseParen);
         addBuiltinWidget(widgets, INSERT_CLOSE_SQUARE, this::insertCloseSquare);
         addBuiltinWidget(widgets, INSERT_COMMENT, this::insertComment);
+        addBuiltinWidget(widgets, INTERRUPT, this::interrupt);
         addBuiltinWidget(widgets, KILL_BUFFER, this::killBuffer);
         addBuiltinWidget(widgets, KILL_LINE, this::killLine);
         addBuiltinWidget(widgets, KILL_REGION, this::killRegion);
@@ -6594,6 +6599,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             Attributes attr = terminal.getAttributes();
             bindConsoleChars(keyMaps.get(EMACS), attr);
             bindConsoleChars(keyMaps.get(VIINS), attr);
+            bindConsoleChars(keyMaps.get(VICMD), attr);
         }
         // Put default
         for (KeyMap<Binding> keyMap : keyMaps.values()) {
@@ -6942,6 +6948,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             rebind(keyMap, BACKWARD_KILL_WORD, ctrl('W'), (char) attr.getControlChar(ControlChar.VWERASE));
             rebind(keyMap, KILL_WHOLE_LINE, ctrl('U'), (char) attr.getControlChar(ControlChar.VKILL));
             rebind(keyMap, QUOTED_INSERT, ctrl('V'), (char) attr.getControlChar(ControlChar.VLNEXT));
+            rebind(keyMap, INTERRUPT, ctrl('C'), (char) attr.getControlChar(ControlChar.VINTR));
         }
     }
 

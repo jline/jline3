@@ -12,6 +12,7 @@ import java.io.File;
 import java.util.List;
 
 import org.jline.reader.Completer;
+import org.jline.reader.SyntaxError;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
@@ -139,7 +140,7 @@ public interface CommandDispatcher extends AutoCloseable {
      * @param exception the exception to trace
      */
     default void trace(Throwable exception) {
-        if (exception instanceof UnknownCommandException) {
+        if (exception instanceof UnknownCommandException || exception instanceof SyntaxError) {
             AttributedStringBuilder asb = new AttributedStringBuilder();
             asb.styled(errorStyle(), exception.getMessage());
             asb.toAttributedString().println(terminal());

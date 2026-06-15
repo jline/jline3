@@ -31,6 +31,8 @@ import org.jline.terminal.impl.AbstractPty;
 import org.jline.terminal.spi.Pty;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
+import org.jline.utils.NonCloseableInputStream;
+import org.jline.utils.NonCloseableOutputStream;
 import org.jline.utils.OSUtils;
 
 import static org.jline.utils.ExecHelper.exec;
@@ -154,15 +156,17 @@ public class ExecPty extends AbstractPty implements Pty {
 
     @Override
     protected InputStream doGetSlaveInput() throws IOException {
-        return systemStream != null ? new FileInputStream(FileDescriptor.in) : new FileInputStream(getName());
+        return systemStream != null
+                ? new NonCloseableInputStream(new FileInputStream(FileDescriptor.in))
+                : new FileInputStream(getName());
     }
 
     @Override
     public OutputStream getSlaveOutput() throws IOException {
         return systemStream == SystemStream.Output
-                ? new FileOutputStream(FileDescriptor.out)
+                ? new NonCloseableOutputStream(new FileOutputStream(FileDescriptor.out))
                 : systemStream == SystemStream.Error
-                        ? new FileOutputStream(FileDescriptor.err)
+                        ? new NonCloseableOutputStream(new FileOutputStream(FileDescriptor.err))
                         : new FileOutputStream(getName());
     }
 

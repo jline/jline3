@@ -59,6 +59,15 @@ jobs:
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
           fingerprint: ${{ secrets.GPG_KEY_FINGERPRINT }}
 
+      - name: Validate version
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid version format: '$version' (expected X.Y.Z)"
+            exit 1
+          fi
+          echo "Version validated: $version"
+
       - name: Release
         env:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
@@ -74,10 +83,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           MVX_USE_SYSTEM_JAVA: true
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
         shell: bash
         run: |
           gh extension install valeriobelli/gh-milestone
-          version=${{ steps.version.outputs.version }}
+          version="$RELEASE_VERSION"
           echo "Trying to find milestone $version"
           milestone=$(gh milestone list --json id,title,state  --jq "map_values(select(.title == \"${version}\" and .state == \"OPEN\")).[].number")
           if [ ! -z "$milestone" ]; then
@@ -101,24 +111,29 @@ jobs:
             milestone=$(gh milestone list --json id,title,state --jq "map_values(select(.title == \"${next_version}\" and .state == \"OPEN\")).[].number")
             if [ -z "$milestone" ]; then
               echo "Creating milestone $next_version"
-              gh milestone create --title $next_version
+              gh milestone create --title $next_version || echo "Milestone $next_version already exists, skipping"
             fi
           else
             echo "ERROR: Version $version is not a valid semantic version (x.y.z)"
             exit 1
           fi          
           
-          version=${{ steps.version.outputs.version }}
+          version="$RELEASE_VERSION"
 
           # Check if release drafter already created a draft release for this version
           draft_tag=$(gh api repos/${{ github.repository }}/releases \
             --jq ".[] | select(.draft == true and .tag_name == \"${version}\") | .tag_name" \
             2>/dev/null || true)
 
+          existing_release=$(gh api repos/${{ github.repository }}/releases/tags/${version} --jq '.tag_name' 2>/dev/null || true)
+
           if [ -n "$draft_tag" ]; then
             echo "Publishing existing draft release for $version"
             gh release edit "$version" --draft=false --verify-tag --title "JLine $version"
+          elif [ -n "$existing_release" ]; then
+            echo "Release $version already exists, updating title"
+            gh release edit "$version" --title "JLine $version"
           else
-            echo "No draft release found, creating release for $version"
+            echo "No existing release found, creating release for $version"
             gh release create "$version" --verify-tag --generate-notes --title "JLine $version"
           fi
