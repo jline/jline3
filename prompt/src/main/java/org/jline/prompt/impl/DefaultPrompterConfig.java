@@ -64,6 +64,7 @@ public class DefaultPrompterConfig implements PrompterConfig {
      *   <li><code>.cu</code> - cursor/indicator style</li>
      *   <li><code>.be</code> - box element style (checked/unchecked boxes)</li>
      *   <li><code>.bd</code> - disabled/unavailable item style</li>
+     *   <li><code>.fo</code> - footer/description style (dimmed)</li>
      * </ul>
      *
      * @param indicator the indicator character/string
@@ -85,7 +86,7 @@ public class DefaultPrompterConfig implements PrompterConfig {
             StyleResolver resolver,
             boolean cancellableFirstPrompt) {
         if (resolver == null) {
-            String defaultColors = "cu=36:be=32:bd=37:pr=32:me=1:an=36:se=36:cb=100:er=31";
+            String defaultColors = "cu=36:be=32:bd=37:pr=32:me=1:an=36:se=36:cb=100:er=31:fo=90";
             String envColors = System.getenv("PROMPTER_COLORS");
             String colors = envColors != null ? envColors : defaultColors;
 

@@ -32,6 +32,7 @@ public class DefaultListBuilder implements ListBuilder {
     private String currentItemText;
     private boolean currentItemDisabled;
     private String currentItemDisabledText;
+    private String currentItemFooter;
     private int pageSize = 0;
     private boolean showPageIndicator = true;
     private boolean filterable = true;
@@ -82,6 +83,7 @@ public class DefaultListBuilder implements ListBuilder {
         this.currentItemText = null;
         this.currentItemDisabled = false;
         this.currentItemDisabledText = null;
+        this.currentItemFooter = null;
         return this;
     }
 
@@ -118,6 +120,12 @@ public class DefaultListBuilder implements ListBuilder {
         return this;
     }
 
+    @Override
+    public ListBuilder footer(String footer) {
+        this.currentItemFooter = footer;
+        return this;
+    }
+
     /**
      * Add the current item to the list.
      *
@@ -125,13 +133,14 @@ public class DefaultListBuilder implements ListBuilder {
      */
     public ListBuilder add() {
         if (currentItemId != null) {
-            DefaultListItem item =
-                    new DefaultListItem(currentItemId, currentItemText, currentItemDisabled, currentItemDisabledText);
+            DefaultListItem item = new DefaultListItem(
+                    currentItemId, currentItemText, currentItemDisabled, currentItemDisabledText, currentItemFooter);
             items.add(item);
             currentItemId = null;
             currentItemText = null;
             currentItemDisabled = false;
             currentItemDisabledText = null;
+            currentItemFooter = null;
         }
         return this;
     }
