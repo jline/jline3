@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.lang.reflect.Field;
+import java.util.concurrent.TimeUnit;
 
 import org.jline.nativ.JLineLibrary;
 import org.jline.nativ.JLineNativeLoader;
@@ -146,8 +147,9 @@ public abstract class AbstractPty implements Pty {
                 return r;
             } else {
                 setNonBlocking();
-                long start = System.currentTimeMillis();
+                long start = System.nanoTime();
                 while (true) {
+                    long readStart = System.nanoTime();
                     int r = in.read();
                     if (r >= 0) {
                         if (isPeek) {
@@ -155,9 +157,16 @@ public abstract class AbstractPty implements Pty {
                         }
                         return r;
                     }
+                    // r == -1: could be real EOF or VMIN=0/VTIME=1 timeout on a real PTY.
+                    // With VTIME=1 (100ms), a timeout takes ~100ms to return -1.
+                    // Real EOF (pipe closed, PTY slave closed) returns -1 instantly.
+                    long readElapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - readStart);
+                    if (readElapsed < 50) {
+                        return -1;
+                    }
                     checkInterrupted();
-                    long cur = System.currentTimeMillis();
-                    if (timeout > 0 && cur - start > timeout) {
+                    long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+                    if (timeout > 0 && elapsed > timeout) {
                         return NonBlockingInputStream.READ_EXPIRED;
                     }
                 }
