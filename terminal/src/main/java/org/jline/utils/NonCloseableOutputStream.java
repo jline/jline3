@@ -24,6 +24,11 @@ public class NonCloseableOutputStream extends FilterOutputStream {
     }
 
     @Override
+    public void write(byte[] b, int off, int len) throws IOException {
+        out.write(b, off, len);
+    }
+
+    @Override
     public void close() throws IOException {
         flush();
     }
