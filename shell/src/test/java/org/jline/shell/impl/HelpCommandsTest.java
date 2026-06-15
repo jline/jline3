@@ -28,25 +28,9 @@ class HelpCommandsTest extends AbstractCommandsTest {
     @BeforeEach
     protected void setUp() throws IOException {
         super.setUp();
-        dispatcher.addGroup(new SimpleCommandGroup("demo", new TestEchoCmd(), new TestUpperCmd()));
+        dispatcher.addGroup(new SimpleCommandGroup("demo", new TestEchoCommand(), new TestUpperCmd()));
         commands = new HelpCommands(dispatcher);
         dispatcher.addGroup(commands);
-    }
-
-    static class TestEchoCmd extends AbstractCommand {
-        TestEchoCmd() {
-            super("echo");
-        }
-
-        @Override
-        public String description() {
-            return "Echo arguments to output";
-        }
-
-        @Override
-        public Object execute(CommandSession session, String[] args) {
-            return String.join(" ", args);
-        }
     }
 
     static class TestUpperCmd extends AbstractCommand {

@@ -84,7 +84,7 @@ public class Shell implements AutoCloseable {
     /**
      * Runs the interactive REPL loop.
      * <p>
-     * This method blocks until the user exits (via EOF or an "exit"/"quit" command),
+     * This method blocks until the user exits (e.g. via EOF or an exit command),
      * or until {@link #stop()} is called.
      *
      * @throws Exception if initialization or execution fails
@@ -136,13 +136,14 @@ public class Shell implements AutoCloseable {
                     continue;
                 }
 
-                // Built-in exit/quit
-                if ("exit".equals(line) || "quit".equals(line)) {
-                    break;
-                }
-
                 try {
                     dispatcher.execute(line);
+                } catch (ExitShellException e) {
+                    if (e.getMessage() != null) {
+                        terminal.writer().println(e.getMessage());
+                        terminal.flush();
+                    }
+                    break;
                 } catch (Exception e) {
                     dispatcher.trace(e);
                 } finally {

@@ -73,6 +73,8 @@ public class ShellBuilder {
     private ScriptRunner scriptRunner;
     private boolean enableScriptCommands;
     private boolean enableVariableCommands;
+    private boolean enableExitCommands = true;
+    private String exitMessage = null;
 
     ShellBuilder() {}
 
@@ -389,6 +391,29 @@ public class ShellBuilder {
     }
 
     /**
+     * Enables or disables built-in exit commands ({@code exit}, {@code quit}).
+     *
+     * @param enable true to enable
+     * @return this builder
+     */
+    public ShellBuilder exitCommands(boolean enable) {
+        this.enableExitCommands = enable;
+        return this;
+    }
+
+    /**
+     * Sets the message that will be printed to the terminal when the exit command is called.
+     * Also enables the exit command if it was disabled.
+     *
+     * @param message The message to be printed upon exit
+     * @return this builder
+     */
+    public ShellBuilder exitMessage(String message) {
+        this.exitMessage = message;
+        return exitCommands(true);
+    }
+
+    /**
      * Builds the {@link Shell} instance.
      * <p>
      * If no terminal is provided, a system terminal is created. If no dispatcher
@@ -460,6 +485,9 @@ public class ShellBuilder {
         }
         if (enableVariableCommands) {
             disp.addGroup(new org.jline.shell.impl.VariableCommands());
+        }
+        if (enableExitCommands) {
+            disp.addGroup(new org.jline.shell.impl.ExitCommands(exitMessage));
         }
 
         // Apply variables
