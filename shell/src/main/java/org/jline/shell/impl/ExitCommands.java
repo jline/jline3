@@ -46,7 +46,11 @@ public class ExitCommands extends SimpleCommandGroup {
 
         @Override
         public Object execute(CommandSession session, String[] args) {
-            throw new ExitShellException(this.message);
+            int exitCode = 0;
+            if (args.length > 0) {
+                exitCode = Integer.parseInt(args[0]);
+            }
+            throw new ExitShellException(this.message, exitCode);
         }
     }
 }
