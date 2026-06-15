@@ -33,30 +33,29 @@ class DefaultCommandDispatcherTest extends AbstractCommandDispatcherTest {
         super.setUp();
         dispatcher.addGroup(new SimpleCommandGroup(
                 "test",
-                new EchoCommand(),
+                new TestEchoCommand(),
                 new FailCommand(),
                 new UpperCommand(),
                 new NoopCommand(),
-                new ReverseCommand()));
+                new ReverseCommand(),
+                new ExitCommand()));
     }
 
     // --- Fixture commands ---
 
-    static class EchoCommand extends AbstractCommand {
-        EchoCommand() {
-            super("echo");
+    static class ExitCommand extends AbstractCommand {
+        ExitCommand() {
+            super("exit");
         }
 
         @Override
         public String description() {
-            return "Echo arguments";
+            return "Exits shell";
         }
 
         @Override
-        public Object execute(CommandSession session, String[] args) {
-            String msg = String.join(" ", args);
-            session.out().println(msg);
-            return msg;
+        public Object execute(CommandSession session, String[] args) throws Exception {
+            throw new ExitShellException();
         }
     }
 
@@ -222,6 +221,48 @@ class DefaultCommandDispatcherTest extends AbstractCommandDispatcherTest {
     }
 
     @Test
+    void pipeExitRunsNext() throws Exception {
+        Object result = dispatcher.execute("exit | echo recovered");
+        assertEquals("recovered", result);
+    }
+
+    @Test
+    void andStillExits() {
+        assertThrows(ExitShellException.class, () -> dispatcher.execute("exit && echo test"));
+    }
+
+    @Test
+    void orStillExits() {
+        assertThrows(ExitShellException.class, () -> dispatcher.execute("exit || echo test"));
+    }
+
+    @Test
+    void sequenceStillExits() {
+        assertThrows(ExitShellException.class, () -> dispatcher.execute("exit ; echo test"));
+    }
+
+    @Test
+    void pipeToExitDoesNothing() throws Exception {
+        assertNull(dispatcher.execute("echo test | exit"));
+        assertEquals(0, terminalOutput.toByteArray().length);
+    }
+
+    @Test
+    void andExitExits() {
+        assertThrows(ExitShellException.class, () -> dispatcher.execute("echo test && exit"));
+    }
+
+    @Test
+    void orExitAfterFailExits() {
+        assertThrows(ExitShellException.class, () -> dispatcher.execute("fail || exit"));
+    }
+
+    @Test
+    void sequenceStillExits2() {
+        assertThrows(ExitShellException.class, () -> dispatcher.execute("echo test ; exit"));
+    }
+
+    @Test
     void sequenceOperator() throws Exception {
         Object result = dispatcher.execute("echo first ; echo second");
         assertEquals("second", result);
@@ -277,7 +318,7 @@ class DefaultCommandDispatcherTest extends AbstractCommandDispatcherTest {
         AliasManager aliasManager = new DefaultAliasManager();
         aliasManager.setAlias("hi", "echo hello");
         DefaultCommandDispatcher aliasDispatcher = new DefaultCommandDispatcher(terminal, null, null, aliasManager);
-        aliasDispatcher.addGroup(new SimpleCommandGroup("test", new EchoCommand()));
+        aliasDispatcher.addGroup(new SimpleCommandGroup("test", new TestEchoCommand()));
         Object result = aliasDispatcher.execute("hi");
         assertEquals("hello", result);
     }
@@ -286,7 +327,7 @@ class DefaultCommandDispatcherTest extends AbstractCommandDispatcherTest {
     void customPipelineParser() throws Exception {
         PipelineParser custom = new PipelineParser(Map.of("==>", Pipeline.Operator.PIPE));
         DefaultCommandDispatcher customDispatcher = new DefaultCommandDispatcher(terminal, null, custom, null);
-        customDispatcher.addGroup(new SimpleCommandGroup("test", new EchoCommand(), new UpperCommand()));
+        customDispatcher.addGroup(new SimpleCommandGroup("test", new TestEchoCommand(), new UpperCommand()));
         Object result = customDispatcher.execute("echo hello ==> upper");
         assertEquals("HELLO", result);
     }

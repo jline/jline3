@@ -20,12 +20,7 @@ class SimpleCommandGroupTest {
 
     @Test
     void groupContainsCommands() {
-        Command echo = new AbstractCommand("echo", "e") {
-            @Override
-            public Object execute(CommandSession session, String[] args) {
-                return String.join(" ", args);
-            }
-        };
+        Command echo = new TestEchoCommand();
 
         SimpleCommandGroup group = new SimpleCommandGroup("test", echo);
         assertEquals("test", group.name());
