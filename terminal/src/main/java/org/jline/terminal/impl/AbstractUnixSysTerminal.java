@@ -11,6 +11,7 @@ package org.jline.terminal.impl;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -35,6 +36,8 @@ import org.jline.utils.NonCloseableInputStream;
 import org.jline.utils.NonCloseableOutputStream;
 import org.jline.utils.ShutdownHooks;
 import org.jline.utils.ShutdownHooks.Task;
+
+import static org.jline.terminal.TerminalBuilder.PROP_SOFTWARE_SIGNALS;
 
 /**
  * Base class for flattened POSIX system terminals that bypass the PTY abstraction.
@@ -74,6 +77,7 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
     private final NonBlockingReader reader;
     private final PrintWriter writer;
     final Map<Signal, Object> nativeHandlers = new ConcurrentHashMap<>();
+    private volatile Attributes cachedAttributes;
     private final Task closer;
 
     @SuppressWarnings({"this-escape", "squid:S107"})
@@ -94,9 +98,12 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
         this.systemStream = systemStream;
         this.originalAttributes = originalAttributes;
         this.nativeSignals = nativeSignals;
+        boolean softwareSignals = Boolean.parseBoolean(System.getProperty(PROP_SOFTWARE_SIGNALS, "true"));
 
+        InputStream stdin = new NonCloseableInputStream(new FileInputStream(FileDescriptor.in));
         this.input =
-                NonBlocking.nonBlocking(getName(), new NonCloseableInputStream(new FileInputStream(FileDescriptor.in)));
+                NonBlocking.nonBlocking(getName(), softwareSignals ? new SignalInterceptingInputStream(stdin) : stdin);
+        cachedAttributes = new Attributes(originalAttributes);
         FileDescriptor outFd;
         if (systemStream == SystemStream.Output) {
             outFd = FileDescriptor.out;
@@ -163,13 +170,16 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
     @Override
     public Attributes getAttributes() {
         checkClosed();
-        return doGetAttributes();
+        Attributes attr = doGetAttributes();
+        cachedAttributes = attr;
+        return attr;
     }
 
     @Override
     public void setAttributes(Attributes attr) {
         checkClosed();
         doSetAttributes(attr);
+        cachedAttributes = new Attributes(attr);
     }
 
     @Override
@@ -283,5 +293,65 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
             size = null;
         }
         return getKind() + "[" + "name='" + name + '\'' + ", type='" + type + '\'' + ", size='" + size + '\'' + ']';
+    }
+
+    /**
+     * Wraps the raw stdin to intercept signal control characters when ISIG is cleared
+     * (raw mode). Unlike {@link LineDisciplineTerminal#doProcessInputByte} which
+     * <em>consumes</em> signal bytes (they never reach the reader), this wrapper
+     * <em>passes them through</em> — the byte is returned to the caller after raising
+     * the signal. This is intentional: in raw mode the LineReader's INTERRUPT widget
+     * also needs to see {@code 0x03} via its keymap binding.
+     */
+    private class SignalInterceptingInputStream extends FilterInputStream {
+        SignalInterceptingInputStream(InputStream in) {
+            super(in);
+        }
+
+        @Override
+        public int read() throws IOException {
+            int b = super.read();
+            if (b >= 0) {
+                checkSignalByte(b);
+            }
+            return b;
+        }
+
+        @Override
+        public int read(byte[] buf, int off, int len) throws IOException {
+            int n = super.read(buf, off, len);
+            if (n > 0) {
+                checkSignalBytes(buf, off, n);
+            }
+            return n;
+        }
+
+        private void checkSignalByte(int b) {
+            Attributes attr = cachedAttributes;
+            if (!attr.getLocalFlag(Attributes.LocalFlag.ISIG)) {
+                raiseIfSignal(b, attr);
+            }
+        }
+
+        private void checkSignalBytes(byte[] buf, int off, int count) {
+            Attributes attr = cachedAttributes;
+            if (!attr.getLocalFlag(Attributes.LocalFlag.ISIG)) {
+                for (int i = 0; i < count; i++) {
+                    raiseIfSignal(buf[off + i] & 0xFF, attr);
+                }
+            }
+        }
+
+        private void raiseIfSignal(int b, Attributes attr) {
+            if (b == attr.getControlChar(Attributes.ControlChar.VINTR)) {
+                raise(Signal.INT);
+            } else if (b == attr.getControlChar(Attributes.ControlChar.VQUIT)) {
+                raise(Signal.QUIT);
+            } else if (b == attr.getControlChar(Attributes.ControlChar.VSUSP)) {
+                raise(Signal.TSTP);
+            } else if (b == attr.getControlChar(Attributes.ControlChar.VSTATUS)) {
+                raise(Signal.INFO);
+            }
+        }
     }
 }
