@@ -12,6 +12,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -22,8 +24,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -39,7 +39,7 @@ import org.jline.utils.OSUtils;
 @SuppressWarnings("restricted")
 class CLibrary {
 
-    private static final Logger logger = Logger.getLogger("org.jline");
+    private static final Logger logger = System.getLogger("org.jline");
 
     // Window sizes.
     // @see <a href="http://man7.org/linux/man-pages/man4/tty_ioctl.4.html">IOCTL_TTY(2) man-page</a>
@@ -339,7 +339,7 @@ class CLibrary {
                 }
                 error = new LinkageError(sb.toString());
                 suppressed.forEach(error::addSuppressed);
-                if (logger.isLoggable(Level.FINE)) {
+                if (logger.isLoggable(Level.DEBUG)) {
                     logger.log(Level.WARNING, error.getMessage(), error);
                 } else {
                     logger.log(Level.WARNING, error.getMessage());

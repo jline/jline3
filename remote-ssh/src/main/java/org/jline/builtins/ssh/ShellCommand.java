@@ -11,9 +11,9 @@ package org.jline.builtins.ssh;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.function.Consumer;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.apache.sshd.server.Environment;
 import org.apache.sshd.server.ExitCallback;
@@ -23,7 +23,7 @@ import org.apache.sshd.server.session.ServerSession;
 
 public class ShellCommand implements Command {
 
-    private static final Logger LOGGER = Logger.getLogger(ShellCommand.class.getName());
+    private static final Logger LOGGER = System.getLogger(ShellCommand.class.getName());
 
     private final Consumer<Ssh.ExecuteParams> execute;
     private final String command;
@@ -68,7 +68,7 @@ public class ShellCommand implements Command {
             execute.accept(new Ssh.ExecuteParams(command, env.getEnv(), session, in, out, err));
         } catch (RuntimeException e) {
             exitStatus = 1;
-            LOGGER.log(Level.SEVERE, "Unable to start shell", e);
+            LOGGER.log(Level.ERROR, "Unable to start shell", e);
             try {
                 Throwable t = (e.getCause() != null) ? e.getCause() : e;
                 err.write(t.toString().getBytes());

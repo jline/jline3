@@ -26,7 +26,6 @@ module org.jline.reader {
     // Dependencies
     requires transitive org.jline.terminal;
     requires java.base;
-    requires java.logging;
 
     // Export public API
     exports org.jline.reader;

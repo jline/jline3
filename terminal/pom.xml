@@ -24,6 +24,7 @@
 
     <properties>
         <automatic.module.name>org.jline.terminal</automatic.module.name>
+        <surefire.argLine>--add-opens java.base/java.io=org.jline.nativ --add-opens java.base/java.io=org.jline.terminal --add-modules java.logging --add-reads org.jline.terminal=java.logging</surefire.argLine>
     </properties>
 
     <dependencies>
@@ -53,6 +54,23 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default-testCompile</id>
+                        <configuration>
+                            <compilerArgs combine.children="append">
+                                <arg>--add-modules</arg>
+                                <arg>java.logging</arg>
+                                <arg>--add-reads</arg>
+                                <arg>org.jline.terminal=java.logging</arg>
+                            </compilerArgs>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>

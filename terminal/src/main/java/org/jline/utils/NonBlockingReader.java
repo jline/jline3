@@ -10,8 +10,8 @@ package org.jline.utils;
 
 import java.io.IOException;
 import java.io.Reader;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 
 import static org.jline.terminal.TerminalBuilder.PROP_CLOSE_MODE;
 
@@ -79,7 +79,7 @@ public abstract class NonBlockingReader extends Reader {
     public static final int EOF = -1;
     public static final int READ_EXPIRED = -2;
 
-    private static final Logger LOG = Logger.getLogger(NonBlockingReader.class.getName());
+    private static final Logger LOG = System.getLogger(NonBlockingReader.class.getName());
 
     /**
      * Flag indicating whether this reader has been closed.
