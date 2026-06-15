@@ -13,10 +13,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Candidate;
@@ -60,13 +56,6 @@ public abstract class ReaderTestSupport {
 
     @BeforeEach
     public void setUp() throws Exception {
-        Handler ch = new ConsoleHandler();
-        ch.setLevel(Level.FINEST);
-        Logger logger = Logger.getLogger("org.jline");
-        logger.addHandler(ch);
-        // Set the handler log level
-        logger.setLevel(Level.INFO);
-
         in = new EofPipedInputStream();
         out = new ByteArrayOutputStream();
         terminal = new DumbTerminal("terminal", "ansi", in, out, StandardCharsets.UTF_8);

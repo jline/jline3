@@ -40,13 +40,13 @@ package org.jline.builtins.telnet;
  ***/
 
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.text.MessageFormat;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Class that implements a {@code PortListener}.<br>
@@ -59,7 +59,7 @@ import java.util.logging.Logger;
  */
 public class PortListener implements Runnable {
 
-    private static final Logger LOG = Logger.getLogger(PortListener.class.getName());
+    private static final Logger LOG = System.getLogger(PortListener.class.getName());
     private static final String logmsg =
             "Listening to Port {0,number,integer} with a connectivity queue size of {1,number,integer}.";
     private String name;
@@ -119,7 +119,7 @@ public class PortListener implements Runnable {
      * Starts this {@code PortListener}.
      */
     public void start() {
-        LOG.log(Level.FINE, "start()");
+        LOG.log(Level.DEBUG, "start()");
         thread = new Thread(this);
         thread.start();
         available = true;
@@ -130,7 +130,7 @@ public class PortListener implements Runnable {
      * when everything was stopped successfully.
      */
     public void stop() {
-        LOG.log(Level.FINE, "stop()::" + this.toString());
+        LOG.log(Level.DEBUG, "stop()::" + this.toString());
         // flag stop
         stopping = true;
         available = false;
@@ -141,17 +141,17 @@ public class PortListener implements Runnable {
         try {
             serverSocket.close();
         } catch (IOException ex) {
-            LOG.log(Level.SEVERE, "stop()", ex);
+            LOG.log(Level.ERROR, "stop()", ex);
         }
 
         // wait for thread to die
         try {
             thread.join();
         } catch (InterruptedException iex) {
-            LOG.log(Level.SEVERE, "stop()", iex);
+            LOG.log(Level.ERROR, "stop()", iex);
         }
 
-        LOG.info("stop()::Stopped " + this.toString());
+        LOG.log(Level.INFO, "stop()::Stopped " + this.toString());
     } // stop
 
     /**
@@ -171,7 +171,7 @@ public class PortListener implements Runnable {
             serverSocket = new ServerSocket(port, floodProtection, ip != null ? InetAddress.getByName(ip) : null);
 
             // log entry
-            LOG.info(MessageFormat.format(logmsg, port, floodProtection));
+            LOG.log(Level.INFO, MessageFormat.format(logmsg, port, floodProtection));
 
             do {
                 try {
@@ -185,17 +185,17 @@ public class PortListener implements Runnable {
                 } catch (SocketException ex) {
                     if (stopping) {
                         // server socket was closed blocked in accept
-                        LOG.log(Level.FINE, "run(): ServerSocket closed by stop()");
+                        LOG.log(Level.DEBUG, "run(): ServerSocket closed by stop()");
                     } else {
-                        LOG.log(Level.SEVERE, "run()", ex);
+                        LOG.log(Level.ERROR, "run()", ex);
                     }
                 }
             } while (!stopping);
 
         } catch (IOException e) {
-            LOG.log(Level.SEVERE, "run()", e);
+            LOG.log(Level.ERROR, "run()", e);
         }
-        LOG.log(Level.FINE, "run(): returning.");
+        LOG.log(Level.DEBUG, "run(): returning.");
     } // run
 
     /**

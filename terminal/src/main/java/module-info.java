@@ -23,7 +23,6 @@ module org.jline.terminal {
     // Dependencies
     requires org.jline.nativ;
     requires java.base;
-    requires java.logging;
     // Optional dependency for terminal graphics support (BufferedImage, ImageIO, etc.)
     // Graphics features will not be available if java.desktop is not present
     // Using 'static transitive' to make it optional but still export types to consumers

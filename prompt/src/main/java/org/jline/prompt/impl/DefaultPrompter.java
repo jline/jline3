@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,6 +45,7 @@ import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.Display;
+import org.jline.utils.WCWidth;
 
 import static org.jline.keymap.KeyMap.*;
 import static org.jline.utils.InfoCmp.Capability.*;
@@ -76,6 +78,25 @@ public class DefaultPrompter implements Prompter {
 
     // First row where items start (after header and message)
     private int firstItemRow;
+
+    // Height (in rows) of the dimmed footer pane below a list/checkbox, or 0 when no item declares a
+    // footer.
+    private int footerAreaHeight = 0;
+
+    // The items whose footers are shown in the pane
+    private List<? extends PromptItem> footerItems = Collections.emptyList();
+
+    // Wrapped footer lines per item, cached for footerCacheWidth and rebuilt when the width changes.
+    private final Map<PromptItem, List<String>> footerCache = new IdentityHashMap<>();
+
+    // Terminal width the footer cache/height were built for, or -1 when not yet built.
+    private int footerCacheWidth = -1;
+
+    // Column at which footer text starts
+    private int footerIndent = 0;
+
+    // Upper bound on the footer pane height
+    private int footerMaxRows = 6;
 
     // Sentinel exception used to signal Escape key press during readLine
     private static final EndOfFileException ESCAPE_EOF = new EndOfFileException("escape");
@@ -1057,6 +1078,8 @@ public class DefaultPrompter implements Prompter {
 
         // Find first selectable item
         firstItemRow = (header != null ? header.size() : 0) + 1;
+        // The footer pane is derived from all items and sized lazily at render time
+        footerItems = allItems;
         int selectRow = nextRow(firstItemRow - 1, firstItemRow, filteredItems);
 
         // Interactive selection loop
@@ -1170,6 +1193,7 @@ public class DefaultPrompter implements Prompter {
         // Initialize display
         resetDisplay();
         firstItemRow = (header != null ? header.size() : 0) + 1;
+        footerItems = allItems;
         range = null;
 
         // Filtering state
@@ -1438,7 +1462,7 @@ public class DefaultPrompter implements Prompter {
             asb.append(createMessage(prompt.getMessage(), null));
             out.add(asb.toAttributedString());
 
-            computeListRange(selectRow, items.size(), 0);
+            computeListRange(selectRow, items.size(), 0, false);
             for (int i = range.first; i < range.last && i < items.size(); i++) {
                 out.add(buildSingleItemLine(items.get(i), i + firstItemRow == selectRow, true));
             }
@@ -1796,9 +1820,12 @@ public class DefaultPrompter implements Prompter {
             List<AttributedString> header, String message, List<ListItem> items, int cursorRow, ListPrompt prompt) {
         size = terminal.getSize();
         display.resize(size);
-        display.update(
-                buildListDisplayLines(header, message, items, cursorRow, prompt),
-                size.cursorPos(Math.min(size.getRows() - 1, firstItemRow + items.size()), 0));
+        List<AttributedString> lines = buildListDisplayLines(header, message, items, cursorRow, prompt);
+        // when a footer pane is shown, park the cursor on the last rendered row below the footer
+        int cursorLine = footerAreaHeight > 0
+                ? Math.min(size.getRows() - 1, lines.size() - 1)
+                : Math.min(size.getRows() - 1, firstItemRow + items.size());
+        display.update(lines, size.cursorPos(cursorLine, 0));
     }
 
     /**
@@ -1808,13 +1835,16 @@ public class DefaultPrompter implements Prompter {
             List<AttributedString> header, String message, List<ListItem> items, int cursorRow, ListPrompt prompt) {
         List<AttributedString> out = new ArrayList<>(header != null ? header : new ArrayList<>());
 
+        footerIndent = display.wcwidth(config.indicator()) + 1;
+        ensureFooterLayout(size.getColumns());
+
         // Add message line
         AttributedStringBuilder asb = new AttributedStringBuilder();
         asb.append(message);
         out.add(asb.toAttributedString());
 
         // Single column layout with pagination
-        computeListRange(cursorRow, items.size(), prompt.getPageSize());
+        computeListRange(cursorRow, items.size(), prompt.getPageSize(), prompt.showPageIndicator());
         for (int i = range.first; i < range.last; i++) {
             if (items.isEmpty() || i > items.size() - 1) {
                 break;
@@ -1828,6 +1858,8 @@ public class DefaultPrompter implements Prompter {
                     .styled(config.style(PrompterConfig.ME), "(Move up and down to reveal more choices)")
                     .toAttributedString());
         }
+
+        appendFooterForFocused(out, items, cursorRow);
 
         return out;
     }
@@ -1949,9 +1981,13 @@ public class DefaultPrompter implements Prompter {
             CheckboxPrompt prompt) {
         size = terminal.getSize();
         display.resize(size);
-        display.update(
-                buildCheckboxDisplayLines(header, message, items, cursorRow, selectedIds, prompt),
-                size.cursorPos(Math.min(size.getRows() - 1, firstItemRow + items.size()), 0));
+        List<AttributedString> lines =
+                buildCheckboxDisplayLines(header, message, items, cursorRow, selectedIds, prompt);
+        // when a footer pane is shown, park the cursor on the last rendered row below the footer
+        int cursorLine = footerAreaHeight > 0
+                ? Math.min(size.getRows() - 1, lines.size() - 1)
+                : Math.min(size.getRows() - 1, firstItemRow + items.size());
+        display.update(lines, size.cursorPos(cursorLine, 0));
     }
 
     /**
@@ -1965,6 +2001,9 @@ public class DefaultPrompter implements Prompter {
             Set<String> selectedIds,
             CheckboxPrompt prompt) {
         List<AttributedString> out = new ArrayList<>(header != null ? header : new ArrayList<>());
+
+        footerIndent = display.wcwidth(config.indicator()) + 1 + display.wcwidth(config.checkedBox()) + 1;
+        ensureFooterLayout(size.getColumns());
 
         // Add message line with selection constraints hint
         AttributedStringBuilder asb = new AttributedStringBuilder();
@@ -1985,7 +2024,7 @@ public class DefaultPrompter implements Prompter {
         out.add(asb.toAttributedString());
 
         // Single column layout with pagination
-        computeListRange(cursorRow, items.size(), prompt.getPageSize());
+        computeListRange(cursorRow, items.size(), prompt.getPageSize(), prompt.showPageIndicator());
         for (int i = range.first; i < range.last; i++) {
             if (items.isEmpty() || i > items.size() - 1) {
                 break;
@@ -1999,6 +2038,8 @@ public class DefaultPrompter implements Prompter {
                     .styled(config.style(PrompterConfig.ME), "(Move up and down to reveal more choices)")
                     .toAttributedString());
         }
+
+        appendFooterForFocused(out, items, cursorRow);
 
         return out;
     }
@@ -2121,19 +2162,26 @@ public class DefaultPrompter implements Prompter {
     /**
      * Compute the visible range of items based on cursor position, terminal size, and page size.
      */
-    private void computeListRange(int cursorRow, int itemsSize, int pageSize) {
+    private void computeListRange(int cursorRow, int itemsSize, int pageSize, boolean showPageIndicator) {
         if (range != null && range.first <= cursorRow - firstItemRow && range.last - 1 > cursorRow - firstItemRow) {
             return;
         }
         range = new ListRange(0, itemsSize);
 
-        // Determine effective page size
+        // Determine effective page size.
         int effectivePageSize;
-        if (pageSize > 0) {
+        if (footerAreaHeight > 0) {
+            int maxFit = size.getRows() - firstItemRow - footerReservedRows();
+            effectivePageSize = pageSize > 0 ? Math.min(pageSize, maxFit) : maxFit;
+            if (showPageIndicator && effectivePageSize < itemsSize) {
+                effectivePageSize -= 1;
+            }
+        } else if (pageSize > 0) {
             effectivePageSize = pageSize;
         } else {
             effectivePageSize = size.getRows() - firstItemRow;
         }
+        effectivePageSize = Math.max(1, effectivePageSize);
 
         if (effectivePageSize < itemsSize) {
             int itemId = cursorRow - firstItemRow;
@@ -2186,5 +2234,144 @@ public class DefaultPrompter implements Prompter {
      */
     private void resetDisplay() {
         size = terminal.getSize();
+        footerAreaHeight = 0;
+        footerItems = Collections.emptyList();
+        footerCache.clear();
+        footerCacheWidth = -1;
+        footerIndent = 0;
+        footerMaxRows = Math.max(0, config.footerMaxRows());
+    }
+
+    /**
+     * Number of rows reserved below the items for the footer pane, including a one-row separator,
+     * or 0 when no footer is shown.
+     */
+    private int footerReservedRows() {
+        return footerAreaHeight > 0 ? footerAreaHeight + 1 : 0;
+    }
+
+    /**
+     * (Re)build the footer layout for the given terminal width
+     */
+    private void ensureFooterLayout(int width) {
+        if (width == footerCacheWidth) {
+            return;
+        }
+        footerCacheWidth = width;
+        footerCache.clear();
+        range = null;
+        int max = 0;
+        for (PromptItem item : footerItems) {
+            List<String> lines = wrapFooter(item.getFooter(), width);
+            footerCache.put(item, lines);
+            if (lines.size() > max) {
+                max = lines.size();
+            }
+        }
+        footerAreaHeight = Math.min(max, footerMaxRows);
+    }
+
+    /**
+     * Resolve the focused item from the visible list and append its footer pane
+     */
+    private void appendFooterForFocused(List<AttributedString> out, List<? extends PromptItem> items, int cursorRow) {
+        if (footerAreaHeight <= 0) {
+            return;
+        }
+        int idx = cursorRow - firstItemRow;
+        PromptItem focused = idx >= 0 && idx < items.size() ? items.get(idx) : null;
+        if (focused == null) {
+            return;
+        }
+        out.add(AttributedString.EMPTY); // separator
+        List<String> lines = footerCache.get(focused);
+        if (lines == null) {
+            lines = wrapFooter(focused.getFooter(), footerCacheWidth);
+        }
+        for (int i = 0; i < footerAreaHeight; i++) {
+            if (i < lines.size()) {
+                AttributedStringBuilder asb = new AttributedStringBuilder();
+                for (int s = 0; s < footerIndent; s++) {
+                    asb.append(' ');
+                }
+                asb.styled(config.style(PrompterConfig.FO), lines.get(i));
+                out.add(asb.toAttributedString());
+            } else {
+                out.add(AttributedString.EMPTY);
+            }
+        }
+    }
+
+    /**
+     * Wrap a footer string into display lines measured in terminal columns
+     */
+    private List<String> wrapFooter(String footer, int width) {
+        List<String> lines = new ArrayList<>();
+        if (footer == null || footer.isEmpty()) {
+            return lines;
+        }
+        int avail = Math.max(1, width - footerIndent);
+        for (String segment : footer.split("\n", -1)) {
+            StringBuilder line = new StringBuilder();
+            int lineCols = 0;
+            for (String word : segment.split(" ")) {
+                for (String atom : breakToWidth(word, avail)) {
+                    int atomCols = columnWidth(atom);
+                    if (line.length() == 0) {
+                        line.append(atom);
+                        lineCols = atomCols;
+                    } else if (lineCols + 1 + atomCols <= avail) {
+                        line.append(' ').append(atom);
+                        lineCols += 1 + atomCols;
+                    } else {
+                        lines.add(line.toString());
+                        line.setLength(0);
+                        line.append(atom);
+                        lineCols = atomCols;
+                    }
+                }
+            }
+            lines.add(line.toString());
+        }
+        return lines;
+    }
+
+    /** Split a word into chunks each at most {@code maxCols} terminal columns */
+    private List<String> breakToWidth(String word, int maxCols) {
+        List<String> chunks = new ArrayList<>();
+        if (columnWidth(word) <= maxCols) {
+            chunks.add(word);
+            return chunks;
+        }
+        int i = 0;
+        int n = word.length();
+        while (i < n) {
+            int cols = 0;
+            int j = i;
+            while (j < n) {
+                int cp = word.codePointAt(j);
+                int w = Math.max(0, WCWidth.wcwidth(cp));
+                if (cols + w > maxCols && j > i) {
+                    break;
+                }
+                cols += w;
+                j += Character.charCount(cp);
+            }
+            chunks.add(word.substring(i, j));
+            i = j;
+        }
+        return chunks;
+    }
+
+    /** Terminal column width of a string. */
+    private int columnWidth(String s) {
+        int cols = 0;
+        int i = 0;
+        while (i < s.length()) {
+            int cp = s.codePointAt(i);
+            cols += Math.max(0, WCWidth.wcwidth(cp));
+            i += Character.charCount(cp);
+        }
+        return cols;
     }
 }

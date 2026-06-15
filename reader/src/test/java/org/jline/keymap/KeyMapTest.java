@@ -13,10 +13,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.jline.reader.Binding;
 import org.jline.reader.Reference;
@@ -51,13 +47,6 @@ class KeyMapTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        Handler ch = new ConsoleHandler();
-        ch.setLevel(Level.FINEST);
-        Logger logger = Logger.getLogger("org.jline");
-        logger.addHandler(ch);
-        // Set the handler log level
-        logger.setLevel(Level.INFO);
-
         in = new EofPipedInputStream();
         out = new ByteArrayOutputStream();
         terminal = new DumbTerminal(in, out);

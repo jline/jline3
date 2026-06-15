@@ -59,6 +59,15 @@ jobs:
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
           fingerprint: ${{ secrets.GPG_KEY_FINGERPRINT }}
 
+      - name: Validate version
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid version format: '$version' (expected X.Y.Z)"
+            exit 1
+          fi
+          echo "Version validated: $version"
+
       - name: Release
         env:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
@@ -74,10 +83,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           MVX_USE_SYSTEM_JAVA: true
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
         shell: bash
         run: |
           gh extension install valeriobelli/gh-milestone
-          version=${{ steps.version.outputs.version }}
+          version="$RELEASE_VERSION"
           echo "Trying to find milestone $version"
           milestone=$(gh milestone list --json id,title,state  --jq "map_values(select(.title == \"${version}\" and .state == \"OPEN\")).[].number")
           if [ ! -z "$milestone" ]; then
@@ -108,7 +118,7 @@ jobs:
             exit 1
           fi          
           
-          version=${{ steps.version.outputs.version }}
+          version="$RELEASE_VERSION"
 
           # Check if release drafter already created a draft release for this version
           draft_tag=$(gh api repos/${{ github.repository }}/releases \

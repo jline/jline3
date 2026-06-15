@@ -60,6 +60,20 @@ public class KittyGraphics implements TerminalGraphics {
 
     @Override
     public boolean isSupported(Terminal terminal) {
+        // Basic terminal types cannot support Kitty graphics
+        String termType = terminal.getType();
+        if (termType != null) {
+            switch (termType) {
+                case "dumb":
+                case "vt100":
+                case "vt102":
+                case "ansi":
+                    return false;
+                default:
+                    break;
+            }
+        }
+
         // Check TERM_PROGRAM environment variable
         String termProgram = System.getenv("TERM_PROGRAM");
 
@@ -74,7 +88,6 @@ public class KittyGraphics implements TerminalGraphics {
         }
 
         // Check terminal type for Ghostty
-        String termType = terminal.getType();
         if (termType != null && termType.contains("ghostty")) {
             return true;
         }

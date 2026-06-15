@@ -33,6 +33,7 @@ public class DefaultCheckboxBuilder implements CheckboxBuilder {
     private boolean currentItemChecked;
     private boolean currentItemDisabled;
     private String currentItemDisabledText;
+    private String currentItemFooter;
     private int pageSize = 0;
     private boolean showPageIndicator = true;
     private int minSelections = 0;
@@ -86,6 +87,7 @@ public class DefaultCheckboxBuilder implements CheckboxBuilder {
         this.currentItemChecked = false;
         this.currentItemDisabled = false;
         this.currentItemDisabledText = null;
+        this.currentItemFooter = null;
         return this;
     }
 
@@ -134,6 +136,12 @@ public class DefaultCheckboxBuilder implements CheckboxBuilder {
         return this;
     }
 
+    @Override
+    public CheckboxBuilder footer(String footer) {
+        this.currentItemFooter = footer;
+        return this;
+    }
+
     /**
      * Add the current item to the list.
      *
@@ -142,13 +150,19 @@ public class DefaultCheckboxBuilder implements CheckboxBuilder {
     public CheckboxBuilder add() {
         if (currentItemId != null) {
             DefaultCheckboxItem item = new DefaultCheckboxItem(
-                    currentItemId, currentItemText, currentItemChecked, currentItemDisabled, currentItemDisabledText);
+                    currentItemId,
+                    currentItemText,
+                    currentItemChecked,
+                    currentItemDisabled,
+                    currentItemDisabledText,
+                    currentItemFooter);
             items.add(item);
             currentItemId = null;
             currentItemText = null;
             currentItemChecked = false;
             currentItemDisabled = false;
             currentItemDisabledText = null;
+            currentItemFooter = null;
         }
         return this;
     }

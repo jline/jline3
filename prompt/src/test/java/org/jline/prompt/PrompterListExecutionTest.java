@@ -292,4 +292,226 @@ class PrompterListExecutionTest {
         ChoiceResult result = (ChoiceResult) results.get("size");
         assertEquals("large", result.getSelectedId());
     }
+
+    @Test
+    void testListPromptShowsFooterForFocusedItemOnly() throws Exception {
+        // Select the first item immediately, so only "red" is ever focused.
+        PipedInputStream in = new PipedInputStream();
+        PipedOutputStream outIn = new PipedOutputStream(in);
+        outIn.write("\n".getBytes(StandardCharsets.UTF_8));
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        Terminal terminal =
+                TerminalBuilder.builder().type("ansi").streams(in, out).build();
+        terminal.setSize(Size.of(160, 80));
+        Prompter prompter = PrompterFactory.create(terminal);
+
+        PromptBuilder builder = prompter.newBuilder();
+        builder.createListPrompt()
+                .name("color")
+                .message("Choose a color:")
+                .newItem("red")
+                .text("Red")
+                .footer("RED_FOOTER warm tone")
+                .add()
+                .newItem("green")
+                .text("Green")
+                .footer("GREEN_FOOTER calm tone")
+                .add()
+                .newItem("blue")
+                .text("Blue")
+                .footer("BLUE_FOOTER cool tone")
+                .add()
+                .addPrompt();
+
+        ListResult result = (ListResult)
+                prompter.prompt(Collections.emptyList(), builder.build()).get("color");
+        assertEquals("red", result.getSelectedId());
+
+        String rendered = out.toString("UTF-8");
+        // The focused item's footer is shown ...
+        assertTrue(rendered.contains("RED_FOOTER"), "focused item footer should be rendered");
+        // ... while a never-focused item's footer is not (the pane tracks focus, it is not always-on).
+        assertFalse(rendered.contains("BLUE_FOOTER"), "unfocused item footer should not be rendered");
+    }
+
+    @Test
+    void testListPromptFooterFollowsFocus() throws Exception {
+        // Down, Down, Enter -> focus moves red -> green -> blue.
+        PipedInputStream in = new PipedInputStream();
+        PipedOutputStream outIn = new PipedOutputStream(in);
+        outIn.write("\033[B\033[B\n".getBytes(StandardCharsets.UTF_8));
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        Terminal terminal =
+                TerminalBuilder.builder().type("ansi").streams(in, out).build();
+        terminal.setSize(Size.of(160, 80));
+        Prompter prompter = PrompterFactory.create(terminal);
+
+        PromptBuilder builder = prompter.newBuilder();
+        builder.createListPrompt()
+                .name("color")
+                .message("Choose a color:")
+                .newItem("red")
+                .text("Red")
+                .footer("RED_FOOTER warm tone")
+                .add()
+                .newItem("green")
+                .text("Green")
+                .footer("GREEN_FOOTER calm tone")
+                .add()
+                .newItem("blue")
+                .text("Blue")
+                .footer("BLUE_FOOTER cool tone")
+                .add()
+                .addPrompt();
+
+        ListResult result = (ListResult)
+                prompter.prompt(Collections.emptyList(), builder.build()).get("color");
+        assertEquals("blue", result.getSelectedId());
+
+        String rendered = out.toString("UTF-8");
+        // Footer was shown for the initially focused item and for the finally focused item.
+        assertTrue(rendered.contains("RED_FOOTER"), "initial footer should be rendered");
+        assertTrue(rendered.contains("BLUE_FOOTER"), "footer should follow focus to the last item");
+    }
+
+    @Test
+    void testListPromptMultiLineFooter() throws Exception {
+        // Focus the first item, whose footer has an explicit line break.
+        PipedInputStream in = new PipedInputStream();
+        PipedOutputStream outIn = new PipedOutputStream(in);
+        outIn.write("\n".getBytes(StandardCharsets.UTF_8));
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        Terminal terminal =
+                TerminalBuilder.builder().type("ansi").streams(in, out).build();
+        terminal.setSize(Size.of(160, 80));
+        Prompter prompter = PrompterFactory.create(terminal);
+
+        PromptBuilder builder = prompter.newBuilder();
+        builder.createListPrompt()
+                .name("color")
+                .message("Choose a color:")
+                .newItem("red")
+                .text("Red")
+                .footer("Alpha footer line\nBravo footer line")
+                .add()
+                .newItem("green")
+                .text("Green")
+                .add()
+                .addPrompt();
+
+        ListResult result = (ListResult)
+                prompter.prompt(Collections.emptyList(), builder.build()).get("color");
+        assertEquals("red", result.getSelectedId());
+
+        String rendered = out.toString("UTF-8");
+        assertTrue(rendered.contains("Alpha footer line"), "first footer line should be rendered");
+        assertTrue(rendered.contains("Bravo footer line"), "second footer line should be rendered");
+    }
+
+    @Test
+    void testCheckboxPromptShowsFooterForFocusedItemOnly() throws Exception {
+        // Enter immediately, so only the first checkbox item is ever focused.
+        PipedInputStream in = new PipedInputStream();
+        PipedOutputStream outIn = new PipedOutputStream(in);
+        outIn.write("\n".getBytes(StandardCharsets.UTF_8));
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        Terminal terminal =
+                TerminalBuilder.builder().type("ansi").streams(in, out).build();
+        terminal.setSize(Size.of(160, 80));
+        Prompter prompter = PrompterFactory.create(terminal);
+
+        PromptBuilder builder = prompter.newBuilder();
+        builder.createCheckboxPrompt()
+                .name("toppings")
+                .message("Select toppings:")
+                .newItem("cheese")
+                .text("Cheese")
+                .footer("Footer for cheese")
+                .add()
+                .newItem("pepperoni")
+                .text("Pepperoni")
+                .footer("Footer for pepperoni")
+                .add()
+                .newItem("mushrooms")
+                .text("Mushrooms")
+                .footer("Footer for mushrooms")
+                .add()
+                .addPrompt();
+
+        prompter.prompt(Collections.emptyList(), builder.build());
+
+        String rendered = out.toString("UTF-8");
+        assertTrue(rendered.contains("Footer for cheese"), "focused checkbox footer should be rendered");
+        assertFalse(rendered.contains("Footer for mushrooms"), "unfocused checkbox footer should not be rendered");
+    }
+
+    @Test
+    void testListPromptWithFootersOnShortTerminalStillRendersItems() throws Exception {
+        PipedInputStream in = new PipedInputStream();
+        PipedOutputStream outIn = new PipedOutputStream(in);
+        outIn.write("\n".getBytes(StandardCharsets.UTF_8));
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        Terminal terminal =
+                TerminalBuilder.builder().type("ansi").streams(in, out).build();
+        terminal.setSize(Size.of(160, 3));
+        Prompter prompter = PrompterFactory.create(terminal);
+
+        PromptBuilder builder = prompter.newBuilder();
+        builder.createListPrompt()
+                .name("color")
+                .message("Choose a color:")
+                .newItem("red")
+                .text("Red")
+                .footer("Footer red")
+                .add()
+                .newItem("green")
+                .text("Green")
+                .footer("Footer green")
+                .add()
+                .newItem("blue")
+                .text("Blue")
+                .footer("Footer blue")
+                .add()
+                .addPrompt();
+
+        ListResult result = (ListResult)
+                prompter.prompt(Collections.emptyList(), builder.build()).get("color");
+        assertEquals("red", result.getSelectedId());
+        String rendered = out.toString("UTF-8");
+        assertTrue(
+                rendered.contains("Red") || rendered.contains("Green") || rendered.contains("Blue"),
+                "at least one item must render on a short terminal (clamp prevents an empty list)");
+    }
+
+    @Test
+    void testListPromptFilterWithFootersSelectsMatch() throws Exception {
+        // Filtering down to a single match while footers are present must still select correctly.
+        Prompter prompter = createPrompter("blue\n");
+        PromptBuilder builder = prompter.newBuilder()
+                .createListPrompt()
+                .name("color")
+                .message("Choose a color:")
+                .newItem("red")
+                .text("Red")
+                .footer("Footer red")
+                .add()
+                .newItem("green")
+                .text("Green")
+                .footer("Footer green")
+                .add()
+                .newItem("blue")
+                .text("Blue")
+                .footer("Footer blue")
+                .add()
+                .addPrompt();
+
+        ListResult result = (ListResult)
+                prompter.prompt(Collections.emptyList(), builder.build()).get("color");
+        assertEquals("blue", result.getSelectedId());
+    }
 }

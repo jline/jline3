@@ -33,7 +33,6 @@
 module org.jline.prompt {
     // Core Java platform
     requires java.base;
-    requires java.logging;
 
     // JLine dependencies
     requires transitive org.jline.terminal;

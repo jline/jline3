@@ -54,6 +54,18 @@ public interface CheckboxBuilder extends BaseBuilder<CheckboxBuilder> {
     CheckboxBuilder disabledText(String disabledText);
 
     /**
+     * Set the footer text for the current item. The footer is shown dimmed below the checkbox list
+     * while this item is focused. Newlines split it into multiple lines, and long lines wrap to the
+     * terminal width. The footer pane has a fixed height, so the list does not shift between items.
+     *
+     * @param footer the footer text, or {@code null}/empty for none
+     * @return this builder
+     */
+    default CheckboxBuilder footer(String footer) {
+        return this;
+    }
+
+    /**
      * Add the current item to the list.
      *
      * @return this builder

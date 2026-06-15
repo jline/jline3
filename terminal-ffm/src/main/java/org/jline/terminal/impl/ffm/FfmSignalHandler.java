@@ -8,6 +8,8 @@
  */
 package org.jline.terminal.impl.ffm;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -18,8 +20,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.locks.LockSupport;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Native signal handling via POSIX {@code sigaction()} using the Foreign Function &amp; Memory API.
@@ -41,7 +41,7 @@ import java.util.logging.Logger;
 @SuppressWarnings("restricted")
 class FfmSignalHandler {
 
-    private static final Logger logger = Logger.getLogger("org.jline");
+    private static final Logger logger = System.getLogger("org.jline");
 
     // --- Shared string constants ---
     private static final String SA_HANDLER = "sa_handler";
@@ -176,7 +176,7 @@ class FfmSignalHandler {
                 }
             }
         } catch (Exception | LinkageError t) {
-            logger.log(Level.FINE, "FFM signal handler not available", t);
+            logger.log(Level.DEBUG, "FFM signal handler not available", t);
         }
 
         SIGHUP = sighup;
@@ -255,7 +255,7 @@ class FfmSignalHandler {
 
             int res = (int) sigaction_mh.invoke(signum, newAct, oldAct);
             if (res != 0) {
-                logger.log(Level.FINE, "sigaction() failed for signal {0} (signum={1})", new Object[] {name, signum});
+                logger.log(Level.DEBUG, "sigaction() failed for signal {0} (signum={1})", new Object[] {name, signum});
                 restoreHandler(signum, previousHandler);
                 arena.close();
                 return null;
@@ -267,8 +267,8 @@ class FfmSignalHandler {
             Runnable saved = isOurUpcallStub(oldAct) ? previousHandler : null;
             return new Registration(signum, arena, oldAct, saved);
         } catch (Throwable t) {
-            logger.log(Level.FINE, "Error registering FFM signal handler for {0}", name);
-            logger.log(Level.FINE, EXCEPTION_DETAILS, t);
+            logger.log(Level.DEBUG, "Error registering FFM signal handler for {0}", name);
+            logger.log(Level.DEBUG, EXCEPTION_DETAILS, t);
             if (nativeInstalled) {
                 bestEffortRestore(signum, oldAct);
             }
@@ -302,7 +302,7 @@ class FfmSignalHandler {
 
             int res = (int) sigaction_mh.invoke(signum, newAct, oldAct);
             if (res != 0) {
-                logger.log(Level.FINE, "sigaction(SIG_DFL) failed for signal {0}", name);
+                logger.log(Level.DEBUG, "sigaction(SIG_DFL) failed for signal {0}", name);
                 arena.close();
                 return null;
             }
@@ -311,8 +311,8 @@ class FfmSignalHandler {
             stopDispatcherIfIdle();
             return new Registration(signum, arena, oldAct, previousHandler);
         } catch (Throwable t) {
-            logger.log(Level.FINE, "Error registering default handler for {0}", name);
-            logger.log(Level.FINE, EXCEPTION_DETAILS, t);
+            logger.log(Level.DEBUG, "Error registering default handler for {0}", name);
+            logger.log(Level.DEBUG, EXCEPTION_DETAILS, t);
             arena.close();
             return null;
         }
@@ -332,7 +332,7 @@ class FfmSignalHandler {
         try {
             int res = (int) sigaction_mh.invoke(reg.signum(), reg.oldAction(), MemorySegment.NULL);
             if (res != 0) {
-                logger.log(Level.FINE, "sigaction() restore failed for signal {0}", name);
+                logger.log(Level.DEBUG, "sigaction() restore failed for signal {0}", name);
                 return;
             }
             // Preserve the previous Java Runnable when the restored native disposition is our stub
@@ -344,8 +344,8 @@ class FfmSignalHandler {
                 stopDispatcherIfIdle();
             }
         } catch (Throwable t) {
-            logger.log(Level.FINE, "Error unregistering FFM signal handler for {0}", name);
-            logger.log(Level.FINE, EXCEPTION_DETAILS, t);
+            logger.log(Level.DEBUG, "Error unregistering FFM signal handler for {0}", name);
+            logger.log(Level.DEBUG, EXCEPTION_DETAILS, t);
         } finally {
             reg.arena().close();
         }

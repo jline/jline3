@@ -650,19 +650,23 @@ public abstract class AbstractTerminal implements TerminalExt {
      */
     private int readCprColumn(long timeout) throws IOException {
         NonBlockingReader in = reader();
+        // Use a single wall-clock deadline so the spurious EOF a non-blocking
+        // slave-tty read produces while the CPR reply is in flight does not abort
+        // the read early (see readProbeChar).
+        long deadline = System.currentTimeMillis() + timeout;
         int c;
         // Skip until ESC
-        while ((c = in.read(timeout)) != '\033') {
+        while ((c = readProbeChar(in, deadline)) != '\033') {
             if (c < 0) return -1;
         }
-        if (in.read(timeout) != '[') return -1;
+        if (readProbeChar(in, deadline) != '[') return -1;
         // Skip row digits until ';'
-        while ((c = in.read(timeout)) != ';') {
+        while ((c = readProbeChar(in, deadline)) != ';') {
             if (c < 0 || c == 'R') return -1;
         }
         // Read column digits until 'R'
         int col = 0;
-        while ((c = in.read(timeout)) != 'R') {
+        while ((c = readProbeChar(in, deadline)) != 'R') {
             if (c < '0' || c > '9') return -1;
             col = col * 10 + (c - '0');
         }
@@ -677,17 +681,44 @@ public abstract class AbstractTerminal implements TerminalExt {
         }
     }
 
+    /**
+     * Reads the next probe-response character, polling until {@code deadline}.
+     *
+     * <p>The probe runs with {@code VMIN=0/VTIME=0}, so a slave-tty read with no
+     * data yet surfaces as a spurious EOF ({@code -1}) while the reply is still in
+     * flight; a read timeout ({@code -2}) is likewise not terminal. Both are
+     * treated as "nothing yet" and retried until the deadline, rather than
+     * aborting on the first one (which would let the late reply leak to the
+     * console once echo is restored).
+     *
+     * @return a character {@code >= 0}, or {@code -1} once the deadline elapses
+     */
+    static int readProbeChar(NonBlockingReader in, long deadline) throws IOException {
+        long remaining;
+        while ((remaining = deadline - System.currentTimeMillis()) > 0) {
+            int c = in.read(remaining);
+            if (c >= 0) {
+                return c;
+            }
+            // EOF (-1) or READ_EXPIRED (-2): no data yet, pace the poll and retry.
+            try {
+                Thread.sleep(Math.min(2, remaining));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return -1;
+            }
+        }
+        return -1;
+    }
+
     String readTerminalResponse() {
         long initialTimeout = getLongProperty(TerminalBuilder.PROP_PROBE_TIMEOUT, 200);
-        long subsequentTimeout = getLongProperty(TerminalBuilder.PROP_DRAIN_TIMEOUT, 25);
         NonBlockingReader in = reader();
+        long deadline = System.currentTimeMillis() + initialTimeout;
+        StringBuilder response = new StringBuilder();
         try {
-            StringBuilder response = new StringBuilder();
-            long deadline = System.currentTimeMillis() + initialTimeout;
-            long timeout = initialTimeout;
             int c;
-
-            while ((c = in.read(timeout)) >= 0) {
+            while ((c = readProbeChar(in, deadline)) >= 0) {
                 response.append((char) c);
 
                 // Complete DA1 response: ESC[?...c or ESC[...c
@@ -697,26 +728,19 @@ public abstract class AbstractTerminal implements TerminalExt {
                 }
 
                 if (response.length() > 200) break;
-
-                long remaining = deadline - System.currentTimeMillis();
-                if (remaining <= 0) break;
-                timeout = Math.min(subsequentTimeout, remaining);
             }
-
-            return response.length() > 0 ? response.toString() : null;
         } catch (IOException ignored) {
             // Best-effort read; errors are expected when the stream is closed
-            return null;
         }
+        return response.length() > 0 ? response.toString() : null;
     }
 
     static void drainInput(NonBlockingReader reader, long overallTimeoutMs, int stopChar) {
         try {
             long deadline = System.currentTimeMillis() + overallTimeoutMs;
-            long remaining;
-            while ((remaining = deadline - System.currentTimeMillis()) > 0) {
-                int c = reader.read(remaining);
-                if (c < 0 || c == stopChar) return;
+            int c;
+            while ((c = readProbeChar(reader, deadline)) >= 0) {
+                if (c == stopChar) return;
             }
         } catch (IOException ignored) {
             // Best-effort drain; errors are expected when the stream is closed

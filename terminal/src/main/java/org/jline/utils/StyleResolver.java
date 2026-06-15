@@ -8,10 +8,10 @@
  */
 package org.jline.utils;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.Locale;
 import java.util.function.Function;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static java.util.Objects.requireNonNull;
 import static org.jline.utils.AttributedStyle.*;
@@ -52,7 +52,7 @@ import static org.jline.utils.AttributedStyle.*;
  * @since 3.6
  */
 public class StyleResolver {
-    private static final Logger log = Logger.getLogger(StyleResolver.class.getName());
+    private static final Logger log = System.getLogger(StyleResolver.class.getName());
 
     private final Function<String, String> source;
 
@@ -79,7 +79,7 @@ public class StyleResolver {
             try {
                 return Integer.parseInt(name.substring(1), 16);
             } catch (NumberFormatException e) {
-                log.warning("Invalid hexadecimal color: " + name);
+                log.log(Level.WARNING, "Invalid hexadecimal color: " + name);
                 return null;
             }
         } else {
@@ -120,7 +120,7 @@ public class StyleResolver {
             try {
                 return Colors.rgbColor(name);
             } catch (IllegalArgumentException e) {
-                log.warning("Invalid style-color name: " + name);
+                log.log(Level.WARNING, "Invalid style-color name: " + name);
                 return null;
             }
         }
@@ -175,8 +175,8 @@ public class StyleResolver {
     public AttributedStyle resolve(final String spec) {
         requireNonNull(spec);
 
-        if (log.isLoggable(Level.FINEST)) {
-            log.finest("Resolve: " + spec);
+        if (log.isLoggable(Level.TRACE)) {
+            log.log(Level.TRACE, "Resolve: " + spec);
         }
 
         int i = spec.indexOf(":-");
@@ -200,8 +200,8 @@ public class StyleResolver {
     public AttributedStyle resolve(final String spec, final String defaultSpec) {
         requireNonNull(spec);
 
-        if (log.isLoggable(Level.FINEST)) {
-            log.finest(String.format("Resolve: %s; default: %s", spec, defaultSpec));
+        if (log.isLoggable(Level.TRACE)) {
+            log.log(Level.TRACE, String.format("Resolve: %s; default: %s", spec, defaultSpec));
         }
 
         AttributedStyle style = apply(DEFAULT, spec);
@@ -219,8 +219,8 @@ public class StyleResolver {
      * @return the new style
      */
     private AttributedStyle apply(AttributedStyle style, final String spec) {
-        if (log.isLoggable(Level.FINEST)) {
-            log.finest("Apply: " + spec);
+        if (log.isLoggable(Level.TRACE)) {
+            log.log(Level.TRACE, "Apply: " + spec);
         }
 
         for (String item : spec.split(",")) {
@@ -244,8 +244,8 @@ public class StyleResolver {
     }
 
     private AttributedStyle applyAnsi(final AttributedStyle style, final String spec) {
-        if (log.isLoggable(Level.FINEST)) {
-            log.finest("Apply-ansi: " + spec);
+        if (log.isLoggable(Level.TRACE)) {
+            log.log(Level.TRACE, "Apply-ansi: " + spec);
         }
 
         return new AttributedStringBuilder()
@@ -262,12 +262,12 @@ public class StyleResolver {
      * @return the new style
      */
     private AttributedStyle applyReference(final AttributedStyle style, final String spec) {
-        if (log.isLoggable(Level.FINEST)) {
-            log.finest("Apply-reference: " + spec);
+        if (log.isLoggable(Level.TRACE)) {
+            log.log(Level.TRACE, "Apply-reference: " + spec);
         }
 
         if (spec.length() == 1) {
-            log.warning("Invalid style-reference; missing discriminator: " + spec);
+            log.log(Level.WARNING, "Invalid style-reference; missing discriminator: " + spec);
         } else {
             String name = spec.substring(1);
             String resolvedSpec = source.apply(name);
@@ -288,8 +288,8 @@ public class StyleResolver {
      * @return the new style
      */
     private AttributedStyle applyNamed(final AttributedStyle style, final String name) {
-        if (log.isLoggable(Level.FINEST)) {
-            log.finest("Apply-named: " + name);
+        if (log.isLoggable(Level.TRACE)) {
+            log.log(Level.TRACE, "Apply-named: " + name);
         }
 
         // TODO: consider short aliases for named styles
@@ -331,7 +331,7 @@ public class StyleResolver {
                 return style.hidden();
 
             default:
-                log.warning("Unknown style: " + name);
+                log.log(Level.WARNING, "Unknown style: " + name);
                 return style;
         }
     }
@@ -346,8 +346,8 @@ public class StyleResolver {
      * @return      The new style
      */
     private AttributedStyle applyColor(final AttributedStyle style, final String spec) {
-        if (log.isLoggable(Level.FINEST)) {
-            log.finest("Apply-color: " + spec);
+        if (log.isLoggable(Level.TRACE)) {
+            log.log(Level.TRACE, "Apply-color: " + spec);
         }
 
         // extract color-mode:color-name
@@ -364,7 +364,7 @@ public class StyleResolver {
             case "f":
                 color = color(colorName);
                 if (color == null) {
-                    log.warning("Invalid color-name: " + colorName);
+                    log.log(Level.WARNING, "Invalid color-name: " + colorName);
                     break;
                 }
                 return color >= 0 ? style.foreground(color) : style.foregroundDefault();
@@ -374,7 +374,7 @@ public class StyleResolver {
             case "b":
                 color = color(colorName);
                 if (color == null) {
-                    log.warning("Invalid color-name: " + colorName);
+                    log.log(Level.WARNING, "Invalid color-name: " + colorName);
                     break;
                 }
                 return color >= 0 ? style.background(color) : style.backgroundDefault();
@@ -384,7 +384,7 @@ public class StyleResolver {
             case "f-rgb":
                 color = colorRgb(colorName);
                 if (color == null) {
-                    log.warning("Invalid color-name: " + colorName);
+                    log.log(Level.WARNING, "Invalid color-name: " + colorName);
                     break;
                 }
                 return color >= 0 ? style.foregroundRgb(color) : style.foregroundDefault();
@@ -394,13 +394,13 @@ public class StyleResolver {
             case "b-rgb":
                 color = colorRgb(colorName);
                 if (color == null) {
-                    log.warning("Invalid color-name: " + colorName);
+                    log.log(Level.WARNING, "Invalid color-name: " + colorName);
                     break;
                 }
                 return color >= 0 ? style.backgroundRgb(color) : style.backgroundDefault();
 
             default:
-                log.warning("Invalid color-mode: " + colorMode);
+                log.log(Level.WARNING, "Invalid color-mode: " + colorMode);
         }
         return style;
     }

@@ -21,7 +21,6 @@
 module org.jline.builtins {
     // Core Java platform
     requires java.base;
-    requires java.logging;
     requires java.management;
 
     // GUI and HTTP server support for SwingTerminal and WebTerminal

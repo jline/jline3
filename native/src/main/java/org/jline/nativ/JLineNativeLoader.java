@@ -34,14 +34,14 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Manages the loading of JLine's native libraries (*.dll, *.jnilib, *.so) according to the current
@@ -112,7 +112,7 @@ import java.util.logging.Logger;
  */
 public class JLineNativeLoader {
 
-    private static final Logger logger = Logger.getLogger("org.jline");
+    private static final Logger logger = System.getLogger("org.jline");
     private static boolean loaded = false;
     private static String nativeLibraryPath;
     private static String nativeLibrarySourceUrl;
@@ -607,7 +607,7 @@ public class JLineNativeLoader {
 
     private static void log(Level level, String message, Throwable t) {
         if (logger.isLoggable(level)) {
-            if (logger.isLoggable(Level.FINE)) {
+            if (logger.isLoggable(Level.DEBUG)) {
                 logger.log(level, message, t);
             } else {
                 logger.log(level, message + " (caused by: " + t + ", enable debug logging for stacktrace)");

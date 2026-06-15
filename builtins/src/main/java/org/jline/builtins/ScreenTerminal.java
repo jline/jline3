@@ -274,9 +274,12 @@ public class ScreenTerminal implements Sized {
     }
 
     private void poke(int y, int x, long[] s) {
+        if (x < 0 || x >= columns || y < 0 || y >= rows) {
+            return;
+        }
         int cur = 0;
         int max = s.length;
-        while (cur < max) {
+        while (cur < max && y < rows) {
             int nb = Math.min(columns - x, max - cur);
             System.arraycopy(s, cur, screen[y++], x, nb);
             x = 0;
@@ -482,7 +485,7 @@ public class ScreenTerminal implements Sized {
                 ctrl_CR();
                 ctrl_LF();
             } else {
-                cx = cursorLineColumns(c)[1] - 1;
+                cx = Math.max(0, Math.min(columns - 1, cursorLineColumns(c)[1] - 1));
             }
         }
         if (vt100_mode_insert) {
@@ -1765,8 +1768,8 @@ public class ScreenTerminal implements Sized {
     /**
      * Resize the terminal to the given number of columns and rows.
      *
-     * @param columns the target number of columns (2–256)
-     * @param rows    the target number of rows (2–256)
+     * @param columns the target number of columns (2–4096)
+     * @param rows    the target number of rows (2–4096)
      * @return        `true` if the size was changed; `false` if the requested dimensions are out of range
      * @deprecated Use {@link #setSize(Sized)} instead.
      */

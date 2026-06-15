@@ -10,26 +10,32 @@ package org.jline.utils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.function.Supplier;
-import java.util.logging.Level;
-import java.util.logging.LogRecord;
-import java.util.logging.Logger;
 
 /**
  * Internal logging utility for JLine components.
  *
  * <p>
  * The Log class provides a simple logging facility for JLine components, using
- * Java's standard logging API (java.util.logging) under the hood. It offers
- * methods for logging at various levels (trace, debug, info, warn, error) and
- * supports both direct message logging and lazy evaluation through suppliers.
+ * the {@link System.Logger} API under the hood. It offers methods for logging
+ * at various levels (trace, debug, info, warn, error) and supports both direct
+ * message logging and lazy evaluation through suppliers.
+ * </p>
+ *
+ * <p>
+ * Using {@link System.Logger} keeps JLine free of any compile-time dependency on
+ * the {@code java.logging} module, which is desirable for consumers building
+ * trimmed runtime images with {@code jlink}. When the {@code java.logging} module
+ * is present at runtime, the default {@code System.Logger} implementation routes
+ * to {@code java.util.logging}.
  * </p>
  *
  * <p>
  * This class uses a single logger named "org.jline" for all JLine components.
- * The actual log level can be configured through the standard Java logging
- * configuration mechanisms, such as logging.properties files or programmatic
- * configuration of the java.util.logging framework.
+ * The actual log level can be configured through whichever logging backend the
+ * running JVM provides a {@link System.LoggerFinder} for.
  * </p>
  *
  * <p>
@@ -70,22 +76,22 @@ public final class Log {
         // Utility class
     }
 
-    private static final Logger logger = Logger.getLogger("org.jline");
+    private static final Logger logger = System.getLogger("org.jline");
 
     public static void trace(final Object... messages) {
-        log(Level.FINEST, messages);
+        log(Level.TRACE, messages);
     }
 
     public static void trace(Supplier<String> supplier) {
-        log(Level.FINEST, supplier);
+        log(Level.TRACE, supplier);
     }
 
     public static void debug(Supplier<String> supplier) {
-        log(Level.FINE, supplier);
+        log(Level.DEBUG, supplier);
     }
 
     public static void debug(final Object... messages) {
-        log(Level.FINE, messages);
+        log(Level.DEBUG, messages);
     }
 
     public static void info(final Object... messages) {
@@ -97,11 +103,11 @@ public final class Log {
     }
 
     public static void error(final Object... messages) {
-        log(Level.SEVERE, messages);
+        log(Level.ERROR, messages);
     }
 
     public static boolean isDebugEnabled() {
-        return isEnabled(Level.FINE);
+        return isEnabled(Level.DEBUG);
     }
 
     /**
@@ -124,7 +130,14 @@ public final class Log {
         }
     }
 
-    static LogRecord createRecord(final Level level, final Object... messages) {
+    static void log(final Level level, final Supplier<String> message) {
+        logger.log(level, message);
+    }
+
+    static void log(final Level level, final Object... messages) {
+        if (!logger.isLoggable(level)) {
+            return;
+        }
         Throwable cause = null;
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
@@ -137,29 +150,11 @@ public final class Log {
             }
         }
         ps.close();
-        LogRecord r = new LogRecord(level, baos.toString());
-        r.setThrown(cause);
-        return r;
-    }
-
-    static LogRecord createRecord(final Level level, final Supplier<String> message) {
-        return new LogRecord(level, message.get());
-    }
-
-    static void log(final Level level, final Supplier<String> message) {
-        logr(level, () -> createRecord(level, message));
-    }
-
-    static void log(final Level level, final Object... messages) {
-        logr(level, () -> createRecord(level, messages));
-    }
-
-    static void logr(final Level level, final Supplier<LogRecord> record) {
-        if (logger.isLoggable(level)) {
-            // inform record of the logger-name
-            LogRecord tmp = record.get();
-            tmp.setLoggerName(logger.getName());
-            logger.log(tmp);
+        String message = baos.toString();
+        if (cause != null) {
+            logger.log(level, message, cause);
+        } else {
+            logger.log(level, message);
         }
     }
 

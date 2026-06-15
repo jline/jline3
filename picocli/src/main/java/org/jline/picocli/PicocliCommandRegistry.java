@@ -52,11 +52,12 @@ import picocli.CommandLine.Model.PositionalParamSpec;
 public class PicocliCommandRegistry implements CommandRegistry, CommandGroup {
 
     private final CommandLine commandLine;
+    private final String name;
     private LineReader reader;
 
     @Override
     public String name() {
-        return getClass().getSimpleName();
+        return name;
     }
 
     /**
@@ -66,7 +67,18 @@ public class PicocliCommandRegistry implements CommandRegistry, CommandGroup {
      * @param commandLine the picocli command line whose subcommands to expose
      */
     public PicocliCommandRegistry(CommandLine commandLine) {
+        this(commandLine, null);
+    }
+
+    /**
+     * Creates a new registry wrapping the given picocli {@link CommandLine} with a custom display name.
+     *
+     * @param commandLine the picocli command line whose subcommands to expose
+     * @param name        the display name for this command group (defaults to class name if null)
+     */
+    public PicocliCommandRegistry(CommandLine commandLine, String name) {
         this.commandLine = Objects.requireNonNull(commandLine, "commandLine");
+        this.name = name != null ? name : getClass().getSimpleName();
     }
 
     public void setLineReader(LineReader reader) {

@@ -33,7 +33,6 @@
 module org.jline.console {
     // Core Java platform
     requires java.base;
-    requires java.logging;
     requires java.desktop;
 
     // JLine dependencies

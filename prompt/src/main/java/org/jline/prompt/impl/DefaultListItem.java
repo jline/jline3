@@ -19,16 +19,22 @@ public class DefaultListItem implements ListItem {
     private final String text;
     private final boolean disabled;
     private final String disabledText;
+    private final String footer;
 
-    public DefaultListItem(String name, String text, boolean disabled, String disabledText) {
+    public DefaultListItem(String name, String text, boolean disabled, String disabledText, String footer) {
         this.name = name;
         this.text = text;
         this.disabled = disabled;
         this.disabledText = disabledText;
+        this.footer = footer;
+    }
+
+    public DefaultListItem(String name, String text, boolean disabled, String disabledText) {
+        this(name, text, disabled, disabledText, null);
     }
 
     public DefaultListItem(String name, String text) {
-        this(name, text, false, null);
+        this(name, text, false, null, null);
     }
 
     @Override
@@ -49,6 +55,11 @@ public class DefaultListItem implements ListItem {
     @Override
     public String getDisabledText() {
         return disabledText;
+    }
+
+    @Override
+    public String getFooter() {
+        return footer;
     }
 
     @Override

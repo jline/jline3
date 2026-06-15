@@ -20,7 +20,6 @@
 module org.jline.nativ {
     // Core Java platform
     requires java.base;
-    requires java.logging;
 
     // Export public API
     exports org.jline.nativ;
