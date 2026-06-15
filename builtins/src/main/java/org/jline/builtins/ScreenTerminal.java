@@ -482,7 +482,7 @@ public class ScreenTerminal implements Sized {
                 ctrl_CR();
                 ctrl_LF();
             } else {
-                cx = cursorLineColumns(c)[1] - 1;
+                cx = Math.max(0, Math.min(columns - 1, cursorLineColumns(c)[1] - 1));
             }
         }
         if (vt100_mode_insert) {
