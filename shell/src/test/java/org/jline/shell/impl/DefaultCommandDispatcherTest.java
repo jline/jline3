@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jline.shell.*;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -299,10 +301,7 @@ class DefaultCommandDispatcherTest extends AbstractCommandDispatcherTest {
         try (DefaultCommandDispatcher bgDispatcher = new DefaultCommandDispatcher(terminal, jobManager)) {
             bgDispatcher.addGroup(new SimpleCommandGroup("test", new NoopCommand()));
             bgDispatcher.execute("noop &");
-            // Give the background thread time to complete
-            Thread.sleep(200);
-            // Job should have been created
-            assertFalse(jobManager.jobs().isEmpty());
+            await().atMost(2, TimeUnit.SECONDS).until(() -> !jobManager.jobs().isEmpty());
         }
     }
 

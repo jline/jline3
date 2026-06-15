@@ -17,6 +17,7 @@ import org.jline.shell.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -65,8 +66,7 @@ class SignalHandlingTest extends AbstractCommandDispatcherTest {
         execThread.start();
 
         assertTrue(started.await(2, TimeUnit.SECONDS));
-        // Give the command a moment to start sleeping
-        Thread.sleep(100);
+        await().atMost(2, TimeUnit.SECONDS).until(() -> execThread.getState() == Thread.State.TIMED_WAITING);
 
         dispatcher.interruptCurrentCommand();
 
