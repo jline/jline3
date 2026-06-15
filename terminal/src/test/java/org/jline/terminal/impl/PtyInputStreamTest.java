@@ -1,5 +1,5 @@
 /*
- * Copyright (c) the original author(s).
+ * Copyright (c) 2026, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -15,7 +15,6 @@ import java.io.PipedOutputStream;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
-import org.jline.terminal.Sized;
 import org.jline.utils.NonBlockingInputStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -82,11 +81,11 @@ class PtyInputStreamTest {
 
             @Override
             public Size getSize() {
-                return Size.of(80, 24);
+                return new Size(80, 24);
             }
 
             @Override
-            public void setSize(Sized size) {}
+            public void setSize(Size size) {}
 
             @Override
             public void close() {}
