@@ -177,6 +177,21 @@ public final class TerminalBuilder {
     //
 
     public static final String PROP_NON_BLOCKING_READS = "org.jline.terminal.pty.nonBlockingReads";
+    /**
+     * When {@code true} (the default), system terminals intercept signal control characters
+     * (VINTR, VQUIT, VSUSP) in software and raise the corresponding {@link Terminal.Signal}
+     * when ISIG is cleared (raw mode). This restores {@code terminal.handle(Signal.INT, ...)}
+     * behavior that was lost when {@code enterRawMode()} started clearing ISIG.
+     * <p>
+     * Set to {@code false} for pure native terminal behavior where no automatic signal
+     * translation occurs — the application must handle raw bytes itself.
+     * <p>
+     * The default may change to {@code false} in a future release (4.2 or later).
+     *
+     * @since 4.1.4
+     */
+    public static final String PROP_SOFTWARE_SIGNALS = "org.jline.terminal.softwareSignals";
+
     public static final String PROP_COLOR_DISTANCE = "org.jline.utils.colorDistance";
     public static final String PROP_DISABLE_ALTERNATE_CHARSET = "org.jline.utils.disableAlternateCharset";
 
