@@ -58,6 +58,20 @@ public class ITerm2Graphics implements TerminalGraphics {
 
     @Override
     public boolean isSupported(Terminal terminal) {
+        // Basic terminal types cannot support iTerm2 graphics
+        String termType = terminal.getType();
+        if (termType != null) {
+            switch (termType) {
+                case "dumb":
+                case "vt100":
+                case "vt102":
+                case "ansi":
+                    return false;
+                default:
+                    break;
+            }
+        }
+
         // Check for iTerm2
         String termProgram = System.getenv("TERM_PROGRAM");
         if ("iTerm.app".equals(termProgram)) {

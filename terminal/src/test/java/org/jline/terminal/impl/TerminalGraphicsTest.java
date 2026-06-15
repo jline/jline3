@@ -175,6 +175,7 @@ class TerminalGraphicsTest {
     void testBasicTerminalTypesSkipRuntimeDetection() throws IOException {
         String[] basicTermTypes = {"dumb", "vt100", "vt102", "ansi"};
         KittyGraphics kittyGraphics = new KittyGraphics();
+        ITerm2Graphics iterm2Graphics = new ITerm2Graphics();
 
         for (String termType : basicTermTypes) {
             try (Terminal terminal = TerminalBuilder.builder()
@@ -183,6 +184,7 @@ class TerminalGraphicsTest {
                     .build()) {
 
                 assertFalse(kittyGraphics.isSupported(terminal), termType + " should not support Kitty graphics");
+                assertFalse(iterm2Graphics.isSupported(terminal), termType + " should not support iTerm2 graphics");
             }
         }
     }
