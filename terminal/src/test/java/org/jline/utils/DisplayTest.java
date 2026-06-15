@@ -190,7 +190,7 @@ public class DisplayTest {
         try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, cols, rows)) {
             terminal.enterRawMode();
             Display display = new Display(terminal, true);
-            display.resize(new Size(cols, rows));
+            display.resize(rows, cols);
             List<AttributedString> lines = new ArrayList<>();
             lines.add(new AttributedString("test1"));
             lines.add(new AttributedString("test2"));
