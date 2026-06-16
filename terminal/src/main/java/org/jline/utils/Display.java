@@ -212,6 +212,7 @@ public class Display implements Sized {
             rows = 1;
         }
         if (this.rows != rows || this.columns != columns) {
+            int cursorOffset = cursorOffsetInRenderedLines();
             this.rows = rows;
             this.columns = columns;
             this.columns1 = columns + 1;
@@ -219,6 +220,7 @@ public class Display implements Sized {
                     .columnSplitLength(terminal, columns, true, delayLineWrap());
             oldLines.clear();
             oldLines.addAll(split);
+            cursorPos = cursorPositionInReflowedLines(cursorOffset);
         }
         // When the terminal buffer is wider than the visible window (e.g. Windows with
         // a wide screen buffer), auto-wrap occurs at the buffer width, not the visible
@@ -231,6 +233,54 @@ public class Display implements Sized {
             this.wrapAtEol = this.terminalWrapAtEol;
             this.delayedWrapAtEol = this.terminalDelayedWrapAtEol;
         }
+    }
+
+    private int cursorOffsetInRenderedLines() {
+        if (columns1 <= 0 || cursorPos <= 0 || oldLines.isEmpty()) {
+            return 0;
+        }
+        int cursorRow = cursorPos / columns1;
+        int cursorColumn = cursorPos % columns1;
+        int offset = 0;
+        int rowsBeforeCursor = Math.min(cursorRow, oldLines.size());
+        for (int row = 0; row < rowsBeforeCursor; row++) {
+            offset += oldLines.get(row).length();
+        }
+        if (cursorRow < oldLines.size()) {
+            offset += oldLines.get(cursorRow)
+                    .columnSubSequence(terminal, 0, cursorColumn)
+                    .length();
+        }
+        return offset;
+    }
+
+    private int cursorPositionInReflowedLines(int cursorOffset) {
+        int remaining = Math.max(0, cursorOffset);
+        for (int row = 0; row < oldLines.size(); row++) {
+            AttributedString line = oldLines.get(row);
+            int length = line.length();
+            boolean hardLineEnd = length > 0 && line.charAt(length - 1) == '\n';
+            // For hard line ends (\n), when remaining == length the cursor sits at the
+            // start of the next line, so we continue rather than stopping here.
+            if (remaining < length || (remaining == length && (!hardLineEnd || row == oldLines.size() - 1))) {
+                return cursorPositionAtLineOffset(row, line, remaining);
+            }
+            remaining -= length;
+        }
+        if (oldLines.isEmpty()) {
+            return 0;
+        }
+        int lastRow = oldLines.size() - 1;
+        AttributedString lastLine = oldLines.get(lastRow);
+        return cursorPositionAtLineOffset(lastRow, lastLine, lastLine.length());
+    }
+
+    private int cursorPositionAtLineOffset(int row, AttributedString line, int lineOffset) {
+        int prefixEnd = lineOffset;
+        if (prefixEnd > 0 && line.charAt(prefixEnd - 1) == '\n') {
+            prefixEnd--;
+        }
+        return row * columns1 + line.subSequence(0, prefixEnd).columnLength(terminal);
     }
 
     /**
