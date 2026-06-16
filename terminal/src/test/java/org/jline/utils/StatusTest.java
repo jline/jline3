@@ -71,9 +71,9 @@ class StatusTest {
             status.update(statusLine("status line"));
             terminal.flush();
 
-            assertEquals("status line", getRow(terminal, ROWS - 3).trim());
             String borderRow = getRow(terminal, ROWS - 2);
             assertTrue(borderRow.contains("─"), "Expected border row to contain line-drawing characters");
+            assertEquals("status line", getRow(terminal, ROWS - 1).trim());
         }
     }
 
@@ -88,8 +88,8 @@ class StatusTest {
             status.update(lines);
             terminal.flush();
 
-            assertEquals("line 2", getRow(terminal, ROWS - 3).trim());
             assertEquals("line 1", getRow(terminal, ROWS - 2).trim());
+            assertEquals("line 2", getRow(terminal, ROWS - 1).trim());
         }
     }
 
@@ -275,13 +275,35 @@ class StatusTest {
                     Arrays.asList(new AttributedString("line 1"), new AttributedString("line 2"));
             status.update(twoLines);
             terminal.flush();
-            assertEquals("line 2", getRow(terminal, ROWS - 3).trim());
             assertEquals("line 1", getRow(terminal, ROWS - 2).trim());
+            assertEquals("line 2", getRow(terminal, ROWS - 1).trim());
 
             // Shrink to 1 line
             status.update(statusLine("only line"));
             terminal.flush();
             assertEquals("only line", getRow(terminal, ROWS - 1).trim());
+            // Verify the previously occupied row is cleared
+            assertEquals("", getRow(terminal, ROWS - 2).trim());
+        }
+    }
+
+    @Test
+    void testBorderTransitionClearsStaleRows() throws IOException {
+        try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, COLS, ROWS)) {
+            Status status = Status.getStatus(terminal);
+            assertNotNull(status);
+
+            status.update(statusLine("status line"));
+            terminal.flush();
+            assertEquals("status line", getRow(terminal, ROWS - 1).trim());
+
+            status.setBorder(true);
+            status.update(statusLine("status line"));
+            terminal.flush();
+
+            String borderRow = getRow(terminal, ROWS - 2);
+            assertTrue(borderRow.contains("─"), "Expected border at ROWS-2");
+            assertEquals("status line", getRow(terminal, ROWS - 1).trim());
         }
     }
 }
