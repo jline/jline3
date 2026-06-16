@@ -6,7 +6,7 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.builtins;
+package org.jline.utils;
 
 /*
  * Based on the Apache Karaf WebConsole Gogo plugin (Apache License 2.0)
@@ -23,8 +23,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.jline.terminal.Size;
 import org.jline.terminal.Sized;
-import org.jline.utils.Colors;
-import org.jline.utils.WCWidth;
 
 /**
  * A virtual terminal screen implementation.

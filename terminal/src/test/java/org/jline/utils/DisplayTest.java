@@ -135,7 +135,7 @@ class DisplayTest {
         }
 
         void resizeScreen(int cols, int rows) {
-            virtual.setSize(cols, rows);
+            virtual.setSize(Size.of(cols, rows));
             setSize(Size.of(cols, rows));
         }
 

@@ -23,6 +23,8 @@ import org.jline.terminal.Sized;
 import org.jline.terminal.impl.LineDisciplineTerminal;
 import org.jline.utils.Curses;
 import org.jline.utils.InfoCmp;
+import org.jline.utils.ScreenTerminal;
+import org.jline.utils.ScreenTerminalOutputStream;
 
 /**
  * A Swing-based terminal implementation that extends LineDisciplineTerminal.
@@ -131,7 +133,7 @@ public class SwingTerminal extends LineDisciplineTerminal {
                         SwingUtilities.invokeLater(component::repaint);
                     }
                 };
-        ((ScreenTerminalOutputStream.DelegateOutputStream) masterOutput).output = screenOutput;
+        ((ScreenTerminalOutputStream.DelegateOutputStream) masterOutput).setDelegate(screenOutput);
         component.setTerminal(this);
     }
 

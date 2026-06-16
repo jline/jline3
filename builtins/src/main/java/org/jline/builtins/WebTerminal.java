@@ -23,6 +23,8 @@ import java.util.zip.GZIPOutputStream;
 import org.jline.terminal.Size;
 import org.jline.terminal.Sized;
 import org.jline.terminal.impl.LineDisciplineTerminal;
+import org.jline.utils.ScreenTerminal;
+import org.jline.utils.ScreenTerminalOutputStream;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -104,8 +106,8 @@ public class WebTerminal extends LineDisciplineTerminal {
                 WebTerminal.this.processInputByte(b);
             }
         };
-        ((ScreenTerminalOutputStream.DelegateOutputStream) masterOutput).output =
-                new ScreenTerminalOutputStream(this.component, StandardCharsets.UTF_8, feedbackOutput);
+        ((ScreenTerminalOutputStream.DelegateOutputStream) masterOutput)
+                .setDelegate(new ScreenTerminalOutputStream(this.component, StandardCharsets.UTF_8, feedbackOutput));
     }
 
     /**

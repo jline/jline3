@@ -17,6 +17,7 @@ import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.LineDisciplineTerminal;
 import org.jline.utils.AttributedString;
+import org.jline.utils.ScreenTerminal;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
