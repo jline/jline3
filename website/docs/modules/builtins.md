@@ -161,7 +161,7 @@ When using the JLine Builtins module, consider these best practices:
 
 ## Terminal Implementations
 
-The Builtins module also provides two specialized terminal implementations built on top of the `ScreenTerminal` class:
+The Builtins module also provides two specialized terminal implementations built on top of `ScreenTerminal` (located in `org.jline.utils` in the terminal module):
 
 ### WebTerminal
 

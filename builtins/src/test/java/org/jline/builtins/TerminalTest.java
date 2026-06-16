@@ -13,6 +13,7 @@ import java.io.IOException;
 import javax.swing.*;
 
 import org.jline.terminal.Size;
+import org.jline.utils.ScreenTerminal;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

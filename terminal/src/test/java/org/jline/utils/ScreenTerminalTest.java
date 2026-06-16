@@ -6,7 +6,7 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.builtins;
+package org.jline.utils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -16,7 +16,6 @@ import java.time.Duration;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.LineDisciplineTerminal;
-import org.jline.utils.AttributedString;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

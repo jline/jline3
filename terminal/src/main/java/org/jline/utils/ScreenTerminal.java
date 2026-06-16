@@ -6,7 +6,7 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.builtins;
+package org.jline.utils;
 
 /*
  * Based on the Apache Karaf WebConsole Gogo plugin (Apache License 2.0)
@@ -23,8 +23,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.jline.terminal.Size;
 import org.jline.terminal.Sized;
-import org.jline.utils.Colors;
-import org.jline.utils.WCWidth;
 
 /**
  * A virtual terminal screen implementation.
@@ -376,12 +374,14 @@ public class ScreenTerminal implements Sized {
     }
 
     private void cursor_up(int n) {
-        cy = Math.max(scroll_area_y0, cy - n);
+        int limit = (cy >= scroll_area_y0 && cy < scroll_area_y1) ? scroll_area_y0 : 0;
+        cy = Math.max(limit, cy - n);
         setDirty();
     }
 
     private void cursor_down(int n) {
-        cy = Math.min(scroll_area_y1 - 1, cy + n);
+        int limit = (cy >= scroll_area_y0 && cy < scroll_area_y1) ? scroll_area_y1 - 1 : rows - 1;
+        cy = Math.min(limit, cy + n);
         setDirty();
     }
 

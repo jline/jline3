@@ -16,7 +16,6 @@ import java.util.List;
 
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
-import org.jline.utils.DisplayTest.VirtualTerminal;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -72,10 +71,8 @@ class StatusTest {
             status.update(statusLine("status line"));
             terminal.flush();
 
-            // Border row should not be empty
-            String borderRow = getRow(terminal, ROWS - 2).trim();
-            assertFalse(borderRow.isEmpty(), "Expected border row to be non-empty");
-
+            String borderRow = getRow(terminal, ROWS - 2);
+            assertTrue(borderRow.contains("─"), "Expected border row to contain line-drawing characters");
             assertEquals("status line", getRow(terminal, ROWS - 1).trim());
         }
     }
@@ -285,9 +282,28 @@ class StatusTest {
             status.update(statusLine("only line"));
             terminal.flush();
             assertEquals("only line", getRow(terminal, ROWS - 1).trim());
-
-            // The row previously used by "line 1" should be cleared
+            // Verify the previously occupied row is cleared
             assertEquals("", getRow(terminal, ROWS - 2).trim());
+        }
+    }
+
+    @Test
+    void testBorderTransitionClearsStaleRows() throws IOException {
+        try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, COLS, ROWS)) {
+            Status status = Status.getStatus(terminal);
+            assertNotNull(status);
+
+            status.update(statusLine("status line"));
+            terminal.flush();
+            assertEquals("status line", getRow(terminal, ROWS - 1).trim());
+
+            status.setBorder(true);
+            status.update(statusLine("status line"));
+            terminal.flush();
+
+            String borderRow = getRow(terminal, ROWS - 2);
+            assertTrue(borderRow.contains("─"), "Expected border at ROWS-2");
+            assertEquals("status line", getRow(terminal, ROWS - 1).trim());
         }
     }
 }

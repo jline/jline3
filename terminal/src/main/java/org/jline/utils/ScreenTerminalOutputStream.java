@@ -6,7 +6,7 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.builtins;
+package org.jline.utils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -91,9 +91,13 @@ public class ScreenTerminalOutputStream extends OutputStream {
      * cannot be created until after the constructor returns.
      */
     public static class DelegateOutputStream extends OutputStream {
-        OutputStream output;
+        private OutputStream output;
 
         public DelegateOutputStream() {}
+
+        public void setDelegate(OutputStream delegate) {
+            this.output = delegate;
+        }
 
         @Override
         public void write(int b) throws IOException {

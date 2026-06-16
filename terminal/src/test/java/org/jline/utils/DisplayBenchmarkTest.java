@@ -29,8 +29,7 @@ class DisplayBenchmarkTest {
 
     @Test
     void benchmarkDisplayUpdate() throws IOException {
-        try (DisplayTest.VirtualTerminal terminal =
-                new DisplayTest.VirtualTerminal("bench", "xterm", StandardCharsets.UTF_8, COLS, ROWS)) {
+        try (VirtualTerminal terminal = new VirtualTerminal("bench", "xterm", StandardCharsets.UTF_8, COLS, ROWS)) {
             terminal.enterRawMode();
             Display display = new Display(terminal, true);
             display.resize(Size.of(COLS, ROWS));
