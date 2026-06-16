@@ -6,11 +6,11 @@ sidebar_position: 19
 
 import CodeSnippet from '@site/src/components/CodeSnippet';
 
-JLine provides two additional terminal implementations built on top of the `ScreenTerminal` class that allow you to create terminal interfaces for web applications and desktop GUI applications.
+JLine provides two additional terminal implementations built on top of the `ScreenTerminal` class (located in `org.jline.utils` in the terminal module) that allow you to create terminal interfaces for web applications and desktop GUI applications.
 
 ## Overview
 
-Both implementations extend the `ScreenTerminal` class and provide full ANSI escape sequence support:
+Both implementations extend `ScreenTerminal` (from `org.jline.utils`) and provide full ANSI escape sequence support:
 
 1. **WebTerminal** - An HTTP-based terminal that serves a web interface
 2. **SwingTerminal** - A Swing JComponent-based terminal for desktop applications

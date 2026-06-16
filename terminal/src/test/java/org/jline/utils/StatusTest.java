@@ -16,7 +16,6 @@ import java.util.List;
 
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
-import org.jline.utils.DisplayTest.VirtualTerminal;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -49,15 +48,6 @@ class StatusTest {
         return Collections.singletonList(new AttributedString(text));
     }
 
-    private boolean screenContains(VirtualTerminal terminal, String needle) {
-        for (int r = 0; r < terminal.getSize().getRows(); r++) {
-            if (getRow(terminal, r).trim().contains(needle)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     @Test
     void testStatusBarRendersAtBottom() throws IOException {
         try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, COLS, ROWS)) {
@@ -81,18 +71,9 @@ class StatusTest {
             status.update(statusLine("status line"));
             terminal.flush();
 
-            // Verify border and status line are present on screen
-            assertTrue(screenContains(terminal, "status line"), "Expected 'status line' on screen");
-            // Border row should contain line-drawing characters
-            boolean hasBorder = false;
-            for (int r = 0; r < ROWS; r++) {
-                String row = getRow(terminal, r).trim();
-                if (!row.isEmpty() && !row.equals("status line")) {
-                    hasBorder = true;
-                    break;
-                }
-            }
-            assertTrue(hasBorder, "Expected border row to be non-empty");
+            assertEquals("status line", getRow(terminal, ROWS - 3).trim());
+            String borderRow = getRow(terminal, ROWS - 2);
+            assertTrue(borderRow.contains("─"), "Expected border row to contain line-drawing characters");
         }
     }
 
@@ -107,9 +88,8 @@ class StatusTest {
             status.update(lines);
             terminal.flush();
 
-            // Verify both lines are present on screen
-            assertTrue(screenContains(terminal, "line 1"), "Expected 'line 1' on screen");
-            assertTrue(screenContains(terminal, "line 2"), "Expected 'line 2' on screen");
+            assertEquals("line 2", getRow(terminal, ROWS - 3).trim());
+            assertEquals("line 1", getRow(terminal, ROWS - 2).trim());
         }
     }
 
@@ -295,13 +275,13 @@ class StatusTest {
                     Arrays.asList(new AttributedString("line 1"), new AttributedString("line 2"));
             status.update(twoLines);
             terminal.flush();
-            assertTrue(screenContains(terminal, "line 1"), "Expected 'line 1' on screen");
-            assertTrue(screenContains(terminal, "line 2"), "Expected 'line 2' on screen");
+            assertEquals("line 2", getRow(terminal, ROWS - 3).trim());
+            assertEquals("line 1", getRow(terminal, ROWS - 2).trim());
 
             // Shrink to 1 line
             status.update(statusLine("only line"));
             terminal.flush();
-            assertTrue(screenContains(terminal, "only line"), "Expected 'only line' on screen");
+            assertEquals("only line", getRow(terminal, ROWS - 1).trim());
         }
     }
 }
