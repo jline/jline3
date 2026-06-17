@@ -599,7 +599,7 @@ public class ExecTerminalProvider implements TerminalProvider {
         if (redirectPipeCreator == null) {
             String str = System.getProperty(PROP_REDIRECT_PIPE_CREATION_MODE, PROP_REDIRECT_PIPE_CREATION_MODE_DEFAULT);
             String[] modes = str.split(",");
-            IllegalStateException ise = new IllegalStateException("Unable to create RedirectPipe");
+            IllegalStateException ise = null;
             for (String mode : modes) {
                 try {
                     switch (mode) {
@@ -612,6 +612,9 @@ public class ExecTerminalProvider implements TerminalProvider {
                     }
                 } catch (Throwable t) {
                     // ignore
+                    if (ise == null) {
+                        ise = new IllegalStateException("Unable to create RedirectPipe");
+                    }
                     ise.addSuppressed(t);
                 }
                 if (redirectPipeCreator != null) {
@@ -619,6 +622,9 @@ public class ExecTerminalProvider implements TerminalProvider {
                 }
             }
             if (redirectPipeCreator == null) {
+                if (ise == null) {
+                    ise = new IllegalStateException("Unable to create RedirectPipe");
+                }
                 throw ise;
             }
         }

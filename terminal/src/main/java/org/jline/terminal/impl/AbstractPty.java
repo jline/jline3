@@ -196,7 +196,7 @@ public abstract class AbstractPty implements Pty {
             String str =
                     System.getProperty(PROP_FILE_DESCRIPTOR_CREATION_MODE, PROP_FILE_DESCRIPTOR_CREATION_MODE_DEFAULT);
             String[] modes = str.split(",");
-            IllegalStateException ise = new IllegalStateException("Unable to create FileDescriptor");
+            IllegalStateException ise = null;
             for (String mode : modes) {
                 try {
                     switch (mode) {
@@ -209,6 +209,9 @@ public abstract class AbstractPty implements Pty {
                     }
                 } catch (Throwable t) {
                     // ignore
+                    if (ise == null) {
+                        ise = new IllegalStateException("Unable to create FileDescriptor");
+                    }
                     ise.addSuppressed(t);
                 }
                 if (fileDescriptorCreator != null) {
@@ -216,6 +219,9 @@ public abstract class AbstractPty implements Pty {
                 }
             }
             if (fileDescriptorCreator == null) {
+                if (ise == null) {
+                    ise = new IllegalStateException("Unable to create FileDescriptor");
+                }
                 throw ise;
             }
         }
