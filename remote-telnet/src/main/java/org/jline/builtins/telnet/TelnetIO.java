@@ -279,6 +279,7 @@ public class TelnetIO {
     protected static final int NE_IN_END = -3;
     protected static final int NE_VAR_NAME_MAXLENGTH = 50;
     protected static final int NE_VAR_VALUE_MAXLENGTH = 1000;
+    protected static final int NE_VAR_COUNT_MAX = 100;
     /**
      * Unused
      */
@@ -1134,6 +1135,7 @@ public class TelnetIO {
                 LOG.log(Level.DEBUG, "readNEVariables()::INVALID VARIABLE");
                 return;
             }
+            int varCount = 0;
             boolean cont = true;
             if (i == NE_VAR || i == NE_USERVAR) {
                 do {
@@ -1146,6 +1148,11 @@ public class TelnetIO {
                             return;
                         case NE_VAR_DEFINED:
                             LOG.log(Level.DEBUG, "readNEVariables()::NE_VAR_DEFINED");
+                            if (++varCount > NE_VAR_COUNT_MAX) {
+                                LOG.log(Level.WARNING, "readNEVariables()::TOO_MANY_VARS (>" + NE_VAR_COUNT_MAX + ")");
+                                skipToSE();
+                                return;
+                            }
                             String str = sbuf.toString();
                             sbuf.delete(0, sbuf.length());
                             switch (readNEVariableValue(sbuf)) {
