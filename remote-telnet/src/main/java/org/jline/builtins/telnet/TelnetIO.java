@@ -297,6 +297,8 @@ public class TelnetIO {
     private static final int SMALLEST_BELIEVABLE_HEIGHT = 6;
     private static final int DEFAULT_WIDTH = 80;
     private static final int DEFAULT_HEIGHT = 25;
+    private static final int LARGEST_BELIEVABLE_WIDTH = 500;
+    private static final int LARGEST_BELIEVABLE_HEIGHT = 500;
     private Connection connection; // a reference to the connection this instance works for
     private ConnectionData connectionData; // holds all important information of the connection
     private DataOutputStream out; // the byte oriented outputstream
@@ -868,10 +870,10 @@ public class TelnetIO {
         }
 
         private void setTerminalGeometry(int columns, int rows) {
-            if (columns < SMALLEST_BELIEVABLE_WIDTH) {
+            if (columns < SMALLEST_BELIEVABLE_WIDTH || columns > LARGEST_BELIEVABLE_WIDTH) {
                 columns = DEFAULT_WIDTH;
             }
-            if (rows < SMALLEST_BELIEVABLE_HEIGHT) {
+            if (rows < SMALLEST_BELIEVABLE_HEIGHT || rows > LARGEST_BELIEVABLE_HEIGHT) {
                 rows = DEFAULT_HEIGHT;
             }
             connectionData.setTerminalGeometry(columns, rows);
