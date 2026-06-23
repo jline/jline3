@@ -8,7 +8,6 @@
  */
 package org.jline.terminal.impl;
 
-import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -71,6 +70,7 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
     protected final PrintWriter writer;
     protected final Map<Signal, Object> nativeHandlers = new HashMap<>();
     protected final Task closer;
+    private final boolean nativeSignals;
     private volatile Attributes cachedAttributes;
 
     /**
@@ -150,11 +150,15 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
             throws IOException {
         super(name, type, pty, encoding, inputEncoding, outputEncoding, signalHandler);
         this.provider = provider;
-        this.cachedAttributes = this.originalAttributes;
+        this.nativeSignals = nativeSignals;
+        this.cachedAttributes = new Attributes(this.originalAttributes);
         boolean softwareSignals = Boolean.parseBoolean(System.getProperty(PROP_SOFTWARE_SIGNALS, "true"));
         InputStream slaveInput = pty.getSlaveInput();
         this.input = NonBlocking.nonBlocking(
-                getName(), softwareSignals ? new SignalInterceptingInputStream(slaveInput) : slaveInput);
+                getName(),
+                softwareSignals
+                        ? new SignalInterceptingInputStream(slaveInput, () -> cachedAttributes, this::raise)
+                        : slaveInput);
         this.output = new FastBufferedOutputStream(pty.getSlaveOutput());
         this.reader = NonBlocking.nonBlocking(getName(), input, inputEncoding());
         this.writer = new PrintWriter(new OutputStreamWriter(output, outputEncoding()));
@@ -185,11 +189,19 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
     @Override
     public SignalHandler handle(Signal signal, SignalHandler handler) {
         SignalHandler prev = super.handle(signal, handler);
-        if (prev != handler) {
+        if (nativeSignals && prev != handler) {
+            Object previousNative = nativeHandlers.remove(signal);
+            if (previousNative != null) {
+                doUnregisterSignal(signal.name(), previousNative);
+            }
+            Object nativeHandler;
             if (handler == SignalHandler.SIG_DFL) {
-                doRegisterDefaultSignal(signal.name());
+                nativeHandler = doRegisterDefaultSignal(signal.name());
             } else {
-                doRegisterSignal(signal.name(), () -> raise(signal));
+                nativeHandler = doRegisterSignal(signal.name(), () -> raise(signal));
+            }
+            if (nativeHandler != null) {
+                nativeHandlers.put(signal, nativeHandler);
             }
         }
         return prev;
@@ -302,64 +314,5 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
         }
         super.doClose();
         reader.close();
-    }
-
-    /**
-     * Wraps the PTY slave input to intercept signal control characters when ISIG is cleared
-     * (raw mode). The byte is passed through after raising the signal so that the LineReader's
-     * INTERRUPT widget can also see it via its keymap binding.
-     *
-     * @see AbstractUnixSysTerminal — same pattern for direct-fd terminals
-     */
-    private class SignalInterceptingInputStream extends FilterInputStream {
-        SignalInterceptingInputStream(InputStream in) {
-            super(in);
-        }
-
-        @Override
-        public int read() throws IOException {
-            int b = super.read();
-            if (b >= 0) {
-                checkSignalByte(b);
-            }
-            return b;
-        }
-
-        @Override
-        public int read(byte[] buf, int off, int len) throws IOException {
-            int n = super.read(buf, off, len);
-            if (n > 0) {
-                checkSignalBytes(buf, off, n);
-            }
-            return n;
-        }
-
-        private void checkSignalByte(int b) {
-            Attributes attr = cachedAttributes;
-            if (attr != null && !attr.getLocalFlag(Attributes.LocalFlag.ISIG)) {
-                raiseIfSignal(b, attr);
-            }
-        }
-
-        private void checkSignalBytes(byte[] buf, int off, int count) {
-            Attributes attr = cachedAttributes;
-            if (attr != null && !attr.getLocalFlag(Attributes.LocalFlag.ISIG)) {
-                for (int i = 0; i < count; i++) {
-                    raiseIfSignal(buf[off + i] & 0xFF, attr);
-                }
-            }
-        }
-
-        private void raiseIfSignal(int b, Attributes attr) {
-            if (b == attr.getControlChar(Attributes.ControlChar.VINTR)) {
-                raise(Signal.INT);
-            } else if (b == attr.getControlChar(Attributes.ControlChar.VQUIT)) {
-                raise(Signal.QUIT);
-            } else if (b == attr.getControlChar(Attributes.ControlChar.VSUSP)) {
-                raise(Signal.TSTP);
-            } else if (b == attr.getControlChar(Attributes.ControlChar.VSTATUS)) {
-                raise(Signal.INFO);
-            }
-        }
     }
 }

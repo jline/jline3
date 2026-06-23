@@ -10,17 +10,20 @@ package org.jline.terminal.impl;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.easymock.Capture;
 import org.easymock.EasyMock;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.ControlChar;
+import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.Terminal.SignalHandler;
 import org.jline.terminal.spi.Pty;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PosixSysTerminalTest {
@@ -114,6 +117,82 @@ class PosixSysTerminalTest {
         EasyMock.replay(pty);
         try (PosixSysTerminal terminal =
                 new PosixSysTerminal("name", "ansi", pty, null, false, SignalHandler.SIG_DFL)) {
+            assertTrue(terminal.nativeHandlers.isEmpty());
+        }
+    }
+
+    @Test
+    void testSignalInterceptionWhenIsigCleared() throws Exception {
+        Attributes attr = new Attributes();
+        attr.setControlChar(ControlChar.VINTR, 3);
+        attr.setControlChar(ControlChar.VQUIT, 28);
+        attr.setControlChar(ControlChar.VSUSP, 26);
+
+        Pty pty = EasyMock.createNiceMock(Pty.class);
+        EasyMock.expect(pty.getAttr()).andReturn(attr).anyTimes();
+        EasyMock.expect(pty.getSlaveInput())
+                .andReturn(new ByteArrayInputStream(new byte[] {0x03}))
+                .anyTimes();
+        EasyMock.expect(pty.getSlaveOutput())
+                .andReturn(new ByteArrayOutputStream())
+                .anyTimes();
+        EasyMock.replay(pty);
+        try (PosixSysTerminal terminal =
+                new PosixSysTerminal("name", "ansi", pty, null, false, SignalHandler.SIG_DFL)) {
+            // ISIG is off by default in a new Attributes — signal interception should be active
+            AtomicReference<Signal> received = new AtomicReference<>();
+            terminal.handle(Signal.INT, received::set);
+
+            int b = terminal.input().read();
+            assertEquals(0x03, b);
+            assertEquals(Signal.INT, received.get());
+        }
+    }
+
+    @Test
+    void testNoSignalInterceptionWhenIsigSet() throws Exception {
+        Attributes attr = new Attributes();
+        attr.setControlChar(ControlChar.VINTR, 3);
+        attr.setLocalFlag(LocalFlag.ISIG, true);
+
+        Pty pty = EasyMock.createNiceMock(Pty.class);
+        EasyMock.expect(pty.getAttr()).andReturn(attr).anyTimes();
+        EasyMock.expect(pty.getSlaveInput())
+                .andReturn(new ByteArrayInputStream(new byte[] {0x03}))
+                .anyTimes();
+        EasyMock.expect(pty.getSlaveOutput())
+                .andReturn(new ByteArrayOutputStream())
+                .anyTimes();
+        EasyMock.replay(pty);
+        try (PosixSysTerminal terminal =
+                new PosixSysTerminal("name", "ansi", pty, null, false, SignalHandler.SIG_DFL)) {
+            // Set ISIG so the software interceptor should NOT fire
+            terminal.setAttributes(attr);
+
+            AtomicReference<Signal> received = new AtomicReference<>();
+            terminal.handle(Signal.INT, received::set);
+
+            int b = terminal.input().read();
+            assertEquals(0x03, b);
+            assertNull(received.get());
+        }
+    }
+
+    @Test
+    void testHandleDoesNotRegisterWhenNativeSignalsDisabled() throws Exception {
+        Pty pty = EasyMock.createNiceMock(Pty.class);
+        EasyMock.expect(pty.getAttr()).andReturn(new Attributes()).anyTimes();
+        EasyMock.expect(pty.getSlaveInput())
+                .andReturn(new ByteArrayInputStream(new byte[0]))
+                .anyTimes();
+        EasyMock.expect(pty.getSlaveOutput())
+                .andReturn(new ByteArrayOutputStream())
+                .anyTimes();
+        EasyMock.replay(pty);
+        try (PosixSysTerminal terminal =
+                new PosixSysTerminal("name", "ansi", pty, null, false, SignalHandler.SIG_DFL)) {
+            assertTrue(terminal.nativeHandlers.isEmpty());
+            terminal.handle(Signal.INT, s -> {});
             assertTrue(terminal.nativeHandlers.isEmpty());
         }
     }

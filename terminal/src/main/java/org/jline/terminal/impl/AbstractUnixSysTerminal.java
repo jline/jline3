@@ -11,7 +11,6 @@ package org.jline.terminal.impl;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -101,8 +100,11 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
         boolean softwareSignals = Boolean.parseBoolean(System.getProperty(PROP_SOFTWARE_SIGNALS, "true"));
 
         InputStream stdin = new NonCloseableInputStream(new FileInputStream(FileDescriptor.in));
-        this.input =
-                NonBlocking.nonBlocking(getName(), softwareSignals ? new SignalInterceptingInputStream(stdin) : stdin);
+        this.input = NonBlocking.nonBlocking(
+                getName(),
+                softwareSignals
+                        ? new SignalInterceptingInputStream(stdin, () -> cachedAttributes, this::raise)
+                        : stdin);
         cachedAttributes = new Attributes(originalAttributes);
         FileDescriptor outFd;
         if (systemStream == SystemStream.Output) {
@@ -293,65 +295,5 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
             size = null;
         }
         return getKind() + "[" + "name='" + name + '\'' + ", type='" + type + '\'' + ", size='" + size + '\'' + ']';
-    }
-
-    /**
-     * Wraps the raw stdin to intercept signal control characters when ISIG is cleared
-     * (raw mode). Unlike {@link LineDisciplineTerminal#doProcessInputByte} which
-     * <em>consumes</em> signal bytes (they never reach the reader), this wrapper
-     * <em>passes them through</em> — the byte is returned to the caller after raising
-     * the signal. This is intentional: in raw mode the LineReader's INTERRUPT widget
-     * also needs to see {@code 0x03} via its keymap binding.
-     */
-    private class SignalInterceptingInputStream extends FilterInputStream {
-        SignalInterceptingInputStream(InputStream in) {
-            super(in);
-        }
-
-        @Override
-        public int read() throws IOException {
-            int b = super.read();
-            if (b >= 0) {
-                checkSignalByte(b);
-            }
-            return b;
-        }
-
-        @Override
-        public int read(byte[] buf, int off, int len) throws IOException {
-            int n = super.read(buf, off, len);
-            if (n > 0) {
-                checkSignalBytes(buf, off, n);
-            }
-            return n;
-        }
-
-        private void checkSignalByte(int b) {
-            Attributes attr = cachedAttributes;
-            if (!attr.getLocalFlag(Attributes.LocalFlag.ISIG)) {
-                raiseIfSignal(b, attr);
-            }
-        }
-
-        private void checkSignalBytes(byte[] buf, int off, int count) {
-            Attributes attr = cachedAttributes;
-            if (!attr.getLocalFlag(Attributes.LocalFlag.ISIG)) {
-                for (int i = 0; i < count; i++) {
-                    raiseIfSignal(buf[off + i] & 0xFF, attr);
-                }
-            }
-        }
-
-        private void raiseIfSignal(int b, Attributes attr) {
-            if (b == attr.getControlChar(Attributes.ControlChar.VINTR)) {
-                raise(Signal.INT);
-            } else if (b == attr.getControlChar(Attributes.ControlChar.VQUIT)) {
-                raise(Signal.QUIT);
-            } else if (b == attr.getControlChar(Attributes.ControlChar.VSUSP)) {
-                raise(Signal.TSTP);
-            } else if (b == attr.getControlChar(Attributes.ControlChar.VSTATUS)) {
-                raise(Signal.INFO);
-            }
-        }
     }
 }
