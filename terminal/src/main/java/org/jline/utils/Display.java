@@ -648,10 +648,15 @@ public class Display implements Sized {
             } else if (atRight) {
                 if (this.wrapAtEol) {
                     if (!fullScreen || (fullScreen && lineIndex < numLines)) {
-                        ensureDefaultAnsiStyle();
-                        rawPrint(' ');
-                        puts(Capability.cursor_left);
-                        cursorPos++;
+                        if (hasCursorAddress) {
+                            puts(Capability.cursor_address, lineIndex, 0);
+                            cursorPos = lineIndex * columns1;
+                        } else {
+                            ensureDefaultAnsiStyle();
+                            rawPrint(' ');
+                            puts(Capability.cursor_left);
+                            cursorPos++;
+                        }
                     }
                 } else {
                     puts(Capability.carriage_return); // CR / not newline.

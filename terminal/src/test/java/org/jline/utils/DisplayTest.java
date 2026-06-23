@@ -198,6 +198,114 @@ class DisplayTest {
         }
     }
 
+    @Test
+    void fallingBlockPreservesLeftBorderXterm() throws IOException {
+        fallingBlockPreservesLeftBorder("xterm");
+    }
+
+    @Test
+    void fallingBlockPreservesLeftBorderWindowsVtp() throws IOException {
+        fallingBlockPreservesLeftBorder("windows-vtp");
+    }
+
+    void fallingBlockPreservesLeftBorder(String termType) throws IOException {
+        int rows = 20;
+        int cols = 20;
+        try (VirtualTerminal terminal = new VirtualTerminal("test", termType, StandardCharsets.UTF_8, cols, rows)) {
+            terminal.enterRawMode();
+            terminal.puts(enter_ca_mode);
+
+            Display display = new Display(terminal, true);
+            display.resize(Size.of(cols, rows));
+
+            AttributedStyle borderStyle = AttributedStyle.DEFAULT.foreground(96, 96, 96);
+            AttributedStyle greenStyle = AttributedStyle.DEFAULT.foreground(0, 205, 0);
+            AttributedStyle orangeStyle = AttributedStyle.DEFAULT.foreground(205, 102, 0);
+
+            // Green block pattern (S-shape tetromino):
+            // row 0: .GG
+            // row 1: GG.
+            // row 2: ...
+            int[][] greenBlock = {{-1, 1, 1}, {1, 1, -1}, {-1, -1, -1}};
+
+            // Orange block pattern:
+            // row 0: ..O
+            // row 1: OOO
+            // row 2: ...
+            int[][] orangeBlock = {{-1, -1, 2}, {2, 2, 2}, {-1, -1, -1}};
+
+            int orangeCol = 10;
+            int orangeRow = 10;
+
+            for (int activeBlockRow = 0; activeBlockRow < rows - 3; activeBlockRow++) {
+                List<AttributedString> lines = new ArrayList<>();
+                for (int y = 0; y < rows; y++) {
+                    AttributedStringBuilder sb = new AttributedStringBuilder(cols);
+                    for (int x = 0; x < cols; x++) {
+                        // Check green block
+                        int blockType = -1;
+                        int gy = y - activeBlockRow;
+                        int gx = x - 4; // xPos = 4
+                        if (gy >= 0 && gy < 3 && gx >= 0 && gx < 3) {
+                            blockType = greenBlock[gy][gx];
+                        }
+                        // Check orange block
+                        if (blockType < 0) {
+                            int oy = y - orangeRow;
+                            int ox = x - orangeCol;
+                            if (oy >= 0 && oy < 3 && ox >= 0 && ox < 3) {
+                                blockType = orangeBlock[oy][ox];
+                            }
+                        }
+                        // Draw
+                        if (x == 0) {
+                            sb.style(borderStyle);
+                            sb.append('█'); // █
+                        } else if (blockType == 1) {
+                            sb.style(greenStyle);
+                            sb.append('█');
+                        } else if (blockType == 2) {
+                            sb.style(orangeStyle);
+                            sb.append('█');
+                        } else {
+                            sb.style(AttributedStyle.DEFAULT);
+                            sb.append(' ');
+                        }
+                    }
+                    lines.add(sb.toAttributedString());
+                }
+                display.update(lines, 0);
+                terminal.flush();
+
+                // Verify the left border is intact on every row
+                long[] screen = terminal.dump();
+                StringBuilder failures = new StringBuilder();
+                for (int y = 0; y < rows; y++) {
+                    char ch = (char) screen[y * cols]; // column 0 of each row
+                    if (ch != '█') {
+                        failures.append("Row ")
+                                .append(y)
+                                .append(": '")
+                                .append(ch)
+                                .append("' ");
+                    }
+                }
+                if (failures.length() > 0) {
+                    // Dump full screen for debugging
+                    StringBuilder screenDump = new StringBuilder();
+                    screenDump.append("\nFrame ").append(activeBlockRow).append(" screen:\n");
+                    for (int y = 0; y < rows; y++) {
+                        for (int x = 0; x < cols; x++) {
+                            screenDump.append((char) screen[y * cols + x]);
+                        }
+                        screenDump.append("|\n");
+                    }
+                    fail("Left border corruption at frame " + activeBlockRow + ": " + failures + screenDump);
+                }
+            }
+        }
+    }
+
     public static void main(String[] args) throws InterruptedException, IOException {
 
         try (Terminal terminal = TerminalBuilder.builder().build()) {
