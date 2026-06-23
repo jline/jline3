@@ -19,6 +19,7 @@ import org.jline.terminal.Attributes.ControlChar;
 import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.Terminal.SignalHandler;
+import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.spi.Pty;
 import org.junit.jupiter.api.Test;
 
@@ -123,58 +124,80 @@ class PosixSysTerminalTest {
 
     @Test
     void testSignalInterceptionWhenIsigCleared() throws Exception {
-        Attributes attr = new Attributes();
-        attr.setControlChar(ControlChar.VINTR, 3);
-        attr.setControlChar(ControlChar.VQUIT, 28);
-        attr.setControlChar(ControlChar.VSUSP, 26);
+        String prev = System.getProperty(TerminalBuilder.PROP_SOFTWARE_SIGNALS);
+        try {
+            System.setProperty(TerminalBuilder.PROP_SOFTWARE_SIGNALS, "true");
 
-        Pty pty = EasyMock.createNiceMock(Pty.class);
-        EasyMock.expect(pty.getAttr()).andReturn(attr).anyTimes();
-        EasyMock.expect(pty.getSlaveInput())
-                .andReturn(new ByteArrayInputStream(new byte[] {0x03}))
-                .anyTimes();
-        EasyMock.expect(pty.getSlaveOutput())
-                .andReturn(new ByteArrayOutputStream())
-                .anyTimes();
-        EasyMock.replay(pty);
-        try (PosixSysTerminal terminal =
-                new PosixSysTerminal("name", "ansi", pty, null, false, SignalHandler.SIG_DFL)) {
-            // ISIG is off by default in a new Attributes — signal interception should be active
-            AtomicReference<Signal> received = new AtomicReference<>();
-            terminal.handle(Signal.INT, received::set);
+            Attributes attr = new Attributes();
+            attr.setControlChar(ControlChar.VINTR, 3);
+            attr.setControlChar(ControlChar.VQUIT, 28);
+            attr.setControlChar(ControlChar.VSUSP, 26);
 
-            int b = terminal.input().read();
-            assertEquals(0x03, b);
-            assertEquals(Signal.INT, received.get());
+            Pty pty = EasyMock.createNiceMock(Pty.class);
+            EasyMock.expect(pty.getAttr()).andReturn(attr).anyTimes();
+            EasyMock.expect(pty.getSlaveInput())
+                    .andReturn(new ByteArrayInputStream(new byte[] {0x03}))
+                    .anyTimes();
+            EasyMock.expect(pty.getSlaveOutput())
+                    .andReturn(new ByteArrayOutputStream())
+                    .anyTimes();
+            EasyMock.replay(pty);
+            try (PosixSysTerminal terminal =
+                    new PosixSysTerminal("name", "ansi", pty, null, false, SignalHandler.SIG_DFL)) {
+                // ISIG is off by default in a new Attributes — signal interception should be active
+                AtomicReference<Signal> received = new AtomicReference<>();
+                terminal.handle(Signal.INT, received::set);
+
+                int b = terminal.input().read();
+                assertEquals(0x03, b);
+                assertEquals(Signal.INT, received.get());
+            }
+        } finally {
+            if (prev == null) {
+                System.clearProperty(TerminalBuilder.PROP_SOFTWARE_SIGNALS);
+            } else {
+                System.setProperty(TerminalBuilder.PROP_SOFTWARE_SIGNALS, prev);
+            }
         }
     }
 
     @Test
     void testNoSignalInterceptionWhenIsigSet() throws Exception {
-        Attributes attr = new Attributes();
-        attr.setControlChar(ControlChar.VINTR, 3);
-        attr.setLocalFlag(LocalFlag.ISIG, true);
+        String prev = System.getProperty(TerminalBuilder.PROP_SOFTWARE_SIGNALS);
+        try {
+            System.setProperty(TerminalBuilder.PROP_SOFTWARE_SIGNALS, "true");
 
-        Pty pty = EasyMock.createNiceMock(Pty.class);
-        EasyMock.expect(pty.getAttr()).andReturn(attr).anyTimes();
-        EasyMock.expect(pty.getSlaveInput())
-                .andReturn(new ByteArrayInputStream(new byte[] {0x03}))
-                .anyTimes();
-        EasyMock.expect(pty.getSlaveOutput())
-                .andReturn(new ByteArrayOutputStream())
-                .anyTimes();
-        EasyMock.replay(pty);
-        try (PosixSysTerminal terminal =
-                new PosixSysTerminal("name", "ansi", pty, null, false, SignalHandler.SIG_DFL)) {
-            // Set ISIG so the software interceptor should NOT fire
-            terminal.setAttributes(attr);
+            Attributes attr = new Attributes();
+            attr.setControlChar(ControlChar.VINTR, 3);
+            attr.setLocalFlag(LocalFlag.ISIG, true);
 
-            AtomicReference<Signal> received = new AtomicReference<>();
-            terminal.handle(Signal.INT, received::set);
+            Pty pty = EasyMock.createNiceMock(Pty.class);
+            EasyMock.expect(pty.getAttr()).andReturn(attr).anyTimes();
+            EasyMock.expect(pty.getSlaveInput())
+                    .andReturn(new ByteArrayInputStream(new byte[] {0x03}))
+                    .anyTimes();
+            EasyMock.expect(pty.getSlaveOutput())
+                    .andReturn(new ByteArrayOutputStream())
+                    .anyTimes();
+            EasyMock.replay(pty);
+            try (PosixSysTerminal terminal =
+                    new PosixSysTerminal("name", "ansi", pty, null, false, SignalHandler.SIG_DFL)) {
+                // Set ISIG so the software interceptor should NOT fire
+                terminal.setAttributes(attr);
 
-            int b = terminal.input().read();
-            assertEquals(0x03, b);
-            assertNull(received.get());
+                AtomicReference<Signal> received = new AtomicReference<>();
+                terminal.handle(Signal.INT, received::set);
+
+                int b = terminal.input().read();
+                assertEquals(0x03, b);
+                assertNull(received.get());
+            }
+        } finally {
+            if (prev == null) {
+                System.clearProperty(TerminalBuilder.PROP_SOFTWARE_SIGNALS);
+            } else {
+                System.setProperty(TerminalBuilder.PROP_SOFTWARE_SIGNALS, prev);
+            }
         }
     }
 
