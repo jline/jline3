@@ -9,10 +9,13 @@
 package org.jline.reader.impl.history;
 
 import java.io.*;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.DateTimeException;
 import java.time.Instant;
 import java.util.*;
@@ -391,6 +394,7 @@ public class DefaultHistory implements History {
             if (!Files.exists(parent)) {
                 Files.createDirectories(parent);
             }
+            createWithOwnerOnlyPermissions(path.toAbsolutePath());
             // Append new items to the history file
             try (BufferedWriter writer = Files.newBufferedWriter(
                     path.toAbsolutePath(),
@@ -410,6 +414,33 @@ public class DefaultHistory implements History {
             }
         }
         setLastLoaded(path, items.size());
+    }
+
+    /**
+     * Creates the history file restricted to the owner when it does not exist yet.
+     * History lines can contain secrets typed on the command line, so the file
+     * must not be left group/world readable as the umask default (0644) would.
+     * On non-POSIX filesystems the file is created with the platform default.
+     */
+    private static void createWithOwnerOnlyPermissions(Path path) throws IOException {
+        if (Files.exists(path)) {
+            return;
+        }
+        try {
+            Files.createFile(
+                    path,
+                    PosixFilePermissions.asFileAttribute(
+                            EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE)));
+        } catch (FileAlreadyExistsException e) {
+            // created concurrently between the check and the call
+        } catch (UnsupportedOperationException e) {
+            // non-POSIX filesystem (e.g. Windows): fall back to default creation
+            try {
+                Files.createFile(path);
+            } catch (FileAlreadyExistsException ignore) {
+                // created concurrently
+            }
+        }
     }
 
     /**
