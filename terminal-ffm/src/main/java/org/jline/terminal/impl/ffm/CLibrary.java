@@ -101,6 +101,7 @@ class CLibrary {
         private static final VarHandle c_cflag;
         private static final VarHandle c_lflag;
         private static final long c_cc_offset;
+        private static final int c_cc_used;
         private static final VarHandle c_ispeed;
         private static final VarHandle c_ospeed;
 
@@ -114,6 +115,7 @@ class CLibrary {
                         MemoryLayout.sequenceLayout(32, ValueLayout.JAVA_BYTE).withName("c_cc"),
                         ValueLayout.JAVA_LONG.withName("c_ispeed"),
                         ValueLayout.JAVA_LONG.withName("c_ospeed"));
+                c_cc_used = 20;
             } else if (OSUtils.IS_LINUX) {
                 LAYOUT = MemoryLayout.structLayout(
                         ValueLayout.JAVA_INT.withName("c_iflag"),
@@ -125,26 +127,40 @@ class CLibrary {
                         MemoryLayout.paddingLayout(3),
                         ValueLayout.JAVA_INT.withName("c_ispeed"),
                         ValueLayout.JAVA_INT.withName("c_ospeed"));
+                c_cc_used = 20;
+            } else if (OSUtils.IS_AIX) {
+                LAYOUT = MemoryLayout.structLayout(
+                        ValueLayout.JAVA_INT.withName("c_iflag"),
+                        ValueLayout.JAVA_INT.withName("c_oflag"),
+                        ValueLayout.JAVA_INT.withName("c_cflag"),
+                        ValueLayout.JAVA_INT.withName("c_lflag"),
+                        MemoryLayout.sequenceLayout(16, ValueLayout.JAVA_BYTE).withName("c_cc"));
+                c_cc_used = 16;
             } else {
                 throw new IllegalStateException("Unsupported system!");
             }
-            c_iflag = adjust2LinuxHandle(
+            c_iflag = adjustIntHandle(
                     FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("c_iflag")));
-            c_oflag = adjust2LinuxHandle(
+            c_oflag = adjustIntHandle(
                     FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("c_oflag")));
-            c_cflag = adjust2LinuxHandle(
+            c_cflag = adjustIntHandle(
                     FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("c_cflag")));
-            c_lflag = adjust2LinuxHandle(
+            c_lflag = adjustIntHandle(
                     FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("c_lflag")));
             c_cc_offset = LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("c_cc"));
-            c_ispeed = adjust2LinuxHandle(
-                    FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("c_ispeed")));
-            c_ospeed = adjust2LinuxHandle(
-                    FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("c_ospeed")));
+            if (OSUtils.IS_AIX) {
+                c_ispeed = null;
+                c_ospeed = null;
+            } else {
+                c_ispeed = adjustIntHandle(
+                        FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("c_ispeed")));
+                c_ospeed = adjustIntHandle(
+                        FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("c_ospeed")));
+            }
         }
 
-        private static VarHandle adjust2LinuxHandle(VarHandle v) {
-            if (OSUtils.IS_LINUX) {
+        private static VarHandle adjustIntHandle(VarHandle v) {
+            if (OSUtils.IS_LINUX || OSUtils.IS_AIX) {
                 MethodHandle id = MethodHandles.identity(int.class);
                 v = MethodHandles.filterValue(
                         v,
@@ -168,7 +184,7 @@ class CLibrary {
             c_oflag(data.oflag());
             c_cflag(data.cflag());
             c_lflag(data.lflag());
-            c_cc().copyFrom(MemorySegment.ofArray(data.cc()).asSlice(0, 20));
+            c_cc().copyFrom(MemorySegment.ofArray(data.cc()).asSlice(0, c_cc_used));
         }
 
         MemorySegment segment() {
@@ -208,23 +224,23 @@ class CLibrary {
         }
 
         MemorySegment c_cc() {
-            return seg.asSlice(c_cc_offset, 20);
+            return seg.asSlice(c_cc_offset, c_cc_used);
         }
 
         long c_ispeed() {
-            return (long) c_ispeed.get(seg);
+            return c_ispeed != null ? (long) c_ispeed.get(seg) : 0;
         }
 
         void c_ispeed(long f) {
-            c_ispeed.set(seg, f);
+            if (c_ispeed != null) c_ispeed.set(seg, f);
         }
 
         long c_ospeed() {
-            return (long) c_ospeed.get(seg);
+            return c_ospeed != null ? (long) c_ospeed.get(seg) : 0;
         }
 
         void c_ospeed(long f) {
-            c_ospeed.set(seg, f);
+            if (c_ospeed != null) c_ospeed.set(seg, f);
         }
 
         /**
@@ -302,6 +318,14 @@ class CLibrary {
                     } catch (Throwable t) {
                         suppressed.add(t);
                     }
+                }
+            }
+            if (openPtyAddr.isEmpty() && OSUtils.IS_AIX) {
+                try {
+                    System.loadLibrary("bsd");
+                    openPtyAddr = lookup.find("openpty");
+                } catch (Throwable t) {
+                    suppressed.add(t);
                 }
             }
             if (openPtyAddr.isEmpty() && OSUtils.IS_LINUX) {
@@ -495,6 +519,9 @@ class CLibrary {
             TIOCGWINSZ = 0x40087468;
             TIOCSWINSZ = 0x80087467;
         } else if (osName.startsWith("FreeBSD")) {
+            TIOCGWINSZ = 0x40087468;
+            TIOCSWINSZ = 0x80087467;
+        } else if (osName.contains("AIX")) {
             TIOCGWINSZ = 0x40087468;
             TIOCSWINSZ = 0x80087467;
         } else {
