@@ -262,8 +262,6 @@ public class WebTerminal extends LineDisciplineTerminal {
 
                 if ("/".equals(path) || "/index.html".equals(path)) {
                     serveTerminalPage(exchange);
-                } else if (path.startsWith("/static/")) {
-                    serveStaticResource(exchange, path);
                 } else {
                     send404(exchange);
                 }
@@ -282,40 +280,6 @@ public class WebTerminal extends LineDisciplineTerminal {
             try (OutputStream os = exchange.getResponseBody()) {
                 os.write(response);
             }
-        }
-
-        private void serveStaticResource(HttpExchange exchange, String path) throws IOException {
-            String resourcePath = path.substring(8); // Remove "/static/"
-            try (InputStream is = getClass().getResourceAsStream("/" + resourcePath)) {
-                if (is == null) {
-                    send404(exchange);
-                    return;
-                }
-
-                String contentType = getContentType(resourcePath);
-                exchange.getResponseHeaders().set("Content-Type", contentType);
-
-                byte[] buffer = new byte[8192];
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                int bytesRead;
-                while ((bytesRead = is.read(buffer)) != -1) {
-                    baos.write(buffer, 0, bytesRead);
-                }
-
-                byte[] response = baos.toByteArray();
-                exchange.sendResponseHeaders(200, response.length);
-
-                try (OutputStream os = exchange.getResponseBody()) {
-                    os.write(response);
-                }
-            }
-        }
-
-        private String getContentType(String path) {
-            if (path.endsWith(".js")) return "application/javascript";
-            if (path.endsWith(".css")) return "text/css";
-            if (path.endsWith(".html")) return "text/html";
-            return "application/octet-stream";
         }
 
         private void send404(HttpExchange exchange) throws IOException {

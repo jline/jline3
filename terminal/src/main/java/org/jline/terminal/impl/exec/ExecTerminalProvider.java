@@ -15,6 +15,8 @@ import java.io.OutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.jline.nativ.JLineLibrary;
 import org.jline.nativ.JLineNativeLoader;
@@ -599,7 +601,7 @@ public class ExecTerminalProvider implements TerminalProvider {
         if (redirectPipeCreator == null) {
             String str = System.getProperty(PROP_REDIRECT_PIPE_CREATION_MODE, PROP_REDIRECT_PIPE_CREATION_MODE_DEFAULT);
             String[] modes = str.split(",");
-            IllegalStateException ise = null;
+            List<Throwable> failures = new ArrayList<>();
             for (String mode : modes) {
                 try {
                     switch (mode) {
@@ -611,20 +613,15 @@ public class ExecTerminalProvider implements TerminalProvider {
                             break;
                     }
                 } catch (Throwable t) {
-                    // ignore
-                    if (ise == null) {
-                        ise = new IllegalStateException("Unable to create RedirectPipe");
-                    }
-                    ise.addSuppressed(t);
+                    failures.add(t);
                 }
                 if (redirectPipeCreator != null) {
                     break;
                 }
             }
             if (redirectPipeCreator == null) {
-                if (ise == null) {
-                    ise = new IllegalStateException("Unable to create RedirectPipe");
-                }
+                IllegalStateException ise = new IllegalStateException("Unable to create RedirectPipe");
+                failures.forEach(ise::addSuppressed);
                 throw ise;
             }
         }

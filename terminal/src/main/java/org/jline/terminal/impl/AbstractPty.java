@@ -15,6 +15,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.jline.nativ.JLineLibrary;
@@ -196,7 +198,7 @@ public abstract class AbstractPty implements Pty {
             String str =
                     System.getProperty(PROP_FILE_DESCRIPTOR_CREATION_MODE, PROP_FILE_DESCRIPTOR_CREATION_MODE_DEFAULT);
             String[] modes = str.split(",");
-            IllegalStateException ise = null;
+            List<Throwable> failures = new ArrayList<>();
             for (String mode : modes) {
                 try {
                     switch (mode) {
@@ -208,20 +210,15 @@ public abstract class AbstractPty implements Pty {
                             break;
                     }
                 } catch (Throwable t) {
-                    // ignore
-                    if (ise == null) {
-                        ise = new IllegalStateException("Unable to create FileDescriptor");
-                    }
-                    ise.addSuppressed(t);
+                    failures.add(t);
                 }
                 if (fileDescriptorCreator != null) {
                     break;
                 }
             }
             if (fileDescriptorCreator == null) {
-                if (ise == null) {
-                    ise = new IllegalStateException("Unable to create FileDescriptor");
-                }
+                IllegalStateException ise = new IllegalStateException("Unable to create FileDescriptor");
+                failures.forEach(ise::addSuppressed);
                 throw ise;
             }
         }

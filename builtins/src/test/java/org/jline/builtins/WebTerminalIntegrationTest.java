@@ -299,6 +299,26 @@ class WebTerminalIntegrationTest {
     }
 
     @Test
+    void testStaticHandlerDoesNotServeArbitraryClasspathResources() throws IOException {
+        // A bundled resource that exists on the classpath but is not a web asset.
+        assertEquals(404, getStatus("/static/org/jline/builtins/less-help.txt"));
+        // A compiled class on the classpath.
+        assertEquals(404, getStatus("/static/org/jline/builtins/WebTerminal.class"));
+        // Traversal back to the classpath root.
+        assertEquals(404, getStatus("/static/..%2f..%2forg/jline/builtins/less-help.txt"));
+    }
+
+    private int getStatus(String pathAndQuery) throws IOException {
+        HttpURLConnection conn = (HttpURLConnection) new URL(baseUrl + pathAndQuery).openConnection();
+        conn.setRequestMethod("GET");
+        try {
+            return conn.getResponseCode();
+        } finally {
+            conn.disconnect();
+        }
+    }
+
+    @Test
     void testMethodNotAllowed() throws IOException {
         // GET on /terminal should be 405
         HttpURLConnection conn = (HttpURLConnection) new URL(baseUrl + "/terminal").openConnection();
