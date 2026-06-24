@@ -12,6 +12,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.List;
 
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
@@ -51,6 +52,16 @@ class ScreenTerminalTest {
         long[] screen = new long[w * h];
         terminal.dump(screen, null);
         return screen[row * w + col] >>> 32;
+    }
+
+    // Helper: decode the first n cells of a history/screen row into a String
+    private String decodeRow(long[] row, int n) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < n; i++) {
+            int ch = (int) (row[i] & 0xffffffffL);
+            sb.appendCodePoint(ch == 0 ? ' ' : ch);
+        }
+        return sb.toString();
     }
 
     // -----------------------------------------------------------------------
@@ -727,6 +738,57 @@ class ScreenTerminalTest {
         // We can verify this by dumping the terminal content
         String dump = terminal.dump(0, true);
         assertNotNull(dump);
+    }
+
+    /**
+     * getHistory()/getHistorySize() must expose the lines that scrolled off the top of the
+     * screen, encoded in the same cell format as dump(), so an embedding renderer can display
+     * scrollback. Without these accessors the scrollback buffer is private and unreachable.
+     */
+    @Test
+    void testGetHistoryExposesScrolledOffLines() {
+        ScreenTerminal terminal = new ScreenTerminal(10, 3);
+
+        // A fresh screen has no scrollback.
+        assertEquals(0, terminal.getHistorySize());
+        assertTrue(terminal.getHistory().isEmpty());
+
+        // Write more lines than the screen height so the top lines scroll into history.
+        for (int i = 0; i < 8; i++) {
+            terminal.write("row" + i + "\n");
+        }
+
+        int size = terminal.getHistorySize();
+        assertTrue(size > 0, "Lines scrolled off the top must be retained in history");
+        assertEquals(size, terminal.getHistory().size(), "getHistorySize must match getHistory().size()");
+
+        // The oldest history row must be the first line written, decoded from the cell format.
+        long[] oldest = terminal.getHistory().get(0);
+        assertEquals("row0", decodeRow(oldest, 4), "Oldest history line should be the first scrolled-off row");
+    }
+
+    /**
+     * getHistory() must return a snapshot: mutating the returned list, or further terminal
+     * output, must not corrupt a previously obtained copy. This is what lets a renderer iterate
+     * the history on one thread while the terminal keeps producing output on another.
+     */
+    @Test
+    void testGetHistoryReturnsSnapshot() {
+        ScreenTerminal terminal = new ScreenTerminal(10, 3);
+        for (int i = 0; i < 8; i++) {
+            terminal.write("row" + i + "\n");
+        }
+
+        List<long[]> snapshot = terminal.getHistory();
+        int snapshotSize = snapshot.size();
+
+        // Producing more output grows the live history but must not change the snapshot.
+        for (int i = 8; i < 12; i++) {
+            terminal.write("row" + i + "\n");
+        }
+
+        assertEquals(snapshotSize, snapshot.size(), "Existing snapshot must not change as new output arrives");
+        assertTrue(terminal.getHistorySize() > snapshotSize, "Live history should have grown");
     }
 
     /**

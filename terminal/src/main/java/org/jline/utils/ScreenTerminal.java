@@ -2007,6 +2007,33 @@ public class ScreenTerminal implements Sized {
     }
 
     /**
+     * Returns a snapshot of the scrollback history: the lines that have scrolled off the top
+     * of the active screen, oldest first. Each row is encoded in the same cell format as
+     * {@link #dump(long[], int[])} (the low 32 bits hold the code point, the high 32 bits hold
+     * the attributes).
+     * <p>
+     * The returned {@code List} is a copy, so it is safe to iterate while the terminal keeps
+     * processing output. The {@code long[]} rows it references are shared with the terminal and
+     * must be treated as read-only.
+     *
+     * @return a snapshot of the scrollback history rows, oldest first (never {@code null})
+     */
+    public synchronized List<long[]> getHistory() {
+        return new ArrayList<>(history);
+    }
+
+    /**
+     * Returns the number of lines currently held in the scrollback history.
+     * <p>
+     * Equivalent to {@code getHistory().size()} but without copying the history.
+     *
+     * @return the number of scrollback history lines
+     */
+    public synchronized int getHistorySize() {
+        return history.size();
+    }
+
+    /**
      * Waits for the screen to be dirty, then dumps the raw screen content into a subregion.
      *
      * @param timeout    maximum time to wait in milliseconds
