@@ -29,7 +29,6 @@ package org.jline.nativ;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,11 +36,13 @@ import java.io.OutputStream;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
-import java.util.Random;
 
 /**
  * Manages the loading of JLine's native libraries (*.dll, *.jnilib, *.so) according to the current
@@ -334,12 +335,13 @@ public class JLineNativeLoader {
         File extractedLckFile = new File(targetFolder, extractedLckFileName);
 
         try {
-            // Extract a native library file into the target directory
+            // Extract a native library file into the target directory.
+            // The target sits in the shared system temp directory, so open both
+            // files with CREATE_NEW: an existing path or a symlink planted there
+            // by another local user is refused instead of being followed.
             try (InputStream in = JLineNativeLoader.class.getResourceAsStream(nativeLibraryFilePath)) {
-                if (!extractedLckFile.exists()) {
-                    new FileOutputStream(extractedLckFile).close();
-                }
-                try (OutputStream out = new FileOutputStream(extractedLibFile)) {
+                newExclusiveStream(extractedLckFile).close();
+                try (OutputStream out = newExclusiveStream(extractedLibFile)) {
                     copy(in, out);
                 }
             } finally {
@@ -378,7 +380,17 @@ public class JLineNativeLoader {
     }
 
     private static String randomUUID() {
-        return Long.toHexString(new Random().nextLong());
+        return Long.toHexString(new SecureRandom().nextLong());
+    }
+
+    /**
+     * Opens an output stream that creates a brand new file, failing if the path already
+     * exists. {@code CREATE_NEW} maps to an exclusive create at the OS level, so a symlink
+     * or a regular file planted at the target path in the shared temp directory is rejected
+     * rather than followed.
+     */
+    static OutputStream newExclusiveStream(File file) throws IOException {
+        return Files.newOutputStream(file.toPath(), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
     }
 
     private static void copy(InputStream in, OutputStream out) throws IOException {
