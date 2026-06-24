@@ -14,8 +14,8 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.spi.Pty;
@@ -68,7 +68,7 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
     protected final OutputStream output;
     protected final NonBlockingReader reader;
     protected final PrintWriter writer;
-    protected final Map<Signal, Object> nativeHandlers = new HashMap<>();
+    protected final Map<Signal, Object> nativeHandlers = new ConcurrentHashMap<>();
     protected final Task closer;
     private final boolean nativeSignals;
     private volatile Attributes cachedAttributes;
@@ -165,10 +165,14 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
         parseInfoCmp();
         if (nativeSignals) {
             for (final Signal signal : Signal.values()) {
+                Object nativeHandler;
                 if (signalHandler == SignalHandler.SIG_DFL) {
-                    nativeHandlers.put(signal, doRegisterDefaultSignal(signal.name()));
+                    nativeHandler = doRegisterDefaultSignal(signal.name());
                 } else {
-                    nativeHandlers.put(signal, doRegisterSignal(signal.name(), () -> raise(signal)));
+                    nativeHandler = doRegisterSignal(signal.name(), () -> raise(signal));
+                }
+                if (nativeHandler != null) {
+                    nativeHandlers.put(signal, nativeHandler);
                 }
             }
         }
@@ -309,10 +313,20 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
     protected void doClose() throws IOException {
         writer.flush();
         ShutdownHooks.remove(closer);
-        for (Map.Entry<Signal, Object> entry : nativeHandlers.entrySet()) {
-            doUnregisterSignal(entry.getKey().name(), entry.getValue());
+        try {
+            for (Map.Entry<Signal, Object> entry : nativeHandlers.entrySet()) {
+                try {
+                    doUnregisterSignal(entry.getKey().name(), entry.getValue());
+                } catch (Exception ignore) {
+                    // best-effort cleanup during close
+                }
+            }
+        } finally {
+            try {
+                super.doClose();
+            } finally {
+                reader.close();
+            }
         }
-        super.doClose();
-        reader.close();
     }
 }

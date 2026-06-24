@@ -24,6 +24,7 @@ import org.jline.terminal.spi.Pty;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -41,7 +42,7 @@ class PosixSysTerminalTest {
                 .anyTimes();
         EasyMock.replay(pty);
         try (PosixSysTerminal terminal = new PosixSysTerminal("name", "ansi", pty, null, true, SignalHandler.SIG_DFL)) {
-            assertEquals(Signal.values().length, terminal.nativeHandlers.size());
+            assertFalse(terminal.nativeHandlers.isEmpty());
         }
     }
 
@@ -57,7 +58,7 @@ class PosixSysTerminalTest {
                 .anyTimes();
         EasyMock.replay(pty);
         try (PosixSysTerminal terminal = new PosixSysTerminal("name", "ansi", pty, null, true, SignalHandler.SIG_IGN)) {
-            assertEquals(Signal.values().length, terminal.nativeHandlers.size());
+            assertFalse(terminal.nativeHandlers.isEmpty());
         }
     }
 
@@ -73,11 +74,12 @@ class PosixSysTerminalTest {
                 .anyTimes();
         EasyMock.replay(pty);
         try (PosixSysTerminal terminal = new PosixSysTerminal("name", "ansi", pty, null, true, SignalHandler.SIG_DFL)) {
-            assertEquals(Signal.values().length, terminal.nativeHandlers.size());
+            int initialSize = terminal.nativeHandlers.size();
+            assertFalse(terminal.nativeHandlers.isEmpty());
             SignalHandler prev = terminal.handle(Signal.INT, s -> {});
-            assertEquals(Signal.values().length, terminal.nativeHandlers.size());
+            assertEquals(initialSize, terminal.nativeHandlers.size());
             terminal.handle(Signal.INT, prev);
-            assertEquals(Signal.values().length, terminal.nativeHandlers.size());
+            assertEquals(initialSize, terminal.nativeHandlers.size());
         }
     }
 
@@ -185,6 +187,42 @@ class PosixSysTerminalTest {
                 // Set ISIG so the software interceptor should NOT fire
                 terminal.setAttributes(attr);
 
+                AtomicReference<Signal> received = new AtomicReference<>();
+                terminal.handle(Signal.INT, received::set);
+
+                int b = terminal.input().read();
+                assertEquals(0x03, b);
+                assertNull(received.get());
+            }
+        } finally {
+            if (prev == null) {
+                System.clearProperty(TerminalBuilder.PROP_SOFTWARE_SIGNALS);
+            } else {
+                System.setProperty(TerminalBuilder.PROP_SOFTWARE_SIGNALS, prev);
+            }
+        }
+    }
+
+    @Test
+    void testNoSignalInterceptionWhenSoftwareSignalsDisabled() throws Exception {
+        String prev = System.getProperty(TerminalBuilder.PROP_SOFTWARE_SIGNALS);
+        try {
+            System.setProperty(TerminalBuilder.PROP_SOFTWARE_SIGNALS, "false");
+
+            Attributes attr = new Attributes();
+            attr.setControlChar(ControlChar.VINTR, 3);
+
+            Pty pty = EasyMock.createNiceMock(Pty.class);
+            EasyMock.expect(pty.getAttr()).andReturn(attr).anyTimes();
+            EasyMock.expect(pty.getSlaveInput())
+                    .andReturn(new ByteArrayInputStream(new byte[] {0x03}))
+                    .anyTimes();
+            EasyMock.expect(pty.getSlaveOutput())
+                    .andReturn(new ByteArrayOutputStream())
+                    .anyTimes();
+            EasyMock.replay(pty);
+            try (PosixSysTerminal terminal =
+                    new PosixSysTerminal("name", "ansi", pty, null, false, SignalHandler.SIG_DFL)) {
                 AtomicReference<Signal> received = new AtomicReference<>();
                 terminal.handle(Signal.INT, received::set);
 
