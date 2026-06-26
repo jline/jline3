@@ -120,6 +120,14 @@ public class Display implements Sized {
     private final boolean hasCursorAddress;
     private final boolean canSkipIntraLine;
 
+    // Synchronized output (mode 2026) escape sequences.
+    // BSU tells the terminal to buffer all output until ESU, then render atomically.
+    // Terminals that do not support mode 2026 silently ignore these sequences.
+    private static final String SYNC_START = "\033[?2026h";
+    private static final String SYNC_END = "\033[?2026l";
+
+    private boolean scrollOptimization = true;
+
     /*
      * Minimum number of unchanged characters within a changed region that justifies
      * a cursor-movement skip instead of re-emitting them.  A CUF escape (\e[nC)
@@ -181,6 +189,36 @@ public class Display implements Sized {
      */
     public void setDelayLineWrap(boolean v) {
         delayLineWrap = v;
+    }
+
+    /**
+     * Returns whether the scroll optimization is enabled.
+     * When enabled, the display uses terminal insert/delete line capabilities to
+     * scroll content efficiently instead of redrawing all changed lines.
+     *
+     * @return {@code true} if scroll optimization is enabled (the default)
+     */
+    public boolean scrollOptimization() {
+        return scrollOptimization;
+    }
+
+    /**
+     * Enable or disable the scroll optimization.
+     * <p>
+     * When enabled (the default), the display detects content shifts between frames
+     * and uses terminal insert/delete line capabilities to scroll content efficiently.
+     * This reduces the number of characters written but may cause visible flicker on
+     * terminals that render intermediate states (e.g. during high-FPS full-screen updates).
+     * </p>
+     * <p>
+     * Disabling the scroll optimization forces full per-line diff updates, which produces
+     * more output bytes but avoids flicker from insert/delete line intermediate states.
+     * </p>
+     *
+     * @param v {@code true} to enable scroll optimization, {@code false} to disable it
+     */
+    public void setScrollOptimization(boolean v) {
+        scrollOptimization = v;
     }
 
     /**
@@ -382,6 +420,14 @@ public class Display implements Sized {
             ansiColorState[1] = 0;
         }
 
+        // Begin synchronized update (mode 2026): tell the terminal to buffer all
+        // output until the matching ESU at the end, then render everything atomically.
+        // This prevents visible intermediate states from scroll optimization
+        // (insertLines/deleteLines) that otherwise cause flicker.
+        if (fullScreen) {
+            rawEsc(SYNC_START);
+        }
+
         if (reset) {
             puts(Capability.clear_screen);
             puts(Capability.cursor_address, 0, 0);
@@ -400,7 +446,10 @@ public class Display implements Sized {
         }
 
         // Detect scrolling
-        if ((fullScreen || newLines.size() >= rows) && newLines.size() == oldLines.size() && canScroll) {
+        if (scrollOptimization
+                && (fullScreen || newLines.size() >= rows)
+                && newLines.size() == oldLines.size()
+                && canScroll) {
             int nbHeaders = 0;
             int nbFooters = 0;
             // Find common headers and footers
@@ -480,9 +529,13 @@ public class Display implements Sized {
                 cursorPos++;
                 if (nEnd - nStart == 0 || newLine.isHidden(nStart)) {
                     // go to next line column zero
-                    ensureDefaultAnsiStyle();
-                    rawPrint(' ');
-                    puts(Capability.cursor_left);
+                    if (hasCursorAddress) {
+                        puts(Capability.cursor_address, lineIndex, 0);
+                    } else {
+                        ensureDefaultAnsiStyle();
+                        rawPrint(' ');
+                        puts(Capability.cursor_left);
+                    }
                 } else {
                     // go to next line column one
                     rawPrint(newLine, nStart, nStart + 1);
@@ -671,6 +724,11 @@ public class Display implements Sized {
         oldLines.clear();
         oldLines.addAll(newLines);
         ensureDefaultAnsiStyle();
+
+        // End synchronized update (mode 2026): the terminal renders all buffered output now.
+        if (fullScreen) {
+            rawEsc(SYNC_END);
+        }
 
         if (useByteMode && byteBuilder.length() > 0) {
             // Flush any pending writer data, then write accumulated bytes
@@ -1007,6 +1065,18 @@ public class Display implements Sized {
         } else {
             // Non-byte-mode path: fall back to subSequence (rare path for non-UTF-8 terminals)
             str.subSequence(start, end).print(terminal);
+        }
+    }
+
+    /**
+     * Write an ASCII escape sequence to the terminal output, bypassing cursor
+     * tracking and style state. Used for non-capability sequences like mode 2026.
+     */
+    private void rawEsc(String seq) {
+        if (useByteMode) {
+            byteBuilder.appendAscii(seq);
+        } else {
+            terminal.writer().write(seq);
         }
     }
 

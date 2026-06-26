@@ -28,7 +28,8 @@ public class VirtualTerminal extends LineDisciplineTerminal {
     public VirtualTerminal(String name, String type, Charset encoding, int cols, int rows) throws IOException {
         super(name, type, new SpyDelegateOutputStream(), encoding);
         setSize(Size.of(cols, rows));
-        virtual = new ScreenTerminal(cols, rows);
+        boolean xenl = getBooleanCapability(InfoCmp.Capability.eat_newline_glitch);
+        virtual = new ScreenTerminal(cols, rows, xenl);
         OutputStream feedbackOutput = new OutputStream() {
             @Override
             public void write(int b) throws IOException {

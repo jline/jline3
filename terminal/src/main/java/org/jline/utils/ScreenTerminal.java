@@ -78,6 +78,7 @@ public class ScreenTerminal implements Sized {
 
     private int columns;
     private int rows;
+    private boolean eatNewlineGlitch;
     private long attr;
     private boolean eol;
     private int cx;
@@ -146,8 +147,23 @@ public class ScreenTerminal implements Sized {
      * @param rows the number of character rows for the terminal
      */
     public ScreenTerminal(int columns, int rows) {
+        this(columns, rows, true);
+    }
+
+    /**
+     * Creates a ScreenTerminal with the specified size and wrap behavior.
+     *
+     * @param columns the number of character columns for the terminal
+     * @param rows the number of character rows for the terminal
+     * @param eatNewlineGlitch when {@code true}, the cursor stays at the last column
+     *        after writing a character there (delayed wrap / xenl behavior, like xterm).
+     *        When {@code false}, writing at the last column immediately wraps the cursor
+     *        to column 0 of the next line (like windows-vtp).
+     */
+    public ScreenTerminal(int columns, int rows, boolean eatNewlineGlitch) {
         this.columns = columns;
         this.rows = rows;
+        this.eatNewlineGlitch = eatNewlineGlitch;
         this.tab_stops = new ArrayList<>();
         reset_hard();
     }
@@ -507,6 +523,15 @@ public class ScreenTerminal implements Sized {
         }
 
         cursor_right(charWidth);
+
+        // On terminals without eat_newline_glitch (e.g. windows-vtp), writing at the
+        // last column wraps the cursor to the next line immediately, rather than
+        // deferring the wrap to the next character write.
+        if (!eatNewlineGlitch && eol && vt100_mode_autowrap) {
+            eol = false;
+            ctrl_CR();
+            ctrl_LF();
+        }
     }
 
     //
