@@ -279,6 +279,7 @@ public class TelnetIO {
     protected static final int NE_IN_END = -3;
     protected static final int NE_VAR_NAME_MAXLENGTH = 50;
     protected static final int NE_VAR_VALUE_MAXLENGTH = 1000;
+    protected static final int NE_VAR_COUNT_MAX = 100;
     /**
      * Unused
      */
@@ -296,6 +297,8 @@ public class TelnetIO {
     private static final int SMALLEST_BELIEVABLE_HEIGHT = 6;
     private static final int DEFAULT_WIDTH = 80;
     private static final int DEFAULT_HEIGHT = 25;
+    private static final int LARGEST_BELIEVABLE_WIDTH = 500;
+    private static final int LARGEST_BELIEVABLE_HEIGHT = 500;
     private Connection connection; // a reference to the connection this instance works for
     private ConnectionData connectionData; // holds all important information of the connection
     private DataOutputStream out; // the byte oriented outputstream
@@ -596,10 +599,10 @@ public class TelnetIO {
      * @param height Integer that represents the Window height in chars
      */
     private void setTerminalGeometry(int width, int height) {
-        if (width < SMALLEST_BELIEVABLE_WIDTH) {
+        if (width < SMALLEST_BELIEVABLE_WIDTH || width > LARGEST_BELIEVABLE_WIDTH) {
             width = DEFAULT_WIDTH;
         }
-        if (height < SMALLEST_BELIEVABLE_HEIGHT) {
+        if (height < SMALLEST_BELIEVABLE_HEIGHT || height > LARGEST_BELIEVABLE_HEIGHT) {
             height = DEFAULT_HEIGHT;
         }
         // DEBUG: write("[New Window Size " + window_width + "x" + window_height + "]");
@@ -1143,6 +1146,7 @@ public class TelnetIO {
                 LOG.log(Level.FINE, "readNEVariables()::INVALID VARIABLE");
                 return;
             }
+            int varCount = 0;
             boolean cont = true;
             if (i == NE_VAR || i == NE_USERVAR) {
                 do {
@@ -1155,6 +1159,11 @@ public class TelnetIO {
                             return;
                         case NE_VAR_DEFINED:
                             LOG.log(Level.FINE, "readNEVariables()::NE_VAR_DEFINED");
+                            if (++varCount > NE_VAR_COUNT_MAX) {
+                                LOG.log(Level.WARNING, "readNEVariables()::TOO_MANY_VARS (>" + NE_VAR_COUNT_MAX + ")");
+                                skipToSE();
+                                return;
+                            }
                             String str = sbuf.toString();
                             sbuf.delete(0, sbuf.length());
                             switch (readNEVariableValue(sbuf)) {
