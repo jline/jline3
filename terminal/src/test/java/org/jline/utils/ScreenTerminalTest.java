@@ -791,6 +791,125 @@ class ScreenTerminalTest {
         assertTrue(terminal.getHistorySize() > snapshotSize, "Live history should have grown");
     }
 
+    // -----------------------------------------------------------------------
+    // Cell decode utility tests
+    // -----------------------------------------------------------------------
+
+    /**
+     * cellCodePoint() must extract the low 32 bits and cellAttr() the high 32 bits.
+     */
+    @Test
+    void testCellCodePointAndAttr() {
+        // Encode 'A' with some arbitrary attributes in the upper half
+        long cell = (0x08000000L << 32) | (long) 'A';
+        assertEquals('A', ScreenTerminal.cellCodePoint(cell));
+        assertEquals(0x08000000L, ScreenTerminal.cellAttr(cell));
+    }
+
+    /**
+     * The cell decode utilities must agree with the SGR attributes that ScreenTerminal
+     * sets when processing ANSI escape sequences (bold=1, dim=2, italic=3, underline=4,
+     * inverse=7, conceal=8).
+     */
+    @Test
+    void testCellDecodeMatchesSgrAttributes() {
+        ScreenTerminal terminal = new ScreenTerminal(20, 3);
+
+        // Write a bold, underlined, italic 'B'
+        terminal.write("\033[1;3;4mB\033[0m");
+
+        long[] screen = new long[20 * 3];
+        terminal.dump(screen, null);
+        long cell = screen[0];
+
+        assertEquals('B', ScreenTerminal.cellCodePoint(cell));
+        assertTrue(ScreenTerminal.cellBold(cell), "bold");
+        assertTrue(ScreenTerminal.cellItalic(cell), "italic");
+        assertTrue(ScreenTerminal.cellUnderline(cell), "underline");
+        assertFalse(ScreenTerminal.cellDim(cell), "dim should not be set");
+        assertFalse(ScreenTerminal.cellInverse(cell), "inverse should not be set");
+        assertFalse(ScreenTerminal.cellConceal(cell), "conceal should not be set");
+    }
+
+    /**
+     * dim (SGR 2) and inverse (SGR 7) must be decoded correctly.
+     */
+    @Test
+    void testCellDecodeDimAndInverse() {
+        ScreenTerminal terminal = new ScreenTerminal(20, 3);
+        terminal.write("\033[2;7mX\033[0m");
+
+        long[] screen = new long[20 * 3];
+        terminal.dump(screen, null);
+        long cell = screen[0];
+
+        assertEquals('X', ScreenTerminal.cellCodePoint(cell));
+        assertTrue(ScreenTerminal.cellDim(cell), "dim");
+        assertTrue(ScreenTerminal.cellInverse(cell), "inverse");
+        assertFalse(ScreenTerminal.cellBold(cell), "bold should not be set");
+    }
+
+    /**
+     * Foreground and background colors set via SGR 38;2 (true-color) must be
+     * extractable through cellForeground/cellBackground and expandable via
+     * cellColorRgb.
+     */
+    @Test
+    void testCellDecodeForegroundAndBackground() {
+        ScreenTerminal terminal = new ScreenTerminal(20, 3);
+        // Set FG to RGB(0xAB, 0xCD, 0xEF) and BG to RGB(0x12, 0x34, 0x56)
+        terminal.write("\033[38;2;171;205;239;48;2;18;52;86mC\033[0m");
+
+        long[] screen = new long[20 * 3];
+        terminal.dump(screen, null);
+        long cell = screen[0];
+
+        assertEquals('C', ScreenTerminal.cellCodePoint(cell));
+        assertTrue(ScreenTerminal.cellHasForeground(cell), "FG should be set");
+        assertTrue(ScreenTerminal.cellHasBackground(cell), "BG should be set");
+
+        // ScreenTerminal quantizes to 4 bits per channel: 0xAB→0xA, 0xCD→0xC, 0xEF→0xE
+        assertEquals(0xACE, ScreenTerminal.cellForeground(cell));
+        // 0x12→0x1, 0x34→0x3, 0x56→0x5
+        assertEquals(0x135, ScreenTerminal.cellBackground(cell));
+    }
+
+    /**
+     * cellColorRgb must expand each 4-bit channel to 8 bits by nibble replication.
+     */
+    @Test
+    void testCellColorRgbExpansion() {
+        // 0xACE → R=0xAA, G=0xCC, B=0xEE → 0xAACCEE
+        assertEquals(0xAACCEE, ScreenTerminal.cellColorRgb(0xACE));
+        // 0x000 → 0x000000
+        assertEquals(0x000000, ScreenTerminal.cellColorRgb(0x000));
+        // 0xFFF → 0xFFFFFF
+        assertEquals(0xFFFFFF, ScreenTerminal.cellColorRgb(0xFFF));
+    }
+
+    /**
+     * A plain character (no SGR) must have no foreground/background set and no style flags.
+     */
+    @Test
+    void testCellDecodeDefaultAttributes() {
+        ScreenTerminal terminal = new ScreenTerminal(20, 3);
+        terminal.write("Z");
+
+        long[] screen = new long[20 * 3];
+        terminal.dump(screen, null);
+        long cell = screen[0];
+
+        assertEquals('Z', ScreenTerminal.cellCodePoint(cell));
+        assertFalse(ScreenTerminal.cellHasForeground(cell), "default has no FG color");
+        assertFalse(ScreenTerminal.cellHasBackground(cell), "default has no BG color");
+        assertFalse(ScreenTerminal.cellBold(cell));
+        assertFalse(ScreenTerminal.cellDim(cell));
+        assertFalse(ScreenTerminal.cellItalic(cell));
+        assertFalse(ScreenTerminal.cellUnderline(cell));
+        assertFalse(ScreenTerminal.cellInverse(cell));
+        assertFalse(ScreenTerminal.cellConceal(cell));
+    }
+
     /**
      * Test for issue #1231: Missing space-filling in ScreenTerminal
      * This test verifies that when the terminal width is increased, screen lines are properly
