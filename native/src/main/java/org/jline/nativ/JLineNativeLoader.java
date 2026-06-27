@@ -38,11 +38,11 @@ import java.lang.System.Logger.Level;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Manages the loading of JLine's native libraries (*.dll, *.jnilib, *.so) according to the current
@@ -380,7 +380,7 @@ public class JLineNativeLoader {
     }
 
     private static String randomUUID() {
-        return Long.toHexString(new SecureRandom().nextLong());
+        return Long.toHexString(ThreadLocalRandom.current().nextLong());
     }
 
     /**
