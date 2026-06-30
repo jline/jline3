@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -381,6 +382,7 @@ public final class TerminalBuilder {
     private Terminal.SignalHandler signalHandler = Terminal.SignalHandler.SIG_DFL;
     private boolean paused = false;
     private Boolean graphemeCluster;
+    private Function<String, String> env;
 
     private TerminalBuilder() {}
 
@@ -788,6 +790,37 @@ public final class TerminalBuilder {
     }
 
     /**
+     * Sets a custom environment variable provider for the terminal.
+     *
+     * <p>By default, terminals read environment variables from
+     * {@link System#getenv(String)}, which returns the JVM process's own
+     * environment. For remote terminals (e.g., SSH), the client's environment
+     * variables are different from the server JVM's. This method allows
+     * injecting the correct environment so that capability detection
+     * (true-color, graphics protocol, grapheme cluster mode, etc.) uses
+     * the remote client's values.</p>
+     *
+     * <p>Example — SSH server passing the client's environment:</p>
+     * <pre>
+     * Map&lt;String, String&gt; sshEnv = sshSession.getEnvironment();
+     * Terminal terminal = TerminalBuilder.builder()
+     *     .system(false)
+     *     .streams(in, out)
+     *     .env(sshEnv::get)
+     *     .build();
+     * </pre>
+     *
+     * @param env a function that returns the value of an environment variable
+     *            given its name, or {@code null} if not defined
+     * @return this builder
+     * @see Terminal#getenv(String)
+     */
+    public TerminalBuilder env(Function<String, String> env) {
+        this.env = env;
+        return this;
+    }
+
+    /**
      * Create and configure a Terminal instance according to this builder's settings.
      *
      * If a global terminal override has been set, that instance is returned instead of creating a new one.
@@ -808,6 +841,12 @@ public final class TerminalBuilder {
         if (terminal instanceof AbstractPosixTerminal) {
             Log.debug(() -> "Using pty "
                     + ((AbstractPosixTerminal) terminal).getPty().getClass().getSimpleName());
+        }
+        // Set custom environment provider if configured.
+        // This must happen before grapheme cluster probing, which reads
+        // env vars like TERM_PROGRAM to decide whether to send DECRQM.
+        if (this.env != null && terminal instanceof AbstractTerminal) {
+            ((AbstractTerminal) terminal).setEnv(this.env);
         }
         // Enable grapheme cluster mode if supported
         Boolean gc = this.graphemeCluster;
@@ -1051,7 +1090,7 @@ public final class TerminalBuilder {
         if (dumb == null) {
             // detect emacs using the env variable
             if (color == null) {
-                String emacs = System.getenv("INSIDE_EMACS");
+                String emacs = getEnvVar("INSIDE_EMACS");
                 if (emacs != null && emacs.contains("comint")) {
                     color = true;
                 }
@@ -1059,7 +1098,7 @@ public final class TerminalBuilder {
             // detect Intellij Idea
             if (color == null) {
                 // using the env variable on windows
-                String ideHome = System.getenv("IDE_HOME");
+                String ideHome = getEnvVar("IDE_HOME");
                 if (ideHome != null) {
                     color = true;
                 } else {
@@ -1071,7 +1110,7 @@ public final class TerminalBuilder {
                 }
             }
             if (color == null) {
-                color = systemStream != null && System.getenv("TERM") != null;
+                color = systemStream != null && getEnvVar("TERM") != null;
             }
         } else {
             if (color == null) {
@@ -1139,7 +1178,7 @@ public final class TerminalBuilder {
             type = System.getProperty(PROP_TYPE);
         }
         if (type == null) {
-            type = System.getenv("TERM");
+            type = getEnvVar("TERM");
         }
         return type;
     }
@@ -1296,6 +1335,14 @@ public final class TerminalBuilder {
             }
         }
         return null;
+    }
+
+    /**
+     * Reads an environment variable using the configured provider, or
+     * {@link System#getenv(String)} if none was set.
+     */
+    private String getEnvVar(String name) {
+        return env != null ? env.apply(name) : System.getenv(name);
     }
 
     private static String getParentProcessCommand() {

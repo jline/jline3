@@ -73,24 +73,24 @@ public class ITerm2Graphics implements TerminalGraphics {
         }
 
         // Check for iTerm2
-        String termProgram = System.getenv("TERM_PROGRAM");
+        String termProgram = terminal.getenv("TERM_PROGRAM");
         if ("iTerm.app".equals(termProgram)) {
             return true;
         }
 
         // Check for iTerm2-specific environment variables
-        if (System.getenv("ITERM_SESSION_ID") != null) {
+        if (terminal.getenv("ITERM_SESSION_ID") != null) {
             return true;
         }
 
         // Check TERM_PROGRAM_VERSION for iTerm2
-        String termProgramVersion = System.getenv("TERM_PROGRAM_VERSION");
+        String termProgramVersion = terminal.getenv("TERM_PROGRAM_VERSION");
         if (termProgramVersion != null && "iTerm.app".equals(termProgram)) {
             return true;
         }
 
         // Check for LC_TERMINAL which iTerm2 sets
-        String lcTerminal = System.getenv("LC_TERMINAL");
+        String lcTerminal = terminal.getenv("LC_TERMINAL");
         if ("iTerm2".equals(lcTerminal)) {
             return true;
         }

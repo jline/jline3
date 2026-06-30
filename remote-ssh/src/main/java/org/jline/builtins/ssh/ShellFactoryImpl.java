@@ -179,26 +179,25 @@ public class ShellFactoryImpl implements ShellFactory {
                             break;
                     }
                 }
+                Map<String, String> sshEnv = env.getEnv();
                 Terminal terminal = TerminalBuilder.builder()
                         .name("JLine SSH")
-                        .type(env.getEnv().get("TERM"))
+                        .type(sshEnv.get("TERM"))
                         .system(false)
                         .streams(in, out)
                         .attributes(attributes)
-                        .size(Size.of(
-                                Integer.parseInt(env.getEnv().get("COLUMNS")),
-                                Integer.parseInt(env.getEnv().get("LINES"))))
+                        .env(sshEnv::get)
+                        .size(Size.of(Integer.parseInt(sshEnv.get("COLUMNS")), Integer.parseInt(sshEnv.get("LINES"))))
                         .build();
                 env.addSignalListener(
                         (channel, signals) -> {
                             terminal.setSize(Size.of(
-                                    Integer.parseInt(env.getEnv().get("COLUMNS")),
-                                    Integer.parseInt(env.getEnv().get("LINES"))));
+                                    Integer.parseInt(sshEnv.get("COLUMNS")), Integer.parseInt(sshEnv.get("LINES"))));
                             terminal.raise(Terminal.Signal.WINCH);
                         },
                         Signal.WINCH);
 
-                shell.accept(new Ssh.ShellParams(env.getEnv(), session.getSession(), terminal, () -> destroy(session)));
+                shell.accept(new Ssh.ShellParams(sshEnv, session.getSession(), terminal, () -> destroy(session)));
             } catch (Throwable t) {
                 if (!closed) {
                     LOGGER.error("Error occured while executing shell", t);

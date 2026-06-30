@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 
@@ -85,6 +86,7 @@ public abstract class AbstractTerminal implements TerminalExt {
     protected final Map<Capability, Integer> ints = new HashMap<>();
     protected final Map<Capability, String> strings = new HashMap<>();
     protected final ColorPalette palette;
+    protected Function<String, String> envProvider = System::getenv;
     protected Status status;
     protected Runnable onClose;
     protected MouseTracking currentMouseTracking = MouseTracking.Off;
@@ -144,6 +146,27 @@ public abstract class AbstractTerminal implements TerminalExt {
 
     public void setOnClose(Runnable onClose) {
         this.onClose = onClose;
+    }
+
+    @Override
+    public String getenv(String name) {
+        return envProvider.apply(name);
+    }
+
+    /**
+     * Sets the environment variable provider for this terminal and re-detects
+     * environment-dependent capabilities (e.g., true-color support).
+     *
+     * <p>This is called by {@link TerminalBuilder} when a custom environment
+     * has been configured, for example to inject the SSH client's environment
+     * into a remote terminal.</p>
+     *
+     * @param env a function that returns the value of an environment variable
+     *            given its name, or {@code null} if not defined
+     */
+    public void setEnv(Function<String, String> env) {
+        this.envProvider = Objects.requireNonNull(env);
+        detectTrueColorSupport();
     }
 
     public Status getStatus() {
@@ -323,7 +346,7 @@ public abstract class AbstractTerminal implements TerminalExt {
         if (maxColors != null && maxColors >= 0x7FFF) {
             return; // already true-color capable
         }
-        String colorterm = System.getenv("COLORTERM");
+        String colorterm = getenv("COLORTERM");
         if (colorterm != null) {
             colorterm = colorterm.toLowerCase(java.util.Locale.ROOT);
         }
@@ -515,7 +538,7 @@ public abstract class AbstractTerminal implements TerminalExt {
         // Terminal.app's CSI parser does not handle intermediate bytes correctly
         // and leaks the final byte 'p' of the DECRQM sequence as visible text.
         // Skip DECRQM but return NOT_SUPPORTED (not NO_RESPONSE) so the cursor probe runs.
-        String termProgram = System.getenv("TERM_PROGRAM");
+        String termProgram = getenv("TERM_PROGRAM");
         if ("Apple_Terminal".equals(termProgram)) {
             return ProbeResult.NOT_SUPPORTED;
         }
