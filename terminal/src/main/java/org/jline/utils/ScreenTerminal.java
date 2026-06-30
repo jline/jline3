@@ -2007,6 +2007,185 @@ public class ScreenTerminal implements Sized {
     }
 
     /**
+     * Returns a snapshot of the scrollback history: the lines that have scrolled off the top
+     * of the active screen, oldest first. Each row is encoded in the same cell format as
+     * {@link #dump(long[], int[])} (the low 32 bits hold the code point, the high 32 bits hold
+     * the attributes).
+     * <p>
+     * The returned {@code List} is a copy, so it is safe to iterate while the terminal keeps
+     * processing output. The {@code long[]} rows it references are shared with the terminal and
+     * must be treated as read-only.
+     *
+     * @return a snapshot of the scrollback history rows, oldest first (never {@code null})
+     */
+    public synchronized List<long[]> getHistory() {
+        return new ArrayList<>(history);
+    }
+
+    /**
+     * Returns the number of lines currently held in the scrollback history.
+     * <p>
+     * Equivalent to {@code getHistory().size()} but without copying the history.
+     *
+     * @return the number of scrollback history lines
+     */
+    public synchronized int getHistorySize() {
+        return history.size();
+    }
+
+    // -----------------------------------------------------------------------
+    // Cell decoding utilities
+    //
+    // Both dump() and getHistory() expose screen content as {@code long}
+    // values.  These static helpers let callers extract each field without
+    // depending on the internal bit layout.
+    // -----------------------------------------------------------------------
+
+    /**
+     * Extracts the Unicode code point from a cell value.
+     * A return value of 0 indicates a continuation cell for a wide character.
+     *
+     * @param cell the 64-bit cell value from {@link #dump(long[], int[])} or {@link #getHistory()}
+     * @return the Unicode code point stored in the cell
+     */
+    public static int cellCodePoint(long cell) {
+        return (int) (cell & 0xffffffffL);
+    }
+
+    /**
+     * Extracts the raw 32-bit attribute word from a cell value.
+     * Prefer the typed accessors ({@link #cellBold}, {@link #cellForeground}, etc.)
+     * over inspecting this value directly.
+     *
+     * @param cell the 64-bit cell value
+     * @return the upper 32 bits containing style and color information
+     */
+    public static long cellAttr(long cell) {
+        return cell >>> 32;
+    }
+
+    /**
+     * Returns {@code true} if the cell has the bold attribute set.
+     *
+     * @param cell the 64-bit cell value
+     * @return whether bold is enabled
+     */
+    public static boolean cellBold(long cell) {
+        return (cell & (0x08000000L << 32)) != 0;
+    }
+
+    /**
+     * Returns {@code true} if the cell has the dim/faint attribute set.
+     *
+     * @param cell the 64-bit cell value
+     * @return whether dim is enabled
+     */
+    public static boolean cellDim(long cell) {
+        return (cell & (0x40000000L << 32)) != 0;
+    }
+
+    /**
+     * Returns {@code true} if the cell has the italic attribute set.
+     *
+     * @param cell the 64-bit cell value
+     * @return whether italic is enabled
+     */
+    public static boolean cellItalic(long cell) {
+        return (cell & (0x80000000L << 32)) != 0;
+    }
+
+    /**
+     * Returns {@code true} if the cell has the underline attribute set.
+     *
+     * @param cell the 64-bit cell value
+     * @return whether underline is enabled
+     */
+    public static boolean cellUnderline(long cell) {
+        return (cell & (0x01000000L << 32)) != 0;
+    }
+
+    /**
+     * Returns {@code true} if the cell has the inverse (negative) attribute set.
+     *
+     * @param cell the 64-bit cell value
+     * @return whether inverse is enabled
+     */
+    public static boolean cellInverse(long cell) {
+        return (cell & (0x02000000L << 32)) != 0;
+    }
+
+    /**
+     * Returns {@code true} if the cell has the conceal (hidden) attribute set.
+     *
+     * @param cell the 64-bit cell value
+     * @return whether conceal is enabled
+     */
+    public static boolean cellConceal(long cell) {
+        return (cell & (0x04000000L << 32)) != 0;
+    }
+
+    /**
+     * Returns {@code true} if the cell has an explicit foreground color set.
+     * When {@code false}, the terminal's default foreground should be used.
+     *
+     * @param cell the 64-bit cell value
+     * @return whether a foreground color is set
+     */
+    public static boolean cellHasForeground(long cell) {
+        return (cell & (0x10000000L << 32)) != 0;
+    }
+
+    /**
+     * Returns {@code true} if the cell has an explicit background color set.
+     * When {@code false}, the terminal's default background should be used.
+     *
+     * @param cell the 64-bit cell value
+     * @return whether a background color is set
+     */
+    public static boolean cellHasBackground(long cell) {
+        return (cell & (0x20000000L << 32)) != 0;
+    }
+
+    /**
+     * Extracts the foreground color as a 12-bit value (4 bits per r/g/b channel).
+     * Only meaningful when {@link #cellHasForeground(long)} returns {@code true}.
+     * Use {@link #cellColorRgb(int)} to expand to a 24-bit RGB value.
+     *
+     * @param cell the 64-bit cell value
+     * @return the 12-bit foreground color (0x000–0xFFF)
+     */
+    public static int cellForeground(long cell) {
+        return (int) ((cell >>> 44) & 0xfff);
+    }
+
+    /**
+     * Extracts the background color as a 12-bit value (4 bits per r/g/b channel).
+     * Only meaningful when {@link #cellHasBackground(long)} returns {@code true}.
+     * Use {@link #cellColorRgb(int)} to expand to a 24-bit RGB value.
+     *
+     * @param cell the 64-bit cell value
+     * @return the 12-bit background color (0x000–0xFFF)
+     */
+    public static int cellBackground(long cell) {
+        return (int) ((cell >>> 32) & 0xfff);
+    }
+
+    /**
+     * Expands a 12-bit color (as returned by {@link #cellForeground(long)} or
+     * {@link #cellBackground(long)}) to a 24-bit RGB value.  Each 4-bit channel
+     * is expanded to 8 bits by replicating the nibble (e.g. {@code 0xA → 0xAA}).
+     *
+     * @param color12 the 12-bit color value (0x000–0xFFF)
+     * @return the 24-bit RGB color (0x000000–0xFFFFFF)
+     */
+    public static int cellColorRgb(int color12) {
+        int r = (color12 >> 8) & 0xf;
+        int g = (color12 >> 4) & 0xf;
+        int b = color12 & 0xf;
+        return (r << 20) | (r << 16) | (g << 12) | (g << 8) | (b << 4) | b;
+    }
+
+    /**
      * Waits for the screen to be dirty, then dumps the raw screen content into a subregion.
      *
      * @param timeout    maximum time to wait in milliseconds

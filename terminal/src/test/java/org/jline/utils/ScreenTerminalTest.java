@@ -12,6 +12,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.List;
 
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
@@ -51,6 +52,16 @@ class ScreenTerminalTest {
         long[] screen = new long[w * h];
         terminal.dump(screen, null);
         return screen[row * w + col] >>> 32;
+    }
+
+    // Helper: decode the first n cells of a history/screen row into a String
+    private String decodeRow(long[] row, int n) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < n; i++) {
+            int ch = (int) (row[i] & 0xffffffffL);
+            sb.appendCodePoint(ch == 0 ? ' ' : ch);
+        }
+        return sb.toString();
     }
 
     // -----------------------------------------------------------------------
@@ -727,6 +738,176 @@ class ScreenTerminalTest {
         // We can verify this by dumping the terminal content
         String dump = terminal.dump(0, true);
         assertNotNull(dump);
+    }
+
+    /**
+     * getHistory()/getHistorySize() must expose the lines that scrolled off the top of the
+     * screen, encoded in the same cell format as dump(), so an embedding renderer can display
+     * scrollback. Without these accessors the scrollback buffer is private and unreachable.
+     */
+    @Test
+    void testGetHistoryExposesScrolledOffLines() {
+        ScreenTerminal terminal = new ScreenTerminal(10, 3);
+
+        // A fresh screen has no scrollback.
+        assertEquals(0, terminal.getHistorySize());
+        assertTrue(terminal.getHistory().isEmpty());
+
+        // Write more lines than the screen height so the top lines scroll into history.
+        for (int i = 0; i < 8; i++) {
+            terminal.write("row" + i + "\n");
+        }
+
+        int size = terminal.getHistorySize();
+        assertTrue(size > 0, "Lines scrolled off the top must be retained in history");
+        assertEquals(size, terminal.getHistory().size(), "getHistorySize must match getHistory().size()");
+
+        // The oldest history row must be the first line written, decoded from the cell format.
+        long[] oldest = terminal.getHistory().get(0);
+        assertEquals("row0", decodeRow(oldest, 4), "Oldest history line should be the first scrolled-off row");
+    }
+
+    /**
+     * getHistory() must return a snapshot: mutating the returned list, or further terminal
+     * output, must not corrupt a previously obtained copy. This is what lets a renderer iterate
+     * the history on one thread while the terminal keeps producing output on another.
+     */
+    @Test
+    void testGetHistoryReturnsSnapshot() {
+        ScreenTerminal terminal = new ScreenTerminal(10, 3);
+        for (int i = 0; i < 8; i++) {
+            terminal.write("row" + i + "\n");
+        }
+
+        List<long[]> snapshot = terminal.getHistory();
+        int snapshotSize = snapshot.size();
+
+        // Producing more output grows the live history but must not change the snapshot.
+        for (int i = 8; i < 12; i++) {
+            terminal.write("row" + i + "\n");
+        }
+
+        assertEquals(snapshotSize, snapshot.size(), "Existing snapshot must not change as new output arrives");
+        assertTrue(terminal.getHistorySize() > snapshotSize, "Live history should have grown");
+    }
+
+    // -----------------------------------------------------------------------
+    // Cell decode utility tests
+    // -----------------------------------------------------------------------
+
+    /**
+     * cellCodePoint() must extract the low 32 bits and cellAttr() the high 32 bits.
+     */
+    @Test
+    void testCellCodePointAndAttr() {
+        // Encode 'A' with some arbitrary attributes in the upper half
+        long cell = (0x08000000L << 32) | (long) 'A';
+        assertEquals('A', ScreenTerminal.cellCodePoint(cell));
+        assertEquals(0x08000000L, ScreenTerminal.cellAttr(cell));
+    }
+
+    /**
+     * The cell decode utilities must agree with the SGR attributes that ScreenTerminal
+     * sets when processing ANSI escape sequences (bold=1, dim=2, italic=3, underline=4,
+     * inverse=7, conceal=8).
+     */
+    @Test
+    void testCellDecodeMatchesSgrAttributes() {
+        ScreenTerminal terminal = new ScreenTerminal(20, 3);
+
+        // Write a bold, underlined, italic 'B'
+        terminal.write("\033[1;3;4mB\033[0m");
+
+        long[] screen = new long[20 * 3];
+        terminal.dump(screen, null);
+        long cell = screen[0];
+
+        assertEquals('B', ScreenTerminal.cellCodePoint(cell));
+        assertTrue(ScreenTerminal.cellBold(cell), "bold");
+        assertTrue(ScreenTerminal.cellItalic(cell), "italic");
+        assertTrue(ScreenTerminal.cellUnderline(cell), "underline");
+        assertFalse(ScreenTerminal.cellDim(cell), "dim should not be set");
+        assertFalse(ScreenTerminal.cellInverse(cell), "inverse should not be set");
+        assertFalse(ScreenTerminal.cellConceal(cell), "conceal should not be set");
+    }
+
+    /**
+     * dim (SGR 2) and inverse (SGR 7) must be decoded correctly.
+     */
+    @Test
+    void testCellDecodeDimAndInverse() {
+        ScreenTerminal terminal = new ScreenTerminal(20, 3);
+        terminal.write("\033[2;7mX\033[0m");
+
+        long[] screen = new long[20 * 3];
+        terminal.dump(screen, null);
+        long cell = screen[0];
+
+        assertEquals('X', ScreenTerminal.cellCodePoint(cell));
+        assertTrue(ScreenTerminal.cellDim(cell), "dim");
+        assertTrue(ScreenTerminal.cellInverse(cell), "inverse");
+        assertFalse(ScreenTerminal.cellBold(cell), "bold should not be set");
+    }
+
+    /**
+     * Foreground and background colors set via SGR 38;2 (true-color) must be
+     * extractable through cellForeground/cellBackground and expandable via
+     * cellColorRgb.
+     */
+    @Test
+    void testCellDecodeForegroundAndBackground() {
+        ScreenTerminal terminal = new ScreenTerminal(20, 3);
+        // Set FG to RGB(0xAB, 0xCD, 0xEF) and BG to RGB(0x12, 0x34, 0x56)
+        terminal.write("\033[38;2;171;205;239;48;2;18;52;86mC\033[0m");
+
+        long[] screen = new long[20 * 3];
+        terminal.dump(screen, null);
+        long cell = screen[0];
+
+        assertEquals('C', ScreenTerminal.cellCodePoint(cell));
+        assertTrue(ScreenTerminal.cellHasForeground(cell), "FG should be set");
+        assertTrue(ScreenTerminal.cellHasBackground(cell), "BG should be set");
+
+        // ScreenTerminal quantizes to 4 bits per channel: 0xAB→0xA, 0xCD→0xC, 0xEF→0xE
+        assertEquals(0xACE, ScreenTerminal.cellForeground(cell));
+        // 0x12→0x1, 0x34→0x3, 0x56→0x5
+        assertEquals(0x135, ScreenTerminal.cellBackground(cell));
+    }
+
+    /**
+     * cellColorRgb must expand each 4-bit channel to 8 bits by nibble replication.
+     */
+    @Test
+    void testCellColorRgbExpansion() {
+        // 0xACE → R=0xAA, G=0xCC, B=0xEE → 0xAACCEE
+        assertEquals(0xAACCEE, ScreenTerminal.cellColorRgb(0xACE));
+        // 0x000 → 0x000000
+        assertEquals(0x000000, ScreenTerminal.cellColorRgb(0x000));
+        // 0xFFF → 0xFFFFFF
+        assertEquals(0xFFFFFF, ScreenTerminal.cellColorRgb(0xFFF));
+    }
+
+    /**
+     * A plain character (no SGR) must have no foreground/background set and no style flags.
+     */
+    @Test
+    void testCellDecodeDefaultAttributes() {
+        ScreenTerminal terminal = new ScreenTerminal(20, 3);
+        terminal.write("Z");
+
+        long[] screen = new long[20 * 3];
+        terminal.dump(screen, null);
+        long cell = screen[0];
+
+        assertEquals('Z', ScreenTerminal.cellCodePoint(cell));
+        assertFalse(ScreenTerminal.cellHasForeground(cell), "default has no FG color");
+        assertFalse(ScreenTerminal.cellHasBackground(cell), "default has no BG color");
+        assertFalse(ScreenTerminal.cellBold(cell));
+        assertFalse(ScreenTerminal.cellDim(cell));
+        assertFalse(ScreenTerminal.cellItalic(cell));
+        assertFalse(ScreenTerminal.cellUnderline(cell));
+        assertFalse(ScreenTerminal.cellInverse(cell));
+        assertFalse(ScreenTerminal.cellConceal(cell));
     }
 
     /**
