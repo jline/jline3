@@ -43,7 +43,7 @@ public class ExitShellException extends RuntimeException {
     }
 
     @Override
-    public Throwable fillInStackTrace() {
+    public synchronized Throwable fillInStackTrace() {
         return this;
     }
 }
