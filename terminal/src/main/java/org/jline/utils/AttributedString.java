@@ -440,16 +440,25 @@ public class AttributedString extends AttributedCharSequence {
      * @return a new AttributedString with the specified style applied to matching regions
      */
     public AttributedString styleMatches(Pattern pattern, AttributedStyle style) {
-        Matcher matcher = pattern.matcher(this);
-        boolean result = matcher.find();
+        Matcher matcher = SafeRegex.matcher(pattern, this);
+        boolean result;
+        try {
+            result = matcher.find();
+        } catch (RegexTimeoutException e) {
+            return this;
+        }
         if (result) {
             long[] newstyle = this.style.clone();
-            do {
-                for (int i = matcher.start(); i < matcher.end(); i++) {
-                    newstyle[this.start + i] = (newstyle[this.start + i] & ~style.getMask()) | style.getStyle();
-                }
-                result = matcher.find();
-            } while (result);
+            try {
+                do {
+                    for (int i = matcher.start(); i < matcher.end(); i++) {
+                        newstyle[this.start + i] = (newstyle[this.start + i] & ~style.getMask()) | style.getStyle();
+                    }
+                    result = matcher.find();
+                } while (result);
+            } catch (RegexTimeoutException e) {
+                // Apply whatever matches we found so far
+            }
             return new AttributedString(buffer, newstyle, start, end);
         }
         return this;
