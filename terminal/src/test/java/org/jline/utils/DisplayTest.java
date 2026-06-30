@@ -399,10 +399,12 @@ class DisplayTest {
             display.update(frame1, 0);
             terminal.flush();
 
-            // Frame 2: row 0 unchanged (still wraps), row 1 now has content
+            // Frame 2: row 0 unchanged (still wraps), row 1 stays empty so the
+            // delayed-wrap path must use CUP to move past it, row 2 changes to
+            // force output.
             terminal.startCapture();
             List<AttributedString> frame2 = new ArrayList<>(frame1);
-            frame2.set(1, new AttributedString("hello"));
+            frame2.set(2, new AttributedString("hello"));
             display.update(frame2, 0);
             terminal.flush();
 
@@ -410,24 +412,24 @@ class DisplayTest {
             String output = new String(captured, StandardCharsets.UTF_8);
 
             // Row 0 was unchanged so cursor stays at right margin with delayed wrap.
-            // wrapNeeded triggers: since row 1 has content (starts with 'h'),
-            // the Display emits the first char to wrap. There should be no
+            // wrapNeeded triggers: since row 1 is empty, Display must use CUP
+            // (cursor_address) to move to the next line. There should be no
             // space+cursor_left sequence.
             assertFalse(
                     output.contains(" \033[D"),
-                    "Should use CUP or rawPrint for delayed wrap, not space+cursor_left, output: "
+                    "Should use CUP for delayed wrap over empty line, not space+cursor_left, output: "
                             + output.replace("\033", "\\e"));
 
-            // Verify screen: row 0 = AAAAAAAAAA, row 1 = hello(spaces)
+            // Verify screen: row 0 = AAAAAAAAAA, row 2 = hello(spaces)
             long[] screen = terminal.dump();
             for (int c = 0; c < cols; c++) {
                 assertEquals('A', (char) screen[0 * cols + c], "Row 0 col " + c);
             }
-            assertEquals('h', (char) screen[1 * cols + 0]);
-            assertEquals('e', (char) screen[1 * cols + 1]);
-            assertEquals('l', (char) screen[1 * cols + 2]);
-            assertEquals('l', (char) screen[1 * cols + 3]);
-            assertEquals('o', (char) screen[1 * cols + 4]);
+            assertEquals('h', (char) screen[2 * cols + 0]);
+            assertEquals('e', (char) screen[2 * cols + 1]);
+            assertEquals('l', (char) screen[2 * cols + 2]);
+            assertEquals('l', (char) screen[2 * cols + 3]);
+            assertEquals('o', (char) screen[2 * cols + 4]);
         }
     }
 
