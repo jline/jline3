@@ -9,10 +9,16 @@
 package org.jline.reader.impl.history;
 
 import java.io.IOException;
+import java.nio.file.FileStore;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFilePermission;
 import java.time.Instant;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.stream.IntStream;
@@ -21,6 +27,7 @@ import org.jline.reader.LineReader;
 import org.jline.reader.impl.ReaderTestSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -116,6 +123,30 @@ public class HistoryPersistenceTest extends ReaderTestSupport {
 
         Assertions.assertDoesNotThrow(history::load);
         Assertions.assertEquals(5, history.size());
+    }
+
+    @Test
+    public void testHistoryFilePermissions() throws Exception {
+        Path dir = Files.createTempDirectory("jline-hist-perm");
+        Path testPath = dir.resolve("history");
+        try {
+            FileStore store = Files.getFileStore(dir);
+            Assumptions.assumeTrue(store.supportsFileAttributeView(PosixFileAttributeView.class));
+
+            reader.setVariable(LineReader.HISTORY_FILE, testPath);
+            DefaultHistory history = new DefaultHistory(reader);
+            history.add("password=hunter2");
+            history.save();
+
+            Set<PosixFilePermission> perms = Files.getPosixFilePermissions(testPath);
+            assertEquals(
+                    EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE),
+                    perms,
+                    "newly created history file must not be group/world readable");
+        } finally {
+            Files.deleteIfExists(testPath);
+            Files.deleteIfExists(dir);
+        }
     }
 
     @Test
