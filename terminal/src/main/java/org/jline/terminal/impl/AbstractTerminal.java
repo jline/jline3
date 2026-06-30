@@ -29,6 +29,7 @@ import org.jline.terminal.Attributes.InputFlag;
 import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.MouseEvent;
+import org.jline.terminal.Terminal.KittyKeyboardMode;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.spi.TerminalExt;
 import org.jline.utils.AttributedCharSequence;
@@ -801,9 +802,9 @@ public abstract class AbstractTerminal implements TerminalExt {
     }
 
     @Override
-    public boolean setKittyKeyboardMode(int flags) {
+    public boolean setKittyKeyboardMode(EnumSet<KittyKeyboardMode> modes) {
         if (hasKittyKeyboardSupport()) {
-            writer().write(KittyKeyboardSupport.pushFlags(flags));
+            writer().write(KittyKeyboardSupport.pushFlags(modes));
             writer().flush();
             kittyKeyboardActive = true;
             return true;

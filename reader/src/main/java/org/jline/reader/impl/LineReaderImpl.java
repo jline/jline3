@@ -690,7 +690,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                     if (isSet(Option.MOUSE)) terminal.trackMouse(Terminal.MouseTracking.Normal);
 
                     if (isSet(Option.KITTY_KEYBOARD)) {
-                        terminal.setKittyKeyboardMode(1); // FLAG_DISAMBIGUATE
+                        terminal.setKittyKeyboardMode(EnumSet.of(Terminal.KittyKeyboardMode.Disambiguate));
                     }
 
                     if (isSet(Option.BRACKETED_PASTE)) {

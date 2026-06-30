@@ -8,6 +8,10 @@
  */
 package org.jline.terminal.impl;
 
+import java.util.EnumSet;
+
+import org.jline.terminal.Terminal.KittyKeyboardMode;
+
 /**
  * Utility class for Kitty Keyboard Protocol support in terminals.
  *
@@ -154,7 +158,33 @@ public final class KittyKeyboardSupport {
     public static final int KEY_RIGHT_HYPER = 57451;
     public static final int KEY_RIGHT_META = 57452;
 
+    // ---- Conversion ----
+
+    /**
+     * Converts a set of {@link KittyKeyboardMode} values to the protocol bitmask.
+     *
+     * @param modes the enhancement modes
+     * @return the bitmask value used in the protocol escape sequences
+     */
+    public static int toFlags(EnumSet<KittyKeyboardMode> modes) {
+        int flags = 0;
+        for (KittyKeyboardMode mode : modes) {
+            flags |= (1 << mode.ordinal());
+        }
+        return flags;
+    }
+
     // ---- Sequence Builders ----
+
+    /**
+     * Returns the escape sequence to push enhancement modes onto the stack.
+     *
+     * @param modes the enhancement modes to enable
+     * @return the push escape sequence {@code CSI > flags u}
+     */
+    public static String pushFlags(EnumSet<KittyKeyboardMode> modes) {
+        return pushFlags(toFlags(modes));
+    }
 
     /**
      * Returns the escape sequence to push enhancement flags onto the stack.

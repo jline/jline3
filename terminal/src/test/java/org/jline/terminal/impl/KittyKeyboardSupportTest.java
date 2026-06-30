@@ -8,6 +8,9 @@
  */
 package org.jline.terminal.impl;
 
+import java.util.EnumSet;
+
+import org.jline.terminal.Terminal.KittyKeyboardMode;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -93,6 +96,33 @@ class KittyKeyboardSupportTest {
         assertEquals(4, KittyKeyboardSupport.FLAG_REPORT_ALTERNATES);
         assertEquals(8, KittyKeyboardSupport.FLAG_REPORT_ALL_KEYS);
         assertEquals(16, KittyKeyboardSupport.FLAG_REPORT_TEXT);
+    }
+
+    @Test
+    void testToFlags() {
+        assertEquals(1, KittyKeyboardSupport.toFlags(EnumSet.of(KittyKeyboardMode.Disambiguate)));
+        assertEquals(2, KittyKeyboardSupport.toFlags(EnumSet.of(KittyKeyboardMode.ReportEvents)));
+        assertEquals(4, KittyKeyboardSupport.toFlags(EnumSet.of(KittyKeyboardMode.ReportAlternates)));
+        assertEquals(8, KittyKeyboardSupport.toFlags(EnumSet.of(KittyKeyboardMode.ReportAllKeys)));
+        assertEquals(16, KittyKeyboardSupport.toFlags(EnumSet.of(KittyKeyboardMode.ReportText)));
+        // Combined
+        assertEquals(
+                3,
+                KittyKeyboardSupport.toFlags(
+                        EnumSet.of(KittyKeyboardMode.Disambiguate, KittyKeyboardMode.ReportEvents)));
+        assertEquals(31, KittyKeyboardSupport.toFlags(EnumSet.allOf(KittyKeyboardMode.class)));
+        // Empty
+        assertEquals(0, KittyKeyboardSupport.toFlags(EnumSet.noneOf(KittyKeyboardMode.class)));
+    }
+
+    @Test
+    void testPushFlagsWithEnumSet() {
+        assertEquals("\033[>1u", KittyKeyboardSupport.pushFlags(EnumSet.of(KittyKeyboardMode.Disambiguate)));
+        assertEquals(
+                "\033[>3u",
+                KittyKeyboardSupport.pushFlags(
+                        EnumSet.of(KittyKeyboardMode.Disambiguate, KittyKeyboardMode.ReportEvents)));
+        assertEquals("\033[>31u", KittyKeyboardSupport.pushFlags(EnumSet.allOf(KittyKeyboardMode.class)));
     }
 
     @Test

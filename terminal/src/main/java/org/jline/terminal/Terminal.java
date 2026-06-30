@@ -14,6 +14,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
+import java.util.EnumSet;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 
@@ -1443,6 +1444,45 @@ public interface Terminal extends Closeable, Flushable, Sized {
     // ---- Kitty Keyboard Protocol ----
 
     /**
+     * Enhancement modes for the Kitty Keyboard Protocol.
+     *
+     * <p>
+     * These modes control which keyboard enhancements the terminal should enable.
+     * The protocol uses a flags-based push/pop stack model. Applications push a set
+     * of enhancement modes when entering an interactive mode and pop them when leaving.
+     * </p>
+     *
+     * @see #setKittyKeyboardMode(EnumSet)
+     * @see <a href="https://sw.kovidgoyal.net/kitty/keyboard-protocol/">Kitty Keyboard Protocol</a>
+     */
+    enum KittyKeyboardMode {
+        /**
+         * Disambiguate escape codes: all keys get unambiguous {@code CSI … u} encoding.
+         * This is the primary mode used by JLine's line reader.
+         */
+        Disambiguate,
+        /**
+         * Report event types: distinguishes key press, repeat, and release events.
+         */
+        ReportEvents,
+        /**
+         * Report alternate keys: includes shifted and base-layout key codes
+         * in addition to the primary key code.
+         */
+        ReportAlternates,
+        /**
+         * Report all keys as escape sequences, including plain text keys
+         * that would normally be sent as literal characters.
+         */
+        ReportAllKeys,
+        /**
+         * Report associated text: includes the generated text as Unicode
+         * codepoints alongside the key event.
+         */
+        ReportText
+    }
+
+    /**
      * Returns whether the terminal supports the Kitty Keyboard Protocol.
      *
      * <p>
@@ -1459,7 +1499,7 @@ public interface Terminal extends Closeable, Flushable, Sized {
      * </p>
      *
      * @return {@code true} if the terminal supports the Kitty Keyboard Protocol
-     * @see #setKittyKeyboardMode(int)
+     * @see #setKittyKeyboardMode(EnumSet)
      * @see #resetKittyKeyboardMode()
      */
     default boolean hasKittyKeyboardSupport() {
@@ -1467,26 +1507,26 @@ public interface Terminal extends Closeable, Flushable, Sized {
     }
 
     /**
-     * Pushes Kitty Keyboard Protocol enhancement flags onto the terminal's stack.
+     * Pushes Kitty Keyboard Protocol enhancement modes onto the terminal's stack.
      *
      * <p>
-     * The flags parameter is a bitmask of enhancement levels. For JLine's line
-     * editing, flag 1 (disambiguate escape codes) is sufficient. Higher flags
+     * The modes parameter specifies which enhancements to enable. For JLine's line
+     * editing, {@link KittyKeyboardMode#Disambiguate} is sufficient. Higher modes
      * provide additional information that applications may use directly.
      * </p>
      *
      * <p>
-     * The terminal maintains a stack of flag sets. Each call to this method pushes
+     * The terminal maintains a stack of mode sets. Each call to this method pushes
      * a new entry; call {@link #resetKittyKeyboardMode()} to pop.
      * </p>
      *
-     * @param flags the enhancement flags bitmask
-     * @return {@code true} if the protocol is supported and flags were pushed
-     * @see org.jline.terminal.impl.KittyKeyboardSupport#FLAG_DISAMBIGUATE
+     * @param modes the enhancement modes to enable
+     * @return {@code true} if the protocol is supported and modes were pushed
+     * @see KittyKeyboardMode
      * @see #resetKittyKeyboardMode()
      * @see #hasKittyKeyboardSupport()
      */
-    default boolean setKittyKeyboardMode(int flags) {
+    default boolean setKittyKeyboardMode(EnumSet<KittyKeyboardMode> modes) {
         return false;
     }
 
@@ -1501,7 +1541,7 @@ public interface Terminal extends Closeable, Flushable, Sized {
      * </p>
      *
      * @return {@code true} if the protocol is supported and flags were popped
-     * @see #setKittyKeyboardMode(int)
+     * @see #setKittyKeyboardMode(EnumSet)
      */
     default boolean resetKittyKeyboardMode() {
         return false;

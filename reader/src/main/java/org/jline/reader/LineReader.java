@@ -512,8 +512,9 @@ public interface LineReader {
         /**
          * Enable Kitty Keyboard Protocol support.
          *
-         * <p>When enabled, JLine will push enhancement flag 1 (disambiguate escape
-         * codes) at the start of {@code readLine()} and pop it on exit. This allows
+         * <p>When enabled, JLine will push
+         * {@link org.jline.terminal.Terminal.KittyKeyboardMode#Disambiguate Disambiguate}
+         * mode at the start of {@code readLine()} and pop it on exit. This allows
          * the terminal to send unambiguous escape sequences for key combinations
          * that are otherwise indistinguishable (e.g., Shift+Enter vs Enter,
          * Ctrl+I vs Tab).</p>
@@ -523,7 +524,7 @@ public interface LineReader {
          * the protocol are unaffected.</p>
          *
          * @see org.jline.terminal.Terminal#hasKittyKeyboardSupport()
-         * @see org.jline.terminal.Terminal#setKittyKeyboardMode(int)
+         * @see org.jline.terminal.Terminal#setKittyKeyboardMode(java.util.EnumSet)
          */
         KITTY_KEYBOARD;
 
