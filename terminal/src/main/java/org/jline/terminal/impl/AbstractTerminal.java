@@ -94,6 +94,8 @@ public abstract class AbstractTerminal implements TerminalExt {
     private boolean graphemeClusterNative;
     private boolean groupsRegionalIndicators;
     private boolean groupsZwjSequences;
+    private Boolean kittyKeyboardSupported;
+    private boolean kittyKeyboardActive;
 
     /** Result of the Mode 2027 probe. */
     private enum ProbeResult {
@@ -186,6 +188,9 @@ public abstract class AbstractTerminal implements TerminalExt {
     }
 
     protected void doClose() throws IOException {
+        if (kittyKeyboardActive) {
+            resetKittyKeyboardMode();
+        }
         if (graphemeClusterModeEnabled) {
             setGraphemeClusterMode(false, false);
         }
@@ -776,6 +781,125 @@ public abstract class AbstractTerminal implements TerminalExt {
             graphemeClusterModeEnabled = enable;
             return true;
         } else {
+            return false;
+        }
+    }
+
+    // ---- Kitty Keyboard Protocol ----
+
+    @Override
+    public boolean hasKittyKeyboardSupport() {
+        if (kittyKeyboardSupported == null) {
+            kittyKeyboardSupported = probeKittyKeyboard();
+        }
+        return kittyKeyboardSupported;
+    }
+
+    @Override
+    public boolean setKittyKeyboardMode(int flags) {
+        if (hasKittyKeyboardSupport()) {
+            writer().write(KittyKeyboardSupport.pushFlags(flags));
+            writer().flush();
+            kittyKeyboardActive = true;
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean resetKittyKeyboardMode() {
+        if (kittyKeyboardActive) {
+            writer().write(KittyKeyboardSupport.popFlags());
+            writer().flush();
+            kittyKeyboardActive = false;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Probes the terminal for Kitty Keyboard Protocol support.
+     *
+     * <p>Sends {@code CSI ? u} (query current flags) followed by DA1
+     * ({@code CSI c}) as a sentinel. If the terminal replies with
+     * {@code CSI ? flags u} before the DA1 response, it supports the protocol.</p>
+     *
+     * <p>Only probes xterm-like terminals to avoid confusing terminals that
+     * don't understand CSI sequences.</p>
+     *
+     * @return {@code true} if the terminal supports the Kitty Keyboard Protocol
+     */
+    private boolean probeKittyKeyboard() {
+        // Only probe terminals that handle CSI sequences
+        if (type == null || !(type.startsWith("xterm") || "screen".equals(type) || type.startsWith("tmux"))) {
+            // Also detect by TERM_PROGRAM for known supporting terminals
+            String termProgram = System.getenv("TERM_PROGRAM");
+            String term = System.getenv("TERM");
+            if (termProgram == null && term == null) {
+                return false;
+            }
+            boolean knownTerminal = false;
+            if (termProgram != null) {
+                String tp = termProgram.toLowerCase();
+                knownTerminal = tp.contains("kitty")
+                        || tp.contains("wezterm")
+                        || tp.contains("ghostty")
+                        || tp.contains("alacritty")
+                        || tp.contains("iterm")
+                        || tp.contains("rio")
+                        || tp.contains("warp");
+            }
+            if (!knownTerminal && term != null) {
+                String t = term.toLowerCase();
+                knownTerminal = t.contains("kitty") || t.contains("ghostty") || t.contains("xterm");
+            }
+            if (!knownTerminal) {
+                return false;
+            }
+        }
+
+        try {
+            NonBlockingReader nbReader = reader();
+            PrintWriter out = writer();
+
+            // Send: CSI ? u (query flags) followed by CSI c (DA1 sentinel)
+            out.write(KittyKeyboardSupport.QUERY_FLAGS);
+            out.write(KittyKeyboardSupport.DA1_QUERY);
+            out.flush();
+
+            // Read responses with a timeout
+            StringBuilder response = new StringBuilder();
+            long deadline = System.currentTimeMillis() + 1000;
+            boolean gotKittyResponse = false;
+
+            while (System.currentTimeMillis() < deadline) {
+                int remaining = (int) (deadline - System.currentTimeMillis());
+                if (remaining <= 0) break;
+                int c = nbReader.read(remaining);
+                if (c < 0) break;
+                response.append((char) c);
+
+                String resp = response.toString();
+
+                // Check for kitty flags response: CSI ? flags u
+                if (resp.contains("\033[?") && resp.endsWith("u")) {
+                    int qIdx = resp.lastIndexOf("\033[?");
+                    String candidate = resp.substring(qIdx);
+                    if (KittyKeyboardSupport.isFlagsResponse(candidate)) {
+                        gotKittyResponse = true;
+                        // Continue reading to consume the DA1 response
+                    }
+                }
+
+                // Check for DA1 response: CSI ? ... c
+                if (resp.endsWith("c") && resp.contains("\033[?") && resp.indexOf("c") > resp.lastIndexOf("\033[?")) {
+                    // DA1 arrived — stop waiting
+                    break;
+                }
+            }
+
+            return gotKittyResponse;
+        } catch (IOException e) {
             return false;
         }
     }

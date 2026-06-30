@@ -87,6 +87,11 @@ public class KeyParser {
     }
 
     private static KeyEvent parseAnsiSequence(String sequence) {
+        // Kitty keyboard protocol: CSI … u sequences
+        if (sequence.endsWith("u")) {
+            return parseKittySequence(sequence);
+        }
+
         // Common ANSI sequences
         switch (sequence) {
             // Arrow keys
@@ -333,5 +338,230 @@ public class KeyParser {
                 }
                 return new KeyEvent(sequence);
         }
+    }
+
+    // ---- Kitty Keyboard Protocol parsing ----
+
+    /**
+     * Parses a Kitty Keyboard Protocol {@code CSI … u} sequence.
+     *
+     * <p>Format: {@code CSI keycode:shifted:base ; modifiers:eventtype ; text u}</p>
+     *
+     * <p>All fields except keycode are optional. Sub-fields use colon separators;
+     * main fields use semicolon separators.</p>
+     */
+    private static KeyEvent parseKittySequence(String sequence) {
+        // Strip CSI prefix ("[") and 'u' suffix
+        String body = sequence.substring(2, sequence.length() - 1);
+
+        // Split into main fields by semicolon
+        String[] fields = body.split(";", -1);
+
+        // Field 1: keycode[:shifted[:base]]
+        int keyCode = 0;
+        int shiftedKeyCode = 0;
+        int baseLayoutKeyCode = 0;
+        if (fields.length >= 1 && !fields[0].isEmpty()) {
+            String[] keyCodes = fields[0].split(":", -1);
+            keyCode = parseIntSafe(keyCodes[0]);
+            if (keyCodes.length >= 2 && !keyCodes[1].isEmpty()) {
+                shiftedKeyCode = parseIntSafe(keyCodes[1]);
+            }
+            if (keyCodes.length >= 3 && !keyCodes[2].isEmpty()) {
+                baseLayoutKeyCode = parseIntSafe(keyCodes[2]);
+            }
+        }
+
+        // Field 2: modifiers[:eventtype]
+        int modValue = 1; // default: no modifiers
+        int eventTypeValue = 1; // default: press
+        if (fields.length >= 2 && !fields[1].isEmpty()) {
+            String[] modParts = fields[1].split(":", -1);
+            modValue = parseIntSafe(modParts[0]);
+            if (modValue == 0) modValue = 1;
+            if (modParts.length >= 2 && !modParts[1].isEmpty()) {
+                eventTypeValue = parseIntSafe(modParts[1]);
+            }
+        }
+
+        // Field 3: text-as-codepoints (colon-separated)
+        String associatedText = null;
+        if (fields.length >= 3 && !fields[2].isEmpty()) {
+            associatedText = parseTextCodepoints(fields[2]);
+        }
+
+        EnumSet<KeyEvent.Modifier> modifiers = parseKittyModifiers(modValue);
+        KeyEvent.EventType eventType = parseKittyEventType(eventTypeValue);
+
+        return buildKittyKeyEvent(
+                keyCode, modifiers, eventType, shiftedKeyCode, baseLayoutKeyCode, associatedText, sequence);
+    }
+
+    /**
+     * Parses the kitty modifier value (1 + bitmask) into a set of modifiers.
+     */
+    static EnumSet<KeyEvent.Modifier> parseKittyModifiers(int modValue) {
+        EnumSet<KeyEvent.Modifier> modifiers = EnumSet.noneOf(KeyEvent.Modifier.class);
+        int bits = modValue - 1;
+        if ((bits & 1) != 0) modifiers.add(KeyEvent.Modifier.Shift);
+        if ((bits & 2) != 0) modifiers.add(KeyEvent.Modifier.Alt);
+        if ((bits & 4) != 0) modifiers.add(KeyEvent.Modifier.Control);
+        if ((bits & 8) != 0) modifiers.add(KeyEvent.Modifier.Super);
+        if ((bits & 16) != 0) modifiers.add(KeyEvent.Modifier.Hyper);
+        if ((bits & 32) != 0) modifiers.add(KeyEvent.Modifier.Meta);
+        if ((bits & 64) != 0) modifiers.add(KeyEvent.Modifier.CapsLock);
+        if ((bits & 128) != 0) modifiers.add(KeyEvent.Modifier.NumLock);
+        return modifiers;
+    }
+
+    private static KeyEvent.EventType parseKittyEventType(int value) {
+        switch (value) {
+            case 2:
+                return KeyEvent.EventType.Repeat;
+            case 3:
+                return KeyEvent.EventType.Release;
+            default:
+                return KeyEvent.EventType.Press;
+        }
+    }
+
+    private static String parseTextCodepoints(String field) {
+        String[] parts = field.split(":");
+        StringBuilder sb = new StringBuilder();
+        for (String part : parts) {
+            int cp = parseIntSafe(part);
+            if (cp > 0) {
+                sb.appendCodePoint(cp);
+            }
+        }
+        return sb.length() > 0 ? sb.toString() : null;
+    }
+
+    private static int parseIntSafe(String s) {
+        try {
+            return Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Builds a KeyEvent from a parsed kitty key code, mapping it to the
+     * appropriate KeyEvent type (Character, Arrow, Special, Function, or Unknown).
+     */
+    private static KeyEvent buildKittyKeyEvent(
+            int keyCode,
+            EnumSet<KeyEvent.Modifier> modifiers,
+            KeyEvent.EventType eventType,
+            int shiftedKeyCode,
+            int baseLayoutKeyCode,
+            String associatedText,
+            String rawSequence) {
+
+        // Map special key codes to KeyEvent.Special
+        KeyEvent.Special special = mapKittySpecialKey(keyCode);
+        if (special != null) {
+            return new KeyEvent(
+                    KeyEvent.Type.Special,
+                    '\0',
+                    null,
+                    special,
+                    0,
+                    modifiers,
+                    rawSequence,
+                    eventType,
+                    keyCode,
+                    shiftedKeyCode,
+                    baseLayoutKeyCode,
+                    associatedText);
+        }
+
+        // Map function keys F13-F35 (F1-F12 use legacy CSI ~ format)
+        int fKey = mapKittyFunctionKey(keyCode);
+        if (fKey > 0) {
+            return new KeyEvent(
+                    KeyEvent.Type.Function,
+                    '\0',
+                    null,
+                    null,
+                    fKey,
+                    modifiers,
+                    rawSequence,
+                    eventType,
+                    keyCode,
+                    shiftedKeyCode,
+                    baseLayoutKeyCode,
+                    associatedText);
+        }
+
+        // Printable characters (Unicode codepoints below Private Use Area)
+        if (keyCode >= 32 && keyCode < 57344) {
+            char ch = (keyCode <= Character.MAX_VALUE) ? (char) keyCode : '\0';
+            return new KeyEvent(
+                    KeyEvent.Type.Character,
+                    ch,
+                    null,
+                    null,
+                    0,
+                    modifiers,
+                    rawSequence,
+                    eventType,
+                    keyCode,
+                    shiftedKeyCode,
+                    baseLayoutKeyCode,
+                    associatedText);
+        }
+
+        // Unknown or unhandled private use area key codes (keypad, media, modifier keys)
+        return new KeyEvent(
+                KeyEvent.Type.Unknown,
+                '\0',
+                null,
+                null,
+                0,
+                modifiers,
+                rawSequence,
+                eventType,
+                keyCode,
+                shiftedKeyCode,
+                baseLayoutKeyCode,
+                associatedText);
+    }
+
+    /**
+     * Maps a kitty protocol key code to a KeyEvent.Special value.
+     */
+    private static KeyEvent.Special mapKittySpecialKey(int keyCode) {
+        switch (keyCode) {
+            case 13:
+                return KeyEvent.Special.Enter;
+            case 9:
+                return KeyEvent.Special.Tab;
+            case 27:
+                return KeyEvent.Special.Escape;
+            case 127:
+                return KeyEvent.Special.Backspace;
+            case 2:
+                return KeyEvent.Special.Insert;
+            case 3:
+                return KeyEvent.Special.Delete;
+            case 5:
+                return KeyEvent.Special.PageUp;
+            case 6:
+                return KeyEvent.Special.PageDown;
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Maps a kitty protocol key code to a function key number (13-35).
+     * F13-F35 use Unicode Private Use Area codes 57376-57398.
+     */
+    private static int mapKittyFunctionKey(int keyCode) {
+        if (keyCode >= 57376 && keyCode <= 57398) {
+            return keyCode - 57376 + 13;
+        }
+        return 0;
     }
 }

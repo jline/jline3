@@ -507,7 +507,25 @@ public interface LineReader {
         EMPTY_WORD_OPTIONS(true),
 
         /** Disable the undo feature */
-        DISABLE_UNDO;
+        DISABLE_UNDO,
+
+        /**
+         * Enable Kitty Keyboard Protocol support.
+         *
+         * <p>When enabled, JLine will push enhancement flag 1 (disambiguate escape
+         * codes) at the start of {@code readLine()} and pop it on exit. This allows
+         * the terminal to send unambiguous escape sequences for key combinations
+         * that are otherwise indistinguishable (e.g., Shift+Enter vs Enter,
+         * Ctrl+I vs Tab).</p>
+         *
+         * <p>The protocol is only activated if the terminal actually supports it
+         * (detected via a {@code CSI ? u} probe). Terminals that do not support
+         * the protocol are unaffected.</p>
+         *
+         * @see org.jline.terminal.Terminal#hasKittyKeyboardSupport()
+         * @see org.jline.terminal.Terminal#setKittyKeyboardMode(int)
+         */
+        KITTY_KEYBOARD;
 
         private final boolean def;
 

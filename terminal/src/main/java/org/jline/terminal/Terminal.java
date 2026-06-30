@@ -1440,6 +1440,73 @@ public interface Terminal extends Closeable, Flushable, Sized {
         return false;
     }
 
+    // ---- Kitty Keyboard Protocol ----
+
+    /**
+     * Returns whether the terminal supports the Kitty Keyboard Protocol.
+     *
+     * <p>
+     * Detection is performed by sending a {@code CSI ? u} query followed by a
+     * DA1 sentinel ({@code CSI c}). If the terminal responds with
+     * {@code CSI ? flags u}, it supports the protocol. If only the DA1 response
+     * arrives, the terminal does not support it.
+     * </p>
+     *
+     * <p>
+     * The probe result is cached after the first call. This method is safe to
+     * call on terminals that do not support the protocol — they will simply
+     * respond to the DA1 query while ignoring the flags query.
+     * </p>
+     *
+     * @return {@code true} if the terminal supports the Kitty Keyboard Protocol
+     * @see #setKittyKeyboardMode(int)
+     * @see #resetKittyKeyboardMode()
+     */
+    default boolean hasKittyKeyboardSupport() {
+        return false;
+    }
+
+    /**
+     * Pushes Kitty Keyboard Protocol enhancement flags onto the terminal's stack.
+     *
+     * <p>
+     * The flags parameter is a bitmask of enhancement levels. For JLine's line
+     * editing, flag 1 (disambiguate escape codes) is sufficient. Higher flags
+     * provide additional information that applications may use directly.
+     * </p>
+     *
+     * <p>
+     * The terminal maintains a stack of flag sets. Each call to this method pushes
+     * a new entry; call {@link #resetKittyKeyboardMode()} to pop.
+     * </p>
+     *
+     * @param flags the enhancement flags bitmask
+     * @return {@code true} if the protocol is supported and flags were pushed
+     * @see org.jline.terminal.impl.KittyKeyboardSupport#FLAG_DISAMBIGUATE
+     * @see #resetKittyKeyboardMode()
+     * @see #hasKittyKeyboardSupport()
+     */
+    default boolean setKittyKeyboardMode(int flags) {
+        return false;
+    }
+
+    /**
+     * Pops the most recent Kitty Keyboard Protocol enhancement flags from the
+     * terminal's stack, restoring the previous level.
+     *
+     * <p>
+     * This should be called when leaving the interactive mode that required
+     * enhanced keyboard handling (e.g., at the end of a {@code readLine()} call).
+     * Popping an empty stack resets all enhancement flags to zero.
+     * </p>
+     *
+     * @return {@code true} if the protocol is supported and flags were popped
+     * @see #setKittyKeyboardMode(int)
+     */
+    default boolean resetKittyKeyboardMode() {
+        return false;
+    }
+
     /**
      * Returns the color palette for this terminal.
      *
