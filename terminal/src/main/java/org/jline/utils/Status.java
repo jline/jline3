@@ -250,8 +250,6 @@ public class Status {
             lines.set(i, str);
         }
 
-        List<AttributedString> oldLines = this.display.oldLines;
-
         int newScrollRegion = display.rows - 1 - lines.size();
         // Update the scroll region if needed.
         // Note that settings the scroll region usually moves the cursor, so we need to get ready for that.
@@ -278,17 +276,18 @@ public class Status {
         // if the display has more lines, we need to add empty ones to make sure they will be erased
         List<AttributedString> toDraw = new ArrayList<>(lines);
         int nbToDraw = toDraw.size();
-        int nbOldLines = oldLines.size();
+        int nbOldLines = display.oldLinesSize();
         if (nbOldLines > nbToDraw) {
+            int excess = nbOldLines - nbToDraw;
             terminal.puts(Capability.save_cursor);
             terminal.puts(Capability.cursor_address, display.rows - nbOldLines, 0);
-            for (int i = 0; i < nbOldLines - nbToDraw; i++) {
+            for (int i = 0; i < excess; i++) {
                 terminal.puts(Capability.clr_eol);
-                if (i < nbOldLines - nbToDraw - 1) {
+                if (i < excess - 1) {
                     terminal.puts(Capability.cursor_down);
                 }
-                oldLines.remove(0);
             }
+            display.removeFirstOldLines(excess);
             terminal.puts(Capability.restore_cursor);
         }
         // update display

@@ -82,7 +82,7 @@ public class Display implements Sized {
 
     protected final Terminal terminal;
     protected final boolean fullScreen;
-    protected final List<AttributedString> oldLines = new ArrayList<>();
+    private final List<AttributedString> oldLines = new ArrayList<>();
     protected int cursorPos;
     protected int columns;
     protected int columns1; // columns+1
@@ -119,6 +119,14 @@ public class Display implements Sized {
     private final WCWidth.CharSequenceCharacterIterator graphemeCharIterator;
     private final boolean hasCursorAddress;
     private final boolean canSkipIntraLine;
+
+    // Synchronized output (mode 2026) escape sequences.
+    // BSU tells the terminal to buffer all output until ESU, then render atomically.
+    // Terminals that do not support mode 2026 silently ignore these sequences.
+    private static final String SYNC_START = "\033[?2026h";
+    private static final String SYNC_END = "\033[?2026l";
+
+    private boolean scrollOptimization = true;
 
     /*
      * Minimum number of unchanged characters within a changed region that justifies
@@ -181,6 +189,36 @@ public class Display implements Sized {
      */
     public void setDelayLineWrap(boolean v) {
         delayLineWrap = v;
+    }
+
+    /**
+     * Returns whether the scroll optimization is enabled.
+     * When enabled, the display uses terminal insert/delete line capabilities to
+     * scroll content efficiently instead of redrawing all changed lines.
+     *
+     * @return {@code true} if scroll optimization is enabled (the default)
+     */
+    public boolean scrollOptimization() {
+        return scrollOptimization;
+    }
+
+    /**
+     * Enable or disable the scroll optimization.
+     * <p>
+     * When enabled (the default), the display detects content shifts between frames
+     * and uses terminal insert/delete line capabilities to scroll content efficiently.
+     * This reduces the number of characters written but may cause visible flicker on
+     * terminals that render intermediate states (e.g. during high-FPS full-screen updates).
+     * </p>
+     * <p>
+     * Disabling the scroll optimization forces full per-line diff updates, which produces
+     * more output bytes but avoids flicker from insert/delete line intermediate states.
+     * </p>
+     *
+     * @param v {@code true} to enable scroll optimization, {@code false} to disable it
+     */
+    public void setScrollOptimization(boolean v) {
+        scrollOptimization = v;
     }
 
     /**
@@ -304,6 +342,31 @@ public class Display implements Sized {
     }
 
     /**
+     * Returns the number of previously rendered lines stored in this display.
+     * Package-private: used by {@link Status} to determine cleanup needs.
+     */
+    int oldLinesSize() {
+        return oldLines.size();
+    }
+
+    /**
+     * Returns the previously rendered lines.
+     * Package-private: used by tests to verify reflow behavior.
+     */
+    List<AttributedString> oldLines() {
+        return oldLines;
+    }
+
+    /**
+     * Removes the first {@code count} entries from the previously rendered lines.
+     * Package-private: used by {@link Status} to sync its internal state after
+     * clearing stale status lines from the screen.
+     */
+    void removeFirstOldLines(int count) {
+        oldLines.subList(0, count).clear();
+    }
+
+    /**
      * Clears the cached model of previously rendered lines.
      *
      * <p>The next {@link #update} call will treat all content as new and repaint
@@ -382,290 +445,326 @@ public class Display implements Sized {
             ansiColorState[1] = 0;
         }
 
-        if (reset) {
-            puts(Capability.clear_screen);
-            puts(Capability.cursor_address, 0, 0);
-            oldLines.clear();
-            cursorPos = 0;
-            reset = false;
+        // Begin synchronized update (mode 2026): tell the terminal to buffer all
+        // output until the matching ESU at the end, then render everything atomically.
+        // This prevents visible intermediate states from scroll optimization
+        // (insertLines/deleteLines) that otherwise cause flicker.
+        if (fullScreen) {
+            rawEsc(SYNC_START);
         }
+        try {
 
-        // If dumb display, get rid of ansi sequences now
-        if (cols == null || cols < 8) {
-            List<AttributedString> stripped = new ArrayList<>(newLines.size());
-            for (int idx = 0; idx < newLines.size(); idx++) {
-                stripped.add(new AttributedString(newLines.get(idx).toString()));
+            if (reset) {
+                puts(Capability.clear_screen);
+                puts(Capability.cursor_address, 0, 0);
+                oldLines.clear();
+                cursorPos = 0;
+                reset = false;
             }
-            newLines = stripped;
-        }
 
-        // Detect scrolling
-        if ((fullScreen || newLines.size() >= rows) && newLines.size() == oldLines.size() && canScroll) {
-            int nbHeaders = 0;
-            int nbFooters = 0;
-            // Find common headers and footers
-            int l = newLines.size();
-            while (nbHeaders < l && Objects.equals(newLines.get(nbHeaders), oldLines.get(nbHeaders))) {
-                nbHeaders++;
+            // If dumb display, get rid of ansi sequences now
+            if (cols == null || cols < 8) {
+                List<AttributedString> stripped = new ArrayList<>(newLines.size());
+                for (int idx = 0; idx < newLines.size(); idx++) {
+                    stripped.add(new AttributedString(newLines.get(idx).toString()));
+                }
+                newLines = stripped;
             }
-            while (nbFooters < l - nbHeaders - 1
-                    && Objects.equals(
-                            newLines.get(newLines.size() - nbFooters - 1),
-                            oldLines.get(oldLines.size() - nbFooters - 1))) {
-                nbFooters++;
-            }
-            int fromIndex = nbHeaders;
-            int toIndex = newLines.size() - nbFooters;
-            longestCommon(newLines, fromIndex, toIndex, oldLines, fromIndex, toIndex);
-            if (lcsResult[2] > 0) {
-                int s1 = lcsResult[0];
-                int s2 = lcsResult[1];
-                int sl = lcsResult[2];
-                if (sl > 1 && s1 < s2) {
-                    moveVisualCursorTo((nbHeaders + s1) * columns1);
-                    int nb = s2 - s1;
-                    deleteLines(nb);
-                    for (int i = 0; i < nb; i++) {
-                        oldLines.remove(nbHeaders + s1);
-                    }
-                    if (nbFooters > 0) {
-                        moveVisualCursorTo((nbHeaders + s1 + sl) * columns1);
-                        insertLines(nb);
-                        for (int i = 0; i < nb; i++) {
-                            oldLines.add(nbHeaders + s1 + sl, AttributedString.EMPTY);
-                        }
-                    }
-                } else if (sl > 1 && s1 > s2) {
-                    int nb = s1 - s2;
-                    if (nbFooters > 0) {
-                        moveVisualCursorTo((nbHeaders + s2 + sl) * columns1);
+
+            // Detect scrolling
+            if (scrollOptimization
+                    && (fullScreen || newLines.size() >= rows)
+                    && newLines.size() == oldLines.size()
+                    && canScroll) {
+                int nbHeaders = 0;
+                int nbFooters = 0;
+                // Find common headers and footers
+                int l = newLines.size();
+                while (nbHeaders < l && Objects.equals(newLines.get(nbHeaders), oldLines.get(nbHeaders))) {
+                    nbHeaders++;
+                }
+                while (nbFooters < l - nbHeaders - 1
+                        && Objects.equals(
+                                newLines.get(newLines.size() - nbFooters - 1),
+                                oldLines.get(oldLines.size() - nbFooters - 1))) {
+                    nbFooters++;
+                }
+                int fromIndex = nbHeaders;
+                int toIndex = newLines.size() - nbFooters;
+                longestCommon(newLines, fromIndex, toIndex, oldLines, fromIndex, toIndex);
+                if (lcsResult[2] > 0) {
+                    int s1 = lcsResult[0];
+                    int s2 = lcsResult[1];
+                    int sl = lcsResult[2];
+                    if (sl > 1 && s1 < s2) {
+                        moveVisualCursorTo((nbHeaders + s1) * columns1);
+                        int nb = s2 - s1;
                         deleteLines(nb);
                         for (int i = 0; i < nb; i++) {
-                            oldLines.remove(nbHeaders + s2 + sl);
+                            oldLines.remove(nbHeaders + s1);
+                        }
+                        if (nbFooters > 0) {
+                            moveVisualCursorTo((nbHeaders + s1 + sl) * columns1);
+                            insertLines(nb);
+                            for (int i = 0; i < nb; i++) {
+                                oldLines.add(nbHeaders + s1 + sl, AttributedString.EMPTY);
+                            }
+                        }
+                    } else if (sl > 1 && s1 > s2) {
+                        int nb = s1 - s2;
+                        if (nbFooters > 0) {
+                            moveVisualCursorTo((nbHeaders + s2 + sl) * columns1);
+                            deleteLines(nb);
+                            for (int i = 0; i < nb; i++) {
+                                oldLines.remove(nbHeaders + s2 + sl);
+                            }
+                        }
+                        moveVisualCursorTo((nbHeaders + s2) * columns1);
+                        insertLines(nb);
+                        for (int i = 0; i < nb; i++) {
+                            oldLines.add(nbHeaders + s2, AttributedString.EMPTY);
                         }
                     }
-                    moveVisualCursorTo((nbHeaders + s2) * columns1);
-                    insertLines(nb);
-                    for (int i = 0; i < nb; i++) {
-                        oldLines.add(nbHeaders + s2, AttributedString.EMPTY);
-                    }
                 }
             }
-        }
 
-        int lineIndex = 0;
-        int currentPos = 0;
-        int numLines = Math.min(rows, Math.max(oldLines.size(), newLines.size()));
-        boolean wrapNeeded = false;
-        while (lineIndex < numLines) {
-            AttributedString oldLine = lineIndex < oldLines.size() ? oldLines.get(lineIndex) : AttributedString.EMPTY;
-            AttributedString newLine = lineIndex < newLines.size() ? newLines.get(lineIndex) : AttributedString.EMPTY;
-            currentPos = lineIndex * columns1;
-            int curCol = currentPos;
-            // Track effective ranges instead of creating substrings
-            int oStart = 0;
-            int oEnd = oldLine.length();
-            int nStart = 0;
-            int nEnd = newLine.length();
-            boolean oldNL = oEnd > 0 && oldLine.charAt(oEnd - 1) == '\n';
-            boolean newNL = nEnd > 0 && newLine.charAt(nEnd - 1) == '\n';
-            if (oldNL) {
-                oEnd--;
-            }
-            if (newNL) {
-                nEnd--;
-            }
-            if (wrapNeeded && lineIndex == (cursorPos + 1) / columns1 && lineIndex < newLines.size()) {
-                // move from right margin to next line's left margin
-                cursorPos++;
-                if (nEnd - nStart == 0 || newLine.isHidden(nStart)) {
-                    // go to next line column zero
-                    ensureDefaultAnsiStyle();
-                    rawPrint(' ');
-                    puts(Capability.cursor_left);
-                } else {
-                    // go to next line column one
-                    rawPrint(newLine, nStart, nStart + 1);
-                    cursorPos += newLine.columnLength(
-                            terminal, graphemeBreakIterator, graphemeCharIterator, nStart, nStart + 1); // normally 1
-                    nStart++;
-                    if (oEnd - oStart > 0) {
-                        oStart++;
-                    }
-                    currentPos = cursorPos;
+            int lineIndex = 0;
+            int currentPos = 0;
+            int numLines = Math.min(rows, Math.max(oldLines.size(), newLines.size()));
+            boolean wrapNeeded = false;
+            while (lineIndex < numLines) {
+                AttributedString oldLine =
+                        lineIndex < oldLines.size() ? oldLines.get(lineIndex) : AttributedString.EMPTY;
+                AttributedString newLine =
+                        lineIndex < newLines.size() ? newLines.get(lineIndex) : AttributedString.EMPTY;
+                currentPos = lineIndex * columns1;
+                int curCol = currentPos;
+                // Track effective ranges instead of creating substrings
+                int oStart = 0;
+                int oEnd = oldLine.length();
+                int nStart = 0;
+                int nEnd = newLine.length();
+                boolean oldNL = oEnd > 0 && oldLine.charAt(oEnd - 1) == '\n';
+                boolean newNL = nEnd > 0 && newLine.charAt(nEnd - 1) == '\n';
+                if (oldNL) {
+                    oEnd--;
                 }
-            }
-            int oLen = oEnd - oStart;
-            int nLen = nEnd - nStart;
-            // When grapheme cluster mode is active, the terminal may retroactively
-            // combine or uncombine characters as ZWJ and other combining code points
-            // are added incrementally. This invalidates cursor position tracking
-            // based on char-level diffs. Force a full line repaint in this case.
-            if (terminal.getGraphemeClusterMode() && !equalsRange(oldLine, oStart, oEnd, newLine, nStart, nEnd)) {
-                cursorPos = moveVisualCursorTo(currentPos);
-                ensureDefaultAnsiStyle();
-                if (!puts(Capability.clr_eol)) {
-                    int oldLen =
-                            oldLine.columnLength(terminal, graphemeBreakIterator, graphemeCharIterator, oStart, oEnd);
-                    if (oldLen > 0) {
-                        rawPrint(' ', oldLen);
-                        cursorPos += oldLen;
-                        cursorPos = moveVisualCursorTo(currentPos);
+                if (newNL) {
+                    nEnd--;
+                }
+                if (wrapNeeded && lineIndex == (cursorPos + 1) / columns1 && lineIndex < newLines.size()) {
+                    // move from right margin to next line's left margin
+                    cursorPos++;
+                    if (nEnd - nStart == 0 || newLine.isHidden(nStart)) {
+                        // go to next line column zero
+                        if (hasCursorAddress) {
+                            puts(Capability.cursor_address, lineIndex, 0);
+                        } else {
+                            ensureDefaultAnsiStyle();
+                            rawPrint(' ');
+                            puts(Capability.cursor_left);
+                        }
+                    } else {
+                        // go to next line column one
+                        rawPrint(newLine, nStart, nStart + 1);
+                        cursorPos += newLine.columnLength(
+                                terminal,
+                                graphemeBreakIterator,
+                                graphemeCharIterator,
+                                nStart,
+                                nStart + 1); // normally 1
+                        nStart++;
+                        if (oEnd - oStart > 0) {
+                            oStart++;
+                        }
+                        currentPos = cursorPos;
                     }
                 }
-                rawPrint(newLine, nStart, nEnd);
-                cursorPos += newLine.columnLength(terminal, graphemeBreakIterator, graphemeCharIterator, nStart, nEnd);
-                currentPos = cursorPos;
-                lineIndex++;
-                boolean newWrap2 = !newNL && lineIndex < newLines.size();
-                if (targetCursorPos + 1 == lineIndex * columns1 && (newWrap2 || !delayLineWrap)) targetCursorPos++;
-                wrapNeeded = newWrap2;
-                continue;
-            }
-            // Inline diff: compute common prefix/suffix lengths without allocation
-            DiffHelper.diff(oldLine, oStart, oEnd, newLine, nStart, nEnd, diffResult);
-            int cs = diffResult[0]; // common prefix length
-            int ce = diffResult[1]; // common suffix length
-            boolean hasInsert = nLen > cs + ce;
-            boolean hasDelete = oLen > cs + ce;
-            boolean hasEqSuffix = ce > 0;
-            boolean ident = true;
-            boolean cleared = false;
-            // EQUAL prefix
-            if (cs > 0) {
-                currentPos += oldLine.columnLength(
-                        terminal, graphemeBreakIterator, graphemeCharIterator, oStart, oStart + cs);
-            }
-            // INSERT
-            if (hasInsert) {
-                int iStart = nStart + cs;
-                int iEnd = nEnd - ce;
-                int insertWidth =
-                        newLine.columnLength(terminal, graphemeBreakIterator, graphemeCharIterator, iStart, iEnd);
-                boolean insertHandled = false;
-                // Optimization: if followed by EQUAL suffix (no DELETE), try insertChars
-                if (hasEqSuffix && !hasDelete) {
+                int oLen = oEnd - oStart;
+                int nLen = nEnd - nStart;
+                // When grapheme cluster mode is active, the terminal may retroactively
+                // combine or uncombine characters as ZWJ and other combining code points
+                // are added incrementally. This invalidates cursor position tracking
+                // based on char-level diffs. Force a full line repaint in this case.
+                if (terminal.getGraphemeClusterMode() && !equalsRange(oldLine, oStart, oEnd, newLine, nStart, nEnd)) {
                     cursorPos = moveVisualCursorTo(currentPos);
                     ensureDefaultAnsiStyle();
-                    if (insertChars(insertWidth)) {
+                    if (!puts(Capability.clr_eol)) {
+                        int oldLen = oldLine.columnLength(
+                                terminal, graphemeBreakIterator, graphemeCharIterator, oStart, oEnd);
+                        if (oldLen > 0) {
+                            rawPrint(' ', oldLen);
+                            cursorPos += oldLen;
+                            cursorPos = moveVisualCursorTo(currentPos);
+                        }
+                    }
+                    rawPrint(newLine, nStart, nEnd);
+                    cursorPos +=
+                            newLine.columnLength(terminal, graphemeBreakIterator, graphemeCharIterator, nStart, nEnd);
+                    currentPos = cursorPos;
+                    lineIndex++;
+                    boolean newWrap2 = !newNL && lineIndex < newLines.size();
+                    if (targetCursorPos + 1 == lineIndex * columns1 && (newWrap2 || !delayLineWrap)) targetCursorPos++;
+                    wrapNeeded = newWrap2;
+                    continue;
+                }
+                // Inline diff: compute common prefix/suffix lengths without allocation
+                DiffHelper.diff(oldLine, oStart, oEnd, newLine, nStart, nEnd, diffResult);
+                int cs = diffResult[0]; // common prefix length
+                int ce = diffResult[1]; // common suffix length
+                boolean hasInsert = nLen > cs + ce;
+                boolean hasDelete = oLen > cs + ce;
+                boolean hasEqSuffix = ce > 0;
+                boolean ident = true;
+                boolean cleared = false;
+                // EQUAL prefix
+                if (cs > 0) {
+                    currentPos += oldLine.columnLength(
+                            terminal, graphemeBreakIterator, graphemeCharIterator, oStart, oStart + cs);
+                }
+                // INSERT
+                if (hasInsert) {
+                    int iStart = nStart + cs;
+                    int iEnd = nEnd - ce;
+                    int insertWidth =
+                            newLine.columnLength(terminal, graphemeBreakIterator, graphemeCharIterator, iStart, iEnd);
+                    boolean insertHandled = false;
+                    // Optimization: if followed by EQUAL suffix (no DELETE), try insertChars
+                    if (hasEqSuffix && !hasDelete) {
+                        cursorPos = moveVisualCursorTo(currentPos);
+                        ensureDefaultAnsiStyle();
+                        if (insertChars(insertWidth)) {
+                            rawPrint(newLine, iStart, iEnd);
+                            cursorPos += insertWidth;
+                            currentPos = cursorPos;
+                            insertHandled = true;
+                        }
+                    }
+                    // Optimization: if followed by DELETE with same width, overwrite
+                    if (!insertHandled && hasDelete) {
+                        int dStart = oStart + cs;
+                        int dEnd = oEnd - ce;
+                        int deleteWidth = oldLine.columnLength(
+                                terminal, graphemeBreakIterator, graphemeCharIterator, dStart, dEnd);
+                        if (insertWidth == deleteWidth) {
+                            moveVisualCursorTo(currentPos);
+                            if (canSkipIntraLine && (iEnd - iStart) == (dEnd - dStart)) {
+                                emitOverwriteWithSkips(newLine, iStart, iEnd, oldLine, dStart);
+                            } else {
+                                rawPrint(newLine, iStart, iEnd);
+                                cursorPos += insertWidth;
+                            }
+                            currentPos = cursorPos;
+                            hasDelete = false; // skip DELETE processing
+                            insertHandled = true;
+                        }
+                    }
+                    // Default: just print
+                    if (!insertHandled) {
+                        moveVisualCursorTo(currentPos);
                         rawPrint(newLine, iStart, iEnd);
                         cursorPos += insertWidth;
                         currentPos = cursorPos;
-                        insertHandled = true;
+                        ident = false;
                     }
                 }
-                // Optimization: if followed by DELETE with same width, overwrite
-                if (!insertHandled && hasDelete) {
+                // DELETE
+                if (hasDelete && !cleared && currentPos - curCol < columns) {
                     int dStart = oStart + cs;
                     int dEnd = oEnd - ce;
                     int deleteWidth =
                             oldLine.columnLength(terminal, graphemeBreakIterator, graphemeCharIterator, dStart, dEnd);
-                    if (insertWidth == deleteWidth) {
-                        moveVisualCursorTo(currentPos);
-                        if (canSkipIntraLine && (iEnd - iStart) == (dEnd - dStart)) {
-                            emitOverwriteWithSkips(newLine, iStart, iEnd, oldLine, dStart);
-                        } else {
-                            rawPrint(newLine, iStart, iEnd);
-                            cursorPos += insertWidth;
+                    boolean deleteHandled = false;
+                    // Optimization: if followed by EQUAL suffix, try deleteChars
+                    if (hasEqSuffix) {
+                        int suffixWidth = oldLine.columnLength(
+                                terminal, graphemeBreakIterator, graphemeCharIterator, oEnd - ce, oEnd);
+                        if ((currentPos - curCol) + suffixWidth < columns) {
+                            moveVisualCursorTo(currentPos);
+                            ensureDefaultAnsiStyle();
+                            if (deleteChars(deleteWidth)) {
+                                deleteHandled = true;
+                            }
                         }
-                        currentPos = cursorPos;
-                        hasDelete = false; // skip DELETE processing
-                        insertHandled = true;
+                    }
+                    if (!deleteHandled) {
+                        int oldColLen = oldLine.columnLength(
+                                terminal, graphemeBreakIterator, graphemeCharIterator, oStart, oEnd);
+                        int newColLen = newLine.columnLength(
+                                terminal, graphemeBreakIterator, graphemeCharIterator, nStart, nEnd);
+                        int nb = Math.max(oldColLen, newColLen) - (currentPos - curCol);
+                        moveVisualCursorTo(currentPos);
+                        ensureDefaultAnsiStyle();
+                        if (!puts(Capability.clr_eol)) {
+                            rawPrint(' ', nb);
+                            cursorPos += nb;
+                        }
+                        cleared = true;
+                        ident = false;
                     }
                 }
-                // Default: just print
-                if (!insertHandled) {
-                    moveVisualCursorTo(currentPos);
-                    rawPrint(newLine, iStart, iEnd);
-                    cursorPos += insertWidth;
-                    currentPos = cursorPos;
-                    ident = false;
-                }
-            }
-            // DELETE
-            if (hasDelete && !cleared && currentPos - curCol < columns) {
-                int dStart = oStart + cs;
-                int dEnd = oEnd - ce;
-                int deleteWidth =
-                        oldLine.columnLength(terminal, graphemeBreakIterator, graphemeCharIterator, dStart, dEnd);
-                boolean deleteHandled = false;
-                // Optimization: if followed by EQUAL suffix, try deleteChars
+                // EQUAL suffix
                 if (hasEqSuffix) {
                     int suffixWidth = oldLine.columnLength(
                             terminal, graphemeBreakIterator, graphemeCharIterator, oEnd - ce, oEnd);
-                    if ((currentPos - curCol) + suffixWidth < columns) {
-                        moveVisualCursorTo(currentPos);
-                        ensureDefaultAnsiStyle();
-                        if (deleteChars(deleteWidth)) {
-                            deleteHandled = true;
+                    if (!ident) {
+                        cursorPos = moveVisualCursorTo(currentPos);
+                        rawPrint(newLine, nEnd - ce, nEnd);
+                        cursorPos += suffixWidth;
+                        currentPos = cursorPos;
+                    } else {
+                        currentPos += suffixWidth;
+                    }
+                }
+                lineIndex++;
+                boolean newWrap = !newNL && lineIndex < newLines.size();
+                if (targetCursorPos + 1 == lineIndex * columns1 && (newWrap || !delayLineWrap)) targetCursorPos++;
+                boolean atRight = (cursorPos - curCol) % columns1 == columns;
+                wrapNeeded = false;
+                if (this.delayedWrapAtEol) {
+                    boolean oldWrap = !oldNL && lineIndex < oldLines.size();
+                    if (newWrap != oldWrap && !(oldWrap && cleared)) {
+                        moveVisualCursorTo(lineIndex * columns1 - 1, newLines);
+                        if (newWrap) wrapNeeded = true;
+                        else {
+                            ensureDefaultAnsiStyle();
+                            puts(Capability.clr_eol);
                         }
                     }
-                }
-                if (!deleteHandled) {
-                    int oldColLen =
-                            oldLine.columnLength(terminal, graphemeBreakIterator, graphemeCharIterator, oStart, oEnd);
-                    int newColLen =
-                            newLine.columnLength(terminal, graphemeBreakIterator, graphemeCharIterator, nStart, nEnd);
-                    int nb = Math.max(oldColLen, newColLen) - (currentPos - curCol);
-                    moveVisualCursorTo(currentPos);
-                    ensureDefaultAnsiStyle();
-                    if (!puts(Capability.clr_eol)) {
-                        rawPrint(' ', nb);
-                        cursorPos += nb;
+                } else if (atRight) {
+                    if (this.wrapAtEol) {
+                        if (!fullScreen || (fullScreen && lineIndex < numLines)) {
+                            if (hasCursorAddress) {
+                                puts(Capability.cursor_address, lineIndex, 0);
+                                cursorPos = lineIndex * columns1;
+                            } else {
+                                ensureDefaultAnsiStyle();
+                                rawPrint(' ');
+                                puts(Capability.cursor_left);
+                                cursorPos++;
+                            }
+                        }
+                    } else {
+                        puts(Capability.carriage_return); // CR / not newline.
+                        cursorPos = curCol;
                     }
-                    cleared = true;
-                    ident = false;
-                }
-            }
-            // EQUAL suffix
-            if (hasEqSuffix) {
-                int suffixWidth =
-                        oldLine.columnLength(terminal, graphemeBreakIterator, graphemeCharIterator, oEnd - ce, oEnd);
-                if (!ident) {
-                    cursorPos = moveVisualCursorTo(currentPos);
-                    rawPrint(newLine, nEnd - ce, nEnd);
-                    cursorPos += suffixWidth;
                     currentPos = cursorPos;
-                } else {
-                    currentPos += suffixWidth;
                 }
             }
-            lineIndex++;
-            boolean newWrap = !newNL && lineIndex < newLines.size();
-            if (targetCursorPos + 1 == lineIndex * columns1 && (newWrap || !delayLineWrap)) targetCursorPos++;
-            boolean atRight = (cursorPos - curCol) % columns1 == columns;
-            wrapNeeded = false;
-            if (this.delayedWrapAtEol) {
-                boolean oldWrap = !oldNL && lineIndex < oldLines.size();
-                if (newWrap != oldWrap && !(oldWrap && cleared)) {
-                    moveVisualCursorTo(lineIndex * columns1 - 1, newLines);
-                    if (newWrap) wrapNeeded = true;
-                    else {
-                        ensureDefaultAnsiStyle();
-                        puts(Capability.clr_eol);
-                    }
-                }
-            } else if (atRight) {
-                if (this.wrapAtEol) {
-                    if (!fullScreen || (fullScreen && lineIndex < numLines)) {
-                        ensureDefaultAnsiStyle();
-                        rawPrint(' ');
-                        puts(Capability.cursor_left);
-                        cursorPos++;
-                    }
-                } else {
-                    puts(Capability.carriage_return); // CR / not newline.
-                    cursorPos = curCol;
-                }
-                currentPos = cursorPos;
+            if (cursorPos != targetCursorPos) {
+                moveVisualCursorTo(targetCursorPos < 0 ? currentPos : targetCursorPos, newLines);
+            }
+            oldLines.clear();
+            oldLines.addAll(newLines);
+            ensureDefaultAnsiStyle();
+
+        } finally {
+            // End synchronized update (mode 2026): the terminal renders all buffered output now.
+            // In a finally block so the terminal never stays in synchronized-output mode on error.
+            if (fullScreen) {
+                rawEsc(SYNC_END);
             }
         }
-        if (cursorPos != targetCursorPos) {
-            moveVisualCursorTo(targetCursorPos < 0 ? currentPos : targetCursorPos, newLines);
-        }
-        oldLines.clear();
-        oldLines.addAll(newLines);
-        ensureDefaultAnsiStyle();
 
         if (useByteMode && byteBuilder.length() > 0) {
             // Flush any pending writer data, then write accumulated bytes
@@ -1002,6 +1101,18 @@ public class Display implements Sized {
         } else {
             // Non-byte-mode path: fall back to subSequence (rare path for non-UTF-8 terminals)
             str.subSequence(start, end).print(terminal);
+        }
+    }
+
+    /**
+     * Write an ASCII escape sequence to the terminal output, bypassing cursor
+     * tracking and style state. Used for non-capability sequences like mode 2026.
+     */
+    private void rawEsc(String seq) {
+        if (useByteMode) {
+            byteBuilder.appendAscii(seq);
+        } else {
+            terminal.writer().write(seq);
         }
     }
 
