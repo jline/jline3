@@ -435,13 +435,15 @@ public class DefaultHistory implements History {
                     PosixFilePermissions.asFileAttribute(
                             EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE)));
         } catch (FileAlreadyExistsException e) {
-            // created concurrently between the check and the call
+            // created concurrently between the check and the call — warn if the
+            // other creator left the file group/world readable
+            warnIfAccessibleByOthers(path);
         } catch (UnsupportedOperationException e) {
             // non-POSIX filesystem (e.g. Windows): fall back to default creation
             try {
                 Files.createFile(path);
             } catch (FileAlreadyExistsException ignore) {
-                // created concurrently
+                // created concurrently (no POSIX perms to warn about)
             }
         }
     }
