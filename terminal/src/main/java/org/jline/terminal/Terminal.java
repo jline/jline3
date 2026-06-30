@@ -1458,6 +1458,58 @@ public interface Terminal extends Closeable, Flushable, Sized {
     boolean trackFocus(boolean tracking);
 
     /**
+     * Returns whether the terminal supports in-band window resize notifications
+     * (DEC private mode 2048).
+     *
+     * <p>
+     * Mode 2048 places resize events into the terminal's data stream as
+     * {@code CSI 48 ; rows ; cols ; pixelHeight ; pixelWidth t} reports,
+     * eliminating the race conditions inherent in SIGWINCH-based resize
+     * detection.  It is especially useful over SSH/Telnet transports where
+     * SIGWINCH does not propagate reliably.
+     * </p>
+     *
+     * <p>
+     * Support detection uses the batch DEC mode probe via
+     * {@link #isModeSupported(Mode) isModeSupported(Mode.IN_BAND_RESIZE)}.
+     * The probe is never sent to dumb terminals.
+     * </p>
+     *
+     * @return {@code true} if the terminal supports mode 2048
+     * @see #trackInBandResize(boolean)
+     */
+    default boolean hasInBandResizeSupport() {
+        return false;
+    }
+
+    /**
+     * Enables or disables in-band window resize notification mode
+     * (DEC private mode 2048).
+     *
+     * <p>
+     * When enabled, the terminal sends {@code CSI 48 ; rows ; cols ; pixelHeight ; pixelWidth t}
+     * reports through the input stream whenever the window size changes.
+     * An initial report is sent immediately when the mode is first enabled.
+     * </p>
+     *
+     * <p>
+     * Applications using {@link org.jline.reader.LineReader} do not need to
+     * parse the reports manually — the reader's built-in
+     * {@code terminal-resize} widget handles them automatically, updating
+     * the terminal size and raising {@link Signal#WINCH}.
+     * </p>
+     *
+     * @param tracking {@code true} to enable in-band resize notifications,
+     *                 {@code false} to disable them
+     * @return {@code true} if the operation succeeded, {@code false} if the
+     *         terminal does not support mode 2048
+     * @see #hasInBandResizeSupport()
+     */
+    default boolean trackInBandResize(boolean tracking) {
+        return false;
+    }
+
+    /**
      * Returns whether the terminal supports mode 2027 (grapheme cluster / Unicode Core).
      *
      * <p>
