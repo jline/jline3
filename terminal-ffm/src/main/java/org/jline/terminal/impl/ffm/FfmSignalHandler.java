@@ -143,6 +143,22 @@ class FfmSignalHandler {
                         ValueLayout.JAVA_INT.withName(SA_FLAGS),
                         MemoryLayout.sequenceLayout(16, ValueLayout.JAVA_BYTE).withName(SA_MASK),
                         MemoryLayout.paddingLayout(4));
+            } else if (osName.contains("AIX")) {
+                sighup = 1;
+                sigint = 2;
+                sigquit = 3;
+                sigterm = 15;
+                sigtstp = 18;
+                sigcont = 19;
+                siginfo = -1;
+                sigwinch = 28;
+                saRestart = 0x0008;
+
+                layout = MemoryLayout.structLayout(
+                        ValueLayout.ADDRESS.withName(SA_HANDLER),
+                        MemoryLayout.sequenceLayout(8, ValueLayout.JAVA_BYTE).withName(SA_MASK),
+                        ValueLayout.JAVA_INT.withName(SA_FLAGS),
+                        MemoryLayout.paddingLayout(4));
             }
 
             if (layout != null) {

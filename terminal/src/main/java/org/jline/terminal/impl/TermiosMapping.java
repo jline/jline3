@@ -21,6 +21,7 @@ import org.jline.terminal.Attributes.*;
  * {@link #toTermios(Attributes)} and {@link #toAttributes(TermiosData)}, so subclasses
  * are pure data declarations with no conversion logic.</p>
  *
+ * @see AixTermiosMapping
  * @see LinuxTermiosMapping
  * @see OsXTermiosMapping
  * @see FreeBsdTermiosMapping
@@ -145,6 +146,8 @@ public abstract class TermiosMapping {
                 return SolarisTermiosMapping.INSTANCE;
             } else if (osName.startsWith("FreeBSD")) {
                 return FreeBsdTermiosMapping.INSTANCE;
+            } else if (osName.contains("AIX")) {
+                return AixTermiosMapping.INSTANCE;
             }
             throw new UnsupportedOperationException("Unsupported OS: " + osName);
         }
