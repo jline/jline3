@@ -82,7 +82,7 @@ public class Display implements Sized {
 
     protected final Terminal terminal;
     protected final boolean fullScreen;
-    protected final List<AttributedString> oldLines = new ArrayList<>();
+    private final List<AttributedString> oldLines = new ArrayList<>();
     protected int cursorPos;
     protected int columns;
     protected int columns1; // columns+1
@@ -339,6 +339,31 @@ public class Display implements Sized {
     @Override
     public int getRows() {
         return rows;
+    }
+
+    /**
+     * Returns the number of previously rendered lines stored in this display.
+     * Package-private: used by {@link Status} to determine cleanup needs.
+     */
+    int oldLinesSize() {
+        return oldLines.size();
+    }
+
+    /**
+     * Returns the previously rendered lines.
+     * Package-private: used by tests to verify reflow behavior.
+     */
+    List<AttributedString> oldLines() {
+        return oldLines;
+    }
+
+    /**
+     * Removes the first {@code count} entries from the previously rendered lines.
+     * Package-private: used by {@link Status} to sync its internal state after
+     * clearing stale status lines from the screen.
+     */
+    void removeFirstOldLines(int count) {
+        oldLines.subList(0, count).clear();
     }
 
     /**

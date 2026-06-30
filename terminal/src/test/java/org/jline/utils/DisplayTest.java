@@ -97,7 +97,7 @@ class DisplayTest {
             terminal.resizeScreen(newCols, rows);
             display.resize(terminal);
 
-            assertEquals(expectedLines, display.oldLines);
+            assertEquals(expectedLines, display.oldLines());
             assertEquals(expectedCursor, display.cursorPos);
         }
     }
@@ -768,6 +768,300 @@ class DisplayTest {
             assertFalse(display.scrollOptimization(), "Should be disabled after set");
             display.setScrollOptimization(true);
             assertTrue(display.scrollOptimization(), "Should be enabled after re-enable");
+        }
+    }
+
+    // ====================================================================
+    // Resize reflow edge case tests
+    // ====================================================================
+
+    @Test
+    void resizeEmptyDisplay() throws IOException {
+        try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, 80, 10)) {
+            Display display = new Display(terminal, false);
+            display.resize(Size.of(80, 10));
+
+            // Resize without any prior update — oldLines is empty, but columnSplitLength
+            // always produces at least one entry (an empty string)
+            terminal.resizeScreen(40, 10);
+            display.resize(terminal);
+
+            assertTrue(display.oldLines().size() <= 1);
+            assertEquals(0, display.cursorPos);
+        }
+    }
+
+    @Test
+    void resizeCursorAtOrigin() throws IOException {
+        try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, 80, 10)) {
+            Display display = new Display(terminal, false);
+            display.resize(Size.of(80, 10));
+
+            List<AttributedString> lines = new ArrayList<>();
+            lines.add(new AttributedString("hello world\n"));
+            lines.add(new AttributedString("second line\n"));
+            display.update(lines, 0); // cursor at position 0
+
+            terminal.resizeScreen(40, 10);
+            display.resize(terminal);
+
+            assertEquals(0, display.cursorPos);
+        }
+    }
+
+    @Test
+    void resizeAggressiveNarrow() throws IOException {
+        try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, 80, 10)) {
+            Display display = new Display(terminal, false);
+            display.resize(Size.of(80, 10));
+
+            // "hello world" is 11 chars, will need multiple lines at width 3
+            AttributedString rendered = new AttributedString("hello world\nsecond\n");
+            List<AttributedString> oldLines = rendered.columnSplitLength(terminal, 80, true, display.delayLineWrap());
+            int cursor = Size.of(80, 10)
+                    .cursorPos(
+                            oldLines.size() - 1,
+                            oldLines.get(oldLines.size() - 1).columnLength(terminal));
+            display.update(oldLines, cursor);
+
+            // Resize to 3 columns — content will reflow significantly
+            terminal.resizeScreen(3, 10);
+            display.resize(terminal);
+
+            List<AttributedString> expected = rendered.columnSplitLength(terminal, 3, true, display.delayLineWrap());
+            assertEquals(expected, display.oldLines());
+        }
+    }
+
+    @Test
+    void resizePreservesHardNewlines() throws IOException {
+        try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, 40, 10)) {
+            Display display = new Display(terminal, false);
+            display.resize(Size.of(40, 10));
+
+            // Content with multiple hard newlines including empty lines
+            AttributedString rendered = new AttributedString("line1\n\n\nline4\n");
+            List<AttributedString> lines = rendered.columnSplitLength(terminal, 40, true, display.delayLineWrap());
+            int cursor = Size.of(40, 10)
+                    .cursorPos(lines.size() - 1, lines.get(lines.size() - 1).columnLength(terminal));
+            display.update(lines, cursor);
+
+            terminal.resizeScreen(20, 10);
+            display.resize(terminal);
+
+            List<AttributedString> expected = rendered.columnSplitLength(terminal, 20, true, display.delayLineWrap());
+            assertEquals(expected, display.oldLines());
+        }
+    }
+
+    @Test
+    void resizeLineExactlyAtColumnWidth() throws IOException {
+        int cols = 10;
+        try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, cols, 10)) {
+            Display display = new Display(terminal, false);
+            display.resize(Size.of(cols, 10));
+
+            // Exactly 10 chars + newline, then another line
+            AttributedString rendered = new AttributedString("1234567890\nabcde\n");
+            List<AttributedString> lines = rendered.columnSplitLength(terminal, cols, true, display.delayLineWrap());
+            int cursor = Size.of(cols, 10)
+                    .cursorPos(lines.size() - 1, lines.get(lines.size() - 1).columnLength(terminal));
+            display.update(lines, cursor);
+
+            // Resize to 5 columns — the 10-char line wraps into two 5-char lines
+            terminal.resizeScreen(5, 10);
+            display.resize(terminal);
+
+            List<AttributedString> expected = rendered.columnSplitLength(terminal, 5, true, display.delayLineWrap());
+            assertEquals(expected, display.oldLines());
+            int expectedCursor = Size.of(5, 10)
+                    .cursorPos(
+                            expected.size() - 1,
+                            expected.get(expected.size() - 1).columnLength(terminal));
+            assertEquals(expectedCursor, display.cursorPos);
+        }
+    }
+
+    @Test
+    void resizeGrowingColumns() throws IOException {
+        try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, 20, 10)) {
+            Display display = new Display(terminal, false);
+            display.resize(Size.of(20, 10));
+
+            // Content that wraps at 20 cols but fits in 40
+            AttributedString rendered = new AttributedString("this is a longer line of text\n");
+            List<AttributedString> lines = rendered.columnSplitLength(terminal, 20, true, display.delayLineWrap());
+            int cursor = Size.of(20, 10)
+                    .cursorPos(lines.size() - 1, lines.get(lines.size() - 1).columnLength(terminal));
+            display.update(lines, cursor);
+
+            // Grow to 40 columns — content should unwrap
+            terminal.resizeScreen(40, 10);
+            display.resize(terminal);
+
+            List<AttributedString> expected = rendered.columnSplitLength(terminal, 40, true, display.delayLineWrap());
+            assertEquals(expected, display.oldLines());
+        }
+    }
+
+    // ====================================================================
+    // Wide character (CJK) wrap tests
+    // ====================================================================
+
+    @Test
+    void wideCharacterAtWrapBoundary() throws IOException {
+        int cols = 5;
+        int rows = 4;
+        try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, cols, rows)) {
+            terminal.enterRawMode();
+            terminal.puts(enter_ca_mode);
+
+            Display display = new Display(terminal, true);
+            display.resize(Size.of(cols, rows));
+
+            // CJK character (U+4E16 '世') takes 2 columns.
+            // At col 4 of a 5-wide terminal, a 2-col char doesn't fit and should wrap.
+            // "abcd世e" = a(1) b(1) c(1) d(1) 世(2) e(1) = 7 columns
+            List<AttributedString> frame = new ArrayList<>();
+            frame.add(new AttributedString("abcd世e\n"));
+            frame.add(new AttributedString("test\n"));
+            display.update(frame, 0);
+            terminal.flush();
+
+            long[] screen = terminal.dump();
+            // Row 0: "abcd " (wide char doesn't fit, so padding space or just abcd)
+            // The exact behavior depends on columnSplitLength, but the screen
+            // should not be corrupted
+            assertEquals('a', (char) screen[0 * cols + 0]);
+            assertEquals('b', (char) screen[0 * cols + 1]);
+            assertEquals('c', (char) screen[0 * cols + 2]);
+            assertEquals('d', (char) screen[0 * cols + 3]);
+        }
+    }
+
+    @Test
+    void wideCharacterFullWidthRow() throws IOException {
+        int cols = 6;
+        int rows = 3;
+        try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, cols, rows)) {
+            terminal.enterRawMode();
+            terminal.puts(enter_ca_mode);
+
+            Display display = new Display(terminal, true);
+            display.resize(Size.of(cols, rows));
+
+            // 3 CJK chars = 6 columns = exactly full width
+            List<AttributedString> frame = new ArrayList<>();
+            frame.add(new AttributedString("世界你\n")); // 2+2+2 = 6 cols
+            frame.add(new AttributedString("hello\n"));
+            display.update(frame, 0);
+            terminal.flush();
+
+            long[] screen = terminal.dump();
+            assertEquals('h', (char) screen[1 * cols + 0]);
+            assertEquals('e', (char) screen[1 * cols + 1]);
+        }
+    }
+
+    // ====================================================================
+    // Attribute/style preservation at wrap boundary tests
+    // ====================================================================
+
+    @Test
+    void stylePreservedAcrossWrapBoundary() throws IOException {
+        int cols = 10;
+        int rows = 4;
+        try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, cols, rows)) {
+            terminal.enterRawMode();
+            terminal.puts(enter_ca_mode);
+
+            Display display = new Display(terminal, true);
+            display.resize(Size.of(cols, rows));
+
+            // Full-width styled line followed by a styled line
+            AttributedStringBuilder sb1 = new AttributedStringBuilder();
+            sb1.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+            for (int i = 0; i < cols; i++) sb1.append('R');
+            // No \n = wraps to next line
+
+            AttributedStringBuilder sb2 = new AttributedStringBuilder();
+            sb2.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN));
+            for (int i = 0; i < cols; i++) sb2.append('G');
+            sb2.append('\n');
+
+            List<AttributedString> frame1 = new ArrayList<>();
+            frame1.add(sb1.toAttributedString());
+            frame1.add(sb2.toAttributedString());
+            display.update(frame1, 0);
+            terminal.flush();
+
+            // Verify screen characters are correct
+            long[] screen = terminal.dump();
+            for (int c = 0; c < cols; c++) {
+                assertEquals('R', (char) screen[0 * cols + c], "Row 0 col " + c);
+                assertEquals('G', (char) screen[1 * cols + c], "Row 1 col " + c);
+            }
+
+            // Now update: change only the second line's content
+            terminal.startCapture();
+            AttributedStringBuilder sb3 = new AttributedStringBuilder();
+            sb3.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE));
+            for (int i = 0; i < cols; i++) sb3.append('B');
+            sb3.append('\n');
+
+            List<AttributedString> frame2 = new ArrayList<>();
+            frame2.add(sb1.toAttributedString()); // unchanged
+            frame2.add(sb3.toAttributedString()); // changed
+            display.update(frame2, 0);
+            terminal.flush();
+
+            byte[] captured = terminal.stopCapture();
+            String output = new String(captured, StandardCharsets.UTF_8);
+
+            // First line is unchanged — its styled content should NOT be re-emitted
+            assertFalse(
+                    output.contains("RRRR"),
+                    "Unchanged styled line should not be re-emitted, output: " + output.replace("\033", "\\e"));
+
+            // Verify final screen state
+            screen = terminal.dump();
+            for (int c = 0; c < cols; c++) {
+                assertEquals('R', (char) screen[0 * cols + c], "Row 0 col " + c + " should still be R");
+                assertEquals('B', (char) screen[1 * cols + c], "Row 1 col " + c + " should be B");
+            }
+        }
+    }
+
+    // ====================================================================
+    // Inline display wrap tests
+    // ====================================================================
+
+    @Test
+    void inlineDisplayMultipleLines() throws IOException {
+        int cols = 10;
+        int rows = 5;
+        try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, cols, rows)) {
+            terminal.enterRawMode();
+
+            Display display = new Display(terminal, false); // inline mode
+            display.resize(Size.of(cols, rows));
+
+            List<AttributedString> frame1 = new ArrayList<>();
+            frame1.add(new AttributedString("line1\n"));
+            frame1.add(new AttributedString("line2\n"));
+            display.update(frame1, 0);
+            terminal.flush();
+
+            // Update with different content
+            List<AttributedString> frame2 = new ArrayList<>();
+            frame2.add(new AttributedString("AAAA\n"));
+            frame2.add(new AttributedString("BBBB\n"));
+            display.update(frame2, 0);
+            terminal.flush();
+
+            long[] screen = terminal.dump();
+            assertEquals('A', (char) screen[0 * cols + 0]);
+            assertEquals('B', (char) screen[1 * cols + 0]);
         }
     }
 
