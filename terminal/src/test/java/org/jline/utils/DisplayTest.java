@@ -472,12 +472,9 @@ class DisplayTest {
             byte[] capturedOn = terminal.stopCapture();
             String outputOn = new String(capturedOn, StandardCharsets.UTF_8);
 
-            // insert_line for xterm is \e[L or \e[<n>L
-            boolean hasInsertLine = outputOn.contains("\033[L") || outputOn.matches("(?s).*\\\\e\\[\\d+L.*");
-            // Also check for the CSI IL parm form
-            boolean hasInsertLineParm = outputOn.contains("\033[1L") || outputOn.contains("\033[L");
+            // insert_line for xterm is \e[L (single) or \e[<n>L (parametric)
             assertTrue(
-                    hasInsertLine || hasInsertLineParm,
+                    outputOn.contains("\033[L") || outputOn.matches("(?s).*\033\\[\\d+L.*"),
                     "Scroll optimization ON should emit insert_line, output: " + outputOn.replace("\033", "\\e"));
 
             // Reset display and redo with scroll optimization OFF
