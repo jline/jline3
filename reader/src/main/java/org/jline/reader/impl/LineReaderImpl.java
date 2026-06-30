@@ -40,6 +40,7 @@ import org.jline.terminal.Attributes.ControlChar;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.Terminal.SignalHandler;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
+import org.jline.terminal.impl.KittyKeyboardSupport;
 import org.jline.terminal.impl.MouseSupport;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
@@ -687,6 +688,10 @@ public class LineReaderImpl implements LineReader, Flushable {
                     terminal.puts(Capability.keypad_xmit);
                     if (isSet(Option.AUTO_FRESH_LINE)) callWidget(FRESH_LINE);
                     if (isSet(Option.MOUSE)) terminal.trackMouse(Terminal.MouseTracking.Normal);
+
+                    if (isSet(Option.KITTY_KEYBOARD)) {
+                        terminal.setKittyKeyboardMode(EnumSet.of(Terminal.KittyKeyboardMode.Disambiguate));
+                    }
 
                     if (isSet(Option.BRACKETED_PASTE)) {
                         terminal.writer().write(BRACKETED_PASTE_ON);
@@ -2877,6 +2882,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             }
             terminal.puts(Capability.keypad_local);
             terminal.trackMouse(Terminal.MouseTracking.Off);
+            terminal.resetKittyKeyboardMode();
 
             if (isSet(Option.BRACKETED_PASTE) && !isTerminalDumb())
                 terminal.writer().write(BRACKETED_PASTE_OFF);
@@ -6618,6 +6624,12 @@ public class LineReaderImpl implements LineReader, Flushable {
         // By default, link main to emacs unless the temrinal is dumb
         keyMaps.put(MAIN, keyMaps.get(isTerminalDumb() ? DUMB : EMACS));
 
+        // Bind Kitty Keyboard Protocol sequences for all keymaps
+        bindKittyKeys(keyMaps.get(EMACS));
+        bindKittyKeys(keyMaps.get(VIINS));
+        bindKittyKeys(keyMaps.get(VICMD));
+        bindKittyKeys(keyMaps.get(MENU));
+
         return keyMaps;
     }
 
@@ -6945,6 +6957,71 @@ public class LineReaderImpl implements LineReader, Flushable {
         bind(map, BEGIN_PASTE, BRACKETED_PASTE_BEGIN);
         bind(map, FOCUS_IN, FOCUS_IN_SEQ);
         bind(map, FOCUS_OUT, FOCUS_OUT_SEQ);
+    }
+
+    /**
+     * Registers Kitty Keyboard Protocol escape sequence variants alongside
+     * existing legacy bindings. When a terminal sends kitty-encoded sequences
+     * (e.g., {@code CSI 97;5u} for Ctrl+A instead of byte 0x01), these
+     * bindings ensure the correct widget is still invoked.
+     *
+     * <p>These bindings are registered unconditionally (they don't conflict
+     * with any existing sequences) and are only triggered when the terminal
+     * actually sends kitty-encoded input.</p>
+     *
+     * @param map the keymap to add kitty bindings to
+     */
+    private void bindKittyKeys(KeyMap<Binding> map) {
+        // With kitty flag 1 (disambiguate), Ctrl+letter no longer sends C0
+        // control codes (0x01-0x1A). Instead it sends CSI <unicode>;5u.
+        // Register kitty variants for all Ctrl+letter bindings that exist
+        // in this keymap.
+        for (char c = 'a'; c <= 'z'; c++) {
+            int ctrlCode = c - 'a' + 1; // legacy C0 code: 0x01-0x1A
+            String legacySeq = Character.toString((char) ctrlCode);
+            Object bound = map.getBound(legacySeq);
+            if (bound instanceof Binding) {
+                map.bind((Binding) bound, KittyKeyboardSupport.ctrlKey(c));
+            }
+        }
+
+        // With kitty flag 1, Escape sends CSI 27u instead of byte 0x1B
+        bind(map, VI_CMD_MODE, "\033[27u");
+
+        // Shift+Enter: CSI 13;2u — commonly requested for multi-line input
+        bind(map, ACCEPT_LINE, "\033[13;2u");
+
+        // Ctrl+Enter: CSI 13;5u
+        bind(map, ACCEPT_LINE, "\033[13;5u");
+
+        // Shift+Tab: CSI 9;2u (kitty equivalent of CSI Z)
+        Object shiftTabBound = map.getBound("\033[Z");
+        if (shiftTabBound instanceof Binding) {
+            map.bind((Binding) shiftTabBound, "\033[9;2u");
+        }
+
+        // Ctrl+Backspace: CSI 127;5u — bind to backward-kill-word
+        bind(map, BACKWARD_KILL_WORD, "\033[127;5u");
+
+        // Alt+letter: with kitty, Alt+x sends CSI <x>;3u instead of ESC x
+        for (char c = 'a'; c <= 'z'; c++) {
+            String legacyAlt = "\033" + c;
+            Object bound = map.getBound(legacyAlt);
+            if (bound instanceof Binding) {
+                map.bind((Binding) bound, KittyKeyboardSupport.altKey(c));
+            }
+        }
+
+        // Ctrl+Alt+letter combinations: CSI <unicode>;7u
+        for (char c = 'a'; c <= 'z'; c++) {
+            // Legacy: ESC followed by Ctrl+letter
+            int ctrlCode = c - 'a' + 1;
+            String legacySeq = "\033" + (char) ctrlCode;
+            Object bound = map.getBound(legacySeq);
+            if (bound instanceof Binding) {
+                map.bind((Binding) bound, KittyKeyboardSupport.ctrlAltKey(c));
+            }
+        }
     }
 
     /**

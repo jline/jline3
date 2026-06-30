@@ -29,6 +29,7 @@ import org.jline.terminal.Attributes.InputFlag;
 import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Cursor;
 import org.jline.terminal.MouseEvent;
+import org.jline.terminal.Terminal.KittyKeyboardMode;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.spi.TerminalExt;
 import org.jline.utils.AttributedCharSequence;
@@ -94,6 +95,8 @@ public abstract class AbstractTerminal implements TerminalExt {
     private boolean graphemeClusterNative;
     private boolean groupsRegionalIndicators;
     private boolean groupsZwjSequences;
+    private Boolean kittyKeyboardSupported;
+    private boolean kittyKeyboardActive;
 
     /** Result of the Mode 2027 probe. */
     private enum ProbeResult {
@@ -186,6 +189,9 @@ public abstract class AbstractTerminal implements TerminalExt {
     }
 
     protected void doClose() throws IOException {
+        if (kittyKeyboardActive) {
+            resetKittyKeyboardMode();
+        }
         if (graphemeClusterModeEnabled) {
             setGraphemeClusterMode(false, false);
         }
@@ -519,15 +525,20 @@ public abstract class AbstractTerminal implements TerminalExt {
         if ("Apple_Terminal".equals(termProgram)) {
             return ProbeResult.NOT_SUPPORTED;
         }
-        // Send DECRQM query for mode 2027 followed by DA1 as sentinel.
-        // readTerminalResponse() reads until the DA1 terminator 'c', capturing
-        // both the DECRPM (ESC[?2027;Ps$y) and the DA1 response.
-        writer().write("\033[?2027$p\033[c");
+        // Send DECRQM query for mode 2027, kitty keyboard query, and DA1 as sentinel.
+        // readTerminalResponse() reads until the DA1 terminator 'c', capturing all
+        // responses: kitty flags (CSI ? flags u), DECRPM (ESC[?2027;Ps$y), and DA1.
+        // This avoids a separate probe round-trip for kitty keyboard detection.
+        writer().write(KittyKeyboardSupport.QUERY_FLAGS);
+        writer().write("\033[?2027$p");
+        writer().write(KittyKeyboardSupport.DA1_QUERY);
         writer().flush();
         String response = readTerminalResponse();
         if (response == null) {
             return ProbeResult.NO_RESPONSE;
         }
+        // Parse kitty keyboard support from the combined response
+        parseKittyKeyboardResponse(response);
         // DECRPM: ESC[?2027;Ps$y where Ps: 1=set, 2=reset (can be set), 3=permanently set
         if (response.contains("\033[?2027;1$y")
                 || response.contains("\033[?2027;2$y")
@@ -778,6 +789,89 @@ public abstract class AbstractTerminal implements TerminalExt {
         } else {
             return false;
         }
+    }
+
+    // ---- Kitty Keyboard Protocol ----
+
+    @Override
+    public boolean hasKittyKeyboardSupport() {
+        if (kittyKeyboardSupported == null) {
+            kittyKeyboardSupported = probeKittyKeyboard();
+        }
+        return kittyKeyboardSupported;
+    }
+
+    @Override
+    public boolean setKittyKeyboardMode(EnumSet<KittyKeyboardMode> modes) {
+        if (hasKittyKeyboardSupport()) {
+            writer().write(KittyKeyboardSupport.pushFlags(modes));
+            writer().flush();
+            kittyKeyboardActive = true;
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean resetKittyKeyboardMode() {
+        if (kittyKeyboardActive) {
+            writer().write(KittyKeyboardSupport.popFlags());
+            writer().flush();
+            kittyKeyboardActive = false;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Probes the terminal for Kitty Keyboard Protocol support.
+     *
+     * <p>If {@link #probeMode2027()} has already been called (through
+     * {@link #supportsGraphemeClusterMode()}), the kitty keyboard result is
+     * already cached because the kitty query is sent alongside the mode 2027
+     * query.  This method triggers the grapheme cluster probe as a fallback
+     * so the combined query runs.</p>
+     *
+     * @return {@code true} if the terminal supports the Kitty Keyboard Protocol
+     */
+    private boolean probeKittyKeyboard() {
+        if (TYPE_DUMB.equals(type) || TYPE_DUMB_COLOR.equals(type)) {
+            return false;
+        }
+        // The kitty query is sent together with the mode 2027 probe in
+        // probeMode2027().  Trigger a grapheme cluster probe if it has not
+        // run yet — this sets kittyKeyboardSupported as a side effect.
+        if (kittyKeyboardSupported == null) {
+            supportsGraphemeClusterMode();
+        }
+        return kittyKeyboardSupported != null && kittyKeyboardSupported;
+    }
+
+    /**
+     * Parses a combined terminal response for Kitty Keyboard Protocol support.
+     * Looks for a {@code CSI ? flags u} sequence in the response.
+     *
+     * @param response the raw terminal response from a combined probe
+     */
+    private void parseKittyKeyboardResponse(String response) {
+        if (kittyKeyboardSupported != null) {
+            return;
+        }
+        // Look for CSI ? <flags> u in the response
+        String csiQuery = "\033[?";
+        int idx = response.indexOf(csiQuery);
+        while (idx >= 0) {
+            int uIdx = response.indexOf('u', idx);
+            if (uIdx > idx) {
+                String candidate = response.substring(idx, uIdx + 1);
+                if (KittyKeyboardSupport.isFlagsResponse(candidate)) {
+                    kittyKeyboardSupported = true;
+                    return;
+                }
+            }
+            idx = response.indexOf(csiQuery, idx + 1);
+        }
+        kittyKeyboardSupported = false;
     }
 
     protected void checkInterrupted() throws InterruptedIOException {
