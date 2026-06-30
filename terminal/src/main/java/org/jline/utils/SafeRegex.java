@@ -62,7 +62,8 @@ public final class SafeRegex {
      * if matching exceeds the given timeout.
      */
     public static Matcher matcher(Pattern pattern, CharSequence input, long timeoutMs) {
-        return pattern.matcher(new TimeoutCharSequence(input, timeoutMs));
+        long deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs);
+        return pattern.matcher(new TimeoutCharSequence(input, deadlineNanos));
     }
 
     // ---- convenience boolean methods ---------------------------------------
@@ -118,14 +119,18 @@ public final class SafeRegex {
      */
     public static Pattern compileGlob(String globPattern, int flags) {
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < globPattern.length(); i++) {
+        int i = 0;
+        while (i < globPattern.length()) {
             char ch = globPattern.charAt(i);
             if (ch == '\\' && i + 1 < globPattern.length()) {
-                appendQuoted(sb, globPattern.charAt(++i));
+                appendQuoted(sb, globPattern.charAt(i + 1));
+                i += 2;
             } else if (ch == '*') {
                 sb.append(".*");
+                i++;
             } else {
                 appendQuoted(sb, ch);
+                i++;
             }
         }
         return Pattern.compile(sb.toString(), flags);
@@ -156,13 +161,7 @@ public final class SafeRegex {
         private final long deadlineNanos;
         private int calls;
 
-        TimeoutCharSequence(CharSequence inner, long timeoutMs) {
-            this.inner = inner;
-            this.deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs);
-        }
-
-        /** Private constructor that shares an existing deadline (for {@link #subSequence}). */
-        private TimeoutCharSequence(CharSequence inner, long deadlineNanos, boolean ignored) {
+        TimeoutCharSequence(CharSequence inner, long deadlineNanos) {
             this.inner = inner;
             this.deadlineNanos = deadlineNanos;
         }
@@ -182,7 +181,7 @@ public final class SafeRegex {
 
         @Override
         public CharSequence subSequence(int start, int end) {
-            return new TimeoutCharSequence(inner.subSequence(start, end), deadlineNanos, true);
+            return new TimeoutCharSequence(inner.subSequence(start, end), deadlineNanos);
         }
 
         @Override
