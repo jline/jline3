@@ -48,6 +48,8 @@ import org.jline.utils.Curses;
 import org.jline.utils.Display;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Log;
+import org.jline.utils.RegexTimeoutException;
+import org.jline.utils.SafeRegex;
 import org.jline.utils.Status;
 import org.jline.utils.StyleResolver;
 import org.jline.utils.WCWidth;
@@ -3119,9 +3121,13 @@ public class LineReaderImpl implements LineReader, Flushable {
 
     private List<Pair<Integer, Integer>> matches(Pattern p, String line, int index) {
         List<Pair<Integer, Integer>> starts = new ArrayList<>();
-        Matcher m = p.matcher(line);
-        while (m.find()) {
-            starts.add(new Pair<>(index, m.start()));
+        Matcher m = SafeRegex.matcher(p, line);
+        try {
+            while (m.find()) {
+                starts.add(new Pair<>(index, m.start()));
+            }
+        } catch (RegexTimeoutException e) {
+            // Return whatever matches were found before timeout
         }
         return starts;
     }
@@ -4393,21 +4399,13 @@ public class LineReaderImpl implements LineReader, Flushable {
             return "";
         }
         History history = getHistory();
-        StringBuilder sb = new StringBuilder();
-        for (char c : buffer.replace("\\", "\\\\").toCharArray()) {
-            if (c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}' || c == '^' || c == '*' || c == '$'
-                    || c == '.' || c == '?' || c == '+' || c == '|' || c == '<' || c == '>' || c == '!' || c == '-') {
-                sb.append('\\');
-            }
-            sb.append(c);
-        }
-        Pattern pattern = Pattern.compile(sb.toString() + ".*", Pattern.DOTALL);
+        Pattern pattern = Pattern.compile(Pattern.quote(buffer) + ".*", Pattern.DOTALL);
         Iterator<History.Entry> iter = history.reverseIterator(history.last());
         String suggestion = "";
         int tot = 0;
         while (iter.hasNext()) {
             History.Entry entry = iter.next();
-            Matcher matcher = pattern.matcher(entry.line());
+            Matcher matcher = SafeRegex.matcher(pattern, entry.line());
             if (matcher.matches()) {
                 suggestion = entry.line().substring(buffer.length());
                 break;

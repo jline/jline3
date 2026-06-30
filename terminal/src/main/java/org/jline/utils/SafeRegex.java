@@ -1,0 +1,193 @@
+/*
+ * Copyright (c) the original author(s).
+ *
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
+ *
+ * https://opensource.org/licenses/BSD-3-Clause
+ */
+package org.jline.utils;
+
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * Regex utilities that guard against catastrophic backtracking (ReDoS).
+ *
+ * <p>Java's {@code java.util.regex} engine uses backtracking, so patterns with
+ * nested quantifiers (e.g. {@code (a+)+b}) can take exponential time on
+ * non-matching input. This class wraps input in a {@link CharSequence} that
+ * enforces a wall-clock deadline, throwing {@link RegexTimeoutException} if
+ * matching takes too long.</p>
+ *
+ * <p>Usage:</p>
+ * <ul>
+ *   <li>For simple boolean checks, use {@link #matches} or {@link #find} —
+ *       they catch timeouts and return {@code false}.</li>
+ *   <li>When you need the {@link Matcher} (e.g. for a find loop or to read
+ *       match groups), use {@link #matcher} and catch
+ *       {@link RegexTimeoutException} yourself.</li>
+ *   <li>For glob-style patterns (only {@code *} is special), use
+ *       {@link #compileGlob} to get a safe {@link Pattern}.</li>
+ * </ul>
+ */
+public final class SafeRegex {
+
+    /** Default timeout for regex matching operations. */
+    private static final long DEFAULT_TIMEOUT_MS = 1500;
+
+    /**
+     * How often (in {@code charAt} calls) the deadline is checked.
+     * Checking every call would add measurable overhead; checking every
+     * 1024 calls keeps the cost negligible while still catching runaway
+     * backtracking within milliseconds on typical input.
+     */
+    private static final int CHECK_INTERVAL = 1024;
+
+    private SafeRegex() {}
+
+    // ---- matcher factory ---------------------------------------------------
+
+    /**
+     * Create a {@link Matcher} that will throw {@link RegexTimeoutException}
+     * if matching exceeds the default timeout.
+     */
+    public static Matcher matcher(Pattern pattern, CharSequence input) {
+        return matcher(pattern, input, DEFAULT_TIMEOUT_MS);
+    }
+
+    /**
+     * Create a {@link Matcher} that will throw {@link RegexTimeoutException}
+     * if matching exceeds the given timeout.
+     */
+    public static Matcher matcher(Pattern pattern, CharSequence input, long timeoutMs) {
+        return pattern.matcher(new TimeoutCharSequence(input, timeoutMs));
+    }
+
+    // ---- convenience boolean methods ---------------------------------------
+
+    /**
+     * Test whether the pattern matches the entire input, with timeout
+     * protection. Returns {@code false} on timeout.
+     */
+    public static boolean matches(Pattern pattern, CharSequence input) {
+        try {
+            return matcher(pattern, input).matches();
+        } catch (RegexTimeoutException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Test whether the pattern is found anywhere in the input, with timeout
+     * protection. Returns {@code false} on timeout.
+     */
+    public static boolean find(Pattern pattern, CharSequence input) {
+        try {
+            return matcher(pattern, input).find();
+        } catch (RegexTimeoutException e) {
+            return false;
+        }
+    }
+
+    // ---- glob compilation --------------------------------------------------
+
+    /**
+     * Compile a glob-style pattern into a {@link Pattern}.
+     *
+     * <p>Only {@code *} (match any string) and {@code \} (escape) are
+     * special; every other character is regex-quoted so it matches
+     * literally. This is suitable for user-facing wildcard syntax where
+     * full regex power is not intended.</p>
+     *
+     * @param globPattern the glob pattern (e.g. {@code "foo*bar"})
+     * @return a compiled regex pattern
+     */
+    public static Pattern compileGlob(String globPattern) {
+        return compileGlob(globPattern, 0);
+    }
+
+    /**
+     * Compile a glob-style pattern into a {@link Pattern} with the given
+     * regex flags.
+     *
+     * @param globPattern the glob pattern
+     * @param flags       regex flags (e.g. {@link Pattern#DOTALL})
+     * @return a compiled regex pattern
+     */
+    public static Pattern compileGlob(String globPattern, int flags) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < globPattern.length(); i++) {
+            char ch = globPattern.charAt(i);
+            if (ch == '\\' && i + 1 < globPattern.length()) {
+                appendQuoted(sb, globPattern.charAt(++i));
+            } else if (ch == '*') {
+                sb.append(".*");
+            } else {
+                appendQuoted(sb, ch);
+            }
+        }
+        return Pattern.compile(sb.toString(), flags);
+    }
+
+    // ---- internal ----------------------------------------------------------
+
+    private static void appendQuoted(StringBuilder sb, char ch) {
+        // Quote individual regex metacharacters inline rather than using
+        // Pattern.quote() (\Q...\E) to keep the generated regex readable.
+        if ("\\^$.|?*+()[]{}".indexOf(ch) >= 0) {
+            sb.append('\\');
+        }
+        sb.append(ch);
+    }
+
+    /**
+     * A {@link CharSequence} wrapper that enforces a wall-clock deadline.
+     *
+     * <p>The Java regex engine calls {@link #charAt(int)} for every position
+     * it considers during matching.  During catastrophic backtracking the
+     * call count explodes; we check {@link System#nanoTime()} every
+     * {@value #CHECK_INTERVAL} calls and throw if the deadline has passed.</p>
+     */
+    private static final class TimeoutCharSequence implements CharSequence {
+
+        private final CharSequence inner;
+        private final long deadlineNanos;
+        private int calls;
+
+        TimeoutCharSequence(CharSequence inner, long timeoutMs) {
+            this.inner = inner;
+            this.deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs);
+        }
+
+        /** Private constructor that shares an existing deadline (for {@link #subSequence}). */
+        private TimeoutCharSequence(CharSequence inner, long deadlineNanos, boolean ignored) {
+            this.inner = inner;
+            this.deadlineNanos = deadlineNanos;
+        }
+
+        @Override
+        public char charAt(int index) {
+            if (++calls % CHECK_INTERVAL == 0 && System.nanoTime() > deadlineNanos) {
+                throw new RegexTimeoutException();
+            }
+            return inner.charAt(index);
+        }
+
+        @Override
+        public int length() {
+            return inner.length();
+        }
+
+        @Override
+        public CharSequence subSequence(int start, int end) {
+            return new TimeoutCharSequence(inner.subSequence(start, end), deadlineNanos, true);
+        }
+
+        @Override
+        public String toString() {
+            return inner.toString();
+        }
+    }
+}
