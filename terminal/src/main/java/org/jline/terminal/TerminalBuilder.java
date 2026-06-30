@@ -178,18 +178,27 @@ public final class TerminalBuilder {
 
     public static final String PROP_NON_BLOCKING_READS = "org.jline.terminal.pty.nonBlockingReads";
     /**
-     * When {@code true} (the default), system terminals intercept signal control characters
+     * When {@code true}, system terminals intercept signal control characters
      * (VINTR, VQUIT, VSUSP) in software and raise the corresponding {@link Terminal.Signal}
      * when ISIG is cleared (raw mode). This restores {@code terminal.handle(Signal.INT, ...)}
      * behavior that was lost when {@code enterRawMode()} started clearing ISIG.
      * <p>
-     * Set to {@code false} for pure native terminal behavior where no automatic signal
-     * translation occurs — the application must handle raw bytes itself.
+     * Set to {@code false} (the default since 4.4.0) for pure native terminal behavior where
+     * no automatic signal translation occurs — the application must handle raw bytes itself.
      * <p>
-     * The default may change to {@code false} in a future release (4.2 or later).
+     * Applications that relied on {@code terminal.handle(Signal.INT, ...)} in raw mode
+     * should either set {@code -Dorg.jline.terminal.softwareSignals=true} explicitly,
+     * switch to LineReader's INTERRUPT widget, or handle byte {@code 0x03} (Ctrl+C)
+     * in their own input processing loop.
      *
      * @since 4.1.4
+     * @deprecated This property is scheduled for removal in a future release.
+     *             In pure native mode, signal byte interception should not be needed;
+     *             applications should use the LineReader INTERRUPT widget or handle
+     *             raw bytes directly.
      */
+    @Deprecated
+    @SuppressWarnings("java:S1133") // Intentional deprecation; removal planned for a future major version
     public static final String PROP_SOFTWARE_SIGNALS = "org.jline.terminal.softwareSignals";
 
     public static final String PROP_COLOR_DISTANCE = "org.jline.utils.colorDistance";
