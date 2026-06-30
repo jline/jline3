@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -382,7 +382,7 @@ public final class TerminalBuilder {
     private Terminal.SignalHandler signalHandler = Terminal.SignalHandler.SIG_DFL;
     private boolean paused = false;
     private Boolean graphemeCluster;
-    private Function<String, String> env;
+    private UnaryOperator<String> env;
 
     private TerminalBuilder() {}
 
@@ -815,7 +815,7 @@ public final class TerminalBuilder {
      * @return this builder
      * @see Terminal#getenv(String)
      */
-    public TerminalBuilder env(Function<String, String> env) {
+    public TerminalBuilder env(UnaryOperator<String> env) {
         this.env = env;
         return this;
     }

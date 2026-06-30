@@ -20,9 +20,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
+import java.util.function.UnaryOperator;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.ControlChar;
@@ -86,7 +86,7 @@ public abstract class AbstractTerminal implements TerminalExt {
     protected final Map<Capability, Integer> ints = new HashMap<>();
     protected final Map<Capability, String> strings = new HashMap<>();
     protected final ColorPalette palette;
-    protected Function<String, String> envProvider = System::getenv;
+    protected UnaryOperator<String> envProvider = System::getenv;
     protected Status status;
     protected Runnable onClose;
     protected MouseTracking currentMouseTracking = MouseTracking.Off;
@@ -164,7 +164,7 @@ public abstract class AbstractTerminal implements TerminalExt {
      * @param env a function that returns the value of an environment variable
      *            given its name, or {@code null} if not defined
      */
-    public void setEnv(Function<String, String> env) {
+    public void setEnv(UnaryOperator<String> env) {
         this.envProvider = Objects.requireNonNull(env);
         detectTrueColorSupport();
     }
