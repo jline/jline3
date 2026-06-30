@@ -14,9 +14,10 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
+import org.jline.terminal.Attributes;
 import org.jline.terminal.spi.Pty;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.FastBufferedOutputStream;
@@ -27,6 +28,8 @@ import org.jline.utils.OSUtils;
 import org.jline.utils.ShutdownHooks;
 import org.jline.utils.ShutdownHooks.Task;
 import org.jline.utils.Signals;
+
+import static org.jline.terminal.TerminalBuilder.PROP_SOFTWARE_SIGNALS;
 
 /**
  * Terminal implementation for POSIX systems using system streams.
@@ -65,8 +68,10 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
     protected final OutputStream output;
     protected final NonBlockingReader reader;
     protected final PrintWriter writer;
-    protected final Map<Signal, Object> nativeHandlers = new HashMap<>();
+    protected final Map<Signal, Object> nativeHandlers = new ConcurrentHashMap<>();
     protected final Task closer;
+    private final boolean nativeSignals;
+    private volatile Attributes cachedAttributes;
 
     /**
      * Creates a POSIX system terminal backed by the provided PTY, using the same charset for input
@@ -145,17 +150,29 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
             throws IOException {
         super(name, type, pty, encoding, inputEncoding, outputEncoding, signalHandler);
         this.provider = provider;
-        this.input = NonBlocking.nonBlocking(getName(), pty.getSlaveInput());
+        this.nativeSignals = nativeSignals;
+        this.cachedAttributes = new Attributes(this.originalAttributes);
+        boolean softwareSignals = Boolean.parseBoolean(System.getProperty(PROP_SOFTWARE_SIGNALS, "true"));
+        InputStream slaveInput = pty.getSlaveInput();
+        this.input = NonBlocking.nonBlocking(
+                getName(),
+                softwareSignals
+                        ? new SignalInterceptingInputStream(slaveInput, () -> cachedAttributes, this::raise)
+                        : slaveInput);
         this.output = new FastBufferedOutputStream(pty.getSlaveOutput());
         this.reader = NonBlocking.nonBlocking(getName(), input, inputEncoding());
         this.writer = new PrintWriter(new OutputStreamWriter(output, outputEncoding()));
         parseInfoCmp();
         if (nativeSignals) {
             for (final Signal signal : Signal.values()) {
+                Object nativeHandler;
                 if (signalHandler == SignalHandler.SIG_DFL) {
-                    nativeHandlers.put(signal, doRegisterDefaultSignal(signal.name()));
+                    nativeHandler = doRegisterDefaultSignal(signal.name());
                 } else {
-                    nativeHandlers.put(signal, doRegisterSignal(signal.name(), () -> raise(signal)));
+                    nativeHandler = doRegisterSignal(signal.name(), () -> raise(signal));
+                }
+                if (nativeHandler != null) {
+                    nativeHandlers.put(signal, nativeHandler);
                 }
             }
         }
@@ -176,11 +193,19 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
     @Override
     public SignalHandler handle(Signal signal, SignalHandler handler) {
         SignalHandler prev = super.handle(signal, handler);
-        if (prev != handler) {
+        if (nativeSignals && prev != handler) {
+            Object previousNative = nativeHandlers.remove(signal);
+            if (previousNative != null) {
+                doUnregisterSignal(signal.name(), previousNative);
+            }
+            Object nativeHandler;
             if (handler == SignalHandler.SIG_DFL) {
-                doRegisterDefaultSignal(signal.name());
+                nativeHandler = doRegisterDefaultSignal(signal.name());
             } else {
-                doRegisterSignal(signal.name(), () -> raise(signal));
+                nativeHandler = doRegisterSignal(signal.name(), () -> raise(signal));
+            }
+            if (nativeHandler != null) {
+                nativeHandlers.put(signal, nativeHandler);
             }
         }
         return prev;
@@ -220,6 +245,19 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
         } else {
             Signals.unregister(name, registration);
         }
+    }
+
+    @Override
+    public Attributes getAttributes() {
+        Attributes attr = super.getAttributes();
+        cachedAttributes = attr;
+        return attr;
+    }
+
+    @Override
+    public void setAttributes(Attributes attr) {
+        super.setAttributes(attr);
+        cachedAttributes = new Attributes(attr);
     }
 
     /**
@@ -275,10 +313,20 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
     protected void doClose() throws IOException {
         writer.flush();
         ShutdownHooks.remove(closer);
-        for (Map.Entry<Signal, Object> entry : nativeHandlers.entrySet()) {
-            doUnregisterSignal(entry.getKey().name(), entry.getValue());
+        try {
+            for (Map.Entry<Signal, Object> entry : nativeHandlers.entrySet()) {
+                try {
+                    doUnregisterSignal(entry.getKey().name(), entry.getValue());
+                } catch (Exception ignore) {
+                    // best-effort cleanup during close
+                }
+            }
+        } finally {
+            try {
+                super.doClose();
+            } finally {
+                reader.close();
+            }
         }
-        super.doClose();
-        reader.close();
     }
 }
