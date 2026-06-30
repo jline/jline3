@@ -61,6 +61,7 @@
         <module>console-ui</module>
         <module>prompt</module>
         <module>console</module>
+        <module>console-provider</module>
         <module>picocli</module>
         <module>groovy</module>
         <module>remote-ssh</module>
@@ -191,6 +192,11 @@
             <dependency>
                 <groupId>org.jline</groupId>
                 <artifactId>jline-console</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-console-provider</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
