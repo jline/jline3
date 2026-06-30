@@ -1462,7 +1462,7 @@ public interface Terminal extends Closeable, Flushable, Sized {
      *
      * @param name the name of the environment variable
      * @return the value of the variable, or {@code null} if it is not defined
-     * @see TerminalBuilder#env(java.util.function.Function)
+     * @see TerminalBuilder#env(java.util.function.UnaryOperator)
      */
     default String getenv(String name) {
         return System.getenv(name);
