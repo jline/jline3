@@ -351,50 +351,65 @@ public class KeyParser {
      * main fields use semicolon separators.</p>
      */
     private static KeyEvent parseKittySequence(String sequence) {
-        // Strip CSI prefix ("[") and 'u' suffix
+        // Strip CSI prefix and 'u' suffix
         String body = sequence.substring(2, sequence.length() - 1);
 
         // Split into main fields by semicolon
         String[] fields = body.split(";", -1);
 
         // Field 1: keycode[:shifted[:base]]
+        int[] keyCodes = parseKittyKeyCodes(fields.length >= 1 ? fields[0] : "");
+
+        // Field 2: modifiers[:eventtype]
+        int[] modAndEvent = parseKittyModAndEvent(fields.length >= 2 ? fields[1] : "");
+
+        // Field 3: text-as-codepoints (colon-separated)
+        String associatedText = (fields.length >= 3 && !fields[2].isEmpty()) ? parseTextCodepoints(fields[2]) : null;
+
+        EnumSet<KeyEvent.Modifier> modifiers = parseKittyModifiers(modAndEvent[0]);
+        KeyEvent.EventType eventType = parseKittyEventType(modAndEvent[1]);
+
+        return buildKittyKeyEvent(
+                keyCodes[0], modifiers, eventType, keyCodes[1], keyCodes[2], associatedText, sequence);
+    }
+
+    /**
+     * Parses the key code field {@code keycode[:shifted[:base]]} into an array
+     * of three ints: [keyCode, shiftedKeyCode, baseLayoutKeyCode].
+     */
+    private static int[] parseKittyKeyCodes(String field) {
         int keyCode = 0;
         int shiftedKeyCode = 0;
         int baseLayoutKeyCode = 0;
-        if (fields.length >= 1 && !fields[0].isEmpty()) {
-            String[] keyCodes = fields[0].split(":", -1);
-            keyCode = parseIntSafe(keyCodes[0]);
-            if (keyCodes.length >= 2 && !keyCodes[1].isEmpty()) {
-                shiftedKeyCode = parseIntSafe(keyCodes[1]);
+        if (!field.isEmpty()) {
+            String[] parts = field.split(":", -1);
+            keyCode = parseIntSafe(parts[0]);
+            if (parts.length >= 2 && !parts[1].isEmpty()) {
+                shiftedKeyCode = parseIntSafe(parts[1]);
             }
-            if (keyCodes.length >= 3 && !keyCodes[2].isEmpty()) {
-                baseLayoutKeyCode = parseIntSafe(keyCodes[2]);
+            if (parts.length >= 3 && !parts[2].isEmpty()) {
+                baseLayoutKeyCode = parseIntSafe(parts[2]);
             }
         }
+        return new int[] {keyCode, shiftedKeyCode, baseLayoutKeyCode};
+    }
 
-        // Field 2: modifiers[:eventtype]
+    /**
+     * Parses the modifier field {@code modifiers[:eventtype]} into an array
+     * of two ints: [modValue, eventTypeValue].
+     */
+    private static int[] parseKittyModAndEvent(String field) {
         int modValue = 1; // default: no modifiers
         int eventTypeValue = 1; // default: press
-        if (fields.length >= 2 && !fields[1].isEmpty()) {
-            String[] modParts = fields[1].split(":", -1);
-            modValue = parseIntSafe(modParts[0]);
+        if (!field.isEmpty()) {
+            String[] parts = field.split(":", -1);
+            modValue = parseIntSafe(parts[0]);
             if (modValue == 0) modValue = 1;
-            if (modParts.length >= 2 && !modParts[1].isEmpty()) {
-                eventTypeValue = parseIntSafe(modParts[1]);
+            if (parts.length >= 2 && !parts[1].isEmpty()) {
+                eventTypeValue = parseIntSafe(parts[1]);
             }
         }
-
-        // Field 3: text-as-codepoints (colon-separated)
-        String associatedText = null;
-        if (fields.length >= 3 && !fields[2].isEmpty()) {
-            associatedText = parseTextCodepoints(fields[2]);
-        }
-
-        EnumSet<KeyEvent.Modifier> modifiers = parseKittyModifiers(modValue);
-        KeyEvent.EventType eventType = parseKittyEventType(eventTypeValue);
-
-        return buildKittyKeyEvent(
-                keyCode, modifiers, eventType, shiftedKeyCode, baseLayoutKeyCode, associatedText, sequence);
+        return new int[] {modValue, eventTypeValue};
     }
 
     /**

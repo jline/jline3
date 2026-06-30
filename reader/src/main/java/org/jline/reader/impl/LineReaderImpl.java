@@ -40,6 +40,7 @@ import org.jline.terminal.Attributes.ControlChar;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.Terminal.SignalHandler;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
+import org.jline.terminal.impl.KittyKeyboardSupport;
 import org.jline.terminal.impl.MouseSupport;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
@@ -6979,11 +6980,8 @@ public class LineReaderImpl implements LineReader, Flushable {
             int ctrlCode = c - 'a' + 1; // legacy C0 code: 0x01-0x1A
             String legacySeq = Character.toString((char) ctrlCode);
             Object bound = map.getBound(legacySeq);
-            if (bound != null && bound instanceof Binding) {
-                // Register the kitty equivalent: CSI <unicode>;5u
-                // modifiers value = 1 + ctrl(4) = 5
-                String kittySeq = "\033[" + (int) c + ";5u";
-                map.bind((Binding) bound, kittySeq);
+            if (bound instanceof Binding) {
+                map.bind((Binding) bound, KittyKeyboardSupport.ctrlKey(c));
             }
         }
 
@@ -7009,10 +7007,8 @@ public class LineReaderImpl implements LineReader, Flushable {
         for (char c = 'a'; c <= 'z'; c++) {
             String legacyAlt = "\033" + c;
             Object bound = map.getBound(legacyAlt);
-            if (bound != null && bound instanceof Binding) {
-                // modifiers value = 1 + alt(2) = 3
-                String kittySeq = "\033[" + (int) c + ";3u";
-                map.bind((Binding) bound, kittySeq);
+            if (bound instanceof Binding) {
+                map.bind((Binding) bound, KittyKeyboardSupport.altKey(c));
             }
         }
 
@@ -7022,10 +7018,8 @@ public class LineReaderImpl implements LineReader, Flushable {
             int ctrlCode = c - 'a' + 1;
             String legacySeq = "\033" + (char) ctrlCode;
             Object bound = map.getBound(legacySeq);
-            if (bound != null && bound instanceof Binding) {
-                // modifiers value = 1 + alt(2) + ctrl(4) = 7
-                String kittySeq = "\033[" + (int) c + ";7u";
-                map.bind((Binding) bound, kittySeq);
+            if (bound instanceof Binding) {
+                map.bind((Binding) bound, KittyKeyboardSupport.ctrlAltKey(c));
             }
         }
     }
