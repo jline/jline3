@@ -1334,6 +1334,7 @@ public class Nano implements Editor {
         }
 
         private List<Integer> doSearch(String text) {
+            matchedLength = 0;
             Pattern pat = Pattern.compile(
                     searchTerm,
                     (searchCaseSensitive ? 0 : Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE)

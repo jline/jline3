@@ -62,9 +62,9 @@ public final class SafeRegex {
 
     /**
      * Create a {@link Matcher} that will throw {@link RegexTimeoutException}
-     * if matching exceeds the given timeout.  The timeout starts on the
-     * first {@code charAt} call (i.e. when matching actually begins), not
-     * when the {@link Matcher} is created.
+     * if matching exceeds the given timeout.  The timeout starts lazily on
+     * the first deadline check during matching (not when the {@link Matcher}
+     * is created), so it measures actual matching time.
      */
     public static Matcher matcher(Pattern pattern, CharSequence input, long timeoutMs) {
         long timeoutNanos = TimeUnit.MILLISECONDS.toNanos(timeoutMs);
