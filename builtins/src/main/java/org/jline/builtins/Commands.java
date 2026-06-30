@@ -45,6 +45,7 @@ import org.jline.reader.Widget;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
+import org.jline.utils.SafeRegex;
 import org.jline.utils.StyleResolver;
 
 import static org.jline.builtins.SyntaxHighlighter.*;
@@ -360,16 +361,7 @@ public class Commands {
 
         Pattern pattern = null;
         if (opt.isSet("m") && opt.args().size() > argId) {
-            StringBuilder sb = new StringBuilder();
-            char prev = '0';
-            for (char c : opt.args().get(argId++).toCharArray()) {
-                if (c == '*' && prev != '\\' && prev != '.') {
-                    sb.append('.');
-                }
-                sb.append(c);
-                prev = c;
-            }
-            pattern = Pattern.compile(sb.toString(), Pattern.DOTALL);
+            pattern = SafeRegex.compileGlob(opt.args().get(argId++), Pattern.DOTALL);
         }
         boolean reverse = opt.isSet("r") || (opt.isSet("s") && opt.args().size() <= argId);
         int firstId = opt.args().size() > argId
@@ -399,7 +391,7 @@ public class Commands {
         while (iter.hasNext() && listed < tot) {
             History.Entry entry = iter.next();
             listed++;
-            if (pattern != null && !pattern.matcher(entry.line()).matches()) {
+            if (pattern != null && !SafeRegex.matches(pattern, entry.line())) {
                 continue;
             }
             if (execute.isExecute()) {

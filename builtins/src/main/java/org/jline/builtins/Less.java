@@ -42,6 +42,7 @@ import org.jline.utils.AttributedStyle;
 import org.jline.utils.Display;
 import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.NonBlockingReader;
+import org.jline.utils.SafeRegex;
 import org.jline.utils.Status;
 
 import static org.jline.builtins.SyntaxHighlighter.*;
@@ -1095,7 +1096,7 @@ public class Less {
                     break;
                 } else if (!toBeDisplayed(line, dpCompiled)) {
                     continue;
-                } else if (compiled.matcher(line).find()) {
+                } else if (SafeRegex.find(compiled, line)) {
                     display.clear();
                     firstLineToDisplay = lineNumber;
                     offsetInLine = 0;
@@ -1135,7 +1136,7 @@ public class Less {
                     break;
                 } else if (!toBeDisplayed(line, dpCompiled)) {
                     continue;
-                } else if (compiled.matcher(line).find()) {
+                } else if (SafeRegex.find(compiled, line)) {
                     display.clear();
                     firstLineToDisplay = lineNumber;
                     offsetInLine = 0;
@@ -1309,10 +1310,7 @@ public class Less {
     }
 
     private boolean toBeDisplayed(AttributedString curLine, Pattern dpCompiled) {
-        return curLine == null
-                || dpCompiled == null
-                || sourceIdx == 0
-                || dpCompiled.matcher(curLine).find();
+        return curLine == null || dpCompiled == null || sourceIdx == 0 || SafeRegex.find(dpCompiled, curLine);
     }
 
     synchronized boolean display(boolean oneScreen) throws IOException {
