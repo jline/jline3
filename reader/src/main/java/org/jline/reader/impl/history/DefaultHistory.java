@@ -9,10 +9,13 @@
 package org.jline.reader.impl.history;
 
 import java.io.*;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.DateTimeException;
 import java.time.Instant;
 import java.util.*;
@@ -391,12 +394,13 @@ public class DefaultHistory implements History {
             if (!Files.exists(parent)) {
                 Files.createDirectories(parent);
             }
-            // Append new items to the history file
+            createWithOwnerOnlyPermissions(path.toAbsolutePath());
+            // Append new items to the history file. createWithOwnerOnlyPermissions guarantees the
+            // file exists, so CREATE is intentionally omitted: should the file be removed in the
+            // narrow window before this open, fail with NoSuchFileException rather than silently
+            // re-creating it with umask-default (group/world readable) permissions.
             try (BufferedWriter writer = Files.newBufferedWriter(
-                    path.toAbsolutePath(),
-                    StandardOpenOption.WRITE,
-                    StandardOpenOption.APPEND,
-                    StandardOpenOption.CREATE)) {
+                    path.toAbsolutePath(), StandardOpenOption.WRITE, StandardOpenOption.APPEND)) {
                 for (Entry entry : items.subList(from, items.size())) {
                     if (isPersistable(entry)) {
                         writer.append(format(entry));
@@ -410,6 +414,61 @@ public class DefaultHistory implements History {
             }
         }
         setLastLoaded(path, items.size());
+    }
+
+    /**
+     * Creates the history file restricted to the owner when it does not exist yet.
+     * History lines can contain secrets typed on the command line, so the file
+     * must not be left group/world readable as the umask default (0644) would.
+     * On non-POSIX filesystems the file is created with the platform default.
+     */
+    private static void createWithOwnerOnlyPermissions(Path path) throws IOException {
+        if (Files.exists(path)) {
+            // A pre-existing file (e.g. created by an older JLine without this fix) keeps its
+            // current permissions; we don't silently tighten it, but warn so the user can.
+            warnIfAccessibleByOthers(path);
+            return;
+        }
+        try {
+            Files.createFile(
+                    path,
+                    PosixFilePermissions.asFileAttribute(
+                            EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE)));
+        } catch (FileAlreadyExistsException e) {
+            // created concurrently between the check and the call
+        } catch (UnsupportedOperationException e) {
+            // non-POSIX filesystem (e.g. Windows): fall back to default creation
+            try {
+                Files.createFile(path);
+            } catch (FileAlreadyExistsException ignore) {
+                // created concurrently
+            }
+        }
+    }
+
+    private static final Set<Path> WARNED_INSECURE_PERMS = Collections.synchronizedSet(new HashSet<>());
+
+    private static final Set<PosixFilePermission> NON_OWNER_PERMS = EnumSet.of(
+            PosixFilePermission.GROUP_READ,
+            PosixFilePermission.GROUP_WRITE,
+            PosixFilePermission.GROUP_EXECUTE,
+            PosixFilePermission.OTHERS_READ,
+            PosixFilePermission.OTHERS_WRITE,
+            PosixFilePermission.OTHERS_EXECUTE);
+
+    /**
+     * Warns, at most once per path, when an existing history file is accessible by users other
+     * than the owner. The file's permissions are left untouched so as not to surprise the user.
+     */
+    private static void warnIfAccessibleByOthers(Path path) {
+        try {
+            Set<PosixFilePermission> perms = Files.getPosixFilePermissions(path);
+            if (perms.stream().anyMatch(NON_OWNER_PERMS::contains) && WARNED_INSECURE_PERMS.add(path)) {
+                Log.warn("History file ", path, " is accessible by other users; consider 'chmod 600'");
+            }
+        } catch (UnsupportedOperationException | IOException e) {
+            // non-POSIX filesystem or attributes unavailable: nothing to warn about
+        }
     }
 
     /**
