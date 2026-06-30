@@ -49,6 +49,8 @@ import org.jline.terminal.Terminal.SignalHandler;
 import org.jline.terminal.impl.MouseSupport;
 import org.jline.utils.*;
 import org.jline.utils.InfoCmp.Capability;
+import org.jline.utils.RegexTimeoutException;
+import org.jline.utils.SafeRegex;
 import org.jline.utils.Status;
 import org.mozilla.universalchardet.UniversalDetector;
 
@@ -1332,15 +1334,20 @@ public class Nano implements Editor {
         }
 
         private List<Integer> doSearch(String text) {
+            matchedLength = 0;
             Pattern pat = Pattern.compile(
                     searchTerm,
                     (searchCaseSensitive ? 0 : Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE)
                             | (searchRegexp ? 0 : Pattern.LITERAL));
-            Matcher m = pat.matcher(text);
+            Matcher m = SafeRegex.matcher(pat, text);
             List<Integer> res = new ArrayList<>();
-            while (m.find()) {
-                res.add(m.start());
-                matchedLength = m.group(0).length();
+            try {
+                while (m.find()) {
+                    res.add(m.start());
+                    matchedLength = m.end() - m.start();
+                }
+            } catch (RegexTimeoutException e) {
+                // Return whatever matches were found before timeout
             }
             return res;
         }

@@ -19,10 +19,12 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.time.DateTimeException;
 import java.time.Instant;
 import java.util.*;
+import java.util.regex.Pattern;
 
 import org.jline.reader.History;
 import org.jline.reader.LineReader;
 import org.jline.utils.Log;
+import org.jline.utils.SafeRegex;
 
 import static org.jline.reader.LineReader.HISTORY_IGNORE;
 import static org.jline.reader.impl.ReaderUtils.*;
@@ -672,21 +674,25 @@ public class DefaultHistory implements History {
         if (patterns == null || patterns.isEmpty()) {
             return false;
         }
+        // HISTORY_IGNORE uses a glob-like syntax where '*' matches any string,
+        // ':' separates alternatives, and '\' escapes the next character.
+        // All other characters must match literally — regex metacharacters
+        // are quoted to prevent ReDoS via catastrophic backtracking.
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < patterns.length(); i++) {
             char ch = patterns.charAt(i);
-            if (ch == '\\') {
+            if (ch == '\\' && i + 1 < patterns.length()) {
                 ch = patterns.charAt(++i);
-                sb.append(ch);
+                sb.append(Pattern.quote(String.valueOf(ch)));
             } else if (ch == ':') {
                 sb.append('|');
             } else if (ch == '*') {
-                sb.append('.').append('*');
+                sb.append(".*");
             } else {
-                sb.append(ch);
+                sb.append(Pattern.quote(String.valueOf(ch)));
             }
         }
-        return line.matches(sb.toString());
+        return SafeRegex.matches(Pattern.compile(sb.toString()), line);
     }
 
     /**
