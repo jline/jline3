@@ -4405,11 +4405,16 @@ public class LineReaderImpl implements LineReader, Flushable {
         int tot = 0;
         while (iter.hasNext()) {
             History.Entry entry = iter.next();
-            Matcher matcher = SafeRegex.matcher(pattern, entry.line());
-            if (matcher.matches()) {
-                suggestion = entry.line().substring(buffer.length());
-                break;
-            } else if (tot > 200) {
+            try {
+                Matcher matcher = SafeRegex.matcher(pattern, entry.line());
+                if (matcher.matches()) {
+                    suggestion = entry.line().substring(buffer.length());
+                    break;
+                }
+            } catch (RegexTimeoutException e) {
+                // Treat timeout as non-match, continue searching
+            }
+            if (tot > 200) {
                 break;
             }
             tot++;

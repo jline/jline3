@@ -29,7 +29,10 @@ import java.util.regex.Pattern;
  *       match groups), use {@link #matcher} and catch
  *       {@link RegexTimeoutException} yourself.</li>
  *   <li>For glob-style patterns (only {@code *} is special), use
- *       {@link #compileGlob} to get a safe {@link Pattern}.</li>
+ *       {@link #compileGlob} to compile a {@link Pattern} that properly
+ *       escapes literal characters. Note: {@code compileGlob} only builds
+ *       the pattern; to get timeout protection, pass the result through
+ *       {@link #matcher}, {@link #matches}, or {@link #find}.</li>
  * </ul>
  */
 public final class SafeRegex {
@@ -59,11 +62,13 @@ public final class SafeRegex {
 
     /**
      * Create a {@link Matcher} that will throw {@link RegexTimeoutException}
-     * if matching exceeds the given timeout.
+     * if matching exceeds the given timeout.  The timeout starts on the
+     * first {@code charAt} call (i.e. when matching actually begins), not
+     * when the {@link Matcher} is created.
      */
     public static Matcher matcher(Pattern pattern, CharSequence input, long timeoutMs) {
-        long deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs);
-        return pattern.matcher(new TimeoutCharSequence(input, deadlineNanos));
+        long timeoutNanos = TimeUnit.MILLISECONDS.toNanos(timeoutMs);
+        return pattern.matcher(new TimeoutCharSequence(input, timeoutNanos));
     }
 
     // ---- convenience boolean methods ---------------------------------------
@@ -154,22 +159,43 @@ public final class SafeRegex {
      * it considers during matching.  During catastrophic backtracking the
      * call count explodes; we check {@link System#nanoTime()} every
      * {@value #CHECK_INTERVAL} calls and throw if the deadline has passed.</p>
+     *
+     * <p>The deadline is lazily initialised on the first {@code charAt}
+     * check so the timeout measures actual matching time, not the gap
+     * between {@link Matcher} creation and first use.  Instances created
+     * via {@link #subSequence} share the same deadline array, so the
+     * timeout covers the entire matching operation.</p>
      */
     private static final class TimeoutCharSequence implements CharSequence {
 
         private final CharSequence inner;
-        private final long deadlineNanos;
+        private final long timeoutNanos;
+        /** Shared across {@link #subSequence} calls; element 0 holds the deadline (0 = not yet started). */
+        private final long[] sharedDeadline;
+
         private int calls;
 
-        TimeoutCharSequence(CharSequence inner, long deadlineNanos) {
+        TimeoutCharSequence(CharSequence inner, long timeoutNanos) {
             this.inner = inner;
-            this.deadlineNanos = deadlineNanos;
+            this.timeoutNanos = timeoutNanos;
+            this.sharedDeadline = new long[1];
+        }
+
+        private TimeoutCharSequence(CharSequence inner, long timeoutNanos, long[] sharedDeadline) {
+            this.inner = inner;
+            this.timeoutNanos = timeoutNanos;
+            this.sharedDeadline = sharedDeadline;
         }
 
         @Override
         public char charAt(int index) {
-            if (++calls % CHECK_INTERVAL == 0 && System.nanoTime() > deadlineNanos) {
-                throw new RegexTimeoutException();
+            if (++calls % CHECK_INTERVAL == 0) {
+                long now = System.nanoTime();
+                if (sharedDeadline[0] == 0) {
+                    sharedDeadline[0] = now + timeoutNanos;
+                } else if (now > sharedDeadline[0]) {
+                    throw new RegexTimeoutException();
+                }
             }
             return inner.charAt(index);
         }
@@ -181,7 +207,7 @@ public final class SafeRegex {
 
         @Override
         public CharSequence subSequence(int start, int end) {
-            return new TimeoutCharSequence(inner.subSequence(start, end), deadlineNanos);
+            return new TimeoutCharSequence(inner.subSequence(start, end), timeoutNanos, sharedDeadline);
         }
 
         @Override

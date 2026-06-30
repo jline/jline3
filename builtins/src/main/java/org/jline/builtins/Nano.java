@@ -1343,7 +1343,7 @@ public class Nano implements Editor {
             try {
                 while (m.find()) {
                     res.add(m.start());
-                    matchedLength = m.group(0).length();
+                    matchedLength = m.end() - m.start();
                 }
             } catch (RegexTimeoutException e) {
                 // Return whatever matches were found before timeout
