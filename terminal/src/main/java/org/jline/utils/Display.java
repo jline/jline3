@@ -120,7 +120,8 @@ public class Display implements Sized {
     private final boolean hasCursorAddress;
     private final boolean canSkipIntraLine;
 
-    // Synchronized output (mode 2026) escape sequences.
+    // Synchronized output (mode 2026) escape sequence constants.
+    // Used by the byte-mode path which cannot call Terminal.beginSynchronizedUpdate().
     // BSU tells the terminal to buffer all output until ESU, then render atomically.
     // Terminals that do not support mode 2026 silently ignore these sequences.
     private static final String SYNC_START = "\033[?2026h";
@@ -450,7 +451,11 @@ public class Display implements Sized {
         // This prevents visible intermediate states from scroll optimization
         // (insertLines/deleteLines) that otherwise cause flicker.
         if (fullScreen) {
-            rawEsc(SYNC_START);
+            if (useByteMode) {
+                rawEsc(SYNC_START);
+            } else {
+                terminal.beginSynchronizedUpdate();
+            }
         }
         try {
 
@@ -762,7 +767,11 @@ public class Display implements Sized {
             // End synchronized update (mode 2026): the terminal renders all buffered output now.
             // In a finally block so the terminal never stays in synchronized-output mode on error.
             if (fullScreen) {
-                rawEsc(SYNC_END);
+                if (useByteMode) {
+                    rawEsc(SYNC_END);
+                } else {
+                    terminal.endSynchronizedUpdate();
+                }
             }
         }
 

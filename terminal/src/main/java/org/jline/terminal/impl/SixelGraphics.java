@@ -16,17 +16,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
 import javax.imageio.ImageIO;
 
-import org.jline.terminal.Attributes;
-import org.jline.terminal.Attributes.ControlChar;
-import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
 
 /**
  * Implementation of the Sixel Graphics Protocol.
@@ -89,9 +84,13 @@ public class SixelGraphics implements TerminalGraphics {
     /**
      * Checks if the terminal supports Sixel graphics.
      *
-     * This method uses a combination of terminal type checking and environment
-     * variables to determine if the terminal supports Sixel graphics.
-     * The detection can be overridden using setSixelSupportOverride().
+     * <p>Detection priority:
+     * <ol>
+     *   <li>User override via {@link #setSixelSupportOverride(Boolean)}</li>
+     *   <li>Runtime DA1 detection via {@link Terminal#isModeSupported(Terminal.Mode)
+     *       isModeSupported(Mode.SIXEL)} (part of the batch mode probe)</li>
+     *   <li>Static detection based on terminal type and environment variables</li>
+     * </ol>
      *
      * @param terminal the terminal to check
      * @return true if the terminal supports Sixel graphics, false otherwise
@@ -102,74 +101,13 @@ public class SixelGraphics implements TerminalGraphics {
             return sixelSupportOverride;
         }
 
-        // Try runtime detection first (if terminal supports it)
-        Boolean runtimeDetection = detectSixelSupportRuntime(terminal);
-        if (runtimeDetection != null) {
-            return runtimeDetection;
+        // Try runtime detection via the batch mode probe (DA1 attribute 4)
+        if (terminal.isModeSupported(Terminal.Mode.SIXEL)) {
+            return true;
         }
 
-        // Fall back to static detection
+        // Fall back to static detection (known terminal types / env vars)
         return detectSixelSupportStatic(terminal);
-    }
-
-    /**
-     * Attempts to detect Sixel support at runtime by querying the terminal.
-     * This is more reliable than static detection but may not work with all terminals.
-     *
-     * @param terminal the terminal to query
-     * @return true if sixel is supported, false if not supported, null if detection failed
-     */
-    private static Boolean detectSixelSupportRuntime(Terminal terminal) {
-        // Skip runtime detection for terminals we know don't support Sixel
-        // This prevents hanging and response leakage
-        // Note: We return null (not false) to allow fallback to static detection,
-        // since the environment variable might not match the actual terminal type
-        String termProgram = terminal.getenv("TERM_PROGRAM");
-        if ("com.mitchellh.ghostty".equals(termProgram)
-                || "ghostty".equals(termProgram)
-                || "kitty".equals(termProgram)
-                || "Apple_Terminal".equals(termProgram)) {
-            return null; // Skip runtime detection, fall back to static detection
-        }
-
-        Attributes originalAttributes = null;
-        Boolean result = null;
-        try {
-            originalAttributes = terminal.getAttributes();
-            Attributes probeAttrs = new Attributes(originalAttributes);
-            probeAttrs.setLocalFlags(EnumSet.of(LocalFlag.ICANON, LocalFlag.ECHO), false);
-            probeAttrs.setControlChar(ControlChar.VMIN, 0);
-            probeAttrs.setControlChar(ControlChar.VTIME, 0);
-            terminal.setAttributes(probeAttrs);
-
-            // Send Device Attributes query
-            terminal.writer().print("\033[c");
-            terminal.writer().flush();
-
-            // Read response with configurable timeout
-            String response = ((AbstractTerminal) terminal).readTerminalResponse();
-            if (response != null) {
-                // Response format: ESC[?Pp;Ps1;Ps2;...c
-                // Code "4" = Sixel graphics support
-                result = response.contains(";4;")
-                        || response.contains(";4c")
-                        || response.contains("?4;")
-                        || response.contains("?4c");
-            }
-        } catch (Exception e) {
-            // If runtime detection fails, return null to fall back to static detection
-        } finally {
-            long drainTimeout = AbstractTerminal.getLongProperty(TerminalBuilder.PROP_DRAIN_TIMEOUT, 25);
-            AbstractTerminal.drainInput(terminal.reader(), drainTimeout, -1);
-            if (originalAttributes != null) {
-                try {
-                    terminal.setAttributes(originalAttributes);
-                } catch (Exception e) {
-                    // Ignore errors during attribute restoration
-                }
-            }
-        }
-        return result;
     }
 
     /**
