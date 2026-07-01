@@ -12,6 +12,7 @@ if "%demo_name%"=="" (
   echo   gogo      - Run the Gogo shell demo
   echo   repl      - Run the REPL demo
   echo   password  - Run the password demo
+  echo   console   - Run the JLine Console Provider demo
   echo   consoleui - Run the ConsoleUI demo ^(deprecated^)
   echo   prompt    - Run the new Prompt API demo
   echo   curses    - Run the Curses TUI demo
@@ -52,6 +53,7 @@ REM Determine if this is a built-in demo or example class based on known demo ty
 if "%demo_name%"=="gogo" goto demo_gogo
 if "%demo_name%"=="repl" goto demo_repl
 if "%demo_name%"=="password" goto demo_password
+if "%demo_name%"=="console" goto demo_console
 if "%demo_name%"=="consoleui" goto demo_consoleui
 if "%demo_name%"=="prompt" goto demo_prompt
 if "%demo_name%"=="curses" goto demo_curses
@@ -68,6 +70,10 @@ goto process_options
 
 :demo_password
 set MAIN_CLASS=org.jline.demo.PasswordMaskingDemo
+goto process_options
+
+:demo_console
+set MAIN_CLASS=org.jline.demo.examples.ConsoleProviderExample
 goto process_options
 
 :demo_consoleui
@@ -163,12 +169,39 @@ if not "!JVM_OPTS!"=="" (
 if not "!APP_ARGS!"=="" (
   echo Application arguments: !APP_ARGS!
 )
+
+if "%demo_name%"=="console" goto run_console_demo
+
 REM Build Java command with proper spacing
 if "!JVM_OPTS!"=="" (
   set JAVA_CMD=java -cp "%cp%" -Dgosh.home="demo" -Djava.util.logging.config.file="%logconf%" %MAIN_CLASS%
 ) else (
   set JAVA_CMD=java -cp "%cp%" !JVM_OPTS! -Dgosh.home="demo" -Djava.util.logging.config.file="%logconf%" %MAIN_CLASS%
 )
+if not "!APP_ARGS!"=="" (
+  set JAVA_CMD=!JAVA_CMD! !APP_ARGS!
+)
+!JAVA_CMD!
+goto end
+
+:run_console_demo
+REM Console provider demo: use module path so System.console() picks up the JLine provider
+set mp=
+if exist %TARGETDIR%\lib (
+  for %%f in (%TARGETDIR%\lib\*.jar) do (
+    if "!mp!"=="" (
+      set mp=%%f
+    ) else (
+      set mp=!mp!;%%f
+    )
+  )
+)
+echo Using module path for console provider
+set JAVA_CMD=java --module-path "!mp!" --add-modules org.jline.console.provider --add-exports java.base/jdk.internal.io=org.jline.console.provider -Djdk.console=org.jline.console.provider -cp "%TARGETDIR%\classes" -Dgosh.home="demo" -Djava.util.logging.config.file="%logconf%"
+if not "!JVM_OPTS!"=="" (
+  set JAVA_CMD=!JAVA_CMD! !JVM_OPTS!
+)
+set JAVA_CMD=!JAVA_CMD! %MAIN_CLASS%
 if not "!APP_ARGS!"=="" (
   set JAVA_CMD=!JAVA_CMD! !APP_ARGS!
 )
