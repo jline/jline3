@@ -13,6 +13,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
@@ -1022,5 +1024,151 @@ class ScreenTerminalTest {
         for (int i = 0; i < alt.length(); i++) {
             assertEquals(alt.charAt(i), (char) dump[i]);
         }
+    }
+
+    // -----------------------------------------------------------------------
+    // Synchronized output (mode 2026) tests
+    // -----------------------------------------------------------------------
+
+    /**
+     * BSU (\e[?2026h) should activate synchronized output mode.
+     */
+    @Test
+    void testSynchronizedOutputBsuActivatesMode() {
+        ScreenTerminal screen = new ScreenTerminal(80, 24);
+        assertFalse(screen.isSynchronizedOutput(), "Mode 2026 should be off initially");
+
+        screen.write("\033[?2026h");
+        assertTrue(screen.isSynchronizedOutput(), "Mode 2026 should be on after BSU");
+    }
+
+    /**
+     * ESU (\e[?2026l) should deactivate synchronized output mode.
+     */
+    @Test
+    void testSynchronizedOutputEsuDeactivatesMode() {
+        ScreenTerminal screen = new ScreenTerminal(80, 24);
+        screen.write("\033[?2026h");
+        assertTrue(screen.isSynchronizedOutput());
+
+        screen.write("\033[?2026l");
+        assertFalse(screen.isSynchronizedOutput(), "Mode 2026 should be off after ESU");
+    }
+
+    /**
+     * Content written between BSU and ESU should be committed to the screen
+     * buffer, and the mode flag should toggle correctly across the cycle.
+     */
+    @Test
+    void testSynchronizedOutputBuffersContent() throws InterruptedException {
+        ScreenTerminal screen = new ScreenTerminal(80, 24);
+
+        // Consume initial dirty state
+        screen.isDirty();
+
+        // Enter synchronized mode and write content
+        screen.write("\033[?2026h");
+        screen.write("Hello");
+
+        // The content should be in the buffer
+        assertEquals('H', getChar(screen, 0, 0));
+        assertEquals('o', getChar(screen, 0, 4));
+
+        // The mode state is correct and content is buffered
+        assertTrue(screen.isSynchronizedOutput());
+
+        // Exit synchronized mode
+        screen.write("\033[?2026l");
+        assertFalse(screen.isSynchronizedOutput());
+
+        // Content remains on screen after ESU
+        assertEquals('H', getChar(screen, 0, 0));
+    }
+
+    /**
+     * Writes during synchronized output should accumulate in the screen buffer
+     * and be visible after ESU, including cursor movement.
+     */
+    @Test
+    void testSynchronizedOutputAccumulatesChanges() {
+        ScreenTerminal screen = new ScreenTerminal(40, 10);
+
+        screen.write("\033[?2026h");
+        screen.write("Line1");
+        screen.write("\033[2;1H"); // Move to row 2, col 1
+        screen.write("Line2");
+        screen.write("\033[?2026l");
+
+        assertEquals('L', getChar(screen, 0, 0));
+        assertEquals('1', getChar(screen, 0, 4));
+        assertEquals('L', getChar(screen, 1, 0));
+        assertEquals('2', getChar(screen, 1, 4));
+    }
+
+    /**
+     * A waiting thread should be notified when ESU arrives (mode 2026 turned off).
+     * The dirty flag is cleared before the waiter starts so that {@code waitDirty}
+     * truly blocks until ESU triggers {@code setDirty()} with {@code notifyAll()}.
+     */
+    @Test
+    void testSynchronizedOutputNotifiesOnEsu() throws InterruptedException {
+        ScreenTerminal screen = new ScreenTerminal(80, 24);
+        // Consume initial dirty state
+        screen.isDirty();
+
+        // Enter synchronized mode
+        screen.write("\033[?2026h");
+
+        // Write content — dirty flag is set but notification deferred
+        screen.write("test");
+
+        // Clear the dirty flag so waitDirty will truly block until ESU
+        screen.isDirty();
+
+        // Use a latch to detect when the waiter thread receives the dirty notification
+        CountDownLatch notified = new CountDownLatch(1);
+        CountDownLatch waiting = new CountDownLatch(1);
+        Thread waiter = new Thread(() -> {
+            try {
+                waiting.countDown(); // Signal that we're about to wait
+                screen.waitDirty(2000);
+                notified.countDown();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        waiter.start();
+
+        // Wait until the waiter thread is ready
+        assertTrue(waiting.await(1, TimeUnit.SECONDS), "Waiter thread should start promptly");
+
+        // ESU should trigger notification
+        screen.write("\033[?2026l");
+
+        // The waiter should be notified quickly
+        assertTrue(notified.await(2, TimeUnit.SECONDS), "Waiter thread should have been notified by ESU");
+    }
+
+    /**
+     * Multiple BSU/ESU cycles should work correctly.
+     */
+    @Test
+    void testSynchronizedOutputMultipleCycles() {
+        ScreenTerminal screen = new ScreenTerminal(80, 24);
+
+        // First cycle
+        screen.write("\033[?2026h");
+        screen.write("AAA");
+        screen.write("\033[?2026l");
+        assertEquals('A', getChar(screen, 0, 0));
+
+        // Second cycle
+        screen.write("\033[1;1H"); // Reset cursor
+        screen.write("\033[?2026h");
+        screen.write("BBB");
+        screen.write("\033[?2026l");
+        assertEquals('B', getChar(screen, 0, 0));
+
+        assertFalse(screen.isSynchronizedOutput());
     }
 }
