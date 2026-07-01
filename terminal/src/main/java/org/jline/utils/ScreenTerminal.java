@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import org.jline.terminal.Size;
@@ -123,8 +124,9 @@ public class ScreenTerminal implements Sized {
      *
      * <p>After this call the delegate's real target is a
      * {@link ScreenTerminalOutputStream} that decodes bytes into the screen and
-     * feeds VT100 responses back through
-     * {@link LineDisciplineTerminal#processInputByte(int)}.</p>
+     * feeds VT100 responses back as terminal input through
+     * {@link LineDisciplineTerminal#processInputByte(int)} and
+     * {@link LineDisciplineTerminal#processInputBytes(byte[], int, int)}.</p>
      *
      * <p>This is useful when the terminal or screen are subclassed (e.g. to
      * override {@link #setDirty()} or {@code doClose()}) and therefore cannot
@@ -160,6 +162,7 @@ public class ScreenTerminal implements Sized {
             LineDisciplineTerminal terminal,
             ScreenTerminalOutputStream.DelegateOutputStream delegate,
             Runnable onFlush) {
+        Objects.requireNonNull(onFlush, "onFlush");
         OutputStream feedback = createFeedback(terminal);
         delegate.setDelegate(new ScreenTerminalOutputStream(screen, StandardCharsets.UTF_8, feedback) {
             @Override

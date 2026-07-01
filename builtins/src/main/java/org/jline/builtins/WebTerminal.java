@@ -97,11 +97,10 @@ public class WebTerminal extends LineDisciplineTerminal {
         this.host = host;
         this.port = port;
 
-        // Create the terminal component
+        // Create the terminal component and wire the feedback loop
         this.component = new WebTerminalComponent(columns, rows);
         this.component.setWebTerminal(this);
-
-        // Wire ScreenTerminal ↔ LineDisciplineTerminal feedback loop
+        setSize(Size.of(columns, rows));
         ScreenTerminal.wireTerminal(this.component, this, delegate);
     }
 
