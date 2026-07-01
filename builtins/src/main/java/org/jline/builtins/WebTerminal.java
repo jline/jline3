@@ -99,15 +99,9 @@ public class WebTerminal extends LineDisciplineTerminal {
         this.component = new WebTerminalComponent(columns, rows);
         this.component.setWebTerminal(this);
 
-        // Connect the output stream via ScreenTerminalOutputStream
-        OutputStream feedbackOutput = new OutputStream() {
-            @Override
-            public void write(int b) throws IOException {
-                WebTerminal.this.processInputByte(b);
-            }
-        };
-        ((ScreenTerminalOutputStream.DelegateOutputStream) masterOutput)
-                .setDelegate(new ScreenTerminalOutputStream(this.component, StandardCharsets.UTF_8, feedbackOutput));
+        // Wire ScreenTerminal ↔ LineDisciplineTerminal feedback loop
+        ScreenTerminal.wireTerminal(
+                this.component, this, (ScreenTerminalOutputStream.DelegateOutputStream) masterOutput);
     }
 
     /**
