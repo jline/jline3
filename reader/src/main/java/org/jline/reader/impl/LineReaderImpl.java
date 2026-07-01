@@ -16,6 +16,7 @@ import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
+import java.io.OutputStream;
 import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -40,6 +41,7 @@ import org.jline.terminal.Attributes.ControlChar;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.Terminal.SignalHandler;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
+import org.jline.terminal.impl.DumbTerminal;
 import org.jline.terminal.impl.MouseSupport;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
@@ -178,8 +180,10 @@ public class LineReaderImpl implements LineReader, Flushable {
     // Constructor variables
     //
 
-    /** The terminal to use */
+    /** The terminal to use (may be {@code null} when constructed from a {@link EditingTerminal}) */
     protected final Terminal terminal;
+    /** The provider that abstracts terminal operations for the editing engine */
+    protected final EditingTerminal provider;
     /** The application name */
     protected final String appName;
     /** The terminal keys mapping */
@@ -324,9 +328,57 @@ public class LineReaderImpl implements LineReader, Flushable {
         this(terminal, appName, null);
     }
 
-    @SuppressWarnings("this-escape")
     public LineReaderImpl(Terminal terminal, String appName, Map<String, Object> variables) {
-        Objects.requireNonNull(terminal, "terminal can not be null");
+        this(
+                new TerminalAdapter(Objects.requireNonNull(terminal, "terminal can not be null")),
+                terminal,
+                appName,
+                variables);
+    }
+
+    /**
+     * Creates a {@code LineReaderImpl} backed by a {@link EditingTerminal} instead
+     * of a {@link Terminal}.  This allows TUI frameworks to embed JLine's editing
+     * engine without requiring a full JLine terminal.
+     *
+     * <p>If the provider is a {@link TerminalAdapter}, its underlying terminal is
+     * reused for display rendering. Otherwise a lightweight dumb terminal is created
+     * internally for the display layer while all I/O flows through the provider.</p>
+     *
+     * @param provider  the provider supplying input, output, size, capabilities, and signals
+     * @param appName   application name (defaults to {@code "JLine"} if {@code null})
+     * @param variables configuration variables (may be {@code null})
+     * @since 4.1
+     */
+    public LineReaderImpl(EditingTerminal provider, String appName, Map<String, Object> variables) {
+        this(
+                provider,
+                provider instanceof TerminalAdapter ? ((TerminalAdapter) provider).getTerminal() : createDumbTerminal(),
+                appName,
+                variables);
+    }
+
+    /**
+     * Creates a minimal dumb terminal for the display layer when no real terminal is available.
+     * Output goes to a null stream since the TUI framework handles its own rendering.
+     */
+    private static Terminal createDumbTerminal() {
+        try {
+            return new DumbTerminal(
+                    "embedded",
+                    Terminal.TYPE_DUMB,
+                    InputStream.nullInputStream(),
+                    OutputStream.nullOutputStream(),
+                    null);
+        } catch (IOException e) {
+            throw new IOError(e);
+        }
+    }
+
+    @SuppressWarnings("this-escape")
+    private LineReaderImpl(EditingTerminal provider, Terminal terminal, String appName, Map<String, Object> variables) {
+        Objects.requireNonNull(provider, "provider can not be null");
+        this.provider = provider;
         this.terminal = terminal;
         if (appName == null) {
             appName = "JLine";
@@ -350,14 +402,14 @@ public class LineReaderImpl implements LineReader, Flushable {
 
         this.keyMaps = defaultKeyMaps();
         if (!Boolean.getBoolean(PROP_DISABLE_ALTERNATE_CHARSET)) {
-            this.alternateIn = Curses.tputs(terminal.getStringCapability(Capability.enter_alt_charset_mode));
-            this.alternateOut = Curses.tputs(terminal.getStringCapability(Capability.exit_alt_charset_mode));
+            this.alternateIn = Curses.tputs(provider.getStringCapability(Capability.enter_alt_charset_mode));
+            this.alternateOut = Curses.tputs(provider.getStringCapability(Capability.exit_alt_charset_mode));
         }
 
         undo = new UndoTree<>(this::setBuffer);
         builtinWidgets = builtinWidgets();
         widgets = new HashMap<>(builtinWidgets);
-        bindingReader = new BindingReader(terminal.reader());
+        bindingReader = new BindingReader(provider.reader());
 
         String inputRc = getString(INPUT_RC_FILE_NAME, null);
         if (inputRc != null) {
@@ -376,6 +428,20 @@ public class LineReaderImpl implements LineReader, Flushable {
 
     public Terminal getTerminal() {
         return terminal;
+    }
+
+    /**
+     * Returns the {@link EditingTerminal} backing this reader.
+     *
+     * <p>Unlike {@link #getTerminal()}, this method never returns {@code null}.
+     * When the reader was constructed from a {@link Terminal}, the provider is a
+     * {@link TerminalAdapter} wrapping that terminal.</p>
+     *
+     * @return the terminal provider
+     * @since 4.1
+     */
+    public EditingTerminal getEditingTerminal() {
+        return provider;
     }
 
     public String getAppName() {
@@ -432,7 +498,7 @@ public class LineReaderImpl implements LineReader, Flushable {
 
     @Override
     public MouseEvent readMouseEvent() {
-        return terminal.readMouseEvent(bindingReader::readCharacter, bindingReader.getLastBinding());
+        return provider.readMouseEvent(bindingReader::readCharacter, bindingReader.getLastBinding());
     }
 
     /**
@@ -613,7 +679,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             AttributedStringBuilder sb = new AttributedStringBuilder();
             sb.styled(AttributedStyle::bold, cmd);
             sb.toAttributedString().println(terminal);
-            terminal.flush();
+            provider.flush();
             return finish(cmd);
         }
 
@@ -677,24 +743,24 @@ public class LineReaderImpl implements LineReader, Flushable {
 
                 this.reading = true;
 
-                previousIntrHandler = terminal.handle(Signal.INT, signal -> readLineThread.interrupt());
-                previousWinchHandler = terminal.handle(Signal.WINCH, this::handleSignal);
-                previousContHandler = terminal.handle(Signal.CONT, this::handleSignal);
-                originalAttributes = terminal.enterRawMode();
+                previousIntrHandler = provider.handle(Signal.INT, signal -> readLineThread.interrupt());
+                previousWinchHandler = provider.handle(Signal.WINCH, this::handleSignal);
+                previousContHandler = provider.handle(Signal.CONT, this::handleSignal);
+                originalAttributes = provider.enterRawMode();
 
                 doDisplay();
 
                 // Move into application mode
                 if (!dumb) {
-                    terminal.puts(Capability.keypad_xmit);
+                    provider.puts(Capability.keypad_xmit);
                     if (isSet(Option.AUTO_FRESH_LINE)) callWidget(FRESH_LINE);
-                    if (isSet(Option.MOUSE)) terminal.trackMouse(Terminal.MouseTracking.Normal);
+                    if (isSet(Option.MOUSE)) provider.trackMouse(Terminal.MouseTracking.Normal);
 
                     if (isSet(Option.BRACKETED_PASTE)) {
-                        terminal.writer().write(BRACKETED_PASTE_ON);
+                        provider.writer().write(BRACKETED_PASTE_ON);
                     } else if (options.containsKey(Option.BRACKETED_PASTE)) {
                         // Explicitly disabled: ensure terminal bracketed paste is off
-                        terminal.writer().write(BRACKETED_PASTE_OFF);
+                        provider.writer().write(BRACKETED_PASTE_OFF);
                     }
                 } else if (isTerminalDumb() && maskingCallback != null) {
                     // Setup masking thread for dumb terminals when reading a password
@@ -800,23 +866,23 @@ public class LineReaderImpl implements LineReader, Flushable {
 
                 this.reading = false;
 
-                Terminal.SignalHandler tmpHandler = terminal.handle(Signal.INT, s -> interrupted.set(true));
+                Terminal.SignalHandler tmpHandler = provider.handle(Signal.INT, s -> interrupted.set(true));
                 if (previousIntrHandler == null) {
                     previousIntrHandler = tmpHandler;
                 }
 
                 cleanup();
                 if (originalAttributes != null) {
-                    terminal.setAttributes(originalAttributes);
+                    provider.setAttributes(originalAttributes);
                 }
                 if (previousIntrHandler != null) {
-                    terminal.handle(Signal.INT, previousIntrHandler);
+                    provider.handle(Signal.INT, previousIntrHandler);
                 }
                 if (previousWinchHandler != null) {
-                    terminal.handle(Signal.WINCH, previousWinchHandler);
+                    provider.handle(Signal.WINCH, previousWinchHandler);
                 }
                 if (previousContHandler != null) {
-                    terminal.handle(Signal.CONT, previousContHandler);
+                    provider.handle(Signal.CONT, previousContHandler);
                 }
             } finally {
                 lock.unlock();
@@ -829,7 +895,7 @@ public class LineReaderImpl implements LineReader, Flushable {
     }
 
     private boolean isTerminalDumb() {
-        return Terminal.TYPE_DUMB.equals(terminal.getType()) || Terminal.TYPE_DUMB_COLOR.equals(terminal.getType());
+        return Terminal.TYPE_DUMB.equals(provider.getType()) || Terminal.TYPE_DUMB_COLOR.equals(provider.getType());
     }
 
     /**
@@ -842,7 +908,7 @@ public class LineReaderImpl implements LineReader, Flushable {
     private void doDisplay() {
         // Cache terminal size for the duration of the call to readLine()
         // It will eventually be updated with WINCH signals
-        size = terminal.getBufferSize();
+        size = provider.getBufferSize();
 
         display = new Display(terminal, false);
         display.resize(size);
@@ -864,8 +930,8 @@ public class LineReaderImpl implements LineReader, Flushable {
                 public void run() {
                     while (!Thread.interrupted()) {
                         try {
-                            terminal.writer().write(fullPrompt);
-                            terminal.writer().flush();
+                            provider.writer().write(fullPrompt);
+                            provider.writer().flush();
                             sleep(3);
                         } catch (InterruptedException ie) {
                             return;
@@ -899,14 +965,14 @@ public class LineReaderImpl implements LineReader, Flushable {
                 display.update(Collections.emptyList(), 0);
             }
             if (str.endsWith("\n") || str.endsWith("\n\033[m") || str.endsWith("\n\033[0m")) {
-                terminal.writer().print(str);
+                provider.writer().print(str);
             } else {
-                terminal.writer().println(str);
+                provider.writer().println(str);
             }
             if (reading) {
                 redisplay(false);
             }
-            terminal.flush();
+            provider.flush();
         } finally {
             lock.unlock();
         }
@@ -929,8 +995,8 @@ public class LineReaderImpl implements LineReader, Flushable {
 
     /* Make sure we position the cursor on column 0 */
     protected boolean freshLine() {
-        boolean wrapAtEol = terminal.getBooleanCapability(Capability.auto_right_margin);
-        boolean delayedWrapAtEol = wrapAtEol && terminal.getBooleanCapability(Capability.eat_newline_glitch);
+        boolean wrapAtEol = provider.getBooleanCapability(Capability.auto_right_margin);
+        boolean delayedWrapAtEol = wrapAtEol && provider.getBooleanCapability(Capability.eat_newline_glitch);
         AttributedStringBuilder sb = new AttributedStringBuilder();
         sb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.BLACK + AttributedStyle.BRIGHT));
         sb.append("~");
@@ -948,7 +1014,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             // This means that the last character will not
             // be overwritten, and that's why we're using
             // a clr_eol first if possible.
-            String el = terminal.getStringCapability(Capability.clr_eol);
+            String el = provider.getStringCapability(Capability.clr_eol);
             if (el != null) {
                 Curses.tputs(sb, el);
             }
@@ -1011,7 +1077,7 @@ public class LineReaderImpl implements LineReader, Flushable {
      * handle immediately.
      */
     public void flush() {
-        terminal.flush();
+        provider.flush();
     }
 
     public boolean isKeyMap(String name) {
@@ -1211,7 +1277,7 @@ public class LineReaderImpl implements LineReader, Flushable {
     @Override
     public void editAndAddInBuffer(Path file) throws Exception {
         if (isSet(Option.BRACKETED_PASTE)) {
-            terminal.writer().write(BRACKETED_PASTE_OFF);
+            provider.writer().write(BRACKETED_PASTE_OFF);
         }
         Constructor<?> ctor = Class.forName("org.jline.builtins.Nano").getConstructor(Terminal.class, Path.class);
         Editor editor = (Editor) ctor.newInstance(terminal, file.getParent());
@@ -1301,7 +1367,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             // Check if the character grid size actually changed.
             // Pixel-level resizing can trigger SIGWINCH without changing
             // the number of rows/columns.
-            Size newSize = terminal.getBufferSize();
+            Size newSize = provider.getBufferSize();
             if (newSize.getRows() != size.getRows() || newSize.getColumns() != size.getColumns()) {
                 Status status = Status.getStatus(terminal, false);
                 if (status == null || status.size() == 0) {
@@ -1323,10 +1389,10 @@ public class LineReaderImpl implements LineReader, Flushable {
                 }
             }
         } else if (signal == Signal.CONT) {
-            terminal.enterRawMode();
-            size = terminal.getBufferSize();
+            provider.enterRawMode();
+            size = provider.getBufferSize();
             display.resize(size);
-            terminal.puts(Capability.keypad_xmit);
+            provider.puts(Capability.keypad_xmit);
             redrawLine();
             redisplay();
         }
@@ -2467,7 +2533,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             while (buf.cursor() >= lend) {
                 buf.move(-1);
             }
-            if (terminal.getGraphemeClusterMode()) {
+            if (provider.getGraphemeClusterMode()) {
                 // Swap two grapheme clusters: the one before and the one at cursor
                 int curPos = buf.cursor();
                 int prevLen = graphemeClusterCodePointCountBefore(buf, curPos);
@@ -2530,7 +2596,7 @@ public class LineReaderImpl implements LineReader, Flushable {
     }
 
     protected boolean backwardChar() {
-        if (terminal.getGraphemeClusterMode()) {
+        if (provider.getGraphemeClusterMode()) {
             int moved = 0;
             for (int i = 0; i < count && buf.cursor() > 0; i++) {
                 moveBackwardOne();
@@ -2542,7 +2608,7 @@ public class LineReaderImpl implements LineReader, Flushable {
     }
 
     protected boolean forwardChar() {
-        if (terminal.getGraphemeClusterMode()) {
+        if (provider.getGraphemeClusterMode()) {
             int moved = 0;
             for (int i = 0; i < count && buf.cursor() < buf.length(); i++) {
                 moveForwardOne();
@@ -2630,7 +2696,7 @@ public class LineReaderImpl implements LineReader, Flushable {
      * when grapheme cluster mode is off).
      */
     private void moveForwardOne() {
-        if (terminal.getGraphemeClusterMode()) {
+        if (provider.getGraphemeClusterMode()) {
             buf.move(graphemeClusterCodePointCount(buf, buf.cursor()));
         } else {
             buf.move(1);
@@ -2642,7 +2708,7 @@ public class LineReaderImpl implements LineReader, Flushable {
      * when grapheme cluster mode is off).
      */
     private void moveBackwardOne() {
-        if (terminal.getGraphemeClusterMode()) {
+        if (provider.getGraphemeClusterMode()) {
             buf.move(-graphemeClusterCodePointCountBefore(buf, buf.cursor()));
         } else {
             buf.move(-1);
@@ -2656,7 +2722,7 @@ public class LineReaderImpl implements LineReader, Flushable {
      */
     private boolean deleteGrapheme() {
         if (buf.cursor() >= buf.length()) return false;
-        if (terminal.getGraphemeClusterMode()) {
+        if (provider.getGraphemeClusterMode()) {
             buf.delete(graphemeClusterCodePointCount(buf, buf.cursor()));
         } else {
             buf.delete();
@@ -2671,7 +2737,7 @@ public class LineReaderImpl implements LineReader, Flushable {
      */
     private boolean backspaceGrapheme() {
         if (buf.cursor() <= 0) return false;
-        if (terminal.getGraphemeClusterMode()) {
+        if (provider.getGraphemeClusterMode()) {
             buf.backspace(graphemeClusterCodePointCountBefore(buf, buf.cursor()));
         } else {
             buf.backspace();
@@ -2877,11 +2943,11 @@ public class LineReaderImpl implements LineReader, Flushable {
             if (nl) {
                 println();
             }
-            terminal.puts(Capability.keypad_local);
-            terminal.trackMouse(Terminal.MouseTracking.Off);
+            provider.puts(Capability.keypad_local);
+            provider.trackMouse(Terminal.MouseTracking.Off);
 
             if (isSet(Option.BRACKETED_PASTE) && !isTerminalDumb())
-                terminal.writer().write(BRACKETED_PASTE_OFF);
+                provider.writer().write(BRACKETED_PASTE_OFF);
             // Stop the masking thread if it was started for dumb terminals
             stopMaskThread();
             flush();
@@ -3766,7 +3832,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         }
 
         for (int i = 0; i < count; i++) {
-            if (terminal.getGraphemeClusterMode() && buf.cursor() < buf.length()) {
+            if (provider.getGraphemeClusterMode() && buf.cursor() < buf.length()) {
                 // Delete the entire grapheme cluster, then insert the replacement
                 deleteGrapheme();
                 buf.write(c);
@@ -4042,7 +4108,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             }
             editAndAddInBuffer(file);
         } catch (Exception e) {
-            e.printStackTrace(terminal.writer());
+            e.printStackTrace(provider.writer());
             out = false;
         } finally {
             state = State.IGNORE;
@@ -4245,7 +4311,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             if (currentStatusSize != lastStatusSize) {
                 // Status bar appeared, grew, or shrank (e.g. from a background
                 // thread). Content may have scrolled, invalidating cursor tracking.
-                terminal.puts(Capability.carriage_return);
+                provider.puts(Capability.carriage_return);
                 doDisplay();
                 lastStatusSize = currentStatusSize;
             }
@@ -4906,7 +4972,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         if (possible.isEmpty()) {
             return false;
         }
-        size = terminal.getSize();
+        size = provider.getSize();
         try {
             // If we only need to display the list, do it now
             if (lst == CompletionType.List) {
@@ -5010,7 +5076,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             }
             return true;
         } finally {
-            size = terminal.getBufferSize();
+            size = provider.getBufferSize();
         }
     }
 
@@ -5127,7 +5193,7 @@ public class LineReaderImpl implements LineReader, Flushable {
 
     private int visibleDisplayRows() {
         Status status = Status.getStatus(terminal, false);
-        return terminal.getSize().getRows() - (status != null ? status.size() : 0);
+        return provider.getSize().getRows() - (status != null ? status.size() : 0);
     }
 
     private int promptLines() {
@@ -6200,7 +6266,7 @@ public class LineReaderImpl implements LineReader, Flushable {
      * @param str the string to print to the terminal
      */
     void print(String str) {
-        terminal.writer().write(str);
+        provider.writer().write(str);
     }
 
     void println(String s) {
@@ -6212,7 +6278,7 @@ public class LineReaderImpl implements LineReader, Flushable {
      * Output a platform-dependant newline.
      */
     void println() {
-        terminal.puts(Capability.carriage_return);
+        provider.puts(Capability.carriage_return);
         print("\n");
         redrawLine();
     }
@@ -6430,7 +6496,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         MouseEvent event = readMouseEvent();
         if (event.getType() == MouseEvent.Type.Released && event.getButton() == MouseEvent.Button.Button1) {
             StringBuilder tsb = new StringBuilder();
-            Cursor cursor = terminal.getCursorPosition(c -> tsb.append((char) c));
+            Cursor cursor = provider.getCursorPosition(c -> tsb.append((char) c));
             bindingReader.runMacro(tsb.toString());
 
             List<AttributedString> secondaryPrompts = new ArrayList<>();
@@ -6487,11 +6553,11 @@ public class LineReaderImpl implements LineReader, Flushable {
      * @return <code>true</code>
      */
     public boolean clearScreen() {
-        if (terminal.puts(Capability.clear_screen)) {
+        if (provider.puts(Capability.clear_screen)) {
             // ConEMU extended fonts support
-            if (AbstractWindowsTerminal.TYPE_WINDOWS_CONEMU.equals(terminal.getType())
+            if (AbstractWindowsTerminal.TYPE_WINDOWS_CONEMU.equals(provider.getType())
                     && !Boolean.getBoolean("org.jline.terminal.conemu.disable-activate")) {
-                terminal.writer().write("\u001b[9999E");
+                provider.writer().write("\u001b[9999E");
             }
             Status status = Status.getStatus(terminal, false);
             if (status != null) {
@@ -6527,11 +6593,11 @@ public class LineReaderImpl implements LineReader, Flushable {
                 break;
         }
         if (bell_preference == BellType.VISIBLE) {
-            if (terminal.puts(Capability.flash_screen) || terminal.puts(Capability.bell)) {
+            if (provider.puts(Capability.flash_screen) || provider.puts(Capability.bell)) {
                 flush();
             }
         } else if (bell_preference == BellType.AUDIBLE) {
-            if (terminal.puts(Capability.bell)) {
+            if (provider.puts(Capability.bell)) {
                 flush();
             }
         }
@@ -6608,7 +6674,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         keyMaps.put(DUMB, dumb());
 
         if (getBoolean(BIND_TTY_SPECIAL_CHARS, true)) {
-            Attributes attr = terminal.getAttributes();
+            Attributes attr = provider.getAttributes();
             bindConsoleChars(keyMaps.get(EMACS), attr);
             bindConsoleChars(keyMaps.get(VIINS), attr);
             bindConsoleChars(keyMaps.get(VICMD), attr);
