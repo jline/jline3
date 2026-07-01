@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
+import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -91,17 +92,27 @@ public abstract class AbstractTerminal implements TerminalExt {
     protected Runnable onClose;
     protected MouseTracking currentMouseTracking = MouseTracking.Off;
     protected volatile boolean closed = false;
+
+    // ---- Mode probe results ----
+    private final EnumMap<Mode, ProbeResult> modeProbeResults = new EnumMap<>(Mode.class);
+    private volatile boolean modesProbed;
+
+    // ---- Grapheme cluster state (mode 2027 + cursor-position fallback) ----
     private Boolean graphemeClusterModeSupported;
     private boolean graphemeClusterModeEnabled;
     private boolean graphemeClusterNative;
     private boolean groupsRegionalIndicators;
     private boolean groupsZwjSequences;
+    private boolean inBandResizeEnabled;
 
-    /** Result of the Mode 2027 probe. */
-    private enum ProbeResult {
-        /** Mode 2027 is supported. */
+    /** CSI prefix for DEC private mode sequences ({@code ESC [ ?}). */
+    static final String CSI_DEC = "\033[?";
+
+    /** Result of a terminal mode probe. */
+    enum ProbeResult {
+        /** Mode is supported (DECRPM Ps = 1, 2, or 3; or DA1/protocol-specific positive). */
         SUPPORTED,
-        /** Terminal responded but does not support Mode 2027. */
+        /** Terminal responded but does not support the mode. */
         NOT_SUPPORTED,
         /** Terminal did not respond at all. */
         NO_RESPONSE
@@ -209,6 +220,9 @@ public abstract class AbstractTerminal implements TerminalExt {
     }
 
     protected void doClose() throws IOException {
+        if (inBandResizeEnabled) {
+            trackInBandResize(false);
+        }
         if (graphemeClusterModeEnabled) {
             setGraphemeClusterMode(false, false);
         }
@@ -421,6 +435,245 @@ public abstract class AbstractTerminal implements TerminalExt {
         }
     }
 
+    // ---- Terminal mode batch probing ----
+
+    @Override
+    public boolean isModeSupported(Mode mode) {
+        ensureModesProbed();
+        synchronized (modeProbeResults) {
+            return modeProbeResults.getOrDefault(mode, ProbeResult.NO_RESPONSE) == ProbeResult.SUPPORTED;
+        }
+    }
+
+    /**
+     * Ensures all terminal modes have been probed.
+     *
+     * <p>On first call, sends a single batch query containing a Kitty
+     * keyboard query ({@code CSI ? u}), a DECRQM query for every
+     * DEC private {@link Mode} value, and a DA1 sentinel ({@code CSI c}).
+     * The combined response is parsed once, populating
+     * {@link #modeProbeResults}. Subsequent calls are no-ops.</p>
+     *
+     * <p>macOS Terminal.app is explicitly skipped because its CSI parser
+     * does not handle the {@code $} intermediate byte and leaks the
+     * final {@code p} as visible text. All modes are marked
+     * {@link ProbeResult#NOT_SUPPORTED} so mode-specific fallbacks (e.g.
+     * the cursor position probe for grapheme clusters) can still run.</p>
+     *
+     * <p>Thread-safe: the {@code modesProbed} flag is volatile and the
+     * map is populated under a lock so concurrent callers never observe
+     * a partially filled map.</p>
+     */
+    private void ensureModesProbed() {
+        if (modesProbed) {
+            return;
+        }
+        synchronized (modeProbeResults) {
+            if (modesProbed) {
+                return;
+            }
+            try {
+                if (TYPE_DUMB.equals(type) || TYPE_DUMB_COLOR.equals(type)) {
+                    return; // map stays empty → all modes default to NO_RESPONSE
+                }
+
+                // Terminal.app's CSI parser does not handle intermediate bytes correctly
+                // and leaks the final byte 'p' of the DECRQM sequence as visible text.
+                // Mark all modes NOT_SUPPORTED (not NO_RESPONSE) so fallbacks can run.
+                String termProgram = getenv("TERM_PROGRAM");
+                if ("Apple_Terminal".equals(termProgram)) {
+                    for (Mode m : Mode.values()) {
+                        modeProbeResults.put(m, ProbeResult.NOT_SUPPORTED);
+                    }
+                    return;
+                }
+
+                Attributes prev = getAttributes();
+                Attributes probeAttrs = new Attributes(prev);
+                probeAttrs.setLocalFlags(EnumSet.of(LocalFlag.ICANON, LocalFlag.ECHO), false);
+                probeAttrs.setControlChar(ControlChar.VMIN, 0);
+                probeAttrs.setControlChar(ControlChar.VTIME, 0);
+                setAttributes(probeAttrs);
+                try {
+                    probeModes();
+                } finally {
+                    long drainTimeout = getLongProperty(TerminalBuilder.PROP_DRAIN_TIMEOUT, 25);
+                    drainInput(reader(), drainTimeout, -1);
+                    setAttributes(prev);
+                }
+            } finally {
+                modesProbed = true;
+            }
+        }
+    }
+
+    /**
+     * Sends a batch query for all {@link Mode} values, terminated by a
+     * DA1 sentinel.
+     *
+     * <p>DEC private modes (those with {@code mode() > 0}) are queried
+     * via DECRQM ({@code CSI ? Pd $ p}). The Kitty Keyboard Protocol
+     * ({@code mode() == 0}) is queried via {@code CSI ? u}. The query
+     * takes the form:
+     * {@code CSI ? u  CSI ? 2026 $ p  CSI ? 2027 $ p  CSI ? 2048 $ p  CSI c}
+     * </p>
+     *
+     * <p>DA1 is near-universally supported, so its response acts as a
+     * fence: if we receive the DA1 response without any preceding DECRPM,
+     * the terminal does not support DECRQM and all modes are marked
+     * {@link ProbeResult#NOT_SUPPORTED}.</p>
+     */
+    private void probeModes() {
+        // Build batch query: Kitty keyboard + all DECRQM + DA1 sentinel
+        StringBuilder query = new StringBuilder();
+        query.append(CSI_DEC).append("u"); // Kitty keyboard query
+        for (Mode m : Mode.values()) {
+            if (m.mode() > 0) {
+                query.append(CSI_DEC).append(m.mode()).append("$p");
+            }
+        }
+        query.append("\033[c"); // DA1 sentinel
+        writer().write(query.toString());
+        writer().flush();
+
+        String response = readTerminalResponse();
+        if (response == null) {
+            // Terminal did not respond at all
+            return;
+        }
+
+        // Parse responses for each mode
+        for (Mode m : Mode.values()) {
+            if (m == Mode.SIXEL) {
+                // DA1 attribute 4 indicates Sixel support
+                modeProbeResults.put(
+                        m, parseSixelFromDa1(response) ? ProbeResult.SUPPORTED : ProbeResult.NOT_SUPPORTED);
+            } else if (m == Mode.KITTY_KEYBOARD) {
+                // Kitty keyboard: CSI ? flags u
+                modeProbeResults.put(
+                        m, parseKittyResponse(response) ? ProbeResult.SUPPORTED : ProbeResult.NOT_SUPPORTED);
+            } else {
+                // DECRPM: CSI ? mode ; Ps $ y
+                modeProbeResults.put(m, parseDecrpm(response, m.mode()));
+            }
+        }
+    }
+
+    /**
+     * Parses a DECRPM response for a single mode from the combined
+     * terminal response string.
+     *
+     * <p>Looks for the pattern {@code CSI ? mode ; Ps $ y} where
+     * Ps indicates the mode status:
+     * <ul>
+     *   <li>0 — not recognized</li>
+     *   <li>1 — set (enabled)</li>
+     *   <li>2 — reset, but can be set</li>
+     *   <li>3 — permanently set</li>
+     *   <li>4 — permanently reset</li>
+     * </ul>
+     * Ps values 1, 2, and 3 are considered {@link ProbeResult#SUPPORTED}.
+     *
+     * @param response the raw terminal response
+     * @param mode the DEC private mode number to look for
+     * @return the probe result for this mode
+     */
+    static ProbeResult parseDecrpm(String response, int mode) {
+        String prefix = CSI_DEC + mode + ";";
+        int idx = response.indexOf(prefix);
+        if (idx < 0) {
+            return ProbeResult.NOT_SUPPORTED;
+        }
+        idx += prefix.length();
+        // Verify full DECRPM sequence: CSI ? mode ; Ps $ y
+        if (idx + 2 < response.length() && response.charAt(idx + 1) == '$' && response.charAt(idx + 2) == 'y') {
+            char ps = response.charAt(idx);
+            if (ps == '1' || ps == '2' || ps == '3') {
+                return ProbeResult.SUPPORTED;
+            }
+        }
+        return ProbeResult.NOT_SUPPORTED;
+    }
+
+    /**
+     * Parses a Kitty Keyboard Protocol flags response from the combined
+     * terminal response string.
+     *
+     * <p>Looks for the pattern {@code CSI ? digits u}. If found the
+     * terminal supports the protocol.</p>
+     *
+     * @param response the raw terminal response
+     * @return {@code true} if a Kitty keyboard flags response was found
+     */
+    static boolean parseKittyResponse(String response) {
+        // Look for CSI ? <digits> u  (but not CSI ? <digits> ; <digit> $ y which is DECRPM)
+        int idx = 0;
+        while (true) {
+            idx = response.indexOf(CSI_DEC, idx);
+            if (idx < 0) {
+                return false;
+            }
+            int start = idx + 3; // past "CSI ?"
+            int pos = start;
+            // Read digits
+            while (pos < response.length() && response.charAt(pos) >= '0' && response.charAt(pos) <= '9') {
+                pos++;
+            }
+            // Must have at least one digit and terminate with 'u'
+            if (pos > start && pos < response.length() && response.charAt(pos) == 'u') {
+                return true;
+            }
+            idx = start; // advance past this CSI ? and continue searching
+        }
+    }
+
+    /**
+     * Checks whether the DA1 (Primary Device Attributes) response
+     * indicates Sixel graphics support.
+     *
+     * <p>The DA1 response has the format {@code CSI ? Pp ; Ps1 ; Ps2 ; ... c}.
+     * The first parameter ({@code Pp}) is the device conformance level, not
+     * an attribute. Attribute code {@code 4} among the subsequent parameters
+     * means the terminal supports Sixel graphics.</p>
+     *
+     * @param response the raw terminal response (may contain DECRPM, Kitty, and DA1)
+     * @return {@code true} if the DA1 response contains attribute code 4
+     */
+    static boolean parseSixelFromDa1(String response) {
+        // DA1 response: CSI ? Pp ; Ps1 ; ... c
+        // The first parameter (Pp) is the device type, NOT an attribute.
+        // We look for ";4;" (middle) or ";4c" (last) which indicates
+        // attribute 4 (Sixel) as a standalone parameter after the device type.
+        return response.contains(";4;") || response.contains(";4c");
+    }
+
+    // ---- Grapheme cluster support (mode 2027 + cursor-position fallback) ----
+
+    @Override
+    public boolean hasInBandResizeSupport() {
+        return isModeSupported(Mode.IN_BAND_RESIZE);
+    }
+
+    @Override
+    public boolean trackInBandResize(boolean tracking) {
+        if (tracking) {
+            if (hasInBandResizeSupport()) {
+                writer().write("\033[?2048h");
+                writer().flush();
+                inBandResizeEnabled = true;
+                return true;
+            }
+            return false;
+        } else {
+            if (inBandResizeEnabled) {
+                writer().write("\033[?2048l");
+                writer().flush();
+                inBandResizeEnabled = false;
+            }
+            return true;
+        }
+    }
+
     @Override
     public boolean supportsGraphemeClusterMode() {
         if (graphemeClusterModeSupported == null) {
@@ -469,23 +722,40 @@ public abstract class AbstractTerminal implements TerminalExt {
     /**
      * Probes the terminal for grapheme cluster support.
      *
-     * <p>First attempts Mode 2027 detection via DECRQM ({@link #probeMode2027()}).
-     * If the terminal responds but does not support Mode 2027, falls back to a
+     * <p>Uses the batch DEC mode probe to check for mode 2027. If the
+     * terminal responds but does not support mode 2027, falls back to a
      * cursor position probe ({@link #probeCursorPosition()}): writes test
      * emoji (a flag and a ZWJ sequence) and measures cursor displacement via
      * DSR/CPR. If the cursor advances by exactly 2 columns, the terminal
      * natively groups that emoji category as a single cluster.</p>
      *
-     * <p>The cursor probe is only attempted when the terminal has already
-     * responded to the DECRQM/DA1 query, which guarantees it handles escape
-     * sequences and avoids blocking indefinitely on an unresponsive terminal.</p>
+     * <p>The cursor probe is only attempted when the batch probe received
+     * a response (i.e. the terminal answered DA1), which guarantees it
+     * handles escape sequences and avoids blocking indefinitely.</p>
      *
      * @return {@code true} if the terminal supports grapheme clusters
      */
     private boolean probeGraphemeClusterMode() {
-        if (TYPE_DUMB.equals(type) || TYPE_DUMB_COLOR.equals(type)) {
-            return false;
+        ensureModesProbed();
+        ProbeResult result;
+        synchronized (modeProbeResults) {
+            result = modeProbeResults.getOrDefault(Mode.GRAPHEME_CLUSTER, ProbeResult.NO_RESPONSE);
         }
+        if (result == ProbeResult.SUPPORTED) {
+            return true;
+        }
+        // Cursor probe is only safe when the terminal actually responded to the
+        // batch query; otherwise DSR/CPR would block indefinitely.
+        if (result == ProbeResult.NOT_SUPPORTED) {
+            return probeCursorPositionWithSetup();
+        }
+        return false;
+    }
+
+    /**
+     * Runs the cursor-position emoji probe with its own raw-attr setup.
+     */
+    private boolean probeCursorPositionWithSetup() {
         Attributes prev = getAttributes();
         Attributes probeAttrs = new Attributes(prev);
         probeAttrs.setLocalFlags(EnumSet.of(LocalFlag.ICANON, LocalFlag.ECHO), false);
@@ -493,71 +763,12 @@ public abstract class AbstractTerminal implements TerminalExt {
         probeAttrs.setControlChar(ControlChar.VTIME, 0);
         setAttributes(probeAttrs);
         try {
-            ProbeResult mode2027 = probeMode2027();
-            if (mode2027 == ProbeResult.SUPPORTED) {
-                return true;
-            }
-            // Cursor probe is only safe when the terminal actually responded to the
-            // DECRQM/DA1 query; otherwise getCursorPosition would block indefinitely.
-            if (mode2027 == ProbeResult.NOT_SUPPORTED) {
-                return probeCursorPosition();
-            }
-            return false;
+            return probeCursorPosition();
         } finally {
             long drainTimeout = getLongProperty(TerminalBuilder.PROP_DRAIN_TIMEOUT, 25);
             drainInput(reader(), drainTimeout, -1);
             setAttributes(prev);
         }
-    }
-
-    /**
-     * Probes the terminal for mode 2027 support using DECRQM.
-     *
-     * <p>Sends {@code CSI ? 2027 $ p} followed by a DA1 (Primary Device
-     * Attributes) query {@code CSI c} as a sentinel.  DA1 is near-universally
-     * supported, so its response acts as a fence: if we receive the DA1
-     * response without a preceding DECRPM, the terminal does not support
-     * DECRQM and we return immediately instead of waiting for a timeout.</p>
-     *
-     * <p>The expected DECRPM response is {@code CSI ? 2027 ; Ps $ y} where
-     * Ps indicates the mode status.  Both DECRPM and DA1 responses share the
-     * {@code CSI ?} prefix, but diverge immediately after ({@code 2027;}
-     * vs the DA1 device-type parameter), so they are easy to distinguish.</p>
-     *
-     * <p>macOS Terminal.app is explicitly skipped because its CSI parser does
-     * not handle the {@code $} intermediate byte and leaks the final {@code p}
-     * as visible text. A {@code false} (not {@code null}) is returned so the
-     * cursor position fallback is still attempted.</p>
-     *
-     * @return {@link ProbeResult#SUPPORTED} if mode 2027 is supported,
-     *         {@link ProbeResult#NOT_SUPPORTED} if the terminal responded but
-     *         does not support it, or {@link ProbeResult#NO_RESPONSE} if the
-     *         terminal did not respond at all
-     */
-    private ProbeResult probeMode2027() {
-        // Terminal.app's CSI parser does not handle intermediate bytes correctly
-        // and leaks the final byte 'p' of the DECRQM sequence as visible text.
-        // Skip DECRQM but return NOT_SUPPORTED (not NO_RESPONSE) so the cursor probe runs.
-        String termProgram = getenv("TERM_PROGRAM");
-        if ("Apple_Terminal".equals(termProgram)) {
-            return ProbeResult.NOT_SUPPORTED;
-        }
-        // Send DECRQM query for mode 2027 followed by DA1 as sentinel.
-        // readTerminalResponse() reads until the DA1 terminator 'c', capturing
-        // both the DECRPM (ESC[?2027;Ps$y) and the DA1 response.
-        writer().write("\033[?2027$p\033[c");
-        writer().flush();
-        String response = readTerminalResponse();
-        if (response == null) {
-            return ProbeResult.NO_RESPONSE;
-        }
-        // DECRPM: ESC[?2027;Ps$y where Ps: 1=set, 2=reset (can be set), 3=permanently set
-        if (response.contains("\033[?2027;1$y")
-                || response.contains("\033[?2027;2$y")
-                || response.contains("\033[?2027;3$y")) {
-            return ProbeResult.SUPPORTED;
-        }
-        return ProbeResult.NOT_SUPPORTED;
     }
 
     /**

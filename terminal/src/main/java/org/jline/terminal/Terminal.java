@@ -1294,6 +1294,83 @@ public interface Terminal extends Closeable, Flushable, Sized {
      */
     MouseEvent readMouseEvent(IntSupplier reader, String prefix);
 
+    //
+    // Terminal mode probing
+    //
+
+    /**
+     * Terminal modes that JLine probes for support.
+     *
+     * <p>Most modes are DEC private modes probed via DECRQM
+     * ({@code CSI ? Pd $ p} / {@code CSI ? Pd ; Ps $ y}).
+     * Non-DEC modes such as the Kitty Keyboard Protocol and Sixel
+     * graphics use their own detection mechanism but are probed in
+     * the same batch and cached identically.</p>
+     *
+     * <p>Support is detected at most once per terminal and the
+     * results are cached for subsequent queries.</p>
+     *
+     * @see #isModeSupported(Mode)
+     */
+    enum Mode {
+        /**
+         * Sixel graphics support.
+         *
+         * <p>Detected from the DA1 (Primary Device Attributes) response
+         * ({@code CSI c} / {@code CSI ? ... c}): attribute code {@code 4}
+         * indicates Sixel support. No extra query is needed — the DA1
+         * response is already read as the batch probe sentinel.</p>
+         */
+        SIXEL(-1),
+        /**
+         * <a href="https://sw.kovidgoyal.net/kitty/keyboard-protocol/">Kitty
+         * Keyboard Protocol</a>.
+         *
+         * <p>Probed via {@code CSI ? u}; not a DEC private mode.</p>
+         */
+        KITTY_KEYBOARD(0),
+        /** Synchronized output (DEC private mode 2026). */
+        SYNCHRONIZED_OUTPUT(2026),
+        /** Grapheme cluster / Unicode Core (DEC private mode 2027). */
+        GRAPHEME_CLUSTER(2027),
+        /** In-band window resize notifications (DEC private mode 2048). */
+        IN_BAND_RESIZE(2048);
+
+        private final int modeId;
+
+        Mode(int modeId) {
+            this.modeId = modeId;
+        }
+
+        /**
+         * Returns the DEC private mode number, {@code 0} for modes that
+         * use a custom query (e.g. {@link #KITTY_KEYBOARD}), or a
+         * negative value for modes detected from the DA1 response
+         * (e.g. {@link #SIXEL}).
+         */
+        public int mode() {
+            return modeId;
+        }
+    }
+
+    /**
+     * Checks whether the terminal supports the given mode.
+     *
+     * <p>The default implementation always returns {@code false}.
+     * Concrete implementations (e.g.
+     * {@link org.jline.terminal.impl.AbstractTerminal}) override this
+     * to trigger a single batch probe on first call: DEC private modes
+     * are queried via DECRQM, the Kitty Keyboard Protocol via
+     * {@code CSI ? u}, and Sixel support is detected from the DA1
+     * response. Results are cached for subsequent calls.</p>
+     *
+     * @param mode the mode to check
+     * @return {@code true} if the terminal supports the mode
+     */
+    default boolean isModeSupported(Mode mode) {
+        return false;
+    }
+
     /**
      * Returns whether the terminal has support for focus tracking.
      *
@@ -1379,6 +1456,58 @@ public interface Terminal extends Closeable, Flushable, Sized {
      * @see #hasFocusSupport()
      */
     boolean trackFocus(boolean tracking);
+
+    /**
+     * Returns whether the terminal supports in-band window resize notifications
+     * (DEC private mode 2048).
+     *
+     * <p>
+     * Mode 2048 places resize events into the terminal's data stream as
+     * {@code CSI 48 ; rows ; cols ; pixelHeight ; pixelWidth t} reports,
+     * eliminating the race conditions inherent in SIGWINCH-based resize
+     * detection.  It is especially useful over SSH/Telnet transports where
+     * SIGWINCH does not propagate reliably.
+     * </p>
+     *
+     * <p>
+     * Support detection uses the batch DEC mode probe via
+     * {@link #isModeSupported(Mode) isModeSupported(Mode.IN_BAND_RESIZE)}.
+     * The probe is never sent to dumb terminals.
+     * </p>
+     *
+     * @return {@code true} if the terminal supports mode 2048
+     * @see #trackInBandResize(boolean)
+     */
+    default boolean hasInBandResizeSupport() {
+        return false;
+    }
+
+    /**
+     * Enables or disables in-band window resize notification mode
+     * (DEC private mode 2048).
+     *
+     * <p>
+     * When enabled, the terminal sends {@code CSI 48 ; rows ; cols ; pixelHeight ; pixelWidth t}
+     * reports through the input stream whenever the window size changes.
+     * An initial report is sent immediately when the mode is first enabled.
+     * </p>
+     *
+     * <p>
+     * Applications using {@link org.jline.reader.LineReader} do not need to
+     * parse the reports manually — the reader's built-in
+     * {@code terminal-resize} widget handles them automatically, updating
+     * the terminal size and raising {@link Signal#WINCH}.
+     * </p>
+     *
+     * @param tracking {@code true} to enable in-band resize notifications,
+     *                 {@code false} to disable them
+     * @return {@code true} if the operation succeeded, {@code false} if the
+     *         terminal does not support mode 2048
+     * @see #hasInBandResizeSupport()
+     */
+    default boolean trackInBandResize(boolean tracking) {
+        return false;
+    }
 
     /**
      * Returns whether the terminal supports mode 2027 (grapheme cluster / Unicode Core).
