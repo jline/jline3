@@ -138,7 +138,45 @@ public class ScreenTerminal implements Sized {
             ScreenTerminal screen,
             LineDisciplineTerminal terminal,
             ScreenTerminalOutputStream.DelegateOutputStream delegate) {
-        OutputStream feedback = new OutputStream() {
+        delegate.setDelegate(new ScreenTerminalOutputStream(screen, StandardCharsets.UTF_8, createFeedback(terminal)));
+    }
+
+    /**
+     * Wires an existing {@link ScreenTerminal} to an existing
+     * {@link LineDisciplineTerminal}, adding a callback that is invoked every
+     * time the {@link ScreenTerminalOutputStream} is flushed.
+     *
+     * <p>This overload is intended for UI terminals (e.g. Swing) that need to
+     * trigger a repaint after each flush.</p>
+     *
+     * @param screen   the virtual screen
+     * @param terminal the line-discipline terminal
+     * @param delegate the delegate output stream passed to the terminal's constructor
+     * @param onFlush  callback invoked after every {@code flush()} on the screen
+     *                 output stream
+     */
+    public static void wireTerminal(
+            ScreenTerminal screen,
+            LineDisciplineTerminal terminal,
+            ScreenTerminalOutputStream.DelegateOutputStream delegate,
+            Runnable onFlush) {
+        OutputStream feedback = createFeedback(terminal);
+        delegate.setDelegate(new ScreenTerminalOutputStream(screen, StandardCharsets.UTF_8, feedback) {
+            @Override
+            public synchronized void flush() throws IOException {
+                super.flush();
+                onFlush.run();
+            }
+        });
+    }
+
+    /**
+     * Creates a feedback {@link OutputStream} that forwards bytes to the
+     * terminal's input side via {@link LineDisciplineTerminal#processInputByte}
+     * and {@link LineDisciplineTerminal#processInputBytes}.
+     */
+    private static OutputStream createFeedback(LineDisciplineTerminal terminal) {
+        return new OutputStream() {
             @Override
             public void write(int b) throws IOException {
                 terminal.processInputByte(b);
@@ -149,7 +187,6 @@ public class ScreenTerminal implements Sized {
                 terminal.processInputBytes(b, off, len);
             }
         };
-        delegate.setDelegate(new ScreenTerminalOutputStream(screen, StandardCharsets.UTF_8, feedback));
     }
 
     public static final int MIN_SIZE = 2;

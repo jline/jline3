@@ -85,13 +85,15 @@ public class WebTerminal extends LineDisciplineTerminal {
      * @param rows the initial number of terminal rows
      * @throws IOException if an I/O error occurs while initializing terminal resources
      */
-    @SuppressWarnings("this-escape")
     public WebTerminal(String host, int port, int columns, int rows) throws IOException {
-        super(
-                "WebTerminal",
-                "screen-256color",
-                new ScreenTerminalOutputStream.DelegateOutputStream(),
-                StandardCharsets.UTF_8);
+        this(host, port, columns, rows, new ScreenTerminalOutputStream.DelegateOutputStream());
+    }
+
+    @SuppressWarnings("this-escape")
+    private WebTerminal(
+            String host, int port, int columns, int rows, ScreenTerminalOutputStream.DelegateOutputStream delegate)
+            throws IOException {
+        super("WebTerminal", "screen-256color", delegate, StandardCharsets.UTF_8);
         this.host = host;
         this.port = port;
 
@@ -100,8 +102,7 @@ public class WebTerminal extends LineDisciplineTerminal {
         this.component.setWebTerminal(this);
 
         // Wire ScreenTerminal ↔ LineDisciplineTerminal feedback loop
-        ScreenTerminal.wireTerminal(
-                this.component, this, (ScreenTerminalOutputStream.DelegateOutputStream) masterOutput);
+        ScreenTerminal.wireTerminal(this.component, this, delegate);
     }
 
     /**
