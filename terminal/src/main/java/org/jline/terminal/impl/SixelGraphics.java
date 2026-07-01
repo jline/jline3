@@ -124,7 +124,7 @@ public class SixelGraphics implements TerminalGraphics {
         // This prevents hanging and response leakage
         // Note: We return null (not false) to allow fallback to static detection,
         // since the environment variable might not match the actual terminal type
-        String termProgram = System.getenv("TERM_PROGRAM");
+        String termProgram = terminal.getenv("TERM_PROGRAM");
         if ("com.mitchellh.ghostty".equals(termProgram)
                 || "ghostty".equals(termProgram)
                 || "kitty".equals(termProgram)
@@ -204,9 +204,9 @@ public class SixelGraphics implements TerminalGraphics {
         }
 
         // Check for environment variables that might indicate sixel support
-        String termEnv = System.getenv("TERM");
-        String termProgram = System.getenv("TERM_PROGRAM");
-        String termProgramVersion = System.getenv("TERM_PROGRAM_VERSION");
+        String termEnv = terminal.getenv("TERM");
+        String termProgram = terminal.getenv("TERM_PROGRAM");
+        String termProgramVersion = terminal.getenv("TERM_PROGRAM_VERSION");
 
         // Check for terminals that should use other protocols instead of Sixel
 

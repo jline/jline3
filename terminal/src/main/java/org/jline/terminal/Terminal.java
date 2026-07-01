@@ -1441,6 +1441,34 @@ public interface Terminal extends Closeable, Flushable, Sized {
     }
 
     /**
+     * Returns the value of the specified environment variable from the terminal's
+     * environment.
+     *
+     * <p>
+     * For local terminals this defaults to {@link System#getenv(String)}, which
+     * reads the JVM process's own environment. Remote terminal implementations
+     * (e.g., SSH) should override this method to return the remote client's
+     * environment variables instead, since terminal-related variables like
+     * {@code TERM}, {@code TERM_PROGRAM}, {@code COLORTERM}, etc. originate
+     * from the client side and are not present in the server JVM's environment.
+     * </p>
+     *
+     * <p>
+     * JLine's internal capability detection (true-color support, graphics protocol
+     * support, grapheme cluster mode, etc.) uses this method rather than calling
+     * {@link System#getenv(String)} directly, ensuring correct behavior across
+     * both local and remote terminals.
+     * </p>
+     *
+     * @param name the name of the environment variable
+     * @return the value of the variable, or {@code null} if it is not defined
+     * @see TerminalBuilder#env(java.util.function.UnaryOperator)
+     */
+    default String getenv(String name) {
+        return System.getenv(name);
+    }
+
+    /**
      * Returns the color palette for this terminal.
      *
      * <p>
