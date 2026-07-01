@@ -6,11 +6,10 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.reader;
+package org.jline.terminal;
 
 import java.util.function.IntSupplier;
 
-import org.jline.terminal.MouseEvent;
 import org.jline.utils.NonBlockingReader;
 
 /**

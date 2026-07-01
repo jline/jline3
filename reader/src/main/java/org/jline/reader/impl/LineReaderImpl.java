@@ -329,11 +329,7 @@ public class LineReaderImpl implements LineReader, Flushable {
     }
 
     public LineReaderImpl(Terminal terminal, String appName, Map<String, Object> variables) {
-        this(
-                new TerminalAdapter(Objects.requireNonNull(terminal, "terminal can not be null")),
-                terminal,
-                appName,
-                variables);
+        this((EditingTerminal) Objects.requireNonNull(terminal, "terminal can not be null"), appName, variables);
     }
 
     /**
@@ -341,9 +337,9 @@ public class LineReaderImpl implements LineReader, Flushable {
      * of a {@link Terminal}.  This allows TUI frameworks to embed JLine's editing
      * engine without requiring a full JLine terminal.
      *
-     * <p>If the provider is a {@link TerminalAdapter}, its underlying terminal is
-     * reused for display rendering. Otherwise a lightweight dumb terminal is created
-     * internally for the display layer while all I/O flows through the provider.</p>
+     * <p>If the provider is a {@link Terminal}, it is reused directly for display
+     * rendering. Otherwise a lightweight dumb terminal is created internally for
+     * the display layer while all I/O flows through the provider.</p>
      *
      * @param provider  the provider supplying input, output, size, capabilities, and signals
      * @param appName   application name (defaults to {@code "JLine"} if {@code null})
@@ -351,11 +347,7 @@ public class LineReaderImpl implements LineReader, Flushable {
      * @since 4.1
      */
     public LineReaderImpl(EditingTerminal provider, String appName, Map<String, Object> variables) {
-        this(
-                provider,
-                provider instanceof TerminalAdapter ? ((TerminalAdapter) provider).getTerminal() : createDumbTerminal(),
-                appName,
-                variables);
+        this(provider, provider instanceof Terminal ? (Terminal) provider : createDumbTerminal(), appName, variables);
     }
 
     /**
@@ -434,8 +426,8 @@ public class LineReaderImpl implements LineReader, Flushable {
      * Returns the {@link EditingTerminal} backing this reader.
      *
      * <p>Unlike {@link #getTerminal()}, this method never returns {@code null}.
-     * When the reader was constructed from a {@link Terminal}, the provider is a
-     * {@link TerminalAdapter} wrapping that terminal.</p>
+     * When the reader was constructed from a {@link Terminal}, the returned value
+     * is the terminal itself (since {@code Terminal extends EditingTerminal}).</p>
      *
      * @return the terminal provider
      * @since 4.1

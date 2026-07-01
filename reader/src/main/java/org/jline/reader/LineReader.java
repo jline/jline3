@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.function.IntConsumer;
 
 import org.jline.keymap.KeyMap;
+import org.jline.terminal.EditingTerminal;
 import org.jline.terminal.MouseEvent;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
@@ -804,7 +805,7 @@ public interface LineReader {
      * The terminal is used for input/output operations and provides information
      * about the terminal capabilities and size.
      * <p>
-     * When the reader was constructed from a {@link EditingTerminal} without an
+     * When the reader was constructed from an {@link EditingTerminal} without an
      * underlying terminal, this returns a lightweight dumb terminal used internally
      * for display rendering. Prefer {@link #getEditingTerminal()} for accessing
      * the provider interfaces.
@@ -814,12 +815,12 @@ public interface LineReader {
     Terminal getTerminal();
 
     /**
-     * Returns the {@link EditingTerminal} backing this reader.
+     * Returns the {@link org.jline.terminal.EditingTerminal EditingTerminal} backing this reader.
      * <p>
-     * The provider abstracts terminal operations into five interfaces
-     * ({@link InputProvider}, {@link OutputProvider}, {@link SizeProvider},
-     * {@link CapabilityProvider}, {@link SignalProvider}) so that the editing
-     * engine can be embedded in environments other than a JLine terminal.
+     * The provider abstracts terminal operations into five focused interfaces
+     * so that the editing engine can be embedded in environments other than
+     * a JLine terminal. When the reader was constructed from a {@link Terminal},
+     * this returns the terminal itself (since {@code Terminal extends EditingTerminal}).
      *
      * @return the terminal provider (never {@code null})
      * @since 4.1

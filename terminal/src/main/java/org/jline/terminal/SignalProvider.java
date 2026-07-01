@@ -6,9 +6,8 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.reader;
+package org.jline.terminal;
 
-import org.jline.terminal.Attributes;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.Terminal.SignalHandler;
 

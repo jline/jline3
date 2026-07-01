@@ -16,6 +16,7 @@ import java.util.Objects;
 
 import org.jline.reader.impl.LineReaderImpl;
 import org.jline.reader.impl.history.DefaultHistory;
+import org.jline.terminal.EditingTerminal;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.Log;

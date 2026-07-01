@@ -6,12 +6,10 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.reader;
+package org.jline.terminal;
 
 import java.util.function.IntConsumer;
 
-import org.jline.terminal.Cursor;
-import org.jline.terminal.Terminal;
 import org.jline.utils.InfoCmp.Capability;
 
 /**

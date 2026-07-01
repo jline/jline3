@@ -6,9 +6,7 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.reader;
-
-import org.jline.terminal.Size;
+package org.jline.terminal;
 
 /**
  * Provides viewport dimensions for the line editing engine.
