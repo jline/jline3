@@ -58,7 +58,6 @@ public final class LineReaderBuilder {
     }
 
     Terminal terminal;
-    EditingTerminal editingTerminal;
     String appName;
     Map<String, Object> variables = new HashMap<>();
     Map<LineReader.Option, Boolean> options = new HashMap<>();
@@ -82,23 +81,6 @@ public final class LineReaderBuilder {
      */
     public LineReaderBuilder terminal(Terminal terminal) {
         this.terminal = terminal;
-        return this;
-    }
-
-    /**
-     * Sets a {@link EditingTerminal} to be used by the LineReader instead of a Terminal.
-     * <p>
-     * This allows TUI frameworks to embed JLine's editing engine without requiring
-     * a full JLine terminal. If both a terminal and a provider are set, the provider
-     * takes precedence.
-     *
-     * @param provider the terminal provider to use
-     * @return this builder
-     * @since 4.1
-     * @see EditingTerminal
-     */
-    public LineReaderBuilder editingTerminal(EditingTerminal provider) {
-        this.editingTerminal = provider;
         return this;
     }
 
@@ -219,27 +201,21 @@ public final class LineReaderBuilder {
      * @throws IOError if there is an error creating the default terminal
      */
     public LineReader build() {
-        LineReaderImpl reader;
-        if (this.editingTerminal != null) {
-            String appName = this.appName != null ? this.appName : "JLine";
-            reader = new LineReaderImpl(editingTerminal, appName, variables);
-        } else {
-            Terminal terminal = this.terminal;
-            if (terminal == null) {
-                try {
-                    terminal = TerminalBuilder.terminal();
-                } catch (IOException e) {
-                    throw new IOError(e);
-                }
+        Terminal terminal = this.terminal;
+        if (terminal == null) {
+            try {
+                terminal = TerminalBuilder.terminal();
+            } catch (IOException e) {
+                throw new IOError(e);
             }
-
-            String appName = this.appName;
-            if (null == appName) {
-                appName = terminal.getName();
-            }
-
-            reader = new LineReaderImpl(terminal, appName, variables);
         }
+
+        String appName = this.appName;
+        if (null == appName) {
+            appName = terminal.getName();
+        }
+
+        LineReaderImpl reader = new LineReaderImpl(terminal, appName, variables);
         if (history != null) {
             reader.setHistory(history);
         } else {

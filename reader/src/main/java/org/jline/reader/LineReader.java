@@ -803,28 +803,10 @@ public interface LineReader {
      * <p>
      * The terminal is used for input/output operations and provides information
      * about the terminal capabilities and size.
-     * <p>
-     * When the reader was constructed from a {@link EditingTerminal} without an
-     * underlying terminal, this returns a lightweight dumb terminal used internally
-     * for display rendering. Prefer {@link #getEditingTerminal()} for accessing
-     * the provider interfaces.
      *
-     * @return the terminal (never {@code null})
+     * @return the terminal
      */
     Terminal getTerminal();
-
-    /**
-     * Returns the {@link EditingTerminal} backing this reader.
-     * <p>
-     * The provider abstracts terminal operations into five interfaces
-     * ({@link InputProvider}, {@link OutputProvider}, {@link SizeProvider},
-     * {@link CapabilityProvider}, {@link SignalProvider}) so that the editing
-     * engine can be embedded in environments other than a JLine terminal.
-     *
-     * @return the terminal provider (never {@code null})
-     * @since 4.1
-     */
-    EditingTerminal getEditingTerminal();
 
     /**
      * Returns a map of all widgets registered with this LineReader.
