@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@SuppressWarnings("deprecation") // Tests intentionally exercise the deprecated PROP_SOFTWARE_SIGNALS property
 class PosixSysTerminalTest {
 
     @Test
@@ -255,6 +256,44 @@ class PosixSysTerminalTest {
             assertTrue(terminal.nativeHandlers.isEmpty());
             terminal.handle(Signal.INT, s -> {});
             assertTrue(terminal.nativeHandlers.isEmpty());
+        }
+    }
+
+    @Test
+    void testDefaultSoftwareSignalsDisabled() throws Exception {
+        // Verify that when the property is not set, software signal interception is off (default false)
+        String prev = System.getProperty(TerminalBuilder.PROP_SOFTWARE_SIGNALS);
+        try {
+            System.clearProperty(TerminalBuilder.PROP_SOFTWARE_SIGNALS);
+
+            Attributes attr = new Attributes();
+            attr.setControlChar(ControlChar.VINTR, 3);
+
+            Pty pty = EasyMock.createNiceMock(Pty.class);
+            EasyMock.expect(pty.getAttr()).andReturn(attr).anyTimes();
+            EasyMock.expect(pty.getSlaveInput())
+                    .andReturn(new ByteArrayInputStream(new byte[] {0x03}))
+                    .anyTimes();
+            EasyMock.expect(pty.getSlaveOutput())
+                    .andReturn(new ByteArrayOutputStream())
+                    .anyTimes();
+            EasyMock.replay(pty);
+            try (PosixSysTerminal terminal =
+                    new PosixSysTerminal("name", "ansi", pty, null, false, SignalHandler.SIG_DFL)) {
+                AtomicReference<Signal> received = new AtomicReference<>();
+                terminal.handle(Signal.INT, received::set);
+
+                int b = terminal.input().read();
+                assertEquals(0x03, b);
+                // With the default (softwareSignals=false), no signal should be raised
+                assertNull(received.get());
+            }
+        } finally {
+            if (prev == null) {
+                System.clearProperty(TerminalBuilder.PROP_SOFTWARE_SIGNALS);
+            } else {
+                System.setProperty(TerminalBuilder.PROP_SOFTWARE_SIGNALS, prev);
+            }
         }
     }
 }
