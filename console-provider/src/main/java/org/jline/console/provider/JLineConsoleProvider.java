@@ -24,6 +24,9 @@ import jdk.internal.io.JdkConsoleProvider;
  * JLine's {@link org.jline.reader.LineReader} instead of the JDK's built-in
  * console implementation, providing interactive line editing, history navigation,
  * and other terminal features.
+ * <p>
+ * This provider supports both the JDK 22-24 API ({@code console(boolean, Charset)})
+ * and the JDK 25+ API ({@code console(boolean, Charset, Charset)}).
  */
 public class JLineConsoleProvider implements JdkConsoleProvider {
 
@@ -32,16 +35,31 @@ public class JLineConsoleProvider implements JdkConsoleProvider {
 
     /**
      * Creates a new {@link JdkConsole} backed by JLine's terminal and line reader.
+     * <p>
+     * This signature matches the JDK 22-24 {@link JdkConsoleProvider} API.
      *
      * @param isTTY   whether the JVM is attached to a terminal
      * @param charset the charset for console I/O
      * @return a JLine-backed console implementation, or {@code null} if not attached to a TTY
      */
-    @Override
     public JdkConsole console(boolean isTTY, Charset charset) {
+        return console(isTTY, charset, charset);
+    }
+
+    /**
+     * Creates a new {@link JdkConsole} backed by JLine's terminal and line reader.
+     * <p>
+     * This signature matches the JDK 25+ {@link JdkConsoleProvider} API.
+     *
+     * @param isTTY      whether the JVM is attached to a terminal
+     * @param inCharset  the charset for console input
+     * @param outCharset the charset for console output
+     * @return a JLine-backed console implementation, or {@code null} if not attached to a TTY
+     */
+    public JdkConsole console(boolean isTTY, Charset inCharset, Charset outCharset) {
         if (!isTTY) {
             return null;
         }
-        return new JLineJdkConsole(charset);
+        return new JLineJdkConsole(outCharset);
     }
 }

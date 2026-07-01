@@ -11,6 +11,7 @@ package org.jline.console.provider;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 
 import org.junit.jupiter.api.Test;
 
@@ -22,14 +23,10 @@ class JLineJdkConsoleTest {
 
     /**
      * Helper to create a console instance for testing.
-     * May return null if no terminal is available in the test environment.
+     * May throw if no terminal is available in the test environment.
      */
-    private JdkConsole createConsole() {
-        try {
-            return new JLineJdkConsole(StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            return null;
-        }
+    private JLineJdkConsole createConsole() {
+        return new JLineJdkConsole(StandardCharsets.UTF_8);
     }
 
     @Test
@@ -43,8 +40,7 @@ class JLineJdkConsoleTest {
 
     @Test
     void writerReturnsNonNull() {
-        JdkConsole console = createConsole();
-        if (console == null) return;
+        JLineJdkConsole console = createConsole();
         try {
             PrintWriter writer = console.writer();
             assertNotNull(writer, "writer() should return a non-null PrintWriter");
@@ -55,8 +51,7 @@ class JLineJdkConsoleTest {
 
     @Test
     void readerReturnsNonNull() {
-        JdkConsole console = createConsole();
-        if (console == null) return;
+        JLineJdkConsole console = createConsole();
         try {
             Reader reader = console.reader();
             assertNotNull(reader, "reader() should return a non-null Reader");
@@ -67,8 +62,7 @@ class JLineJdkConsoleTest {
 
     @Test
     void formatReturnsSelf() {
-        JdkConsole console = createConsole();
-        if (console == null) return;
+        JLineJdkConsole console = createConsole();
         try {
             JdkConsole result = console.format("Hello %s%n", "World");
             assertSame(console, result, "format() should return 'this' for method chaining");
@@ -78,9 +72,19 @@ class JLineJdkConsoleTest {
     }
 
     @Test
+    void formatWithLocaleReturnsSelf() {
+        JLineJdkConsole console = createConsole();
+        try {
+            JdkConsole result = console.format(Locale.US, "Hello %s%n", "World");
+            assertSame(console, result, "format(Locale,...) should return 'this' for method chaining");
+        } catch (Exception e) {
+            // Terminal may not be available in test environment
+        }
+    }
+
+    @Test
     void printfReturnsSelf() {
-        JdkConsole console = createConsole();
-        if (console == null) return;
+        JLineJdkConsole console = createConsole();
         try {
             JdkConsole result = console.printf("Hello %s%n", "World");
             assertSame(console, result, "printf() should return 'this' for method chaining");
@@ -90,9 +94,30 @@ class JLineJdkConsoleTest {
     }
 
     @Test
+    void printlnReturnsSelf() {
+        JLineJdkConsole console = createConsole();
+        try {
+            JdkConsole result = console.println("Hello World");
+            assertSame(console, result, "println() should return 'this' for method chaining");
+        } catch (Exception e) {
+            // Terminal may not be available in test environment
+        }
+    }
+
+    @Test
+    void printReturnsSelf() {
+        JLineJdkConsole console = createConsole();
+        try {
+            JdkConsole result = console.print("Hello World");
+            assertSame(console, result, "print() should return 'this' for method chaining");
+        } catch (Exception e) {
+            // Terminal may not be available in test environment
+        }
+    }
+
+    @Test
     void flushDoesNotThrow() {
-        JdkConsole console = createConsole();
-        if (console == null) return;
+        JLineJdkConsole console = createConsole();
         try {
             assertDoesNotThrow(console::flush);
         } catch (Exception e) {
@@ -102,8 +127,7 @@ class JLineJdkConsoleTest {
 
     @Test
     void writerReturnsSameInstance() {
-        JdkConsole console = createConsole();
-        if (console == null) return;
+        JLineJdkConsole console = createConsole();
         try {
             PrintWriter w1 = console.writer();
             PrintWriter w2 = console.writer();
