@@ -1096,4 +1096,141 @@ class DisplayTest {
             terminal.puts(exit_ca_mode);
         }
     }
+
+    // ====================================================================
+    // Terminal synchronized output API tests
+    // ====================================================================
+
+    /**
+     * Terminal.beginSynchronizedUpdate/endSynchronizedUpdate should emit
+     * BSU/ESU sequences to the terminal output.
+     */
+    @Test
+    void terminalSynchronizedUpdateApi() throws IOException {
+        int cols = 40;
+        int rows = 10;
+        try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, cols, rows)) {
+            terminal.enterRawMode();
+            terminal.startCapture();
+
+            terminal.beginSynchronizedUpdate();
+            terminal.writer().print("Hello");
+            terminal.endSynchronizedUpdate();
+            terminal.flush();
+
+            byte[] captured = terminal.stopCapture();
+            String output = new String(captured, StandardCharsets.UTF_8);
+
+            assertTrue(
+                    output.contains("\033[?2026h"),
+                    "beginSynchronizedUpdate should emit BSU, output: " + output.replace("\033", "\\e"));
+            assertTrue(
+                    output.contains("\033[?2026l"),
+                    "endSynchronizedUpdate should emit ESU, output: " + output.replace("\033", "\\e"));
+
+            int bsuPos = output.indexOf("\033[?2026h");
+            int esuPos = output.indexOf("\033[?2026l");
+            int helloPos = output.indexOf("Hello");
+            assertTrue(bsuPos < helloPos, "BSU should come before content");
+            assertTrue(helloPos < esuPos, "Content should come before ESU");
+        }
+    }
+
+    /**
+     * Terminal.synchronizedUpdate(Runnable) should bracket the action in BSU/ESU.
+     */
+    @Test
+    void terminalSynchronizedUpdateLambda() throws IOException {
+        int cols = 40;
+        int rows = 10;
+        try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, cols, rows)) {
+            terminal.enterRawMode();
+            terminal.startCapture();
+
+            terminal.synchronizedUpdate(() -> {
+                terminal.writer().print("Atomic");
+            });
+            terminal.flush();
+
+            byte[] captured = terminal.stopCapture();
+            String output = new String(captured, StandardCharsets.UTF_8);
+
+            assertTrue(output.contains("\033[?2026h"), "Lambda wrapper should emit BSU");
+            assertTrue(output.contains("\033[?2026l"), "Lambda wrapper should emit ESU");
+        }
+    }
+
+    /**
+     * Terminal.synchronizedUpdate should guarantee ESU is sent even if the action throws.
+     */
+    @Test
+    void terminalSynchronizedUpdateEsuOnException() throws IOException {
+        int cols = 40;
+        int rows = 10;
+        try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, cols, rows)) {
+            terminal.enterRawMode();
+            terminal.startCapture();
+
+            try {
+                terminal.synchronizedUpdate(() -> {
+                    terminal.writer().print("partial");
+                    throw new RuntimeException("test error");
+                });
+            } catch (RuntimeException e) {
+                assertEquals("test error", e.getMessage());
+            }
+            terminal.flush();
+
+            byte[] captured = terminal.stopCapture();
+            String output = new String(captured, StandardCharsets.UTF_8);
+
+            assertTrue(output.contains("\033[?2026h"), "BSU should be emitted");
+            assertTrue(output.contains("\033[?2026l"), "ESU should be emitted even after exception");
+        }
+    }
+
+    // ====================================================================
+    // Status bar synchronized output integration tests
+    // ====================================================================
+
+    /**
+     * Status.update() should wrap its output in BSU/ESU brackets.
+     */
+    @Test
+    void statusUpdateEmitsSyncBrackets() throws IOException {
+        int cols = 40;
+        int rows = 10;
+        try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, cols, rows)) {
+            terminal.enterRawMode();
+
+            Status status = new Status(terminal);
+
+            // First update to initialize
+            List<AttributedString> statusLines = new ArrayList<>();
+            statusLines.add(new AttributedString("status line 1"));
+            status.update(statusLines);
+            terminal.flush();
+
+            // Second update — capture its output
+            terminal.startCapture();
+            List<AttributedString> statusLines2 = new ArrayList<>();
+            statusLines2.add(new AttributedString("updated status"));
+            status.update(statusLines2);
+            terminal.flush();
+
+            byte[] captured = terminal.stopCapture();
+            String output = new String(captured, StandardCharsets.UTF_8);
+
+            assertTrue(
+                    output.contains("\033[?2026h"),
+                    "Status update should contain BSU, output: " + output.replace("\033", "\\e"));
+            assertTrue(
+                    output.contains("\033[?2026l"),
+                    "Status update should contain ESU, output: " + output.replace("\033", "\\e"));
+
+            int bsuPos = output.indexOf("\033[?2026h");
+            int esuPos = output.indexOf("\033[?2026l");
+            assertTrue(bsuPos < esuPos, "BSU must come before ESU in status update");
+        }
+    }
 }

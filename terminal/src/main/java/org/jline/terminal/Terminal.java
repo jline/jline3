@@ -1457,6 +1457,111 @@ public interface Terminal extends Closeable, Flushable, Sized {
      */
     boolean trackFocus(boolean tracking);
 
+    //
+    // Synchronized output (mode 2026)
+    //
+
+    /**
+     * Begins a synchronized update (mode 2026).
+     *
+     * <p>
+     * Sends the Begin Synchronized Update (BSU) sequence {@code \e[?2026h} to the terminal,
+     * instructing it to buffer all subsequent output until {@link #endSynchronizedUpdate()} is
+     * called. The terminal then renders the buffered output atomically, preventing visible
+     * intermediate states (flicker) during multi-step screen updates.
+     * </p>
+     *
+     * <p>
+     * Terminals that do not support mode 2026 silently ignore the sequence, so it is always
+     * safe to call this method regardless of terminal capabilities.
+     * </p>
+     *
+     * <p>
+     * <b>Important:</b> Every call to {@code beginSynchronizedUpdate()} must be paired with a
+     * call to {@link #endSynchronizedUpdate()} in a {@code finally} block to ensure the terminal
+     * never remains in synchronized-output mode after an error. Prefer the lambda-based
+     * {@link #synchronizedUpdate(Runnable)} method which handles this automatically.
+     * </p>
+     *
+     * <p>Example usage:</p>
+     * <pre>
+     * terminal.beginSynchronizedUpdate();
+     * try {
+     *     // multiple writes that should appear atomically
+     *     terminal.writer().println("Line 1");
+     *     terminal.writer().println("Line 2");
+     * } finally {
+     *     terminal.endSynchronizedUpdate();
+     * }
+     * </pre>
+     *
+     * @see #endSynchronizedUpdate()
+     * @see #synchronizedUpdate(Runnable)
+     */
+    default void beginSynchronizedUpdate() {
+        writer().write("\033[?2026h");
+    }
+
+    /**
+     * Ends a synchronized update (mode 2026).
+     *
+     * <p>
+     * Sends the End Synchronized Update (ESU) sequence {@code \e[?2026l} to the terminal,
+     * instructing it to render all output buffered since the last {@link #beginSynchronizedUpdate()}
+     * call. This must always be called in a {@code finally} block to ensure the terminal does
+     * not remain in synchronized-output mode after an error.
+     * </p>
+     *
+     * <p>
+     * Terminals that do not support mode 2026 silently ignore the sequence.
+     * </p>
+     *
+     * @see #beginSynchronizedUpdate()
+     * @see #synchronizedUpdate(Runnable)
+     */
+    default void endSynchronizedUpdate() {
+        writer().write("\033[?2026l");
+    }
+
+    /**
+     * Executes the given action inside a synchronized update (mode 2026) bracket.
+     *
+     * <p>
+     * This is a convenience method that wraps the action in
+     * {@link #beginSynchronizedUpdate()} / {@link #endSynchronizedUpdate()} with
+     * proper {@code try/finally} handling, ensuring the terminal never remains in
+     * synchronized-output mode after the action completes (normally or exceptionally).
+     * </p>
+     *
+     * <p>
+     * Use this when multiple terminal writes should appear atomically on screen.
+     * Terminals that do not support mode 2026 silently ignore the bracketing
+     * sequences, so it is always safe to call.
+     * </p>
+     *
+     * <p>Example usage:</p>
+     * <pre>
+     * terminal.synchronizedUpdate(() -> {
+     *     terminal.writer().println("Status: OK");
+     *     terminal.puts(Capability.cursor_address, 5, 0);
+     *     terminal.writer().println("Progress: 100%");
+     * });
+     * terminal.flush();
+     * </pre>
+     *
+     * @param action the action to execute inside the synchronized update bracket
+     * @see #beginSynchronizedUpdate()
+     * @see #endSynchronizedUpdate()
+     */
+    default void synchronizedUpdate(Runnable action) {
+        beginSynchronizedUpdate();
+        try {
+            action.run();
+        } finally {
+            endSynchronizedUpdate();
+        }
+    }
+
     /**
      * Returns whether the terminal supports mode 2027 (grapheme cluster / Unicode Core).
      *
