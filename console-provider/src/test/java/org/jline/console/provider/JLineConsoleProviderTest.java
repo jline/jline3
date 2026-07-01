@@ -8,7 +8,6 @@
  */
 package org.jline.console.provider;
 
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 import org.junit.jupiter.api.Test;
@@ -22,29 +21,43 @@ class JLineConsoleProviderTest {
 
     @Test
     void providerReturnsNullWhenNotTTY() {
-        JdkConsoleProvider provider = new JLineConsoleProvider();
+        JLineConsoleProvider provider = new JLineConsoleProvider();
         JdkConsole console = provider.console(false, StandardCharsets.UTF_8);
         assertNull(console, "Provider should return null when not attached to a TTY");
     }
 
     @Test
+    void providerThreeArgReturnsNullWhenNotTTY() {
+        JLineConsoleProvider provider = new JLineConsoleProvider();
+        JdkConsole console = provider.console(false, StandardCharsets.UTF_8, StandardCharsets.UTF_8);
+        assertNull(console, "Provider (3-arg) should return null when not attached to a TTY");
+    }
+
+    @Test
     void providerReturnsNonNullWhenTTY() {
-        JdkConsoleProvider provider = new JLineConsoleProvider();
-        // When isTTY is true, the provider should attempt to create a console.
-        // In a test environment without a real terminal, the JLine terminal builder
-        // may fall back to a dumb terminal. We verify the provider returns non-null.
+        JLineConsoleProvider provider = new JLineConsoleProvider();
         try {
             JdkConsole console = provider.console(true, StandardCharsets.UTF_8);
             assertNotNull(console, "Provider should return a console when attached to a TTY");
         } catch (Exception e) {
             // In CI environments without a terminal, building a system terminal may fail.
-            // This is expected behavior - the provider correctly requires a terminal.
+        }
+    }
+
+    @Test
+    void providerThreeArgReturnsNonNullWhenTTY() {
+        JLineConsoleProvider provider = new JLineConsoleProvider();
+        try {
+            JdkConsole console = provider.console(true, StandardCharsets.UTF_8, StandardCharsets.ISO_8859_1);
+            assertNotNull(console, "Provider (3-arg) should return a console when attached to a TTY");
+        } catch (Exception e) {
+            // In CI environments without a terminal, building a system terminal may fail.
         }
     }
 
     @Test
     void providerReturnsCorrectCharset() {
-        JdkConsoleProvider provider = new JLineConsoleProvider();
+        JLineConsoleProvider provider = new JLineConsoleProvider();
         try {
             JdkConsole console = provider.console(true, StandardCharsets.UTF_8);
             if (console != null) {
@@ -56,18 +69,16 @@ class JLineConsoleProviderTest {
     }
 
     @Test
-    void providerAcceptsVariousCharsets() {
-        JdkConsoleProvider provider = new JLineConsoleProvider();
-        for (Charset charset :
-                new Charset[] {StandardCharsets.UTF_8, StandardCharsets.ISO_8859_1, StandardCharsets.US_ASCII}) {
-            try {
-                JdkConsole console = provider.console(true, charset);
-                if (console != null) {
-                    assertEquals(charset, console.charset());
-                }
-            } catch (Exception e) {
-                // Terminal may not be available in test environment
+    void providerThreeArgUsesOutCharset() {
+        JLineConsoleProvider provider = new JLineConsoleProvider();
+        try {
+            JdkConsole console = provider.console(true, StandardCharsets.US_ASCII, StandardCharsets.ISO_8859_1);
+            if (console != null) {
+                assertEquals(
+                        StandardCharsets.ISO_8859_1, console.charset(), "charset() should return the output charset");
             }
+        } catch (Exception e) {
+            // Terminal may not be available in test environment
         }
     }
 
