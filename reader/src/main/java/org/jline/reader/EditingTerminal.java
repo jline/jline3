@@ -6,7 +6,7 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.terminal;
+package org.jline.reader;
 
 /**
  * Composite interface that combines all provider interfaces needed by the line editing engine.
@@ -17,11 +17,12 @@ package org.jline.terminal;
  *
  * <p>There are two primary usage patterns:</p>
  * <ul>
- *   <li><b>Terminal-backed</b> — Pass a JLine {@link Terminal} directly.
- *       Since {@code Terminal extends EditingTerminal}, no adapter is needed.</li>
+ *   <li><b>Terminal-backed</b> — Use
+ *       {@link org.jline.reader.impl.TerminalAdapter TerminalAdapter} to wrap a JLine
+ *       {@link org.jline.terminal.Terminal Terminal}. This is the default for existing
+ *       applications and is fully backward compatible.</li>
  *   <li><b>Embedded</b> — TUI frameworks implement this interface directly to
- *       embed JLine's editing engine in their own event loop and rendering pipeline,
- *       without needing to implement the full {@link Terminal} interface.</li>
+ *       embed JLine's editing engine in their own event loop and rendering pipeline.</li>
  * </ul>
  *
  * @since 4.1
@@ -30,7 +31,7 @@ package org.jline.terminal;
  * @see SizeProvider
  * @see CapabilityProvider
  * @see SignalProvider
- * @see Terminal
+ * @see org.jline.reader.impl.TerminalAdapter
  */
 public interface EditingTerminal
         extends InputProvider, OutputProvider, SizeProvider, CapabilityProvider, SignalProvider {}

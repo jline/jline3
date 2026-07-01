@@ -6,10 +6,11 @@
  *
  * https://opensource.org/licenses/BSD-3-Clause
  */
-package org.jline.terminal;
+package org.jline.reader;
 
 import java.io.PrintWriter;
 
+import org.jline.terminal.Terminal;
 import org.jline.utils.InfoCmp.Capability;
 
 /**

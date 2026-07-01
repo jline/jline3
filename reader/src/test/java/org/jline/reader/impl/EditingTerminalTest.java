@@ -15,11 +15,11 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 
+import org.jline.reader.EditingTerminal;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.terminal.Attributes;
-import org.jline.terminal.EditingTerminal;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.Terminal.Signal;
@@ -36,14 +36,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for the {@link EditingTerminal} seam interfaces and the decoupled
- * {@link LineReaderImpl} constructor.
+ * Tests for the {@link EditingTerminal} seam interfaces, {@link TerminalAdapter},
+ * and the decoupled {@link LineReaderImpl} constructor.
  */
 class EditingTerminalTest {
 
-    /** Verify that Terminal implements EditingTerminal and exposes all provider methods. */
+    /** Verify that TerminalAdapter correctly delegates all methods to the underlying Terminal. */
     @Test
-    void terminalIsEditingTerminal() throws IOException {
+    void terminalAdapterDelegatesToTerminal() throws IOException {
         Terminal terminal = new DumbTerminal(
                 "test",
                 Terminal.TYPE_DUMB,
@@ -52,30 +52,29 @@ class EditingTerminalTest {
                 StandardCharsets.UTF_8);
         terminal.setSize(Size.of(120, 40));
 
-        // Terminal IS-A EditingTerminal, no adapter needed
-        assertTrue(terminal instanceof EditingTerminal);
-        EditingTerminal et = terminal;
+        TerminalAdapter adapter = new TerminalAdapter(terminal);
 
-        assertSame(terminal.reader(), et.reader());
-        assertSame(terminal.writer(), et.writer());
-        assertEquals(terminal.getSize(), et.getSize());
-        assertEquals(terminal.getBufferSize(), et.getBufferSize());
-        assertEquals(terminal.getName(), et.getName());
-        assertEquals(terminal.getType(), et.getType());
+        assertSame(terminal, adapter.getTerminal());
+        assertSame(terminal.reader(), adapter.reader());
+        assertSame(terminal.writer(), adapter.writer());
+        assertEquals(terminal.getSize(), adapter.getSize());
+        assertEquals(terminal.getBufferSize(), adapter.getBufferSize());
+        assertEquals(terminal.getName(), adapter.getName());
+        assertEquals(terminal.getType(), adapter.getType());
         assertEquals(
                 terminal.getBooleanCapability(Capability.auto_right_margin),
-                et.getBooleanCapability(Capability.auto_right_margin));
+                adapter.getBooleanCapability(Capability.auto_right_margin));
         assertEquals(
                 terminal.getStringCapability(Capability.cursor_address),
-                et.getStringCapability(Capability.cursor_address));
-        assertEquals(terminal.getGraphemeClusterMode(), et.getGraphemeClusterMode());
+                adapter.getStringCapability(Capability.cursor_address));
+        assertEquals(terminal.getGraphemeClusterMode(), adapter.getGraphemeClusterMode());
 
         terminal.close();
     }
 
-    /** Verify that constructing LineReaderImpl from a Terminal uses the terminal as provider. */
+    /** Verify that constructing LineReaderImpl from a Terminal produces a TerminalAdapter provider. */
     @Test
-    void lineReaderFromTerminalUsesTerminalAsProvider() throws IOException {
+    void lineReaderFromTerminalUsesTerminalAdapter() throws IOException {
         byte[] input = "hello\n".getBytes(StandardCharsets.UTF_8);
         Terminal terminal = new DumbTerminal(
                 "test",
@@ -89,8 +88,8 @@ class EditingTerminalTest {
 
         assertSame(terminal, reader.getTerminal());
         assertNotNull(reader.getEditingTerminal());
-        // Since Terminal extends EditingTerminal, getEditingTerminal() returns the terminal itself
-        assertSame(terminal, reader.getEditingTerminal());
+        assertTrue(reader.getEditingTerminal() instanceof TerminalAdapter);
+        assertSame(terminal, ((TerminalAdapter) reader.getEditingTerminal()).getTerminal());
     }
 
     /** Verify that LineReaderBuilder.editingTerminal() creates a reader with the custom provider. */
@@ -105,9 +104,9 @@ class EditingTerminalTest {
                 StandardCharsets.UTF_8);
         terminal.setSize(Size.of(80, 24));
 
-        // Pass Terminal as EditingTerminal via builder
+        TerminalAdapter provider = new TerminalAdapter(terminal);
         LineReader reader = LineReaderBuilder.builder()
-                .editingTerminal(terminal)
+                .editingTerminal(provider)
                 .appName("test-app")
                 .build();
 
@@ -124,7 +123,7 @@ class EditingTerminalTest {
                 "src", Terminal.TYPE_DUMB, new ByteArrayInputStream(input), out, StandardCharsets.UTF_8);
         dumb.setSize(Size.of(80, 24));
 
-        // Create a custom provider that wraps a terminal's reader/writer but is NOT a Terminal
+        // Create a custom provider that wraps a terminal's reader/writer but is NOT a TerminalAdapter
         EditingTerminal custom = new EditingTerminal() {
             @Override
             public NonBlockingReader reader() {
@@ -249,9 +248,9 @@ class EditingTerminalTest {
         assertNotNull(minimal.getAttributes());
     }
 
-    /** Verify that readLine works when a Terminal is used as EditingTerminal. */
+    /** Verify that readLine works through the TerminalAdapter path. */
     @Test
-    void readLineThroughTerminal() throws IOException {
+    void readLineThroughTerminalAdapter() throws IOException {
         byte[] input = "hello world\n".getBytes(StandardCharsets.UTF_8);
         Terminal terminal = new DumbTerminal(
                 "test",
@@ -261,18 +260,19 @@ class EditingTerminalTest {
                 StandardCharsets.UTF_8);
         terminal.setSize(Size.of(80, 24));
 
-        // Construct via the EditingTerminal constructor
-        LineReaderImpl reader = new LineReaderImpl((EditingTerminal) terminal, "test", null);
+        TerminalAdapter adapter = new TerminalAdapter(terminal);
+        LineReaderImpl reader = new LineReaderImpl(adapter, "test", null);
 
+        // readLine should work through the adapter exactly as through the terminal directly
         String line = reader.readLine();
         assertEquals("hello world", line);
 
         terminal.close();
     }
 
-    /** Verify that EOF throws EndOfFileException. */
+    /** Verify that EOF via TerminalAdapter path throws EndOfFileException. */
     @Test
-    void eofThrowsEndOfFileException() throws IOException {
+    void eofThroughTerminalAdapter() throws IOException {
         Terminal terminal = new DumbTerminal(
                 "test",
                 Terminal.TYPE_DUMB,
@@ -281,7 +281,8 @@ class EditingTerminalTest {
                 StandardCharsets.UTF_8);
         terminal.setSize(Size.of(80, 24));
 
-        LineReaderImpl reader = new LineReaderImpl((EditingTerminal) terminal, "test", null);
+        TerminalAdapter adapter = new TerminalAdapter(terminal);
+        LineReaderImpl reader = new LineReaderImpl(adapter, "test", null);
 
         assertThrows(EndOfFileException.class, reader::readLine);
 

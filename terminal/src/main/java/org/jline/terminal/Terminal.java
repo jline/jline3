@@ -82,7 +82,7 @@ import org.jline.utils.NonBlockingReader;
  * @see Cursor
  * @see MouseEvent
  */
-public interface Terminal extends Closeable, Flushable, Sized, EditingTerminal {
+public interface Terminal extends Closeable, Flushable, Sized {
 
     /**
      * Type identifier for dumb terminals with minimal capabilities.
