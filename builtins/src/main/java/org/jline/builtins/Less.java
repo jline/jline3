@@ -86,6 +86,7 @@ public class Less {
     public boolean noInit;
     protected List<Integer> tabs = Collections.singletonList(4);
     protected String syntaxName;
+    protected String defaultPrompt;
     private String historyLog = null;
 
     protected final Terminal terminal;
@@ -142,6 +143,7 @@ public class Less {
             "  -I --IGNORE-CASE             Search ignores all case",
             "  -x --tabs=N[,...]            Set tab stops",
             "  -N --LINE-NUMBERS            Display line number for each line",
+            "  -P --prompt=string           Set the default prompt string",
             "  -Y --syntax=name             The name of the syntax highlighting to use.",
             "     --no-init                 Disable terminal initialization",
             "     --no-keypad               Disable keypad handling",
@@ -210,6 +212,9 @@ public class Less {
             }
             if (opts.isSet("tabs")) {
                 doTabs(opts.get("tabs"));
+            }
+            if (opts.isSet("prompt")) {
+                defaultPrompt = opts.get("prompt");
             }
             if (opts.isSet("syntax")) {
                 syntaxName = opts.get("syntax");
@@ -305,6 +310,19 @@ public class Less {
     // to be removed
     public Less tabs(List<Integer> tabs) {
         this.tabs = tabs;
+        return this;
+    }
+
+    /**
+     * Sets a custom default prompt string displayed at the bottom of the screen
+     * when no message is active. If not set, the default {@code ":"} is shown.
+     * The prompt is rendered with inverse video style.
+     *
+     * @param prompt the prompt string to display
+     * @return this {@code Less} instance for chaining
+     */
+    public Less defaultPrompt(String prompt) {
+        this.defaultPrompt = prompt;
         return this;
     }
 
@@ -1422,6 +1440,10 @@ public class Less {
             msg.style(AttributedStyle.INVERSE.inverseOff());
         } else if (displayPattern != null) {
             msg.append("&");
+        } else if (defaultPrompt != null) {
+            msg.style(AttributedStyle.INVERSE);
+            msg.append(defaultPrompt);
+            msg.style(AttributedStyle.INVERSE.inverseOff());
         } else {
             msg.append(":");
         }
