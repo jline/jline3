@@ -9,6 +9,7 @@
 package org.jline.demo.examples;
 
 import java.io.Console;
+import java.util.logging.Logger;
 
 /**
  * Example demonstrating the JLine Console Provider.
@@ -25,11 +26,12 @@ import java.io.Console;
  */
 public class ConsoleProviderExample {
 
+    private static final Logger LOG = Logger.getLogger(ConsoleProviderExample.class.getName());
+
     public static void main(String[] args) {
         Console console = System.console();
         if (console == null) {
-            System.err.println("No console available.");
-            System.err.println("Make sure you are running from a terminal (not redirected).");
+            LOG.severe("No console available. Make sure you are running from a terminal (not redirected).");
             System.exit(1);
         }
 

@@ -43,9 +43,9 @@ class JLineJdkConsole implements JdkConsole {
 
     private final Charset charset;
     private final Object lock = new Object();
-    private Terminal terminal;
-    private LineReader reader;
-    private PrintWriter writer;
+    private volatile Terminal terminal;
+    private volatile LineReader reader;
+    private volatile PrintWriter writer;
 
     JLineJdkConsole(Charset charset) {
         this.charset = charset;
@@ -157,7 +157,11 @@ class JLineJdkConsole implements JdkConsole {
      * Reads a password from the console with input masking and an optional formatted prompt.
      * <p>
      * JDK 22-24 API.
+     *
+     * @return the password as a character array, or {@code null} if end of stream was reached
+     *         (matching the {@link java.io.Console#readPassword()} contract)
      */
+    @SuppressWarnings("java:S1168") // null return is required by the Console API contract (null = EOF)
     public char[] readPassword(String format, Object... args) {
         ensureInitialized();
         try {
@@ -223,7 +227,11 @@ class JLineJdkConsole implements JdkConsole {
      * Reads a password from the console with an optional locale-formatted prompt.
      * <p>
      * JDK 25+ API.
+     *
+     * @return the password as a character array, or {@code null} if end of stream was reached
+     *         (matching the {@link java.io.Console#readPassword()} contract)
      */
+    @SuppressWarnings("java:S1168") // null return is required by the Console API contract (null = EOF)
     public char[] readPassword(Locale locale, String format, Object... args) {
         ensureInitialized();
         try {
