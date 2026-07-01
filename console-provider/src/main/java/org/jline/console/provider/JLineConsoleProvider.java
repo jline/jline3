@@ -30,8 +30,10 @@ import jdk.internal.io.JdkConsoleProvider;
  */
 public class JLineConsoleProvider implements JdkConsoleProvider {
 
-    /** Creates a new {@code JLineConsoleProvider}. */
-    public JLineConsoleProvider() {}
+    /** Creates a new {@code JLineConsoleProvider}. Required for {@link java.util.ServiceLoader} discovery. */
+    public JLineConsoleProvider() {
+        // Required public no-arg constructor for ServiceLoader instantiation
+    }
 
     /**
      * Creates a new {@link JdkConsole} backed by JLine's terminal and line reader.
