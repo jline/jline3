@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -58,8 +59,8 @@ import java.util.stream.Collectors;
  */
 public final class InfoCmp {
 
-    private static final Map<String, Object> CAPS_DEFAULT = new HashMap<>();
-    private static final Map<String, Object> CAPS_LOADED = new HashMap<>();
+    private static final Map<String, Object> CAPS_DEFAULT = new ConcurrentHashMap<>();
+    private static final Map<String, Object> CAPS_LOADED = new ConcurrentHashMap<>();
 
     private InfoCmp() {}
 
