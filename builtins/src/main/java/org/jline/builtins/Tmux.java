@@ -1964,7 +1964,6 @@ public class Tmux {
         private final Layout layout;
         private int active;
         private boolean clock;
-        private final OutputStream masterOutput;
         private final OutputStream masterInputOutput;
         private final LineDisciplineTerminal console;
 
@@ -1991,15 +1990,9 @@ public class Tmux {
                     dirty.run();
                 }
             };
-            this.masterInputOutput = new OutputStream() {
-                @Override
-                public void write(int b) throws IOException {
-                    console.processInputByte(b);
-                }
-            };
-            this.masterOutput =
-                    new ScreenTerminalOutputStream(this.terminal, StandardCharsets.UTF_8, masterInputOutput);
-            this.console = new LineDisciplineTerminal(name, type, masterOutput, StandardCharsets.UTF_8) {
+            ScreenTerminalOutputStream.DelegateOutputStream delegate =
+                    new ScreenTerminalOutputStream.DelegateOutputStream();
+            this.console = new LineDisciplineTerminal(name, type, delegate, StandardCharsets.UTF_8) {
                 @Override
                 protected void doClose() throws IOException {
                     super.doClose();
@@ -2007,6 +2000,18 @@ public class Tmux {
                 }
             };
             this.console.setSize(this.terminal);
+            ScreenTerminal.wireTerminal(this.terminal, this.console, delegate);
+            this.masterInputOutput = new OutputStream() {
+                @Override
+                public void write(int b) throws IOException {
+                    console.processInputByte(b);
+                }
+
+                @Override
+                public void write(byte[] b, int off, int len) throws IOException {
+                    console.processInputBytes(b, off, len);
+                }
+            };
             this.layout = layout;
         }
 

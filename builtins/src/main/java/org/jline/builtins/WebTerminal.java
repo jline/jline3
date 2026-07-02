@@ -85,29 +85,23 @@ public class WebTerminal extends LineDisciplineTerminal {
      * @param rows the initial number of terminal rows
      * @throws IOException if an I/O error occurs while initializing terminal resources
      */
-    @SuppressWarnings("this-escape")
     public WebTerminal(String host, int port, int columns, int rows) throws IOException {
-        super(
-                "WebTerminal",
-                "screen-256color",
-                new ScreenTerminalOutputStream.DelegateOutputStream(),
-                StandardCharsets.UTF_8);
+        this(host, port, columns, rows, new ScreenTerminalOutputStream.DelegateOutputStream());
+    }
+
+    @SuppressWarnings("this-escape")
+    private WebTerminal(
+            String host, int port, int columns, int rows, ScreenTerminalOutputStream.DelegateOutputStream delegate)
+            throws IOException {
+        super("WebTerminal", "screen-256color", delegate, StandardCharsets.UTF_8);
         this.host = host;
         this.port = port;
 
-        // Create the terminal component
+        // Create the terminal component and wire the feedback loop
         this.component = new WebTerminalComponent(columns, rows);
         this.component.setWebTerminal(this);
-
-        // Connect the output stream via ScreenTerminalOutputStream
-        OutputStream feedbackOutput = new OutputStream() {
-            @Override
-            public void write(int b) throws IOException {
-                WebTerminal.this.processInputByte(b);
-            }
-        };
-        ((ScreenTerminalOutputStream.DelegateOutputStream) masterOutput)
-                .setDelegate(new ScreenTerminalOutputStream(this.component, StandardCharsets.UTF_8, feedbackOutput));
+        setSize(Size.of(columns, rows));
+        ScreenTerminal.wireTerminal(this.component, this, delegate);
     }
 
     /**
