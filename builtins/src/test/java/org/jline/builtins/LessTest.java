@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.regex.Pattern;
 
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.LineDisciplineTerminal;
@@ -33,6 +34,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * feature added to {@link Less}.
  */
 class LessTest {
+
+    private static final Pattern ANSI_ESCAPE = Pattern.compile("\033\\[[0-9;]*[A-Za-z]");
+
+    /** Strip ANSI escape sequences to get plain visible text. */
+    private static String stripAnsi(String s) {
+        return ANSI_ESCAPE.matcher(s).replaceAll("");
+    }
 
     private LineDisciplineTerminal newTerminal(ByteArrayOutputStream output) throws IOException {
         LineDisciplineTerminal terminal = new LineDisciplineTerminal("less", "xterm", output, StandardCharsets.UTF_8);
@@ -153,8 +161,10 @@ class LessTest {
 
             less.display(false);
 
-            String rendered = output.toString(StandardCharsets.UTF_8);
-            assertTrue(rendered.contains(":"), "Expected the default ':' prompt to be rendered");
+            // Strip ANSI escape sequences so we match the actual visible ':' prompt
+            // rather than a stray colon inside an escape sequence.
+            String plainText = stripAnsi(output.toString(StandardCharsets.UTF_8));
+            assertTrue(plainText.contains(":"), "Expected the default ':' prompt in the visible output");
         }
     }
 
@@ -207,6 +217,10 @@ class LessTest {
             boolean fitsOneScreen = less.display(false);
 
             assertFalse(fitsOneScreen);
+            // Verify that the empty prompt does not fall back to the ':' default.
+            // With an empty source and empty prompt, ':' should not appear in the visible output.
+            String plainText = stripAnsi(output.toString(StandardCharsets.UTF_8));
+            assertFalse(plainText.contains(":"), "Empty defaultPrompt should not fall back to the ':' default");
         }
     }
 }
