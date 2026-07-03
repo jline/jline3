@@ -603,7 +603,12 @@ public final class InfoCmp {
     public static String getInfoCmp(String terminal) throws IOException, InterruptedException {
         IOException error = new IOException("Unable to retrieve infocmp for " + terminal);
         String caps = getLoadedInfoCmp(terminal);
-        if (caps == null) {
+        // The terminal type may come from an untrusted, remote source (the TTYPE negotiated by a
+        // telnet client, or the TERM env sent by an ssh client). infocmp parses it as a command
+        // argument, so a value like "-1" or "-A/some/dir" is taken as an option (CWE-88). Only run
+        // infocmp for names within the terminfo alias character set; the pure map lookups above and
+        // below are unaffected.
+        if (caps == null && isValidTerminalName(terminal)) {
             try {
                 Process p = new ProcessBuilder(OSUtils.INFOCMP_COMMAND, "-x", terminal).start();
                 caps = ExecHelper.waitAndCapture(p);
@@ -616,7 +621,7 @@ public final class InfoCmp {
                 error.addSuppressed(e);
             }
         }
-        if (caps == null) {
+        if (caps == null && isValidTerminalName(terminal)) {
             try {
                 Process p = new ProcessBuilder(OSUtils.INFOCMP_COMMAND, terminal).start();
                 caps = ExecHelper.waitAndCapture(p);
@@ -638,6 +643,18 @@ public final class InfoCmp {
             }
         }
         return caps;
+    }
+
+    private static final Pattern VALID_TERMINAL_NAME = Pattern.compile("[A-Za-z0-9_.+][A-Za-z0-9_.+\\-]*");
+
+    /**
+     * Tests whether a terminal type is safe to pass to the external {@code infocmp} command.
+     * Terminfo entry names are limited to alphanumerics and {@code - _ . +}, and never start with
+     * {@code -}. Rejecting anything else keeps an untrusted type from being interpreted as an
+     * infocmp option or otherwise altering the command.
+     */
+    static boolean isValidTerminalName(String terminal) {
+        return terminal != null && VALID_TERMINAL_NAME.matcher(terminal).matches();
     }
 
     public static void parseInfoCmp(
