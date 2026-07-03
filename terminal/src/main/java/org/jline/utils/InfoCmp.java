@@ -644,6 +644,8 @@ public final class InfoCmp {
         return caps;
     }
 
+    private static final Pattern VALID_TERMINAL_NAME = Pattern.compile("[A-Za-z0-9_.+][A-Za-z0-9_.+\\-]*");
+
     /**
      * Tests whether a terminal type is safe to pass to the external {@code infocmp} command.
      * Terminfo entry names are limited to alphanumerics and {@code - _ . +}, and never start with
@@ -651,23 +653,7 @@ public final class InfoCmp {
      * infocmp option or otherwise altering the command.
      */
     static boolean isValidTerminalName(String terminal) {
-        if (terminal == null || terminal.isEmpty() || terminal.charAt(0) == '-') {
-            return false;
-        }
-        for (int i = 0; i < terminal.length(); i++) {
-            char c = terminal.charAt(i);
-            boolean ok = (c >= 'a' && c <= 'z')
-                    || (c >= 'A' && c <= 'Z')
-                    || (c >= '0' && c <= '9')
-                    || c == '-'
-                    || c == '_'
-                    || c == '.'
-                    || c == '+';
-            if (!ok) {
-                return false;
-            }
-        }
-        return true;
+        return terminal != null && VALID_TERMINAL_NAME.matcher(terminal).matches();
     }
 
     public static void parseInfoCmp(
