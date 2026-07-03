@@ -139,7 +139,8 @@ class LessTest {
             less.display(false);
 
             String rendered = output.toString(StandardCharsets.UTF_8);
-            assertTrue(rendered.contains("CUSTOM-PROMPT>"), "Expected the rendered output to contain the custom prompt");
+            assertTrue(
+                    rendered.contains("CUSTOM-PROMPT>"), "Expected the rendered output to contain the custom prompt");
         }
     }
 
