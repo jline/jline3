@@ -30,7 +30,9 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -109,5 +111,27 @@ class InfoCmpTest {
         allCaps.forEach((capsName) -> assertNotNull(
                 InfoCmp.getLoadedInfoCmp(capsName),
                 String.format("%s.caps was not registered in InfoCmp class", capsName)));
+    }
+
+    @Test
+    void testValidTerminalName() {
+        for (String name : new String[] {
+            "xterm", "xterm-256color", "screen.xterm-256color", "rxvt-unicode-256color", "vt100", "Eterm", "dumb"
+        }) {
+            assertTrue(InfoCmp.isValidTerminalName(name), name);
+        }
+        for (String name : new String[] {"-1", "-A/tmp/evil", "xterm; id", "foo bar", "../xterm", "a/b", "", null}) {
+            assertFalse(InfoCmp.isValidTerminalName(name), String.valueOf(name));
+        }
+    }
+
+    @Test
+    void testGetInfoCmpRejectsOptionLikeType() throws Exception {
+        // A type from an untrusted client that looks like an infocmp option must not be run as one;
+        // getInfoCmp falls through to the (absent) default and reports failure instead of executing.
+        assertThrows(IOException.class, () -> InfoCmp.getInfoCmp("-1"));
+        assertThrows(IOException.class, () -> InfoCmp.getInfoCmp("-A/tmp/evil"));
+        // A registered type still resolves from the bundled defaults.
+        assertNotNull(InfoCmp.getInfoCmp("dumb"));
     }
 }

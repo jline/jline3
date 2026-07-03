@@ -602,7 +602,12 @@ public final class InfoCmp {
     public static String getInfoCmp(String terminal) throws IOException, InterruptedException {
         IOException error = new IOException("Unable to retrieve infocmp for " + terminal);
         String caps = getLoadedInfoCmp(terminal);
-        if (caps == null) {
+        // The terminal type may come from an untrusted, remote source (the TTYPE negotiated by a
+        // telnet client, or the TERM env sent by an ssh client). infocmp parses it as a command
+        // argument, so a value like "-1" or "-A/some/dir" is taken as an option (CWE-88). Only run
+        // infocmp for names within the terminfo alias character set; the pure map lookups above and
+        // below are unaffected.
+        if (caps == null && isValidTerminalName(terminal)) {
             try {
                 Process p = new ProcessBuilder(OSUtils.INFOCMP_COMMAND, "-x", terminal).start();
                 caps = ExecHelper.waitAndCapture(p);
@@ -615,7 +620,7 @@ public final class InfoCmp {
                 error.addSuppressed(e);
             }
         }
-        if (caps == null) {
+        if (caps == null && isValidTerminalName(terminal)) {
             try {
                 Process p = new ProcessBuilder(OSUtils.INFOCMP_COMMAND, terminal).start();
                 caps = ExecHelper.waitAndCapture(p);
@@ -637,6 +642,32 @@ public final class InfoCmp {
             }
         }
         return caps;
+    }
+
+    /**
+     * Tests whether a terminal type is safe to pass to the external {@code infocmp} command.
+     * Terminfo entry names are limited to alphanumerics and {@code - _ . +}, and never start with
+     * {@code -}. Rejecting anything else keeps an untrusted type from being interpreted as an
+     * infocmp option or otherwise altering the command.
+     */
+    static boolean isValidTerminalName(String terminal) {
+        if (terminal == null || terminal.isEmpty() || terminal.charAt(0) == '-') {
+            return false;
+        }
+        for (int i = 0; i < terminal.length(); i++) {
+            char c = terminal.charAt(i);
+            boolean ok = (c >= 'a' && c <= 'z')
+                    || (c >= 'A' && c <= 'Z')
+                    || (c >= '0' && c <= '9')
+                    || c == '-'
+                    || c == '_'
+                    || c == '.'
+                    || c == '+';
+            if (!ok) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static void parseInfoCmp(
