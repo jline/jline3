@@ -11,6 +11,7 @@ package org.jline.builtins;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,8 +19,10 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.jline.utils.AttributedString;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -27,6 +30,17 @@ import org.junit.jupiter.params.provider.MethodSource;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class SyntaxHighlighterTest {
+
+    /**
+     * Verifies that highlight(AttributedString) does not throw when given a null-safe
+     * empty highlighter (no nanorc rules). Relates to GitHub issue #2040.
+     */
+    @Test
+    void highlightWithNoRulesDoesNotThrow() {
+        SyntaxHighlighter highlighter = SyntaxHighlighter.build(new ArrayList<>(), null, "none");
+        AttributedString result = highlighter.highlight(new AttributedString("some text"));
+        Assertions.assertNotNull(result);
+    }
 
     private static String fixRegexesOld(String line) {
         return line.replaceAll("\\\\<", "\\\\b")

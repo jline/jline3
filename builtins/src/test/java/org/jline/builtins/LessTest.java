@@ -204,6 +204,29 @@ class LessTest {
         }
     }
 
+    /**
+     * Reproduces the NPE described in GitHub issue #2040: when firstLineToDisplay is
+     * beyond the available content (e.g. after scrolling past EOF in a
+     * SequenceInputStream), the pre-highlighting loop in display() called
+     * syntaxHighlighter.highlight(getLine(i)) with a null line, causing an NPE in
+     * SyntaxHighlighter.splitAndHighlight().
+     */
+    @Test
+    @Timeout(5)
+    void displayDoesNotThrowWhenFirstLineToDisplayExceedsContent() throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (LineDisciplineTerminal terminal = newTerminal(output)) {
+            Less less = newDisplayableLess(terminal);
+            // Provide a short source (3 lines) but set the display position past it
+            less.reader = new BufferedReader(new StringReader("line1\nline2\nline3\n"));
+            less.firstLineToDisplay = 10;
+
+            // Before the fix, this threw NullPointerException in
+            // SyntaxHighlighter.splitAndHighlight because getLine() returned null
+            less.display(false);
+        }
+    }
+
     @Test
     @Timeout(5)
     void displayHandlesEmptyDefaultPromptWithoutError() throws IOException {
