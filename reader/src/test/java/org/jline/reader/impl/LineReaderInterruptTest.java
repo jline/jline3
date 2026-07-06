@@ -83,7 +83,12 @@ class LineReaderInterruptTest {
                                 // Keep thread alive so PipedInputStream doesn't
                                 // raise "Write end dead".
                                 Thread.sleep(Long.MAX_VALUE);
-                            } catch (Exception ignored) {
+                            } catch (InterruptedException ok) {
+                                // Expected: sender.interrupt() in the finally block
+                                // terminates this thread after the test completes.
+                            } catch (Exception e) {
+                                // IOException from feeder.write — test will fail
+                                // on its own via the readLine() timeout.
                             }
                         },
                         "ctrl-c-sender");
