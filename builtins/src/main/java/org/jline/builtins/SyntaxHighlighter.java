@@ -383,7 +383,7 @@ public class SyntaxHighlighter {
             AttributedString line, List<HighlightRule> rules, CharSequence startWith, CharSequence continueAs) {
         AttributedStringBuilder asb = new AttributedStringBuilder();
         asb.append(line);
-        if (rules.isEmpty()) {
+        if (rules == null || rules.isEmpty()) {
             return asb;
         }
         int startId = ruleStartId;

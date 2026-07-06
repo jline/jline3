@@ -11,6 +11,7 @@ package org.jline.builtins;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,8 +19,10 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.jline.utils.AttributedString;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -27,6 +30,27 @@ import org.junit.jupiter.params.provider.MethodSource;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class SyntaxHighlighterTest {
+
+    /**
+     * Exercises the null-rules path fixed for GitHub issue #2040: when the parser
+     * emits a token whose name has no corresponding entry in the rules map,
+     * {@code rules.get(t.getName())} returns {@code null}. Before the fix this
+     * caused an NPE inside {@code _highlight()}; now it should return gracefully.
+     */
+    @Test
+    void highlightWithMissingTokenRulesDoesNotThrow() {
+        SyntaxHighlighter highlighter = SyntaxHighlighter.build(new ArrayList<>(), null, "none");
+        // Configure a parser that recognises line comments starting with "//"
+        // under a token name that has NO matching entry in the rules map.
+        SyntaxHighlighter.Parser parser = new SyntaxHighlighter.Parser();
+        parser.setLineCommentDelimiters("$UNMAPPED_TOKEN", new String[] {"//"});
+        highlighter.setParser(parser);
+
+        // The input contains "//", so the parser will produce a token with name
+        // "$UNMAPPED_TOKEN".  rules.get("$UNMAPPED_TOKEN") returns null.
+        AttributedString result = highlighter.highlight(new AttributedString("code // comment"));
+        Assertions.assertNotNull(result);
+    }
 
     private static String fixRegexesOld(String line) {
         return line.replaceAll("\\\\<", "\\\\b")

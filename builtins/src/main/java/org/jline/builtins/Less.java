@@ -1364,7 +1364,10 @@ public class Less {
         if (highlight) {
             syntaxHighlighter.reset();
             for (int i = Math.max(0, inputLine - height); i < inputLine; i++) {
-                syntaxHighlighter.highlight(getLine(i));
+                AttributedString prevLine = getLine(i);
+                if (prevLine != null) {
+                    syntaxHighlighter.highlight(prevLine);
+                }
             }
         }
         for (int terminalLine = 0; terminalLine < height - 1; terminalLine++) {
