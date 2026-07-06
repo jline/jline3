@@ -627,6 +627,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         SignalHandler previousContHandler = null;
         Attributes originalAttributes = null;
         boolean dumb = isTerminalDumb();
+        boolean userInterrupt = false;
         try {
 
             this.maskingCallback = maskingCallback;
@@ -768,6 +769,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                         case EOF:
                             throw new EndOfFileException();
                         case INTERRUPT:
+                            userInterrupt = true;
                             throw new UserInterruptException(buf.toString());
                     }
 
@@ -789,6 +791,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             }
         } catch (IOError e) {
             if (e.getCause() instanceof InterruptedIOException) {
+                userInterrupt = true;
                 throw new UserInterruptException(buf.toString());
             } else {
                 throw e;
@@ -821,7 +824,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             } finally {
                 lock.unlock();
                 startedReading.set(false);
-                if (interrupted.get()) {
+                if (interrupted.get() && !userInterrupt) {
                     Thread.currentThread().interrupt();
                 }
             }
