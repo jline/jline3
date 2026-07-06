@@ -42,6 +42,15 @@ class LineReaderInterruptTest {
      * Pressing Ctrl-C during readLine() should throw UserInterruptException
      * and leave the thread's interrupt flag clear so that a subsequent
      * readLine() call works without requiring Thread.interrupted() first.
+     *
+     * <p>This simulates the behaviour of {@code SignalInterceptingInputStream}
+     * used on native (FFM/JNI) terminals: it raises {@code Signal.INT} on the
+     * reader thread (which sets the interrupt flag via the LineReader's signal
+     * handler) and then passes 0x03 through so the INTERRUPT widget fires.
+     * With a plain {@code LineDisciplineTerminal} created via
+     * {@code TerminalBuilder.streams()}, ISIG is cleared in raw mode and the
+     * terminal does not raise the signal itself, so we call
+     * {@code terminal.raise(Signal.INT)} explicitly to exercise the same path.
      */
     @Test
     void interruptFlagClearedAfterUserInterrupt() throws Exception {
@@ -60,11 +69,15 @@ class LineReaderInterruptTest {
                         LineReaderBuilder.builder().terminal(terminal).build();
 
                 // Send Ctrl-C after a short delay to allow readLine() to
-                // enter raw mode and set up the INTERRUPT widget binding.
+                // enter raw mode and install the INT signal handler.
+                // Raise Signal.INT first (mimicking SignalInterceptingInputStream)
+                // so the handler sets the thread's interrupt flag, then write
+                // the 0x03 byte so the INTERRUPT widget fires.
                 Thread sender = new Thread(
                         () -> {
                             try {
                                 TimeUnit.MILLISECONDS.sleep(INPUT_DELAY_MS);
+                                terminal.raise(Terminal.Signal.INT);
                                 feeder.write(CTRL_C);
                                 feeder.flush();
                                 // Keep thread alive so PipedInputStream doesn't

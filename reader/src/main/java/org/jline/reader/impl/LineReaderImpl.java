@@ -791,7 +791,6 @@ public class LineReaderImpl implements LineReader, Flushable {
             }
         } catch (IOError e) {
             if (e.getCause() instanceof InterruptedIOException) {
-                userInterrupt = true;
                 throw new UserInterruptException(buf.toString());
             } else {
                 throw e;
