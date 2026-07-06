@@ -32,13 +32,23 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 class SyntaxHighlighterTest {
 
     /**
-     * Verifies that highlight(AttributedString) does not throw when given a null-safe
-     * empty highlighter (no nanorc rules). Relates to GitHub issue #2040.
+     * Exercises the null-rules path fixed for GitHub issue #2040: when the parser
+     * emits a token whose name has no corresponding entry in the rules map,
+     * {@code rules.get(t.getName())} returns {@code null}. Before the fix this
+     * caused an NPE inside {@code _highlight()}; now it should return gracefully.
      */
     @Test
-    void highlightWithNoRulesDoesNotThrow() {
+    void highlightWithMissingTokenRulesDoesNotThrow() {
         SyntaxHighlighter highlighter = SyntaxHighlighter.build(new ArrayList<>(), null, "none");
-        AttributedString result = highlighter.highlight(new AttributedString("some text"));
+        // Configure a parser that recognises line comments starting with "//"
+        // under a token name that has NO matching entry in the rules map.
+        SyntaxHighlighter.Parser parser = new SyntaxHighlighter.Parser();
+        parser.setLineCommentDelimiters("$UNMAPPED_TOKEN", new String[] {"//"});
+        highlighter.setParser(parser);
+
+        // The input contains "//", so the parser will produce a token with name
+        // "$UNMAPPED_TOKEN".  rules.get("$UNMAPPED_TOKEN") returns null.
+        AttributedString result = highlighter.highlight(new AttributedString("code // comment"));
         Assertions.assertNotNull(result);
     }
 
