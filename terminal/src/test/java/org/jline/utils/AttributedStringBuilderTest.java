@@ -8,7 +8,9 @@
  */
 package org.jline.utils;
 
+import java.time.Duration;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
 
@@ -149,5 +151,28 @@ class AttributedStringBuilderTest {
     void testNegativeTabSize() {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         assertThrows(IllegalArgumentException.class, () -> sb.tabs(-1));
+    }
+
+    @Test
+    void styleMatchesGuardsAgainstCatastrophicBacktracking() {
+        // (.*a){30} over a run of 'a's forces exponential backtracking in
+        // java.util.regex (still true on current JVMs). styleMatches feeds
+        // arbitrary text through this matcher when highlighting, so without a
+        // deadline the call runs for tens of seconds. SafeRegex caps it at ~1.5s.
+        Pattern evil = Pattern.compile("(.*a){30}");
+        AttributedStringBuilder sb = new AttributedStringBuilder();
+        for (int i = 0; i < 50; i++) {
+            sb.append('a');
+        }
+        assertTimeoutPreemptively(
+                Duration.ofSeconds(8),
+                () -> sb.styleMatches(evil, AttributedStyle.DEFAULT.foreground(AttributedStyle.RED)));
+
+        // Non-pathological matching still applies the style and leaves text intact.
+        AttributedStringBuilder ok = new AttributedStringBuilder();
+        ok.append("Error: boom");
+        ok.styleMatches(Pattern.compile("Error"), AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+        assertEquals("Error: boom", ok.toString());
+        assertTrue(ok.toAnsi().indexOf('\u001b') >= 0, "expected the matched region to be styled");
     }
 }

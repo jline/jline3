@@ -396,41 +396,45 @@ public class SyntaxHighlighter {
                     break;
                 case START_END:
                     boolean done = false;
-                    Matcher start = rule.getStart().matcher(asb.toAttributedString());
-                    Matcher end = rule.getEnd().matcher(asb.toAttributedString());
-                    while (!done) {
-                        AttributedStringBuilder a = new AttributedStringBuilder();
-                        if (startEndHighlight && ruleStartId == i) {
-                            if (end.find()) {
-                                ruleStartId = 0;
-                                startEndHighlight = false;
-                                a.append(asb.columnSubSequence(0, end.end()), rule.getStyle());
-                                a.append(_highlight(
-                                        asb.columnSubSequence(end.end(), asb.length())
-                                                .toAttributedString(),
-                                        rules));
-                            } else {
-                                a.append(asb, rule.getStyle());
-                                done = true;
-                            }
-                            asb = a;
-                        } else {
-                            if (start.find()) {
-                                a.append(asb.columnSubSequence(0, start.start()));
+                    Matcher start = SafeRegex.matcher(rule.getStart(), asb.toAttributedString());
+                    Matcher end = SafeRegex.matcher(rule.getEnd(), asb.toAttributedString());
+                    try {
+                        while (!done) {
+                            AttributedStringBuilder a = new AttributedStringBuilder();
+                            if (startEndHighlight && ruleStartId == i) {
                                 if (end.find()) {
-                                    a.append(asb.columnSubSequence(start.start(), end.end()), rule.getStyle());
-                                    a.append(asb.columnSubSequence(end.end(), asb.length()));
+                                    ruleStartId = 0;
+                                    startEndHighlight = false;
+                                    a.append(asb.columnSubSequence(0, end.end()), rule.getStyle());
+                                    a.append(_highlight(
+                                            asb.columnSubSequence(end.end(), asb.length())
+                                                    .toAttributedString(),
+                                            rules));
                                 } else {
-                                    ruleStartId = i;
-                                    startEndHighlight = true;
-                                    a.append(asb.columnSubSequence(start.start(), asb.length()), rule.getStyle());
+                                    a.append(asb, rule.getStyle());
                                     done = true;
                                 }
                                 asb = a;
                             } else {
-                                done = true;
+                                if (start.find()) {
+                                    a.append(asb.columnSubSequence(0, start.start()));
+                                    if (end.find()) {
+                                        a.append(asb.columnSubSequence(start.start(), end.end()), rule.getStyle());
+                                        a.append(asb.columnSubSequence(end.end(), asb.length()));
+                                    } else {
+                                        ruleStartId = i;
+                                        startEndHighlight = true;
+                                        a.append(asb.columnSubSequence(start.start(), asb.length()), rule.getStyle());
+                                        done = true;
+                                    }
+                                    asb = a;
+                                } else {
+                                    done = true;
+                                }
                             }
                         }
+                    } catch (RegexTimeoutException e) {
+                        // Stop applying this start/end rule; keep the styling done so far
                     }
                     break;
                 case PARSER_START_WITH:
@@ -439,7 +443,8 @@ public class SyntaxHighlighter {
                     }
                     break;
                 case PARSER_CONTINUE_AS:
-                    if (continueAs != null && continueAs.toString().matches(rule.getContinueAs() + ".*")) {
+                    if (continueAs != null
+                            && SafeRegex.matches(Pattern.compile(rule.getContinueAs() + ".*"), continueAs.toString())) {
                         asb.styleMatches(rule.getPattern(), rule.getStyle());
                     }
                     break;
