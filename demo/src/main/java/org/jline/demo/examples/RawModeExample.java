@@ -46,21 +46,21 @@ public class RawModeExample {
             NonBlockingReader reader = terminal.reader();
 
             // Read characters until 'q' or the interrupt character is pressed
-            while (true) {
+            boolean running = true;
+            while (running) {
                 int c = reader.read(100);
-                if (c != -1) {
-                    if (c == intrChar) {
-                        terminal.writer().println("Interrupt received (Ctrl+C) — exiting.");
-                        terminal.writer().flush();
-                        break;
-                    }
-
+                if (c == -1) {
+                    continue;
+                }
+                if (c == intrChar) {
+                    terminal.writer().println("Interrupt received (Ctrl+C) — exiting.");
+                    terminal.writer().flush();
+                    running = false;
+                } else if (c == 'q' || c == 'Q') {
+                    running = false;
+                } else {
                     terminal.writer().println("Read: " + (char) c + " (ASCII: " + c + ")");
                     terminal.writer().flush();
-
-                    if (c == 'q' || c == 'Q') {
-                        break;
-                    }
                 }
             }
 
