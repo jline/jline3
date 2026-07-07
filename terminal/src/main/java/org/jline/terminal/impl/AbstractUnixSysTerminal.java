@@ -79,7 +79,7 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
     private volatile Attributes cachedAttributes;
     private final Task closer;
 
-    @SuppressWarnings({"this-escape", "squid:S107", "deprecation"})
+    @SuppressWarnings({"this-escape", "squid:S107", "removal"})
     protected AbstractUnixSysTerminal(
             TerminalProvider provider,
             SystemStream systemStream,

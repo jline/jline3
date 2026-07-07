@@ -136,7 +136,7 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
      *                        default native handlers will be registered
      * @throws IOException if the PTY streams or terminal I/O cannot be initialized
      */
-    @SuppressWarnings({"this-escape", "squid:S107", "deprecation"})
+    @SuppressWarnings({"this-escape", "squid:S107", "removal"})
     public PosixSysTerminal(
             TerminalProvider provider,
             String name,

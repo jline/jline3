@@ -197,7 +197,7 @@ public final class TerminalBuilder {
      *             applications should use the LineReader INTERRUPT widget or handle
      *             raw bytes directly.
      */
-    @Deprecated
+    @Deprecated(since = "4.4.0", forRemoval = true)
     @SuppressWarnings("java:S1133") // Intentional deprecation; removal planned for a future major version
     public static final String PROP_SOFTWARE_SIGNALS = "org.jline.terminal.softwareSignals";
 

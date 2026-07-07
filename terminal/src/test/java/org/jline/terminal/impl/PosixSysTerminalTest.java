@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SuppressWarnings("deprecation") // Tests intentionally exercise the deprecated PROP_SOFTWARE_SIGNALS property
+@SuppressWarnings("removal") // Tests intentionally exercise the deprecated-for-removal PROP_SOFTWARE_SIGNALS property
 class PosixSysTerminalTest {
 
     @Test
