@@ -187,9 +187,18 @@ public final class TerminalBuilder {
      * no automatic signal translation occurs — the application must handle raw bytes itself.
      * <p>
      * Applications that relied on {@code terminal.handle(Signal.INT, ...)} in raw mode
-     * should either set {@code -Dorg.jline.terminal.softwareSignals=true} explicitly,
-     * switch to LineReader's INTERRUPT widget, or handle byte {@code 0x03} (Ctrl+C)
-     * in their own input processing loop.
+     * should migrate to one of the following approaches:
+     * <ul>
+     *   <li>Set {@code -Dorg.jline.terminal.softwareSignals=true} explicitly to restore the
+     *       old behavior temporarily.</li>
+     *   <li>Use LineReader's INTERRUPT widget — Ctrl+C throws
+     *       {@link org.jline.reader.UserInterruptException} from {@code readLine()}
+     *       (see {@code SimpleLineReadingExample}).</li>
+     *   <li>In a raw-mode input loop, read the VINTR character from the terminal
+     *       attributes via {@link Terminal#getAttributes()} and
+     *       {@link Attributes.ControlChar#VINTR}, then handle that byte directly
+     *       (see {@code RawModeExample}).</li>
+     * </ul>
      *
      * @since 4.1.4
      * @deprecated This property is scheduled for removal in a future release.
