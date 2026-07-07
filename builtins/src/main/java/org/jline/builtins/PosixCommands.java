@@ -9,7 +9,7 @@
 package org.jline.builtins;
 
 import java.io.*;
-import java.net.MalformedURLException;
+import java.net.JarURLConnection;
 import java.net.URL;
 import java.nio.file.*;
 import java.nio.file.attribute.FileTime;
@@ -1989,11 +1989,17 @@ public class PosixCommands {
         if ("-".equals(arg)) {
             return Stream.of(new StdInSource(context.in()));
         } else if (arg.startsWith("jar:")) {
-            // Handle JAR URLs - don't resolve them against current directory
+            // Handle JAR URLs - don't resolve them against the current directory.
+            // Only file-backed jars are read here; a jar: URL whose nested scheme is
+            // http/https/ftp would make these local file-reading commands fetch an
+            // arbitrary URL, so anything but a local jar falls through to path handling.
             try {
                 URL url = new URL(arg);
-                return Stream.of(new URLSource(url, arg));
-            } catch (MalformedURLException e) {
+                URL jarFileUrl = ((JarURLConnection) url.openConnection()).getJarFileURL();
+                if ("file".equalsIgnoreCase(jarFileUrl.getProtocol())) {
+                    return Stream.of(new URLSource(url, arg));
+                }
+            } catch (IOException e) {
                 // Fall through to normal path handling
             }
         }
