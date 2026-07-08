@@ -443,8 +443,7 @@ public class SyntaxHighlighter {
                     }
                     break;
                 case PARSER_CONTINUE_AS:
-                    if (continueAs != null
-                            && SafeRegex.matches(Pattern.compile(rule.getContinueAs() + ".*"), continueAs.toString())) {
+                    if (continueAs != null && SafeRegex.matches(rule.getContinueAsPattern(), continueAs.toString())) {
                         asb.styleMatches(rule.getPattern(), rule.getStyle());
                     }
                     break;
@@ -468,6 +467,7 @@ public class SyntaxHighlighter {
         private Pattern end;
         private String startWith;
         private String continueAs;
+        private Pattern continueAsPattern;
 
         public HighlightRule(AttributedStyle style, Pattern pattern) {
             this.type = RuleType.PATTERN;
@@ -490,6 +490,7 @@ public class SyntaxHighlighter {
                 this.startWith = value;
             } else if (parserRuleType == RuleType.PARSER_CONTINUE_AS) {
                 this.continueAs = value;
+                this.continueAsPattern = Pattern.compile(value + ".*");
             } else {
                 throw new IllegalArgumentException("Bad RuleType: " + parserRuleType);
             }
@@ -530,6 +531,10 @@ public class SyntaxHighlighter {
 
         public String getContinueAs() {
             return continueAs;
+        }
+
+        public Pattern getContinueAsPattern() {
+            return continueAsPattern;
         }
 
         public static RuleType evalRuleType(List<String> colorCfg) {
