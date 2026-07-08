@@ -248,6 +248,10 @@ public class ScreenTerminal implements Sized {
     private boolean vt100_mode_alt_screen;
     private boolean vt100_mode_backspace;
     private boolean vt100_mode_column_switch;
+
+    @SuppressWarnings("java:S116") // Follows the existing vt100_mode_* naming convention
+    private boolean vt100_mode_synchronized_output;
+
     private boolean vt100_keyfilter_escape;
     private static final int[] vt100_charset_graph = new int[] {
         0x00A0, 0x25C6, 0x2592, 0x2409,
@@ -814,6 +818,19 @@ public class ScreenTerminal implements Sized {
                 // ?98 : DECARSM: auto-resize
                 // ?101 : DECCANSM: Conceal answerback message
                 // ?109 : DECCAPSLK: caps lock
+                case "?2026":
+                    // Synchronized output (BSU/ESU)
+                    // When enabled, dirty notifications are deferred until the
+                    // mode is turned off, allowing consumers to see a single
+                    // atomic screen update instead of per-character repaints.
+                    vt100_mode_synchronized_output = state;
+                    if (!state) {
+                        // ESU: flush deferred dirty notification via setDirty(),
+                        // which is synchronized and will call notifyAll() now
+                        // that synchronized output mode is off.
+                        setDirty();
+                    }
+                    break;
             }
         }
     }
@@ -1843,7 +1860,22 @@ public class ScreenTerminal implements Sized {
 
     protected synchronized void setDirty() {
         dirty = true;
-        notifyAll();
+        if (!vt100_mode_synchronized_output) {
+            notifyAll();
+        }
+    }
+
+    /**
+     * Returns whether the terminal is currently in synchronized output mode (mode 2026).
+     *
+     * <p>When synchronized output is active, dirty notifications are deferred until
+     * the mode is turned off (ESU received), allowing consumers to see a single
+     * atomic screen update instead of per-character repaints.</p>
+     *
+     * @return {@code true} if mode 2026 is currently set
+     */
+    public synchronized boolean isSynchronizedOutput() {
+        return vt100_mode_synchronized_output;
     }
 
     //
