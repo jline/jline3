@@ -319,7 +319,7 @@ public class ExternalTerminal extends LineDisciplineTerminal {
             }
         }
         try {
-            slaveInput.close();
+            slaveInputPipe.close();
         } catch (IOException e) {
             // ignore
         }

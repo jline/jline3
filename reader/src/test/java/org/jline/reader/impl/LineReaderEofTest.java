@@ -8,6 +8,7 @@
  */
 package org.jline.reader.impl;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
@@ -37,6 +38,61 @@ class LineReaderEofTest {
     @Timeout(10)
     void eofWithDefaultProvider() throws Exception {
         checkEof(null);
+    }
+
+    /**
+     * Tests that piped input is correctly read even when the input stream
+     * is already at EOF before readLine() is called. This simulates the
+     * scenario of {@code printf 'cmd1\ncmd2\n' | ssh host}.
+     * See https://github.com/jline/jline3/issues/2054
+     */
+    @Test
+    @Timeout(10)
+    void pipedInputReadBeforeEof() throws Exception {
+        checkPipedInput(null);
+    }
+
+    @Test
+    @Timeout(10)
+    void pipedInputReadBeforeEofWithExecProvider() throws Exception {
+        checkPipedInput(TerminalBuilder.PROP_PROVIDER_EXEC);
+    }
+
+    private void checkPipedInput(String providerType) throws Exception {
+        String savedProviders = System.getProperty(TerminalBuilder.PROP_PROVIDERS);
+        try {
+            if (providerType != null) {
+                System.setProperty(TerminalBuilder.PROP_PROVIDERS, providerType);
+            }
+
+            // Simulate piped input: all data written and stream closed before terminal reads
+            ByteArrayInputStream in = new ByteArrayInputStream("command1\ncommand2\n".getBytes(StandardCharsets.UTF_8));
+            ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
+
+            Terminal terminal;
+            try {
+                terminal = TerminalBuilder.builder().streams(in, out).build();
+            } catch (Exception e) {
+                assumeTrue(false, "Provider '" + providerType + "' not available: " + e.getMessage());
+                return;
+            }
+
+            try (terminal) {
+                // Give the pump thread time to read all input and reach EOF
+                Thread.sleep(500);
+
+                LineReader lr = LineReaderBuilder.builder().terminal(terminal).build();
+                assertEquals("command1", lr.readLine());
+                assertEquals("command2", lr.readLine());
+                assertThrows(EndOfFileException.class, () -> lr.readLine());
+            }
+        } finally {
+            if (savedProviders != null) {
+                System.setProperty(TerminalBuilder.PROP_PROVIDERS, savedProviders);
+            } else {
+                System.clearProperty(TerminalBuilder.PROP_PROVIDERS);
+            }
+        }
     }
 
     private void checkEof(String providerType) throws Exception {

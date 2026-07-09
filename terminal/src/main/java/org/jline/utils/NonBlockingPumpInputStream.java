@@ -23,6 +23,7 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
 
     private final OutputStream output;
 
+    private boolean writerClosed;
     private IOException ioException;
 
     public NonBlockingPumpInputStream() {
@@ -44,7 +45,7 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
 
     private int wait(ByteBuffer buffer, long timeout) throws IOException {
         Timeout t = new Timeout(timeout);
-        while (!closed && !buffer.hasRemaining() && !t.elapsed()) {
+        while (!closed && !writerClosed && !buffer.hasRemaining() && !t.elapsed()) {
             // Wake up waiting readers/writers
             notifyAll();
             try {
@@ -55,7 +56,7 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
                 throw new InterruptedIOException();
             }
         }
-        return buffer.hasRemaining() ? 0 : closed ? EOF : READ_EXPIRED;
+        return buffer.hasRemaining() ? 0 : (closed || writerClosed) ? EOF : READ_EXPIRED;
     }
 
     private static boolean rewind(ByteBuffer buffer, ByteBuffer other) {
@@ -157,6 +158,9 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
     }
 
     synchronized void write(byte[] cbuf, int off, int len) throws IOException {
+        if (writerClosed) {
+            throw new ClosedException();
+        }
         while (len > 0) {
             // Blocks until there is new space available for buffering or the
             // reader is closed.
@@ -179,6 +183,17 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
             // Notify readers
             notifyAll();
         }
+    }
+
+    /**
+     * Signals that the write side has been closed and no more data will be written.
+     * Any buffered data can still be read; reads will return {@link #EOF} only after
+     * all buffered data has been consumed. This is analogous to closing the write end
+     * of a Unix pipe: the read end drains remaining data before seeing EOF.
+     */
+    public synchronized void closeWriter() {
+        this.writerClosed = true;
+        notifyAll();
     }
 
     @Override
@@ -206,7 +221,7 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
 
         @Override
         public void close() throws IOException {
-            NonBlockingPumpInputStream.this.close();
+            NonBlockingPumpInputStream.this.closeWriter();
         }
     }
 }
