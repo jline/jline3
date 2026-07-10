@@ -14,6 +14,7 @@ import java.io.PrintStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -95,10 +96,29 @@ class PosixCommandsSsrfTest {
             run.start();
             run.join(5000);
 
+            assertFalse(run.isAlive(), "cat must not block on a jar:http URL argument");
             assertFalse(
                     connected.await(500, TimeUnit.MILLISECONDS),
                     "cat must not open a network connection for a jar:http URL argument");
         }
+    }
+
+    @Test
+    void onlyFileBackedJarsAreReadAsUrlSources() throws Exception {
+        // An empty or local authority is what the JDK's file handler reads from disk.
+        assertTrue(PosixCommands.isLocalJarFile(new URL("file:/tmp/x.jar")));
+        assertTrue(PosixCommands.isLocalJarFile(new URL("file:///tmp/x.jar")));
+        assertTrue(PosixCommands.isLocalJarFile(new URL("file://localhost/tmp/x.jar")));
+
+        // A file: URL with a remote authority is fetched over FTP by the file handler,
+        // and resolves to a UNC path on Windows, so it must not be read as a URL source.
+        assertFalse(PosixCommands.isLocalJarFile(new URL("file://169.254.169.254/x.jar")));
+        assertFalse(PosixCommands.isLocalJarFile(new URL("file://attacker.example.com/share/x.jar")));
+
+        // Nested network schemes stay rejected.
+        assertFalse(PosixCommands.isLocalJarFile(new URL("http://169.254.169.254/x.jar")));
+        assertFalse(PosixCommands.isLocalJarFile(new URL("https://169.254.169.254/x.jar")));
+        assertFalse(PosixCommands.isLocalJarFile(new URL("ftp://169.254.169.254/x.jar")));
     }
 
     @Test

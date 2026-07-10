@@ -1990,13 +1990,12 @@ public class PosixCommands {
             return Stream.of(new StdInSource(context.in()));
         } else if (arg.startsWith("jar:")) {
             // Handle JAR URLs - don't resolve them against the current directory.
-            // Only file-backed jars are read here; a jar: URL whose nested scheme is
-            // http/https/ftp would make these local file-reading commands fetch an
-            // arbitrary URL, so anything but a local jar falls through to path handling.
+            // Only archives backed by a local file are read here; anything else falls
+            // through to normal path handling.
             try {
                 URL url = new URL(arg);
                 URL jarFileUrl = ((JarURLConnection) url.openConnection()).getJarFileURL();
-                if ("file".equalsIgnoreCase(jarFileUrl.getProtocol())) {
+                if (isLocalJarFile(jarFileUrl)) {
                     return Stream.of(new URLSource(url, arg));
                 }
             } catch (IOException e) {
@@ -2004,6 +2003,22 @@ public class PosixCommands {
             }
         }
         return maybeExpandGlob(context, arg).map(path -> new PathSource(path, path.toString()));
+    }
+
+    /**
+     * Tests whether the archive a {@code jar:} URL wraps lives on the local file system.
+     *
+     * <p>A nested {@code http}, {@code https} or {@code ftp} URL would turn the file-reading
+     * commands into an arbitrary-URL fetcher. A {@code file:} URL carrying an authority is no
+     * safer: {@code file://host/x.jar} is retrieved over FTP by the JDK's file protocol handler,
+     * and resolves to a UNC path on Windows. Only an empty or local authority reads from disk.
+     */
+    static boolean isLocalJarFile(URL jarFileUrl) {
+        if (!"file".equalsIgnoreCase(jarFileUrl.getProtocol())) {
+            return false;
+        }
+        String host = jarFileUrl.getHost();
+        return host == null || host.isEmpty() || "localhost".equalsIgnoreCase(host);
     }
 
     private static Stream<Path> maybeExpandGlob(Context context, String pattern) {
