@@ -10,9 +10,12 @@ package org.jline.reader.impl;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
@@ -24,6 +27,7 @@ import org.junit.jupiter.api.Timeout;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class LineReaderEofTest {
@@ -59,8 +63,20 @@ class LineReaderEofTest {
     }
 
     private void checkPipedInput(String providerType) throws Exception {
-        // Simulate piped input: all data written and stream closed before terminal reads
-        ByteArrayInputStream in = new ByteArrayInputStream("command1\ncommand2\n".getBytes(StandardCharsets.UTF_8));
+        // Simulate piped input: all data written and stream closed before terminal reads.
+        // The CountDownLatch fires when the pump's read() returns -1, which is after
+        // all processInputBytes() calls — so all data is already in the buffer.
+        CountDownLatch inputEof = new CountDownLatch(1);
+        InputStream in = new ByteArrayInputStream("command1\ncommand2\n".getBytes(StandardCharsets.UTF_8)) {
+            @Override
+            public int read(byte[] b, int off, int len) {
+                int result = super.read(b, off, len);
+                if (result == -1) {
+                    inputEof.countDown();
+                }
+                return result;
+            }
+        };
         ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
 
         TerminalBuilder builder = TerminalBuilder.builder().streams(in, out);
@@ -72,17 +88,17 @@ class LineReaderEofTest {
         try {
             terminal = builder.build();
         } catch (Exception e) {
+            if (providerType == null) {
+                throw e;
+            }
             assumeTrue(false, "Provider '" + providerType + "' not available: " + e.getMessage());
             return;
         }
 
         try (terminal) {
-            // Wait for the pump thread to consume all piped input.
-            // Poll available bytes instead of Thread.sleep() to avoid brittle timing.
-            long deadline = System.nanoTime() + 5_000_000_000L;
-            while (terminal.input().available() == 0 && System.nanoTime() < deadline) {
-                Thread.onSpinWait();
-            }
+            // Wait for the pump thread to observe EOF on the input stream,
+            // guaranteeing all data has been written to the terminal's buffer.
+            assertTrue(inputEof.await(5, TimeUnit.SECONDS), "Pump did not reach EOF within timeout");
 
             LineReader lr = LineReaderBuilder.builder().terminal(terminal).build();
             assertEquals("command1", lr.readLine());
@@ -106,6 +122,9 @@ class LineReaderEofTest {
         try {
             terminal = builder.build();
         } catch (Exception e) {
+            if (providerType == null) {
+                throw e;
+            }
             assumeTrue(false, "Provider '" + providerType + "' not available: " + e.getMessage());
             return;
         }
