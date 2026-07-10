@@ -2777,7 +2777,9 @@ public class Nano implements Editor {
         if (!view) {
             s.put("^O", "WriteOut");
         }
-        s.put("^R", "Read File");
+        if (!restricted) {
+            s.put("^R", "Read File");
+        }
         s.put("^Y", "Prev Page");
         if (!view) {
             s.put("^K", "Cut Text");
