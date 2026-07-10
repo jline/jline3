@@ -59,79 +59,63 @@ class LineReaderEofTest {
     }
 
     private void checkPipedInput(String providerType) throws Exception {
-        String savedProviders = System.getProperty(TerminalBuilder.PROP_PROVIDERS);
+        // Simulate piped input: all data written and stream closed before terminal reads
+        ByteArrayInputStream in = new ByteArrayInputStream("command1\ncommand2\n".getBytes(StandardCharsets.UTF_8));
+        ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
+
+        TerminalBuilder builder = TerminalBuilder.builder().streams(in, out);
+        if (providerType != null) {
+            builder.providers(providerType);
+        }
+
+        Terminal terminal;
         try {
-            if (providerType != null) {
-                System.setProperty(TerminalBuilder.PROP_PROVIDERS, providerType);
+            terminal = builder.build();
+        } catch (Exception e) {
+            assumeTrue(false, "Provider '" + providerType + "' not available: " + e.getMessage());
+            return;
+        }
+
+        try (terminal) {
+            // Wait for the pump thread to consume all piped input.
+            // Poll available bytes instead of Thread.sleep() to avoid brittle timing.
+            long deadline = System.nanoTime() + 5_000_000_000L;
+            while (terminal.input().available() == 0 && System.nanoTime() < deadline) {
+                Thread.onSpinWait();
             }
 
-            // Simulate piped input: all data written and stream closed before terminal reads
-            ByteArrayInputStream in = new ByteArrayInputStream("command1\ncommand2\n".getBytes(StandardCharsets.UTF_8));
-            ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
-
-            Terminal terminal;
-            try {
-                terminal = TerminalBuilder.builder().streams(in, out).build();
-            } catch (Exception e) {
-                assumeTrue(false, "Provider '" + providerType + "' not available: " + e.getMessage());
-                return;
-            }
-
-            try (terminal) {
-                // Wait for the pump thread to consume all piped input.
-                // Poll available bytes instead of Thread.sleep() to avoid brittle timing.
-                long deadline = System.nanoTime() + 5_000_000_000L;
-                while (terminal.input().available() == 0 && System.nanoTime() < deadline) {
-                    Thread.onSpinWait();
-                }
-
-                LineReader lr = LineReaderBuilder.builder().terminal(terminal).build();
-                assertEquals("command1", lr.readLine());
-                assertEquals("command2", lr.readLine());
-                assertThrows(EndOfFileException.class, () -> lr.readLine());
-            }
-        } finally {
-            if (savedProviders != null) {
-                System.setProperty(TerminalBuilder.PROP_PROVIDERS, savedProviders);
-            } else {
-                System.clearProperty(TerminalBuilder.PROP_PROVIDERS);
-            }
+            LineReader lr = LineReaderBuilder.builder().terminal(terminal).build();
+            assertEquals("command1", lr.readLine());
+            assertEquals("command2", lr.readLine());
+            assertThrows(EndOfFileException.class, () -> lr.readLine());
         }
     }
 
     private void checkEof(String providerType) throws Exception {
-        String savedProviders = System.getProperty(TerminalBuilder.PROP_PROVIDERS);
+        PipedInputStream in = new PipedInputStream();
+        PipedOutputStream outIn = new PipedOutputStream(in);
+        outIn.write("hello\n".getBytes(StandardCharsets.UTF_8));
+        ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
+
+        TerminalBuilder builder = TerminalBuilder.builder().streams(in, out);
+        if (providerType != null) {
+            builder.providers(providerType);
+        }
+
+        Terminal terminal;
         try {
-            if (providerType != null) {
-                System.setProperty(TerminalBuilder.PROP_PROVIDERS, providerType);
-            }
+            terminal = builder.build();
+        } catch (Exception e) {
+            assumeTrue(false, "Provider '" + providerType + "' not available: " + e.getMessage());
+            return;
+        }
 
-            PipedInputStream in = new PipedInputStream();
-            PipedOutputStream outIn = new PipedOutputStream(in);
-            outIn.write("hello\n".getBytes(StandardCharsets.UTF_8));
-            ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
-
-            Terminal terminal;
-            try {
-                terminal = TerminalBuilder.builder().streams(in, out).build();
-            } catch (Exception e) {
-                assumeTrue(false, "Provider '" + providerType + "' not available: " + e.getMessage());
-                return;
-            }
-
-            try (terminal) {
-                LineReader lr = LineReaderBuilder.builder().terminal(terminal).build();
-                assertEquals("hello", lr.readLine());
-                outIn.close();
-                Thread.sleep(200);
-                assertThrows(EndOfFileException.class, () -> lr.readLine());
-            }
-        } finally {
-            if (savedProviders != null) {
-                System.setProperty(TerminalBuilder.PROP_PROVIDERS, savedProviders);
-            } else {
-                System.clearProperty(TerminalBuilder.PROP_PROVIDERS);
-            }
+        try (terminal) {
+            LineReader lr = LineReaderBuilder.builder().terminal(terminal).build();
+            assertEquals("hello", lr.readLine());
+            outIn.close();
+            // readLine() will block until the pump detects the closed pipe and signals EOF
+            assertThrows(EndOfFileException.class, () -> lr.readLine());
         }
     }
 }
