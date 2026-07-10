@@ -8,6 +8,7 @@
  */
 package org.jline.reader.impl;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
@@ -18,6 +19,7 @@ import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.impl.ExternalTerminal;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
@@ -37,6 +39,36 @@ class LineReaderEofTest {
     @Timeout(10)
     void eofWithDefaultProvider() throws Exception {
         checkEof(null);
+    }
+
+    /**
+     * Simulates the scenario from issue #2054: piped input through SSH where
+     * all input data arrives and EOF follows immediately before readLine() is called.
+     * The pump thread reads all data and closes slaveInput before the application
+     * starts reading, but the buffered data should still be consumable.
+     */
+    @Test
+    @Timeout(10)
+    void pipedInputWithImmediateEof() throws Exception {
+        // ByteArrayInputStream returns EOF immediately after all data is consumed,
+        // simulating piped SSH input: printf 'cmd1\ncmd2\n' | ssh host
+        byte[] input = "command1\ncommand2\n".getBytes(StandardCharsets.UTF_8);
+        ByteArrayInputStream in = new ByteArrayInputStream(input);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        try (ExternalTerminal terminal = new ExternalTerminal("test", "ansi", in, out, StandardCharsets.UTF_8)) {
+            LineReader lr = LineReaderBuilder.builder().terminal(terminal).build();
+
+            // Give the pump thread time to read all data and close slaveInput
+            Thread.sleep(500);
+
+            // Both commands should be readable despite the pump having closed slaveInput
+            assertEquals("command1", lr.readLine());
+            assertEquals("command2", lr.readLine());
+
+            // After all data is consumed, should throw EndOfFileException
+            assertThrows(EndOfFileException.class, () -> lr.readLine());
+        }
     }
 
     private void checkEof(String providerType) throws Exception {

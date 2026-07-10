@@ -250,12 +250,14 @@ class NonBlockingTest {
     }
 
     @Test
-    void testPumpBulkReadClosed() throws IOException {
+    void testPumpBulkReadClosedReturnsEof() throws IOException {
         NonBlockingPumpInputStream pump = new NonBlockingPumpInputStream();
         pump.close();
 
+        // A closed pump with no buffered data returns EOF rather than throwing.
+        // This allows readers to drain remaining data after the write side closes.
         byte[] buf = new byte[16];
-        assertThrows(ClosedException.class, () -> pump.read(buf, 0, buf.length));
+        assertEquals(-1, pump.read(buf, 0, buf.length));
     }
 
     @Test
@@ -358,6 +360,100 @@ class NonBlockingTest {
         } finally {
             nbis.close();
         }
+    }
+
+    // --- Pump close + drain tests (issue #2054) ---
+
+    @Test
+    void testPumpReadDrainsBufferAfterClose() throws IOException {
+        NonBlockingPumpInputStream pump = new NonBlockingPumpInputStream();
+        OutputStream out = pump.getOutputStream();
+
+        // Write data, then close the stream (simulates pump thread hitting EOF)
+        byte[] data = "Hello".getBytes(StandardCharsets.UTF_8);
+        out.write(data);
+        out.flush();
+        pump.close();
+
+        // All buffered data should still be readable after close
+        byte[] buf = new byte[64];
+        int n = pump.read(buf, 0, buf.length);
+        assertEquals(data.length, n);
+        assertArrayEquals(data, Arrays.copyOf(buf, n));
+
+        // After draining, should return EOF
+        assertEquals(-1, pump.read(buf, 0, buf.length));
+    }
+
+    @Test
+    void testPumpSingleByteReadDrainsBufferAfterClose() throws IOException {
+        NonBlockingPumpInputStream pump = new NonBlockingPumpInputStream();
+        OutputStream out = pump.getOutputStream();
+
+        out.write(new byte[] {'A', 'B', 'C'});
+        out.flush();
+        pump.close();
+
+        // Single-byte reads should still work after close
+        assertEquals('A', pump.read(100, false));
+        assertEquals('B', pump.read(100, false));
+        assertEquals('C', pump.read(100, false));
+        assertEquals(-1, pump.read(100, false));
+    }
+
+    @Test
+    void testPumpReadBufferedDrainsAfterClose() throws IOException {
+        NonBlockingPumpInputStream pump = new NonBlockingPumpInputStream();
+        OutputStream out = pump.getOutputStream();
+
+        byte[] data = "test data".getBytes(StandardCharsets.UTF_8);
+        out.write(data);
+        out.flush();
+        pump.close();
+
+        byte[] buf = new byte[64];
+        int n = pump.readBuffered(buf, 0, buf.length, 100);
+        assertEquals(data.length, n);
+        assertArrayEquals(data, Arrays.copyOf(buf, n));
+
+        assertEquals(-1, pump.readBuffered(buf, 0, buf.length, 100));
+    }
+
+    @Test
+    @Timeout(5)
+    void testPumpDrainWithConcurrentClose() throws Exception {
+        // Simulates the ExternalTerminal pump thread scenario:
+        // writer thread writes data and then closes the stream,
+        // reader thread must be able to read all data despite the close
+        NonBlockingPumpInputStream pump = new NonBlockingPumpInputStream();
+        OutputStream out = pump.getOutputStream();
+
+        byte[] data = "command1\ncommand2\n".getBytes(StandardCharsets.UTF_8);
+
+        Thread writer = new Thread(() -> {
+            try {
+                out.write(data);
+                out.flush();
+                // Simulate pump thread closing after EOF on input source
+                pump.close();
+            } catch (IOException e) {
+                fail(e);
+            }
+        });
+        writer.start();
+
+        byte[] result = new byte[data.length];
+        int total = 0;
+        while (total < data.length) {
+            int n = pump.read(result, total, result.length - total);
+            if (n == -1) break;
+            if (n == NonBlockingInputStream.READ_EXPIRED) continue;
+            total += n;
+        }
+
+        writer.join(2000);
+        assertEquals(data.length, total, "All data should be readable despite concurrent close");
+        assertArrayEquals(data, result);
     }
 
     // --- Pump thread shutdown/close lifecycle tests ---

@@ -73,6 +73,32 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
         }
     }
 
+    /**
+     * Overrides the base close check to allow reading remaining buffered data
+     * after the stream has been closed on the write side.
+     *
+     * <p>
+     * When the write side is closed (e.g., when the pump thread in
+     * {@link org.jline.terminal.impl.ExternalTerminal ExternalTerminal} hits EOF
+     * on its input source), there may still be unread data in the circular buffer.
+     * The base class would throw {@link ClosedException} immediately, preventing
+     * the consumer from reading that data. Instead, this override defers to the
+     * {@link #wait(ByteBuffer, long)} method, which properly returns buffered data
+     * first and only signals EOF when the buffer is empty.
+     * </p>
+     *
+     * <p>
+     * This is critical for piped input scenarios (e.g., SSH connections with piped
+     * commands like {@code printf 'cmd1\ncmd2\n' | ssh host}) where all input
+     * arrives and EOF is signaled before the application reads any data.
+     * </p>
+     */
+    @Override
+    protected void checkClosed() throws IOException {
+        // No-op: let wait() handle the closed state naturally.
+        // It returns buffered data first, then EOF when the buffer is empty.
+    }
+
     public synchronized int available() {
         int count = readBuffer.remaining();
         if (writeBuffer.position() < readBuffer.position()) {
