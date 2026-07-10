@@ -56,7 +56,13 @@ public class NonBlockingPumpInputStream extends NonBlockingInputStream {
                 throw new InterruptedIOException();
             }
         }
-        return buffer.hasRemaining() ? 0 : (closed || writerClosed) ? EOF : READ_EXPIRED;
+        if (buffer.hasRemaining()) {
+            return 0;
+        } else if (closed || writerClosed) {
+            return EOF;
+        } else {
+            return READ_EXPIRED;
+        }
     }
 
     private static boolean rewind(ByteBuffer buffer, ByteBuffer other) {

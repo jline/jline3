@@ -78,8 +78,12 @@ class LineReaderEofTest {
             }
 
             try (terminal) {
-                // Give the pump thread time to read all input and reach EOF
-                Thread.sleep(500);
+                // Wait for the pump thread to consume all piped input.
+                // Poll available bytes instead of Thread.sleep() to avoid brittle timing.
+                long deadline = System.nanoTime() + 5_000_000_000L;
+                while (terminal.input().available() == 0 && System.nanoTime() < deadline) {
+                    Thread.onSpinWait();
+                }
 
                 LineReader lr = LineReaderBuilder.builder().terminal(terminal).build();
                 assertEquals("command1", lr.readLine());
