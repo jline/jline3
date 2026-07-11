@@ -15,6 +15,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -46,9 +47,15 @@ class PosixCommandsSsrfTest {
 
     private Terminal terminal;
     private PosixCommands.Context context;
+    private boolean jarCachingDefault;
 
     @BeforeEach
     void setUp() throws Exception {
+        // The jar protocol handler caches the open JarFile by default; the cached handle
+        // outlives the read and keeps the jar locked on Windows, so @TempDir cleanup fails.
+        // With caching off, closing the entry stream closes the jar file as well.
+        jarCachingDefault = URLConnection.getDefaultUseCaches("jar");
+        URLConnection.setDefaultUseCaches("jar", false);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ByteArrayInputStream in = new ByteArrayInputStream(new byte[0]);
         Map<String, Object> vars = new HashMap<>();
@@ -59,6 +66,7 @@ class PosixCommandsSsrfTest {
 
     @AfterEach
     void tearDown() throws Exception {
+        URLConnection.setDefaultUseCaches("jar", jarCachingDefault);
         if (terminal != null) {
             terminal.close();
         }
