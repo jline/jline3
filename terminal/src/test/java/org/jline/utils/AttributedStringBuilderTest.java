@@ -175,4 +175,29 @@ class AttributedStringBuilderTest {
         assertEquals("Error: boom", ok.toString());
         assertTrue(ok.toAnsi().indexOf('\u001b') >= 0, "expected the matched region to be styled");
     }
+
+    @Test
+    void styleMatchesGroupsGuardsAgainstCatastrophicBacktracking() {
+        // Same evil pattern as above, driven through the multi-group
+        // styleMatches(Pattern, List<AttributedStyle>) overload.
+        Pattern evil = Pattern.compile("(.*a){30}");
+        AttributedStringBuilder sb = new AttributedStringBuilder();
+        for (int i = 0; i < 50; i++) {
+            sb.append('a');
+        }
+        assertTimeoutPreemptively(
+                Duration.ofSeconds(8),
+                () -> sb.styleMatches(evil, List.of(AttributedStyle.DEFAULT.foreground(AttributedStyle.RED))));
+
+        // Non-pathological matching still styles each capture group.
+        AttributedStringBuilder ok = new AttributedStringBuilder();
+        ok.append("Error: boom");
+        ok.styleMatches(
+                Pattern.compile("(Error): (boom)"),
+                List.of(
+                        AttributedStyle.DEFAULT.foreground(AttributedStyle.RED),
+                        AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW)));
+        assertEquals("Error: boom", ok.toString());
+        assertTrue(ok.toAnsi().indexOf('\u001b') >= 0, "expected the matched groups to be styled");
+    }
 }

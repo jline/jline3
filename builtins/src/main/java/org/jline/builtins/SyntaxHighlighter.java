@@ -435,6 +435,8 @@ public class SyntaxHighlighter {
                         }
                     } catch (RegexTimeoutException e) {
                         // Stop applying this start/end rule; keep the styling done so far
+                        ruleStartId = 0;
+                        startEndHighlight = false;
                     }
                     break;
                 case PARSER_START_WITH:
