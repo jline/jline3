@@ -87,6 +87,7 @@ public class Less {
     protected List<Integer> tabs = Collections.singletonList(4);
     protected String syntaxName;
     protected String defaultPrompt;
+    protected Source helpSource;
     private String historyLog = null;
 
     protected final Terminal terminal;
@@ -326,6 +327,21 @@ public class Less {
         return this;
     }
 
+    /**
+     * Sets a custom help source displayed when the user presses {@code h} or {@code H}.
+     * If not set, the built-in {@code less-help.txt} resource is shown. This is useful
+     * for applications that embed Less and want to provide context-specific help text
+     * instead of the default help, which references command-line options and uses the
+     * term "LESS".
+     *
+     * @param helpSource a {@link Source} providing the custom help content
+     * @return this {@code Less} instance for chaining
+     */
+    public Less helpSource(Source helpSource) {
+        this.helpSource = helpSource;
+        return this;
+    }
+
     public void handle(Signal signal) {
         size = terminal.getSize();
         try {
@@ -344,7 +360,10 @@ public class Less {
         if (sources == null || sources.isEmpty()) {
             throw new IllegalArgumentException("No sources");
         }
-        sources.add(0, new ResourceSource("less-help.txt", "HELP -- Press SPACE for more, or q when done"));
+        Source help = helpSource != null
+                ? helpSource
+                : new ResourceSource("less-help.txt", "HELP -- Press SPACE for more, or q when done");
+        sources.add(0, help);
         this.sources = sources;
 
         sourceIdx = 1;

@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.regex.Pattern;
 
+import org.jline.builtins.Source.InputStreamSource;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.LineDisciplineTerminal;
 import org.junit.jupiter.api.Test;
@@ -244,6 +245,60 @@ class LessTest {
             // With an empty source and empty prompt, ':' should not appear in the visible output.
             String plainText = stripAnsi(output.toString(StandardCharsets.UTF_8));
             assertFalse(plainText.contains(":"), "Empty defaultPrompt should not fall back to the ':' default");
+        }
+    }
+
+    // --- helpSource tests ---
+
+    @Test
+    void helpSourceSetterUpdatesFieldAndReturnsSameInstance() throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (LineDisciplineTerminal terminal = newTerminal(output)) {
+            Less less = new Less(terminal, Path.of("."));
+            assertNull(less.helpSource, "helpSource should be null by default");
+
+            java.io.ByteArrayInputStream helpContent =
+                    new java.io.ByteArrayInputStream("Custom Help".getBytes(StandardCharsets.UTF_8));
+            Source customHelp = new InputStreamSource(helpContent, true, "Custom Help");
+            Less returned = less.helpSource(customHelp);
+
+            assertSame(less, returned, "helpSource() should return 'this' for chaining");
+            assertSame(customHelp, less.helpSource, "helpSource field should be set to the provided Source");
+        }
+    }
+
+    @Test
+    void helpSourceDefaultIsNull() throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (LineDisciplineTerminal terminal = newTerminal(output)) {
+            Less less = new Less(terminal, Path.of("."));
+            assertNull(less.helpSource, "helpSource should be null when not explicitly set");
+        }
+    }
+
+    @Test
+    void helpSourceWithConstructorOptionsDefaultsToNull() throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (LineDisciplineTerminal terminal = newTerminal(output)) {
+            Options opts = Options.compile(Less.usage()).parse(new String[] {});
+            Less less = new Less(terminal, Path.of("."), opts);
+            assertNull(less.helpSource, "helpSource should be null even with Options provided");
+        }
+    }
+
+    @Test
+    void helpSourceSetterAllowsChaining() throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (LineDisciplineTerminal terminal = newTerminal(output)) {
+            java.io.ByteArrayInputStream helpContent =
+                    new java.io.ByteArrayInputStream("Help".getBytes(StandardCharsets.UTF_8));
+            Source customHelp = new InputStreamSource(helpContent, true, "Help");
+
+            Less less =
+                    new Less(terminal, Path.of(".")).defaultPrompt("prompt>").helpSource(customHelp);
+
+            assertEquals("prompt>", less.defaultPrompt);
+            assertSame(customHelp, less.helpSource);
         }
     }
 }

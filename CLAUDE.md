@@ -102,6 +102,12 @@ Spotless enforces this header automatically via `spotless:apply`.
 4. Artifacts must be manually published through central.sonatype.com portal after the workflow completes
 5. Create GitHub release notes via `gh release create`
 
+### Merging PRs
+
+- **Always squash merge.** The squash commit message must be a single `<type>: <description>` line that summarizes the entire diff (not a list of individual commits).
+- **Label the PR** before merging to categorize it (e.g., `enhancement`, `bug`, `documentation`). Labels drive the release notes.
+- **Set the milestone** on the PR to the target release version before merging.
+
 ### Backporting Workflow
 
 1. Cherry-pick bugfix commits from `master` to `4.0.x` and/or `jline-3.x`
