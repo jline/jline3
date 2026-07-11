@@ -65,4 +65,35 @@ class ConfigurationPathTest {
         assertNull(configPath.getConfig("../secret"));
         assertTrue(Files.exists(secret));
     }
+
+    @Test
+    void getConfigFallsBackToAppConfig(@TempDir Path root) throws Exception {
+        Path userConfig = Files.createDirectories(root.resolve("user"));
+        Path appConfig = Files.createDirectories(root.resolve("app"));
+        Files.write(appConfig.resolve("jnanorc"), new byte[] {1});
+        ConfigurationPath configPath = new ConfigurationPath(appConfig, userConfig);
+
+        // Not in userConfig, so the lookup falls back to appConfig.
+        Path resolved = configPath.getConfig("jnanorc");
+        assertNotNull(resolved);
+        assertEquals(appConfig.resolve("jnanorc").toAbsolutePath().normalize(), resolved);
+        // Traversal out of appConfig is rejected as well.
+        Files.write(root.resolve("escape"), new byte[] {1});
+        assertNull(configPath.getConfig("../escape"));
+    }
+
+    @Test
+    void relativeBaseStillResolves() throws Exception {
+        // Console constructs ConfigurationPath with Path.of("."); an empty normalized
+        // base must not make every lookup return null.
+        Path file = Files.createTempFile(Path.of("").toAbsolutePath(), "configpath", ".txt");
+        try {
+            ConfigurationPath configPath = new ConfigurationPath(Path.of("."), Path.of("."));
+            String name = file.getFileName().toString();
+            assertNotNull(configPath.getConfig(name));
+            assertNotNull(configPath.getUserConfig(name, false));
+        } finally {
+            Files.deleteIfExists(file);
+        }
+    }
 }

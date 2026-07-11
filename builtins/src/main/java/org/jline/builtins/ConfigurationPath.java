@@ -107,15 +107,15 @@ public class ConfigurationPath {
     /**
      * Resolves {@code name} against {@code base} and keeps the result inside {@code base}.
      * Returns {@code null} when {@code base} is {@code null} or when the resolved path would
-     * escape {@code base} through an absolute path or {@code ..} segments, so a configuration
-     * file name can never point outside its configuration directory.
+     * lexically escape {@code base} through an absolute path or {@code ..} segments.
      */
     private static Path confine(Path base, String name) {
         if (base == null) {
             return null;
         }
-        Path resolved = base.resolve(name).normalize();
-        return resolved.startsWith(base.normalize()) ? resolved : null;
+        Path normalizedBase = base.toAbsolutePath().normalize();
+        Path resolved = normalizedBase.resolve(name).normalize();
+        return resolved.startsWith(normalizedBase) ? resolved : null;
     }
 
     /**
