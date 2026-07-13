@@ -934,11 +934,15 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
      * @return this builder
      */
     public AttributedStringBuilder styleMatches(Pattern pattern, AttributedStyle s) {
-        Matcher matcher = pattern.matcher(this);
-        while (matcher.find()) {
-            for (int i = matcher.start(); i < matcher.end(); i++) {
-                style[i] = (style[i] & ~s.getMask()) | s.getStyle();
+        Matcher matcher = SafeRegex.matcher(pattern, this);
+        try {
+            while (matcher.find()) {
+                for (int i = matcher.start(); i < matcher.end(); i++) {
+                    style[i] = (style[i] & ~s.getMask()) | s.getStyle();
+                }
             }
+        } catch (RegexTimeoutException e) {
+            // Apply whatever matches we found so far
         }
         return this;
     }
@@ -968,14 +972,18 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
      * @throws IndexOutOfBoundsException if the pattern has fewer capture groups than styles
      */
     public AttributedStringBuilder styleMatches(Pattern pattern, List<AttributedStyle> styles) {
-        Matcher matcher = pattern.matcher(this);
-        while (matcher.find()) {
-            for (int group = 0; group < matcher.groupCount(); group++) {
-                AttributedStyle s = styles.get(group);
-                for (int i = matcher.start(group + 1); i < matcher.end(group + 1); i++) {
-                    style[i] = (style[i] & ~s.getMask()) | s.getStyle();
+        Matcher matcher = SafeRegex.matcher(pattern, this);
+        try {
+            while (matcher.find()) {
+                for (int group = 0; group < matcher.groupCount(); group++) {
+                    AttributedStyle s = styles.get(group);
+                    for (int i = matcher.start(group + 1); i < matcher.end(group + 1); i++) {
+                        style[i] = (style[i] & ~s.getMask()) | s.getStyle();
+                    }
                 }
             }
+        } catch (RegexTimeoutException e) {
+            // Apply whatever matches we found so far
         }
         return this;
     }
