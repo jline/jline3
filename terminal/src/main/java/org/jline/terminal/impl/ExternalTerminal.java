@@ -302,14 +302,20 @@ public class ExternalTerminal extends LineDisciplineTerminal {
                 }
             }
         } catch (IOException e) {
-            processIOException(e);
+            // If the terminal is being shut down (doClose set the closed flag),
+            // the exception is expected and should not be propagated to readers.
+            // This avoids storing a ClosedException that would be rethrown by
+            // checkIoException() and bypass the configured close mode (e.g., warn).
+            if (!closed.get()) {
+                processIOException(e);
+            }
         } finally {
             synchronized (lock) {
                 pumpThread = null;
             }
         }
         try {
-            slaveInput.close();
+            slaveInputPipe.close();
         } catch (IOException e) {
             // ignore
         }

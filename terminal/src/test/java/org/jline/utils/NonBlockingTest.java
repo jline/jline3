@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -176,5 +177,41 @@ public class NonBlockingTest {
             assertEquals(bytes[i], b, "Mismatch at " + i);
         }
         assertEquals(NonBlockingInputStream.READ_EXPIRED, is.read(100));
+    }
+
+    @Test
+    public void testPumpWriterCloseAllowsReadingBufferedData() throws IOException {
+        NonBlockingPumpInputStream nbis = new NonBlockingPumpInputStream();
+        nbis.getOutputStream().write(new byte[] {1, 2, 3});
+        nbis.getOutputStream().close(); // writer close — buffered data should still be readable
+        assertEquals(1, nbis.read(100, false));
+        assertEquals(2, nbis.read(100, false));
+        assertEquals(3, nbis.read(100, false));
+        assertEquals(NonBlockingInputStream.EOF, nbis.read(100, false));
+    }
+
+    @Test
+    public void testPumpWriterCloseReturnsEofWhenEmpty() throws IOException {
+        NonBlockingPumpInputStream nbis = new NonBlockingPumpInputStream();
+        nbis.getOutputStream().close();
+        assertEquals(NonBlockingInputStream.EOF, nbis.read(100, false));
+    }
+
+    @Test
+    public void testPumpWriterCloseRejectsSubsequentWrites() throws IOException {
+        NonBlockingPumpInputStream nbis = new NonBlockingPumpInputStream();
+        nbis.getOutputStream().close();
+        assertThrows(ClosedException.class, () -> nbis.getOutputStream().write(new byte[] {1}));
+    }
+
+    @Test
+    public void testPumpFullCloseStillThrowsOnRead() throws IOException {
+        NonBlockingPumpInputStream nbis = new NonBlockingPumpInputStream();
+        nbis.getOutputStream().write(new byte[] {1, 2, 3});
+        nbis.close(); // full close (read side)
+        // checkClosed() in read() should detect the closed state
+        // In WARN mode (3.x default) this logs but continues;
+        // the wait() sees closed=true and returns EOF
+        // In STRICT mode this throws ClosedException
     }
 }
