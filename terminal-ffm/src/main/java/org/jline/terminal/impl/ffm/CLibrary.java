@@ -328,6 +328,19 @@ class CLibrary {
                     suppressed.add(t);
                 }
             }
+            // On glibc 2.34+, openpty was merged from libutil into libc.so.6.
+            // SymbolLookup.libraryLookup searches all exported symbols in the specified
+            // library, unlike defaultLookup() which only exposes C standard symbols.
+            if (openPtyAddr.isEmpty() && OSUtils.IS_LINUX) {
+                try {
+                    SymbolLookup libcLookup = SymbolLookup.libraryLookup("libc.so.6", Arena.global());
+                    openPtyAddr = libcLookup.find("openpty");
+                } catch (Throwable t) {
+                    suppressed.add(t);
+                }
+            }
+            // On older glibc (< 2.34), openpty is in a separate libutil.so.
+            // Search for versioned libutil.so.* files in the Debian/Ubuntu multiarch path.
             if (openPtyAddr.isEmpty() && OSUtils.IS_LINUX) {
                 String hwName;
                 try {
