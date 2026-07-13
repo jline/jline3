@@ -360,6 +360,72 @@ class NonBlockingTest {
         }
     }
 
+    // --- Pump writer-close tests (issue #2054) ---
+
+    @Test
+    @Timeout(5)
+    void testPumpWriterCloseAllowsReadingBufferedData() throws IOException {
+        NonBlockingPumpInputStream pump = new NonBlockingPumpInputStream();
+        OutputStream out = pump.getOutputStream();
+
+        // Write data and close the writer (simulates piped input at EOF)
+        byte[] data = "Hello\n".getBytes(StandardCharsets.UTF_8);
+        out.write(data);
+        out.flush();
+        out.close();
+
+        // Buffered data should still be readable after writer close
+        byte[] buf = new byte[64];
+        int n = pump.read(buf, 0, buf.length);
+        assertEquals(data.length, n);
+        assertArrayEquals(data, Arrays.copyOf(buf, n));
+
+        // After all data is consumed, should return EOF
+        assertEquals(NonBlockingInputStream.EOF, pump.read(100, false));
+    }
+
+    @Test
+    @Timeout(5)
+    void testPumpWriterCloseReturnsEofWhenEmpty() throws IOException {
+        NonBlockingPumpInputStream pump = new NonBlockingPumpInputStream();
+        OutputStream out = pump.getOutputStream();
+
+        // Close writer without writing any data
+        out.close();
+
+        // Should return EOF immediately
+        assertEquals(NonBlockingInputStream.EOF, pump.read(100, false));
+    }
+
+    @Test
+    @Timeout(5)
+    void testPumpWriterCloseRejectsSubsequentWrites() throws IOException {
+        NonBlockingPumpInputStream pump = new NonBlockingPumpInputStream();
+        OutputStream out = pump.getOutputStream();
+
+        out.write("data".getBytes(StandardCharsets.UTF_8));
+        out.flush();
+        out.close();
+
+        // Writing after close should throw
+        assertThrows(ClosedException.class, () -> out.write("more".getBytes(StandardCharsets.UTF_8)));
+    }
+
+    @Test
+    @Timeout(5)
+    void testPumpFullCloseStillThrowsOnRead() throws IOException {
+        NonBlockingPumpInputStream pump = new NonBlockingPumpInputStream();
+        OutputStream out = pump.getOutputStream();
+
+        out.write("data".getBytes(StandardCharsets.UTF_8));
+        out.flush();
+
+        // Full close (read-side) should throw on subsequent reads
+        pump.close();
+        byte[] buf = new byte[64];
+        assertThrows(ClosedException.class, () -> pump.read(buf, 0, buf.length));
+    }
+
     // --- Pump thread shutdown/close lifecycle tests ---
 
     @Test
