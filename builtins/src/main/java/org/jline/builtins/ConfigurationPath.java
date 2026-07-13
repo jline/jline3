@@ -59,13 +59,15 @@ public class ConfigurationPath {
      */
     public Path getConfig(String name) {
         Path out = null;
+        Path userPath = confine(userConfig, name);
+        Path appPath = confine(appConfig, name);
         // First check user config
-        if (userConfig != null && Files.exists(userConfig.resolve(name))) {
-            out = userConfig.resolve(name);
+        if (userPath != null && Files.exists(userPath)) {
+            out = userPath;
         }
         // Then check app config directory
-        else if (appConfig != null && Files.exists(appConfig.resolve(name))) {
-            out = appConfig.resolve(name);
+        else if (appPath != null && Files.exists(appPath)) {
+            out = appPath;
         }
         return out;
     }
@@ -90,15 +92,30 @@ public class ConfigurationPath {
      */
     public Path getUserConfig(String name, boolean create) throws IOException {
         Path out = null;
-        if (userConfig != null) {
-            if (!Files.exists(userConfig.resolve(name)) && create) {
-                Files.createFile(userConfig.resolve(name));
+        Path path = confine(userConfig, name);
+        if (path != null) {
+            if (!Files.exists(path) && create) {
+                Files.createFile(path);
             }
-            if (Files.exists(userConfig.resolve(name))) {
-                out = userConfig.resolve(name);
+            if (Files.exists(path)) {
+                out = path;
             }
         }
         return out;
+    }
+
+    /**
+     * Resolves {@code name} against {@code base} and keeps the result inside {@code base}.
+     * Returns {@code null} when {@code base} is {@code null} or when the resolved path would
+     * lexically escape {@code base} through an absolute path or {@code ..} segments.
+     */
+    private static Path confine(Path base, String name) {
+        if (base == null) {
+            return null;
+        }
+        Path normalizedBase = base.toAbsolutePath().normalize();
+        Path resolved = normalizedBase.resolve(name).normalize();
+        return resolved.startsWith(normalizedBase) ? resolved : null;
     }
 
     /**
