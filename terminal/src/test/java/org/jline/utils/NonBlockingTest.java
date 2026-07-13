@@ -205,13 +205,15 @@ public class NonBlockingTest {
     }
 
     @Test
-    public void testPumpFullCloseStillThrowsOnRead() throws IOException {
+    public void testPumpFullCloseReturnsEofInWarnMode() throws IOException {
         NonBlockingPumpInputStream nbis = new NonBlockingPumpInputStream();
         nbis.getOutputStream().write(new byte[] {1, 2, 3});
-        nbis.close(); // full close (read side)
-        // checkClosed() in read() should detect the closed state
-        // In WARN mode (3.x default) this logs but continues;
-        // the wait() sees closed=true and returns EOF
-        // In STRICT mode this throws ClosedException
+        nbis.close();
+        // Default close mode is WARN: checkClosed() logs but does not throw.
+        // Buffered data remains readable; EOF follows after drain.
+        assertEquals(1, nbis.read(100, false));
+        assertEquals(2, nbis.read(100, false));
+        assertEquals(3, nbis.read(100, false));
+        assertEquals(NonBlockingInputStream.EOF, nbis.read(100, false));
     }
 }
