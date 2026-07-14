@@ -106,16 +106,30 @@ public class ConfigurationPath {
 
     /**
      * Resolves {@code name} against {@code base} and keeps the result inside {@code base}.
-     * Returns {@code null} when {@code base} is {@code null} or when the resolved path would
-     * lexically escape {@code base} through an absolute path or {@code ..} segments.
+     * Returns {@code null} when {@code base} is {@code null}, when the base directory cannot
+     * be resolved, or when the resolved path would escape {@code base} through an absolute
+     * path, {@code ..} segments, or symlink indirection.
      */
     private static Path confine(Path base, String name) {
         if (base == null) {
             return null;
         }
-        Path normalizedBase = base.toAbsolutePath().normalize();
-        Path resolved = normalizedBase.resolve(name).normalize();
-        return resolved.startsWith(normalizedBase) ? resolved : null;
+        try {
+            Path realBase = base.toRealPath();
+            Path resolved = realBase.resolve(name).normalize();
+            if (!resolved.startsWith(realBase)) {
+                return null;
+            }
+            // If the target already exists, verify its real path is also inside the base
+            // to catch symlinks that point outside the config directory.
+            if (Files.exists(resolved) && !resolved.toRealPath().startsWith(realBase)) {
+                return null;
+            }
+            return resolved;
+        } catch (IOException e) {
+            // Base directory doesn't exist or can't be resolved
+            return null;
+        }
     }
 
     /**
