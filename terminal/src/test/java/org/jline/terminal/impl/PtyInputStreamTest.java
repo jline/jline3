@@ -50,50 +50,7 @@ class PtyInputStreamTest {
         PipedInputStream pipedIn = new PipedInputStream();
         PipedOutputStream pipedOut = new PipedOutputStream(pipedIn);
 
-        AbstractPty pty = new AbstractPty(null, null) {
-            @Override
-            protected void doSetAttr(Attributes attr) {}
-
-            @Override
-            protected InputStream doGetSlaveInput() {
-                return pipedIn;
-            }
-
-            @Override
-            public InputStream getMasterInput() {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public OutputStream getMasterOutput() {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public OutputStream getSlaveOutput() {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public Attributes getAttr() {
-                return new Attributes();
-            }
-
-            @Override
-            public Size getSize() {
-                return new Size(80, 24);
-            }
-
-            @Override
-            public void setSize(Size size) {}
-
-            @Override
-            public void close() {}
-        };
-
-        InputStream slaveInput = pty.getSlaveInput();
-        assertTrue(slaveInput instanceof NonBlockingInputStream);
-        NonBlockingInputStream nbis = (NonBlockingInputStream) slaveInput;
+        NonBlockingInputStream nbis = createPtyInputStream(pipedIn);
 
         pipedOut.write('A');
         pipedOut.close();
@@ -119,13 +76,27 @@ class PtyInputStreamTest {
         // Keep the pipe open so the timing heuristic alone won't detect EOF
         PipedOutputStream pipedOut = new PipedOutputStream(pipedIn);
 
+        NonBlockingInputStream nbis = createPtyInputStream(pipedIn);
+
+        // Simulate what pumpIn() does when it detects EOF: close the PtyInputStream
+        nbis.close();
+
+        // Without the closed-flag check, this would block on the pipe read forever.
+        // With the fix, it returns EOF (-1) immediately.
+        int result = nbis.read(1000);
+        assertEquals(-1, result, "Expected EOF (-1) after stream closed");
+
+        pipedOut.close();
+    }
+
+    private NonBlockingInputStream createPtyInputStream(InputStream slaveInput) throws Exception {
         AbstractPty pty = new AbstractPty(null, null) {
             @Override
             protected void doSetAttr(Attributes attr) {}
 
             @Override
             protected InputStream doGetSlaveInput() {
-                return pipedIn;
+                return slaveInput;
             }
 
             @Override
@@ -160,18 +131,8 @@ class PtyInputStreamTest {
             public void close() {}
         };
 
-        InputStream slaveInput = pty.getSlaveInput();
-        assertTrue(slaveInput instanceof NonBlockingInputStream);
-        NonBlockingInputStream nbis = (NonBlockingInputStream) slaveInput;
-
-        // Simulate what pumpIn() does when it detects EOF: close the PtyInputStream
-        nbis.close();
-
-        // Without the closed-flag check, this would block on the pipe read forever.
-        // With the fix, it returns EOF (-1) immediately.
-        int result = nbis.read(1000);
-        assertEquals(-1, result, "Expected EOF (-1) after stream closed");
-
-        pipedOut.close();
+        InputStream input = pty.getSlaveInput();
+        assertTrue(input instanceof NonBlockingInputStream);
+        return (NonBlockingInputStream) input;
     }
 }

@@ -127,7 +127,17 @@ class LineReaderEofTest {
     }
 
     private void checkEmptyInput(String providerType) throws Exception {
-        InputStream in = new ByteArrayInputStream(new byte[0]);
+        CountDownLatch inputEof = new CountDownLatch(1);
+        InputStream in = new ByteArrayInputStream(new byte[0]) {
+            @Override
+            public int read(byte[] b, int off, int len) {
+                int result = super.read(b, off, len);
+                if (result == -1) {
+                    inputEof.countDown();
+                }
+                return result;
+            }
+        };
         ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
 
         TerminalBuilder builder = TerminalBuilder.builder().streams(in, out);
@@ -147,9 +157,10 @@ class LineReaderEofTest {
         }
 
         try {
+            // Wait for the pump thread to observe EOF on the empty stream
+            assertTrue(inputEof.await(5, TimeUnit.SECONDS), "Pump did not reach EOF within timeout");
+
             LineReader lr = LineReaderBuilder.builder().terminal(terminal).build();
-            // Give pumpIn thread time to detect EOF on the empty stream
-            Thread.sleep(200);
             assertThrows(EndOfFileException.class, () -> lr.readLine());
         } finally {
             terminal.close();
