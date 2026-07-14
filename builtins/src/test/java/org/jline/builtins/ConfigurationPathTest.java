@@ -27,9 +27,11 @@ public class ConfigurationPathTest {
 
         Path resolved = configPath.getUserConfig("history", true);
         assertNotNull(resolved);
-        assertTrue(resolved.toAbsolutePath()
-                .normalize()
-                .startsWith(userConfig.toAbsolutePath().normalize()));
+        // confine() uses toRealPath() internally, so the returned path is
+        // based on the real (symlink-resolved) base.  Compare using toRealPath()
+        // to avoid mismatches on systems where @TempDir contains symlinks
+        // (e.g. macOS: /var → /private/var).
+        assertTrue(resolved.startsWith(userConfig.toRealPath()));
         assertTrue(Files.exists(userConfig.resolve("history")));
     }
 
