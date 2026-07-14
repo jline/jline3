@@ -26,10 +26,8 @@ class ConfigurationPathTest {
 
         Path resolved = configPath.getUserConfig("history", true);
         assertNotNull(resolved);
-        assertTrue(resolved.toAbsolutePath()
-                .normalize()
-                .startsWith(userConfig.toAbsolutePath().normalize()));
-        assertTrue(Files.exists(userConfig.resolve("history")));
+        assertTrue(resolved.startsWith(userConfig.toRealPath()));
+        assertTrue(Files.exists(resolved));
     }
 
     @Test
