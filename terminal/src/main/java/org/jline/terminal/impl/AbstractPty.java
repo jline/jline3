@@ -137,6 +137,11 @@ public abstract class AbstractPty implements Pty {
 
         @Override
         public int read(long timeout, boolean isPeek) throws IOException {
+            // Check if the stream was closed (e.g., by pumpIn after detecting EOF
+            // on the user's input stream). Return EOF so the caller can handle it.
+            if (closed) {
+                return -1;
+            }
             checkInterrupted();
             if (c != 0) {
                 int r = c;
@@ -148,6 +153,11 @@ public abstract class AbstractPty implements Pty {
                 setNonBlocking();
                 long start = System.nanoTime();
                 while (true) {
+                    // Re-check closed inside the loop: pumpIn may close
+                    // the stream while we are retrying after a VTIME timeout.
+                    if (closed) {
+                        return -1;
+                    }
                     long readStart = System.nanoTime();
                     int r = in.read();
                     if (r >= 0) {

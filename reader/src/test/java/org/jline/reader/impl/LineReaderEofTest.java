@@ -109,6 +109,53 @@ class LineReaderEofTest {
         }
     }
 
+    /**
+     * Tests that an empty input stream causes readLine() to throw
+     * EndOfFileException rather than blocking forever.
+     * See https://github.com/jline/jline3/issues/2077
+     */
+    @Test
+    @Timeout(10)
+    void emptyInputStreamThrowsEof() throws Exception {
+        checkEmptyInput(null);
+    }
+
+    @Test
+    @Timeout(10)
+    void emptyInputStreamThrowsEofWithExecProvider() throws Exception {
+        checkEmptyInput(TerminalBuilder.PROP_PROVIDER_EXEC);
+    }
+
+    private void checkEmptyInput(String providerType) throws Exception {
+        InputStream in = new ByteArrayInputStream(new byte[0]);
+        ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
+
+        TerminalBuilder builder = TerminalBuilder.builder().streams(in, out);
+        if (providerType != null) {
+            builder.providers(providerType);
+        }
+
+        Terminal terminal;
+        try {
+            terminal = builder.build();
+        } catch (Exception e) {
+            if (providerType == null) {
+                throw e;
+            }
+            assumeTrue(false, "Provider '" + providerType + "' not available: " + e.getMessage());
+            return;
+        }
+
+        try {
+            LineReader lr = LineReaderBuilder.builder().terminal(terminal).build();
+            // Give pumpIn thread time to detect EOF on the empty stream
+            Thread.sleep(200);
+            assertThrows(EndOfFileException.class, () -> lr.readLine());
+        } finally {
+            terminal.close();
+        }
+    }
+
     private void checkEof(String providerType) throws Exception {
         PipedInputStream in = new PipedInputStream();
         PipedOutputStream outIn = new PipedOutputStream(in);
