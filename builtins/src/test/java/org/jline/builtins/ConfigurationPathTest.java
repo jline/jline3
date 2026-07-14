@@ -76,10 +76,26 @@ class ConfigurationPathTest {
         // Not in userConfig, so the lookup falls back to appConfig.
         Path resolved = configPath.getConfig("jnanorc");
         assertNotNull(resolved);
-        assertEquals(appConfig.resolve("jnanorc").toAbsolutePath().normalize(), resolved);
+        assertEquals(appConfig.toRealPath().resolve("jnanorc"), resolved);
         // Traversal out of appConfig is rejected as well.
         Files.write(root.resolve("escape"), new byte[] {1});
         assertNull(configPath.getConfig("../escape"));
+    }
+
+    @Test
+    void getConfigRejectsSymlinkEscape(@TempDir Path root) throws Exception {
+        Path userConfig = Files.createDirectories(root.resolve("config"));
+        Path outside = Files.createDirectories(root.resolve("outside"));
+        Files.write(outside.resolve("secret"), "sensitive".getBytes());
+        // Create a symlink inside the config directory pointing outside
+        Path link = userConfig.resolve("escape");
+        Files.createSymbolicLink(link, outside);
+        ConfigurationPath configPath = new ConfigurationPath((Path) null, userConfig);
+
+        // "escape/secret" passes a lexical startsWith check but the symlink
+        // resolves to outside/secret which is not inside the config directory.
+        assertNull(configPath.getConfig("escape/secret"));
+        assertNull(configPath.getUserConfig("escape/secret", false));
     }
 
     @Test
