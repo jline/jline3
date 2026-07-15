@@ -64,10 +64,21 @@ class LineReaderEofTest {
 
     private void checkPipedInput(String providerType) throws Exception {
         // Simulate piped input: all data written and stream closed before terminal reads.
-        // The CountDownLatch fires when the pump's read() returns -1, which is after
-        // all processInputBytes() calls — so all data is already in the buffer.
+        // The CountDownLatch fires when any read method returns -1 (EOF), which is after
+        // all data has been pumped to the terminal's buffer.
+        // PosixPtyTerminal's pumpIn calls read() (no-arg), while ExternalTerminal's
+        // pump may call read(byte[], int, int), so both must be overridden.
         CountDownLatch inputEof = new CountDownLatch(1);
         InputStream in = new ByteArrayInputStream("command1\ncommand2\n".getBytes(StandardCharsets.UTF_8)) {
+            @Override
+            public synchronized int read() {
+                int result = super.read();
+                if (result == -1) {
+                    inputEof.countDown();
+                }
+                return result;
+            }
+
             @Override
             public int read(byte[] b, int off, int len) {
                 int result = super.read(b, off, len);
@@ -103,6 +114,73 @@ class LineReaderEofTest {
             LineReader lr = LineReaderBuilder.builder().terminal(terminal).build();
             assertEquals("command1", lr.readLine());
             assertEquals("command2", lr.readLine());
+            assertThrows(EndOfFileException.class, () -> lr.readLine());
+        } finally {
+            terminal.close();
+        }
+    }
+
+    /**
+     * Tests that an empty input stream causes readLine() to throw
+     * EndOfFileException rather than blocking forever.
+     * See https://github.com/jline/jline3/issues/2077
+     */
+    @Test
+    @Timeout(10)
+    void emptyInputStreamThrowsEof() throws Exception {
+        checkEmptyInput(null);
+    }
+
+    @Test
+    @Timeout(10)
+    void emptyInputStreamThrowsEofWithExecProvider() throws Exception {
+        checkEmptyInput(TerminalBuilder.PROP_PROVIDER_EXEC);
+    }
+
+    private void checkEmptyInput(String providerType) throws Exception {
+        CountDownLatch inputEof = new CountDownLatch(1);
+        InputStream in = new ByteArrayInputStream(new byte[0]) {
+            @Override
+            public synchronized int read() {
+                int result = super.read();
+                if (result == -1) {
+                    inputEof.countDown();
+                }
+                return result;
+            }
+
+            @Override
+            public int read(byte[] b, int off, int len) {
+                int result = super.read(b, off, len);
+                if (result == -1) {
+                    inputEof.countDown();
+                }
+                return result;
+            }
+        };
+        ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
+
+        TerminalBuilder builder = TerminalBuilder.builder().streams(in, out);
+        if (providerType != null) {
+            builder.providers(providerType);
+        }
+
+        Terminal terminal;
+        try {
+            terminal = builder.build();
+        } catch (Exception e) {
+            if (providerType == null) {
+                throw e;
+            }
+            assumeTrue(false, "Provider '" + providerType + "' not available: " + e.getMessage());
+            return;
+        }
+
+        try {
+            // Wait for the pump thread to observe EOF on the empty stream
+            assertTrue(inputEof.await(5, TimeUnit.SECONDS), "Pump did not reach EOF within timeout");
+
+            LineReader lr = LineReaderBuilder.builder().terminal(terminal).build();
             assertThrows(EndOfFileException.class, () -> lr.readLine());
         } finally {
             terminal.close();
