@@ -82,6 +82,7 @@ class PosixCommandsSsrfTest {
             try {
                 PosixCommands.cat(context, new String[] {"cat", url});
             } catch (Exception ignore) {
+                // rejected URL treated as a bogus local path and fails; that is fine
             }
         });
     }
@@ -92,6 +93,7 @@ class PosixCommandsSsrfTest {
             try {
                 PosixCommands.sort(context, new String[] {"sort", url});
             } catch (Exception ignore) {
+                // rejected URL treated as a bogus local path and fails; that is fine
             }
         });
     }
@@ -102,6 +104,7 @@ class PosixCommandsSsrfTest {
             try {
                 PosixCommands.sort(context, new String[] {"sort", url});
             } catch (Exception ignore) {
+                // rejected URL treated as a bogus local path and fails; that is fine
             }
         });
     }
@@ -122,6 +125,7 @@ class PosixCommandsSsrfTest {
                                     .getBytes());
                     s.getOutputStream().flush();
                 } catch (Exception ignore) {
+                    // accept() timeout: no connection was made — expected outcome
                 }
             });
             accepter.setDaemon(true);
@@ -155,6 +159,7 @@ class PosixCommandsSsrfTest {
                                     .getBytes());
                     s.getOutputStream().flush();
                 } catch (Exception ignore) {
+                    // accept() timeout: no connection was made — expected outcome
                 }
             });
             accepter.setDaemon(true);
