@@ -6501,18 +6501,21 @@ public class LineReaderImpl implements LineReader, Flushable {
      */
     private String readResizeParams() {
         StringBuilder sb = new StringBuilder();
+        boolean discard = false;
         int c;
         while ((c = bindingReader.readCharacter()) >= 0) {
             if (c == 't') {
-                return sb.toString();
+                return discard ? null : sb.toString();
             }
-            if ((c >= '0' && c <= '9') || c == ';') {
-                sb.append((char) c);
-                if (sb.length() > 50) {
-                    return null; // Too long — discard
+            if (!discard) {
+                if ((c >= '0' && c <= '9') || c == ';') {
+                    sb.append((char) c);
+                    if (sb.length() > 50) {
+                        discard = true; // Too long — drain to 't' then discard
+                    }
+                } else {
+                    discard = true; // Invalid character — drain to 't' then discard
                 }
-            } else {
-                return null; // Invalid character — discard
             }
         }
         return null;

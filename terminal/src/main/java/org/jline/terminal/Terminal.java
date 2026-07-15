@@ -1477,9 +1477,10 @@ public interface Terminal extends Closeable, Flushable, Sized {
      *
      * @return {@code true} if the terminal supports mode 2048
      * @see #trackInBandResize(boolean)
+     * @since 3.30.0
      */
     default boolean hasInBandResizeSupport() {
-        return false;
+        return isModeSupported(Mode.IN_BAND_RESIZE);
     }
 
     /**
@@ -1501,9 +1502,11 @@ public interface Terminal extends Closeable, Flushable, Sized {
      *
      * @param tracking {@code true} to enable in-band resize notifications,
      *                 {@code false} to disable them
-     * @return {@code true} if the operation succeeded, {@code false} if the
-     *         terminal does not support mode 2048
+     * @return when enabling, {@code true} if the terminal supports mode 2048
+     *         and the mode was activated, {@code false} otherwise;
+     *         when disabling, always {@code true} (idempotent)
      * @see #hasInBandResizeSupport()
+     * @since 3.30.0
      */
     default boolean trackInBandResize(boolean tracking) {
         return false;
