@@ -64,10 +64,21 @@ class LineReaderEofTest {
 
     private void checkPipedInput(String providerType) throws Exception {
         // Simulate piped input: all data written and stream closed before terminal reads.
-        // The CountDownLatch fires when the pump's read() returns -1, which is after
-        // all processInputBytes() calls — so all data is already in the buffer.
+        // The CountDownLatch fires when any read method returns -1 (EOF), which is after
+        // all data has been pumped to the terminal's buffer.
+        // PosixPtyTerminal's pumpIn calls read() (no-arg), while ExternalTerminal's
+        // pump may call read(byte[], int, int), so both must be overridden.
         CountDownLatch inputEof = new CountDownLatch(1);
         InputStream in = new ByteArrayInputStream("command1\ncommand2\n".getBytes(StandardCharsets.UTF_8)) {
+            @Override
+            public synchronized int read() {
+                int result = super.read();
+                if (result == -1) {
+                    inputEof.countDown();
+                }
+                return result;
+            }
+
             @Override
             public int read(byte[] b, int off, int len) {
                 int result = super.read(b, off, len);
@@ -129,6 +140,15 @@ class LineReaderEofTest {
     private void checkEmptyInput(String providerType) throws Exception {
         CountDownLatch inputEof = new CountDownLatch(1);
         InputStream in = new ByteArrayInputStream(new byte[0]) {
+            @Override
+            public synchronized int read() {
+                int result = super.read();
+                if (result == -1) {
+                    inputEof.countDown();
+                }
+                return result;
+            }
+
             @Override
             public int read(byte[] b, int off, int len) {
                 int result = super.read(b, off, len);

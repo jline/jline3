@@ -137,11 +137,6 @@ public abstract class AbstractPty implements Pty {
 
         @Override
         public int read(long timeout, boolean isPeek) throws IOException {
-            // Check if the stream was closed (e.g., by pumpIn after detecting EOF
-            // on the user's input stream). Return EOF so the caller can handle it.
-            if (closed) {
-                return -1;
-            }
             checkInterrupted();
             if (c != 0) {
                 int r = c;
@@ -153,11 +148,6 @@ public abstract class AbstractPty implements Pty {
                 setNonBlocking();
                 long start = System.nanoTime();
                 while (true) {
-                    // Re-check closed inside the loop: pumpIn may close
-                    // the stream while we are retrying after a VTIME timeout.
-                    if (closed) {
-                        return -1;
-                    }
                     long readStart = System.nanoTime();
                     int r = in.read();
                     if (r >= 0) {
@@ -167,6 +157,16 @@ public abstract class AbstractPty implements Pty {
                         return r;
                     }
                     // r == -1: could be real EOF or VMIN=0/VTIME=1 timeout on a real PTY.
+                    // Check the closed flag first: if pumpIn has already closed this
+                    // stream after detecting EOF on the user's input, then this -1 is
+                    // a real EOF, not a VTIME timeout.  We must check this *after*
+                    // in.read() so that any data buffered in the PTY slave is drained
+                    // before we report EOF.  Checking before in.read() would discard
+                    // buffered data because pumpIn may close the stream while the PTY
+                    // kernel still holds unread bytes on the slave side.
+                    if (closed) {
+                        return -1;
+                    }
                     // With VTIME=1 (100ms), a timeout takes ~100ms to return -1.
                     // Real EOF (pipe closed, PTY slave closed) returns -1 instantly.
                     long readElapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - readStart);
