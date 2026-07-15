@@ -2474,6 +2474,10 @@ public class Nano implements Editor {
     }
 
     void read() {
+        if (restricted) {
+            setMessage("This function is disabled in restricted mode");
+            return;
+        }
         KeyMap<Operation> readKeyMap = new KeyMap<>();
         readKeyMap.setUnicode(Operation.INSERT);
         for (char i = 32; i < 256; i++) {
@@ -2732,7 +2736,9 @@ public class Nano implements Editor {
         if (!view) {
             s.put("^O", "WriteOut");
         }
-        s.put("^R", "Read File");
+        if (!restricted) {
+            s.put("^R", "Read File");
+        }
         s.put("^Y", "Prev Page");
         if (!view) {
             s.put("^K", "Cut Text");
