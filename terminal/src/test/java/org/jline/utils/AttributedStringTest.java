@@ -89,6 +89,38 @@ class AttributedStringTest {
     }
 
     @Test
+    void fromAnsiDropsOscInjection() {
+        // A window-title OSC (ESC ] 0 ; ... BEL) embedded in otherwise plain text must not
+        // survive into the rendered AttributedString. Otherwise showing an untrusted file or
+        // log in the pager would let it drive the terminal (set the title, write the clipboard
+        // via OSC 52, ...). The raw ESC also used to be counted as a visible column.
+        AttributedString s = AttributedString.fromAnsi("\033]0;pwned\007OK");
+        assertEquals("OK", s.toString());
+        assertEquals("OK", s.toAnsi());
+        assertEquals(2, s.columnLength());
+    }
+
+    @Test
+    void stripAnsiRemovesStringSequences() {
+        // OSC terminated by BEL
+        assertEquals("hello", AttributedString.stripAnsi("\033]0;title\007hello"));
+        // OSC 52 (clipboard) terminated by ST (ESC \)
+        assertEquals("AB", AttributedString.stripAnsi("A\033]52;c;ZXZpbA==\033\\B"));
+        // DCS terminated by ST
+        assertEquals("xy", AttributedString.stripAnsi("x\033P1;2q\033\\y"));
+        // APC terminated by ST
+        assertEquals("z", AttributedString.stripAnsi("\033_payload\033\\z"));
+    }
+
+    @Test
+    void fromAnsiKeepsSgrWhileDroppingOsc() {
+        // Dropping the OSC prefix must not disturb the SGR color styling that follows it.
+        AttributedString s = AttributedString.fromAnsi("\033]0;t\007\033[31mred\033[0m");
+        assertEquals("red", s.toString());
+        assertEquals("\033[31mred\033[0m", s.toAnsi());
+    }
+
+    @Test
     void testBoldThenFaint() {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         sb.styled(AttributedStyle::bold, "bold ");

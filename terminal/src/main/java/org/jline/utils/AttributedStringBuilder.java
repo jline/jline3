@@ -741,6 +741,21 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                     // This is not a SGR code, so ignore
                     ansiState = 0;
                 }
+            } else if (ansiState == 1 && (c == ']' || c == 'P' || c == 'X' || c == '^' || c == '_')) {
+                // OSC (]), DCS (P), SOS (X), PM (^) or APC (_) introducer. These carry a string
+                // payload terminated by BEL or ST (ESC \) and can drive the terminal itself (set
+                // the window title, write the clipboard via OSC 52, ...). When the text is
+                // untrusted (a file shown in Less, a completion candidate) that payload must not
+                // reach the terminal, so drop the whole sequence instead of emitting it.
+                ansiState = 3;
+            } else if (ansiState == 3) {
+                if (c == 7) {
+                    ansiState = 0; // BEL terminates the string
+                } else if (c == 27) {
+                    ansiState = 4; // possible ST: ESC \
+                }
+            } else if (ansiState == 4) {
+                ansiState = 0; // consume the byte following ESC (the ST terminator)
             } else {
                 if (ansiState >= 1) {
                     ensureCapacity(length + 1);
