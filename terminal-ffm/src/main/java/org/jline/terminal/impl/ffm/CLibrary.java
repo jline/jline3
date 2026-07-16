@@ -412,7 +412,7 @@ class CLibrary {
         // Isolated so that a uname failure doesn't prevent searching the
         // architecture-independent paths (RHEL/Fedora, generic).
         try {
-            Process p = new ProcessBuilder("uname", "-m").start();
+            Process p = new ProcessBuilder("/usr/bin/uname", "-m").start();
             try (InputStream in = p.getInputStream()) {
                 String hwName = readFully(in).trim();
                 String multiarchDir = hwName + "-linux-gnu";
