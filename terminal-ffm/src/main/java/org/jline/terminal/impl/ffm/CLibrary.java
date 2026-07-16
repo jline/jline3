@@ -340,28 +340,49 @@ class CLibrary {
                 }
             }
             // On older glibc (< 2.34), openpty is in a separate libutil.so.
-            // Search for versioned libutil.so.* files in the Debian/Ubuntu multiarch path.
+            // Search for versioned libutil.so.* files in standard library paths.
+            // We search multiple directories because:
+            //   - Debian/Ubuntu multiarch: /usr/lib/<arch>-linux-gnu/ and /lib/<arch>-linux-gnu/
+            //     (on pre-usrmerge systems like Ubuntu 18, /lib is separate from /usr/lib)
+            //   - RHEL/Fedora/CentOS: /usr/lib64/ and /lib64/ (64-bit), /usr/lib/ and /lib/ (32-bit)
             if (openPtyAddr.isEmpty() && OSUtils.IS_LINUX) {
-                String hwName;
                 try {
                     Process p = Runtime.getRuntime().exec(new String[] {"uname", "-m"});
                     p.waitFor();
                     try (InputStream in = p.getInputStream()) {
-                        hwName = readFully(in).trim();
-                        Path libDir = Path.of("/usr/lib", hwName + "-linux-gnu");
-                        try (Stream<Path> stream = Files.list(libDir)) {
-                            List<Path> libs = stream.filter(
-                                            l -> l.getFileName().toString().startsWith("libutil.so."))
-                                    .collect(Collectors.toList());
-                            for (Path lib : libs) {
-                                try {
-                                    System.load(lib.toString());
-                                    openPtyAddr = lookup.find("openpty");
-                                    if (openPtyAddr.isPresent()) {
-                                        break;
+                        String hwName = readFully(in).trim();
+                        String multiarchDir = hwName + "-linux-gnu";
+                        List<Path> searchDirs = new ArrayList<>();
+                        // Debian/Ubuntu multiarch paths
+                        searchDirs.add(Path.of("/usr/lib", multiarchDir));
+                        searchDirs.add(Path.of("/lib", multiarchDir));
+                        // RHEL/Fedora paths
+                        searchDirs.add(Path.of("/usr/lib64"));
+                        searchDirs.add(Path.of("/lib64"));
+                        // Generic fallback
+                        searchDirs.add(Path.of("/usr/lib"));
+                        searchDirs.add(Path.of("/lib"));
+                        for (Path libDir : searchDirs) {
+                            if (openPtyAddr.isPresent()) {
+                                break;
+                            }
+                            if (!Files.isDirectory(libDir)) {
+                                continue;
+                            }
+                            try (Stream<Path> stream = Files.list(libDir)) {
+                                List<Path> libs = stream.filter(
+                                                l -> l.getFileName().toString().startsWith("libutil.so."))
+                                        .collect(Collectors.toList());
+                                for (Path lib : libs) {
+                                    try {
+                                        System.load(lib.toString());
+                                        openPtyAddr = lookup.find("openpty");
+                                        if (openPtyAddr.isPresent()) {
+                                            break;
+                                        }
+                                    } catch (Throwable t) {
+                                        suppressed.add(t);
                                     }
-                                } catch (Throwable t) {
-                                    suppressed.add(t);
                                 }
                             }
                         }
