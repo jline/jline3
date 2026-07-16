@@ -110,6 +110,20 @@ class AttributedStringTest {
         assertEquals("xy", AttributedString.stripAnsi("x\033P1;2q\033\\y"));
         // APC terminated by ST
         assertEquals("z", AttributedString.stripAnsi("\033_payload\033\\z"));
+        // SOS terminated by ST
+        assertEquals("ab", AttributedString.stripAnsi("a\033Xpayload\033\\b"));
+        // PM terminated by ST
+        assertEquals("cd", AttributedString.stripAnsi("c\033^payload\033\\d"));
+    }
+
+    @Test
+    void stripAnsiConsumesUnterminatedStringSequence() {
+        // A string sequence with no BEL or ST terminator is consumed to the end of the
+        // input; the payload must not leak into the visible text.
+        assertEquals("pre", AttributedString.stripAnsi("pre\033]0;payload"));
+        assertEquals("pre", AttributedString.stripAnsi("pre\033Ppayload"));
+        // Trailing ESC inside the string (start of a potential ST) must not leak either
+        assertEquals("pre", AttributedString.stripAnsi("pre\033]0;payload\033"));
     }
 
     @Test

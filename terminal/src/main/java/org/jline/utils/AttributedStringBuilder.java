@@ -755,7 +755,9 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                     ansiState = 4; // possible ST: ESC \
                 }
             } else if (ansiState == 4) {
-                ansiState = 0; // consume the byte following ESC (the ST terminator)
+                ansiState = 0; // consume the byte after ESC inside the string sequence
+                // (treats any ESC as ending the sequence, matching xterm;
+                //  strictly only ESC \ is ST per ECMA-48)
             } else {
                 if (ansiState >= 1) {
                     ensureCapacity(length + 1);
