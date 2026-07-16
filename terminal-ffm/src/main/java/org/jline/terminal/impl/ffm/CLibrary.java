@@ -406,47 +406,54 @@ class CLibrary {
      * @return the {@code openpty} symbol address, or {@link Optional#empty()} if not found
      */
     private static Optional<MemorySegment> findVersionedLibutil(SymbolLookup lookup, List<Throwable> suppressed) {
+        List<Path> searchDirs = new ArrayList<>();
+
+        // Detect architecture for Debian/Ubuntu multiarch paths.
+        // Isolated so that a uname failure doesn't prevent searching the
+        // architecture-independent paths (RHEL/Fedora, generic).
         try {
-            Process p = Runtime.getRuntime().exec(new String[] {"uname", "-m"});
-            p.waitFor();
+            Process p = new ProcessBuilder("uname", "-m").start();
             try (InputStream in = p.getInputStream()) {
                 String hwName = readFully(in).trim();
                 String multiarchDir = hwName + "-linux-gnu";
-                List<Path> searchDirs = new ArrayList<>();
                 // Debian/Ubuntu multiarch paths
                 searchDirs.add(Path.of("/usr/lib", multiarchDir));
                 searchDirs.add(Path.of("/lib", multiarchDir));
-                // RHEL/Fedora paths
-                searchDirs.add(Path.of("/usr/lib64"));
-                searchDirs.add(Path.of("/lib64"));
-                // Generic fallback
-                searchDirs.add(Path.of("/usr/lib"));
-                searchDirs.add(Path.of("/lib"));
-                for (Path libDir : searchDirs) {
-                    if (!Files.isDirectory(libDir)) {
-                        continue;
-                    }
-                    try (Stream<Path> stream = Files.list(libDir)) {
-                        List<Path> libs = stream.filter(
-                                        l -> l.getFileName().toString().startsWith("libutil.so."))
-                                .sorted(Comparator.comparing(Path::getFileName).reversed())
-                                .collect(Collectors.toList());
-                        for (Path lib : libs) {
-                            try {
-                                System.load(lib.toString());
-                                Optional<MemorySegment> addr = lookup.find("openpty");
-                                if (addr.isPresent()) {
-                                    return addr;
-                                }
-                            } catch (Throwable t) {
-                                suppressed.add(t);
-                            }
-                        }
-                    }
-                }
             }
+            p.waitFor();
         } catch (Throwable t) {
             suppressed.add(t);
+        }
+
+        // RHEL/Fedora paths
+        searchDirs.add(Path.of("/usr/lib64"));
+        searchDirs.add(Path.of("/lib64"));
+        // Generic fallback
+        searchDirs.add(Path.of("/usr/lib"));
+        searchDirs.add(Path.of("/lib"));
+
+        for (Path libDir : searchDirs) {
+            if (!Files.isDirectory(libDir)) {
+                continue;
+            }
+            try (Stream<Path> stream = Files.list(libDir)) {
+                List<Path> libs = stream.filter(l -> l.getFileName().toString().startsWith("libutil.so."))
+                        .sorted(Comparator.comparing(Path::getFileName).reversed())
+                        .collect(Collectors.toList());
+                for (Path lib : libs) {
+                    try {
+                        System.load(lib.toString());
+                        Optional<MemorySegment> addr = lookup.find("openpty");
+                        if (addr.isPresent()) {
+                            return addr;
+                        }
+                    } catch (Throwable t) {
+                        suppressed.add(t);
+                    }
+                }
+            } catch (Throwable t) {
+                suppressed.add(t);
+            }
         }
         return Optional.empty();
     }
