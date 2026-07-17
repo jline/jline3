@@ -20,6 +20,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
@@ -506,35 +507,8 @@ class CLibrary {
                 }
             }
             // On older glibc (< 2.34), openpty is in a separate libutil.so.
-            // Search for versioned libutil.so.* files in the Debian/Ubuntu multiarch path.
             if (openPtyAddr.isEmpty() && OSUtils.IS_LINUX) {
-                String hwName;
-                try {
-                    Process p = Runtime.getRuntime().exec(new String[] {"uname", "-m"});
-                    p.waitFor();
-                    try (InputStream in = p.getInputStream()) {
-                        hwName = readFully(in).trim();
-                        Path libDir = Paths.get("/usr/lib", hwName + "-linux-gnu");
-                        try (Stream<Path> stream = Files.list(libDir)) {
-                            List<Path> libs = stream.filter(
-                                            l -> l.getFileName().toString().startsWith("libutil.so."))
-                                    .collect(Collectors.toList());
-                            for (Path lib : libs) {
-                                try {
-                                    System.load(lib.toString());
-                                    openPtyAddr = lookup.find("openpty");
-                                    if (openPtyAddr.isPresent()) {
-                                        break;
-                                    }
-                                } catch (Throwable t) {
-                                    suppressed.add(t);
-                                }
-                            }
-                        }
-                    }
-                } catch (Throwable t) {
-                    suppressed.add(t);
-                }
+                openPtyAddr = findVersionedLibutil(lookup, suppressed);
             }
             if (openPtyAddr.isEmpty()) {
                 for (Throwable t : suppressed) {
@@ -574,6 +548,80 @@ class CLibrary {
             b.write(buf, 0, readLen);
         }
         return b.toString();
+    }
+
+    /**
+     * Searches for a versioned {@code libutil.so.*} in standard Linux library directories and
+     * returns the {@code openpty} symbol address if found.
+     *
+     * <p>Multiple directories are searched because the library location varies by distribution
+     * and by whether the system has completed the
+     * <a href="https://wiki.debian.org/UsrMerge">usrmerge</a>:
+     * <ul>
+     *   <li>Debian/Ubuntu multiarch: {@code /usr/lib/<arch>-linux-gnu/} and
+     *       {@code /lib/<arch>-linux-gnu/} (pre-usrmerge systems like Ubuntu 18 use {@code /lib})</li>
+     *   <li>RHEL/Fedora/CentOS 64-bit: {@code /usr/lib64/} and {@code /lib64/}</li>
+     *   <li>Generic fallback: {@code /usr/lib/} and {@code /lib/}</li>
+     * </ul>
+     *
+     * <p>Within each directory, versioned {@code libutil.so.*} files are tried in descending
+     * order (highest version first) so the newest library is preferred.
+     *
+     * @param lookup    the symbol lookup to query after loading the library
+     * @param suppressed list to collect any exceptions encountered during the search
+     * @return the {@code openpty} symbol address, or {@link Optional#empty()} if not found
+     */
+    private static Optional<MemorySegment> findVersionedLibutil(SymbolLookup lookup, List<Throwable> suppressed) {
+        List<Path> searchDirs = new ArrayList<>();
+
+        // Detect architecture for Debian/Ubuntu multiarch paths.
+        // Isolated so that a uname failure doesn't prevent searching the
+        // architecture-independent paths (RHEL/Fedora, generic).
+        try {
+            Process p = new ProcessBuilder("/usr/bin/uname", "-m").start();
+            try (InputStream in = p.getInputStream()) {
+                String hwName = readFully(in).trim();
+                String multiarchDir = hwName + "-linux-gnu";
+                // Debian/Ubuntu multiarch paths
+                searchDirs.add(Paths.get("/usr/lib", multiarchDir));
+                searchDirs.add(Paths.get("/lib", multiarchDir));
+            }
+            p.waitFor();
+        } catch (Throwable t) {
+            suppressed.add(t);
+        }
+
+        // RHEL/Fedora paths
+        searchDirs.add(Paths.get("/usr/lib64"));
+        searchDirs.add(Paths.get("/lib64"));
+        // Generic fallback
+        searchDirs.add(Paths.get("/usr/lib"));
+        searchDirs.add(Paths.get("/lib"));
+
+        for (Path libDir : searchDirs) {
+            if (!Files.isDirectory(libDir)) {
+                continue;
+            }
+            try (Stream<Path> stream = Files.list(libDir)) {
+                List<Path> libs = stream.filter(l -> l.getFileName().toString().startsWith("libutil.so."))
+                        .sorted(Comparator.comparing(Path::getFileName).reversed())
+                        .collect(Collectors.toList());
+                for (Path lib : libs) {
+                    try {
+                        System.load(lib.toString());
+                        Optional<MemorySegment> addr = lookup.find("openpty");
+                        if (addr.isPresent()) {
+                            return addr;
+                        }
+                    } catch (Throwable t) {
+                        suppressed.add(t);
+                    }
+                }
+            } catch (Throwable t) {
+                suppressed.add(t);
+            }
+        }
+        return Optional.empty();
     }
 
     static Size getTerminalSize(int fd) {
