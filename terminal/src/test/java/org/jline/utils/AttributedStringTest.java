@@ -89,6 +89,46 @@ public class AttributedStringTest {
     }
 
     @Test
+    public void fromAnsiDropsOscInjection() {
+        // A window-title OSC (ESC ] 0 ; ... BEL) embedded in otherwise plain text must not
+        // survive into the rendered AttributedString.
+        AttributedString s = AttributedString.fromAnsi("\033]0;pwned\007OK");
+        assertEquals("OK", s.toString());
+        assertEquals("OK", s.toAnsi());
+        assertEquals(2, s.columnLength());
+    }
+
+    @Test
+    public void stripAnsiRemovesStringSequences() {
+        // OSC terminated by BEL
+        assertEquals("hello", AttributedString.stripAnsi("\033]0;title\007hello"));
+        // OSC 52 (clipboard) terminated by ST (ESC \)
+        assertEquals("AB", AttributedString.stripAnsi("A\033]52;c;ZXZpbA==\033\\B"));
+        // DCS terminated by ST
+        assertEquals("xy", AttributedString.stripAnsi("x\033P1;2q\033\\y"));
+        // APC terminated by ST
+        assertEquals("z", AttributedString.stripAnsi("\033_payload\033\\z"));
+        // SOS terminated by ST
+        assertEquals("ab", AttributedString.stripAnsi("a\033Xpayload\033\\b"));
+        // PM terminated by ST
+        assertEquals("cd", AttributedString.stripAnsi("c\033^payload\033\\d"));
+    }
+
+    @Test
+    public void stripAnsiConsumesUnterminatedStringSequence() {
+        assertEquals("pre", AttributedString.stripAnsi("pre\033]0;payload"));
+        assertEquals("pre", AttributedString.stripAnsi("pre\033Ppayload"));
+        assertEquals("pre", AttributedString.stripAnsi("pre\033]0;payload\033"));
+    }
+
+    @Test
+    public void fromAnsiKeepsSgrWhileDroppingOsc() {
+        AttributedString s = AttributedString.fromAnsi("\033]0;t\007\033[31mred\033[0m");
+        assertEquals("red", s.toString());
+        assertEquals("\033[31mred\033[0m", s.toAnsi());
+    }
+
+    @Test
     public void testBoldThenFaint() {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         sb.styled(AttributedStyle::bold, "bold ");
