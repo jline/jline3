@@ -587,7 +587,7 @@ class CLibrary {
                 searchDirs.add(Paths.get("/lib", multiarchDir));
             }
             p.waitFor();
-        } catch (Throwable t) {
+        } catch (Exception t) {
             suppressed.add(t);
         }
 
