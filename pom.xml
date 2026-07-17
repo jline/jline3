@@ -118,7 +118,7 @@
         <slf4j.version>2.0.18</slf4j.version>
         <findbugs.version>3.0.2</findbugs.version>
         <groovy.version>5.0.7</groovy.version>
-        <ivy.version>2.5.3</ivy.version>
+        <ivy.version>2.6.0</ivy.version>
         <picocli.version>4.7.7</picocli.version>
         <graal.version>25.1.3</graal.version>
         <graal.plugin.version>21.2.0</graal.plugin.version>
