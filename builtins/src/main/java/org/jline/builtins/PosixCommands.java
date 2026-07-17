@@ -393,7 +393,7 @@ public class PosixCommands {
             if ("-".equals(arg)) {
                 is = context.in();
             } else {
-                is = cwd.toUri().resolve(arg).toURL().openStream();
+                is = cwd.resolve(arg).toUri().toURL().openStream();
             }
             cat(context, new BufferedReader(new InputStreamReader(is)), opt.isSet("n"));
         }
@@ -1550,7 +1550,7 @@ public class PosixCommands {
         if (!args.isEmpty()) {
             for (String filename : args) {
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(
-                        context.currentDir().toUri().resolve(filename).toURL().openStream()))) {
+                        context.currentDir().resolve(filename).toUri().toURL().openStream()))) {
                     readLines(reader, lines);
                 }
             }
