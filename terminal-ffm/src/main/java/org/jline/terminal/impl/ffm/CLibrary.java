@@ -421,6 +421,9 @@ class CLibrary {
                 searchDirs.add(Path.of("/lib", multiarchDir));
             }
             p.waitFor();
+        } catch (InterruptedException t) {
+            Thread.currentThread().interrupt();
+            suppressed.add(t);
         } catch (Exception t) {
             suppressed.add(t);
         }
