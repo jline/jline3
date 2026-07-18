@@ -203,6 +203,26 @@ public class ColorPalette {
         return distance;
     }
 
+    /**
+     * A valid OSC 4 color component is 1 to 4 hex digits ({@code R}, {@code RR}, {@code RRR}
+     * or {@code RRRR}). Rejecting longer or non-hex values keeps {@code Integer.parseInt} within
+     * {@code int} range and keeps {@code 1 << (4 * len)} below 32, so the divisor below cannot
+     * wrap to zero.
+     */
+    private static boolean isValidComponent(String s) {
+        int len = s.length();
+        if (len < 1 || len > 4) {
+            return false;
+        }
+        for (int i = 0; i < len; i++) {
+            char c = s.charAt(i);
+            if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private static int[] doLoad(Terminal terminal) throws IOException {
         PrintWriter writer = terminal.writer();
         NonBlockingReader reader = terminal.reader();
@@ -272,7 +292,10 @@ public class ColorPalette {
                         sb.setLength(0);
                     }
                 }
-                if (rgb.size() != 3) {
+                if (rgb.size() != 3
+                        || !isValidComponent(rgb.get(0))
+                        || !isValidComponent(rgb.get(1))
+                        || !isValidComponent(rgb.get(2))) {
                     return null;
                 }
                 double r = Integer.parseInt(rgb.get(0), 16)
