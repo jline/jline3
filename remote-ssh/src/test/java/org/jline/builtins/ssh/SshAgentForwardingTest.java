@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -33,12 +34,14 @@ import org.apache.sshd.server.shell.ShellFactory;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.impl.LineDisciplineTerminal;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@Timeout(30)
 class SshAgentForwardingTest {
 
     @Test
@@ -78,10 +81,8 @@ class SshAgentForwardingTest {
         sshd.setShellFactory(new ImmediateExitShellFactory());
         sshd.start();
 
-        Terminal terminal = TerminalBuilder.builder()
-                .system(false)
-                .streams(new ByteArrayInputStream(new byte[0]), new ByteArrayOutputStream())
-                .build();
+        Terminal terminal = new LineDisciplineTerminal(
+                "agent-forwarding-test", "xterm", new ByteArrayOutputStream(), StandardCharsets.UTF_8);
         try {
             LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
             Ssh ssh = new Ssh(null, null, null, SshClient::setUpDefaultClient);

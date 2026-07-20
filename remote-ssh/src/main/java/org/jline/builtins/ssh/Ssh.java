@@ -269,9 +269,7 @@ public class Ssh {
                         channel.setPtyModes(modes);
                         channel.setPtyColumns(terminal.getColumns());
                         channel.setPtyLines(terminal.getRows());
-                        if (opt.isSet("forward-agent")) {
-                            channel.setAgentForwarding(true);
-                        }
+                        channel.setAgentForwarding(opt.isSet("forward-agent"));
                         channel.setEnv("TERM", terminal.getType());
                         // TODO: channel.setEnv("LC_CTYPE", terminal.encoding().toString());
                         channel.setIn(new NoCloseInputStream(stdin));
