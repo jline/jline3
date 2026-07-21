@@ -1260,7 +1260,7 @@ public class ScreenTerminal implements Sized {
         int r = Math.max(0, Math.min(255, startIndex < ps.length ? ps[startIndex] : 0));
         int g = Math.max(0, Math.min(255, startIndex + 1 < ps.length ? ps[startIndex + 1] : 0));
         int b = Math.max(0, Math.min(255, startIndex + 2 < ps.length ? ps[startIndex + 2] : 0));
-        return ((long) (r >> 4) << 8) | ((long) (g >> 4) << 4) | (b >> 4);
+        return ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4);
     }
 
     private void csi_DSR(String p) {
