@@ -11,7 +11,6 @@ package org.jline.terminal.impl;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.stream.Stream;
 
 import org.easymock.EasyMock;
 import org.jline.terminal.Attributes;
@@ -19,9 +18,6 @@ import org.jline.terminal.Terminal.SignalHandler;
 import org.jline.terminal.spi.Pty;
 import org.jline.utils.NonBlockingReader;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -83,23 +79,43 @@ public class ColorParsingTest {
         }
     }
 
-    static Stream<Arguments> malformedComponentScenarios() {
-        return Stream.of(
-                Arguments.of("\033]10;rgb:10000000/00/00\007", 10, "8-digit component wraps 1 << 32 to 1"),
-                Arguments.of("\033]11;rgb:f0000000/00/00\007", 11, "8-digit component overflowing int"),
-                Arguments.of("\033]10;rgb:fffff/00/00\007", 10, "5-digit component"));
-    }
-
-    @ParameterizedTest(name = "parseColorResponse returns -1 on {2}")
-    @MethodSource("malformedComponentScenarios")
-    public void testParseColorResponseRejectsMalformedComponents(String input, int colorType, String scenario)
-            throws Exception {
-        NonBlockingReader reader = createReader(input);
+    @Test
+    public void testParseColorResponseRejectsShiftWrapComponent() throws Exception {
+        // 8-digit component wraps 1 << 32 to 1
+        NonBlockingReader reader = createReader("\033]10;rgb:10000000/00/00\007");
 
         AbstractPosixTerminal terminal = createTerminal();
         try {
-            int result = terminal.parseColorResponse(reader, colorType);
-            assertEquals(-1, result, "parseColorResponse should return -1 on " + scenario);
+            int result = terminal.parseColorResponse(reader, 10);
+            assertEquals(-1, result, "parseColorResponse should return -1 on 8-digit component");
+        } finally {
+            terminal.close();
+        }
+    }
+
+    @Test
+    public void testParseColorResponseRejectsOverflowingComponent() throws Exception {
+        // 8-digit component with high nibble overflows int
+        NonBlockingReader reader = createReader("\033]11;rgb:f0000000/00/00\007");
+
+        AbstractPosixTerminal terminal = createTerminal();
+        try {
+            int result = terminal.parseColorResponse(reader, 11);
+            assertEquals(-1, result, "parseColorResponse should return -1 on overflowing component");
+        } finally {
+            terminal.close();
+        }
+    }
+
+    @Test
+    public void testParseColorResponseRejectsFiveDigitComponent() throws Exception {
+        // 5-digit component exceeds valid 1-4 hex digit range
+        NonBlockingReader reader = createReader("\033]10;rgb:fffff/00/00\007");
+
+        AbstractPosixTerminal terminal = createTerminal();
+        try {
+            int result = terminal.parseColorResponse(reader, 10);
+            assertEquals(-1, result, "parseColorResponse should return -1 on 5-digit component");
         } finally {
             terminal.close();
         }
