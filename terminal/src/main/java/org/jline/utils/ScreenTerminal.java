@@ -1209,9 +1209,9 @@ public class ScreenTerminal implements Sized {
                     m = ++i < ps.length ? ps[i] : 0;
                     attr = (attr & (0xef000fffL << 32)) | (0x10000000L << 32) | (col24(m) << 44); // foreground
                 } else if (m == 2) {
-                    int r = ++i < ps.length ? ps[i] : 0;
-                    int g = ++i < ps.length ? ps[i] : 0;
-                    int b = ++i < ps.length ? ps[i] : 0;
+                    int r = Math.max(0, Math.min(255, ++i < ps.length ? ps[i] : 0));
+                    int g = Math.max(0, Math.min(255, ++i < ps.length ? ps[i] : 0));
+                    int b = Math.max(0, Math.min(255, ++i < ps.length ? ps[i] : 0));
                     long rgb = ((long) (r >> 4) << 8) | ((long) (g >> 4) << 4) | (b >> 4);
                     attr = (attr & (0xef000fffL << 32)) | (0x10000000L << 32) | (rgb << 44); // foreground
                 }
@@ -1225,9 +1225,9 @@ public class ScreenTerminal implements Sized {
                     m = ++i < ps.length ? ps[i] : 0;
                     attr = (attr & (0xdffff000L << 32)) | (0x20000000L << 32) | (col24(m) << 32); // background
                 } else if (m == 2) {
-                    int r = ++i < ps.length ? ps[i] : 0;
-                    int g = ++i < ps.length ? ps[i] : 0;
-                    int b = ++i < ps.length ? ps[i] : 0;
+                    int r = Math.max(0, Math.min(255, ++i < ps.length ? ps[i] : 0));
+                    int g = Math.max(0, Math.min(255, ++i < ps.length ? ps[i] : 0));
+                    int b = Math.max(0, Math.min(255, ++i < ps.length ? ps[i] : 0));
                     long rgb = ((long) (r >> 4) << 8) | ((long) (g >> 4) << 4) | (b >> 4);
                     attr = (attr & (0xdffff000L << 32)) | (0x20000000L << 32) | (rgb << 32); // background
                 }

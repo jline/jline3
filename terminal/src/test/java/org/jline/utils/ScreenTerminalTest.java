@@ -236,6 +236,97 @@ class ScreenTerminalTest {
         assertEquals(11, cursor[1], "Restored cy should be clamped to new height-1");
     }
 
+    /**
+     * Out-of-range true-color SGR components must be clamped to 0..255 before
+     * they are packed into the cell attribute word. A component above 255 used
+     * to shift past the 12-bit color field and flip the adjacent style bits
+     * (bold/italic/underline/inverse/conceal/dim and the fg/bg-set flags), and
+     * that corrupted attribute was then applied to every subsequent cell.
+     */
+    @Test
+    void testTrueColorComponentClamped() {
+        ScreenTerminal terminal = new ScreenTerminal(20, 3);
+        // 16777215 (0xFFFFFF) is far outside the 0..255 range of a channel.
+        terminal.write("\033[38;2;16777215;0;0mX");
+
+        long[] screen = new long[20 * 3];
+        terminal.dump(screen, null);
+        long cell = screen[0];
+
+        assertEquals('X', ScreenTerminal.cellCodePoint(cell));
+        assertTrue(ScreenTerminal.cellHasForeground(cell), "foreground should be set");
+        assertFalse(ScreenTerminal.cellHasBackground(cell), "background must stay unset");
+        assertFalse(ScreenTerminal.cellBold(cell), "bold must not be set");
+        assertFalse(ScreenTerminal.cellItalic(cell), "italic must not be set");
+        assertFalse(ScreenTerminal.cellUnderline(cell), "underline must not be set");
+        assertFalse(ScreenTerminal.cellDim(cell), "dim must not be set");
+        assertFalse(ScreenTerminal.cellInverse(cell), "inverse must not be set");
+        assertFalse(ScreenTerminal.cellConceal(cell), "conceal must not be set");
+        // 16777215 clamped to 255 -> 0xF nibble; green/blue 0
+        assertEquals(0xF00, ScreenTerminal.cellForeground(cell));
+    }
+
+    /**
+     * Same as {@link #testTrueColorComponentClamped()} but for the background
+     * path (ESC[48;2;r;g;b m).  An out-of-range component must be clamped to
+     * 255 and the correct background-color bits must be set without corrupting
+     * the foreground-set flag or any style bits.
+     */
+    @Test
+    void testTrueColorComponentClampedBackground() {
+        ScreenTerminal terminal = new ScreenTerminal(20, 3);
+        // 16777215 (0xFFFFFF) is far outside the 0..255 range of a channel.
+        terminal.write("\033[48;2;16777215;0;0mX");
+
+        long[] screen = new long[20 * 3];
+        terminal.dump(screen, null);
+        long cell = screen[0];
+
+        assertEquals('X', ScreenTerminal.cellCodePoint(cell));
+        assertTrue(ScreenTerminal.cellHasBackground(cell), "background should be set");
+        assertFalse(ScreenTerminal.cellHasForeground(cell), "foreground must stay unset");
+        assertFalse(ScreenTerminal.cellBold(cell), "bold must not be set");
+        assertFalse(ScreenTerminal.cellItalic(cell), "italic must not be set");
+        assertFalse(ScreenTerminal.cellUnderline(cell), "underline must not be set");
+        assertFalse(ScreenTerminal.cellDim(cell), "dim must not be set");
+        assertFalse(ScreenTerminal.cellInverse(cell), "inverse must not be set");
+        assertFalse(ScreenTerminal.cellConceal(cell), "conceal must not be set");
+        // 16777215 clamped to 255 -> 0xF nibble; green/blue 0
+        assertEquals(0xF00, ScreenTerminal.cellBackground(cell));
+    }
+
+    /**
+     * The lower-bound counterpart to {@link #testTrueColorComponentClamped()}.
+     * The {@code Math.max(0, ...)} guard clamps negative RGB components to 0.
+     * Although the CSI byte-level parser does not forward negative parameter
+     * values (the {@code -} byte has MSB 0x20 which corrupts the function
+     * code), this test verifies the correct behavior when all channels are at
+     * the minimum (0), ensuring the zero boundary of the clamping range works
+     * and no bits bleed into adjacent attribute fields.
+     */
+    @Test
+    void testTrueColorComponentClampedLowerBound() {
+        ScreenTerminal terminal = new ScreenTerminal(20, 3);
+        // All channels at the minimum valid value (0).
+        terminal.write("\033[38;2;0;0;0mX");
+
+        long[] screen = new long[20 * 3];
+        terminal.dump(screen, null);
+        long cell = screen[0];
+
+        assertEquals('X', ScreenTerminal.cellCodePoint(cell));
+        assertTrue(ScreenTerminal.cellHasForeground(cell), "foreground should be set");
+        assertFalse(ScreenTerminal.cellHasBackground(cell), "background must stay unset");
+        assertFalse(ScreenTerminal.cellBold(cell), "bold must not be set");
+        assertFalse(ScreenTerminal.cellItalic(cell), "italic must not be set");
+        assertFalse(ScreenTerminal.cellUnderline(cell), "underline must not be set");
+        assertFalse(ScreenTerminal.cellDim(cell), "dim must not be set");
+        assertFalse(ScreenTerminal.cellInverse(cell), "inverse must not be set");
+        assertFalse(ScreenTerminal.cellConceal(cell), "conceal must not be set");
+        // All channels 0 >> 4 = 0
+        assertEquals(0x000, ScreenTerminal.cellForeground(cell));
+    }
+
     // -----------------------------------------------------------------------
     // Feature tests
     // -----------------------------------------------------------------------
