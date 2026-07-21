@@ -1173,7 +1173,10 @@ public class ScreenTerminal implements Sized {
         //	F:	Foreground r-g-b
         //	B:	Background r-g-b
         int[] ps = vt100_parse_params(p, new int[] {0});
-        for (int i = 0; i < ps.length; i++) {
+        // Use a while loop because SGR sub-parameters (38/48) advance the index
+        // by a variable amount; modifying a for-loop counter triggers S127.
+        int i = 0;
+        while (i < ps.length) {
             int m = ps[i];
             if (m == 0) {
                 attr = 0x00000000L << 32;
@@ -1209,10 +1212,8 @@ public class ScreenTerminal implements Sized {
                     m = ++i < ps.length ? ps[i] : 0;
                     attr = (attr & (0xef000fffL << 32)) | (0x10000000L << 32) | (col24(m) << 44); // foreground
                 } else if (m == 2) {
-                    int r = Math.max(0, Math.min(255, ++i < ps.length ? ps[i] : 0));
-                    int g = Math.max(0, Math.min(255, ++i < ps.length ? ps[i] : 0));
-                    int b = Math.max(0, Math.min(255, ++i < ps.length ? ps[i] : 0));
-                    long rgb = ((long) (r >> 4) << 8) | ((long) (g >> 4) << 4) | (b >> 4);
+                    long rgb = clampAndPackRgb(ps, i + 1);
+                    i += 3;
                     attr = (attr & (0xef000fffL << 32)) | (0x10000000L << 32) | (rgb << 44); // foreground
                 }
             } else if (m == 39) {
@@ -1225,10 +1226,8 @@ public class ScreenTerminal implements Sized {
                     m = ++i < ps.length ? ps[i] : 0;
                     attr = (attr & (0xdffff000L << 32)) | (0x20000000L << 32) | (col24(m) << 32); // background
                 } else if (m == 2) {
-                    int r = Math.max(0, Math.min(255, ++i < ps.length ? ps[i] : 0));
-                    int g = Math.max(0, Math.min(255, ++i < ps.length ? ps[i] : 0));
-                    int b = Math.max(0, Math.min(255, ++i < ps.length ? ps[i] : 0));
-                    long rgb = ((long) (r >> 4) << 8) | ((long) (g >> 4) << 4) | (b >> 4);
+                    long rgb = clampAndPackRgb(ps, i + 1);
+                    i += 3;
                     attr = (attr & (0xdffff000L << 32)) | (0x20000000L << 32) | (rgb << 32); // background
                 }
             } else if (m == 49) {
@@ -1238,6 +1237,7 @@ public class ScreenTerminal implements Sized {
             } else if (m >= 100 && m <= 107) {
                 attr = (attr & (0xdffff000L << 32)) | (0x20000000L << 32) | (col24(m - 100 + 8) << 32); // background
             }
+            i++;
         }
     }
 
@@ -1247,6 +1247,20 @@ public class ScreenTerminal implements Sized {
         int g = (c >> 8) & 0xFF;
         int b = (c >> 0) & 0xFF;
         return ((r >> 4) << 8) | ((g >> 4) << 4) | ((b >> 4) << 0);
+    }
+
+    /**
+     * Clamp three consecutive RGB parameters to [0, 255] and pack them into a 12-bit color value (4 bits per channel).
+     *
+     * @param ps         the SGR parameter array
+     * @param startIndex index of the red component in {@code ps}
+     * @return packed 12-bit RGB (bits 11-8 = red, 7-4 = green, 3-0 = blue)
+     */
+    private long clampAndPackRgb(int[] ps, int startIndex) {
+        int r = Math.max(0, Math.min(255, startIndex < ps.length ? ps[startIndex] : 0));
+        int g = Math.max(0, Math.min(255, startIndex + 1 < ps.length ? ps[startIndex + 1] : 0));
+        int b = Math.max(0, Math.min(255, startIndex + 2 < ps.length ? ps[startIndex + 2] : 0));
+        return ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4);
     }
 
     private void csi_DSR(String p) {
