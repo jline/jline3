@@ -35,6 +35,29 @@ class ColorParsingTest {
         assertEquals(-1, result, "parseColorResponse should return -1 on " + scenario);
     }
 
+    static Stream<Arguments> malformedComponentScenarios() {
+        return Stream.of(
+                Arguments.of("\033]10;rgb:10000000/00/00\007", 10, "8-digit component wraps 1 << 32 to 1"),
+                Arguments.of("\033]11;rgb:f0000000/00/00\007", 11, "8-digit component overflowing int"),
+                Arguments.of("\033]10;rgb:fffff/00/00\007", 10, "5-digit component"));
+    }
+
+    @ParameterizedTest(name = "parseColorResponse returns -1 on {2}")
+    @MethodSource("malformedComponentScenarios")
+    void testParseColorResponseRejectsMalformedComponents(String input, int colorType, String scenario)
+            throws Exception {
+        NonBlockingReader reader = createReader(input);
+        int result = ColorSupport.parseColorResponse(reader, colorType);
+        assertEquals(-1, result, "parseColorResponse should return -1 on " + scenario);
+    }
+
+    @Test
+    void testParseColorResponseWithMaxWidthComponents() throws Exception {
+        NonBlockingReader reader = createReader("\033]10;rgb:ffff/ffff/ffff\007");
+        int result = ColorSupport.parseColorResponse(reader, 10);
+        assertEquals(0xFFFFFF, result, "parseColorResponse should accept 4-digit components");
+    }
+
     @Test
     void testParseColorResponseWithValidBellTerminator() throws Exception {
         NonBlockingReader reader = createReader("\033]10;rgb:ff/ff/ff\007");
