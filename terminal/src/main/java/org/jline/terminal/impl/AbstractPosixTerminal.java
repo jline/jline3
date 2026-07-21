@@ -253,7 +253,10 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
             }
         }
 
-        if (rgb.size() != 3) {
+        if (rgb.size() != 3
+                || !isValidComponent(rgb.get(0))
+                || !isValidComponent(rgb.get(1))
+                || !isValidComponent(rgb.get(2))) {
             return -1;
         }
 
@@ -263,5 +266,25 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
         double b = Integer.parseInt(rgb.get(2), 16) / ((1 << (4 * rgb.get(2).length())) - 1.0);
 
         return (int) ((Math.round(r * 255) << 16) + (Math.round(g * 255) << 8) + Math.round(b * 255));
+    }
+
+    /**
+     * A valid OSC color component is 1 to 4 hex digits ({@code R}, {@code RR}, {@code RRR}
+     * or {@code RRRR}). Rejecting longer values keeps {@code Integer.parseInt} within {@code int}
+     * range and keeps {@code 1 << (4 * len)} below 32, so the divisor in the caller
+     * cannot wrap to zero.
+     */
+    private static boolean isValidComponent(String s) {
+        int len = s.length();
+        if (len < 1 || len > 4) {
+            return false;
+        }
+        for (int i = 0; i < len; i++) {
+            char c = s.charAt(i);
+            if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))) {
+                return false;
+            }
+        }
+        return true;
     }
 }

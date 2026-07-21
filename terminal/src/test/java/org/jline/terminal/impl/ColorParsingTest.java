@@ -80,6 +80,61 @@ public class ColorParsingTest {
     }
 
     @Test
+    public void testParseColorResponseRejectsShiftWrapComponent() throws Exception {
+        // 8-digit component wraps 1 << 32 to 1
+        NonBlockingReader reader = createReader("\033]10;rgb:10000000/00/00\007");
+
+        AbstractPosixTerminal terminal = createTerminal();
+        try {
+            int result = terminal.parseColorResponse(reader, 10);
+            assertEquals(-1, result, "parseColorResponse should return -1 on 8-digit component");
+        } finally {
+            terminal.close();
+        }
+    }
+
+    @Test
+    public void testParseColorResponseRejectsOverflowingComponent() throws Exception {
+        // 8-digit component with high nibble overflows int
+        NonBlockingReader reader = createReader("\033]11;rgb:f0000000/00/00\007");
+
+        AbstractPosixTerminal terminal = createTerminal();
+        try {
+            int result = terminal.parseColorResponse(reader, 11);
+            assertEquals(-1, result, "parseColorResponse should return -1 on overflowing component");
+        } finally {
+            terminal.close();
+        }
+    }
+
+    @Test
+    public void testParseColorResponseRejectsFiveDigitComponent() throws Exception {
+        // 5-digit component exceeds valid 1-4 hex digit range
+        NonBlockingReader reader = createReader("\033]10;rgb:fffff/00/00\007");
+
+        AbstractPosixTerminal terminal = createTerminal();
+        try {
+            int result = terminal.parseColorResponse(reader, 10);
+            assertEquals(-1, result, "parseColorResponse should return -1 on 5-digit component");
+        } finally {
+            terminal.close();
+        }
+    }
+
+    @Test
+    public void testParseColorResponseWithMaxWidthComponents() throws Exception {
+        NonBlockingReader reader = createReader("\033]10;rgb:ffff/ffff/ffff\007");
+
+        AbstractPosixTerminal terminal = createTerminal();
+        try {
+            int result = terminal.parseColorResponse(reader, 10);
+            assertEquals(0xFFFFFF, result, "parseColorResponse should accept 4-digit components");
+        } finally {
+            terminal.close();
+        }
+    }
+
+    @Test
     public void testParseColorResponseEofAfterPartialRgb() throws Exception {
         // EOF after writing only part of the rgb: prefix
         NonBlockingReader reader = createReader("\033]10;rg");
