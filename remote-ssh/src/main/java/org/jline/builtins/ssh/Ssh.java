@@ -153,6 +153,7 @@ public class Ssh {
         final String[] usage = {
             "ssh - connect to a server using ssh",
             "Usage: ssh [user@]hostname [command]",
+            "  -A --forward-agent       forward the authentication agent connection",
             "  -? --help                show help"
         };
 
@@ -249,7 +250,7 @@ public class Ssh {
                         channel.setPtyModes(modes);
                         channel.setPtyColumns(terminal.getWidth());
                         channel.setPtyLines(terminal.getHeight());
-                        channel.setAgentForwarding(true);
+                        channel.setAgentForwarding(opt.isSet("forward-agent"));
                         channel.setEnv("TERM", terminal.getType());
                         // TODO: channel.setEnv("LC_CTYPE", terminal.encoding().toString());
                         channel.setIn(new NoCloseInputStream(stdin));
