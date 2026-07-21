@@ -15,7 +15,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -66,7 +66,7 @@ class SshAgentForwardingTest {
 
         SshServer sshd = SshServer.setUpDefaultServer();
         sshd.setPort(0);
-        sshd.setKeyPairProvider(new SimpleGeneratorHostKeyProvider(Path.of("target/agentfwd-hostkey.ser")));
+        sshd.setKeyPairProvider(new SimpleGeneratorHostKeyProvider(Paths.get("target/agentfwd-hostkey.ser")));
         sshd.setUserAuthFactories(Collections.singletonList(UserAuthNoneFactory.INSTANCE));
         // The server only consults the forwarding filter when it also has an agent factory, so
         // install one; the filter rejects, so no agent channel is actually established.
