@@ -1173,7 +1173,10 @@ public class ScreenTerminal implements Sized {
         //	F:	Foreground r-g-b
         //	B:	Background r-g-b
         int[] ps = vt100_parse_params(p, new int[] {0});
-        for (int i = 0; i < ps.length; i++) {
+        // Use a while loop because SGR sub-parameters (38/48) advance the index
+        // by a variable amount; modifying a for-loop counter triggers S127.
+        int i = 0;
+        while (i < ps.length) {
             int m = ps[i];
             if (m == 0) {
                 attr = 0x00000000L << 32;
@@ -1234,6 +1237,7 @@ public class ScreenTerminal implements Sized {
             } else if (m >= 100 && m <= 107) {
                 attr = (attr & (0xdffff000L << 32)) | (0x20000000L << 32) | (col24(m - 100 + 8) << 32); // background
             }
+            i++;
         }
     }
 
