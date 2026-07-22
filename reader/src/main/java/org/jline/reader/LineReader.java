@@ -271,6 +271,7 @@ public interface LineReader {
     String MOUSE = "mouse";
     String FOCUS_IN = "terminal-focus-in";
     String FOCUS_OUT = "terminal-focus-out";
+    String TERMINAL_RESIZE = "terminal-resize";
 
     String BEGIN_PASTE = "begin-paste";
 

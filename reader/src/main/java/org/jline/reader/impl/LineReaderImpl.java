@@ -133,6 +133,7 @@ public class LineReaderImpl implements LineReader, Flushable {
 
     public static final String FOCUS_IN_SEQ = "\033[I";
     public static final String FOCUS_OUT_SEQ = "\033[O";
+    public static final String RESIZE_SEQ = "\033[48;";
     public static final int DEFAULT_MAX_REPEAT_COUNT = 9999;
 
     /**
@@ -4206,6 +4207,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         addBuiltinWidget(widgets, BEGIN_PASTE, this::beginPaste);
         addBuiltinWidget(widgets, FOCUS_IN, this::focusIn);
         addBuiltinWidget(widgets, FOCUS_OUT, this::focusOut);
+        addBuiltinWidget(widgets, TERMINAL_RESIZE, this::terminalResize);
         return widgets;
     }
 
@@ -6475,6 +6477,74 @@ public class LineReaderImpl implements LineReader, Flushable {
     }
 
     /**
+     * Handles an in-band window resize report (mode 2048).
+     *
+     * <p>The binding reader has already consumed the {@code CSI 48 ;}
+     * prefix.  This method reads the remaining parameters
+     * ({@code rows ; cols [ ; pixelHeight ; pixelWidth ]}) up to the
+     * final byte {@code t}, updates the terminal size, and raises
+     * {@link Terminal.Signal#WINCH}.</p>
+     *
+     * @return {@code true} always
+     */
+    public boolean terminalResize() {
+        String params = readResizeParams();
+        if (params != null) {
+            applyResizeParams(params);
+        }
+        return true;
+    }
+
+    /**
+     * Reads resize parameters from the input until the final {@code t} byte.
+     *
+     * @return the parameter string (e.g. {@code "24;80"}), or {@code null}
+     *         if the sequence is malformed or too long
+     */
+    private String readResizeParams() {
+        StringBuilder sb = new StringBuilder();
+        boolean discard = false;
+        int c;
+        while ((c = bindingReader.readCharacter()) >= 0) {
+            if (c == 't') {
+                return discard ? null : sb.toString();
+            }
+            if (!discard) {
+                if ((c >= '0' && c <= '9') || c == ';') {
+                    sb.append((char) c);
+                    if (sb.length() > 50) {
+                        discard = true; // Too long — drain to 't' then discard
+                    }
+                } else {
+                    discard = true; // Invalid character — drain to 't' then discard
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Parses {@code rows;cols[;pixelHeight;pixelWidth]} and applies
+     * the new terminal size, raising {@link Terminal.Signal#WINCH}.
+     */
+    private void applyResizeParams(String params) {
+        String[] parts = params.split(";", -1);
+        if (parts.length < 2) {
+            return;
+        }
+        try {
+            int rows = Integer.parseInt(parts[0]);
+            int cols = Integer.parseInt(parts[1]);
+            if (rows > 0 && cols > 0) {
+                terminal.setSize(Size.of(cols, rows));
+                terminal.raise(Terminal.Signal.WINCH);
+            }
+        } catch (NumberFormatException e) {
+            // Ignore malformed resize reports
+        }
+    }
+
+    /**
      * Clean the used display
      * @return <code>true</code>
      */
@@ -6950,6 +7020,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         bind(map, BEGIN_PASTE, BRACKETED_PASTE_BEGIN);
         bind(map, FOCUS_IN, FOCUS_IN_SEQ);
         bind(map, FOCUS_OUT, FOCUS_OUT_SEQ);
+        bind(map, TERMINAL_RESIZE, RESIZE_SEQ);
     }
 
     /**
