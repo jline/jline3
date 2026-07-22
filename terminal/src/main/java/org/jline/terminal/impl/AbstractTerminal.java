@@ -103,6 +103,7 @@ public abstract class AbstractTerminal implements TerminalExt {
     private boolean graphemeClusterNative;
     private boolean groupsRegionalIndicators;
     private boolean groupsZwjSequences;
+    private boolean kittyKeyboardActive;
 
     /** CSI prefix for DEC private mode sequences ({@code ESC [ ?}). */
     static final String CSI_DEC = "\033[?";
@@ -219,6 +220,9 @@ public abstract class AbstractTerminal implements TerminalExt {
     }
 
     protected void doClose() throws IOException {
+        if (kittyKeyboardActive) {
+            resetKittyKeyboardMode();
+        }
         if (graphemeClusterModeEnabled) {
             setGraphemeClusterMode(false, false);
         }
@@ -983,6 +987,39 @@ public abstract class AbstractTerminal implements TerminalExt {
         } else {
             return false;
         }
+    }
+
+    // ---- Kitty Keyboard Protocol ----
+
+    @Override
+    public boolean hasKittyKeyboardSupport() {
+        return isModeSupported(Mode.KITTY_KEYBOARD);
+    }
+
+    @Override
+    public boolean setKittyKeyboardMode(EnumSet<KittyKeyboardMode> modes) {
+        if (hasKittyKeyboardSupport()) {
+            if (kittyKeyboardActive) {
+                // Pop previous flags first to keep the terminal's stack balanced
+                writer().write(KittyKeyboardSupport.popFlags());
+            }
+            writer().write(KittyKeyboardSupport.pushFlags(modes));
+            writer().flush();
+            kittyKeyboardActive = true;
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean resetKittyKeyboardMode() {
+        if (kittyKeyboardActive) {
+            writer().write(KittyKeyboardSupport.popFlags());
+            writer().flush();
+            kittyKeyboardActive = false;
+            return true;
+        }
+        return false;
     }
 
     protected void checkInterrupted() throws InterruptedIOException {
