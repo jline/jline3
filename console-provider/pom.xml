@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright (c) 2002-2020, the original author or authors.
+
+    This software is distributable under the BSD license. See the terms of the
+    BSD license in the documentation provided with this software.
+
+    https://opensource.org/licenses/BSD-3-Clause
+
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.jline</groupId>
+        <artifactId>jline-parent</artifactId>
+        <version>${nisse.jgit.dynamicVersion}</version>
+    </parent>
+
+    <artifactId>jline-console-provider</artifactId>
+    <name>JLine JDK Console Provider</name>
+
+    <properties>
+        <automatic.module.name>org.jline.console.provider</automatic.module.name>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-terminal</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-reader</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <configuration>
+                    <instructions>
+                        <Export-Package>*;-noimport:=true</Export-Package>
+                    </instructions>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <release combine.self="override" />
+                    <source>${java.build.version}</source>
+                    <target>${java.build.version}</target>
+                    <compilerArgs>
+                        <arg>-Xlint:all,-options,-processing,-restricted,-requires-automatic,-requires-transitive-automatic,-exports</arg>
+                        <arg>-Werror</arg>
+                        <arg>--add-exports</arg>
+                        <arg>java.base/jdk.internal.io=org.jline.console.provider</arg>
+                    </compilerArgs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>default-testCompile</id>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                        <phase>test-compile</phase>
+                        <configuration>
+                            <compilerArgs>
+                                <arg>-Xlint:all,-options,-processing,-exports,-restricted,-missing-explicit-ctor</arg>
+                                <arg>--add-exports</arg>
+                                <arg>java.base/jdk.internal.io=org.jline.console.provider</arg>
+                            </compilerArgs>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>--add-exports java.base/jdk.internal.io=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED</argLine>
+                    <useModulePath>false</useModulePath>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <additionalOptions>--add-exports java.base/jdk.internal.io=org.jline.console.provider</additionalOptions>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

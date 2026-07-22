@@ -11,6 +11,7 @@ if [ -z "$demo_name" ]; then
   echo "  gogo      - Run the Gogo shell demo"
   echo "  repl      - Run the REPL demo"
   echo "  password  - Run the password demo"
+  echo "  console   - Run the JLine Console Provider demo"
   echo "  consoleui - Run the ConsoleUI demo (deprecated)"
   echo "  prompt    - Run the new Prompt API demo"
   echo "  curses    - Run the Curses TUI demo"
@@ -49,7 +50,7 @@ fi
 
 # Determine if this is a built-in demo or example class based on known demo types
 case "$demo_name" in
-  "gogo"|"repl"|"password"|"consoleui"|"prompt"|"curses"|"graal")
+  "gogo"|"repl"|"password"|"console"|"consoleui"|"prompt"|"curses"|"graal")
     # This is a built-in demo
     case "$demo_name" in
       "gogo")
@@ -60,6 +61,10 @@ case "$demo_name" in
         ;;
       "password")
         MAIN_CLASS="org.jline.demo.PasswordMaskingDemo"
+        ;;
+      "console")
+        # Special case: console provider needs module path for System.console() integration
+        MAIN_CLASS="org.jline.demo.examples.ConsoleProviderExample"
         ;;
       "consoleui")
         MAIN_CLASS="org.jline.demo.consoleui.BasicDynamic"
@@ -151,12 +156,32 @@ if [ -n "$MAIN_CLASS" ]; then
   if [ -n "$APP_ARGS" ]; then
     echo "Application arguments: $APP_ARGS"
   fi
-  
-  # Build and execute the Java command
-  # Use eval to properly handle arguments with spaces
-  if [ -n "$JVM_OPTS" ]; then
-    eval java -cp \"$cp\" $JVM_OPTS -Dgosh.home=\"demo\" -Djava.util.logging.config.file=\"${logconf}\" ${MAIN_CLASS} $APP_ARGS
+
+  if [ "$demo_name" = "console" ]; then
+    # Console provider demo: use module path so System.console() picks up the JLine provider
+    mp=""
+    if [ -d ${TARGETDIR}/lib ]; then
+      mp=$(find ${TARGETDIR}/lib -name "*.jar" -exec printf :{} ';')
+      mp="${mp#:}"
+    fi
+    echo "Using module path for console provider"
+    eval java \
+      --module-path \"$mp\" \
+      --add-modules org.jline.console.provider \
+      --add-exports java.base/jdk.internal.io=org.jline.console.provider \
+      -Djdk.console=org.jline.console.provider \
+      -cp \"${TARGETDIR}/classes\" \
+      $JVM_OPTS \
+      -Dgosh.home=\"demo\" \
+      -Djava.util.logging.config.file=\"${logconf}\" \
+      ${MAIN_CLASS} $APP_ARGS
   else
-    eval java -cp \"$cp\" -Dgosh.home=\"demo\" -Djava.util.logging.config.file=\"${logconf}\" ${MAIN_CLASS} $APP_ARGS
+    # Build and execute the Java command
+    # Use eval to properly handle arguments with spaces
+    if [ -n "$JVM_OPTS" ]; then
+      eval java -cp \"$cp\" $JVM_OPTS -Dgosh.home=\"demo\" -Djava.util.logging.config.file=\"${logconf}\" ${MAIN_CLASS} $APP_ARGS
+    else
+      eval java -cp \"$cp\" -Dgosh.home=\"demo\" -Djava.util.logging.config.file=\"${logconf}\" ${MAIN_CLASS} $APP_ARGS
+    fi
   fi
 fi
