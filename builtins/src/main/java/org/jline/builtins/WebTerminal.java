@@ -304,6 +304,11 @@ public class WebTerminal extends LineDisciplineTerminal {
                 return;
             }
 
+            if (!isSameOrigin(exchange)) {
+                exchange.sendResponseHeaders(403, -1);
+                return;
+            }
+
             // Parse form data
             Map<String, String> params = parseFormData(exchange);
 
@@ -329,6 +334,24 @@ public class WebTerminal extends LineDisciplineTerminal {
                 Thread.currentThread().interrupt();
                 sendResponse(exchange, "");
             }
+        }
+
+        /**
+         * Tells whether a request was issued by the page this terminal serves.
+         * <p>
+         * Browsers attach {@code Origin} to every cross-origin POST, so a value that does not
+         * match the requested authority identifies a form or fetch coming from a foreign page.
+         * Clients that are not browsers send no {@code Origin} and keep working as before.
+         * </p>
+         */
+        private boolean isSameOrigin(HttpExchange exchange) {
+            String origin = exchange.getRequestHeaders().getFirst("Origin");
+            if (origin == null) {
+                return true;
+            }
+            String host = exchange.getRequestHeaders().getFirst("Host");
+            int scheme = origin.indexOf("://");
+            return host != null && scheme >= 0 && host.equalsIgnoreCase(origin.substring(scheme + 3));
         }
 
         private Map<String, String> parseFormData(HttpExchange exchange) throws IOException {
