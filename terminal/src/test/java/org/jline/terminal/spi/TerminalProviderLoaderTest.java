@@ -162,8 +162,8 @@ class TerminalProviderLoaderTest {
     void errorMessageMentionsClassLoaderHint() {
         IOException ex = assertThrows(IOException.class, () -> TerminalProvider.load("nonexistent", null));
         assertTrue(
-                ex.getMessage().contains("TerminalBuilder.classLoader()"),
-                "Error should suggest TerminalBuilder.classLoader() as a fix");
+                ex.getMessage().contains("TerminalBuilder.builder().classLoader("),
+                "Error should suggest TerminalBuilder.builder().classLoader() as a fix");
     }
 
     // ------------------------------------------------------------------
@@ -197,7 +197,7 @@ class TerminalProviderLoaderTest {
             IOException ex = assertThrows(IOException.class, () -> TerminalProvider.load("nonexistent", hiding));
             assertTrue(ex.getMessage().contains("nonexistent"));
             assertTrue(ex.getMessage().contains("META-INF/jline/providers/"));
-            assertTrue(ex.getMessage().contains("TerminalBuilder.classLoader()"));
+            assertTrue(ex.getMessage().contains("TerminalBuilder.builder().classLoader("));
         } finally {
             Thread.currentThread().setContextClassLoader(original);
         }

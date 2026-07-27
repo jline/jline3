@@ -365,7 +365,7 @@ public interface TerminalProvider {
      * @throws IOException if the provider cannot be loaded or is not found
      */
     static TerminalProvider load(String name, ClassLoader classLoader) throws IOException {
-        // Build the list of classloaders to try, in priority order:
+        // Try classloaders in priority order:
         //   1. Explicit classloader (if provided)
         //   2. Thread context classloader
         //   3. The classloader that loaded TerminalProvider itself
@@ -373,48 +373,22 @@ public interface TerminalProvider {
         // JLine JARs are loaded by a classloader that is not the thread's context classloader.
         ClassLoader contextCl = Thread.currentThread().getContextClassLoader();
         ClassLoader jlineCl = TerminalProvider.class.getClassLoader();
+        ClassLoader[] candidates = new ClassLoader[] {classLoader, contextCl, jlineCl};
 
         String providerResource = "META-INF/jline/providers/" + name;
         IOException loadError = null;
 
-        // Try each classloader until the resource is found
-        ClassLoader[] candidates = new ClassLoader[] {classLoader, contextCl, jlineCl};
         for (ClassLoader cl : candidates) {
             if (cl == null) {
                 continue;
             }
-            InputStream is = cl.getResourceAsStream(providerResource);
-            if (is == null) {
-                continue;
-            }
-            try (is) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    // Remove comments and trim whitespace
-                    int commentIndex = line.indexOf('#');
-                    if (commentIndex >= 0) {
-                        line = line.substring(0, commentIndex);
-                    }
-                    line = line.trim();
-
-                    // Skip empty lines
-                    if (line.isEmpty()) {
-                        continue;
-                    }
-
-                    // Found a provider class name, try to load it
-                    try {
-                        Class<?> providerClass = cl.loadClass(line);
-                        return (TerminalProvider) providerClass.getConstructor().newInstance();
-                    } catch (Exception | LinkageError e) {
-                        loadError =
-                                new IOException("Unable to load terminal provider " + name + ": " + e.getMessage(), e);
-                        break;
-                    }
+            try {
+                TerminalProvider result = tryLoadProvider(cl, providerResource, name);
+                if (result != null) {
+                    return result;
                 }
             } catch (IOException e) {
-                loadError = new IOException("Error reading provider resource file: " + e.getMessage(), e);
+                loadError = e;
             }
         }
 
@@ -422,9 +396,48 @@ public interface TerminalProvider {
             throw loadError;
         }
         throw new IOException("Unable to find terminal provider " + name
-                + ". The provider resource file META-INF/jline/providers/" + name
+                + ". The provider resource file " + providerResource
                 + " was not found by any classloader. If JLine is loaded by a custom classloader"
-                + " (e.g., OSGi, plugin system), use TerminalBuilder.classLoader() to specify"
-                + " the classloader that can access the JLine provider JARs.");
+                + " (e.g., OSGi, plugin system), configure the builder with"
+                + " TerminalBuilder.builder().classLoader(loader) to specify"
+                + " a classloader that can access the JLine provider JARs.");
+    }
+
+    /**
+     * Attempts to load a provider using a single classloader.
+     *
+     * @return the loaded provider, or {@code null} if the resource was not found by this classloader
+     * @throws IOException if the resource was found but the provider class could not be loaded
+     */
+    private static TerminalProvider tryLoadProvider(ClassLoader cl, String providerResource, String name)
+            throws IOException {
+        InputStream is = cl.getResourceAsStream(providerResource);
+        if (is == null) {
+            return null;
+        }
+        try (is) {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                // Remove comments and trim whitespace
+                int commentIndex = line.indexOf('#');
+                if (commentIndex >= 0) {
+                    line = line.substring(0, commentIndex);
+                }
+                line = line.trim();
+                if (line.isEmpty()) {
+                    continue;
+                }
+
+                // Found a provider class name, try to load it
+                try {
+                    Class<?> providerClass = cl.loadClass(line);
+                    return (TerminalProvider) providerClass.getConstructor().newInstance();
+                } catch (Exception | LinkageError e) {
+                    throw new IOException("Unable to load terminal provider " + name + ": " + e.getMessage(), e);
+                }
+            }
+        }
+        return null;
     }
 }
