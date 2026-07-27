@@ -121,7 +121,7 @@ class TerminalProviderLoaderTest {
     // ------------------------------------------------------------------
 
     @Test
-    void fallbackToJLineClassLoaderWhenContextHidesResources() throws Exception {
+    void fallbackToJLineClassLoaderWhenContextHidesResources() throws IOException {
         // Simulate the issue #2110 scenario: thread context classloader
         // cannot see META-INF/jline/providers/* but JLine's own classloader can.
         ClassLoader original = Thread.currentThread().getContextClassLoader();
@@ -138,7 +138,7 @@ class TerminalProviderLoaderTest {
     }
 
     @Test
-    void explicitClassLoaderTakesPriority() throws Exception {
+    void explicitClassLoaderTakesPriority() throws IOException {
         // Even when the context classloader can find "exec", an explicit
         // classloader pointing to "dumb" should win (it is tried first).
         ClassLoader explicitCl = new SyntheticProviderClassLoader(
@@ -171,7 +171,7 @@ class TerminalProviderLoaderTest {
     // ------------------------------------------------------------------
 
     @Test
-    void explicitClassLoaderWorksWhenContextHidesResources() throws Exception {
+    void explicitClassLoaderWorksWhenContextHidesResources() throws IOException {
         ClassLoader original = Thread.currentThread().getContextClassLoader();
         ClassLoader hiding = new ResourceHidingClassLoader(original);
         Thread.currentThread().setContextClassLoader(hiding);
@@ -187,7 +187,7 @@ class TerminalProviderLoaderTest {
     }
 
     @Test
-    void allClassLoadersFailGivesActionableError() throws Exception {
+    void allClassLoadersFailGivesActionableError() {
         ClassLoader original = Thread.currentThread().getContextClassLoader();
         ClassLoader hiding = new ResourceHidingClassLoader(original);
         Thread.currentThread().setContextClassLoader(hiding);
