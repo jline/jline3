@@ -273,7 +273,24 @@ public interface TerminalProvider {
     }
 
     /**
-     * Loads a terminal provider with the specified name.
+     * Loads a terminal provider with the specified name using the default classloader
+     * resolution strategy.
+     *
+     * <p>
+     * This is equivalent to calling {@link #load(String, ClassLoader) load(name, null)}.
+     * </p>
+     *
+     * @param name the name of the provider to load (e.g., "ffm", "jni", "exec", "dumb")
+     * @return the loaded terminal provider
+     * @throws IOException if the provider cannot be loaded or is not found
+     * @see #load(String, ClassLoader)
+     */
+    static TerminalProvider load(String name) throws IOException {
+        return load(name, null);
+    }
+
+    /**
+     * Loads a terminal provider with the specified name, using an optional explicit classloader.
      *
      * <h2>Provider Discovery Mechanism</h2>
      * <p>
@@ -287,6 +304,27 @@ public interface TerminalProvider {
      * because it allows loading a specific provider by name without instantiating all
      * available providers. This is critical for providers that may fail to initialize
      * due to missing native libraries (JNI, FFM) or other platform-specific dependencies.
+     * </p>
+     *
+     * <h2>Classloader Resolution</h2>
+     * <p>
+     * The classloader used for provider discovery is resolved in this order:
+     * </p>
+     * <ol>
+     *   <li>The explicit {@code classLoader} parameter, if non-null</li>
+     *   <li>The thread's {@linkplain Thread#getContextClassLoader() context classloader}</li>
+     *   <li>The classloader that loaded the {@code TerminalProvider} class itself</li>
+     * </ol>
+     * <p>
+     * Each classloader is tried in order until the provider resource file is found. This
+     * fallback chain ensures provider discovery works in environments with non-standard
+     * classloader hierarchies, such as OSGi containers, application servers, and plugin
+     * systems that load JLine through a child classloader that is not the thread's context
+     * classloader.
+     * </p>
+     * <p>
+     * The explicit classloader can be set via
+     * {@link org.jline.terminal.TerminalBuilder#classLoader(ClassLoader)}.
      * </p>
      *
      * <h2>Dual-Purpose Service Files</h2>
@@ -321,22 +359,35 @@ public interface TerminalProvider {
      * </pre>
      *
      * @param name the name of the provider to load (e.g., "ffm", "jni", "exec", "dumb")
+     * @param classLoader an explicit classloader to try first, or {@code null} to use the
+     *                    default resolution strategy (context classloader, then JLine's own classloader)
      * @return the loaded terminal provider
      * @throws IOException if the provider cannot be loaded or is not found
      */
-    static TerminalProvider load(String name) throws IOException {
-        ClassLoader cl = Thread.currentThread().getContextClassLoader();
-        if (cl == null) {
-            cl = TerminalProvider.class.getClassLoader();
-        }
+    static TerminalProvider load(String name, ClassLoader classLoader) throws IOException {
+        // Build the list of classloaders to try, in priority order:
+        //   1. Explicit classloader (if provided)
+        //   2. Thread context classloader
+        //   3. The classloader that loaded TerminalProvider itself
+        // This fallback chain handles plugin systems and OSGi containers where
+        // JLine JARs are loaded by a classloader that is not the thread's context classloader.
+        ClassLoader contextCl = Thread.currentThread().getContextClassLoader();
+        ClassLoader jlineCl = TerminalProvider.class.getClassLoader();
 
-        // Read the provider-specific resource file to get the class name.
-        // We use META-INF/jline/providers/{name} instead of ServiceLoader to avoid
-        // instantiating all providers when we only need one. This is critical because
-        // some providers (JNI, FFM) may fail to load due to missing native libraries.
         String providerResource = "META-INF/jline/providers/" + name;
-        try (InputStream is = cl.getResourceAsStream(providerResource)) {
-            if (is != null) {
+        IOException loadError = null;
+
+        // Try each classloader until the resource is found
+        ClassLoader[] candidates = new ClassLoader[] {classLoader, contextCl, jlineCl};
+        for (ClassLoader cl : candidates) {
+            if (cl == null) {
+                continue;
+            }
+            InputStream is = cl.getResourceAsStream(providerResource);
+            if (is == null) {
+                continue;
+            }
+            try (is) {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
                 String line;
                 while ((line = reader.readLine()) != null) {
@@ -357,14 +408,23 @@ public interface TerminalProvider {
                         Class<?> providerClass = cl.loadClass(line);
                         return (TerminalProvider) providerClass.getConstructor().newInstance();
                     } catch (Exception | LinkageError e) {
-                        throw new IOException("Unable to load terminal provider " + name + ": " + e.getMessage(), e);
+                        loadError =
+                                new IOException("Unable to load terminal provider " + name + ": " + e.getMessage(), e);
+                        break;
                     }
                 }
+            } catch (IOException e) {
+                loadError = new IOException("Error reading provider resource file: " + e.getMessage(), e);
             }
-        } catch (IOException e) {
-            throw new IOException("Error reading provider resource file: " + e.getMessage(), e);
         }
 
-        throw new IOException("Unable to find terminal provider " + name);
+        if (loadError != null) {
+            throw loadError;
+        }
+        throw new IOException("Unable to find terminal provider " + name
+                + ". The provider resource file META-INF/jline/providers/" + name
+                + " was not found by any classloader. If JLine is loaded by a custom classloader"
+                + " (e.g., OSGi, plugin system), use TerminalBuilder.classLoader() to specify"
+                + " the classloader that can access the JLine provider JARs.");
     }
 }
