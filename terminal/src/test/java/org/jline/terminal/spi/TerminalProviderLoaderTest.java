@@ -88,6 +88,21 @@ class TerminalProviderLoaderTest {
         }
     }
 
+    /**
+     * A classloader that throws a {@link SecurityException} on every resource
+     * lookup. Simulates a misbehaving classloader in a restrictive container.
+     */
+    private static class ThrowingClassLoader extends ClassLoader {
+        ThrowingClassLoader(ClassLoader parent) {
+            super(parent);
+        }
+
+        @Override
+        public InputStream getResourceAsStream(String name) {
+            throw new SecurityException("Simulated restrictive classloader");
+        }
+    }
+
     // ------------------------------------------------------------------
     // Basic load(name) tests
     // ------------------------------------------------------------------
@@ -201,5 +216,19 @@ class TerminalProviderLoaderTest {
         } finally {
             Thread.currentThread().setContextClassLoader(original);
         }
+    }
+
+    // ------------------------------------------------------------------
+    // Misbehaving classloader resilience
+    // ------------------------------------------------------------------
+
+    @Test
+    void throwingClassLoaderSkippedAndFallbackSucceeds() throws IOException {
+        // A misbehaving explicit classloader (throws SecurityException) should
+        // be caught and skipped, allowing the fallback to JLine's own classloader.
+        ClassLoader throwing = new ThrowingClassLoader(getClass().getClassLoader());
+        TerminalProvider provider = TerminalProvider.load("exec", throwing);
+        assertNotNull(provider);
+        assertEquals("exec", provider.name());
     }
 }

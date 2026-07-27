@@ -400,6 +400,11 @@ public interface TerminalProvider {
                 }
             } catch (IOException e) {
                 loadError = e;
+            } catch (RuntimeException e) {
+                // Tolerate misbehaving classloaders (e.g., SecurityException from
+                // OSGi/plugin systems) so remaining candidates still get a chance.
+                loadError = new IOException(
+                        "Unable to search classloader " + cl + " for provider " + name + ": " + e.getMessage(), e);
             }
         }
 
