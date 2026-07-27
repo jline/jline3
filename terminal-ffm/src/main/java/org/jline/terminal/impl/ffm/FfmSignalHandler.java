@@ -29,7 +29,7 @@ import java.util.concurrent.locks.LockSupport;
  * <ul>
  *   <li>No dependency on internal JVM APIs ({@code sun.misc.Signal})</li>
  *   <li>{@code SA_RESTART} flag to automatically restart interrupted system calls</li>
- *   <li>Arena-scoped handler lifetime</li>
+ *   <li>GC-managed handler lifetime (uses {@link Arena#ofAuto()} for GraalVM native-image compatibility)</li>
  * </ul>
  *
  * <p><b>Async-signal-safety caveat:</b> The upcall stub used as the native signal handler
@@ -227,7 +227,7 @@ class FfmSignalHandler {
     /**
      * Token returned by {@link #register} for later use with {@link #unregister}.
      */
-    record Registration(int signum, Arena arena, MemorySegment oldAction, Runnable previousHandler) {}
+    record Registration(int signum, MemorySegment oldAction, Runnable previousHandler) {}
 
     // --- Public API ---
 
@@ -245,7 +245,7 @@ class FfmSignalHandler {
      *
      * @param name    signal name (e.g. "WINCH", "INT")
      * @param handler the Java callback to invoke when the signal is dispatched
-     * @return a {@link Registration} token encapsulating the signum, native arena and saved old action (and the previous Java handler when preserved), or {@code null} if FFM support is unavailable or the signal name is unsupported
+     * @return a {@link Registration} token retaining the signum, the saved {@code oldAction} segment for later restoration, and the previous Java handler (when preserved), or {@code null} if FFM support is unavailable or the signal name is unsupported
      */
     static Object register(String name, Runnable handler) {
         if (!AVAILABLE) {
@@ -260,7 +260,7 @@ class FfmSignalHandler {
         // immediately after the native install are not lost.
         Runnable previousHandler = handlers.put(signum, handler);
 
-        Arena arena = Arena.ofShared();
+        Arena arena = Arena.ofAuto();
         MemorySegment oldAct = null;
         boolean nativeInstalled = false;
         try {
@@ -273,7 +273,6 @@ class FfmSignalHandler {
             if (res != 0) {
                 logger.log(Level.DEBUG, "sigaction() failed for signal {0} (signum={1})", new Object[] {name, signum});
                 restoreHandler(signum, previousHandler);
-                arena.close();
                 return null;
             }
             nativeInstalled = true;
@@ -281,7 +280,7 @@ class FfmSignalHandler {
             // Only preserve previousHandler in Registration when the old native
             // disposition was our upcall stub (otherwise it belongs to an external handler)
             Runnable saved = isOurUpcallStub(oldAct) ? previousHandler : null;
-            return new Registration(signum, arena, oldAct, saved);
+            return new Registration(signum, oldAct, saved);
         } catch (Throwable t) {
             logger.log(Level.DEBUG, "Error registering FFM signal handler for {0}", name);
             logger.log(Level.DEBUG, EXCEPTION_DETAILS, t);
@@ -289,7 +288,6 @@ class FfmSignalHandler {
                 bestEffortRestore(signum, oldAct);
             }
             restoreHandler(signum, previousHandler);
-            arena.close();
             return null;
         }
     }
@@ -309,7 +307,7 @@ class FfmSignalHandler {
             return null;
         }
 
-        Arena arena = Arena.ofShared();
+        Arena arena = Arena.ofAuto();
         try {
             MemorySegment oldAct = arena.allocate(sigactionLayout);
             MemorySegment newAct = arena.allocate(sigactionLayout);
@@ -319,17 +317,15 @@ class FfmSignalHandler {
             int res = (int) sigaction_mh.invoke(signum, newAct, oldAct);
             if (res != 0) {
                 logger.log(Level.DEBUG, "sigaction(SIG_DFL) failed for signal {0}", name);
-                arena.close();
                 return null;
             }
             // Save the previous Java handler in case unregister() needs to restore it
             Runnable previousHandler = handlers.remove(signum);
             stopDispatcherIfIdle();
-            return new Registration(signum, arena, oldAct, previousHandler);
+            return new Registration(signum, oldAct, previousHandler);
         } catch (Throwable t) {
             logger.log(Level.DEBUG, "Error registering default handler for {0}", name);
             logger.log(Level.DEBUG, EXCEPTION_DETAILS, t);
-            arena.close();
             return null;
         }
     }
@@ -362,8 +358,6 @@ class FfmSignalHandler {
         } catch (Throwable t) {
             logger.log(Level.DEBUG, "Error unregistering FFM signal handler for {0}", name);
             logger.log(Level.DEBUG, EXCEPTION_DETAILS, t);
-        } finally {
-            reg.arena().close();
         }
     }
 
