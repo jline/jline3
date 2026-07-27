@@ -15,6 +15,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
@@ -373,15 +375,24 @@ public interface TerminalProvider {
         // JLine JARs are loaded by a classloader that is not the thread's context classloader.
         ClassLoader contextCl = Thread.currentThread().getContextClassLoader();
         ClassLoader jlineCl = TerminalProvider.class.getClassLoader();
-        ClassLoader[] candidates = new ClassLoader[] {classLoader, contextCl, jlineCl};
+
+        // Deduplicate: in a standard setup the context classloader and JLine's
+        // own classloader are often the same instance — skip redundant lookups.
+        List<ClassLoader> candidates = new ArrayList<>(3);
+        if (classLoader != null) {
+            candidates.add(classLoader);
+        }
+        if (contextCl != null && contextCl != classLoader) {
+            candidates.add(contextCl);
+        }
+        if (jlineCl != null && jlineCl != classLoader && jlineCl != contextCl) {
+            candidates.add(jlineCl);
+        }
 
         String providerResource = "META-INF/jline/providers/" + name;
         IOException loadError = null;
 
         for (ClassLoader cl : candidates) {
-            if (cl == null) {
-                continue;
-            }
             try {
                 TerminalProvider result = tryLoadProvider(cl, providerResource, name);
                 if (result != null) {
