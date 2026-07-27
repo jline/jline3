@@ -383,6 +383,7 @@ public final class TerminalBuilder {
     private boolean paused = false;
     private Boolean graphemeCluster;
     private UnaryOperator<String> env;
+    private ClassLoader classLoader;
 
     private TerminalBuilder() {}
 
@@ -437,6 +438,41 @@ public final class TerminalBuilder {
      */
     public TerminalBuilder providers(String providers) {
         this.providers = providers;
+        return this;
+    }
+
+    /**
+     * Sets an explicit classloader for terminal provider discovery.
+     *
+     * <p>
+     * When JLine is loaded through a custom classloader (e.g., OSGi containers,
+     * application servers, plugin systems), the default provider discovery may fail
+     * because the thread's context classloader cannot locate the provider resource
+     * files bundled in the JLine JARs. This method allows specifying the classloader
+     * that has access to those JARs.
+     * </p>
+     *
+     * <p>
+     * The specified classloader is tried first during provider discovery, before falling
+     * back to the thread context classloader and JLine's own classloader. See
+     * {@link TerminalProvider#load(String, ClassLoader)} for the full resolution order.
+     * </p>
+     *
+     * <p><b>Example — plugin system where JLine is loaded at runtime:</b></p>
+     * <pre>
+     * Terminal terminal = TerminalBuilder.builder()
+     *     .streams(inputStream, outputStream)
+     *     .classLoader(getClass().getClassLoader())
+     *     .build();
+     * </pre>
+     *
+     * @param classLoader the classloader to use for provider discovery, or {@code null}
+     *                    to use the default resolution strategy
+     * @return this builder
+     * @see TerminalProvider#load(String, ClassLoader)
+     */
+    public TerminalBuilder classLoader(ClassLoader classLoader) {
+        this.classLoader = classLoader;
         return this;
     }
 
@@ -1269,11 +1305,11 @@ public final class TerminalBuilder {
     public List<TerminalProvider> getProviders(String provider, IllegalStateException exception) {
         List<TerminalProvider> providers = new ArrayList<>();
         // Check ffm provider
-        checkProvider(provider, exception, providers, ffm, PROP_FFM, PROP_PROVIDER_FFM);
+        checkProvider(provider, exception, providers, ffm, PROP_FFM, PROP_PROVIDER_FFM, classLoader);
         // Check jni provider
-        checkProvider(provider, exception, providers, jni, PROP_JNI, PROP_PROVIDER_JNI);
+        checkProvider(provider, exception, providers, jni, PROP_JNI, PROP_PROVIDER_JNI, classLoader);
         // Check exec provider
-        checkProvider(provider, exception, providers, exec, PROP_EXEC, PROP_PROVIDER_EXEC);
+        checkProvider(provider, exception, providers, exec, PROP_EXEC, PROP_PROVIDER_EXEC, classLoader);
         // Order providers
         List<String> order = Arrays.asList(
                 (this.providers != null ? this.providers : System.getProperty(PROP_PROVIDERS, PROP_PROVIDERS_DEFAULT))
@@ -1293,14 +1329,15 @@ public final class TerminalBuilder {
             List<TerminalProvider> providers,
             Boolean load,
             String property,
-            String name) {
+            String name,
+            ClassLoader classLoader) {
         Boolean doLoad = provider != null ? (Boolean) name.equals(provider) : load;
         if (doLoad == null) {
             doLoad = getBoolean(property, true);
         }
         if (doLoad) {
             try {
-                TerminalProvider prov = TerminalProvider.load(name);
+                TerminalProvider prov = TerminalProvider.load(name, classLoader);
                 prov.isSystemStream(SystemStream.Output);
                 providers.add(prov);
             } catch (Throwable t) {
