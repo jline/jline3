@@ -107,6 +107,7 @@ Spotless enforces this header automatically via `spotless:apply`.
 - **Always squash merge.** The squash commit message must be a single `<type>: <description>` line that summarizes the entire diff (not a list of individual commits).
 - **Label the PR** before merging to categorize it (e.g., `enhancement`, `bug`, `documentation`). Labels drive the release notes.
 - **Set the milestone** on the PR to the target release version before merging.
+- **Assign the PR** to its author (or the contributor who did the work). Do not change existing assignees on linked issues.
 
 ### Backporting Workflow
 
