@@ -390,6 +390,7 @@ class WebTerminalIntegrationTest {
                 + body.length + "\r\n" + "Connection: close\r\n\r\n";
 
         try (Socket socket = new Socket(url.getHost(), url.getPort())) {
+            socket.setSoTimeout(5000);
             OutputStream os = socket.getOutputStream();
             os.write(request.getBytes(StandardCharsets.US_ASCII));
             os.write(body);
