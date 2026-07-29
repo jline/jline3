@@ -16,6 +16,7 @@ import java.net.HttpURLConnection;
 import java.net.Socket;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -125,13 +127,7 @@ class WebTerminalIntegrationTest {
         readerThread.start();
 
         assertTrue(readerReady.await(5, TimeUnit.SECONDS), "LineReader should be ready");
-        // Give the reader time to display the prompt
-        Thread.sleep(200);
-
-        // Poll to get the prompt displayed
-        String response = postToTerminal("f=1");
-        assertNotNull(response);
-        assertTrue(response.contains("$"), "Should show the prompt: " + response);
+        awaitPrompt();
 
         // Send "hi" followed by Enter
         postToTerminal("k=" + urlEncode("h"));
@@ -165,7 +161,7 @@ class WebTerminalIntegrationTest {
         readerThread.start();
 
         assertTrue(readerReady.await(5, TimeUnit.SECONDS));
-        Thread.sleep(200);
+        awaitPrompt();
 
         // Type "abc", then backspace to delete 'c', then Enter
         postToTerminal("k=" + urlEncode("a"));
@@ -199,7 +195,7 @@ class WebTerminalIntegrationTest {
         readerThread.start();
 
         assertTrue(readerReady.await(5, TimeUnit.SECONDS));
-        Thread.sleep(200);
+        awaitPrompt();
 
         // Type "hel" then Tab
         postToTerminal("k=" + urlEncode("h"));
@@ -207,17 +203,14 @@ class WebTerminalIntegrationTest {
         postToTerminal("k=" + urlEncode("l"));
         postToTerminal("k=" + urlEncode("\t"));
 
-        // Wait for completion to be processed
-        Thread.sleep(500);
-
-        // Poll to see the completion result
-        String response = postToTerminal("f=1");
-        assertNotNull(response);
         // After "hel" + Tab, the common prefix "hel" should be shown,
         // and completions "hello" and "help" should appear
-        assertTrue(
-                response.contains("hello") || response.contains("help") || response.contains("hel"),
-                "Tab completion should show candidates: " + response);
+        await().atMost(5, TimeUnit.SECONDS).pollInterval(Duration.ofMillis(50)).untilAsserted(() -> {
+            String response = postToTerminal("f=1");
+            assertTrue(
+                    response.contains("hello") || response.contains("help") || response.contains("hel"),
+                    "Tab completion should show candidates: " + response);
+        });
     }
 
     @Test
@@ -242,7 +235,7 @@ class WebTerminalIntegrationTest {
         readerThread.start();
 
         assertTrue(readerReady.await(5, TimeUnit.SECONDS));
-        Thread.sleep(200);
+        awaitPrompt();
 
         // Type "ac", move left, insert "b", then Enter
         // Result should be "abc"
@@ -357,7 +350,7 @@ class WebTerminalIntegrationTest {
         readerThread.start();
 
         assertTrue(readerReady.await(5, TimeUnit.SECONDS));
-        Thread.sleep(200);
+        awaitPrompt();
 
         assertEquals(403, postWithOrigin("k=" + urlEncode("x"), "http://evil.example"));
         assertEquals(403, postWithOrigin("k=" + urlEncode("\r"), "http://evil.example"));
@@ -421,6 +414,15 @@ class WebTerminalIntegrationTest {
         String response = new String(conn.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
         conn.disconnect();
         return response;
+    }
+
+    /**
+     * Helper: poll the screen until the reader has entered readLine() and displayed its prompt.
+     */
+    private void awaitPrompt() {
+        await().atMost(5, TimeUnit.SECONDS)
+                .pollInterval(Duration.ofMillis(50))
+                .untilAsserted(() -> assertTrue(postToTerminal("f=1").contains("$"), "Prompt should be visible"));
     }
 
     /**
