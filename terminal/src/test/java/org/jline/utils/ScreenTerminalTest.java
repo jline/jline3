@@ -1262,4 +1262,43 @@ class ScreenTerminalTest {
 
         assertFalse(screen.isSynchronizedOutput());
     }
+
+    /**
+     * DSR replies are fed back as terminal input, so every reply must be a
+     * control sequence the application consumes as a report. Requests outside
+     * the ECMA-48 set are left unanswered.
+     */
+    @Test
+    void testDsrDoesNotReplyWithPlainText() {
+        ScreenTerminal screen = new ScreenTerminal(80, 24);
+
+        screen.write("\033[7n");
+        assertEquals("", screen.read(), "DSR 7 must not reply");
+        screen.write("\033[8n");
+        assertEquals("", screen.read(), "DSR 8 must not reply");
+
+        // The standard reports still answer
+        screen.write("\033[5n");
+        assertEquals("\033[0n", screen.read());
+        screen.write("\033[6n");
+        assertEquals("\033[1;1R", screen.read());
+    }
+
+    /**
+     * A wired screen feeds its replies to the terminal input, so output
+     * carrying an unanswered request must not put anything there.
+     */
+    @Test
+    void testDsrReplyIsNotTypedIntoTerminalInput() throws IOException {
+        ScreenTerminal.VirtualTerminal vt = ScreenTerminal.withTerminal("test", "xterm", 80, 24);
+        try (Terminal terminal = vt.terminal()) {
+            terminal.writer().write("\033[7n");
+            terminal.writer().flush();
+
+            assertEquals(
+                    NonBlockingReader.READ_EXPIRED,
+                    terminal.reader().read(200L),
+                    "screen reply reached the terminal input");
+        }
+    }
 }
