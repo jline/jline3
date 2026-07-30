@@ -450,7 +450,7 @@ public class Ssh {
 
         @Override
         public void welcome(ClientSession session, String banner, String lang) {
-            terminal.writer().println(banner);
+            terminal.writer().println(printable(banner));
         }
 
         @Override
@@ -459,7 +459,7 @@ public class Ssh {
             String[] answers = new String[prompt.length];
             try {
                 for (int i = 0; i < prompt.length; i++) {
-                    answers[i] = readLine(prompt[i], echo[i]);
+                    answers[i] = readLine(printable(prompt[i]), echo[i]);
                 }
             } catch (Exception e) {
                 stderr.append(e.getClass().getSimpleName())
@@ -477,20 +477,39 @@ public class Ssh {
         @Override
         public void serverVersionInfo(ClientSession session, List<String> lines) {
             for (String l : lines) {
-                terminal.writer().append('\t').println(l);
+                terminal.writer().append('\t').println(printable(l));
             }
         }
 
         @Override
         public String getUpdatedPassword(ClientSession session, String prompt, String lang) {
             try {
-                return readLine(prompt, false);
+                return readLine(printable(prompt), false);
             } catch (Exception e) {
                 stderr.append(e.getClass().getSimpleName())
                         .append(" while reading password: ")
                         .println(e.getMessage());
             }
             return null;
+        }
+
+        /**
+         * Drops control characters from text the server chose. Identification lines, the welcome
+         * banner and keyboard-interactive prompts all reach the terminal before the session is
+         * authenticated, so the peer must not be able to smuggle escape sequences through them.
+         * Line breaks and tabs are kept so multi-line banners still render.
+         */
+        private static String printable(String text) {
+            if (text == null) {
+                return null;
+            }
+            StringBuilder sb = new StringBuilder(text.length());
+            text.codePoints().forEach(cp -> {
+                if (cp == '\n' || cp == '\t' || !Character.isISOControl(cp)) {
+                    sb.appendCodePoint(cp);
+                }
+            });
+            return sb.toString();
         }
 
         private String readLine(String prompt, boolean echo) {
