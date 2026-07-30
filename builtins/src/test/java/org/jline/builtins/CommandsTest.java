@@ -79,29 +79,32 @@ class CommandsTest {
         // sits one level above the theme directory; the viewer must not reach it
         Files.write(tmp.resolve("outside.nanorctheme"), List.of("SECRET_TOKEN white"));
 
-        ByteArrayOutputStream outBytes = new ByteArrayOutputStream();
-        ByteArrayOutputStream errBytes = new ByteArrayOutputStream();
-        ByteArrayOutputStream termBytes = new ByteArrayOutputStream();
-        try (Terminal terminal = TerminalBuilder.builder()
-                .dumb(true)
-                .streams(new ByteArrayInputStream(new byte[0]), termBytes)
-                .build()) {
-            LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
-            ConfigurationPath configPath = new ConfigurationPath(configDir, configDir);
-            Commands.highlighter(
-                    reader,
-                    terminal,
-                    new PrintStream(outBytes),
-                    new PrintStream(errBytes),
-                    new String[] {"--view", "../outside.nanorctheme"},
-                    configPath);
+        for (String name : new String[] {"../outside.nanorctheme", "..\\outside.nanorctheme"}) {
+            ByteArrayOutputStream outBytes = new ByteArrayOutputStream();
+            ByteArrayOutputStream errBytes = new ByteArrayOutputStream();
+            ByteArrayOutputStream termBytes = new ByteArrayOutputStream();
+            try (Terminal terminal = TerminalBuilder.builder()
+                    .dumb(true)
+                    .streams(new ByteArrayInputStream(new byte[0]), termBytes)
+                    .build()) {
+                LineReader reader =
+                        LineReaderBuilder.builder().terminal(terminal).build();
+                ConfigurationPath configPath = new ConfigurationPath(configDir, configDir);
+                Commands.highlighter(
+                        reader,
+                        terminal,
+                        new PrintStream(outBytes),
+                        new PrintStream(errBytes),
+                        new String[] {"--view", name},
+                        configPath);
+            }
+            String out = outBytes.toString(StandardCharsets.UTF_8);
+            String err = errBytes.toString(StandardCharsets.UTF_8);
+            String term = termBytes.toString(StandardCharsets.UTF_8);
+            assertTrue(err.contains("Invalid theme name"), name + " should be rejected, err=" + err);
+            assertFalse(out.contains("outside"), name + " must not be resolved, out=" + out);
+            assertFalse(term.contains("SECRET_TOKEN"), "content outside the theme dir must not leak");
         }
-        String out = outBytes.toString(StandardCharsets.UTF_8);
-        String err = errBytes.toString(StandardCharsets.UTF_8);
-        String term = termBytes.toString(StandardCharsets.UTF_8);
-        assertTrue(err.contains("Invalid theme name"), "traversal should be rejected, err=" + err);
-        assertFalse(out.contains("outside"), "escaped path must not be resolved, out=" + out);
-        assertFalse(term.contains("SECRET_TOKEN"), "content outside the theme dir must not leak");
     }
 
     @Test
