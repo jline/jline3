@@ -1292,7 +1292,7 @@ class ScreenTerminalTest {
     void testDsrReplyIsNotTypedIntoTerminalInput() throws IOException {
         ScreenTerminal.VirtualTerminal vt = ScreenTerminal.withTerminal("test", "xterm", 80, 24);
         try (Terminal terminal = vt.terminal()) {
-            terminal.writer().write("\033[7n");
+            terminal.writer().write("\033[7n\033[8n");
             terminal.writer().flush();
 
             assertEquals(
