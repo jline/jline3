@@ -34,6 +34,7 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.LineDisciplineTerminal;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -43,6 +44,9 @@ class SshServerTextTest {
 
     /** Window title change, screen wipe and a fake password prompt, all inside the banner. */
     private static final String HOSTILE_BANNER = "Authorized access only\n\033]0;pwned\007\033[2J\033[1;1HPassword:";
+
+    @TempDir
+    Path tempDir;
 
     @Test
     void welcomeBannerCannotDriveTheTerminal() throws Exception {
@@ -59,7 +63,7 @@ class SshServerTextTest {
     private String runWithBanner(String banner) throws Exception {
         SshServer sshd = SshServer.setUpDefaultServer();
         sshd.setPort(0);
-        sshd.setKeyPairProvider(new SimpleGeneratorHostKeyProvider(Path.of("target/banner-hostkey.ser")));
+        sshd.setKeyPairProvider(new SimpleGeneratorHostKeyProvider(tempDir.resolve("banner-hostkey.ser")));
         sshd.setUserAuthFactories(Collections.singletonList(UserAuthNoneFactory.INSTANCE));
         CoreModuleProperties.WELCOME_BANNER.set(sshd, banner);
         sshd.setShellFactory(new ImmediateExitShellFactory());

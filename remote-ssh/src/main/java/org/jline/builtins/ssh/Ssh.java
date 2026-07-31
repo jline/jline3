@@ -497,7 +497,8 @@ public class Ssh {
          * Drops control characters from text the server chose. Identification lines, the welcome
          * banner and keyboard-interactive prompts all reach the terminal before the session is
          * authenticated, so the peer must not be able to smuggle escape sequences through them.
-         * Line breaks and tabs are kept so multi-line banners still render.
+         * Newlines ({@code \n}) and tabs are kept so multi-line banners still render;
+         * {@code \r} is stripped along with the other control characters.
          */
         private static String printable(String text) {
             if (text == null) {
