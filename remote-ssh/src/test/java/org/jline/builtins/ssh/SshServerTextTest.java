@@ -107,13 +107,19 @@ class SshServerTextTest {
                 private ExitCallback callback;
 
                 @Override
-                public void setInputStream(InputStream in) {}
+                public void setInputStream(InputStream in) {
+                    // not needed: test shell exits immediately without reading
+                }
 
                 @Override
-                public void setOutputStream(OutputStream out) {}
+                public void setOutputStream(OutputStream out) {
+                    // not needed: test shell exits immediately without writing
+                }
 
                 @Override
-                public void setErrorStream(OutputStream err) {}
+                public void setErrorStream(OutputStream err) {
+                    // not needed: test shell exits immediately without writing
+                }
 
                 @Override
                 public void setExitCallback(ExitCallback callback) {
@@ -126,7 +132,9 @@ class SshServerTextTest {
                 }
 
                 @Override
-                public void destroy(ChannelSession channel) {}
+                public void destroy(ChannelSession channel) {
+                    // nothing to clean up in the test stub
+                }
             };
         }
     }
