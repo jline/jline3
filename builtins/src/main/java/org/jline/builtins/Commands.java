@@ -2001,6 +2001,11 @@ public class Commands {
      * @return the path with the file name replaced
      */
     private static String replaceFileName(Path path, String name) {
+        // name is a theme file name inside path's directory; a separator or ".." segment
+        // would let it point elsewhere (e.g. "../../etc/passwd"), so reject those.
+        if (name.indexOf('/') >= 0 || name.indexOf('\\') >= 0 || name.equals("..") || name.equals(".")) {
+            throw new IllegalArgumentException("Invalid theme name: " + name);
+        }
         int nameLength = path.getFileName().toString().length();
         int pathLength = path.toString().length();
         return (path.toString().substring(0, pathLength - nameLength) + name).replace("\\", "\\\\");
