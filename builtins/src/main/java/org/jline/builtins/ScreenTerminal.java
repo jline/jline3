@@ -1041,10 +1041,6 @@ public class ScreenTerminal {
             vt100_out = "\u001b[0n";
         } else if ("6".equals(ps[0])) {
             vt100_out = "\u001b[" + (cy + 1) + ";" + (cx + 1) + "R";
-        } else if ("7".equals(ps[0])) {
-            vt100_out = "gogo-term";
-        } else if ("8".equals(ps[0])) {
-            vt100_out = "1.0-SNAPSHOT";
         } else if ("?6".equals(ps[0])) {
             vt100_out = "\u001b[" + (cy + 1) + ";" + (cx + 1) + ";0R";
         } else if ("?15".equals(ps[0])) {
@@ -1056,6 +1052,9 @@ public class ScreenTerminal {
         } else if ("?53".equals(ps[0])) {
             vt100_out = "\u001b[?53n";
         }
+        // Replies are fed back as terminal input, so only control sequences are
+        // sent: 7 (terminal name) and 8 (firmware version) are not ECMA-48 DSR
+        // requests and answering them typed plain text into the application.
         // ?75 : Data Integrity report
         // ?62 : Macro Space report
         // ?63 : Memory Checksum report

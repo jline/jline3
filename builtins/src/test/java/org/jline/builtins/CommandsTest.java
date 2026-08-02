@@ -9,8 +9,11 @@
 package org.jline.builtins;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 
 import org.jline.reader.History;
 import org.jline.reader.LineReader;
@@ -20,8 +23,11 @@ import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class CommandsTest {
     @Test
@@ -62,5 +68,69 @@ public class CommandsTest {
         } catch (Exception e) {
             throw new RuntimeException("Test failed", e);
         }
+    }
+
+    @Test
+    void highlighterViewRejectsThemePathTraversal(@TempDir Path tmp) throws Exception {
+        Path configDir = Files.createDirectory(tmp.resolve("config"));
+        Files.write(configDir.resolve("jnanorc"), Collections.singletonList("theme dark.nanorctheme"));
+        Files.write(configDir.resolve("dark.nanorctheme"), Collections.singletonList("DEFAULT white"));
+        // sits one level above the theme directory; the viewer must not reach it
+        Files.write(tmp.resolve("outside.nanorctheme"), Collections.singletonList("SECRET_TOKEN white"));
+
+        for (String name : new String[] {"../outside.nanorctheme", "..\\outside.nanorctheme"}) {
+            ByteArrayOutputStream outBytes = new ByteArrayOutputStream();
+            ByteArrayOutputStream errBytes = new ByteArrayOutputStream();
+            ByteArrayOutputStream termBytes = new ByteArrayOutputStream();
+            try (Terminal terminal = TerminalBuilder.builder()
+                    .dumb(true)
+                    .streams(new ByteArrayInputStream(new byte[0]), termBytes)
+                    .build()) {
+                LineReader reader =
+                        LineReaderBuilder.builder().terminal(terminal).build();
+                ConfigurationPath configPath = new ConfigurationPath(configDir, configDir);
+                Commands.highlighter(
+                        reader,
+                        terminal,
+                        new PrintStream(outBytes),
+                        new PrintStream(errBytes),
+                        new String[] {"--view", name},
+                        configPath);
+            }
+            String out = outBytes.toString(StandardCharsets.UTF_8.name());
+            String err = errBytes.toString(StandardCharsets.UTF_8.name());
+            String term = termBytes.toString(StandardCharsets.UTF_8.name());
+            assertTrue(err.contains("Invalid theme name"), name + " should be rejected, err=" + err);
+            assertFalse(out.contains("outside"), name + " must not be resolved, out=" + out);
+            assertFalse(term.contains("SECRET_TOKEN"), "content outside the theme dir must not leak");
+        }
+    }
+
+    @Test
+    void highlighterViewReadsThemeInConfigDir(@TempDir Path tmp) throws Exception {
+        Path configDir = Files.createDirectory(tmp.resolve("config"));
+        Files.write(configDir.resolve("jnanorc"), Collections.singletonList("theme dark.nanorctheme"));
+        Files.write(configDir.resolve("dark.nanorctheme"), Collections.singletonList("DEFAULT white"));
+
+        ByteArrayOutputStream outBytes = new ByteArrayOutputStream();
+        ByteArrayOutputStream errBytes = new ByteArrayOutputStream();
+        try (Terminal terminal = TerminalBuilder.builder()
+                .dumb(true)
+                .streams(new ByteArrayInputStream(new byte[0]), new ByteArrayOutputStream())
+                .build()) {
+            LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
+            ConfigurationPath configPath = new ConfigurationPath(configDir, configDir);
+            Commands.highlighter(
+                    reader,
+                    terminal,
+                    new PrintStream(outBytes),
+                    new PrintStream(errBytes),
+                    new String[] {"--view", "dark.nanorctheme"},
+                    configPath);
+        }
+        String out = outBytes.toString(StandardCharsets.UTF_8.name());
+        String err = errBytes.toString(StandardCharsets.UTF_8.name());
+        assertFalse(err.contains("Invalid theme name"), "valid theme name must be accepted, err=" + err);
+        assertTrue(out.contains("dark.nanorctheme"), "theme path should be printed, out=" + out);
     }
 }

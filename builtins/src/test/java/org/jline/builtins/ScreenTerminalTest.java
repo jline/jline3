@@ -157,4 +157,25 @@ public class ScreenTerminalTest {
             assertNotEquals('\0', content.charAt(i), "Found null character at position " + i);
         }
     }
+
+    /**
+     * DSR replies are fed back as terminal input, so every reply must be a
+     * control sequence the application consumes as a report. Requests outside
+     * the ECMA-48 set are left unanswered.
+     */
+    @Test
+    void testDsrDoesNotReplyWithPlainText() {
+        ScreenTerminal screen = new ScreenTerminal(80, 24);
+
+        screen.write("\033[7n");
+        assertEquals("", screen.read(), "DSR 7 must not reply");
+        screen.write("\033[8n");
+        assertEquals("", screen.read(), "DSR 8 must not reply");
+
+        // The standard reports still answer
+        screen.write("\033[5n");
+        assertEquals("\033[0n", screen.read());
+        screen.write("\033[6n");
+        assertEquals("\033[1;1R", screen.read());
+    }
 }
