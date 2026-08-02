@@ -10,6 +10,7 @@ package org.jline.builtins;
 
 import java.io.*;
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -304,6 +305,11 @@ public class WebTerminal extends LineDisciplineTerminal {
                 return;
             }
 
+            if (!isSameOrigin(exchange)) {
+                exchange.sendResponseHeaders(403, -1);
+                return;
+            }
+
             // Parse form data
             Map<String, String> params = parseFormData(exchange);
 
@@ -329,6 +335,37 @@ public class WebTerminal extends LineDisciplineTerminal {
                 Thread.currentThread().interrupt();
                 sendResponse(exchange, "");
             }
+        }
+
+        /**
+         * Tells whether a request was issued by the page this terminal serves.
+         * <p>
+         * Browsers attach {@code Origin} to every cross-origin POST, so a value that does not
+         * match the requested authority identifies a form or fetch coming from a foreign page.
+         * Clients that are not browsers send no {@code Origin} and keep working as before.
+         * </p>
+         * <p>
+         * The comparison assumes the server is reached directly on the address it binds. A
+         * reverse proxy or TLS terminator that rewrites {@code Host} to something other than the
+         * authority the browser used would make same-origin requests fail this check.
+         * </p>
+         */
+        private boolean isSameOrigin(HttpExchange exchange) {
+            String origin = exchange.getRequestHeaders().getFirst("Origin");
+            if (origin == null) {
+                return true;
+            }
+            String host = exchange.getRequestHeaders().getFirst("Host");
+            if (host == null) {
+                return false;
+            }
+            String authority;
+            try {
+                authority = URI.create(origin).getAuthority();
+            } catch (IllegalArgumentException e) {
+                return false;
+            }
+            return authority != null && host.equalsIgnoreCase(authority);
         }
 
         private Map<String, String> parseFormData(HttpExchange exchange) throws IOException {
