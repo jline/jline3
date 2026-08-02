@@ -92,7 +92,7 @@ class SshServerTextTest {
                 throw new IllegalStateException("ssh() did not return within the timeout");
             }
             terminal.writer().flush();
-            return terminalOut.toString(StandardCharsets.UTF_8);
+            return terminalOut.toString(StandardCharsets.UTF_8.name());
         } finally {
             terminal.close();
             sshd.stop(true);
