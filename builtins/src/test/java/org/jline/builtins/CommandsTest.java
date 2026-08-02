@@ -13,7 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
+import java.util.Collections;
 
 import org.jline.reader.History;
 import org.jline.reader.LineReader;
@@ -73,10 +73,10 @@ public class CommandsTest {
     @Test
     void highlighterViewRejectsThemePathTraversal(@TempDir Path tmp) throws Exception {
         Path configDir = Files.createDirectory(tmp.resolve("config"));
-        Files.write(configDir.resolve("jnanorc"), List.of("theme dark.nanorctheme"));
-        Files.write(configDir.resolve("dark.nanorctheme"), List.of("DEFAULT white"));
+        Files.write(configDir.resolve("jnanorc"), Collections.singletonList("theme dark.nanorctheme"));
+        Files.write(configDir.resolve("dark.nanorctheme"), Collections.singletonList("DEFAULT white"));
         // sits one level above the theme directory; the viewer must not reach it
-        Files.write(tmp.resolve("outside.nanorctheme"), List.of("SECRET_TOKEN white"));
+        Files.write(tmp.resolve("outside.nanorctheme"), Collections.singletonList("SECRET_TOKEN white"));
 
         for (String name : new String[] {"../outside.nanorctheme", "..\\outside.nanorctheme"}) {
             ByteArrayOutputStream outBytes = new ByteArrayOutputStream();
@@ -109,8 +109,8 @@ public class CommandsTest {
     @Test
     void highlighterViewReadsThemeInConfigDir(@TempDir Path tmp) throws Exception {
         Path configDir = Files.createDirectory(tmp.resolve("config"));
-        Files.write(configDir.resolve("jnanorc"), List.of("theme dark.nanorctheme"));
-        Files.write(configDir.resolve("dark.nanorctheme"), List.of("DEFAULT white"));
+        Files.write(configDir.resolve("jnanorc"), Collections.singletonList("theme dark.nanorctheme"));
+        Files.write(configDir.resolve("dark.nanorctheme"), Collections.singletonList("DEFAULT white"));
 
         ByteArrayOutputStream outBytes = new ByteArrayOutputStream();
         ByteArrayOutputStream errBytes = new ByteArrayOutputStream();
