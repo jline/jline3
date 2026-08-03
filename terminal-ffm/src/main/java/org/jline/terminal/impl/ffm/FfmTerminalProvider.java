@@ -27,7 +27,6 @@ import org.jline.terminal.spi.Pty;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.OSUtils;
-import org.jline.utils.Signals;
 
 public class FfmTerminalProvider implements TerminalProvider {
 
@@ -165,53 +164,6 @@ public class FfmTerminalProvider implements TerminalProvider {
     @Override
     public int systemStreamWidth(SystemStream stream) {
         return FfmNativePty.systemStreamWidth(stream);
-    }
-
-    /**
-     * Register a handler to be invoked when the specified signal is delivered.
-     *
-     * @param signal the name of the signal to handle (platform-specific string)
-     * @param handler the runnable to execute when the signal is received
-     * @return an opaque registration handle that can be passed to {@code unregisterSignal} to remove the handler
-     */
-    @Override
-    public Object registerSignal(String signal, Runnable handler) {
-        Object reg = FfmSignalHandler.register(signal, handler);
-        if (reg != null) {
-            return reg;
-        }
-        return Signals.register(signal, handler);
-    }
-
-    /**
-     * Register the default handler for the specified signal, preferring the FFM handler if available.
-     *
-     * @param signal the name of the signal (for example, "INT" or "TERM")
-     * @return an object representing the installed registration; the FFM registration if one was created, otherwise the fallback Signals registration
-     */
-    @Override
-    public Object registerDefaultSignal(String signal) {
-        Object reg = FfmSignalHandler.registerDefault(signal);
-        if (reg != null) {
-            return reg;
-        }
-        return Signals.registerDefault(signal);
-    }
-
-    /**
-     * Unregisters a previously registered signal handler; uses FFM unregistration when the
-     * provided registration is an FFM registration, otherwise uses the platform fallback.
-     *
-     * @param signal the name of the signal to unregister (e.g., "INT", "TERM")
-     * @param registration the registration token returned by a prior register call
-     */
-    @Override
-    public void unregisterSignal(String signal, Object registration) {
-        if (registration instanceof FfmSignalHandler.Registration) {
-            FfmSignalHandler.unregister(signal, registration);
-        } else {
-            Signals.unregister(signal, registration);
-        }
     }
 
     /**

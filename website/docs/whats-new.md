@@ -84,10 +84,6 @@ A unified `TerminalGraphics` interface handles protocol detection and fallback a
 
 Proper handling of combining characters, emoji, and complex scripts via Unicode Mode 2027 (DECRQM probing). Updated to Unicode 16.0. See [Grapheme Cluster Mode](./advanced/grapheme-cluster-mode.md).
 
-### Signal Handling via Panama FFM
-
-Modernized POSIX signal handling using Panama FFM `sigaction()`, providing better Ctrl-C and Ctrl-Z behavior without JNI overhead.
-
 ### `/dev/tty` Fallback
 
 When stdin/stdout are piped (e.g., via `exec-maven-plugin`), JLine can now open `/dev/tty` directly to access the controlling terminal:
