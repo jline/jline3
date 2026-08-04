@@ -55,7 +55,6 @@ class WindowsSoftwareSignalTest {
     }
 
     private AbstractWindowsTerminal<?> createTestTerminal(boolean nativeSignals) throws Exception {
-        System.setProperty("org.jline.terminal.conemu.disable-activate", "true");
         StringWriter sw = new StringWriter();
         return new AbstractWindowsTerminal<>(
                 null,
@@ -76,7 +75,9 @@ class WindowsSoftwareSignalTest {
             }
 
             @Override
-            protected void setConsoleMode(Object console, int mode) {}
+            protected void setConsoleMode(Object console, int mode) {
+                // No-op: test stub — no real console to configure
+            }
 
             @Override
             public int getDefaultForegroundColor() {
