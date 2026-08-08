@@ -1225,6 +1225,19 @@ public class Less {
         return sb.toString();
     }
 
+    // Drops ESC, BEL, the 8-bit C1 introducers and other ISO control characters while keeping
+    // printable (including non-ASCII) text, so a file name shown on the status line cannot carry
+    // an escape sequence into the terminal.
+    private static String stripControlChars(String s) {
+        StringBuilder sb = new StringBuilder(s.length());
+        s.codePoints().forEach(cp -> {
+            if (!Character.isISOControl(cp)) {
+                sb.appendCodePoint(cp);
+            }
+        });
+        return sb.toString();
+    }
+
     void moveForward(int lines) throws IOException {
         Pattern dpCompiled = getPattern(true);
         int width = size.getColumns() - (printLineNumbers ? 8 : 0);
@@ -1458,7 +1471,7 @@ public class Less {
             msg.append(" ").append(printable(bindingReader.getCurrentBuffer()));
         } else if (message != null) {
             msg.style(AttributedStyle.INVERSE);
-            msg.append(message);
+            msg.append(stripControlChars(message));
             msg.style(AttributedStyle.INVERSE.inverseOff());
         } else if (displayPattern != null) {
             msg.append("&");

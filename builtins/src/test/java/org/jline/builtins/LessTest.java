@@ -189,6 +189,28 @@ class LessTest {
 
     @Test
     @Timeout(5)
+    void displayStripsControlCharactersFromMessage() throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (LineDisciplineTerminal terminal = newTerminal(output)) {
+            Less less = newDisplayableLess(terminal);
+            // The status line is set to source.getName() at startup, so a file name coming
+            // from a glob of an attacker-writable directory reaches it verbatim.
+            less.message = "réport\u001b]0;pwned\u0007.txt";
+
+            less.display(false);
+
+            String rendered = output.toString(StandardCharsets.UTF_8);
+            assertFalse(rendered.contains("\u001b]0;"), "OSC introducer must not reach the terminal");
+            assertFalse(rendered.contains("\u0007"), "BEL must not reach the terminal");
+            // Printable text, including non-ASCII, is kept.
+            String plainText = stripAnsi(rendered);
+            assertTrue(plainText.contains("réport"), "non-ASCII file name text should be preserved");
+            assertTrue(plainText.contains("pwned.txt"), "surrounding file name text should be preserved");
+        }
+    }
+
+    @Test
+    @Timeout(5)
     void displayPatternTakesPrecedenceOverDefaultPrompt() throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         try (LineDisciplineTerminal terminal = newTerminal(output)) {
