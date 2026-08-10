@@ -1192,7 +1192,7 @@ public class Tmux {
                     sb.style(bold ? sb.style().bold() : sb.style().boldOff());
                     prevBold = bold;
                 }
-                sb.append((char) c);
+                sb.append(new String(Character.toChars(c)));
             }
             lines.add(sb.toAttributedString());
         }
