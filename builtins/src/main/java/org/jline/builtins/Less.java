@@ -1477,7 +1477,7 @@ public class Less {
             msg.append("&");
         } else if (defaultPrompt != null) {
             msg.style(AttributedStyle.INVERSE);
-            msg.append(defaultPrompt);
+            msg.append(stripControlChars(defaultPrompt));
             msg.style(AttributedStyle.INVERSE.inverseOff());
         } else {
             msg.append(":");

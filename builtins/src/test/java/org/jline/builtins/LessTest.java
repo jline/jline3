@@ -211,6 +211,25 @@ class LessTest {
 
     @Test
     @Timeout(5)
+    void displayStripsControlCharactersFromDefaultPrompt() throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (LineDisciplineTerminal terminal = newTerminal(output)) {
+            Less less = newDisplayableLess(terminal);
+            less.defaultPrompt("prompt\u001b]0;pwned\u0007>");
+
+            less.display(false);
+
+            String rendered = output.toString(StandardCharsets.UTF_8);
+            assertFalse(rendered.contains("\u001b]0;"), "OSC introducer must not reach the terminal");
+            assertFalse(rendered.contains("\u0007"), "BEL must not reach the terminal");
+            String plainText = stripAnsi(rendered);
+            assertTrue(plainText.contains("prompt"), "prompt text should be preserved");
+            assertTrue(plainText.contains("pwned>"), "surrounding prompt text should be preserved");
+        }
+    }
+
+    @Test
+    @Timeout(5)
     void displayPatternTakesPrecedenceOverDefaultPrompt() throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         try (LineDisciplineTerminal terminal = newTerminal(output)) {
