@@ -296,6 +296,42 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
     }
 
     /**
+     * Appends the specified Unicode code point to this builder.
+     *
+     * <p>
+     * This method appends the specified code point to this builder,
+     * applying the current style. For supplementary code points (above U+FFFF),
+     * the high and low surrogate chars are both appended with the same style.
+     * This avoids the temporary {@code String} and {@code char[]} allocation
+     * that {@code append(new String(Character.toChars(cp)))} would require.
+     * </p>
+     *
+     * @param codePoint the Unicode code point to append
+     * @return this builder
+     * @throws IllegalArgumentException if codePoint is not a valid Unicode code point
+     */
+    public AttributedStringBuilder appendCodePoint(int codePoint) {
+        if (Character.isBmpCodePoint(codePoint)) {
+            return append((char) codePoint);
+        }
+        if (!Character.isValidCodePoint(codePoint)) {
+            throw new IllegalArgumentException("Not a valid Unicode code point: 0x" + Integer.toHexString(codePoint));
+        }
+        // Supplementary code point: append the surrogate pair directly
+        long s = current.getStyle();
+        ensureCapacity(length + 2);
+        buffer[length] = Character.highSurrogate(codePoint);
+        style[length] = s;
+        length++;
+        lastLineLength++;
+        buffer[length] = Character.lowSurrogate(codePoint);
+        style[length] = s;
+        length++;
+        lastLineLength++;
+        return this;
+    }
+
+    /**
      * Appends the specified character to this builder multiple times.
      *
      * <p>

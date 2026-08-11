@@ -154,6 +154,61 @@ class AttributedStringBuilderTest {
     }
 
     @Test
+    void testAppendCodePointBmp() {
+        AttributedStringBuilder sb = new AttributedStringBuilder();
+        sb.appendCodePoint('A');
+        sb.appendCodePoint(0x00E9); // é
+        sb.appendCodePoint('Z');
+        assertEquals("AéZ", sb.toString());
+    }
+
+    @Test
+    void testAppendCodePointSupplementary() {
+        // U+1F600 = 😀 (GRINNING FACE) — a supplementary code point
+        AttributedStringBuilder sb = new AttributedStringBuilder();
+        sb.append("hi ");
+        sb.appendCodePoint(0x1F600);
+        sb.append(" bye");
+        String result = sb.toString();
+        assertEquals("hi 😀 bye", result);
+        // Verify the code point round-trips correctly
+        assertEquals(0x1F600, result.codePointAt(3));
+    }
+
+    @Test
+    void testAppendCodePointPreservesStyle() {
+        AttributedStringBuilder sb = new AttributedStringBuilder();
+        sb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+        sb.appendCodePoint(0x1F600); // supplementary
+        sb.style(AttributedStyle.DEFAULT);
+        sb.appendCodePoint('!');
+        AttributedString str = sb.toAttributedString();
+        // Both surrogate chars of the supplementary code point should carry the red style
+        long style0 = str.styleCodeAt(0);
+        long style1 = str.styleCodeAt(1);
+        long styleExcl = str.styleCodeAt(2);
+        assertEquals(style0, style1, "Both surrogates of a supplementary code point should have the same style");
+        assertNotEquals(style0, styleExcl, "Style should change after the supplementary code point");
+    }
+
+    @Test
+    void testAppendCodePointInvalidThrows() {
+        AttributedStringBuilder sb = new AttributedStringBuilder();
+        assertThrows(IllegalArgumentException.class, () -> sb.appendCodePoint(0x110000));
+        assertThrows(IllegalArgumentException.class, () -> sb.appendCodePoint(-1));
+    }
+
+    @Test
+    void testAppendCodePointTab() {
+        // BMP tab character should still be expanded when tab stops are set
+        AttributedStringBuilder sb = new AttributedStringBuilder().tabs(4);
+        sb.append("ab");
+        sb.appendCodePoint('\t');
+        sb.append("c");
+        assertEquals("ab  c", sb.toString());
+    }
+
+    @Test
     void styleMatchesGuardsAgainstCatastrophicBacktracking() {
         // (.*a){30} over a run of 'a's forces exponential backtracking in
         // java.util.regex (still true on current JVMs). styleMatches feeds
