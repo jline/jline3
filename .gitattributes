@@ -1,5 +1,5 @@
 * text=auto
 *.dll binary
 *.so binary
-.mvn/maven-user.properties export-subst
 
+.mvn/nisse.properties export-subst
