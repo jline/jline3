@@ -139,23 +139,25 @@ class TmuxEncodingTest {
         tmuxThread.setDaemon(true);
         tmuxThread.start();
 
-        assertTrue(textWritten.await(5, TimeUnit.SECONDS), "Text should be written within timeout");
-
-        long deadline = System.currentTimeMillis() + 3000;
         String output = "";
-        while (System.currentTimeMillis() < deadline) {
-            output = masterOut.toString(StandardCharsets.UTF_8);
-            if (output.contains("INJECTED")) {
-                break;
-            }
-            synchronized (masterOut) {
-                masterOut.wait(100);
-            }
-        }
+        try {
+            assertTrue(textWritten.await(5, TimeUnit.SECONDS), "Text should be written within timeout");
 
-        testDone.countDown();
-        terminal.close();
-        tmuxThread.join(5000);
+            long deadline = System.currentTimeMillis() + 3000;
+            while (System.currentTimeMillis() < deadline) {
+                output = masterOut.toString(StandardCharsets.UTF_8);
+                if (output.contains("INJECTED")) {
+                    break;
+                }
+                synchronized (masterOut) {
+                    masterOut.wait(100);
+                }
+            }
+        } finally {
+            testDone.countDown();
+            terminal.close();
+            tmuxThread.join(5000);
+        }
 
         // The outer terminal only ever receives CSI (ESC [ ...) from the Display, never the
         // OSC the pane tried to synthesize; its presence means the code point was truncated.
