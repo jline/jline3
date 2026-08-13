@@ -55,6 +55,30 @@ public class TelnetIOEscapeTest {
     }
 
     @Test
+    public void consecutiveIacBytesAreEachDoubled() throws Exception {
+        TelnetIO io = new TelnetIO();
+        ByteArrayOutputStream sink = wire(io);
+
+        io.write(new byte[] {(byte) 0xFF, (byte) 0xFF});
+        io.flush();
+
+        // Two 0xFF data bytes are escaped independently, so four reach the wire.
+        assertArrayEquals(new byte[] {(byte) 255, (byte) 255, (byte) 255, (byte) 255}, sink.toByteArray());
+    }
+
+    @Test
+    public void iacFollowedByLfKeepsCrLfConversion() throws Exception {
+        TelnetIO io = new TelnetIO();
+        ByteArrayOutputStream sink = wire(io);
+
+        io.write(new byte[] {(byte) 0xFF, (byte) '\n'});
+        io.flush();
+
+        // IAC doubling and the LF -> CRLF conversion do not interfere.
+        assertArrayEquals(new byte[] {(byte) 255, (byte) 255, (byte) 13, (byte) 10}, sink.toByteArray());
+    }
+
+    @Test
     public void ordinaryBytesPassThroughUnchanged() throws Exception {
         TelnetIO io = new TelnetIO();
         ByteArrayOutputStream sink = wire(io);
