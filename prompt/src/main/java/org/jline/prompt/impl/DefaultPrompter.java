@@ -501,7 +501,7 @@ public class DefaultPrompter implements Prompter {
                 input = defaultValue;
             }
 
-            return new DefaultInputResult(input, input, prompt);
+            return new DefaultInputResult(input, maskedDisplay(prompt, input), prompt);
         } catch (EndOfFileException e) {
             if (e == ESCAPE_EOF) {
                 // Escape was pressed — go back to previous prompt
@@ -527,6 +527,26 @@ public class DefaultPrompter implements Prompter {
             throws IOException, UserInterruptException {
         // Password prompts are just input prompts with masking
         return executeInputPrompt(header, prompt);
+    }
+
+    /**
+     * Compute the value shown for an input result. When the prompt masks its input (passwords),
+     * the typed text must never be surfaced: the display value is the mask character repeated for
+     * the length of the input, or empty when the prompt hides its input entirely.
+     */
+    private static String maskedDisplay(InputPrompt prompt, String input) {
+        Character mask = prompt.getMask();
+        if (mask == null || input == null) {
+            return input;
+        }
+        if (prompt instanceof PasswordPrompt && !((PasswordPrompt) prompt).showMask()) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder(input.length());
+        for (int i = 0; i < input.length(); i++) {
+            sb.append(mask.charValue());
+        }
+        return sb.toString();
     }
 
     private InputResult executeNumberPrompt(List<AttributedString> header, NumberPrompt prompt)
