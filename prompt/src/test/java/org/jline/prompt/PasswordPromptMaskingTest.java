@@ -15,7 +15,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
+import org.jline.reader.Completer;
+import org.jline.reader.LineReader;
+import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
@@ -33,11 +37,16 @@ class PasswordPromptMaskingTest {
             String typed, boolean showMask, ByteArrayOutputStream out) throws Exception {
         PipedInputStream in = new PipedInputStream();
         PipedOutputStream outIn = new PipedOutputStream(in);
-        outIn.write((typed + "\n").getBytes(StandardCharsets.UTF_8));
 
         Terminal terminal =
                 TerminalBuilder.builder().type("ansi").streams(in, out).build();
         terminal.setSize(Size.of(160, 80));
+        // Turn off the line discipline's own echo before any input is queued, so everything
+        // captured in `out` is what the prompter rendered, not the terminal echoing the pipe.
+        Attributes attributes = terminal.getAttributes();
+        attributes.setLocalFlag(Attributes.LocalFlag.ECHO, false);
+        terminal.setAttributes(attributes);
+        outIn.write((typed + "\n").getBytes(StandardCharsets.UTF_8));
         Prompter prompter = PrompterFactory.create(terminal);
 
         PromptBuilder builder = prompter.newBuilder();
@@ -62,7 +71,9 @@ class PasswordPromptMaskingTest {
         // The display value that gets echoed back into the prompt header must be masked.
         assertEquals("*******", result.getDisplayResult());
         // The header line rendered on the terminal carries the mask, not the typed password.
-        assertTrue(out.toString(StandardCharsets.UTF_8).contains("*******"));
+        String rendered = out.toString(StandardCharsets.UTF_8);
+        assertTrue(rendered.contains("*******"));
+        assertFalse(rendered.contains(secret));
     }
 
     @Test
@@ -74,5 +85,65 @@ class PasswordPromptMaskingTest {
         InputResult result = (InputResult) results.get("pw");
         assertEquals(secret, result.getInput());
         assertEquals("", result.getDisplayResult());
+        assertFalse(out.toString(StandardCharsets.UTF_8).contains(secret));
+    }
+
+    @Test
+    void nullMaskPasswordPromptStillMasksDisplay() throws Exception {
+        String secret = "hunter2";
+        PipedInputStream in = new PipedInputStream();
+        PipedOutputStream outIn = new PipedOutputStream(in);
+        outIn.write((secret + "\n").getBytes(StandardCharsets.UTF_8));
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        Terminal terminal =
+                TerminalBuilder.builder().type("ansi").streams(in, out).build();
+        terminal.setSize(Size.of(160, 80));
+        Prompter prompter = PrompterFactory.create(terminal);
+
+        // A custom PasswordPrompt may leave getMask() null; the interface documents that
+        // as "use the default mask '*'", so the display value must still be masked.
+        PasswordPrompt prompt = new PasswordPrompt() {
+            @Override
+            public String getName() {
+                return "pw";
+            }
+
+            @Override
+            public String getMessage() {
+                return "Password:";
+            }
+
+            @Override
+            public String getDefaultValue() {
+                return null;
+            }
+
+            @Override
+            public Character getMask() {
+                return null;
+            }
+
+            @Override
+            public Completer getCompleter() {
+                return null;
+            }
+
+            @Override
+            public LineReader getLineReader() {
+                return null;
+            }
+
+            @Override
+            public Function<String, Boolean> getValidator() {
+                return null;
+            }
+        };
+        Map<String, ? extends PromptResult<? extends Prompt>> results =
+                prompter.prompt(Collections.emptyList(), Collections.<Prompt>singletonList(prompt));
+
+        InputResult result = (InputResult) results.get("pw");
+        assertEquals(secret, result.getInput());
+        assertEquals("*******", result.getDisplayResult());
     }
 }

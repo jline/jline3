@@ -535,16 +535,24 @@ public class DefaultPrompter implements Prompter {
      * the length of the input, or empty when the prompt hides its input entirely.
      */
     private static String maskedDisplay(InputPrompt prompt, String input) {
+        if (input == null) {
+            return null;
+        }
         Character mask = prompt.getMask();
-        if (mask == null || input == null) {
+        if (prompt instanceof PasswordPrompt) {
+            if (!((PasswordPrompt) prompt).showMask()) {
+                return "";
+            }
+            // PasswordPrompt.getMask() documents null as "use the default mask '*'"
+            mask = mask != null ? mask : '*';
+        }
+        if (mask == null) {
             return input;
         }
-        if (prompt instanceof PasswordPrompt && !((PasswordPrompt) prompt).showMask()) {
-            return "";
-        }
+        char maskChar = mask;
         StringBuilder sb = new StringBuilder(input.length());
         for (int i = 0; i < input.length(); i++) {
-            sb.append(mask.charValue());
+            sb.append(maskChar);
         }
         return sb.toString();
     }
