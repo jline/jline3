@@ -93,12 +93,16 @@ class PasswordPromptMaskingTest {
         String secret = "hunter2";
         PipedInputStream in = new PipedInputStream();
         PipedOutputStream outIn = new PipedOutputStream(in);
-        outIn.write((secret + "\n").getBytes(StandardCharsets.UTF_8));
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         Terminal terminal =
                 TerminalBuilder.builder().type("ansi").streams(in, out).build();
         terminal.setSize(Size.of(160, 80));
+        // Same as runPassword: silence the line discipline echo before queuing any input.
+        Attributes attributes = terminal.getAttributes();
+        attributes.setLocalFlag(Attributes.LocalFlag.ECHO, false);
+        terminal.setAttributes(attributes);
+        outIn.write((secret + "\n").getBytes(StandardCharsets.UTF_8));
         Prompter prompter = PrompterFactory.create(terminal);
 
         // A custom PasswordPrompt may leave getMask() null; the interface documents that
@@ -145,5 +149,10 @@ class PasswordPromptMaskingTest {
         InputResult result = (InputResult) results.get("pw");
         assertEquals(secret, result.getInput());
         assertEquals("*******", result.getDisplayResult());
+        // The null mask must not reach readLine either: the terminal only ever sees the
+        // default '*' mask, both while typing and in the rendered header line.
+        String rendered = out.toString(StandardCharsets.UTF_8);
+        assertTrue(rendered.contains("*******"));
+        assertFalse(rendered.contains(secret));
     }
 }

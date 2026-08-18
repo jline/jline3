@@ -492,6 +492,11 @@ public class DefaultPrompter implements Prompter {
         try {
             // Use LineReader to read the input
             Character mask = prompt.getMask();
+            if (mask == null && prompt instanceof PasswordPrompt) {
+                // PasswordPrompt.getMask() documents null as "use the default mask '*'";
+                // passing null through would make readLine echo the password while typing
+                mask = '*';
+            }
             String buffer = defaultValue != null ? defaultValue : null;
 
             String input = reader.readLine(promptString, null, mask, buffer);
