@@ -15,15 +15,20 @@ import java.lang.foreign.Arena;
 import java.nio.charset.Charset;
 
 import org.jline.terminal.Attributes;
+import org.jline.terminal.Attributes.ControlFlag;
+import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
+import org.jline.terminal.impl.TermiosMapping;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FfmTest {
 
@@ -77,6 +82,45 @@ class FfmTest {
             CLibrary.winsize ws = new CLibrary.winsize(arena, cols, rows);
             assertEquals(cols, ws.ws_col());
             assertEquals(rows, ws.ws_row());
+        }
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void applyAttributesPreservesBaudAndSpeed() {
+        try (Arena arena = Arena.ofConfined()) {
+            CLibrary.termios t = new CLibrary.termios(arena);
+            Attributes seed = new Attributes();
+            seed.setControlFlag(ControlFlag.CS8, true);
+            seed.setControlFlag(ControlFlag.CREAD, true);
+            seed.setLocalFlag(LocalFlag.ECHO, true);
+            t.apply(seed);
+
+            TermiosMapping mapping = TermiosMapping.forCurrentPlatform();
+            Attributes allControl = new Attributes();
+            for (ControlFlag flag : ControlFlag.values()) {
+                allControl.setControlFlag(flag, true);
+            }
+            long mappedCflag = mapping.toTermios(allControl).cflag();
+            long baudBits = 0x000DL & ~mappedCflag;
+            if (baudBits == 0) {
+                baudBits = Long.lowestOneBit(~mappedCflag);
+            }
+            t.c_cflag(t.c_cflag() | baudBits);
+            t.c_ispeed(9600);
+            t.c_ospeed(9600);
+
+            Attributes attr = t.asAttributes();
+            attr.setLocalFlag(LocalFlag.ECHO, false);
+            t.apply(attr);
+
+            assertEquals(baudBits, t.c_cflag() & baudBits);
+            assertEquals(9600, t.c_ispeed());
+            assertEquals(9600, t.c_ospeed());
+            Attributes applied = t.asAttributes();
+            assertFalse(applied.getLocalFlag(LocalFlag.ECHO));
+            assertTrue(applied.getControlFlag(ControlFlag.CS8));
+            assertTrue(applied.getControlFlag(ControlFlag.CREAD));
         }
     }
 

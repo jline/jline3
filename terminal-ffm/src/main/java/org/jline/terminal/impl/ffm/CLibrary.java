@@ -180,11 +180,30 @@ class CLibrary {
 
         termios(Arena arena, Attributes t) {
             this(arena);
-            TermiosData data = TermiosMapping.forCurrentPlatform().toTermios(t);
+            apply(t);
+        }
+
+        TermiosData toTermiosData() {
+            TermiosData data = new TermiosData();
+            data.iflag(c_iflag());
+            data.oflag(c_oflag());
+            data.cflag(c_cflag());
+            data.lflag(c_lflag());
+            data.ispeed(c_ispeed());
+            data.ospeed(c_ospeed());
+            byte[] cc = c_cc().toArray(ValueLayout.JAVA_BYTE);
+            System.arraycopy(cc, 0, data.cc(), 0, cc.length);
+            return data;
+        }
+
+        void apply(Attributes t) {
+            TermiosData data = TermiosMapping.forCurrentPlatform().toTermios(t, toTermiosData());
             c_iflag(data.iflag());
             c_oflag(data.oflag());
             c_cflag(data.cflag());
             c_lflag(data.lflag());
+            c_ispeed(data.ispeed());
+            c_ospeed(data.ospeed());
             c_cc().copyFrom(MemorySegment.ofArray(data.cc()).asSlice(0, c_cc_used));
         }
 
@@ -251,14 +270,7 @@ class CLibrary {
          * @return a new {@link Attributes} instance reflecting the current terminal settings
          */
         public Attributes asAttributes() {
-            TermiosData data = new TermiosData();
-            data.iflag(c_iflag());
-            data.oflag(c_oflag());
-            data.cflag(c_cflag());
-            data.lflag(c_lflag());
-            byte[] cc = c_cc().toArray(ValueLayout.JAVA_BYTE);
-            System.arraycopy(cc, 0, data.cc(), 0, cc.length);
-            return TermiosMapping.forCurrentPlatform().toAttributes(data);
+            return TermiosMapping.forCurrentPlatform().toAttributes(toTermiosData());
         }
     }
 
@@ -494,8 +506,10 @@ class CLibrary {
 
     static void setAttributes(int fd, Attributes attr) {
         try (Arena arena = Arena.ofConfined()) {
-            termios t = new termios(arena, attr);
-            int res = (int) tcsetattr.invoke(fd, TermiosData.TCSANOW, t.segment());
+            termios t = new termios(arena);
+            int res = (int) tcgetattr.invoke(fd, t.segment());
+            t.apply(attr);
+            res = (int) tcsetattr.invoke(fd, TermiosData.TCSANOW, t.segment());
         } catch (Throwable e) {
             throw new RuntimeException("Unable to call tcsetattr()", e);
         }

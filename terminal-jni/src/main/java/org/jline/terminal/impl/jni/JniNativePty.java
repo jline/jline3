@@ -146,7 +146,9 @@ public abstract class JniNativePty extends AbstractPty implements Pty {
 
     @Override
     protected void doSetAttr(Attributes attr) throws IOException {
-        CLibrary.Termios tios = toNativeTermios(attr);
+        CLibrary.Termios tios = new CLibrary.Termios();
+        CLibrary.tcgetattr(slave, tios);
+        applyAttributes(tios, attr);
         CLibrary.tcsetattr(slave, TCSANOW, tios);
     }
 
@@ -175,18 +177,31 @@ public abstract class JniNativePty extends AbstractPty implements Pty {
         data.oflag(tios.c_oflag);
         data.cflag(tios.c_cflag);
         data.lflag(tios.c_lflag);
+        data.ispeed(tios.c_ispeed);
+        data.ospeed(tios.c_ospeed);
         System.arraycopy(tios.c_cc, 0, data.cc(), 0, Math.min(tios.c_cc.length, data.cc().length));
         return data;
     }
 
-    static CLibrary.Termios toNativeTermiosData(TermiosData data) {
-        CLibrary.Termios tio = new CLibrary.Termios();
+    static void copyTermiosDataToNative(TermiosData data, CLibrary.Termios tio) {
         tio.c_iflag = data.iflag();
         tio.c_oflag = data.oflag();
         tio.c_cflag = data.cflag();
         tio.c_lflag = data.lflag();
+        tio.c_ispeed = data.ispeed();
+        tio.c_ospeed = data.ospeed();
         System.arraycopy(data.cc(), 0, tio.c_cc, 0, Math.min(data.cc().length, tio.c_cc.length));
+    }
+
+    static CLibrary.Termios toNativeTermiosData(TermiosData data) {
+        CLibrary.Termios tio = new CLibrary.Termios();
+        copyTermiosDataToNative(data, tio);
         return tio;
+    }
+
+    static void applyAttributes(CLibrary.Termios tios, Attributes attr) {
+        TermiosData updated = TermiosMapping.forCurrentPlatform().toTermios(attr, fromNativeTermios(tios));
+        copyTermiosDataToNative(updated, tios);
     }
 
     protected static CLibrary.Termios toNativeTermios(Attributes t) {
