@@ -20,6 +20,7 @@ import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.TermiosMapping;
+import org.jline.utils.OSUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledOnOs;
@@ -107,16 +108,24 @@ class FfmTest {
                 baudBits = Long.lowestOneBit(~mappedCflag);
             }
             t.c_cflag(t.c_cflag() | baudBits);
-            t.c_ispeed(9600);
-            t.c_ospeed(9600);
+
+            // Speed fields only exist on non-AIX platforms (macOS, Linux).
+            // On AIX the c_ispeed/c_ospeed VarHandles are null and the
+            // getters return 0 regardless of what is written.
+            if (!OSUtils.IS_AIX) {
+                t.c_ispeed(9600);
+                t.c_ospeed(9600);
+            }
 
             Attributes attr = t.asAttributes();
             attr.setLocalFlag(LocalFlag.ECHO, false);
             t.apply(attr);
 
             assertEquals(baudBits, t.c_cflag() & baudBits);
-            assertEquals(9600, t.c_ispeed());
-            assertEquals(9600, t.c_ospeed());
+            if (!OSUtils.IS_AIX) {
+                assertEquals(9600, t.c_ispeed());
+                assertEquals(9600, t.c_ospeed());
+            }
             Attributes applied = t.asAttributes();
             assertFalse(applied.getLocalFlag(LocalFlag.ECHO));
             assertTrue(applied.getControlFlag(ControlFlag.CS8));
