@@ -15,8 +15,11 @@ import java.lang.foreign.Arena;
 import java.nio.charset.Charset;
 
 import org.jline.terminal.Attributes;
+import org.jline.terminal.Attributes.InputFlag;
+import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
+import org.jline.utils.OSUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledOnOs;
@@ -77,6 +80,45 @@ class FfmTest {
             CLibrary.winsize ws = new CLibrary.winsize(arena, cols, rows);
             assertEquals(cols, ws.ws_col());
             assertEquals(rows, ws.ws_row());
+        }
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void applyAttributesPreservesFlagsAndSpeed() {
+        try (Arena arena = Arena.ofConfined()) {
+            // Set up Attributes with recognisable flags
+            Attributes attr = new Attributes();
+            attr.setInputFlag(InputFlag.ICRNL, true);
+            attr.setLocalFlag(LocalFlag.ECHO, true);
+            attr.setLocalFlag(LocalFlag.ICANON, true);
+
+            // Round-trip: Attributes -> native termios -> Attributes
+            CLibrary.termios t = new CLibrary.termios(arena, attr);
+            Attributes roundTripped = t.asAttributes();
+
+            assertEquals(
+                    attr.getInputFlag(InputFlag.ICRNL),
+                    roundTripped.getInputFlag(InputFlag.ICRNL),
+                    "ICRNL should survive the round-trip");
+            assertEquals(
+                    attr.getLocalFlag(LocalFlag.ECHO),
+                    roundTripped.getLocalFlag(LocalFlag.ECHO),
+                    "ECHO should survive the round-trip");
+            assertEquals(
+                    attr.getLocalFlag(LocalFlag.ICANON),
+                    roundTripped.getLocalFlag(LocalFlag.ICANON),
+                    "ICANON should survive the round-trip");
+
+            // Speed fields exist only on non-AIX platforms (macOS, Linux).
+            // On AIX the c_ispeed/c_ospeed VarHandles are null and the
+            // getters return 0 regardless of what is written.
+            if (!OSUtils.IS_AIX) {
+                t.c_ispeed(9600L);
+                t.c_ospeed(9600L);
+                assertEquals(9600L, t.c_ispeed(), "c_ispeed should be stored");
+                assertEquals(9600L, t.c_ospeed(), "c_ospeed should be stored");
+            }
         }
     }
 
