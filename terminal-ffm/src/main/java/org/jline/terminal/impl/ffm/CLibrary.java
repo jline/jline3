@@ -180,11 +180,30 @@ class CLibrary {
 
         termios(Arena arena, Attributes t) {
             this(arena);
-            TermiosData data = TermiosMapping.forCurrentPlatform().toTermios(t);
+            apply(t);
+        }
+
+        TermiosData toTermiosData() {
+            TermiosData data = new TermiosData();
+            data.iflag(c_iflag());
+            data.oflag(c_oflag());
+            data.cflag(c_cflag());
+            data.lflag(c_lflag());
+            data.ispeed(c_ispeed());
+            data.ospeed(c_ospeed());
+            byte[] cc = c_cc().toArray(ValueLayout.JAVA_BYTE);
+            System.arraycopy(cc, 0, data.cc(), 0, cc.length);
+            return data;
+        }
+
+        void apply(Attributes t) {
+            TermiosData data = TermiosMapping.forCurrentPlatform().toTermios(t, toTermiosData());
             c_iflag(data.iflag());
             c_oflag(data.oflag());
             c_cflag(data.cflag());
             c_lflag(data.lflag());
+            c_ispeed(data.ispeed());
+            c_ospeed(data.ospeed());
             c_cc().copyFrom(MemorySegment.ofArray(data.cc()).asSlice(0, c_cc_used));
         }
 
@@ -251,14 +270,7 @@ class CLibrary {
          * @return a new {@link Attributes} instance reflecting the current terminal settings
          */
         public Attributes asAttributes() {
-            TermiosData data = new TermiosData();
-            data.iflag(c_iflag());
-            data.oflag(c_oflag());
-            data.cflag(c_cflag());
-            data.lflag(c_lflag());
-            byte[] cc = c_cc().toArray(ValueLayout.JAVA_BYTE);
-            System.arraycopy(cc, 0, data.cc(), 0, cc.length);
-            return TermiosMapping.forCurrentPlatform().toAttributes(data);
+            return TermiosMapping.forCurrentPlatform().toAttributes(toTermiosData());
         }
     }
 
@@ -465,7 +477,12 @@ class CLibrary {
         try (Arena arena = Arena.ofConfined()) {
             winsize ws = new winsize(arena);
             int res = (int) ioctl.invoke(fd, (long) TIOCGWINSZ, ws.segment());
+            if (res != 0) {
+                throw new UncheckedIOException(new IOException("ioctl(TIOCGWINSZ) failed with return code " + res));
+            }
             return Size.of(ws.ws_col(), ws.ws_row());
+        } catch (UncheckedIOException e) {
+            throw e;
         } catch (Throwable e) {
             throw new RuntimeException("Unable to call ioctl(TIOCGWINSZ)", e);
         }
@@ -477,6 +494,11 @@ class CLibrary {
             ws.ws_row((short) size.getRows());
             ws.ws_col((short) size.getColumns());
             int res = (int) ioctl.invoke(fd, TIOCSWINSZ, ws.segment());
+            if (res != 0) {
+                throw new UncheckedIOException(new IOException("ioctl(TIOCSWINSZ) failed with return code " + res));
+            }
+        } catch (UncheckedIOException e) {
+            throw e;
         } catch (Throwable e) {
             throw new RuntimeException("Unable to call ioctl(TIOCSWINSZ)", e);
         }
@@ -486,7 +508,12 @@ class CLibrary {
         try (Arena arena = Arena.ofConfined()) {
             termios t = new termios(arena);
             int res = (int) tcgetattr.invoke(fd, t.segment());
+            if (res != 0) {
+                throw new UncheckedIOException(new IOException("tcgetattr() failed with return code " + res));
+            }
             return t.asAttributes();
+        } catch (UncheckedIOException e) {
+            throw e;
         } catch (Throwable e) {
             throw new RuntimeException("Unable to call tcgetattr()", e);
         }
@@ -494,8 +521,20 @@ class CLibrary {
 
     static void setAttributes(int fd, Attributes attr) {
         try (Arena arena = Arena.ofConfined()) {
-            termios t = new termios(arena, attr);
-            int res = (int) tcsetattr.invoke(fd, TermiosData.TCSANOW, t.segment());
+            termios t = new termios(arena);
+            int res = (int) tcgetattr.invoke(fd, t.segment());
+            if (res != 0) {
+                // Best-effort: tcgetattr may fail when the fd is no longer a
+                // valid terminal (e.g. during close).  Log and return early
+                // rather than applying attributes onto uninitialised data.
+                logger.log(Level.DEBUG, "tcgetattr() returned " + res + " for fd " + fd);
+                return;
+            }
+            t.apply(attr);
+            res = (int) tcsetattr.invoke(fd, TermiosData.TCSANOW, t.segment());
+            if (res != 0) {
+                logger.log(Level.DEBUG, "tcsetattr() returned " + res + " for fd " + fd);
+            }
         } catch (Throwable e) {
             throw new RuntimeException("Unable to call tcsetattr()", e);
         }
@@ -513,12 +552,17 @@ class CLibrary {
         try (Arena arena = Arena.ofConfined()) {
             MemorySegment buf = arena.allocate(64);
             int res = (int) ttyname_r.invoke(fd, buf, buf.byteSize());
+            if (res != 0) {
+                throw new UncheckedIOException(new IOException("ttyname_r() failed with return code " + res));
+            }
             byte[] data = buf.toArray(ValueLayout.JAVA_BYTE);
             int len = 0;
             while (data[len] != 0) {
                 len++;
             }
             return new String(data, 0, len);
+        } catch (UncheckedIOException e) {
+            throw e;
         } catch (Throwable e) {
             throw new RuntimeException("Unable to call ttyname_r()", e);
         }

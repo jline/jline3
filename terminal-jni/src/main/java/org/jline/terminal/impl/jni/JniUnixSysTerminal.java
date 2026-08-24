@@ -80,7 +80,10 @@ public class JniUnixSysTerminal extends AbstractUnixSysTerminal {
 
     @Override
     protected void doSetAttributes(Attributes attr) {
-        CLibrary.tcsetattr(STDIN_FD, TCSANOW, JniNativePty.toNativeTermiosData(mapping.toTermios(attr)));
+        CLibrary.Termios tios = new CLibrary.Termios();
+        CLibrary.tcgetattr(STDIN_FD, tios);
+        JniNativePty.applyAttributes(tios, attr);
+        CLibrary.tcsetattr(STDIN_FD, TCSANOW, tios);
     }
 
     @Override
