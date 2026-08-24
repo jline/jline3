@@ -1,0 +1,62 @@
+{
+  "reviewed_prs": [
+    {
+      "number": 2020,
+      "title": "feat: change default of softwareSignals to false and deprecate",
+      "author": "gnodet",
+      "reviewed_at": "2026-08-24T08:57:02Z",
+      "verdict": "APPROVE",
+      "notes": "breaking: Clean breaking change, missing milestone 4.4.0",
+      "interactions": [
+        {
+          "at": "2026-08-24T08:57:02Z",
+          "verdict": "APPROVE",
+          "notes": "breaking: Clean breaking change, missing milestone 4.4.0"
+        }
+      ],
+      "review_count": 1
+    },
+    {
+      "number": 2021,
+      "title": "feat: support in-band window resize notifications (mode 2048)",
+      "author": "gnodet",
+      "reviewed_at": "2026-08-24T08:57:02Z",
+      "verdict": "APPROVE",
+      "notes": "feature: Follows existing patterns, missing label+milestone",
+      "interactions": [
+        {
+          "at": "2026-08-24T08:57:02Z",
+          "verdict": "APPROVE",
+          "notes": "feature: Follows existing patterns, missing label+milestone"
+        }
+      ],
+      "review_count": 1
+    },
+    {
+      "number": 2007,
+      "title": "feat: add Kitty Keyboard Protocol support",
+      "author": "gnodet",
+      "reviewed_at": "2026-08-24T08:57:02Z",
+      "verdict": "APPROVE",
+      "notes": "feature: Sound implementation, PUA constants observation, missing label+milestone",
+      "interactions": [
+        {
+          "at": "2026-08-24T08:57:02Z",
+          "verdict": "APPROVE",
+          "notes": "feature: Sound implementation, PUA constants observation, missing label+milestone"
+        }
+      ],
+      "review_count": 1
+    }
+  ],
+  "skipped_prs": [],
+  "last_run": {
+    "timestamp": "2026-08-24T08:57:02Z",
+    "prs_checked": 3,
+    "reviews_posted": 3,
+    "tokens_estimate": 224202
+  },
+  "paused": false,
+  "last_reviewed_updated_at": "2026-08-02T19:22:57Z",
+  "review_queue": []
+}
