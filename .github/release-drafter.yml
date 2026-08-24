@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# Configuration for Release Drafter: https://github.com/toolmantim/release-drafter
+# Configuration for Release Drafter: https://github.com/release-drafter/release-drafter
 name-template: JLine $NEXT_MINOR_VERSION
 tag-template: $NEXT_MINOR_VERSION
 version-template: $MAJOR.$MINOR.$PATCH
@@ -24,59 +24,70 @@ filter-by-commitish: true
 
 # Emoji reference: https://gitmoji.carloscuesta.me/
 categories:
+  - type: pre-exclude
+    when:
+      labels:
+        - reverted
+        - no-changelog
+        - skip-changelog
+        - invalid
   - title: ":boom: Breaking changes"
-    labels:
-      - breaking
+    when:
+      label: breaking
   - title: 🚨 Removed
-    label: removed
+    when:
+      label: removed
   - title: ":tada: Major features and improvements"
-    labels:
-      - major-enhancement
-      - major-rfe
+    when:
+      labels:
+        - major-enhancement
+        - major-rfe
   - title: 🐛 Major bug fixes
-    labels:
-      - major-bug
+    when:
+      label: major-bug
   - title: ⚠️ Deprecated
-    label: deprecated
+    when:
+      label: deprecated
   - title: 🚀 New features and improvements
-    labels:
-      - enhancement
-      - feature
-      - rfe
+    when:
+      labels:
+        - enhancement
+        - feature
+        - rfe
   - title: 🐛 Bug Fixes
-    labels:
-      - bug
-      - fix
-      - bugfix
-      - regression
+    when:
+      labels:
+        - bug
+        - fix
+        - bugfix
+        - regression
   - title: ":construction_worker: Changes for developers"
-    labels:
-      - developer
+    when:
+      label: developer
   # Default label used by Dependabot
   - title: 📦 Dependency updates
-    label: dependencies
+    when:
+      label: dependencies
   - title: 📝 Documentation updates
-    label: documentation
+    when:
+      label: documentation
   - title: 👻 Maintenance
-    labels:
-      - chore
-      - internal
-      - maintenance
+    when:
+      labels:
+        - chore
+        - internal
+        - maintenance
   - title: 🔧 Build
-    label: build
+    when:
+      label: build
   - title: 🚦 Tests
-    labels:
-      - test
-      - tests
-exclude-labels:
-  - reverted
-  - no-changelog
-  - skip-changelog
-  - invalid
+    when:
+      labels:
+        - test
+        - tests
 
 change-template: '- $TITLE ([#$NUMBER]($URL)) @$AUTHOR'
 
 template: |
   <!-- Optional: add a release summary here -->
   $CHANGES
-

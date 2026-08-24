@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Set up JDK ${{ matrix.java }}
-        uses: actions/setup-java@v5.6.0
+        uses: actions/setup-java@v5.7.0
         with:
           java-version: ${{ matrix.java }}
           distribution: temurin
@@ -57,6 +57,29 @@ jobs:
             ${{ runner.os }}-mvx-tools-
 
 
+
+      - name: Verify macOS native signatures
+        if: matrix.os == 'macos-latest'
+        run: |
+          set -e
+          NATIVE_DIR=native/src/main/resources/org/jline/nativ/Mac
+          for arch in x86 x86_64 arm64; do
+            LIB="$NATIVE_DIR/$arch/libjlinenative.jnilib"
+            if [ ! -f "$LIB" ]; then
+              echo "::error::$LIB not found"
+              exit 1
+            fi
+            echo "Checking $LIB ..."
+            codesign --verify --strict --verbose "$LIB" 2>&1
+            INFO=$(codesign --display --verbose=4 "$LIB" 2>&1)
+            echo "$INFO"
+            if ! echo "$INFO" | grep -q "Authority=Developer ID Application:"; then
+              echo "::error::$LIB is not signed with a Developer ID Application certificate"
+              exit 1
+            fi
+            echo "✓ $LIB is signed with Developer ID"
+          done
+          echo "All macOS native libraries are signed ✓"
 
       - name: Build with maven
         run: ./mvx mvn --no-transfer-progress verify

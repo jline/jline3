@@ -112,18 +112,18 @@
         <sshd.version>2.19.0</sshd.version>
         <awaitility.version>4.3.0</awaitility.version>
         <easymock.version>5.6.0</easymock.version>
-        <junit.version>6.1.2</junit.version>
+        <junit.version>6.1.3</junit.version>
         <gogo.runtime.version>1.1.6</gogo.runtime.version>
         <gogo.jline.version>1.1.8</gogo.jline.version>
         <slf4j.version>2.0.18</slf4j.version>
         <findbugs.version>3.0.2</findbugs.version>
-        <groovy.version>5.0.7</groovy.version>
+        <groovy.version>5.1.0</groovy.version>
         <ivy.version>2.6.0</ivy.version>
         <picocli.version>4.7.7</picocli.version>
         <graal.version>25.2.4</graal.version>
         <graal.plugin.version>21.2.0</graal.plugin.version>
-        <native.plugin.version>1.1.5</native.plugin.version>
-        <palantir.version>2.96.0</palantir.version>
+        <native.plugin.version>1.1.10</native.plugin.version>
+        <palantir.version>2.97.0</palantir.version>
 
         <surefire.argLine>--add-opens java.base/java.io=org.jline.nativ --add-opens java.base/java.io=org.jline.terminal</surefire.argLine>
     </properties>
@@ -523,7 +523,7 @@
                 <plugin>
                     <groupId>com.diffplug.spotless</groupId>
                     <artifactId>spotless-maven-plugin</artifactId>
-                    <version>3.9.0</version>
+                    <version>3.10.0</version>
                     <configuration>
                         <java>
                             <toggleOffOn />
