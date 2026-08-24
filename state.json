@@ -47,16 +47,64 @@
         }
       ],
       "review_count": 1
+    },
+    {
+      "number": 2138,
+      "title": "fix: keep image options inside the kitty and iterm2 sequences",
+      "author": "uchiha-bug-hunter",
+      "reviewed_at": "2026-08-24T09:06:41Z",
+      "verdict": "APPROVE",
+      "notes": "bug: Security fix, escape injection prevention, backport missing 4.0.x",
+      "interactions": [
+        {
+          "at": "2026-08-24T09:06:41Z",
+          "verdict": "APPROVE",
+          "notes": "bug: Security fix, escape injection prevention, backport missing 4.0.x"
+        }
+      ],
+      "review_count": 1
+    },
+    {
+      "number": 2148,
+      "title": "fix: add software signal interception to Windows terminals (fixes #2127)",
+      "author": "gnodet",
+      "reviewed_at": "2026-08-24T09:06:41Z",
+      "verdict": "APPROVE",
+      "notes": "bug: Windows signal fix, mirrors POSIX #1982, backport missing 4.0.x",
+      "interactions": [
+        {
+          "at": "2026-08-24T09:06:41Z",
+          "verdict": "APPROVE",
+          "notes": "bug: Windows signal fix, mirrors POSIX #1982, backport missing 4.0.x"
+        }
+      ],
+      "review_count": 1
+    },
+    {
+      "number": 2152,
+      "title": "chore: use committer timestamp for archive date fallback",
+      "author": "gnodet",
+      "reviewed_at": "2026-08-24T09:06:41Z",
+      "verdict": "APPROVE",
+      "notes": "bug: Correct %cI vs %aI, AI attribution convention violations flagged",
+      "interactions": [
+        {
+          "at": "2026-08-24T09:06:41Z",
+          "verdict": "APPROVE",
+          "notes": "bug: Correct %cI vs %aI, AI attribution convention violations flagged"
+        }
+      ],
+      "review_count": 1
     }
   ],
   "skipped_prs": [],
   "last_run": {
-    "timestamp": "2026-08-24T08:57:02Z",
+    "timestamp": "2026-08-24T09:06:41Z",
     "prs_checked": 3,
     "reviews_posted": 3,
-    "tokens_estimate": 224202
+    "tokens_estimate": 173730
   },
   "paused": false,
-  "last_reviewed_updated_at": "2026-08-02T19:22:57Z",
+  "last_reviewed_updated_at": "2026-08-07T21:40:06Z",
   "review_queue": []
 }
