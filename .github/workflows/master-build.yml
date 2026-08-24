@@ -58,6 +58,23 @@ jobs:
 
 
 
+      - name: Verify macOS native signatures
+        if: matrix.os == 'macos-latest'
+        run: |
+          NATIVE_DIR=native/src/main/resources/org/jline/nativ/Mac
+          for arch in x86 x86_64 arm64; do
+            LIB="$NATIVE_DIR/$arch/libjlinenative.jnilib"
+            if [ -f "$LIB" ]; then
+              echo "Checking $LIB ..."
+              codesign --verify --verbose "$LIB" 2>&1
+              echo "✓ $LIB is signed"
+            else
+              echo "::error::$LIB not found"
+              exit 1
+            fi
+          done
+          echo "All macOS native libraries are signed ✓"
+
       - name: Build with maven
         run: ./mvx mvn --no-transfer-progress verify
         env:

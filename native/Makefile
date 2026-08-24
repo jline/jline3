@@ -88,6 +88,39 @@ native-all: \
     mac-x86 mac-x86_64 mac-arm64 \
     freebsd-x86 freebsd-x86_64
 
+# Sign macOS native libraries with Apple Developer ID.
+# Requires a "Developer ID Application" certificate in the keychain.
+# Usage: make sign APPLE_SIGNING_IDENTITY="Developer ID Application: Guillaume Nodet (CBCRPRKJ9H)"
+APPLE_SIGNING_IDENTITY ?= Developer ID Application: Guillaume Nodet (CBCRPRKJ9H)
+NATIVE_MAC_DIR := src/main/resources/org/jline/nativ/Mac
+
+sign:
+	@for arch in x86 x86_64 arm64; do \
+		lib="$(NATIVE_MAC_DIR)/$$arch/libjlinenative.jnilib"; \
+		if [ -f "$$lib" ]; then \
+			echo "Signing $$lib ..."; \
+			codesign --sign "$(APPLE_SIGNING_IDENTITY)" --options runtime --force --timestamp "$$lib"; \
+			codesign --verify --verbose "$$lib"; \
+		else \
+			echo "WARNING: $$lib not found, skipping"; \
+		fi; \
+	done
+
+verify-sign:
+	@failed=0; \
+	for arch in x86 x86_64 arm64; do \
+		lib="$(NATIVE_MAC_DIR)/$$arch/libjlinenative.jnilib"; \
+		if [ -f "$$lib" ]; then \
+			if codesign --verify --verbose "$$lib" 2>&1; then \
+				echo "✓ $$lib is signed"; \
+			else \
+				echo "✗ $$lib is NOT signed"; \
+				failed=1; \
+			fi; \
+		fi; \
+	done; \
+	if [ "$$failed" -eq 1 ]; then echo "ERROR: unsigned binaries found"; exit 1; fi
+
 native: $(NATIVE_DLL)
 
 $(NATIVE_DLL): $(JLINENATIVE_OUT)/$(LIBNAME)

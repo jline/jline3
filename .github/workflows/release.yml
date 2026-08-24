@@ -92,7 +92,7 @@ jobs:
           milestone=$(gh milestone list --json id,title,state  --jq "map_values(select(.title == \"${version}\" and .state == \"OPEN\")).[].number")
           if [ ! -z "$milestone" ]; then
               echo "Found milestone $version, closing it"
-              gh milestone edit $milestone --state closed 
+              gh milestone edit $milestone --state closed
           fi
 
           # Parse semantic version and increment patch version
@@ -100,14 +100,14 @@ jobs:
             major=${BASH_REMATCH[1]}
             minor=${BASH_REMATCH[2]}
             patch=${BASH_REMATCH[3]}
-  
+
             # Increment patch version for next development cycle
             next_patch=$((patch + 1))
             next_version="${major}.${minor}.${next_patch}"
-  
+
             echo "Preparing development $next_version"
             echo "Trying to find milestone $next_version"
-  
+
             milestone=$(gh milestone list --json id,title,state --jq "map_values(select(.title == \"${next_version}\" and .state == \"OPEN\")).[].number")
             if [ -z "$milestone" ]; then
               echo "Creating milestone $next_version"
@@ -116,8 +116,8 @@ jobs:
           else
             echo "ERROR: Version $version is not a valid semantic version (x.y.z)"
             exit 1
-          fi          
-          
+          fi
+
           version="$RELEASE_VERSION"
 
           # Check if release drafter already created a draft release for this version
