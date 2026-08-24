@@ -466,10 +466,10 @@ class CLibrary {
             winsize ws = new winsize(arena);
             int res = (int) ioctl.invoke(fd, (long) TIOCGWINSZ, ws.segment());
             if (res != 0) {
-                throw new RuntimeException("ioctl(TIOCGWINSZ) failed with return code " + res);
+                throw new UncheckedIOException(new IOException("ioctl(TIOCGWINSZ) failed with return code " + res));
             }
             return Size.of(ws.ws_col(), ws.ws_row());
-        } catch (RuntimeException e) {
+        } catch (UncheckedIOException e) {
             throw e;
         } catch (Throwable e) {
             throw new RuntimeException("Unable to call ioctl(TIOCGWINSZ)", e);
@@ -483,9 +483,9 @@ class CLibrary {
             ws.ws_col((short) size.getColumns());
             int res = (int) ioctl.invoke(fd, TIOCSWINSZ, ws.segment());
             if (res != 0) {
-                throw new RuntimeException("ioctl(TIOCSWINSZ) failed with return code " + res);
+                throw new UncheckedIOException(new IOException("ioctl(TIOCSWINSZ) failed with return code " + res));
             }
-        } catch (RuntimeException e) {
+        } catch (UncheckedIOException e) {
             throw e;
         } catch (Throwable e) {
             throw new RuntimeException("Unable to call ioctl(TIOCSWINSZ)", e);
@@ -497,10 +497,10 @@ class CLibrary {
             termios t = new termios(arena);
             int res = (int) tcgetattr.invoke(fd, t.segment());
             if (res != 0) {
-                throw new RuntimeException("tcgetattr() failed with return code " + res);
+                throw new UncheckedIOException(new IOException("tcgetattr() failed with return code " + res));
             }
             return t.asAttributes();
-        } catch (RuntimeException e) {
+        } catch (UncheckedIOException e) {
             throw e;
         } catch (Throwable e) {
             throw new RuntimeException("Unable to call tcgetattr()", e);
@@ -534,7 +534,7 @@ class CLibrary {
             MemorySegment buf = arena.allocate(64);
             int res = (int) ttyname_r.invoke(fd, buf, buf.byteSize());
             if (res != 0) {
-                throw new RuntimeException("ttyname_r() failed with return code " + res);
+                throw new UncheckedIOException(new IOException("ttyname_r() failed with return code " + res));
             }
             byte[] data = buf.toArray(ValueLayout.JAVA_BYTE);
             int len = 0;
@@ -542,7 +542,7 @@ class CLibrary {
                 len++;
             }
             return new String(data, 0, len);
-        } catch (RuntimeException e) {
+        } catch (UncheckedIOException e) {
             throw e;
         } catch (Throwable e) {
             throw new RuntimeException("Unable to call ttyname_r()", e);
