@@ -95,16 +95,64 @@
         }
       ],
       "review_count": 1
+    },
+    {
+      "number": 2141,
+      "title": "fix: reimplement FFM signal handling with self-pipe trick (fixes #2139)",
+      "author": "gnodet",
+      "reviewed_at": "2026-08-24T09:13:54Z",
+      "verdict": "APPROVE",
+      "notes": "bug: Self-pipe trick for JVM crash fix, no backport needed (FFM-only)",
+      "interactions": [
+        {
+          "at": "2026-08-24T09:13:54Z",
+          "verdict": "APPROVE",
+          "notes": "bug: Self-pipe trick for JVM crash fix, no backport needed (FFM-only)"
+        }
+      ],
+      "review_count": 1
+    },
+    {
+      "number": 2156,
+      "title": "fix: strip control characters from Less status messages",
+      "author": "uchiha-bug-hunter",
+      "reviewed_at": "2026-08-24T09:13:54Z",
+      "verdict": "APPROVE",
+      "notes": "bug: Security fix, escape injection in Less pager, backport missing 4.0.x",
+      "interactions": [
+        {
+          "at": "2026-08-24T09:13:54Z",
+          "verdict": "APPROVE",
+          "notes": "bug: Security fix, escape injection in Less pager, backport missing 4.0.x"
+        }
+      ],
+      "review_count": 1
+    },
+    {
+      "number": 2164,
+      "title": "fix: escape IAC byte in the telnet data output stream",
+      "author": "uchiha-bug-hunter",
+      "reviewed_at": "2026-08-24T09:13:54Z",
+      "verdict": "APPROVE",
+      "notes": "bug: Telnet IAC injection fix, backport missing 4.0.x + jline-3.x",
+      "interactions": [
+        {
+          "at": "2026-08-24T09:13:54Z",
+          "verdict": "APPROVE",
+          "notes": "bug: Telnet IAC injection fix, backport missing 4.0.x + jline-3.x"
+        }
+      ],
+      "review_count": 1
     }
   ],
   "skipped_prs": [],
   "last_run": {
-    "timestamp": "2026-08-24T09:06:41Z",
+    "timestamp": "2026-08-24T09:13:54Z",
     "prs_checked": 3,
     "reviews_posted": 3,
-    "tokens_estimate": 173730
+    "tokens_estimate": 206954
   },
   "paused": false,
-  "last_reviewed_updated_at": "2026-08-07T21:40:06Z",
+  "last_reviewed_updated_at": "2026-08-13T08:54:37Z",
   "review_queue": []
 }
