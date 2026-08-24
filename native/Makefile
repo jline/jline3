@@ -95,31 +95,32 @@ APPLE_SIGNING_IDENTITY ?= Developer ID Application: Guillaume Nodet (CBCRPRKJ9H)
 NATIVE_MAC_DIR := src/main/resources/org/jline/nativ/Mac
 
 sign:
-	@for arch in x86 x86_64 arm64; do \
+	@set -e; \
+	for arch in x86 x86_64 arm64; do \
 		lib="$(NATIVE_MAC_DIR)/$$arch/libjlinenative.jnilib"; \
-		if [ -f "$$lib" ]; then \
-			echo "Signing $$lib ..."; \
-			codesign --sign "$(APPLE_SIGNING_IDENTITY)" --options runtime --force --timestamp "$$lib"; \
-			codesign --verify --verbose "$$lib"; \
-		else \
-			echo "WARNING: $$lib not found, skipping"; \
+		if [ ! -f "$$lib" ]; then \
+			echo "ERROR: $$lib not found"; exit 1; \
 		fi; \
+		echo "Signing $$lib ..."; \
+		codesign --sign "$(APPLE_SIGNING_IDENTITY)" --options runtime --force --timestamp "$$lib"; \
+		codesign --verify --strict --verbose "$$lib"; \
 	done
 
 verify-sign:
-	@failed=0; \
+	@set -e; \
 	for arch in x86 x86_64 arm64; do \
 		lib="$(NATIVE_MAC_DIR)/$$arch/libjlinenative.jnilib"; \
-		if [ -f "$$lib" ]; then \
-			if codesign --verify --verbose "$$lib" 2>&1; then \
-				echo "✓ $$lib is signed"; \
-			else \
-				echo "✗ $$lib is NOT signed"; \
-				failed=1; \
-			fi; \
+		if [ ! -f "$$lib" ]; then \
+			echo "ERROR: $$lib not found"; exit 1; \
 		fi; \
-	done; \
-	if [ "$$failed" -eq 1 ]; then echo "ERROR: unsigned binaries found"; exit 1; fi
+		codesign --verify --strict --verbose "$$lib" 2>&1; \
+		info=$$(codesign --display --verbose=4 "$$lib" 2>&1); \
+		echo "$$info"; \
+		if ! echo "$$info" | grep -q "Authority=Developer ID Application:"; then \
+			echo "✗ $$lib is NOT signed with a Developer ID Application certificate"; exit 1; \
+		fi; \
+		echo "✓ $$lib is signed with Developer ID"; \
+	done
 
 native: $(NATIVE_DLL)
 
