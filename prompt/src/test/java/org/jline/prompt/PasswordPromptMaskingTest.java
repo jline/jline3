@@ -77,6 +77,19 @@ class PasswordPromptMaskingTest {
     }
 
     @Test
+    void toStringNeverLeaksPassword() throws Exception {
+        String secret = "hunter2";
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        Map<String, ? extends PromptResult<? extends Prompt>> results = runPassword(secret, true, out);
+
+        InputResult result = (InputResult) results.get("pw");
+        // toString() must use the masked display value, not the raw password
+        String str = result.toString();
+        assertFalse(str.contains(secret), "toString() must not contain the raw password");
+        assertTrue(str.contains("*******"), "toString() should show the masked value");
+    }
+
+    @Test
     void hiddenMaskShowsNothing() throws Exception {
         String secret = "s3cr3t";
         ByteArrayOutputStream out = new ByteArrayOutputStream();
