@@ -143,16 +143,64 @@
         }
       ],
       "review_count": 1
+    },
+    {
+      "number": 2167,
+      "title": "mask password value in DefaultPrompter result display",
+      "author": "uchiha-bug-hunter",
+      "reviewed_at": "2026-08-24T09:41:52Z",
+      "verdict": "APPROVE",
+      "notes": "bug: Password leakage fix, backport missing 4.0.x",
+      "interactions": [
+        {
+          "at": "2026-08-24T09:41:52Z",
+          "verdict": "APPROVE",
+          "notes": "bug: Password leakage fix, backport missing 4.0.x"
+        }
+      ],
+      "review_count": 1
+    },
+    {
+      "number": 2172,
+      "title": "fix: preserve termios baud rate when setting attributes (#2170)",
+      "author": "arimu1",
+      "reviewed_at": "2026-08-24T09:41:52Z",
+      "verdict": "APPROVE",
+      "notes": "bug: Serial terminal baud rate fix, backport missing 4.0.x",
+      "interactions": [
+        {
+          "at": "2026-08-24T09:41:52Z",
+          "verdict": "APPROVE",
+          "notes": "bug: Serial terminal baud rate fix, backport missing 4.0.x"
+        }
+      ],
+      "review_count": 1
+    },
+    {
+      "number": 2173,
+      "title": "feat: verify macOS native library signatures in CI",
+      "author": "gnodet",
+      "reviewed_at": "2026-08-24T09:41:52Z",
+      "verdict": "APPROVE",
+      "notes": "enhancement: CI codesign verification, no backport needed",
+      "interactions": [
+        {
+          "at": "2026-08-24T09:41:52Z",
+          "verdict": "APPROVE",
+          "notes": "enhancement: CI codesign verification, no backport needed"
+        }
+      ],
+      "review_count": 1
     }
   ],
   "skipped_prs": [],
   "last_run": {
-    "timestamp": "2026-08-24T09:13:54Z",
+    "timestamp": "2026-08-24T09:41:52Z",
     "prs_checked": 3,
     "reviews_posted": 3,
-    "tokens_estimate": 206954
+    "tokens_estimate": 202275
   },
   "paused": false,
-  "last_reviewed_updated_at": "2026-08-13T08:54:37Z",
+  "last_reviewed_updated_at": "2026-08-24T09:33:50Z",
   "review_queue": []
 }
