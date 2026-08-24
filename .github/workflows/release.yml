@@ -120,16 +120,6 @@ jobs:
           
           version="$RELEASE_VERSION"
 
-          # Determine the correct target branch for this release.
-          # Without --target, gh release create/edit defaults to 'master',
-          # which breaks Release Drafter's filter-by-commitish version resolution.
-          if [[ "$version" == 4.0.* ]]; then
-            target_branch="4.0.x"
-          else
-            target_branch="master"
-          fi
-          echo "Target branch for release $version: $target_branch"
-
           # Check if release drafter already created a draft release for this version
           draft_tag=$(gh api repos/${{ github.repository }}/releases \
             --jq ".[] | select(.draft == true and .tag_name == \"${version}\") | .tag_name" \
@@ -137,13 +127,16 @@ jobs:
 
           existing_release=$(gh api repos/${{ github.repository }}/releases/tags/${version} --jq '.tag_name' 2>/dev/null || true)
 
+          # All numeric tags (matched by this workflow) are master releases.
+          # Pass --target explicitly so target_commitish is correct for
+          # Release Drafter's filter-by-commitish version resolution.
           if [ -n "$draft_tag" ]; then
             echo "Publishing existing draft release for $version"
-            gh release edit "$version" --draft=false --verify-tag --title "JLine $version" --target "$target_branch"
+            gh release edit "$version" --draft=false --verify-tag --title "JLine $version" --target master
           elif [ -n "$existing_release" ]; then
             echo "Release $version already exists, updating title"
-            gh release edit "$version" --title "JLine $version" --target "$target_branch"
+            gh release edit "$version" --title "JLine $version" --target master
           else
             echo "No existing release found, creating release for $version"
-            gh release create "$version" --verify-tag --generate-notes --title "JLine $version" --target "$target_branch"
+            gh release create "$version" --verify-tag --generate-notes --title "JLine $version" --target master
           fi
