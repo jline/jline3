@@ -120,6 +120,16 @@ jobs:
           
           version="$RELEASE_VERSION"
 
+          # Determine the correct target branch for this release.
+          # Without --target, gh release create/edit defaults to 'master',
+          # which breaks Release Drafter's filter-by-commitish version resolution.
+          if [[ "$version" == 4.0.* ]]; then
+            target_branch="4.0.x"
+          else
+            target_branch="master"
+          fi
+          echo "Target branch for release $version: $target_branch"
+
           # Check if release drafter already created a draft release for this version
           draft_tag=$(gh api repos/${{ github.repository }}/releases \
             --jq ".[] | select(.draft == true and .tag_name == \"${version}\") | .tag_name" \
@@ -129,11 +139,11 @@ jobs:
 
           if [ -n "$draft_tag" ]; then
             echo "Publishing existing draft release for $version"
-            gh release edit "$version" --draft=false --verify-tag --title "JLine $version"
+            gh release edit "$version" --draft=false --verify-tag --title "JLine $version" --target "$target_branch"
           elif [ -n "$existing_release" ]; then
             echo "Release $version already exists, updating title"
-            gh release edit "$version" --title "JLine $version"
+            gh release edit "$version" --title "JLine $version" --target "$target_branch"
           else
             echo "No existing release found, creating release for $version"
-            gh release create "$version" --verify-tag --generate-notes --title "JLine $version"
+            gh release create "$version" --verify-tag --generate-notes --title "JLine $version" --target "$target_branch"
           fi
