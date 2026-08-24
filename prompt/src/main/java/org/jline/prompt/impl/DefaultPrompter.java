@@ -492,7 +492,12 @@ public class DefaultPrompter implements Prompter {
         try {
             // Use LineReader to read the input
             Character mask = prompt.getMask();
-            String buffer = defaultValue != null ? defaultValue : null;
+            if (mask == null && prompt instanceof PasswordPrompt) {
+                // A null mask on a password prompt defaults to '*'; without this,
+                // readLine would echo the password in clear text while typing
+                mask = '*';
+            }
+            String buffer = defaultValue;
 
             String input = reader.readLine(promptString, null, mask, buffer);
 
@@ -501,7 +506,7 @@ public class DefaultPrompter implements Prompter {
                 input = defaultValue;
             }
 
-            return new DefaultInputResult(input, input, prompt);
+            return new DefaultInputResult(input, maskedDisplay(prompt, input), prompt);
         } catch (EndOfFileException e) {
             if (e == ESCAPE_EOF) {
                 // Escape was pressed — go back to previous prompt
@@ -527,6 +532,34 @@ public class DefaultPrompter implements Prompter {
             throws IOException, UserInterruptException {
         // Password prompts are just input prompts with masking
         return executeInputPrompt(header, prompt);
+    }
+
+    /**
+     * Compute the value shown for an input result. When the prompt masks its input (passwords),
+     * the typed text must never be surfaced: the display value is the mask character repeated for
+     * the length of the input, or empty when the prompt hides its input entirely.
+     */
+    private static String maskedDisplay(InputPrompt prompt, String input) {
+        if (input == null) {
+            return null;
+        }
+        Character mask = prompt.getMask();
+        if (prompt instanceof PasswordPrompt) {
+            if (!((PasswordPrompt) prompt).showMask()) {
+                return "";
+            }
+            // PasswordPrompt.getMask() documents null as "use the default mask '*'"
+            mask = mask != null ? mask : '*';
+        }
+        if (mask == null) {
+            return input;
+        }
+        char maskChar = mask;
+        StringBuilder sb = new StringBuilder(input.length());
+        for (int i = 0; i < input.length(); i++) {
+            sb.append(maskChar);
+        }
+        return sb.toString();
     }
 
     private InputResult executeNumberPrompt(List<AttributedString> header, NumberPrompt prompt)
