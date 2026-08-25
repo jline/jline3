@@ -1041,7 +1041,7 @@ public class Less {
                 if (displayMessage) {
                     AttributedStringBuilder asb = new AttributedStringBuilder();
                     asb.style(AttributedStyle.INVERSE);
-                    asb.append(source.getName()).append(" (press RETURN)");
+                    asb.append(stripControlChars(source.getName())).append(" (press RETURN)");
                     asb.toAttributedString().println(terminal);
                     terminal.writer().flush();
                     terminal.reader().read();
@@ -1055,7 +1055,7 @@ public class Less {
                     throw exp;
                 } else {
                     AttributedStringBuilder asb = new AttributedStringBuilder();
-                    asb.append(source.getName()).append(" not found!");
+                    asb.append(stripControlChars(source.getName())).append(" not found!");
                     asb.toAttributedString().println(terminal);
                     terminal.writer().flush();
                     open = false;
@@ -1177,6 +1177,19 @@ public class Less {
                 sb.append('\\').append(String.format("%03o", (int) c));
             }
         }
+        return sb.toString();
+    }
+
+    // Drops ESC, BEL, the 8-bit C1 introducers and other ISO control characters while keeping
+    // printable (including non-ASCII) text, so a file name shown on the status line cannot carry
+    // an escape sequence into the terminal.
+    private static String stripControlChars(String s) {
+        StringBuilder sb = new StringBuilder(s.length());
+        s.codePoints().forEach(cp -> {
+            if (!Character.isISOControl(cp)) {
+                sb.appendCodePoint(cp);
+            }
+        });
         return sb.toString();
     }
 
@@ -1402,7 +1415,7 @@ public class Less {
             msg.append(" ").append(printable(bindingReader.getCurrentBuffer()));
         } else if (message != null) {
             msg.style(AttributedStyle.INVERSE);
-            msg.append(message);
+            msg.append(stripControlChars(message));
             msg.style(AttributedStyle.INVERSE.inverseOff());
         } else if (displayPattern != null) {
             msg.append("&");
