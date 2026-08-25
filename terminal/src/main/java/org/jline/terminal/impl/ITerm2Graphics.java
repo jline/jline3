@@ -203,6 +203,7 @@ public class ITerm2Graphics implements TerminalGraphics {
      * @param position position specification for non-inline images
      * @return the complete iTerm2 graphics protocol sequence
      * @throws IOException if an I/O error occurs
+     * @throws IllegalArgumentException if size or position holds a control character or a separator
      */
     public String convertImageWithExtendedOptions(
             BufferedImage image, ImageOptions options, String size, String position) throws IOException {
@@ -224,7 +225,7 @@ public class ITerm2Graphics implements TerminalGraphics {
 
         // Add size if specified
         if (size != null) {
-            parameters.append("size=").append(size).append(";");
+            parameters.append("size=").append(checkParameterValue(size, "size")).append(";");
         } else {
             // Add dimensions if specified
             if (options.getWidth() != null) {
@@ -245,7 +246,10 @@ public class ITerm2Graphics implements TerminalGraphics {
             parameters.append("inline=0;");
             // Add position for non-inline images
             if (position != null) {
-                parameters.append("position=").append(position).append(";");
+                parameters
+                        .append("position=")
+                        .append(checkParameterValue(position, "position"))
+                        .append(";");
             }
         } else {
             parameters.append("inline=1;");
@@ -290,6 +294,7 @@ public class ITerm2Graphics implements TerminalGraphics {
      * @param image the image to display
      * @param position position specification (e.g., "center", "top-left")
      * @throws IOException if an I/O error occurs
+     * @throws IllegalArgumentException if the position holds a control character or an iTerm2 parameter separator
      */
     public void displayBackgroundImage(Terminal terminal, BufferedImage image, String position) throws IOException {
         ImageOptions options = new ImageOptions().inline(false);
@@ -306,5 +311,29 @@ public class ITerm2Graphics implements TerminalGraphics {
      */
     private String base64Encode(String input) {
         return Base64.getEncoder().encodeToString(input.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Checks a parameter value that is emitted literally rather than base64 encoded.
+     *
+     * <p>The parameters sit inside the {@code <ESC>]1337;File= ... <BEL>} frame as a {@code ;}
+     * separated list closed by a {@code :}, so a value holding a control character can close the
+     * sequence and have the rest of it read as terminal input, and a value holding either
+     * separator can append parameters or start the payload early.</p>
+     *
+     * @param value the value to check
+     * @param name the parameter name, for the error message
+     * @return the value
+     * @throws IllegalArgumentException if the value holds a control character or a separator
+     */
+    private String checkParameterValue(String value, String name) {
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (Character.isISOControl(c) || c == ';' || c == ':') {
+                throw new IllegalArgumentException(
+                        "iTerm2 " + name + " parameter contains a control character or a separator");
+            }
+        }
+        return value;
     }
 }

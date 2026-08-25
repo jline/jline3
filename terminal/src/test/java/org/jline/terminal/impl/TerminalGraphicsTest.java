@@ -29,6 +29,9 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class TerminalGraphicsTest {
 
+    /** A name that closes the enclosing sequence, then follows it with an OSC that sets the window title. */
+    private static final String ESCAPING_NAME = "photo\033\\\033]0;pwned\007";
+
     private BufferedImage testImage;
 
     @BeforeEach
@@ -335,5 +338,77 @@ class TerminalGraphicsTest {
             // Clean up: reset forced protocol
             TerminalGraphicsManager.forceProtocol(null);
         }
+    }
+
+    @Test
+    void testKittyImageNameStaysInsideControlData() throws IOException {
+        KittyGraphics kitty = new KittyGraphics();
+        TerminalGraphics.ImageOptions options = new TerminalGraphics.ImageOptions().name(ESCAPING_NAME);
+
+        String sequence = kitty.convertImage(testImage, options);
+
+        assertFalse(sequence.contains("\033]0;"), "image name must not inject an OSC into the emitted sequence");
+        assertEquals(
+                sequence.length() - 2,
+                sequence.indexOf("\033\\"),
+                "the only string terminator must be the one closing the APC frame");
+    }
+
+    @Test
+    void testKittyChunkedImageNameStaysInsideControlData() throws IOException {
+        KittyGraphics kitty = new KittyGraphics();
+        TerminalGraphics.ImageOptions options = new TerminalGraphics.ImageOptions().name(ESCAPING_NAME);
+
+        String sequence = kitty.convertImageChunked(testImage, options, 512);
+
+        assertFalse(sequence.contains("\033]0;"), "image name must not inject an OSC into the emitted sequence");
+    }
+
+    @Test
+    void testITerm2RejectsSizeThatLeavesTheSequence() {
+        ITerm2Graphics iterm2 = new ITerm2Graphics();
+        TerminalGraphics.ImageOptions options = new TerminalGraphics.ImageOptions();
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> iterm2.convertImageWithExtendedOptions(testImage, options, "50%\007\033]0;pwned\007", null));
+        assertDoesNotThrow(() -> iterm2.convertImageWithExtendedOptions(testImage, options, "50%", null));
+    }
+
+    @Test
+    void testITerm2RejectsPositionThatLeavesTheSequence() {
+        ITerm2Graphics iterm2 = new ITerm2Graphics();
+        TerminalGraphics.ImageOptions options = new TerminalGraphics.ImageOptions().inline(false);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> iterm2.convertImageWithExtendedOptions(testImage, options, null, "center\007\033]0;pwned\007"));
+        assertDoesNotThrow(() -> iterm2.convertImageWithExtendedOptions(testImage, options, null, "center"));
+    }
+
+    @Test
+    void testITerm2RejectsSizeThatLeavesTheParameter() {
+        ITerm2Graphics iterm2 = new ITerm2Graphics();
+        TerminalGraphics.ImageOptions options = new TerminalGraphics.ImageOptions();
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> iterm2.convertImageWithExtendedOptions(testImage, options, "50%;inline=0", null));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> iterm2.convertImageWithExtendedOptions(testImage, options, "50%:payload", null));
+    }
+
+    @Test
+    void testITerm2RejectsPositionThatLeavesTheParameter() {
+        ITerm2Graphics iterm2 = new ITerm2Graphics();
+        TerminalGraphics.ImageOptions options = new TerminalGraphics.ImageOptions().inline(false);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> iterm2.convertImageWithExtendedOptions(testImage, options, null, "center;inline=1"));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> iterm2.convertImageWithExtendedOptions(testImage, options, null, "center:payload"));
     }
 }
