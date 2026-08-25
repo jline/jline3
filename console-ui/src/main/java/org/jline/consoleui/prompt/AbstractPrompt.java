@@ -46,8 +46,6 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
     private Display display;
     private ListRange range = null;
 
-    public static final long DEFAULT_TIMEOUT_WITH_ESC = 150L;
-
     public AbstractPrompt(
             Terminal terminal,
             Display display,
@@ -400,7 +398,6 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             map.bind(Operation.EXIT, "\r", "\n");
             map.bind(Operation.CANCEL, KeyMap.esc());
             map.bind(Operation.INTERRUPT, ctrl('C'));
-            map.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
         }
 
         public ExpandableChoiceResult execute() {
@@ -517,7 +514,6 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             map.bind(Operation.EXIT, "\r", "\n");
             map.bind(Operation.CANCEL, KeyMap.esc());
             map.bind(Operation.INTERRUPT, ctrl('C'));
-            map.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
         }
 
         public ConfirmResult execute() {
@@ -635,7 +631,6 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             map.bind(Operation.SELECT_CANDIDATE, "\t");
             map.bind(Operation.CANCEL, KeyMap.esc());
             map.bind(Operation.INTERRUPT, ctrl('C'));
-            map.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
         }
 
         private void bindSelectKeys(KeyMap<SelectOp> map) {
@@ -644,7 +639,6 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             map.bind(SelectOp.EXIT, "\r");
             map.bind(SelectOp.CANCEL, KeyMap.esc());
             map.bind(SelectOp.INTERRUPT, ctrl('C'));
-            map.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
         }
 
         public InputResult execute() {
@@ -922,7 +916,6 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             map.bind(Operation.EXIT, "\r", "\n");
             map.bind(Operation.CANCEL, KeyMap.esc());
             map.bind(Operation.INTERRUPT, ctrl('C'));
-            map.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
         }
 
         public ListResult execute() {
@@ -1009,7 +1002,6 @@ public abstract class AbstractPrompt<T extends ConsoleUIItemIF> {
             map.bind(Operation.EXIT, "\r", "\n");
             map.bind(Operation.CANCEL, KeyMap.esc());
             map.bind(Operation.INTERRUPT, ctrl('C'));
-            map.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
         }
 
         public CheckboxResult execute() {
