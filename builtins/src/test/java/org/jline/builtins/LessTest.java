@@ -1,5 +1,5 @@
 /*
- * Copyright (c) the original author(s).
+ * Copyright (c) 2026, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -16,7 +16,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.regex.Pattern;
@@ -44,7 +44,7 @@ class LessTest {
 
     private LineDisciplineTerminal newTerminal(ByteArrayOutputStream output) throws IOException {
         LineDisciplineTerminal terminal = new LineDisciplineTerminal("less", "xterm", output, StandardCharsets.UTF_8);
-        terminal.setSize(Size.of(80, 24));
+        terminal.setSize(new Size(80, 24));
         return terminal;
     }
 
@@ -55,8 +55,8 @@ class LessTest {
      * file/source and an interactive read loop).
      */
     private Less newDisplayableLess(LineDisciplineTerminal terminal) {
-        Less less = new Less(terminal, Path.of("."));
-        less.size = terminal.getSize();
+        Less less = new Less(terminal, Paths.get("."));
+        less.size.copy(terminal.getSize());
         less.reader = new BufferedReader(new StringReader(""));
         less.syntaxHighlighter = SyntaxHighlighter.build(new ArrayList<>(), null, "none");
         return less;
@@ -72,7 +72,7 @@ class LessTest {
 
             less.display(false);
 
-            String rendered = output.toString(StandardCharsets.UTF_8);
+            String rendered = output.toString(StandardCharsets.UTF_8.name());
             assertFalse(rendered.contains("\u001b]0;"), "OSC introducer must not reach the terminal");
             assertFalse(rendered.contains("\u0007"), "BEL must not reach the terminal");
             String plainText = stripAnsi(rendered);
@@ -86,8 +86,8 @@ class LessTest {
     void openSourceStripsControlCharactersFromFileNames() throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         try (LineDisciplineTerminal terminal = newTerminal(output)) {
-            Less less = new Less(terminal, Path.of("."));
-            less.size = terminal.getSize();
+            Less less = new Less(terminal, Paths.get("."));
+            less.size.copy(terminal.getSize());
             String name = "réport\u001b]0;pwned\u0007.txt";
             Source missing = new Source() {
                 @Override
@@ -113,7 +113,7 @@ class LessTest {
 
             less.openSource();
 
-            String rendered = output.toString(StandardCharsets.UTF_8);
+            String rendered = output.toString(StandardCharsets.UTF_8.name());
             assertFalse(rendered.contains("\u001b]0;"), "OSC introducer must not reach the terminal");
             assertFalse(rendered.contains("\u0007"), "BEL must not reach the terminal");
             String plainText = stripAnsi(rendered);

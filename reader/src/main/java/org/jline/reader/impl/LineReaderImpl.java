@@ -4233,7 +4233,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             } else if (cp < 32) {
                 sb.append('^').append((char) (cp + '@'));
             } else if (WCWidth.wcwidth(cp) >= 0) {
-                sb.appendCodePoint(cp);
+                sb.append(new String(Character.toChars(cp)));
             }
             i += Character.charCount(cp);
         }
