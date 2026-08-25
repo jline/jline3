@@ -33,6 +33,8 @@ import org.jline.utils.ShutdownHooks;
 import org.jline.utils.Signals;
 import org.jline.utils.WriterOutputStream;
 
+import static org.jline.terminal.TerminalBuilder.PROP_SOFTWARE_SIGNALS;
+
 /**
  * Base implementation for terminals on Windows systems.
  *
@@ -129,6 +131,7 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
 
     protected MouseTracking tracking = MouseTracking.Off;
     protected boolean focusTracking = false;
+    private final boolean softwareSignals;
     private volatile boolean closing;
     protected boolean skipNextLf;
 
@@ -184,6 +187,7 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
         super(name, type, encoding, inputEncoding, outputEncoding, signalHandler);
         this.provider = provider;
         this.systemStream = systemStream;
+        this.softwareSignals = Boolean.parseBoolean(System.getProperty(PROP_SOFTWARE_SIGNALS, "true"));
         NonBlockingPumpReader reader = NonBlocking.nonBlockingPumpReader();
         this.slaveInputPipe = reader.getWriter();
         this.reader = reader;
@@ -656,6 +660,20 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
             } else if (c == attributes.getControlChar(Attributes.ControlChar.VSUSP)) {
                 raise(Signal.TSTP);
                 return;
+            } else if (c == attributes.getControlChar(Attributes.ControlChar.VSTATUS)) {
+                raise(Signal.INFO);
+            }
+        } else if (softwareSignals) {
+            // Software signal interception: raise the signal even in raw mode
+            // (ISIG cleared), but pass the character through so the LineReader's
+            // keymap can also handle it (e.g. the INTERRUPT widget).
+            // This mirrors SignalInterceptingInputStream used on POSIX terminals.
+            if (c == attributes.getControlChar(Attributes.ControlChar.VINTR)) {
+                raise(Signal.INT);
+            } else if (c == attributes.getControlChar(Attributes.ControlChar.VQUIT)) {
+                raise(Signal.QUIT);
+            } else if (c == attributes.getControlChar(Attributes.ControlChar.VSUSP)) {
+                raise(Signal.TSTP);
             } else if (c == attributes.getControlChar(Attributes.ControlChar.VSTATUS)) {
                 raise(Signal.INFO);
             }
