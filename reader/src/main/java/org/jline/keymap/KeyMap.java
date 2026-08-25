@@ -54,8 +54,13 @@ public class KeyMap<T> {
      * For example, if both Escape and Escape+[A are bound, the reader will wait this
      * amount of time after receiving Escape to determine if it's a standalone Escape
      * or the beginning of the Escape+[A sequence.
+     * <p>
+     * 100ms matches Vim's {@code defaults.vim} setting for {@code ttimeoutlen} and is
+     * comfortably above the inter-character delay of terminal escape sequences, even
+     * over SSH connections.  The previous value of 1000ms caused a perceptible lag
+     * every time the Escape key was pressed in vi mode.
      */
-    public static final long DEFAULT_AMBIGUOUS_TIMEOUT = 1000L;
+    public static final long DEFAULT_AMBIGUOUS_TIMEOUT = 100L;
 
     private Object[] mapping = new Object[KEYMAP_LENGTH];
     private T anotherKey = null;

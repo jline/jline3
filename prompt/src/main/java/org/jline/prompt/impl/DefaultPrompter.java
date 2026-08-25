@@ -64,9 +64,6 @@ public class DefaultPrompter implements Prompter {
     private Attributes attributes;
     private List<AttributedString> header = new ArrayList<>();
 
-    // Default timeout for escape sequences
-    public static final long DEFAULT_TIMEOUT_WITH_ESC = 150L;
-
     // Default page size for lists
     private static final int DEFAULT_PAGE_SIZE = 10;
 
@@ -754,7 +751,6 @@ public class DefaultPrompter implements Prompter {
         keyMap.bind(InputOperation.EXIT, "\r", "\n");
         keyMap.bind(InputOperation.ESCAPE, esc());
         keyMap.bind(InputOperation.CANCEL, ctrl('C'));
-        keyMap.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
 
         InputOperation op = bindingReader.readBinding(keyMap);
         switch (op) {
@@ -1074,7 +1070,6 @@ public class DefaultPrompter implements Prompter {
         keyMap.bind(InputOperation.BEGINNING_OF_LINE, ctrl('A'));
         keyMap.bind(InputOperation.END_OF_LINE, ctrl('E'));
         keyMap.bind(InputOperation.SELECT_CANDIDATE, "\t"); // Tab for completion
-        keyMap.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
     }
 
     /**
@@ -1086,7 +1081,6 @@ public class DefaultPrompter implements Prompter {
         keyMap.bind(ConfirmOperation.EXIT, "\r", "\n");
         keyMap.bind(ConfirmOperation.CANCEL, ctrl('C'));
         keyMap.bind(ConfirmOperation.ESCAPE, esc());
-        keyMap.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
     }
 
     private ListResult executeListPrompt(List<AttributedString> header, ListPrompt prompt)
@@ -1671,7 +1665,6 @@ public class DefaultPrompter implements Prompter {
         keyMap.bind(ConfirmOperation.EXIT, "\r", "\n");
         keyMap.bind(ConfirmOperation.ESCAPE, esc());
         keyMap.bind(ConfirmOperation.CANCEL, ctrl('C'));
-        keyMap.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
 
         while (true) {
             List<AttributedString> out = new ArrayList<>();
@@ -1753,7 +1746,6 @@ public class DefaultPrompter implements Prompter {
         keyMap.bind("RIGHT", key(terminal, key_right));
         keyMap.bind("CANCEL", ctrl('C'));
         keyMap.bind("ESCAPE", esc());
-        keyMap.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
 
         String result = bindingReader.readBinding(keyMap);
         if ("CANCEL".equals(result)) {
@@ -1832,7 +1824,6 @@ public class DefaultPrompter implements Prompter {
 
         // Set up fallback for unmatched keys (like console-ui behavior)
         map.setNomatch(ListOperation.IGNORE);
-        map.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
     }
 
     /**
@@ -1989,7 +1980,6 @@ public class DefaultPrompter implements Prompter {
 
         // Set up fallback for unmatched keys (like console-ui behavior)
         map.setNomatch(CheckboxOperation.IGNORE);
-        map.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
     }
 
     /**
@@ -2145,7 +2135,6 @@ public class DefaultPrompter implements Prompter {
         map.bind(ChoiceOperation.EXIT, "\r", "\n");
         map.bind(ChoiceOperation.ESCAPE, esc());
         map.bind(ChoiceOperation.CANCEL, ctrl('C'));
-        map.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
     }
 
     /**

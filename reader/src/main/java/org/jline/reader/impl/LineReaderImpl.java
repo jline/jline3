@@ -105,7 +105,7 @@ public class LineReaderImpl implements LineReader, Flushable {
     public static final int DEFAULT_MENU_LIST_MAX = Integer.MAX_VALUE;
     public static final int DEFAULT_ERRORS = 2;
     public static final long DEFAULT_BLINK_MATCHING_PAREN = 500L;
-    public static final long DEFAULT_AMBIGUOUS_BINDING = 1000L;
+    public static final long DEFAULT_AMBIGUOUS_BINDING = 100L;
     public static final String DEFAULT_SECONDARY_PROMPT_PATTERN = "%M> ";
     public static final String DEFAULT_OTHERS_GROUP_NAME = "others";
     public static final String DEFAULT_ORIGINAL_GROUP_NAME = "original";
