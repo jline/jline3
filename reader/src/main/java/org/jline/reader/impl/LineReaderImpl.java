@@ -4217,7 +4217,27 @@ public class LineReaderImpl implements LineReader, Flushable {
                 && buffer.length() < getInt(FEATURES_MAX_BUFFER_SIZE, DEFAULT_FEATURES_MAX_BUFFER_SIZE)) {
             return highlighter.highlight(this, buffer);
         }
-        return new AttributedString(buffer);
+        // Fallback when the highlighter is absent, disabled, or skipped for an oversized
+        // buffer. DefaultHighlighter neutralizes control characters; do the same here so a
+        // large pasted or history-replayed line cannot emit raw escape sequences to the
+        // terminal (bracketed paste is meant to make pasted bytes inert).
+        return escapeControlChars(buffer);
+    }
+
+    private static AttributedString escapeControlChars(String buffer) {
+        AttributedStringBuilder sb = new AttributedStringBuilder(buffer.length());
+        for (int i = 0; i < buffer.length(); ) {
+            int cp = buffer.codePointAt(i);
+            if (cp == '\t' || cp == '\n') {
+                sb.append((char) cp);
+            } else if (cp < 32) {
+                sb.append('^').append((char) (cp + '@'));
+            } else if (WCWidth.wcwidth(cp) >= 0) {
+                sb.appendCodePoint(cp);
+            }
+            i += Character.charCount(cp);
+        }
+        return sb.toAttributedString();
     }
 
     private AttributedString expandPromptPattern(String pattern, int padToWidth, String message, int line) {
