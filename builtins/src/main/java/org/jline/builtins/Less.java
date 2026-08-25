@@ -1086,7 +1086,7 @@ public class Less {
                 if (displayMessage) {
                     AttributedStringBuilder asb = new AttributedStringBuilder();
                     asb.style(AttributedStyle.INVERSE);
-                    asb.append(source.getName()).append(" (press RETURN)");
+                    asb.append(stripControlChars(source.getName())).append(" (press RETURN)");
                     asb.toAttributedString().println(terminal);
                     terminal.writer().flush();
                     terminal.reader().read();
@@ -1100,7 +1100,7 @@ public class Less {
                     throw exp;
                 } else {
                     AttributedStringBuilder asb = new AttributedStringBuilder();
-                    asb.append(source.getName()).append(" not found!");
+                    asb.append(stripControlChars(source.getName())).append(" not found!");
                     asb.toAttributedString().println(terminal);
                     terminal.writer().flush();
                     open = false;

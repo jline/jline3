@@ -9,8 +9,11 @@
 package org.jline.builtins;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -225,6 +228,50 @@ class LessTest {
             String plainText = stripAnsi(rendered);
             assertTrue(plainText.contains("prompt"), "prompt text should be preserved");
             assertTrue(plainText.contains("pwned>"), "surrounding prompt text should be preserved");
+        }
+    }
+
+    @Test
+    @Timeout(5)
+    void openSourceStripsControlCharactersFromFileNames() throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (LineDisciplineTerminal terminal = newTerminal(output)) {
+            Less less = new Less(terminal, Path.of("."));
+            less.size = terminal.getSize();
+            String name = "réport\u001b]0;pwned\u0007.txt";
+            // A source whose read() fails exercises the "not found!" branch; the next
+            // source then opens with displayMessage set, exercising "(press RETURN)".
+            Source missing = new Source() {
+                @Override
+                public String getName() {
+                    return name;
+                }
+
+                @Override
+                public InputStream read() throws IOException {
+                    throw new FileNotFoundException(name);
+                }
+
+                @Override
+                public Long lines() {
+                    return null;
+                }
+            };
+            Source next = new InputStreamSource(new ByteArrayInputStream(new byte[0]), true, name);
+            less.sources = new ArrayList<>(Arrays.asList(
+                    new InputStreamSource(new ByteArrayInputStream(new byte[0]), true, "help"), missing, next));
+            less.sourceIdx = 1;
+            terminal.processInputByte('\n'); // satisfies the "(press RETURN)" read
+
+            less.openSource();
+
+            String rendered = output.toString(StandardCharsets.UTF_8);
+            assertFalse(rendered.contains("\u001b]0;"), "OSC introducer must not reach the terminal");
+            assertFalse(rendered.contains("\u0007"), "BEL must not reach the terminal");
+            String plainText = stripAnsi(rendered);
+            assertTrue(plainText.contains("réport"), "non-ASCII file name text should be preserved");
+            assertTrue(plainText.contains("pwned.txt not found!"), "not-found line should keep printable text");
+            assertTrue(plainText.contains("pwned.txt (press RETURN)"), "press-RETURN line should keep printable text");
         }
     }
 
