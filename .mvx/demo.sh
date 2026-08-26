@@ -161,14 +161,15 @@ if [ -n "$MAIN_CLASS" ]; then
     # Console provider demo: use module path so System.console() picks up the JLine provider
     mp=""
     if [ -d ${TARGETDIR}/lib ]; then
-      mp=$(find ${TARGETDIR}/lib -name "*.jar" -exec printf :{} ';')
+      mp=$(find ${TARGETDIR}/lib -name "jline-*.jar" -exec printf :{} ';')
       mp="${mp#:}"
     fi
     echo "Using module path for console provider"
     eval java \
       --module-path \"$mp\" \
-      --add-modules org.jline.console.provider \
+      --add-modules org.jline.console.provider,org.jline.reader,org.jline.terminal \
       --add-exports java.base/jdk.internal.io=org.jline.console.provider \
+      --enable-native-access=org.jline.terminal.ffm \
       -Djdk.console=org.jline.console.provider \
       -cp \"${TARGETDIR}/classes\" \
       $JVM_OPTS \

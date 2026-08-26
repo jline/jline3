@@ -62,10 +62,10 @@
                     <source>${java.build.version}</source>
                     <target>${java.build.version}</target>
                     <compilerArgs>
-                        <arg>-Xlint:all,-options,-processing,-restricted,-requires-automatic,-requires-transitive-automatic,-exports</arg>
+                        <arg>-Xlint:all,-options,-processing,-restricted</arg>
                         <arg>-Werror</arg>
                         <arg>--add-exports</arg>
-                        <arg>java.base/jdk.internal.io=org.jline.console.provider</arg>
+                        <arg>java.base/jdk.internal.io=ALL-UNNAMED</arg>
                     </compilerArgs>
                 </configuration>
                 <executions>
@@ -77,9 +77,9 @@
                         <phase>test-compile</phase>
                         <configuration>
                             <compilerArgs>
-                                <arg>-Xlint:all,-options,-processing,-exports,-restricted,-missing-explicit-ctor</arg>
+                                <arg>-Xlint:all,-options,-processing,-restricted,-missing-explicit-ctor</arg>
                                 <arg>--add-exports</arg>
-                                <arg>java.base/jdk.internal.io=org.jline.console.provider</arg>
+                                <arg>java.base/jdk.internal.io=ALL-UNNAMED</arg>
                             </compilerArgs>
                         </configuration>
                     </execution>
@@ -97,7 +97,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
-                    <additionalOptions>--add-exports java.base/jdk.internal.io=org.jline.console.provider</additionalOptions>
+                    <additionalOptions>--add-exports java.base/jdk.internal.io=ALL-UNNAMED</additionalOptions>
                 </configuration>
             </plugin>
         </plugins>
