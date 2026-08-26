@@ -39,7 +39,7 @@ fi
 TARGETDIR="demo/target"
 cp="${TARGETDIR}/classes"
 logconf="demo/etc/logging.properties"
-JVM_OPTS=""
+JVM_OPTS="--enable-native-access=ALL-UNNAMED"
 APP_ARGS=""
 MAIN_CLASS=""
 

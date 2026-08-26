@@ -47,8 +47,13 @@ public class KeyParser {
                 return new KeyEvent(ch, EnumSet.noneOf(KeyEvent.Modifier.class), rawSequence);
             }
 
+            // DEL (0x7F) = Backspace
+            if (ch == 127) {
+                return new KeyEvent(KeyEvent.Special.Backspace, EnumSet.noneOf(KeyEvent.Modifier.class), rawSequence);
+            }
+
             // Extended ASCII or Unicode
-            if (ch > 126) {
+            if (ch > 127) {
                 return new KeyEvent(ch, EnumSet.noneOf(KeyEvent.Modifier.class), rawSequence);
             }
         }
@@ -67,8 +72,25 @@ public class KeyParser {
             char ch = sequence.charAt(1);
             EnumSet<KeyEvent.Modifier> modifiers = EnumSet.of(KeyEvent.Modifier.Alt);
 
+            // Alt + special keys (control characters)
+            switch (ch) {
+                case 9:
+                    return new KeyEvent(KeyEvent.Special.Tab, modifiers, sequence);
+                case 13:
+                    return new KeyEvent(KeyEvent.Special.Enter, modifiers, sequence);
+                case 127:
+                    return new KeyEvent(KeyEvent.Special.Backspace, modifiers, sequence);
+            }
+
+            // Alt + printable characters
             if (ch >= 32 && ch <= 126) {
                 return new KeyEvent(ch, modifiers, sequence);
+            }
+
+            // Alt + Ctrl+letter (e.g. ESC Ctrl+A = 0x01)
+            if (ch >= 1 && ch <= 26) {
+                modifiers.add(KeyEvent.Modifier.Control);
+                return new KeyEvent((char) (ch + 'a' - 1), modifiers, sequence);
             }
         }
 
@@ -107,15 +129,19 @@ public class KeyParser {
             // Function keys
             case "\u001b[11~":
             case "\u001bOP":
+            case "\u001b[P":
                 return new KeyEvent(1, EnumSet.noneOf(KeyEvent.Modifier.class), sequence);
             case "\u001b[12~":
             case "\u001bOQ":
+            case "\u001b[Q":
                 return new KeyEvent(2, EnumSet.noneOf(KeyEvent.Modifier.class), sequence);
             case "\u001b[13~":
             case "\u001bOR":
+            case "\u001b[R":
                 return new KeyEvent(3, EnumSet.noneOf(KeyEvent.Modifier.class), sequence);
             case "\u001b[14~":
             case "\u001bOS":
+            case "\u001b[S":
                 return new KeyEvent(4, EnumSet.noneOf(KeyEvent.Modifier.class), sequence);
             case "\u001b[15~":
                 return new KeyEvent(5, EnumSet.noneOf(KeyEvent.Modifier.class), sequence);
@@ -179,16 +205,29 @@ public class KeyParser {
         // Pattern: \E[1;modifiers{A,B,C,D} for modified arrow keys
         // Pattern: \E[{number};modifiers~ for modified special keys
 
-        // Modified arrow keys: \E[1;{mod}{A,B,C,D}
-        if (sequence.matches("\\u001b\\[1;[2-8][ABCD]")) {
+        // Modified arrow/function/special keys: \E[1;{mod}{A-S}
+        if (sequence.matches("\\u001b\\[1;[2-8][A-S]")) {
             int modCode = Character.getNumericValue(sequence.charAt(4));
-            char arrowChar = sequence.charAt(5);
+            char finalChar = sequence.charAt(5);
 
             EnumSet<KeyEvent.Modifier> modifiers = parseModifierCode(modCode);
-            KeyEvent.Arrow arrow = parseArrowChar(arrowChar);
 
+            // Arrow keys: A=Up, B=Down, C=Right, D=Left
+            KeyEvent.Arrow arrow = parseArrowChar(finalChar);
             if (arrow != null) {
                 return new KeyEvent(arrow, modifiers, sequence);
+            }
+
+            // Function keys F1-F4: P=F1, Q=F2, R=F3, S=F4
+            int fkey = mapSS3FunctionKey(finalChar);
+            if (fkey > 0) {
+                return new KeyEvent(fkey, modifiers, sequence);
+            }
+
+            // Home/End: H=Home, F=End
+            KeyEvent.Special special = mapCSISpecialChar(finalChar);
+            if (special != null) {
+                return new KeyEvent(special, modifiers, sequence);
             }
         }
 
@@ -232,6 +271,36 @@ public class KeyParser {
             }
         }
 
+        // xterm modifyOtherKeys format: \E[27;{mod};{code}~
+        if (sequence.matches("\\u001b\\[27;[2-8];[0-9]+~")) {
+            String[] parts = sequence.substring(2, sequence.length() - 1).split(";");
+            if (parts.length == 3) {
+                try {
+                    int modCode = Integer.parseInt(parts[1]);
+                    int keyCode = Integer.parseInt(parts[2]);
+
+                    EnumSet<KeyEvent.Modifier> modifiers = parseModifierCode(modCode);
+
+                    switch (keyCode) {
+                        case 9:
+                            return new KeyEvent(KeyEvent.Special.Tab, modifiers, sequence);
+                        case 13:
+                            return new KeyEvent(KeyEvent.Special.Enter, modifiers, sequence);
+                        case 27:
+                            return new KeyEvent(KeyEvent.Special.Escape, modifiers, sequence);
+                        case 127:
+                            return new KeyEvent(KeyEvent.Special.Backspace, modifiers, sequence);
+                        default:
+                            if (keyCode >= 32 && keyCode <= 126) {
+                                return new KeyEvent((char) keyCode, modifiers, sequence);
+                            }
+                    }
+                } catch (NumberFormatException e) {
+                    // Fall through to unknown
+                }
+            }
+        }
+
         return new KeyEvent(sequence);
     }
 
@@ -253,6 +322,32 @@ public class KeyParser {
         }
 
         return modifiers;
+    }
+
+    private static int mapSS3FunctionKey(char ch) {
+        switch (ch) {
+            case 'P':
+                return 1;
+            case 'Q':
+                return 2;
+            case 'R':
+                return 3;
+            case 'S':
+                return 4;
+            default:
+                return 0;
+        }
+    }
+
+    private static KeyEvent.Special mapCSISpecialChar(char ch) {
+        switch (ch) {
+            case 'H':
+                return KeyEvent.Special.Home;
+            case 'F':
+                return KeyEvent.Special.End;
+            default:
+                return null;
+        }
     }
 
     private static KeyEvent.Arrow parseArrowChar(char arrowChar) {
