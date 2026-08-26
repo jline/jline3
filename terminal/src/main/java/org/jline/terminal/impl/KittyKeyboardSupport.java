@@ -96,10 +96,14 @@ public final class KittyKeyboardSupport {
     // PUA codes for completeness and to handle terminals that may send them as CSI u.
     public static final int KEY_INSERT = 57348;
     public static final int KEY_DELETE = 57349;
-    public static final int KEY_HOME = 57350;
-    public static final int KEY_END = 57351;
+    public static final int KEY_LEFT = 57350;
+    public static final int KEY_RIGHT = 57351;
+    public static final int KEY_UP = 57352;
+    public static final int KEY_DOWN = 57353;
     public static final int KEY_PAGE_UP = 57354;
     public static final int KEY_PAGE_DOWN = 57355;
+    public static final int KEY_HOME = 57356;
+    public static final int KEY_END = 57357;
 
     // Lock keys
     public static final int KEY_CAPS_LOCK = 57358;
@@ -176,9 +180,26 @@ public final class KittyKeyboardSupport {
     public static int toFlags(EnumSet<KittyKeyboardMode> modes) {
         int flags = 0;
         for (KittyKeyboardMode mode : modes) {
-            flags |= (1 << mode.ordinal());
+            flags |= flagFor(mode);
         }
         return flags;
+    }
+
+    private static int flagFor(KittyKeyboardMode mode) {
+        switch (mode) {
+            case Disambiguate:
+                return FLAG_DISAMBIGUATE;
+            case ReportEvents:
+                return FLAG_REPORT_EVENTS;
+            case ReportAlternates:
+                return FLAG_REPORT_ALTERNATES;
+            case ReportAllKeys:
+                return FLAG_REPORT_ALL_KEYS;
+            case ReportText:
+                return FLAG_REPORT_TEXT;
+            default:
+                throw new IllegalArgumentException("Unknown mode: " + mode);
+        }
     }
 
     // ---- Sequence Builders ----

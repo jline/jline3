@@ -491,6 +491,24 @@ public class KeyParser {
                     associatedText);
         }
 
+        // Map arrow keys from PUA codepoints
+        KeyEvent.Arrow arrow = mapKittyArrowKey(keyCode);
+        if (arrow != null) {
+            return new KeyEvent(
+                    KeyEvent.Type.Arrow,
+                    '\0',
+                    arrow,
+                    null,
+                    0,
+                    modifiers,
+                    rawSequence,
+                    eventType,
+                    keyCode,
+                    shiftedKeyCode,
+                    baseLayoutKeyCode,
+                    associatedText);
+        }
+
         // Map function keys F13-F35 (F1-F12 use legacy CSI ~ format)
         int fKey = mapKittyFunctionKey(keyCode);
         if (fKey > 0) {
@@ -570,14 +588,29 @@ public class KeyParser {
                 return KeyEvent.Special.Insert;
             case 57349:
                 return KeyEvent.Special.Delete;
-            case 57350:
-                return KeyEvent.Special.Home;
-            case 57351:
-                return KeyEvent.Special.End;
             case 57354:
                 return KeyEvent.Special.PageUp;
             case 57355:
                 return KeyEvent.Special.PageDown;
+            case 57356:
+                return KeyEvent.Special.Home;
+            case 57357:
+                return KeyEvent.Special.End;
+            default:
+                return null;
+        }
+    }
+
+    private static KeyEvent.Arrow mapKittyArrowKey(int keyCode) {
+        switch (keyCode) {
+            case 57350:
+                return KeyEvent.Arrow.Left;
+            case 57351:
+                return KeyEvent.Arrow.Right;
+            case 57352:
+                return KeyEvent.Arrow.Up;
+            case 57353:
+                return KeyEvent.Arrow.Down;
             default:
                 return null;
         }

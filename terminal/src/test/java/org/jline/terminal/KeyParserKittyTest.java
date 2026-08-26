@@ -324,17 +324,43 @@ class KeyParserKittyTest {
     }
 
     @Test
-    void testHomeViaPua() {
-        // Home = PUA 57350
+    void testLeftViaPua() {
         KeyEvent event = KeyParser.parse(ESC + "[57350u");
+        assertEquals(KeyEvent.Type.Arrow, event.getType());
+        assertEquals(KeyEvent.Arrow.Left, event.getArrow());
+    }
+
+    @Test
+    void testRightViaPua() {
+        KeyEvent event = KeyParser.parse(ESC + "[57351u");
+        assertEquals(KeyEvent.Type.Arrow, event.getType());
+        assertEquals(KeyEvent.Arrow.Right, event.getArrow());
+    }
+
+    @Test
+    void testUpViaPua() {
+        KeyEvent event = KeyParser.parse(ESC + "[57352u");
+        assertEquals(KeyEvent.Type.Arrow, event.getType());
+        assertEquals(KeyEvent.Arrow.Up, event.getArrow());
+    }
+
+    @Test
+    void testDownViaPua() {
+        KeyEvent event = KeyParser.parse(ESC + "[57353u");
+        assertEquals(KeyEvent.Type.Arrow, event.getType());
+        assertEquals(KeyEvent.Arrow.Down, event.getArrow());
+    }
+
+    @Test
+    void testHomeViaPua() {
+        KeyEvent event = KeyParser.parse(ESC + "[57356u");
         assertEquals(KeyEvent.Type.Special, event.getType());
         assertEquals(KeyEvent.Special.Home, event.getSpecial());
     }
 
     @Test
     void testEndViaPua() {
-        // End = PUA 57351
-        KeyEvent event = KeyParser.parse(ESC + "[57351u");
+        KeyEvent event = KeyParser.parse(ESC + "[57357u");
         assertEquals(KeyEvent.Type.Special, event.getType());
         assertEquals(KeyEvent.Special.End, event.getSpecial());
     }
