@@ -38,6 +38,7 @@ import java.util.stream.IntStream;
 
 import org.jline.builtins.Options.HelpException;
 import org.jline.keymap.BindingReader;
+import org.jline.keymap.InBandResize;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.impl.DefaultParser;
@@ -235,7 +236,8 @@ public class Tmux {
     enum Binding {
         Discard,
         SelfInsert,
-        Mouse
+        Mouse,
+        Resize
     }
 
     private class Window {
@@ -490,6 +492,7 @@ public class Tmux {
             keyMap.bind(Binding.Discard, prefix + (char) (i));
         }
         keyMap.bind(Binding.Mouse, key(terminal, Capability.key_mouse));
+        keyMap.bind(Binding.Resize, InBandResize.RESIZE_SEQ);
         return keyMap;
     }
 
@@ -596,7 +599,9 @@ public class Tmux {
                         active().getMasterInputOutput().flush();
                         first = true;
                     }
-                    if (b == Binding.Mouse) {
+                    if (b == Binding.Resize) {
+                        InBandResize.handleResize(reader, terminal);
+                    } else if (b == Binding.Mouse) {
                         MouseEvent event = terminal.readMouseEvent(reader::readCharacter, reader.getLastBinding());
                         // System.err.println(event.toString());
                     } else if (b instanceof String || b instanceof String[]) {

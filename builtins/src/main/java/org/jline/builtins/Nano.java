@@ -35,6 +35,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.jline.keymap.BindingReader;
+import org.jline.keymap.InBandResize;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Editor;
 import org.jline.terminal.Attributes;
@@ -2193,6 +2194,9 @@ public class Nano implements Editor {
                     case MOUSE_EVENT:
                         mouseEvent();
                         break;
+                    case TERMINAL_RESIZE:
+                        InBandResize.handleResize(bindingReader, terminal);
+                        break;
                     case TOGGLE_SUSPENSION:
                         toggleSuspension();
                         break;
@@ -2316,6 +2320,7 @@ public class Nano implements Editor {
         // Bind all possible mouse event prefixes
         // This ensures mouse events are recognized regardless of the terminal's kmous capability
         writeKeyMap.bind(Operation.MOUSE_EVENT, MouseSupport.keys(terminal));
+        writeKeyMap.bind(Operation.TERMINAL_RESIZE, InBandResize.RESIZE_SEQ);
 
         writeKeyMap.bind(Operation.TOGGLE_SUSPENSION, alt('z'));
         writeKeyMap.bind(Operation.RIGHT, key(terminal, Capability.key_right));
@@ -2361,6 +2366,9 @@ public class Nano implements Editor {
                     break;
                 case MOUSE_EVENT:
                     mouseEvent();
+                    break;
+                case TERMINAL_RESIZE:
+                    InBandResize.handleResize(bindingReader, terminal);
                     break;
                 case TOGGLE_SUSPENSION:
                     toggleSuspension();
@@ -2538,6 +2546,7 @@ public class Nano implements Editor {
         // Bind all possible mouse event prefixes
         // This ensures mouse events are recognized regardless of the terminal's kmous capability
         readKeyMap.bind(Operation.MOUSE_EVENT, MouseSupport.keys(terminal));
+        readKeyMap.bind(Operation.TERMINAL_RESIZE, InBandResize.RESIZE_SEQ);
 
         readKeyMap.bind(Operation.RIGHT, key(terminal, Capability.key_right));
         readKeyMap.bind(Operation.LEFT, key(terminal, Capability.key_left));
@@ -2591,6 +2600,9 @@ public class Nano implements Editor {
                 case MOUSE_EVENT:
                     mouseEvent();
                     break;
+                case TERMINAL_RESIZE:
+                    InBandResize.handleResize(bindingReader, terminal);
+                    break;
                 default:
                     curPos = editInputBuffer(op, curPos);
                     break;
@@ -2624,6 +2636,7 @@ public class Nano implements Editor {
         // Bind all possible mouse event prefixes
         // This ensures mouse events are recognized regardless of the terminal's kmous capability
         readKeyMap.bind(Operation.MOUSE_EVENT, MouseSupport.keys(terminal));
+        readKeyMap.bind(Operation.TERMINAL_RESIZE, InBandResize.RESIZE_SEQ);
 
         readKeyMap.bind(Operation.RIGHT, key(terminal, Capability.key_right));
         readKeyMap.bind(Operation.LEFT, key(terminal, Capability.key_left));
@@ -2680,6 +2693,9 @@ public class Nano implements Editor {
                     return;
                 case HELP:
                     help("nano-goto-help.txt");
+                    break;
+                case TERMINAL_RESIZE:
+                    InBandResize.handleResize(bindingReader, terminal);
                     break;
                 default:
                     curPos = editInputBuffer(op, curPos);
@@ -2857,6 +2873,9 @@ public class Nano implements Editor {
                     case MOUSE_EVENT:
                         mouseEvent();
                         break;
+                    case TERMINAL_RESIZE:
+                        InBandResize.handleResize(bindingReader, terminal);
+                        break;
                     case TOGGLE_SUSPENSION:
                         toggleSuspension();
                         break;
@@ -2960,6 +2979,7 @@ public class Nano implements Editor {
         // Bind all possible mouse event prefixes
         // This ensures mouse events are recognized regardless of the terminal's kmous capability
         searchKeyMap.bind(Operation.MOUSE_EVENT, MouseSupport.keys(terminal));
+        searchKeyMap.bind(Operation.TERMINAL_RESIZE, InBandResize.RESIZE_SEQ);
 
         searchKeyMap.bind(Operation.RIGHT, key(terminal, Capability.key_right));
         searchKeyMap.bind(Operation.LEFT, key(terminal, Capability.key_left));
@@ -3028,6 +3048,9 @@ public class Nano implements Editor {
                     case MOUSE_EVENT:
                         mouseEvent();
                         break;
+                    case TERMINAL_RESIZE:
+                        InBandResize.handleResize(bindingReader, terminal);
+                        break;
                     case TOGGLE_REPLACE:
                         searchToReplace = !searchToReplace;
                         this.shortcuts = searchShortcuts();
@@ -3066,6 +3089,7 @@ public class Nano implements Editor {
         // Bind all possible mouse event prefixes
         // This ensures mouse events are recognized regardless of the terminal's kmous capability
         keyMap.bind(Operation.MOUSE_EVENT, MouseSupport.keys(terminal));
+        keyMap.bind(Operation.TERMINAL_RESIZE, InBandResize.RESIZE_SEQ);
 
         keyMap.bind(Operation.RIGHT, key(terminal, Capability.key_right));
         keyMap.bind(Operation.LEFT, key(terminal, Capability.key_left));
@@ -3112,6 +3136,9 @@ public class Nano implements Editor {
                         break;
                     case MOUSE_EVENT:
                         mouseEvent();
+                        break;
+                    case TERMINAL_RESIZE:
+                        InBandResize.handleResize(bindingReader, terminal);
                         break;
                     default:
                         curPos = editInputBuffer(op, curPos);
@@ -3912,6 +3939,9 @@ public class Nano implements Editor {
         // This ensures mouse events are recognized regardless of the terminal's kmous capability
         keys.bind(Operation.MOUSE_EVENT, MouseSupport.keys(terminal));
 
+        // Bind in-band resize report (mode 2048) prefix
+        keys.bind(Operation.TERMINAL_RESIZE, InBandResize.RESIZE_SEQ);
+
         keys.bind(Operation.TOGGLE_SUSPENSION, alt('z'));
         keys.bind(Operation.NEXT_PAGE, key(terminal, Capability.key_npage));
         keys.bind(Operation.PREV_PAGE, key(terminal, Capability.key_ppage));
@@ -4005,6 +4035,8 @@ public class Nano implements Editor {
         UNCUT,
 
         MOUSE_EVENT,
+
+        TERMINAL_RESIZE,
 
         TOGGLE_SUSPENSION
     }

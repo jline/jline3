@@ -29,6 +29,7 @@ import org.jline.builtins.Nano.PatternHistory;
 import org.jline.builtins.Source.ResourceSource;
 import org.jline.builtins.Source.URLSource;
 import org.jline.keymap.BindingReader;
+import org.jline.keymap.InBandResize;
 import org.jline.keymap.KeyMap;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
@@ -692,6 +693,9 @@ public class Less {
                             case HELP:
                                 help();
                                 break;
+                            case TERMINAL_RESIZE:
+                                InBandResize.handleResize(bindingReader, terminal);
+                                break;
                         }
                         buffer.setLength(0);
                     }
@@ -893,6 +897,7 @@ public class Less {
         fileKeyMap.bind(Operation.DELETE_WORD, alt('X'));
         fileKeyMap.bind(Operation.DELETE_LINE, ctrl('U'));
         fileKeyMap.bind(Operation.ACCEPT, "\r");
+        fileKeyMap.bind(Operation.TERMINAL_RESIZE, InBandResize.RESIZE_SEQ);
 
         SavedSourcePositions ssp = new SavedSourcePositions();
         message = null;
@@ -913,6 +918,8 @@ public class Less {
                     ssp.restore(name);
                 }
                 return;
+            } else if (op == Operation.TERMINAL_RESIZE) {
+                InBandResize.handleResize(bindingReader, terminal);
             } else if (op != null) {
                 curPos = lineEditor.editBuffer(op, curPos);
             }
@@ -944,6 +951,7 @@ public class Less {
         searchKeyMap.bind(Operation.UP, key(terminal, Capability.key_up), alt('k'));
         searchKeyMap.bind(Operation.DOWN, key(terminal, Capability.key_down), alt('j'));
         searchKeyMap.bind(Operation.ACCEPT, "\r");
+        searchKeyMap.bind(Operation.TERMINAL_RESIZE, InBandResize.RESIZE_SEQ);
 
         boolean forward = true;
         message = null;
@@ -1008,6 +1016,9 @@ public class Less {
                         message = null;
                     }
                     return forward;
+                case TERMINAL_RESIZE:
+                    InBandResize.handleResize(bindingReader, terminal);
+                    break;
                 default:
                     curPos = lineEditor.editBuffer(op, curPos);
                     currentBuffer = buffer.toString();
@@ -1040,6 +1051,9 @@ public class Less {
                             break;
                         case BACKWARD_ONE_WINDOW_OR_LINES:
                             moveBackward(getStrictPositiveNumberInBuffer(window));
+                            break;
+                        case TERMINAL_RESIZE:
+                            InBandResize.handleResize(bindingReader, terminal);
                             break;
                     }
                 }
@@ -1583,6 +1597,9 @@ public class Less {
         map.bind(Operation.DELETE_FILE, ":d");
         map.bind(Operation.BACKSPACE, del());
         "-/0123456789?&".chars().forEach(c -> map.bind(Operation.CHAR, Character.toString((char) c)));
+
+        // Bind in-band resize report (mode 2048) prefix
+        map.bind(Operation.TERMINAL_RESIZE, InBandResize.RESIZE_SEQ);
     }
 
     protected enum Operation {
@@ -1644,6 +1661,9 @@ public class Less {
 
         //
         CHAR,
+
+        // In-band resize
+        TERMINAL_RESIZE,
 
         // Edit pattern
         INSERT,

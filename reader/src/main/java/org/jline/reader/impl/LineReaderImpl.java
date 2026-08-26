@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.jline.keymap.BindingReader;
+import org.jline.keymap.InBandResize;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.Parser.ParseContext;
@@ -135,7 +136,12 @@ public class LineReaderImpl implements LineReader, Flushable {
 
     public static final String FOCUS_IN_SEQ = "\033[I";
     public static final String FOCUS_OUT_SEQ = "\033[O";
-    public static final String RESIZE_SEQ = "\033[48;";
+    /**
+     * @deprecated Use {@link InBandResize#RESIZE_SEQ} instead.
+     */
+    @Deprecated
+    public static final String RESIZE_SEQ = InBandResize.RESIZE_SEQ;
+
     public static final int DEFAULT_MAX_REPEAT_COUNT = 9999;
 
     /**
@@ -6560,62 +6566,11 @@ public class LineReaderImpl implements LineReader, Flushable {
      * {@link Terminal.Signal#WINCH}.</p>
      *
      * @return {@code true} always
+     * @see InBandResize#handleResize(BindingReader, Terminal)
      */
     public boolean terminalResize() {
-        String params = readResizeParams();
-        if (params != null) {
-            applyResizeParams(params);
-        }
+        InBandResize.handleResize(bindingReader, terminal);
         return true;
-    }
-
-    /**
-     * Reads resize parameters from the input until the final {@code t} byte.
-     *
-     * @return the parameter string (e.g. {@code "24;80"}), or {@code null}
-     *         if the sequence is malformed or too long
-     */
-    private String readResizeParams() {
-        StringBuilder sb = new StringBuilder();
-        boolean discard = false;
-        int c;
-        while ((c = bindingReader.readCharacter()) >= 0) {
-            if (c == 't') {
-                return discard ? null : sb.toString();
-            }
-            if (!discard) {
-                if ((c >= '0' && c <= '9') || c == ';') {
-                    sb.append((char) c);
-                    if (sb.length() > 50) {
-                        discard = true; // Too long — drain to 't' then discard
-                    }
-                } else {
-                    discard = true; // Invalid character — drain to 't' then discard
-                }
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Parses {@code rows;cols[;pixelHeight;pixelWidth]} and applies
-     * the new terminal size, raising {@link Terminal.Signal#WINCH}.
-     */
-    private void applyResizeParams(String params) {
-        String[] parts = params.split(";", -1);
-        if (parts.length < 2) {
-            return;
-        }
-        try {
-            int rows = Integer.parseInt(parts[0]);
-            int cols = Integer.parseInt(parts[1]);
-            if (rows > 0 && cols > 0) {
-                terminal.setSize(Size.of(cols, rows));
-                terminal.raise(Terminal.Signal.WINCH);
-            }
-        } catch (NumberFormatException e) {
-            // Ignore malformed resize reports
-        }
     }
 
     /**
