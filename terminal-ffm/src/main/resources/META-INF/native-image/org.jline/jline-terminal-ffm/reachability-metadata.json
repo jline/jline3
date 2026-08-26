@@ -78,12 +78,29 @@
       {
         "returnType": "int",
         "parameterTypes": ["void*", "void*", "int", "void*"]
-      }
-    ],
-    "upcalls": [
+      },
       {
-        "returnType": "void",
-        "parameterTypes": ["int"]
+        "returnType": "long long",
+        "parameterTypes": ["int", "void*", "long long"]
+      },
+      {
+        "returnType": "void*",
+        "parameterTypes": ["void*", "long long", "int", "int", "int", "long long"]
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["void*", "long long", "int"]
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["void*", "long long"]
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["int", "int", "int"],
+        "options": {
+          "firstVariadicArg": 2
+        }
       }
     ]
   }

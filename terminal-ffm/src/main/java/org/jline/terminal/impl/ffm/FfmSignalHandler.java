@@ -12,31 +12,47 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import java.lang.invoke.VarHandle;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicIntegerArray;
-import java.util.concurrent.locks.LockSupport;
 
 /**
- * Native signal handling via POSIX {@code sigaction()} using the Foreign Function &amp; Memory API.
+ * Native signal handling via POSIX {@code sigaction()} using the Foreign Function &amp; Memory API,
+ * with the classic <em>self-pipe trick</em> to avoid running Java code in signal context.
  *
- * <p>This class replaces the reflection-based {@code sun.misc.Signal} approach with direct
- * {@code sigaction()} calls, providing:</p>
+ * <h2>Problem</h2>
+ * <p>A {@link java.lang.foreign.Linker#upcallStub upcall stub} used as {@code sa_handler} crashes
+ * HotSpot with {@code guarantee(thread->thread_state() == _thread_in_native)} because the kernel
+ * delivers the signal on whichever thread it interrupts — and that thread may not be in native
+ * state when the stub prologue fires.</p>
+ *
+ * <h2>Solution: self-pipe trick</h2>
+ * <p>Instead of an upcall stub, this class installs a tiny platform-specific <em>machine-code</em>
+ * handler that performs a single async-signal-safe {@code write()} to a pipe via a raw syscall
+ * instruction. No Java code runs in signal context whatsoever.</p>
+ * <ol>
+ *   <li>{@code pipe(2)} creates a notification channel.</li>
+ *   <li>The signal handler (raw machine code allocated via {@code mmap}) writes the signal number
+ *       as a single byte to the pipe's write end — this is async-signal-safe per POSIX.</li>
+ *   <li>A daemon thread blocks on {@code read(pipe_read_fd)} and dispatches the registered Java
+ *       handler in safe context.</li>
+ * </ol>
+ *
+ * <p>This preserves all benefits of direct {@code sigaction()} without depending on
+ * {@code sun.misc.Signal}:</p>
  * <ul>
- *   <li>No dependency on internal JVM APIs ({@code sun.misc.Signal})</li>
- *   <li>{@code SA_RESTART} flag to automatically restart interrupted system calls</li>
- *   <li>GC-managed handler lifetime (uses {@link Arena#ofAuto()} for GraalVM native-image compatibility)</li>
+ *   <li>No dependency on internal JVM APIs</li>
+ *   <li>{@code SA_RESTART} is set on all handlers</li>
+ *   <li>Full control over signal masks via {@code sigaction()}</li>
+ *   <li>No upcall stubs — no JVM crash under any signal delivery scenario</li>
  * </ul>
  *
- * <p><b>Async-signal-safety caveat:</b> The upcall stub used as the native signal handler
- * is not formally documented as async-signal-safe by the FFM specification. However, the
- * callback ({@link #signalReceived(int)}) performs only a single atomic store, minimizing
- * time spent in signal context. This is analogous to what {@code sun.misc.Signal} does
- * internally. All substantive Java work happens on the daemon dispatcher thread.</p>
+ * <p>Supported platforms: x86_64 and aarch64 on Linux, macOS, and FreeBSD.
+ * Unsupported platforms (AIX/PPC64, etc.) fall back to {@code sun.misc.Signal} transparently.</p>
+ *
+ * @see <a href="https://github.com/jline/jline3/issues/2139">#2139 — JVM crash in upcall stub</a>
+ * @see <a href="https://github.com/jline/jline3/issues/1747">#1747 — FFM signal handling motivation</a>
  */
 @SuppressWarnings("restricted")
 class FfmSignalHandler {
@@ -48,6 +64,13 @@ class FfmSignalHandler {
     private static final String SA_MASK = "sa_mask";
     private static final String SA_FLAGS = "sa_flags";
     private static final String EXCEPTION_DETAILS = "Exception details";
+
+    // --- OS name prefixes ---
+    private static final String OS_LINUX = "Linux";
+    private static final String OS_DARWIN = "Darwin";
+    private static final String OS_MAC = "Mac";
+    private static final String OS_FREEBSD = "FreeBSD";
+    private static final String OS_AIX = "AIX";
 
     // --- Platform-specific signal constants ---
     private static final int SIGHUP;
@@ -65,14 +88,32 @@ class FfmSignalHandler {
     private static final VarHandle sa_handler_vh;
     private static final VarHandle sa_flags_vh;
 
-    // --- FFM method handle for sigaction() ---
+    // --- FFM method handles ---
     private static final MethodHandle sigaction_mh;
+    private static final MethodHandle read_mh;
+    private static final MethodHandle write_mh;
+    private static final MethodHandle close_mh;
 
-    // --- Shared upcall stub for all signals ---
-    private static final MemorySegment upcallStub;
+    // --- Self-pipe file descriptors (-1 if not created) ---
+    private static final int PIPE_READ_FD;
+    private static final int PIPE_WRITE_FD;
+
+    // --- Native signal handler: executable machine code allocated via mmap ---
+    private static final MemorySegment nativeHandlerCode;
 
     // --- Whether FFM signal handling is AVAILABLE on this platform ---
     private static final boolean AVAILABLE;
+
+    // --- mmap constants ---
+    private static final int PROT_READ = 0x01;
+    private static final int PROT_WRITE = 0x02;
+    private static final int PROT_EXEC = 0x04;
+    private static final int MAP_PRIVATE = 0x02;
+
+    // --- fcntl constants (same values on Linux, macOS, FreeBSD) ---
+    private static final int F_SETFD = 2;
+    private static final int FD_CLOEXEC = 1;
+    private static final int F_SETFL = 4;
 
     static {
         boolean avail = false;
@@ -80,7 +121,12 @@ class FfmSignalHandler {
         VarHandle saHandler = null;
         VarHandle saFlags = null;
         MethodHandle sigaction = null;
-        MemorySegment stub = null;
+        MethodHandle readMh = null;
+        MethodHandle writeMh = null;
+        MethodHandle closeMh = null;
+        int pipeFdRead = -1;
+        int pipeFdWrite = -1;
+        MemorySegment handlerCode = null;
 
         int sighup = -1;
         int sigint = -1;
@@ -95,7 +141,7 @@ class FfmSignalHandler {
         try {
             String osName = System.getProperty("os.name");
 
-            if (osName.startsWith("Mac") || osName.startsWith("Darwin")) {
+            if (osName.startsWith(OS_MAC) || osName.startsWith(OS_DARWIN)) {
                 sighup = 1;
                 sigint = 2;
                 sigquit = 3;
@@ -110,7 +156,7 @@ class FfmSignalHandler {
                         ValueLayout.ADDRESS.withName(SA_HANDLER),
                         ValueLayout.JAVA_INT.withName(SA_MASK),
                         ValueLayout.JAVA_INT.withName(SA_FLAGS));
-            } else if (osName.startsWith("Linux")) {
+            } else if (osName.startsWith(OS_LINUX)) {
                 sighup = 1;
                 sigint = 2;
                 sigquit = 3;
@@ -127,7 +173,7 @@ class FfmSignalHandler {
                         ValueLayout.JAVA_INT.withName(SA_FLAGS),
                         MemoryLayout.paddingLayout(4),
                         ValueLayout.ADDRESS.withName("sa_restorer"));
-            } else if (osName.startsWith("FreeBSD")) {
+            } else if (osName.startsWith(OS_FREEBSD)) {
                 sighup = 1;
                 sigint = 2;
                 sigquit = 3;
@@ -143,7 +189,7 @@ class FfmSignalHandler {
                         ValueLayout.JAVA_INT.withName(SA_FLAGS),
                         MemoryLayout.sequenceLayout(16, ValueLayout.JAVA_BYTE).withName(SA_MASK),
                         MemoryLayout.paddingLayout(4));
-            } else if (osName.contains("AIX")) {
+            } else if (osName.contains(OS_AIX)) {
                 sighup = 1;
                 sigint = 2;
                 sigquit = 3;
@@ -170,7 +216,25 @@ class FfmSignalHandler {
                 SymbolLookup lookup = SymbolLookup.loaderLookup().or(linker.defaultLookup());
 
                 Optional<MemorySegment> sigactionAddr = lookup.find("sigaction");
-                if (sigactionAddr.isPresent()) {
+                Optional<MemorySegment> pipeAddr = lookup.find("pipe");
+                Optional<MemorySegment> readAddr = lookup.find("read");
+                Optional<MemorySegment> writeAddr = lookup.find("write");
+                Optional<MemorySegment> closeAddr = lookup.find("close");
+                Optional<MemorySegment> mmapAddr = lookup.find("mmap");
+                Optional<MemorySegment> mprotectAddr = lookup.find("mprotect");
+                Optional<MemorySegment> munmapAddr = lookup.find("munmap");
+                Optional<MemorySegment> fcntlAddr = lookup.find("fcntl");
+
+                if (sigactionAddr.isPresent()
+                        && pipeAddr.isPresent()
+                        && readAddr.isPresent()
+                        && writeAddr.isPresent()
+                        && closeAddr.isPresent()
+                        && mmapAddr.isPresent()
+                        && mprotectAddr.isPresent()
+                        && munmapAddr.isPresent()
+                        && fcntlAddr.isPresent()) {
+
                     sigaction = linker.downcallHandle(
                             sigactionAddr.get(),
                             FunctionDescriptor.of(
@@ -179,19 +243,151 @@ class FfmSignalHandler {
                                     ValueLayout.ADDRESS,
                                     ValueLayout.ADDRESS));
 
-                    stub = linker.upcallStub(
-                            MethodHandles.lookup()
-                                    .findStatic(
-                                            FfmSignalHandler.class,
-                                            "signalReceived",
-                                            MethodType.methodType(void.class, int.class)),
-                            FunctionDescriptor.ofVoid(ValueLayout.JAVA_INT),
-                            Arena.global());
+                    MethodHandle pipeMh = linker.downcallHandle(
+                            pipeAddr.get(), FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
 
+                    readMh = linker.downcallHandle(
+                            readAddr.get(),
+                            FunctionDescriptor.of(
+                                    ValueLayout.JAVA_LONG,
+                                    ValueLayout.JAVA_INT,
+                                    ValueLayout.ADDRESS,
+                                    ValueLayout.JAVA_LONG));
+
+                    writeMh = linker.downcallHandle(
+                            writeAddr.get(),
+                            FunctionDescriptor.of(
+                                    ValueLayout.JAVA_LONG,
+                                    ValueLayout.JAVA_INT,
+                                    ValueLayout.ADDRESS,
+                                    ValueLayout.JAVA_LONG));
+
+                    closeMh = linker.downcallHandle(
+                            closeAddr.get(), FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT));
+
+                    MethodHandle mmapMh = linker.downcallHandle(
+                            mmapAddr.get(),
+                            FunctionDescriptor.of(
+                                    ValueLayout.ADDRESS,
+                                    ValueLayout.ADDRESS,
+                                    ValueLayout.JAVA_LONG,
+                                    ValueLayout.JAVA_INT,
+                                    ValueLayout.JAVA_INT,
+                                    ValueLayout.JAVA_INT,
+                                    ValueLayout.JAVA_LONG));
+
+                    MethodHandle mprotectMh = linker.downcallHandle(
+                            mprotectAddr.get(),
+                            FunctionDescriptor.of(
+                                    ValueLayout.JAVA_INT,
+                                    ValueLayout.ADDRESS,
+                                    ValueLayout.JAVA_LONG,
+                                    ValueLayout.JAVA_INT));
+
+                    MethodHandle munmapMh = linker.downcallHandle(
+                            munmapAddr.get(),
+                            FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.JAVA_LONG));
+
+                    // fcntl(int fd, int cmd, int arg) — variadic, third arg is the first variadic
+                    MethodHandle fcntlMh = linker.downcallHandle(
+                            fcntlAddr.get(),
+                            FunctionDescriptor.of(
+                                    ValueLayout.JAVA_INT,
+                                    ValueLayout.JAVA_INT,
+                                    ValueLayout.JAVA_INT,
+                                    ValueLayout.JAVA_INT),
+                            Linker.Option.firstVariadicArg(2));
+
+                    // --- Step 1: Create pipe and set O_NONBLOCK on write end ---
+                    try (Arena pipeArena = Arena.ofConfined()) {
+                        MemorySegment pipeFds = pipeArena.allocate(ValueLayout.JAVA_INT, 2);
+                        int pipeResult = (int) pipeMh.invoke(pipeFds);
+                        if (pipeResult != 0) {
+                            throw new IllegalStateException("pipe() failed with return code " + pipeResult);
+                        }
+                        pipeFdRead = pipeFds.getAtIndex(ValueLayout.JAVA_INT, 0);
+                        pipeFdWrite = pipeFds.getAtIndex(ValueLayout.JAVA_INT, 1);
+                    }
+
+                    // Mark both ends close-on-exec so child processes do not inherit them.
+                    // Failure is tolerated — the pipe still works, it just leaks fds into children
+                    // spawned through non-JDK exec paths.
+                    fcntlMh.invoke(pipeFdRead, F_SETFD, FD_CLOEXEC);
+                    fcntlMh.invoke(pipeFdWrite, F_SETFD, FD_CLOEXEC);
+
+                    // Make the write end non-blocking so the signal handler never stalls
+                    // an interrupted thread when the pipe buffer is full.  Dropping a byte
+                    // is harmless — signals coalesce, and the dispatcher only needs to know
+                    // that *a* signal arrived, not how many.
+                    // O_NONBLOCK: 0x0800 on Linux, 0x0004 on macOS/FreeBSD
+                    int oNonblock = osName.startsWith(OS_LINUX) ? 0x0800 : 0x0004;
+                    int fcntlResult = (int) fcntlMh.invoke(pipeFdWrite, F_SETFL, oNonblock);
+                    if (fcntlResult != 0) {
+                        // A blocking write end is unsafe for signal context — the handler
+                        // could hang an interrupted thread once the pipe buffer fills.
+                        closeMh.invoke(pipeFdRead);
+                        closeMh.invoke(pipeFdWrite);
+                        pipeFdRead = -1;
+                        pipeFdWrite = -1;
+                        throw new IllegalStateException(
+                                "fcntl(F_SETFL, O_NONBLOCK) failed — blocking write end unsafe for signal handler");
+                    }
+
+                    // --- Step 2: Generate platform-specific signal handler machine code ---
+                    byte[] codeBytes = generateSignalHandlerCode(pipeFdWrite, osName);
+                    if (codeBytes == null) {
+                        // Unsupported architecture — close pipe and bail out
+                        closeMh.invoke(pipeFdRead);
+                        closeMh.invoke(pipeFdWrite);
+                        pipeFdRead = -1;
+                        pipeFdWrite = -1;
+                        throw new UnsupportedOperationException(
+                                "No machine-code signal handler for " + System.getProperty("os.arch") + "/" + osName);
+                    }
+
+                    // --- Step 3: Allocate executable memory via mmap + mprotect ---
+                    int mapAnonymous = osName.startsWith(OS_LINUX) ? 0x20 : 0x1000;
+                    long codeSize = codeBytes.length;
+
+                    MemorySegment mmapResult = (MemorySegment) mmapMh.invoke(
+                            MemorySegment.NULL, codeSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | mapAnonymous, -1, 0L);
+
+                    // mmap returns MAP_FAILED ((void*)-1) on error
+                    if (mmapResult.address() == -1L) {
+                        closeMh.invoke(pipeFdRead);
+                        closeMh.invoke(pipeFdWrite);
+                        pipeFdRead = -1;
+                        pipeFdWrite = -1;
+                        throw new IllegalStateException("mmap() failed for executable signal handler");
+                    }
+
+                    // Reinterpret to a writable segment and copy machine code
+                    MemorySegment codeSegment = mmapResult.reinterpret(codeSize);
+                    MemorySegment.copy(
+                            MemorySegment.ofArray(codeBytes),
+                            ValueLayout.JAVA_BYTE,
+                            0,
+                            codeSegment,
+                            ValueLayout.JAVA_BYTE,
+                            0,
+                            codeBytes.length);
+
+                    // Make executable (remove write, add exec) — satisfies W^X on Apple Silicon
+                    int mprotectResult = (int) mprotectMh.invoke(mmapResult, codeSize, PROT_READ | PROT_EXEC);
+                    if (mprotectResult != 0) {
+                        munmapMh.invoke(mmapResult, codeSize);
+                        closeMh.invoke(pipeFdRead);
+                        closeMh.invoke(pipeFdWrite);
+                        pipeFdRead = -1;
+                        pipeFdWrite = -1;
+                        throw new IllegalStateException("mprotect(PROT_READ|PROT_EXEC) failed");
+                    }
+
+                    handlerCode = codeSegment;
                     avail = true;
                 }
             }
-        } catch (Exception | LinkageError t) {
+        } catch (Throwable t) {
             logger.log(Level.DEBUG, "FFM signal handler not available", t);
         }
 
@@ -209,14 +405,214 @@ class FfmSignalHandler {
         sa_handler_vh = saHandler;
         sa_flags_vh = saFlags;
         sigaction_mh = sigaction;
-        upcallStub = stub;
+        read_mh = readMh;
+        write_mh = writeMh;
+        close_mh = closeMh;
+        PIPE_READ_FD = pipeFdRead;
+        PIPE_WRITE_FD = pipeFdWrite;
+        nativeHandlerCode = handlerCode;
         AVAILABLE = avail;
     }
 
-    // --- Signal dispatch infrastructure ---
+    // ===================================================================================
+    // Machine-code generation
+    // ===================================================================================
 
-    /** Atomic flags: pendingSignals[signum] == 1 means a signal is pending dispatch. */
-    private static final AtomicIntegerArray pendingSignals = new AtomicIntegerArray(64);
+    /**
+     * Generates a tiny native signal handler in raw machine code for the current platform.
+     *
+     * <p>The generated handler performs a single async-signal-safe operation:
+     * {@code write(writeFd, &signum_byte, 1)} via a raw syscall instruction. No Java code,
+     * no libc function calls, no errno side-effects. This is the minimum required to
+     * implement the self-pipe trick safely from signal context.</p>
+     *
+     * <p>Supported: x86_64 and aarch64 on Linux, macOS, and FreeBSD.</p>
+     *
+     * @param writeFd the write end of the self-pipe (must fit in 16 bits for aarch64, 32 bits for x86_64)
+     * @param osName  the value of {@code os.name}
+     * @return the machine code bytes, or {@code null} if the current architecture is unsupported
+     */
+    @SuppressWarnings("java:S1168") // null signals "unsupported platform" — empty array would be invalid machine code
+    private static byte[] generateSignalHandlerCode(int writeFd, String osName) {
+        if (Boolean.getBoolean("jline.ffm.forceUnsupportedArch")) {
+            return null;
+        }
+        String arch = System.getProperty("os.arch");
+        if ("amd64".equals(arch) || "x86_64".equals(arch)) {
+            return generateX86_64Code(writeFd, osName);
+        } else if ("aarch64".equals(arch) || "arm64".equals(arch)) {
+            return generateAarch64Code(writeFd, osName);
+        }
+        return null;
+    }
+
+    /**
+     * x86_64 signal handler machine code.
+     *
+     * <pre>
+     *   sub rsp, 8          ; allocate stack space
+     *   mov [rsp], dil      ; store signum byte (1st arg, SysV ABI) on stack
+     *   mov eax, SYS_write  ; syscall number
+     *   mov edi, writeFd    ; pipe fd
+     *   mov rsi, rsp        ; buf = &signum_byte on stack
+     *   mov edx, 1          ; count = 1
+     *   syscall
+     *   add rsp, 8          ; restore stack
+     *   ret
+     * </pre>
+     */
+    @SuppressWarnings({
+        "java:S100", // x86_64 is the canonical architecture name
+        "java:S1168" // null signals "unsupported OS" — empty array would be invalid machine code
+    })
+    private static byte[] generateX86_64Code(int writeFd, String osName) {
+        int sysWrite;
+        if (osName.startsWith(OS_LINUX)) {
+            sysWrite = 1;
+        } else if (osName.startsWith(OS_MAC) || osName.startsWith(OS_DARWIN)) {
+            sysWrite = 0x02000004;
+        } else if (osName.startsWith(OS_FREEBSD)) {
+            sysWrite = 4;
+        } else {
+            return null;
+        }
+
+        byte[] code = new byte[] {
+            // sub rsp, 8
+            0x48,
+            (byte) 0x83,
+            (byte) 0xEC,
+            0x08,
+            // mov [rsp], dil
+            0x40,
+            (byte) 0x88,
+            0x3C,
+            0x24,
+            // mov eax, <sysWrite>           (patched at offset 9..12)
+            (byte) 0xB8,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            // mov edi, <writeFd>            (patched at offset 14..17)
+            (byte) 0xBF,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            // mov rsi, rsp
+            0x48,
+            (byte) 0x89,
+            (byte) 0xE6,
+            // mov edx, 1
+            (byte) 0xBA,
+            0x01,
+            0x00,
+            0x00,
+            0x00,
+            // syscall
+            0x0F,
+            0x05,
+            // add rsp, 8
+            0x48,
+            (byte) 0x83,
+            (byte) 0xC4,
+            0x08,
+            // ret
+            (byte) 0xC3,
+        };
+
+        // Patch syscall number at offset 9 (little-endian int32)
+        patchInt32LE(code, 9, sysWrite);
+        // Patch pipe fd at offset 14 (little-endian int32)
+        patchInt32LE(code, 14, writeFd);
+        return code;
+    }
+
+    /**
+     * AArch64 signal handler machine code.
+     *
+     * <p>Linux and FreeBSD use x8 for the syscall number and {@code svc #0}.
+     * macOS uses x16 and {@code svc #0x80}.</p>
+     *
+     * <pre>
+     *   sub sp, sp, #16     ; allocate 16 bytes (AArch64 requires 16-byte SP alignment)
+     *   strb w0, [sp]       ; store signum byte (1st arg, AAPCS64) on stack
+     *   mov xN, #SYS_write  ; syscall number (x8 Linux/FreeBSD, x16 macOS)
+     *   mov w0, #writeFd    ; pipe fd
+     *   mov x1, sp          ; buf = &signum_byte on stack
+     *   mov x2, #1          ; count = 1
+     *   svc #IMM            ; syscall (#0 Linux/FreeBSD, #0x80 macOS)
+     *   add sp, sp, #16     ; restore stack
+     *   ret
+     * </pre>
+     */
+    @SuppressWarnings("java:S1168") // null signals "unsupported platform" — empty array would be invalid machine code
+    private static byte[] generateAarch64Code(int writeFd, String osName) {
+        if (writeFd < 0 || writeFd > 65535) {
+            // fd must fit in MOVZ imm16 field
+            return null;
+        }
+
+        boolean isMacOS = osName.startsWith(OS_MAC) || osName.startsWith(OS_DARWIN);
+        boolean isLinux = osName.startsWith(OS_LINUX);
+        boolean isFreeBSD = osName.startsWith(OS_FREEBSD);
+        if (!isMacOS && !isLinux && !isFreeBSD) {
+            return null;
+        }
+
+        // MOVZ encoding: instruction = base | (imm16 << 5) | Rd
+        // SUB SP, SP, #16
+        int insnSubSp = 0xD10043FF;
+        // STRB W0, [SP]
+        int insnStrbW0 = 0x390003E0;
+        // Syscall number register + value
+        int insnSyscallNr;
+        if (isMacOS) {
+            // MOV X16, #4 (SYS_write on macOS, uses x16)
+            insnSyscallNr = 0xD2800000 | (4 << 5) | 16;
+        } else if (isLinux) {
+            // MOV X8, #64 (SYS_write on Linux)
+            insnSyscallNr = 0xD2800000 | (64 << 5) | 8;
+        } else {
+            // MOV X8, #4 (SYS_write on FreeBSD)
+            insnSyscallNr = 0xD2800000 | (4 << 5) | 8;
+        }
+        // MOV W0, #writeFd (MOVZ W0, #imm16)
+        int insnMovFd = 0x52800000 | (writeFd << 5);
+        // MOV X1, SP (ADD X1, SP, #0)
+        int insnMovX1Sp = 0x910003E1;
+        // MOV X2, #1 (MOVZ X2, #1)
+        int insnMovX2One = 0xD2800000 | (1 << 5) | 2;
+        // SVC instruction
+        int insnSvc = isMacOS ? 0xD4001001 : 0xD4000001;
+        // ADD SP, SP, #16
+        int insnAddSp = 0x910043FF;
+        // RET
+        int insnRet = 0xD65F03C0;
+
+        int[] instructions = {
+            insnSubSp, insnStrbW0, insnSyscallNr, insnMovFd, insnMovX1Sp, insnMovX2One, insnSvc, insnAddSp, insnRet
+        };
+
+        byte[] code = new byte[instructions.length * 4];
+        for (int i = 0; i < instructions.length; i++) {
+            patchInt32LE(code, i * 4, instructions[i]);
+        }
+        return code;
+    }
+
+    /** Write a 32-bit integer in little-endian byte order at the given offset. */
+    private static void patchInt32LE(byte[] buf, int offset, int value) {
+        buf[offset] = (byte) (value & 0xFF);
+        buf[offset + 1] = (byte) ((value >>> 8) & 0xFF);
+        buf[offset + 2] = (byte) ((value >>> 16) & 0xFF);
+        buf[offset + 3] = (byte) ((value >>> 24) & 0xFF);
+    }
+
+    // ===================================================================================
+    // Signal dispatch infrastructure
+    // ===================================================================================
 
     /** Registered Java handlers, keyed by signal number. */
     private static final Map<Integer, Runnable> handlers = new ConcurrentHashMap<>();
@@ -224,28 +620,47 @@ class FfmSignalHandler {
     /** Dispatcher thread (started lazily on first registration). */
     private static volatile Thread dispatcherThread;
 
+    /** Flag to control dispatcher thread lifecycle. */
+    private static volatile boolean dispatcherRunning;
+
+    /**
+     * Generation counter for dispatcher threads. Incremented each time a new dispatcher is
+     * started. Each dispatcher loop captures its generation at start and exits if the global
+     * generation has moved on — this prevents a stale dispatcher from continuing to run
+     * after {@code stopDispatcherIfIdle()} retires it and {@code ensureDispatcherStarted()}
+     * launches a replacement before the old thread has consumed the sentinel byte.
+     */
+    private static volatile int dispatcherGeneration;
+
     /**
      * Token returned by {@link #register} for later use with {@link #unregister}.
      */
     record Registration(int signum, MemorySegment oldAction, Runnable previousHandler) {}
 
-    // --- Public API ---
+    // ===================================================================================
+    // Public API
+    // ===================================================================================
 
     /**
-     * Indicates whether native POSIX signal handling via the FFM API is supported and initialized.
+     * Indicates whether native POSIX signal handling via the self-pipe FFM approach is
+     * supported and fully initialized on this platform.
      *
-     * @return `true` if FFM-based signal handling is available on this platform, `false` otherwise.
+     * @return {@code true} if FFM-based signal handling is available, {@code false} otherwise
      */
     static boolean isAvailable() {
         return AVAILABLE;
     }
 
     /**
-     * Installs the given Java Runnable as the handler for the named POSIX signal using {@code sigaction} with {@code SA_RESTART}.
+     * Installs the given Java Runnable as the handler for the named POSIX signal using
+     * {@code sigaction} with {@code SA_RESTART}. The native handler is a minimal machine-code
+     * stub that writes the signal number to a pipe; a daemon thread dispatches it to the
+     * registered Java handler.
      *
      * @param name    signal name (e.g. "WINCH", "INT")
      * @param handler the Java callback to invoke when the signal is dispatched
-     * @return a {@link Registration} token retaining the signum, the saved {@code oldAction} segment for later restoration, and the previous Java handler (when preserved), or {@code null} if FFM support is unavailable or the signal name is unsupported
+     * @return a {@link Registration} token for later restoration, or {@code null} if FFM
+     *         support is unavailable or the signal name is unsupported
      */
     static Object register(String name, Runnable handler) {
         if (!AVAILABLE) {
@@ -266,7 +681,7 @@ class FfmSignalHandler {
         try {
             oldAct = arena.allocate(sigactionLayout);
             MemorySegment newAct = arena.allocate(sigactionLayout);
-            sa_handler_vh.set(newAct, upcallStub);
+            sa_handler_vh.set(newAct, nativeHandlerCode);
             sa_flags_vh.set(newAct, SA_RESTART);
 
             int res = (int) sigaction_mh.invoke(signum, newAct, oldAct);
@@ -278,8 +693,8 @@ class FfmSignalHandler {
             nativeInstalled = true;
             ensureDispatcherStarted();
             // Only preserve previousHandler in Registration when the old native
-            // disposition was our upcall stub (otherwise it belongs to an external handler)
-            Runnable saved = isOurUpcallStub(oldAct) ? previousHandler : null;
+            // disposition was our handler code (otherwise it belongs to an external handler)
+            Runnable saved = isOurHandler(oldAct) ? previousHandler : null;
             return new Registration(signum, oldAct, saved);
         } catch (Throwable t) {
             logger.log(Level.DEBUG, "Error registering FFM signal handler for {0}", name);
@@ -347,8 +762,8 @@ class FfmSignalHandler {
                 logger.log(Level.DEBUG, "sigaction() restore failed for signal {0}", name);
                 return;
             }
-            // Preserve the previous Java Runnable when the restored native disposition is our stub
-            if (isOurUpcallStub(reg.oldAction()) && reg.previousHandler() != null) {
+            // Preserve the previous Java Runnable when the restored native disposition is our handler
+            if (isOurHandler(reg.oldAction()) && reg.previousHandler() != null) {
                 handlers.put(reg.signum(), reg.previousHandler());
                 ensureDispatcherStarted();
             } else {
@@ -361,32 +776,23 @@ class FfmSignalHandler {
         }
     }
 
-    // --- Signal upcall target (called from native signal context) ---
-
-    /**
-     * Record a received POSIX signal for deferred dispatch to the Java handler.
-     *
-     * @param signum the POSIX signal number; if it is within the handler array bounds this marks the signal as pending
-     *                so the dispatcher thread will invoke the registered Java handler, otherwise the value is ignored
-     */
-    static void signalReceived(int signum) {
-        if (signum >= 0 && signum < pendingSignals.length()) {
-            // Multiple rapid signals coalesce into one pending flag (standard POSIX semantics)
-            pendingSignals.set(signum, 1);
-        }
-    }
+    // ===================================================================================
+    // Dispatcher thread — reads signal bytes from the pipe in safe Java context
+    // ===================================================================================
 
     /**
      * Starts the signal dispatcher daemon thread if one is not already running.
      *
-     * Creates and starts a thread named "JLine-signal-dispatcher" that runs the dispatch loop
-     * and stores the thread reference in the class field so subsequent calls are no-ops.
+     * <p>The dispatcher blocks on {@code read(pipe_read_fd)} waiting for signal bytes
+     * written by the native machine-code handler.</p>
      */
     private static synchronized void ensureDispatcherStarted() {
-        if (dispatcherThread != null) {
+        if (dispatcherThread != null && dispatcherThread.isAlive()) {
             return;
         }
-        Thread t = new Thread(FfmSignalHandler::dispatchLoop, "JLine-signal-dispatcher");
+        dispatcherRunning = true;
+        int gen = ++dispatcherGeneration;
+        Thread t = new Thread(() -> dispatchLoop(gen), "JLine-signal-dispatcher");
         t.setDaemon(true);
         t.start();
         dispatcherThread = t;
@@ -395,78 +801,101 @@ class FfmSignalHandler {
     /**
      * Stops the dispatcher thread when there are no registered signal handlers.
      *
-     * If no handlers are registered and a dispatcher thread exists, interrupts the thread
-     * and clears the stored reference; otherwise does nothing.
+     * <p>Writes a sentinel byte (0) to the pipe to wake up the blocked {@code read()} call.</p>
      */
     private static synchronized void stopDispatcherIfIdle() {
         if (handlers.isEmpty() && dispatcherThread != null) {
-            dispatcherThread.interrupt();
+            dispatcherRunning = false;
+            wakeUpDispatcher();
             dispatcherThread = null;
         }
     }
 
     /**
-     * Restore or remove the Java handler mapping for the given signal number.
-     *
-     * If {@code previousHandler} is non-null, associates it with {@code signum}; otherwise removes any
-     * existing mapping for that signal.
-     *
-     * @param signum the platform signal number to update
-     * @param previousHandler the handler to restore, or {@code null} to remove the mapping
+     * Writes a zero byte (sentinel) to the pipe to wake up the dispatcher thread.
+     * Signal number 0 is not a deliverable POSIX signal, so the dispatcher ignores it.
      */
-    @SuppressWarnings("java:S1181") // MethodHandle.invoke throws Throwable
-    private static void bestEffortRestore(int signum, MemorySegment oldAct) {
-        try {
-            sigaction_mh.invoke(signum, oldAct, MemorySegment.NULL);
-        } catch (Throwable ignore) {
-            // best-effort native handler restore
-        }
-    }
-
-    private static void restoreHandler(int signum, Runnable previousHandler) {
-        if (previousHandler != null) {
-            handlers.put(signum, previousHandler);
-        } else {
-            handlers.remove(signum);
+    private static void wakeUpDispatcher() {
+        try (Arena arena = Arena.ofConfined()) {
+            MemorySegment buf = arena.allocate(ValueLayout.JAVA_BYTE);
+            buf.set(ValueLayout.JAVA_BYTE, 0, (byte) 0);
+            write_mh.invoke(PIPE_WRITE_FD, buf, 1L);
+        } catch (Throwable t) {
+            logger.log(Level.DEBUG, "Failed to write sentinel to signal pipe", t);
         }
     }
 
     /**
-     * Determine whether the native sigaction struct's `sa_handler` field points to this class's shared FFM upcall stub.
+     * Dispatcher loop: blocks on reading single bytes from the pipe. Each byte is a signal
+     * number written by the native machine-code handler. Dispatches to the registered Java
+     * handler. Exits when {@link #dispatcherRunning} is set to {@code false} and a sentinel
+     * byte wakes up the read, or when the generation has moved on (meaning this dispatcher
+     * was retired and replaced).
      *
-     * @param sigactionStruct a native `struct sigaction` memory segment (as laid out for the current platform)
-     * @return `true` if the `sa_handler` address equals the shared upcall stub address, `false` otherwise
+     * @param myGeneration the generation counter captured at thread creation
      */
-    private static boolean isOurUpcallStub(MemorySegment sigactionStruct) {
-        MemorySegment handler = (MemorySegment) sa_handler_vh.get(sigactionStruct);
-        return handler.address() == upcallStub.address();
-    }
-
-    /**
-     * Polls pending signal flags and dispatches to registered Java handlers.
-     * Runs on a daemon thread; exits when interrupted.
-     */
-    private static void dispatchLoop() {
-        while (!Thread.interrupted()) {
-            boolean anyPending = false;
-            for (int i = 0; i < pendingSignals.length(); i++) {
-                if (pendingSignals.compareAndSet(i, 1, 0)) {
-                    anyPending = true;
-                    dispatchSignal(i);
+    private static void dispatchLoop(int myGeneration) {
+        try (Arena arena = Arena.ofConfined()) {
+            MemorySegment buf = arena.allocate(ValueLayout.JAVA_BYTE);
+            while (dispatcherRunning && dispatcherGeneration == myGeneration) {
+                try {
+                    if (!readAndDispatch(buf)) {
+                        return;
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
                 }
             }
-            if (!anyPending) {
-                LockSupport.parkNanos(1_000_000L); // 1 ms
+        }
+    }
+
+    /**
+     * Reads one byte from the signal pipe and dispatches it if it is a valid signal number.
+     *
+     * <p>Returns {@code true} if the loop should continue, {@code false} to exit (EOF, shutdown,
+     * or persistent error while stopping).</p>
+     *
+     * @param buf a single-byte buffer owned by the caller's arena
+     * @return {@code true} to keep reading, {@code false} to exit the dispatch loop
+     * @throws InterruptedException if the backoff sleep is interrupted
+     */
+    @SuppressWarnings("java:S1181") // MethodHandle.invoke throws Throwable
+    private static boolean readAndDispatch(MemorySegment buf) throws InterruptedException {
+        try {
+            long n = (long) read_mh.invoke(PIPE_READ_FD, buf, 1L);
+            if (n == 0) {
+                // EOF — pipe write end closed; nothing more to read
+                return false;
             }
+            if (n < 0) {
+                // EINTR or persistent error — back off briefly to avoid CPU spin,
+                // then retry (EINTR is the common case; a genuine error eventually
+                // resolves or the dispatcher is stopped externally)
+                if (dispatcherRunning) {
+                    Thread.sleep(10);
+                }
+                return true;
+            }
+            int signum = buf.get(ValueLayout.JAVA_BYTE, 0) & 0xFF;
+            if (signum > 0) {
+                dispatchSignal(signum);
+            }
+            // signum == 0 is the wakeup sentinel — caller re-checks dispatcherRunning
+            return true;
+        } catch (InterruptedException e) {
+            throw e; // propagate to caller for clean shutdown
+        } catch (Throwable t) {
+            if (!dispatcherRunning) {
+                return false;
+            }
+            logger.log(Level.DEBUG, "Error reading from signal pipe", t);
+            return true;
         }
     }
 
     /**
      * Invoke the registered Java handler for the given signal, if one exists.
-     *
-     * If a handler is present it will be executed on the dispatcher thread;
-     * any Exception thrown by the handler is caught and logged and will not
-     * propagate to the caller.
      *
      * @param signum the POSIX signal number to dispatch
      */
@@ -482,11 +911,50 @@ class FfmSignalHandler {
         }
     }
 
+    // ===================================================================================
+    // Internal helpers
+    // ===================================================================================
+
+    /**
+     * Best-effort restore of the native signal handler via sigaction.
+     */
+    @SuppressWarnings("java:S1181") // MethodHandle.invoke throws Throwable
+    private static void bestEffortRestore(int signum, MemorySegment oldAct) {
+        try {
+            sigaction_mh.invoke(signum, oldAct, MemorySegment.NULL);
+        } catch (Throwable ignore) {
+            // best-effort native handler restore
+        }
+    }
+
+    /**
+     * Restore or remove the Java handler mapping for the given signal number.
+     */
+    private static void restoreHandler(int signum, Runnable previousHandler) {
+        if (previousHandler != null) {
+            handlers.put(signum, previousHandler);
+        } else {
+            handlers.remove(signum);
+        }
+    }
+
+    /**
+     * Determine whether the native sigaction struct's {@code sa_handler} field points to this
+     * class's machine-code signal handler.
+     *
+     * @param sigactionStruct a native {@code struct sigaction} memory segment
+     * @return {@code true} if {@code sa_handler} matches our handler code address
+     */
+    private static boolean isOurHandler(MemorySegment sigactionStruct) {
+        MemorySegment handler = (MemorySegment) sa_handler_vh.get(sigactionStruct);
+        return handler.address() == nativeHandlerCode.address();
+    }
+
     /**
      * Map a POSIX signal short name to its platform-specific signal number.
      *
      * @param name the short signal name (e.g., "INT", "HUP", "WINCH")
-     * @return the platform signal number corresponding to {@code name}, or {@code -1} if the name is not recognized
+     * @return the platform signal number, or {@code -1} if not recognized
      */
     private static int signalNumber(String name) {
         return switch (name) {
