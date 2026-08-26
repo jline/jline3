@@ -103,6 +103,7 @@ public class LineReaderImpl implements LineReader, Flushable {
     public static final String DEFAULT_BELL_STYLE = "";
     public static final int DEFAULT_LIST_MAX = 100;
     public static final int DEFAULT_MENU_LIST_MAX = Integer.MAX_VALUE;
+    public static final String DEFAULT_TOO_MANY_CANDIDATES = "ask";
     public static final int DEFAULT_ERRORS = 2;
     public static final long DEFAULT_BLINK_MATCHING_PAREN = 500L;
     public static final long DEFAULT_AMBIGUOUS_BINDING = 100L;
@@ -5581,19 +5582,66 @@ public class LineReaderImpl implements LineReader, Flushable {
         if (possibleSize == 0 || size.getRows() == 0) {
             return false;
         }
-        if (listMax > 0 && possibleSize >= listMax || lines >= size.getRows() - promptLines) {
-            if (!forSuggestion) {
-                // prompt
-                post = () -> new AttributedString(getAppName() + ": do you wish to see all " + possibleSize
-                        + " possibilities (" + lines + " lines)?");
-                redisplay(true);
-                int c = readCharacter();
-                if (c != 'y' && c != 'Y' && c != '\t') {
-                    post = null;
-                    return false;
-                }
-            } else {
+        if (listMax > 0 && possibleSize > listMax || lines >= size.getRows() - promptLines) {
+            if (forSuggestion) {
                 return false;
+            }
+            String tooMany = getString(TOO_MANY_CANDIDATES, DEFAULT_TOO_MANY_CANDIDATES);
+            int totalLines = lines;
+            switch (tooMany.toLowerCase(Locale.ROOT)) {
+                case "show":
+                    // show all without prompting
+                    break;
+                case "partial": {
+                    // truncate list to listMax candidates and append an indicator
+                    int limit = Math.max(listMax, 1);
+                    if (possibleSize > limit) {
+                        int remaining = possibleSize - limit;
+                        possible.subList(limit, possibleSize).clear();
+                        PostResult partialPost = computePost(possible, null, null, completed);
+                        post = () -> {
+                            AttributedStringBuilder asb = new AttributedStringBuilder();
+                            asb.append(partialPost.post);
+                            asb.style(AttributedStyle.DEFAULT
+                                    .foreground(AttributedStyle.BRIGHT)
+                                    .italic());
+                            asb.append("\n... and " + remaining + " more");
+                            return asb.toAttributedString();
+                        };
+                        if (!runLoop) {
+                            return false;
+                        }
+                        redisplay();
+                        Binding b = doReadBinding(getKeys(), null);
+                        if (b instanceof Reference) {
+                            if ("\t".equals(getLastBinding()) && isSet(Option.AUTO_MENU)) {
+                                // User pressed tab — switch to menu with truncated list
+                                buf.backspace(escaper.apply(completed, false).length());
+                                doMenu(possible, completed, escaper);
+                            } else {
+                                pushBackBinding();
+                            }
+                        }
+                        post = null;
+                        return false;
+                    }
+                    break;
+                }
+                case "hide":
+                    // silently suppress the candidate list
+                    return false;
+                case "ask":
+                default:
+                    // prompt (original behavior)
+                    post = () -> new AttributedString(getAppName() + ": do you wish to see all " + possibleSize
+                            + " possibilities (" + totalLines + " lines)?");
+                    redisplay(true);
+                    int c = readCharacter();
+                    if (c != 'y' && c != 'Y' && c != '\t') {
+                        post = null;
+                        return false;
+                    }
+                    break;
             }
         }
 
