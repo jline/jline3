@@ -59,18 +59,22 @@ public final class InBandResize {
             if (c == 't') {
                 return discard ? null : sb.toString();
             }
-            if (!discard) {
-                if ((c >= '0' && c <= '9') || c == ';') {
-                    sb.append((char) c);
-                    if (sb.length() > 50) {
-                        discard = true; // Too long — drain to 't' then discard
-                    }
-                } else {
-                    discard = true; // Invalid character — drain to 't' then discard
-                }
+            if (discard) {
+                continue;
             }
+            if (!isParamChar(c) || sb.length() > MAX_PARAM_LENGTH) {
+                discard = true;
+                continue;
+            }
+            sb.append((char) c);
         }
         return null;
+    }
+
+    private static final int MAX_PARAM_LENGTH = 50;
+
+    private static boolean isParamChar(int c) {
+        return (c >= '0' && c <= '9') || c == ';';
     }
 
     /**

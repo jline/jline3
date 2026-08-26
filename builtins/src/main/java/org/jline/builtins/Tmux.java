@@ -234,10 +234,10 @@ public class Tmux {
     private KeyMap<Object> keyMap;
 
     enum Binding {
-        Discard,
-        SelfInsert,
-        Mouse,
-        Resize
+        DISCARD,
+        SELF_INSERT,
+        MOUSE,
+        RESIZE
     }
 
     private class Window {
@@ -486,13 +486,13 @@ public class Tmux {
 
     protected KeyMap<Object> createEmptyKeyMap(String prefix) {
         KeyMap<Object> keyMap = new KeyMap<>();
-        keyMap.setUnicode(Binding.SelfInsert);
-        keyMap.setNomatch(Binding.SelfInsert);
+        keyMap.setUnicode(Binding.SELF_INSERT);
+        keyMap.setNomatch(Binding.SELF_INSERT);
         for (int i = 0; i < 255; i++) {
-            keyMap.bind(Binding.Discard, prefix + (char) (i));
+            keyMap.bind(Binding.DISCARD, prefix + (char) (i));
         }
-        keyMap.bind(Binding.Mouse, key(terminal, Capability.key_mouse));
-        keyMap.bind(Binding.Resize, InBandResize.RESIZE_SEQ);
+        keyMap.bind(Binding.MOUSE, key(terminal, Capability.key_mouse));
+        keyMap.bind(Binding.RESIZE, InBandResize.RESIZE_SEQ);
         return keyMap;
     }
 
@@ -579,7 +579,7 @@ public class Tmux {
                 } else {
                     b = null;
                 }
-                if (b == Binding.SelfInsert) {
+                if (b == Binding.SELF_INSERT) {
                     if (active().clock) {
                         active().clock = false;
                         if (clockFuture != null && panes().stream().noneMatch(vc -> vc.clock)) {
@@ -599,9 +599,9 @@ public class Tmux {
                         active().getMasterInputOutput().flush();
                         first = true;
                     }
-                    if (b == Binding.Resize) {
+                    if (b == Binding.RESIZE) {
                         InBandResize.handleResize(reader, terminal);
-                    } else if (b == Binding.Mouse) {
+                    } else if (b == Binding.MOUSE) {
                         MouseEvent event = terminal.readMouseEvent(reader::readCharacter, reader.getLastBinding());
                         // System.err.println(event.toString());
                     } else if (b instanceof String || b instanceof String[]) {
@@ -902,7 +902,7 @@ public class Tmux {
         String prefix = serverOptions.get(OPT_PREFIX);
         String key = prefix + KeyMap.translate(vargs.remove(0));
         keyMap.unbind(key);
-        keyMap.bind(Binding.Discard, key);
+        keyMap.bind(Binding.DISCARD, key);
     }
 
     protected void listKeys(PrintStream out, PrintStream err, List<String> args) throws Exception {
