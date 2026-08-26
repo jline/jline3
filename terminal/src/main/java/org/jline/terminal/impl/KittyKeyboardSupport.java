@@ -153,7 +153,16 @@ public final class KittyKeyboardSupport {
     public static final int KEY_MEDIA_PLAY = 57428;
     public static final int KEY_MEDIA_PAUSE = 57429;
     public static final int KEY_MEDIA_PLAY_PAUSE = 57430;
+    public static final int KEY_MEDIA_REVERSE = 57431;
     public static final int KEY_MEDIA_STOP = 57432;
+    public static final int KEY_MEDIA_FAST_FORWARD = 57433;
+    public static final int KEY_MEDIA_REWIND = 57434;
+    public static final int KEY_MEDIA_TRACK_NEXT = 57435;
+    public static final int KEY_MEDIA_TRACK_PREVIOUS = 57436;
+    public static final int KEY_MEDIA_RECORD = 57437;
+    public static final int KEY_MEDIA_LOWER_VOLUME = 57438;
+    public static final int KEY_MEDIA_RAISE_VOLUME = 57439;
+    public static final int KEY_MEDIA_MUTE_VOLUME = 57440;
 
     // Modifier keys (as key events)
     public static final int KEY_LEFT_SHIFT = 57441;

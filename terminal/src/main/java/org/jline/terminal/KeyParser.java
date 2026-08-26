@@ -990,8 +990,26 @@ public class KeyParser {
                 return KeyEvent.MediaKey.Pause;
             case 57430:
                 return KeyEvent.MediaKey.PlayPause;
+            case 57431:
+                return KeyEvent.MediaKey.Reverse;
             case 57432:
                 return KeyEvent.MediaKey.Stop;
+            case 57433:
+                return KeyEvent.MediaKey.FastForward;
+            case 57434:
+                return KeyEvent.MediaKey.Rewind;
+            case 57435:
+                return KeyEvent.MediaKey.TrackNext;
+            case 57436:
+                return KeyEvent.MediaKey.TrackPrevious;
+            case 57437:
+                return KeyEvent.MediaKey.Record;
+            case 57438:
+                return KeyEvent.MediaKey.LowerVolume;
+            case 57439:
+                return KeyEvent.MediaKey.RaiseVolume;
+            case 57440:
+                return KeyEvent.MediaKey.MuteVolume;
             default:
                 return null;
         }

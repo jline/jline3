@@ -157,7 +157,16 @@ public class KeyEvent {
         Play,
         Pause,
         PlayPause,
-        Stop
+        Reverse,
+        Stop,
+        FastForward,
+        Rewind,
+        TrackNext,
+        TrackPrevious,
+        Record,
+        LowerVolume,
+        RaiseVolume,
+        MuteVolume
     }
 
     /**
