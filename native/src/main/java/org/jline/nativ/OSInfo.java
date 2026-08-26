@@ -27,8 +27,10 @@ package org.jline.nativ;
  * under the License.
  */
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.System.Logger;
@@ -128,10 +130,28 @@ public class OSInfo {
     }
 
     /**
-     * Detects whether the current system uses musl libc (e.g. Alpine Linux).
-     * Checks for the musl dynamic linker which is present on all musl-based systems.
+     * Detects whether the current process is using musl libc (e.g. on Alpine Linux).
+     *
+     * <p>First checks {@code /proc/self/maps} to see if the process has musl's dynamic linker
+     * loaded — this is the most reliable method as it detects the libc the current JVM is
+     * actually linked against, even on systems where both glibc and musl are installed.
+     * Falls back to checking for {@code /lib/ld-musl-*} when procfs is unavailable.
      */
     public static boolean isMusl() {
+        // Primary: check the current process's memory maps for musl
+        try (BufferedReader reader = new BufferedReader(new FileReader("/proc/self/maps"))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.contains("ld-musl-") || line.contains("libc.musl-")) {
+                    return true;
+                }
+            }
+            // Process maps read successfully but no musl found — this is glibc
+            return false;
+        } catch (Throwable e) {
+            // /proc/self/maps not available (non-Linux or restricted procfs)
+        }
+        // Fallback: check for the musl dynamic linker on disk
         try {
             File lib = new File("/lib");
             if (lib.exists() && lib.isDirectory()) {
@@ -148,6 +168,16 @@ public class OSInfo {
             // ignore
         }
         return false;
+    }
+
+    /**
+     * Detects whether the current system is Alpine Linux.
+     *
+     * @deprecated Use {@link #isMusl()} instead, which correctly detects all musl-based systems.
+     */
+    @Deprecated
+    public static boolean isAlpine() {
+        return isMusl();
     }
 
     static String getHardwareName() {

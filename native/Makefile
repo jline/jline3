@@ -167,11 +167,11 @@ linux-ppc64: download-includes
 		-e CROSS_TRIPLE=powerpc64le-linux-gnu multiarch/crossbuild$(cross-build-digest) make clean-native native OS_NAME=Linux OS_ARCH=ppc64
 
 linux-musl-x86_64: download-includes
-	docker run -it --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
+	docker run -it --rm -v $$PWD:/workdir \
 		alpine:3.20 sh -c 'apk add --no-cache gcc musl-dev linux-headers make > /dev/null 2>&1 && make clean-native native OS_NAME=Linux-musl OS_ARCH=x86_64'
 
 linux-musl-arm64: download-includes
-	docker run -it --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
+	docker run -it --rm -v $$PWD:/workdir \
 		--platform linux/arm64 alpine:3.20 sh -c 'apk add --no-cache gcc musl-dev linux-headers make > /dev/null 2>&1 && make clean-native native OS_NAME=Linux-musl OS_ARCH=arm64'
 
 target/dockcross/dockcross-windows-static-x86: dockcross
