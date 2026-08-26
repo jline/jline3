@@ -248,7 +248,7 @@ public class KeyEventViewerExample {
         StringBuilder sb = new StringBuilder("'");
         for (char ch : raw.toCharArray()) {
             if (ch == 27) {
-                sb.append("ESC");
+                sb.append("\\E");
             } else if (ch < 32) {
                 sb.append("^").append((char) (ch + '@'));
             } else if (ch == 127) {

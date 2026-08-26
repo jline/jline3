@@ -115,6 +115,9 @@ public class KeyEvent {
         Menu
     }
 
+    /**
+     * Defines keypad keys reported by the Kitty Keyboard Protocol.
+     */
     public enum Keypad {
         KP0,
         KP1,
@@ -146,6 +149,9 @@ public class KeyEvent {
         Delete
     }
 
+    /**
+     * Defines media keys reported by the Kitty Keyboard Protocol.
+     */
     public enum MediaKey {
         Play,
         Pause,
@@ -153,6 +159,10 @@ public class KeyEvent {
         Stop
     }
 
+    /**
+     * Identifies individual modifier keys for standalone key events.
+     * Only reported by the Kitty Keyboard Protocol with {@code ReportAllKeys}.
+     */
     public enum ModKey {
         LeftShift,
         LeftControl,
@@ -271,6 +281,7 @@ public class KeyEvent {
                 null);
     }
 
+    /** Creates an arrow key event. */
     public KeyEvent(Arrow arrow, EnumSet<Modifier> modifiers, String rawSequence) {
         this(
                 Type.Arrow,
@@ -290,6 +301,7 @@ public class KeyEvent {
                 null);
     }
 
+    /** Creates a special key event. */
     public KeyEvent(Special special, EnumSet<Modifier> modifiers, String rawSequence) {
         this(
                 Type.Special,
@@ -309,6 +321,7 @@ public class KeyEvent {
                 null);
     }
 
+    /** Creates a function key event. */
     public KeyEvent(int functionKey, EnumSet<Modifier> modifiers, String rawSequence) {
         this(
                 Type.Function,
@@ -328,6 +341,7 @@ public class KeyEvent {
                 null);
     }
 
+    /** Creates an unknown key event. */
     public KeyEvent(String rawSequence) {
         this(
                 Type.Unknown,
@@ -347,6 +361,7 @@ public class KeyEvent {
                 null);
     }
 
+    /** Backward-compatible constructor without keypad/media/modifier key fields. */
     @SuppressWarnings({"java:S107", "java:S1319"})
     public KeyEvent(
             Type type,
@@ -379,6 +394,7 @@ public class KeyEvent {
                 associatedText);
     }
 
+    /** Full constructor with all Kitty Keyboard Protocol fields. */
     @SuppressWarnings({"java:S107", "java:S1319"})
     public KeyEvent(
             Type type,
@@ -429,14 +445,17 @@ public class KeyEvent {
         return special;
     }
 
+    /** Returns the keypad key, or {@code null} if this is not a keypad event. */
     public Keypad getKeypad() {
         return keypad;
     }
 
+    /** Returns the media key, or {@code null} if this is not a media event. */
     public MediaKey getMediaKey() {
         return mediaKey;
     }
 
+    /** Returns the modifier key, or {@code null} if this is not a modifier key event. */
     public ModKey getModKey() {
         return modKey;
     }
@@ -539,6 +558,8 @@ public class KeyEvent {
                 break;
             case Unknown:
                 sb.append(", unknown");
+                break;
+            default:
                 break;
         }
         if (!modifiers.isEmpty()) {

@@ -80,6 +80,8 @@ public class KeyParser {
                     return new KeyEvent(KeyEvent.Special.Enter, modifiers, sequence);
                 case 127:
                     return new KeyEvent(KeyEvent.Special.Backspace, modifiers, sequence);
+                default:
+                    break;
             }
 
             // Alt + printable characters
@@ -420,6 +422,8 @@ public class KeyParser {
                     break;
                 case 3:
                     eventType = KeyEvent.EventType.Release;
+                    break;
+                default:
                     break;
             }
         } else {
