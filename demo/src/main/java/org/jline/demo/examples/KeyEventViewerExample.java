@@ -79,12 +79,12 @@ public class KeyEventViewerExample {
                 return parseKittyFlags(arg.substring("--kitty=".length()));
             }
         }
-        return null;
+        return EnumSet.noneOf(Terminal.KittyKeyboardMode.class);
     }
 
     private static boolean enableKitty(
             Terminal terminal, PrintWriter writer, EnumSet<Terminal.KittyKeyboardMode> kittyModes) {
-        if (kittyModes == null) {
+        if (kittyModes.isEmpty()) {
             return false;
         }
         if (terminal.hasKittyKeyboardSupport()) {
@@ -105,11 +105,9 @@ public class KeyEventViewerExample {
 
     private static void eventLoop(NonBlockingReader reader, PrintWriter writer) throws IOException {
         boolean lastWasEscape = false;
+        int c;
 
-        while (true) {
-            int c = reader.read();
-            if (c == -1) break;
-
+        while ((c = reader.read()) != -1) {
             String raw = readSequence(reader, c);
             KeyEvent event = KeyParser.parse(raw);
 
@@ -119,17 +117,20 @@ public class KeyEventViewerExample {
             writer.flush();
 
             if (event.getEventType() == KeyEvent.EventType.Press) {
-                boolean isEscape = event.getType() == KeyEvent.Type.Special
-                        && event.getSpecial() == KeyEvent.Special.Escape
-                        && event.getModifiers().isEmpty();
-                if (isEscape) {
-                    if (lastWasEscape) break;
+                if (isUnmodifiedEscape(event)) {
+                    if (lastWasEscape) return;
                     lastWasEscape = true;
                 } else {
                     lastWasEscape = false;
                 }
             }
         }
+    }
+
+    private static boolean isUnmodifiedEscape(KeyEvent event) {
+        return event.getType() == KeyEvent.Type.Special
+                && event.getSpecial() == KeyEvent.Special.Escape
+                && event.getModifiers().isEmpty();
     }
 
     private static String readSequence(NonBlockingReader reader, int firstChar) throws IOException {
@@ -140,17 +141,22 @@ public class KeyEventViewerExample {
             return buf.toString();
         }
 
-        while (true) {
+        boolean complete = false;
+        while (!complete) {
             int next = reader.peek(200);
-            if (next == -1 || next == -2) break;
-            next = reader.read();
-            buf.append((char) next);
-
-            if (isCsiTerminator(buf, next)) break;
-            if (isSs3Complete(buf)) break;
-            if (isAltKey(buf, next)) break;
+            if (next == -1 || next == -2) {
+                complete = true;
+            } else {
+                next = reader.read();
+                buf.append((char) next);
+                complete = isSequenceComplete(buf, next);
+            }
         }
         return buf.toString();
+    }
+
+    private static boolean isSequenceComplete(StringBuilder buf, int lastChar) {
+        return isCsiTerminator(buf, lastChar) || isSs3Complete(buf) || isAltKey(buf, lastChar);
     }
 
     private static boolean isCsiTerminator(StringBuilder buf, int next) {

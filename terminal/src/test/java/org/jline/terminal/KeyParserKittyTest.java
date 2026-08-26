@@ -434,6 +434,8 @@ class KeyParserKittyTest {
         // Key code 0 with text (no known key, just text)
         KeyEvent event = KeyParser.parse(ESC + "[0;;229u");
         assertNotNull(event);
+        assertEquals(KeyEvent.Type.Unknown, event.getType());
+        assertEquals(0, event.getKeyCode());
     }
 
     @Test

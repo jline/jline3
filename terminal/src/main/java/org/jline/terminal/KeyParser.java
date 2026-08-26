@@ -433,23 +433,7 @@ public class KeyParser {
     }
 
     private static EnumSet<KeyEvent.Modifier> parseModifierCode(int modCode) {
-        EnumSet<KeyEvent.Modifier> modifiers = EnumSet.noneOf(KeyEvent.Modifier.class);
-
-        // Modifier codes: 2=Shift, 3=Alt, 4=Shift+Alt, 5=Ctrl, 6=Shift+Ctrl, 7=Alt+Ctrl, 8=Shift+Alt+Ctrl
-        // The encoding is: 1 + (shift ? 1 : 0) + (alt ? 2 : 0) + (ctrl ? 4 : 0)
-        int mod = modCode - 1; // Remove base offset
-
-        if ((mod & 1) != 0) { // Shift bit
-            modifiers.add(KeyEvent.Modifier.Shift);
-        }
-        if ((mod & 2) != 0) { // Alt bit
-            modifiers.add(KeyEvent.Modifier.Alt);
-        }
-        if ((mod & 4) != 0) { // Ctrl bit
-            modifiers.add(KeyEvent.Modifier.Control);
-        }
-
-        return modifiers;
+        return parseKittyModifiers(modCode);
     }
 
     private static int mapSS3FunctionKey(char ch) {
@@ -668,7 +652,7 @@ public class KeyParser {
         StringBuilder sb = new StringBuilder();
         for (String part : parts) {
             int cp = parseIntSafe(part);
-            if (cp > 0) {
+            if (cp > 0 && Character.isValidCodePoint(cp)) {
                 sb.appendCodePoint(cp);
             }
         }
@@ -922,6 +906,11 @@ public class KeyParser {
      * F13-F35 use Unicode Private Use Area codes 57376-57398.
      */
     private static int mapKittyFunctionKey(int keyCode) {
+        // F1-F12: PUA codes 57364-57375
+        if (keyCode >= 57364 && keyCode <= 57375) {
+            return keyCode - 57364 + 1;
+        }
+        // F13-F35: PUA codes 57376-57398
         if (keyCode >= 57376 && keyCode <= 57398) {
             return keyCode - 57376 + 13;
         }
@@ -986,6 +975,8 @@ public class KeyParser {
                 return KeyEvent.Keypad.Insert;
             case 57426:
                 return KeyEvent.Keypad.Delete;
+            case 57427:
+                return KeyEvent.Keypad.Begin;
             default:
                 return null;
         }

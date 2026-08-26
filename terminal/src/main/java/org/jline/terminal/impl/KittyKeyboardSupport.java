@@ -147,6 +147,7 @@ public final class KittyKeyboardSupport {
     public static final int KEY_KP_END = 57424;
     public static final int KEY_KP_INSERT = 57425;
     public static final int KEY_KP_DELETE = 57426;
+    public static final int KEY_KP_BEGIN = 57427;
 
     // Media keys
     public static final int KEY_MEDIA_PLAY = 57428;
