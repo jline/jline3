@@ -505,7 +505,9 @@ public class Less {
                         }
                     }
                     if (op != null) {
-                        message = null;
+                        if (op != Operation.TERMINAL_RESIZE) {
+                            message = null;
+                        }
                         switch (op) {
                             case FORWARD_ONE_LINE:
                                 moveForward(getStrictPositiveNumberInBuffer(1));
@@ -697,7 +699,9 @@ public class Less {
                                 InBandResize.handleResize(bindingReader, terminal);
                                 break;
                         }
-                        buffer.setLength(0);
+                        if (op != Operation.TERMINAL_RESIZE) {
+                            buffer.setLength(0);
+                        }
                     }
                     if (quitAtFirstEof && nbEof > 0 || quitAtSecondEof && nbEof > 1) {
                         if (sourceIdx < sources.size() - 1) {
