@@ -27,7 +27,10 @@ package org.jline.nativ;
  * under the License.
  */
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.System.Logger;
@@ -58,6 +61,8 @@ public class OSInfo {
     public static final String ARM64 = "arm64";
 
     private static final Logger logger = System.getLogger("org.jline");
+    private static final String PROC_SELF_MAPS = "/proc/self/maps";
+    private static final String LIB_DIR = "/lib";
     private static final HashMap<String, String> archMapping = new HashMap<>();
 
     static {
@@ -126,19 +131,56 @@ public class OSInfo {
         return System.getProperty("java.runtime.name", "").toLowerCase().contains("android");
     }
 
-    @SuppressWarnings("unused")
-    public static boolean isAlpine() {
-        try {
-            Process p = Runtime.getRuntime().exec(new String[] {"cat", "/etc/os-release", "|", "grep", "^ID"});
-            p.waitFor();
-
-            try (InputStream in = p.getInputStream()) {
-                return readFully(in).toLowerCase().contains("alpine");
+    /**
+     * Detects whether the current process is using musl libc (e.g. on Alpine Linux).
+     *
+     * <p>First checks {@code /proc/self/maps} to see if the process has musl's dynamic linker
+     * loaded — this is the most reliable method as it detects the libc the current JVM is
+     * actually linked against, even on systems where both glibc and musl are installed.
+     * Falls back to checking for {@code /lib/ld-musl-*} when procfs is unavailable.
+     */
+    public static boolean isMusl() {
+        // Primary: check the current process's memory maps for musl
+        try (BufferedReader reader = new BufferedReader(new FileReader(PROC_SELF_MAPS))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.contains("ld-musl-") || line.contains("libc.musl-")) {
+                    return true;
+                }
             }
-
-        } catch (Throwable e) {
+            // Process maps read successfully but no musl found — this is glibc
             return false;
+        } catch (Exception e) {
+            // /proc/self/maps not available (non-Linux or restricted procfs)
+            log(Level.DEBUG, "Unable to read " + PROC_SELF_MAPS + ", falling back to linker check", e);
         }
+        // Fallback: check for the musl dynamic linker on disk
+        try {
+            File lib = new File(LIB_DIR);
+            if (lib.exists() && lib.isDirectory()) {
+                String[] files = lib.list();
+                if (files != null) {
+                    for (String f : files) {
+                        if (f.startsWith("ld-musl-")) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log(Level.DEBUG, "Unable to check " + LIB_DIR + " for musl linker", e);
+        }
+        return false;
+    }
+
+    /**
+     * Detects whether the current system is Alpine Linux.
+     *
+     * @deprecated Use {@link #isMusl()} instead, which correctly detects all musl-based systems.
+     */
+    @Deprecated
+    public static boolean isAlpine() {
+        return isMusl();
     }
 
     static String getHardwareName() {
@@ -215,8 +257,8 @@ public class OSInfo {
             return "Windows";
         } else if (osName.contains("Mac") || osName.contains("Darwin")) {
             return "Mac";
-            //        } else if (isAlpine()) {
-            //            return "Linux-Alpine";
+        } else if (osName.contains("Linux") && isMusl()) {
+            return "Linux-musl";
         } else if (osName.contains("Linux")) {
             return "Linux";
         } else if (osName.contains("AIX")) {
