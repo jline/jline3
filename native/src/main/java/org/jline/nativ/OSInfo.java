@@ -28,6 +28,7 @@ package org.jline.nativ;
  */
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.System.Logger;
@@ -132,7 +133,7 @@ public class OSInfo {
      */
     public static boolean isMusl() {
         try {
-            java.io.File lib = new java.io.File("/lib");
+            File lib = new File("/lib");
             if (lib.exists() && lib.isDirectory()) {
                 String[] files = lib.list();
                 if (files != null) {
