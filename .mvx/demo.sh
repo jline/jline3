@@ -139,11 +139,15 @@ for arg in "$@"; do
   esac
 done
 
-# Check if JDK version supports --enable-native-access
-if [[ "$JVM_OPTS" == *"--enable-native-access=ALL-UNNAMED"* ]]; then
-  java_version=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | cut -d. -f1)
-  if [ "$java_version" -lt 16 ] 2>/dev/null; then
-    echo "Warning: --enable-native-access requires Java 16 or later"
+# Automatically add --enable-native-access on JDK 16+ to suppress FFM warnings
+java_version=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | cut -d. -f1)
+if [ "$java_version" -ge 16 ] 2>/dev/null; then
+  if [[ "$JVM_OPTS" != *"--enable-native-access"* ]]; then
+    if [ -z "$JVM_OPTS" ]; then
+      JVM_OPTS="--enable-native-access=ALL-UNNAMED"
+    else
+      JVM_OPTS="${JVM_OPTS} --enable-native-access=ALL-UNNAMED"
+    fi
   fi
 fi
 
