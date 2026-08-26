@@ -396,7 +396,8 @@ class KeyParserKittyTest {
     void testKeypadKey() {
         // KP_ENTER = 57414
         KeyEvent event = KeyParser.parse(ESC + "[57414u");
-        assertEquals(KeyEvent.Type.Unknown, event.getType());
+        assertEquals(KeyEvent.Type.Keypad, event.getType());
+        assertEquals(KeyEvent.Keypad.Enter, event.getKeypad());
         assertEquals(57414, event.getKeyCode());
     }
 
@@ -404,7 +405,8 @@ class KeyParserKittyTest {
     void testModifierKeyEvent() {
         // LEFT_SHIFT = 57441
         KeyEvent event = KeyParser.parse(ESC + "[57441u");
-        assertEquals(KeyEvent.Type.Unknown, event.getType());
+        assertEquals(KeyEvent.Type.ModifierKey, event.getType());
+        assertEquals(KeyEvent.ModKey.LeftShift, event.getModKey());
         assertEquals(57441, event.getKeyCode());
     }
 
@@ -469,5 +471,223 @@ class KeyParserKittyTest {
         KeyEvent a = KeyParser.parse("a");
         assertEquals(KeyEvent.Type.Character, a.getType());
         assertEquals('a', a.getCharacter());
+    }
+
+    // ---- DEL as Backspace ----
+
+    @Test
+    void testDelAsBackspace() {
+        KeyEvent event = KeyParser.parse("\u007f");
+        assertEquals(KeyEvent.Type.Special, event.getType());
+        assertEquals(KeyEvent.Special.Backspace, event.getSpecial());
+    }
+
+    // ---- Alt + control character combinations ----
+
+    @Test
+    void testAltTab() {
+        KeyEvent event = KeyParser.parse(ESC + "\t");
+        assertEquals(KeyEvent.Type.Special, event.getType());
+        assertEquals(KeyEvent.Special.Tab, event.getSpecial());
+        assertEquals(EnumSet.of(KeyEvent.Modifier.Alt), event.getModifiers());
+    }
+
+    @Test
+    void testAltEnter() {
+        KeyEvent event = KeyParser.parse(ESC + "\r");
+        assertEquals(KeyEvent.Type.Special, event.getType());
+        assertEquals(KeyEvent.Special.Enter, event.getSpecial());
+        assertEquals(EnumSet.of(KeyEvent.Modifier.Alt), event.getModifiers());
+    }
+
+    @Test
+    void testAltBackspace() {
+        KeyEvent event = KeyParser.parse(ESC + "\u007f");
+        assertEquals(KeyEvent.Type.Special, event.getType());
+        assertEquals(KeyEvent.Special.Backspace, event.getSpecial());
+        assertEquals(EnumSet.of(KeyEvent.Modifier.Alt), event.getModifiers());
+    }
+
+    @Test
+    void testAltCtrlA() {
+        KeyEvent event = KeyParser.parse(ESC + "\u0001");
+        assertEquals(KeyEvent.Type.Character, event.getType());
+        assertEquals('a', event.getCharacter());
+        assertTrue(event.getModifiers().contains(KeyEvent.Modifier.Alt));
+        assertTrue(event.getModifiers().contains(KeyEvent.Modifier.Control));
+    }
+
+    // ---- CSI P/Q/R/S for F1-F4 (kitty disambiguate) ----
+
+    @Test
+    void testF1ViaCsiP() {
+        KeyEvent event = KeyParser.parse(ESC + "[P");
+        assertEquals(KeyEvent.Type.Function, event.getType());
+        assertEquals(1, event.getFunctionKey());
+    }
+
+    @Test
+    void testF2ViaCsiQ() {
+        KeyEvent event = KeyParser.parse(ESC + "[Q");
+        assertEquals(KeyEvent.Type.Function, event.getType());
+        assertEquals(2, event.getFunctionKey());
+    }
+
+    @Test
+    void testF3ViaCsiR() {
+        KeyEvent event = KeyParser.parse(ESC + "[R");
+        assertEquals(KeyEvent.Type.Function, event.getType());
+        assertEquals(3, event.getFunctionKey());
+    }
+
+    @Test
+    void testF4ViaCsiS() {
+        KeyEvent event = KeyParser.parse(ESC + "[S");
+        assertEquals(KeyEvent.Type.Function, event.getType());
+        assertEquals(4, event.getFunctionKey());
+    }
+
+    // ---- Modified keys with mod:event_type format ----
+
+    @Test
+    void testArrowWithEventType() {
+        // CSI 1;1:1A -> Up arrow, no modifiers, press
+        KeyEvent event = KeyParser.parse(ESC + "[1;1:1A");
+        assertEquals(KeyEvent.Type.Arrow, event.getType());
+        assertEquals(KeyEvent.Arrow.Up, event.getArrow());
+        assertEquals(KeyEvent.EventType.Press, event.getEventType());
+    }
+
+    @Test
+    void testArrowRelease() {
+        // CSI 1;2:3D -> Left arrow, Shift, release
+        KeyEvent event = KeyParser.parse(ESC + "[1;2:3D");
+        assertEquals(KeyEvent.Type.Arrow, event.getType());
+        assertEquals(KeyEvent.Arrow.Left, event.getArrow());
+        assertEquals(EnumSet.of(KeyEvent.Modifier.Shift), event.getModifiers());
+        assertEquals(KeyEvent.EventType.Release, event.getEventType());
+    }
+
+    @Test
+    void testShiftF1() {
+        KeyEvent event = KeyParser.parse(ESC + "[1;2P");
+        assertEquals(KeyEvent.Type.Function, event.getType());
+        assertEquals(1, event.getFunctionKey());
+        assertEquals(EnumSet.of(KeyEvent.Modifier.Shift), event.getModifiers());
+    }
+
+    @Test
+    void testShiftHome() {
+        KeyEvent event = KeyParser.parse(ESC + "[1;2H");
+        assertEquals(KeyEvent.Type.Special, event.getType());
+        assertEquals(KeyEvent.Special.Home, event.getSpecial());
+        assertEquals(EnumSet.of(KeyEvent.Modifier.Shift), event.getModifiers());
+    }
+
+    @Test
+    void testCtrlEnd() {
+        KeyEvent event = KeyParser.parse(ESC + "[1;5F");
+        assertEquals(KeyEvent.Type.Special, event.getType());
+        assertEquals(KeyEvent.Special.End, event.getSpecial());
+        assertEquals(EnumSet.of(KeyEvent.Modifier.Control), event.getModifiers());
+    }
+
+    @Test
+    void testShiftF5() {
+        KeyEvent event = KeyParser.parse(ESC + "[15;2~");
+        assertEquals(KeyEvent.Type.Function, event.getType());
+        assertEquals(5, event.getFunctionKey());
+        assertEquals(EnumSet.of(KeyEvent.Modifier.Shift), event.getModifiers());
+    }
+
+    @Test
+    void testCtrlDelete() {
+        KeyEvent event = KeyParser.parse(ESC + "[3;5~");
+        assertEquals(KeyEvent.Type.Special, event.getType());
+        assertEquals(KeyEvent.Special.Delete, event.getSpecial());
+        assertEquals(EnumSet.of(KeyEvent.Modifier.Control), event.getModifiers());
+    }
+
+    // ---- xterm modifyOtherKeys format ----
+
+    @Test
+    void testXtermShiftEnter() {
+        KeyEvent event = KeyParser.parse(ESC + "[27;2;13~");
+        assertEquals(KeyEvent.Type.Special, event.getType());
+        assertEquals(KeyEvent.Special.Enter, event.getSpecial());
+        assertEquals(EnumSet.of(KeyEvent.Modifier.Shift), event.getModifiers());
+    }
+
+    @Test
+    void testXtermShiftEscape() {
+        KeyEvent event = KeyParser.parse(ESC + "[27;2;27~");
+        assertEquals(KeyEvent.Type.Special, event.getType());
+        assertEquals(KeyEvent.Special.Escape, event.getSpecial());
+        assertEquals(EnumSet.of(KeyEvent.Modifier.Shift), event.getModifiers());
+    }
+
+    @Test
+    void testXtermCtrlI() {
+        KeyEvent event = KeyParser.parse(ESC + "[27;5;105~");
+        assertEquals(KeyEvent.Type.Character, event.getType());
+        assertEquals('i', event.getCharacter());
+        assertEquals(EnumSet.of(KeyEvent.Modifier.Control), event.getModifiers());
+    }
+
+    // ---- Additional PUA special keys ----
+
+    @Test
+    void testCapsLockViaPua() {
+        KeyEvent event = KeyParser.parse(ESC + "[57358u");
+        assertEquals(KeyEvent.Type.Special, event.getType());
+        assertEquals(KeyEvent.Special.CapsLock, event.getSpecial());
+    }
+
+    @Test
+    void testNumLockViaPua() {
+        KeyEvent event = KeyParser.parse(ESC + "[57360u");
+        assertEquals(KeyEvent.Type.Special, event.getType());
+        assertEquals(KeyEvent.Special.NumLock, event.getSpecial());
+    }
+
+    @Test
+    void testPrintScreenViaPua() {
+        KeyEvent event = KeyParser.parse(ESC + "[57361u");
+        assertEquals(KeyEvent.Type.Special, event.getType());
+        assertEquals(KeyEvent.Special.PrintScreen, event.getSpecial());
+    }
+
+    @Test
+    void testMenuViaPua() {
+        KeyEvent event = KeyParser.parse(ESC + "[57363u");
+        assertEquals(KeyEvent.Type.Special, event.getType());
+        assertEquals(KeyEvent.Special.Menu, event.getSpecial());
+    }
+
+    // ---- Keypad keys ----
+
+    @Test
+    void testKeypadDigit() {
+        KeyEvent event = KeyParser.parse(ESC + "[57399u");
+        assertEquals(KeyEvent.Type.Keypad, event.getType());
+        assertEquals(KeyEvent.Keypad.KP0, event.getKeypad());
+    }
+
+    // ---- Media keys ----
+
+    @Test
+    void testMediaKey() {
+        KeyEvent event = KeyParser.parse(ESC + "[57430u");
+        assertEquals(KeyEvent.Type.Media, event.getType());
+        assertEquals(KeyEvent.MediaKey.PlayPause, event.getMediaKey());
+    }
+
+    // ---- Modifier keys ----
+
+    @Test
+    void testRightShiftModifierKey() {
+        KeyEvent event = KeyParser.parse(ESC + "[57447u");
+        assertEquals(KeyEvent.Type.ModifierKey, event.getType());
+        assertEquals(KeyEvent.ModKey.RightShift, event.getModKey());
     }
 }
