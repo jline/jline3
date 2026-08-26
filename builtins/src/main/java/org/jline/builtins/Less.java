@@ -920,6 +920,8 @@ public class Less {
                 return;
             } else if (op == Operation.TERMINAL_RESIZE) {
                 InBandResize.handleResize(bindingReader, terminal);
+                display(false, curPos);
+                continue;
             } else if (op != null) {
                 curPos = lineEditor.editBuffer(op, curPos);
             }
