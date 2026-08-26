@@ -18,7 +18,6 @@ import java.util.Locale;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
-import org.jline.reader.UserInterruptException;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
@@ -154,7 +153,7 @@ class JLineJdkConsole implements JdkConsole {
         try {
             String prompt = formatPrompt(format, args);
             return reader.readLine(prompt);
-        } catch (UserInterruptException | EndOfFileException e) {
+        } catch (EndOfFileException e) {
             return null;
         }
     }
@@ -174,7 +173,7 @@ class JLineJdkConsole implements JdkConsole {
             String prompt = formatPrompt(format, args);
             String password = reader.readLine(prompt, '\0');
             return password != null ? password.toCharArray() : null;
-        } catch (UserInterruptException | EndOfFileException e) {
+        } catch (EndOfFileException e) {
             return null;
         }
     }
@@ -224,7 +223,7 @@ class JLineJdkConsole implements JdkConsole {
         try {
             String prompt = formatPrompt(locale, format, args);
             return reader.readLine(prompt);
-        } catch (UserInterruptException | EndOfFileException e) {
+        } catch (EndOfFileException e) {
             return null;
         }
     }
@@ -244,7 +243,7 @@ class JLineJdkConsole implements JdkConsole {
             String prompt = formatPrompt(locale, format, args);
             String password = reader.readLine(prompt, '\0');
             return password != null ? password.toCharArray() : null;
-        } catch (UserInterruptException | EndOfFileException e) {
+        } catch (EndOfFileException e) {
             return null;
         }
     }
