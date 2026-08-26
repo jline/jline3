@@ -209,6 +209,7 @@ public class DefaultHistory implements History {
                 if (Files.exists(path)) {
                     Log.trace("Reading history from: ", path);
                     boolean hasErrors = false;
+                    int totalBefore = offset + items.size();
 
                     try (BufferedReader reader = Files.newBufferedReader(path)) {
                         List<String> lines = reader.lines().collect(java.util.stream.Collectors.toList());
@@ -222,7 +223,8 @@ public class DefaultHistory implements History {
                         }
                     }
 
-                    setHistoryFileData(path, new HistoryFileData(items.size(), offset + items.size()));
+                    int entriesRead = (offset + items.size()) - totalBefore;
+                    setHistoryFileData(path, new HistoryFileData(items.size(), entriesRead));
                     maybeResize();
 
                     // If we encountered errors, rewrite the history file with valid entries
