@@ -10,6 +10,7 @@ package org.jline.demo.examples;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Field;
 import java.util.EnumSet;
 
 import org.jline.terminal.Attributes;
@@ -17,6 +18,7 @@ import org.jline.terminal.KeyEvent;
 import org.jline.terminal.KeyParser;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.impl.KittyKeyboardSupport;
 import org.jline.utils.NonBlockingReader;
 
 /**
@@ -28,17 +30,24 @@ import org.jline.utils.NonBlockingReader;
  *
  * <p>Usage:</p>
  * <pre>
- * ./mvx demo KeyEventViewerExample            # default (legacy) mode
- * ./mvx demo KeyEventViewerExample -- --kitty  # enable kitty keyboard protocol
+ * ./mvx demo KeyEventViewerExample                               # default (legacy) mode
+ * ./mvx demo KeyEventViewerExample -- --kitty                     # kitty with Disambiguate only
+ * ./mvx demo KeyEventViewerExample -- --kitty=disambiguate,events # choose specific flags
+ * ./mvx demo KeyEventViewerExample -- --kitty=all                 # enable all flags
  * </pre>
+ *
+ * <p>Available kitty flags: {@code disambiguate}, {@code events}, {@code alternates},
+ * {@code allkeys}, {@code text}, {@code all}.</p>
  */
 public class KeyEventViewerExample {
 
     public static void main(String[] args) throws IOException {
-        boolean kitty = false;
+        EnumSet<Terminal.KittyKeyboardMode> kittyModes = null;
         for (String arg : args) {
             if ("--kitty".equals(arg)) {
-                kitty = true;
+                kittyModes = EnumSet.of(Terminal.KittyKeyboardMode.Disambiguate);
+            } else if (arg.startsWith("--kitty=")) {
+                kittyModes = parseKittyFlags(arg.substring("--kitty=".length()));
             }
         }
 
@@ -47,13 +56,14 @@ public class KeyEventViewerExample {
             Attributes saved = terminal.getAttributes();
             terminal.enterRawMode();
 
-            if (kitty) {
+            boolean kittyEnabled = false;
+            if (kittyModes != null) {
                 if (terminal.hasKittyKeyboardSupport()) {
-                    terminal.setKittyKeyboardMode(EnumSet.of(Terminal.KittyKeyboardMode.Disambiguate));
-                    writeln(writer, "Kitty Keyboard Protocol enabled.");
+                    terminal.setKittyKeyboardMode(kittyModes);
+                    kittyEnabled = true;
+                    writeln(writer, "Kitty Keyboard Protocol enabled: " + kittyModes);
                 } else {
                     writeln(writer, "Terminal does not support Kitty Keyboard Protocol, using legacy mode.");
-                    kitty = false;
                 }
             }
 
@@ -112,19 +122,21 @@ public class KeyEventViewerExample {
                     writeln(writer, "");
                     writer.flush();
 
-                    // Exit on two consecutive Escapes (bare or kitty-encoded)
-                    boolean isEscape = event.getType() == KeyEvent.Type.Special
-                            && event.getSpecial() == KeyEvent.Special.Escape
-                            && event.getModifiers().isEmpty();
-                    if (isEscape) {
-                        if (lastWasEscape) break;
-                        lastWasEscape = true;
-                    } else {
-                        lastWasEscape = false;
+                    // Exit on two consecutive Escape presses (ignore release/repeat entirely)
+                    if (event.getEventType() == KeyEvent.EventType.Press) {
+                        boolean isEscape = event.getType() == KeyEvent.Type.Special
+                                && event.getSpecial() == KeyEvent.Special.Escape
+                                && event.getModifiers().isEmpty();
+                        if (isEscape) {
+                            if (lastWasEscape) break;
+                            lastWasEscape = true;
+                        } else {
+                            lastWasEscape = false;
+                        }
                     }
                 }
             } finally {
-                if (kitty) {
+                if (kittyEnabled) {
                     terminal.resetKittyKeyboardMode();
                 }
                 terminal.setAttributes(saved);
@@ -154,8 +166,22 @@ public class KeyEventViewerExample {
             case Function:
                 sb.append(", function=F").append(event.getFunctionKey());
                 break;
+            case Keypad:
+                sb.append(", keypad=").append(event.getKeypad());
+                break;
+            case Media:
+                sb.append(", media=").append(event.getMediaKey());
+                break;
+            case ModifierKey:
+                sb.append(", modKey=").append(event.getModKey());
+                break;
             case Unknown:
-                sb.append(", unknown");
+                if (event.getKeyCode() != 0) {
+                    String name = keyCodeName(event.getKeyCode());
+                    sb.append(", keyCode=").append(name != null ? name : event.getKeyCode());
+                } else {
+                    sb.append(", unknown");
+                }
                 break;
         }
         if (!event.getModifiers().isEmpty()) {
@@ -164,15 +190,57 @@ public class KeyEventViewerExample {
         if (event.getEventType() != KeyEvent.EventType.Press) {
             sb.append(", eventType=").append(event.getEventType());
         }
-        if (event.getKeyCode() != 0) {
-            sb.append(", keyCode=").append(event.getKeyCode());
-        }
         if (event.getAssociatedText() != null) {
             sb.append(", text='").append(event.getAssociatedText()).append("'");
         }
         sb.append(", raw=").append(escapeRaw(event.getRawSequence()));
         sb.append("}");
         return sb.toString();
+    }
+
+    private static EnumSet<Terminal.KittyKeyboardMode> parseKittyFlags(String spec) {
+        if ("all".equalsIgnoreCase(spec)) {
+            return EnumSet.allOf(Terminal.KittyKeyboardMode.class);
+        }
+        EnumSet<Terminal.KittyKeyboardMode> modes = EnumSet.noneOf(Terminal.KittyKeyboardMode.class);
+        for (String flag : spec.split(",")) {
+            switch (flag.trim().toLowerCase()) {
+                case "disambiguate":
+                    modes.add(Terminal.KittyKeyboardMode.Disambiguate);
+                    break;
+                case "events":
+                    modes.add(Terminal.KittyKeyboardMode.ReportEvents);
+                    break;
+                case "alternates":
+                    modes.add(Terminal.KittyKeyboardMode.ReportAlternates);
+                    break;
+                case "allkeys":
+                    modes.add(Terminal.KittyKeyboardMode.ReportAllKeys);
+                    break;
+                case "text":
+                    modes.add(Terminal.KittyKeyboardMode.ReportText);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unknown kitty flag: " + flag
+                            + ". Valid flags: disambiguate, events, alternates, allkeys, text, all");
+            }
+        }
+        return modes;
+    }
+
+    private static String keyCodeName(int keyCode) {
+        for (Field f : KittyKeyboardSupport.class.getFields()) {
+            if (f.getName().startsWith("KEY_") && f.getType() == int.class) {
+                try {
+                    if (f.getInt(null) == keyCode) {
+                        return f.getName();
+                    }
+                } catch (IllegalAccessException e) {
+                    // skip
+                }
+            }
+        }
+        return null;
     }
 
     private static String escapeRaw(String raw) {

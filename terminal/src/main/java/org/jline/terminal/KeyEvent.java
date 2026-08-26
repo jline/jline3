@@ -25,8 +25,11 @@ import java.util.EnumSet;
  * <ul>
  *   <li><b>Character</b> - A printable character was typed</li>
  *   <li><b>Arrow</b> - An arrow key was pressed (Up, Down, Left, Right)</li>
- *   <li><b>Function</b> - A function key was pressed (F1-F12)</li>
+ *   <li><b>Function</b> - A function key was pressed (F1-F35)</li>
  *   <li><b>Special</b> - A special key was pressed (Enter, Tab, Escape, etc.)</li>
+ *   <li><b>Keypad</b> - A keypad key was pressed</li>
+ *   <li><b>Media</b> - A media key was pressed</li>
+ *   <li><b>ModifierKey</b> - A modifier key was pressed/released as its own event</li>
  *   <li><b>Unknown</b> - An unrecognized key sequence</li>
  * </ul>
  */
@@ -49,7 +52,7 @@ public class KeyEvent {
         Arrow,
 
         /**
-         * A function key was pressed (F1-F12).
+         * A function key was pressed (F1-F35).
          */
         Function,
 
@@ -57,6 +60,22 @@ public class KeyEvent {
          * A special key was pressed (Enter, Tab, Escape, etc.).
          */
         Special,
+
+        /**
+         * A keypad key was pressed.
+         */
+        Keypad,
+
+        /**
+         * A media key was pressed.
+         */
+        Media,
+
+        /**
+         * A modifier key was pressed or released as its own event.
+         * Only reported by the Kitty Keyboard Protocol with ReportAllKeys.
+         */
+        ModifierKey,
 
         /**
          * An unrecognized key sequence.
@@ -87,7 +106,66 @@ public class KeyEvent {
         End,
         PageUp,
         PageDown,
-        Insert
+        Insert,
+        CapsLock,
+        ScrollLock,
+        NumLock,
+        PrintScreen,
+        Pause,
+        Menu
+    }
+
+    public enum Keypad {
+        KP0,
+        KP1,
+        KP2,
+        KP3,
+        KP4,
+        KP5,
+        KP6,
+        KP7,
+        KP8,
+        KP9,
+        Decimal,
+        Divide,
+        Multiply,
+        Subtract,
+        Add,
+        Enter,
+        Equal,
+        Separator,
+        Left,
+        Right,
+        Up,
+        Down,
+        PageUp,
+        PageDown,
+        Home,
+        End,
+        Insert,
+        Delete
+    }
+
+    public enum MediaKey {
+        Play,
+        Pause,
+        PlayPause,
+        Stop
+    }
+
+    public enum ModKey {
+        LeftShift,
+        LeftControl,
+        LeftAlt,
+        LeftSuper,
+        LeftHyper,
+        LeftMeta,
+        RightShift,
+        RightControl,
+        RightAlt,
+        RightSuper,
+        RightHyper,
+        RightMeta
     }
 
     /**
@@ -159,6 +237,9 @@ public class KeyEvent {
     private final char character;
     private final Arrow arrow;
     private final Special special;
+    private final Keypad keypad;
+    private final MediaKey mediaKey;
+    private final ModKey modKey;
     private final int functionKey;
     private final EnumSet<Modifier> modifiers;
     private final String rawSequence;
@@ -172,37 +253,88 @@ public class KeyEvent {
      * Creates a character key event.
      */
     public KeyEvent(char character, EnumSet<Modifier> modifiers, String rawSequence) {
-        this(Type.Character, character, null, null, 0, modifiers, rawSequence, EventType.Press, 0, 0, 0, null);
+        this(
+                Type.Character,
+                character,
+                null,
+                null,
+                null,
+                null,
+                null,
+                0,
+                modifiers,
+                rawSequence,
+                EventType.Press,
+                0,
+                0,
+                0,
+                null);
     }
 
-    /**
-     * Creates an arrow key event.
-     */
     public KeyEvent(Arrow arrow, EnumSet<Modifier> modifiers, String rawSequence) {
-        this(Type.Arrow, '\0', arrow, null, 0, modifiers, rawSequence, EventType.Press, 0, 0, 0, null);
+        this(
+                Type.Arrow,
+                '\0',
+                arrow,
+                null,
+                null,
+                null,
+                null,
+                0,
+                modifiers,
+                rawSequence,
+                EventType.Press,
+                0,
+                0,
+                0,
+                null);
     }
 
-    /**
-     * Creates a special key event.
-     */
     public KeyEvent(Special special, EnumSet<Modifier> modifiers, String rawSequence) {
-        this(Type.Special, '\0', null, special, 0, modifiers, rawSequence, EventType.Press, 0, 0, 0, null);
+        this(
+                Type.Special,
+                '\0',
+                null,
+                special,
+                null,
+                null,
+                null,
+                0,
+                modifiers,
+                rawSequence,
+                EventType.Press,
+                0,
+                0,
+                0,
+                null);
     }
 
-    /**
-     * Creates a function key event.
-     */
     public KeyEvent(int functionKey, EnumSet<Modifier> modifiers, String rawSequence) {
-        this(Type.Function, '\0', null, null, functionKey, modifiers, rawSequence, EventType.Press, 0, 0, 0, null);
+        this(
+                Type.Function,
+                '\0',
+                null,
+                null,
+                null,
+                null,
+                null,
+                functionKey,
+                modifiers,
+                rawSequence,
+                EventType.Press,
+                0,
+                0,
+                0,
+                null);
     }
 
-    /**
-     * Creates an unknown key event.
-     */
     public KeyEvent(String rawSequence) {
         this(
                 Type.Unknown,
                 '\0',
+                null,
+                null,
+                null,
                 null,
                 null,
                 0,
@@ -215,24 +347,7 @@ public class KeyEvent {
                 null);
     }
 
-    /**
-     * Full constructor with all Kitty Keyboard Protocol fields.
-     *
-     * @param type              the key event type
-     * @param character         the character for Character events
-     * @param arrow             the arrow direction for Arrow events
-     * @param special           the special key for Special events
-     * @param functionKey       the function key number for Function events
-     * @param modifiers         active modifier keys
-     * @param rawSequence       the raw terminal escape sequence
-     * @param eventType         press, repeat, or release
-     * @param keyCode           the Unicode key code from the protocol
-     * @param shiftedKeyCode    the shifted variant key code (0 if absent)
-     * @param baseLayoutKeyCode the base layout key code (0 if absent)
-     * @param associatedText    the associated text reported by the terminal
-     */
-    @SuppressWarnings({"java:S107", "java:S1319"
-    }) // parameter count matches the protocol; EnumSet matches JLine API convention
+    @SuppressWarnings({"java:S107", "java:S1319"})
     public KeyEvent(
             Type type,
             char character,
@@ -246,10 +361,48 @@ public class KeyEvent {
             int shiftedKeyCode,
             int baseLayoutKeyCode,
             String associatedText) {
+        this(
+                type,
+                character,
+                arrow,
+                special,
+                null,
+                null,
+                null,
+                functionKey,
+                modifiers,
+                rawSequence,
+                eventType,
+                keyCode,
+                shiftedKeyCode,
+                baseLayoutKeyCode,
+                associatedText);
+    }
+
+    @SuppressWarnings({"java:S107", "java:S1319"})
+    public KeyEvent(
+            Type type,
+            char character,
+            Arrow arrow,
+            Special special,
+            Keypad keypad,
+            MediaKey mediaKey,
+            ModKey modKey,
+            int functionKey,
+            EnumSet<Modifier> modifiers,
+            String rawSequence,
+            EventType eventType,
+            int keyCode,
+            int shiftedKeyCode,
+            int baseLayoutKeyCode,
+            String associatedText) {
         this.type = type;
         this.character = character;
         this.arrow = arrow;
         this.special = special;
+        this.keypad = keypad;
+        this.mediaKey = mediaKey;
+        this.modKey = modKey;
         this.functionKey = functionKey;
         this.modifiers = modifiers;
         this.rawSequence = rawSequence;
@@ -274,6 +427,18 @@ public class KeyEvent {
 
     public Special getSpecial() {
         return special;
+    }
+
+    public Keypad getKeypad() {
+        return keypad;
+    }
+
+    public MediaKey getMediaKey() {
+        return mediaKey;
+    }
+
+    public ModKey getModKey() {
+        return modKey;
     }
 
     public int getFunctionKey() {
@@ -362,6 +527,15 @@ public class KeyEvent {
                 break;
             case Function:
                 sb.append(", function=F").append(functionKey);
+                break;
+            case Keypad:
+                sb.append(", keypad=").append(keypad);
+                break;
+            case Media:
+                sb.append(", media=").append(mediaKey);
+                break;
+            case ModifierKey:
+                sb.append(", modKey=").append(modKey);
                 break;
             case Unknown:
                 sb.append(", unknown");

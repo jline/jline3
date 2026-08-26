@@ -202,106 +202,230 @@ public class KeyParser {
     }
 
     private static KeyEvent parseModifiedAnsiSequence(String sequence) {
-        // Pattern: \E[1;modifiers{A,B,C,D} for modified arrow keys
-        // Pattern: \E[{number};modifiers~ for modified special keys
+        // Extract CSI parameters (between ESC[ and final byte) and the final byte
+        char finalChar = sequence.charAt(sequence.length() - 1);
+        String params = sequence.substring(2, sequence.length() - 1);
+        String[] parts = params.split(";");
 
-        // Modified arrow/function/special keys: \E[1;{mod}{A-S}
-        if (sequence.matches("\\u001b\\[1;[2-8][A-S]")) {
-            int modCode = Character.getNumericValue(sequence.charAt(4));
-            char finalChar = sequence.charAt(5);
-
-            EnumSet<KeyEvent.Modifier> modifiers = parseModifierCode(modCode);
-
-            // Arrow keys: A=Up, B=Down, C=Right, D=Left
-            KeyEvent.Arrow arrow = parseArrowChar(finalChar);
-            if (arrow != null) {
-                return new KeyEvent(arrow, modifiers, sequence);
-            }
-
-            // Function keys F1-F4: P=F1, Q=F2, R=F3, S=F4
-            int fkey = mapSS3FunctionKey(finalChar);
-            if (fkey > 0) {
-                return new KeyEvent(fkey, modifiers, sequence);
-            }
-
-            // Home/End: H=Home, F=End
-            KeyEvent.Special special = mapCSISpecialChar(finalChar);
-            if (special != null) {
-                return new KeyEvent(special, modifiers, sequence);
-            }
-        }
-
-        // Modified function keys: \E[{fn};{mod}~
-        if (sequence.matches("\\u001b\\[[0-9]+;[2-8]~")) {
-            String[] parts = sequence.substring(2, sequence.length() - 1).split(";");
+        if (finalChar != '~') {
+            // Modified arrow/function/special keys: \E[1;{mod}[:{event}]{A-S}
             if (parts.length == 2) {
                 try {
-                    int fnNum = Integer.parseInt(parts[0]);
-                    int modCode = Integer.parseInt(parts[1]);
+                    ModifierEvent me = parseModifierEvent(parts[1]);
 
-                    EnumSet<KeyEvent.Modifier> modifiers = parseModifierCode(modCode);
-                    int functionKey = mapFunctionKeyNumber(fnNum);
-
-                    if (functionKey > 0) {
-                        return new KeyEvent(functionKey, modifiers, sequence);
+                    KeyEvent.Arrow arrow = parseArrowChar(finalChar);
+                    if (arrow != null) {
+                        return new KeyEvent(
+                                KeyEvent.Type.Arrow,
+                                '\0',
+                                arrow,
+                                null,
+                                0,
+                                me.modifiers,
+                                sequence,
+                                me.eventType,
+                                0,
+                                0,
+                                0,
+                                null);
                     }
-                } catch (NumberFormatException e) {
-                    // Fall through to unknown
-                }
-            }
-        }
 
-        // Modified special keys: \E[{special};{mod}~
-        if (sequence.matches("\\u001b\\[[2-6];[2-8]~")) {
-            String[] parts = sequence.substring(2, sequence.length() - 1).split(";");
-            if (parts.length == 2) {
-                try {
-                    int specialCode = Integer.parseInt(parts[0]);
-                    int modCode = Integer.parseInt(parts[1]);
+                    int fkey = mapSS3FunctionKey(finalChar);
+                    if (fkey > 0) {
+                        return new KeyEvent(
+                                KeyEvent.Type.Function,
+                                '\0',
+                                null,
+                                null,
+                                fkey,
+                                me.modifiers,
+                                sequence,
+                                me.eventType,
+                                0,
+                                0,
+                                0,
+                                null);
+                    }
 
-                    EnumSet<KeyEvent.Modifier> modifiers = parseModifierCode(modCode);
-                    KeyEvent.Special special = mapSpecialKeyCode(specialCode);
-
+                    KeyEvent.Special special = mapCSISpecialChar(finalChar);
                     if (special != null) {
-                        return new KeyEvent(special, modifiers, sequence);
+                        return new KeyEvent(
+                                KeyEvent.Type.Special,
+                                '\0',
+                                null,
+                                special,
+                                0,
+                                me.modifiers,
+                                sequence,
+                                me.eventType,
+                                0,
+                                0,
+                                0,
+                                null);
                     }
                 } catch (NumberFormatException e) {
                     // Fall through to unknown
                 }
             }
-        }
+        } else if (parts.length == 3 && "27".equals(parts[0])) {
+            // xterm modifyOtherKeys format: \E[27;{mod};{code}~
+            try {
+                ModifierEvent me = parseModifierEvent(parts[1]);
+                int keyCode = Integer.parseInt(parts[2]);
 
-        // xterm modifyOtherKeys format: \E[27;{mod};{code}~
-        if (sequence.matches("\\u001b\\[27;[2-8];[0-9]+~")) {
-            String[] parts = sequence.substring(2, sequence.length() - 1).split(";");
-            if (parts.length == 3) {
-                try {
-                    int modCode = Integer.parseInt(parts[1]);
-                    int keyCode = Integer.parseInt(parts[2]);
-
-                    EnumSet<KeyEvent.Modifier> modifiers = parseModifierCode(modCode);
-
-                    switch (keyCode) {
-                        case 9:
-                            return new KeyEvent(KeyEvent.Special.Tab, modifiers, sequence);
-                        case 13:
-                            return new KeyEvent(KeyEvent.Special.Enter, modifiers, sequence);
-                        case 27:
-                            return new KeyEvent(KeyEvent.Special.Escape, modifiers, sequence);
-                        case 127:
-                            return new KeyEvent(KeyEvent.Special.Backspace, modifiers, sequence);
-                        default:
-                            if (keyCode >= 32 && keyCode <= 126) {
-                                return new KeyEvent((char) keyCode, modifiers, sequence);
-                            }
-                    }
-                } catch (NumberFormatException e) {
-                    // Fall through to unknown
+                switch (keyCode) {
+                    case 9:
+                        return new KeyEvent(
+                                KeyEvent.Type.Special,
+                                '\0',
+                                null,
+                                KeyEvent.Special.Tab,
+                                0,
+                                me.modifiers,
+                                sequence,
+                                me.eventType,
+                                0,
+                                0,
+                                0,
+                                null);
+                    case 13:
+                        return new KeyEvent(
+                                KeyEvent.Type.Special,
+                                '\0',
+                                null,
+                                KeyEvent.Special.Enter,
+                                0,
+                                me.modifiers,
+                                sequence,
+                                me.eventType,
+                                0,
+                                0,
+                                0,
+                                null);
+                    case 27:
+                        return new KeyEvent(
+                                KeyEvent.Type.Special,
+                                '\0',
+                                null,
+                                KeyEvent.Special.Escape,
+                                0,
+                                me.modifiers,
+                                sequence,
+                                me.eventType,
+                                0,
+                                0,
+                                0,
+                                null);
+                    case 127:
+                        return new KeyEvent(
+                                KeyEvent.Type.Special,
+                                '\0',
+                                null,
+                                KeyEvent.Special.Backspace,
+                                0,
+                                me.modifiers,
+                                sequence,
+                                me.eventType,
+                                0,
+                                0,
+                                0,
+                                null);
+                    default:
+                        if (keyCode >= 32 && keyCode <= 126) {
+                            return new KeyEvent(
+                                    KeyEvent.Type.Character,
+                                    (char) keyCode,
+                                    null,
+                                    null,
+                                    0,
+                                    me.modifiers,
+                                    sequence,
+                                    me.eventType,
+                                    0,
+                                    0,
+                                    0,
+                                    null);
+                        }
                 }
+            } catch (NumberFormatException e) {
+                // Fall through to unknown
+            }
+        } else if (parts.length == 2) {
+            // Modified function/special keys: \E[{code};{mod}[:{event}]~
+            try {
+                int code = Integer.parseInt(parts[0]);
+                ModifierEvent me = parseModifierEvent(parts[1]);
+
+                int functionKey = mapFunctionKeyNumber(code);
+                if (functionKey > 0) {
+                    return new KeyEvent(
+                            KeyEvent.Type.Function,
+                            '\0',
+                            null,
+                            null,
+                            functionKey,
+                            me.modifiers,
+                            sequence,
+                            me.eventType,
+                            0,
+                            0,
+                            0,
+                            null);
+                }
+
+                KeyEvent.Special special = mapSpecialKeyCode(code);
+                if (special != null) {
+                    return new KeyEvent(
+                            KeyEvent.Type.Special,
+                            '\0',
+                            null,
+                            special,
+                            0,
+                            me.modifiers,
+                            sequence,
+                            me.eventType,
+                            0,
+                            0,
+                            0,
+                            null);
+                }
+            } catch (NumberFormatException e) {
+                // Fall through to unknown
             }
         }
 
         return new KeyEvent(sequence);
+    }
+
+    private static class ModifierEvent {
+        final EnumSet<KeyEvent.Modifier> modifiers;
+        final KeyEvent.EventType eventType;
+
+        ModifierEvent(EnumSet<KeyEvent.Modifier> modifiers, KeyEvent.EventType eventType) {
+            this.modifiers = modifiers;
+            this.eventType = eventType;
+        }
+    }
+
+    private static ModifierEvent parseModifierEvent(String modParam) {
+        int colonIdx = modParam.indexOf(':');
+        int modCode;
+        KeyEvent.EventType eventType = KeyEvent.EventType.Press;
+        if (colonIdx >= 0) {
+            modCode = Integer.parseInt(modParam.substring(0, colonIdx));
+            int event = Integer.parseInt(modParam.substring(colonIdx + 1));
+            switch (event) {
+                case 2:
+                    eventType = KeyEvent.EventType.Repeat;
+                    break;
+                case 3:
+                    eventType = KeyEvent.EventType.Release;
+                    break;
+            }
+        } else {
+            modCode = Integer.parseInt(modParam);
+        }
+        return new ModifierEvent(parseModifierCode(modCode), eventType);
     }
 
     private static EnumSet<KeyEvent.Modifier> parseModifierCode(int modCode) {
@@ -642,10 +766,76 @@ public class KeyParser {
                     associatedText);
         }
 
-        // Unknown or unhandled private use area key codes (keypad, media, modifier keys)
+        // Map keypad keys
+        KeyEvent.Keypad keypad = mapKittyKeypadKey(keyCode);
+        if (keypad != null) {
+            return new KeyEvent(
+                    KeyEvent.Type.Keypad,
+                    '\0',
+                    null,
+                    null,
+                    keypad,
+                    null,
+                    null,
+                    0,
+                    modifiers,
+                    rawSequence,
+                    eventType,
+                    keyCode,
+                    shiftedKeyCode,
+                    baseLayoutKeyCode,
+                    associatedText);
+        }
+
+        // Map media keys
+        KeyEvent.MediaKey media = mapKittyMediaKey(keyCode);
+        if (media != null) {
+            return new KeyEvent(
+                    KeyEvent.Type.Media,
+                    '\0',
+                    null,
+                    null,
+                    null,
+                    media,
+                    null,
+                    0,
+                    modifiers,
+                    rawSequence,
+                    eventType,
+                    keyCode,
+                    shiftedKeyCode,
+                    baseLayoutKeyCode,
+                    associatedText);
+        }
+
+        // Map modifier keys (as standalone key events)
+        KeyEvent.ModKey modKey = mapKittyModifierKey(keyCode);
+        if (modKey != null) {
+            return new KeyEvent(
+                    KeyEvent.Type.ModifierKey,
+                    '\0',
+                    null,
+                    null,
+                    null,
+                    null,
+                    modKey,
+                    0,
+                    modifiers,
+                    rawSequence,
+                    eventType,
+                    keyCode,
+                    shiftedKeyCode,
+                    baseLayoutKeyCode,
+                    associatedText);
+        }
+
+        // Unknown key code
         return new KeyEvent(
                 KeyEvent.Type.Unknown,
                 '\0',
+                null,
+                null,
+                null,
                 null,
                 null,
                 0,
@@ -691,6 +881,18 @@ public class KeyParser {
                 return KeyEvent.Special.Home;
             case 57357:
                 return KeyEvent.Special.End;
+            case 57358:
+                return KeyEvent.Special.CapsLock;
+            case 57359:
+                return KeyEvent.Special.ScrollLock;
+            case 57360:
+                return KeyEvent.Special.NumLock;
+            case 57361:
+                return KeyEvent.Special.PrintScreen;
+            case 57362:
+                return KeyEvent.Special.Pause;
+            case 57363:
+                return KeyEvent.Special.Menu;
             default:
                 return null;
         }
@@ -720,5 +922,114 @@ public class KeyParser {
             return keyCode - 57376 + 13;
         }
         return 0;
+    }
+
+    private static KeyEvent.Keypad mapKittyKeypadKey(int keyCode) {
+        switch (keyCode) {
+            case 57399:
+                return KeyEvent.Keypad.KP0;
+            case 57400:
+                return KeyEvent.Keypad.KP1;
+            case 57401:
+                return KeyEvent.Keypad.KP2;
+            case 57402:
+                return KeyEvent.Keypad.KP3;
+            case 57403:
+                return KeyEvent.Keypad.KP4;
+            case 57404:
+                return KeyEvent.Keypad.KP5;
+            case 57405:
+                return KeyEvent.Keypad.KP6;
+            case 57406:
+                return KeyEvent.Keypad.KP7;
+            case 57407:
+                return KeyEvent.Keypad.KP8;
+            case 57408:
+                return KeyEvent.Keypad.KP9;
+            case 57409:
+                return KeyEvent.Keypad.Decimal;
+            case 57410:
+                return KeyEvent.Keypad.Divide;
+            case 57411:
+                return KeyEvent.Keypad.Multiply;
+            case 57412:
+                return KeyEvent.Keypad.Subtract;
+            case 57413:
+                return KeyEvent.Keypad.Add;
+            case 57414:
+                return KeyEvent.Keypad.Enter;
+            case 57415:
+                return KeyEvent.Keypad.Equal;
+            case 57416:
+                return KeyEvent.Keypad.Separator;
+            case 57417:
+                return KeyEvent.Keypad.Left;
+            case 57418:
+                return KeyEvent.Keypad.Right;
+            case 57419:
+                return KeyEvent.Keypad.Up;
+            case 57420:
+                return KeyEvent.Keypad.Down;
+            case 57421:
+                return KeyEvent.Keypad.PageUp;
+            case 57422:
+                return KeyEvent.Keypad.PageDown;
+            case 57423:
+                return KeyEvent.Keypad.Home;
+            case 57424:
+                return KeyEvent.Keypad.End;
+            case 57425:
+                return KeyEvent.Keypad.Insert;
+            case 57426:
+                return KeyEvent.Keypad.Delete;
+            default:
+                return null;
+        }
+    }
+
+    private static KeyEvent.MediaKey mapKittyMediaKey(int keyCode) {
+        switch (keyCode) {
+            case 57428:
+                return KeyEvent.MediaKey.Play;
+            case 57429:
+                return KeyEvent.MediaKey.Pause;
+            case 57430:
+                return KeyEvent.MediaKey.PlayPause;
+            case 57432:
+                return KeyEvent.MediaKey.Stop;
+            default:
+                return null;
+        }
+    }
+
+    private static KeyEvent.ModKey mapKittyModifierKey(int keyCode) {
+        switch (keyCode) {
+            case 57441:
+                return KeyEvent.ModKey.LeftShift;
+            case 57442:
+                return KeyEvent.ModKey.LeftControl;
+            case 57443:
+                return KeyEvent.ModKey.LeftAlt;
+            case 57444:
+                return KeyEvent.ModKey.LeftSuper;
+            case 57445:
+                return KeyEvent.ModKey.LeftHyper;
+            case 57446:
+                return KeyEvent.ModKey.LeftMeta;
+            case 57447:
+                return KeyEvent.ModKey.RightShift;
+            case 57448:
+                return KeyEvent.ModKey.RightControl;
+            case 57449:
+                return KeyEvent.ModKey.RightAlt;
+            case 57450:
+                return KeyEvent.ModKey.RightSuper;
+            case 57451:
+                return KeyEvent.ModKey.RightHyper;
+            case 57452:
+                return KeyEvent.ModKey.RightMeta;
+            default:
+                return null;
+        }
     }
 }
