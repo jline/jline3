@@ -61,6 +61,8 @@ public class OSInfo {
     public static final String ARM64 = "arm64";
 
     private static final Logger logger = System.getLogger("org.jline");
+    private static final String PROC_SELF_MAPS = "/proc/self/maps";
+    private static final String LIB_DIR = "/lib";
     private static final HashMap<String, String> archMapping = new HashMap<>();
 
     static {
@@ -139,7 +141,7 @@ public class OSInfo {
      */
     public static boolean isMusl() {
         // Primary: check the current process's memory maps for musl
-        try (BufferedReader reader = new BufferedReader(new FileReader("/proc/self/maps"))) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(PROC_SELF_MAPS))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.contains("ld-musl-") || line.contains("libc.musl-")) {
@@ -148,12 +150,13 @@ public class OSInfo {
             }
             // Process maps read successfully but no musl found — this is glibc
             return false;
-        } catch (Throwable e) {
+        } catch (Exception e) {
             // /proc/self/maps not available (non-Linux or restricted procfs)
+            log(Level.DEBUG, "Unable to read " + PROC_SELF_MAPS + ", falling back to linker check", e);
         }
         // Fallback: check for the musl dynamic linker on disk
         try {
-            File lib = new File("/lib");
+            File lib = new File(LIB_DIR);
             if (lib.exists() && lib.isDirectory()) {
                 String[] files = lib.list();
                 if (files != null) {
@@ -164,8 +167,8 @@ public class OSInfo {
                     }
                 }
             }
-        } catch (Throwable e) {
-            // ignore
+        } catch (Exception e) {
+            log(Level.DEBUG, "Unable to check " + LIB_DIR + " for musl linker", e);
         }
         return false;
     }
