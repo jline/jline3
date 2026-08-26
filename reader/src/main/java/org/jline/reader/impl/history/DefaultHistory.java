@@ -209,13 +209,14 @@ public class DefaultHistory implements History {
                 if (Files.exists(path)) {
                     Log.trace("Reading history from: ", path);
                     boolean hasErrors = false;
-                    int totalBefore = offset + items.size();
+                    int entriesInFileCount = 0;
 
                     try (BufferedReader reader = Files.newBufferedReader(path)) {
                         List<String> lines = reader.lines().collect(java.util.stream.Collectors.toList());
                         for (String line : lines) {
                             try {
                                 addHistoryLine(path, line, checkDuplicates);
+                                entriesInFileCount++;
                             } catch (IllegalArgumentException e) {
                                 Log.debug("Skipping invalid history line: " + line, e);
                                 hasErrors = true;
@@ -223,8 +224,7 @@ public class DefaultHistory implements History {
                         }
                     }
 
-                    int entriesRead = (offset + items.size()) - totalBefore;
-                    setHistoryFileData(path, new HistoryFileData(items.size(), entriesRead));
+                    setHistoryFileData(path, new HistoryFileData(items.size(), entriesInFileCount));
                     maybeResize();
 
                     // If we encountered errors, rewrite the history file with valid entries
