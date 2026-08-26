@@ -103,6 +103,7 @@ public abstract class AbstractTerminal implements TerminalExt {
     private boolean graphemeClusterNative;
     private boolean groupsRegionalIndicators;
     private boolean groupsZwjSequences;
+    private boolean inBandResizeEnabled;
 
     /** CSI prefix for DEC private mode sequences ({@code ESC [ ?}). */
     static final String CSI_DEC = "\033[?";
@@ -219,6 +220,9 @@ public abstract class AbstractTerminal implements TerminalExt {
     }
 
     protected void doClose() throws IOException {
+        if (inBandResizeEnabled) {
+            trackInBandResize(false);
+        }
         if (graphemeClusterModeEnabled) {
             setGraphemeClusterMode(false, false);
         }
@@ -643,6 +647,33 @@ public abstract class AbstractTerminal implements TerminalExt {
         return response.contains(";4;") || response.contains(";4c");
     }
 
+    // ---- In-band resize support (mode 2048) ----
+
+    @Override
+    public boolean hasInBandResizeSupport() {
+        return isModeSupported(Mode.IN_BAND_RESIZE);
+    }
+
+    @Override
+    public boolean trackInBandResize(boolean tracking) {
+        if (tracking) {
+            if (hasInBandResizeSupport()) {
+                writer().write("\033[?2048h");
+                writer().flush();
+                inBandResizeEnabled = true;
+                return true;
+            }
+            return false;
+        } else {
+            if (inBandResizeEnabled) {
+                writer().write("\033[?2048l");
+                writer().flush();
+                inBandResizeEnabled = false;
+            }
+            return true;
+        }
+    }
+
     // ---- Grapheme cluster support (mode 2027 + cursor-position fallback) ----
 
     @Override
@@ -754,7 +785,7 @@ public abstract class AbstractTerminal implements TerminalExt {
      * only group regional indicators (flags). Two probes detect this.</p>
      *
      * <p>This method must only be called when the terminal is known to
-     * respond to escape sequences (i.e., after {@link #probeMode2027()}
+     * respond to escape sequences (i.e., after the batch mode probe
      * received a response), because DSR/CPR blocks until a response
      * arrives.</p>
      *
