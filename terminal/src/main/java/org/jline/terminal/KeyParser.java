@@ -210,7 +210,7 @@ public class KeyParser {
         String[] parts = params.split(";");
 
         if (finalChar != '~') {
-            // Modified arrow/function/special keys: \E[1;{mod}[:{event}]{A-S}
+            // Modified arrow, function, or special keys with optional event type
             if (parts.length == 2) {
                 try {
                     ModifierEvent me = parseModifierEvent(parts[1]);
