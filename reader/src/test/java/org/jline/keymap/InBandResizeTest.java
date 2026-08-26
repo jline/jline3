@@ -177,6 +177,27 @@ class InBandResizeTest {
         assertEquals(before, terminal.getSize());
     }
 
+    @Test
+    void applyResizeParams_oversizedRowsRejected() {
+        Size before = terminal.getSize();
+        InBandResize.applyResizeParams("2000;80", terminal);
+        assertEquals(before, terminal.getSize());
+    }
+
+    @Test
+    void applyResizeParams_oversizedColsRejected() {
+        Size before = terminal.getSize();
+        InBandResize.applyResizeParams("30;10000", terminal);
+        assertEquals(before, terminal.getSize());
+    }
+
+    @Test
+    void applyResizeParams_atMaxBoundsAccepted() {
+        // 1000 rows and 5000 cols are at the safety bounds and should be accepted
+        InBandResize.applyResizeParams("1000;5000", terminal);
+        assertEquals(Size.of(5000, 1000), terminal.getSize());
+    }
+
     // ---- handleResize (end-to-end) ----
 
     @Test

@@ -73,6 +73,18 @@ public final class InBandResize {
 
     private static final int MAX_PARAM_LENGTH = 50;
 
+    /**
+     * Maximum accepted rows in an in-band resize report.
+     * Values beyond this cap are silently rejected to prevent
+     * unsafe buffer allocations in the display layer.
+     */
+    private static final int MAX_ROWS = 1000;
+
+    /**
+     * Maximum accepted columns in an in-band resize report.
+     */
+    private static final int MAX_COLS = 5000;
+
     private static boolean isParamChar(int c) {
         return (c >= '0' && c <= '9') || c == ';';
     }
@@ -82,7 +94,9 @@ public final class InBandResize {
      * terminal size, raising {@link Terminal.Signal#WINCH}.
      *
      * <p>The pixel dimensions (if present) are currently ignored — only the
-     * character-cell dimensions are applied.</p>
+     * character-cell dimensions are applied.  Rows and columns that exceed
+     * the built-in safety bounds ({@value #MAX_ROWS} rows, {@value #MAX_COLS}
+     * columns) are silently rejected to prevent unsafe redraw allocations.</p>
      *
      * @param params the parameter string returned by {@link #readResizeParams}
      * @param terminal the terminal whose size should be updated
@@ -95,7 +109,7 @@ public final class InBandResize {
         try {
             int rows = Integer.parseInt(parts[0]);
             int cols = Integer.parseInt(parts[1]);
-            if (rows > 0 && cols > 0) {
+            if (rows > 0 && cols > 0 && rows <= MAX_ROWS && cols <= MAX_COLS) {
                 terminal.setSize(Size.of(cols, rows));
                 terminal.raise(Terminal.Signal.WINCH);
             }
