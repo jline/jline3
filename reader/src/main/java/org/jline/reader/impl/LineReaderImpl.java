@@ -5582,7 +5582,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         if (possibleSize == 0 || size.getRows() == 0) {
             return false;
         }
-        if (listMax > 0 && possibleSize >= listMax || lines >= size.getRows() - promptLines) {
+        if (listMax > 0 && possibleSize > listMax || lines >= size.getRows() - promptLines) {
             if (forSuggestion) {
                 return false;
             }

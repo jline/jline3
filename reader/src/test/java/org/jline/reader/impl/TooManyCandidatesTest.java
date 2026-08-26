@@ -124,6 +124,17 @@ class TooManyCandidatesTest extends ReaderTestSupport {
     }
 
     @Test
+    void testAtExactThresholdShowsNormally() throws IOException {
+        // When possibleSize == LIST_MAX, candidates should display normally
+        // (overflow triggers only when possibleSize > LIST_MAX)
+        reader.setVariable(LineReader.LIST_MAX, 10);
+        reader.setVariable(LineReader.TOO_MANY_CANDIDATES, "hide");
+        // With 10 candidates and LIST_MAX=10, "hide" must NOT suppress the list
+        assertBuffer("item", new TestBuffer("i\t"));
+        assertTrue(reader.list);
+    }
+
+    @Test
     void testCaseInsensitiveVariableValue() throws IOException {
         reader.setVariable(LineReader.TOO_MANY_CANDIDATES, "SHOW");
         // Variable value should be case-insensitive
