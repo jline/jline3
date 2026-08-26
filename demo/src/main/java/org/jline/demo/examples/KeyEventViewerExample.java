@@ -96,6 +96,7 @@ public class KeyEventViewerExample {
         return false;
     }
 
+    @SuppressWarnings("java:S2677")
     private static void drainInput(NonBlockingReader reader) throws IOException {
         while (reader.peek(100) >= 0) {
             reader.read();
