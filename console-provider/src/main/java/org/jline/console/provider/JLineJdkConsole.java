@@ -51,6 +51,12 @@ class JLineJdkConsole implements JdkConsole {
         this.charset = charset;
     }
 
+    JLineJdkConsole(Charset charset, Terminal terminal, LineReader reader) {
+        this.charset = charset;
+        this.terminal = terminal;
+        this.reader = reader;
+    }
+
     private void ensureInitialized() {
         if (terminal == null) {
             synchronized (lock) {

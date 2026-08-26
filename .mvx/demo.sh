@@ -90,7 +90,7 @@ case "$demo_name" in
     if ! find demo/src/main/java/org/jline/demo/examples -name "${example_name}.java" 2>/dev/null | grep -q .; then
       echo "Demo '${example_name}' not found."
       echo ""
-      echo "Available built-in demos: gogo, repl, password, consoleui, prompt, curses, graal"
+      echo "Available built-in demos: gogo, repl, password, console, consoleui, prompt, curses, graal"
       echo ""
       echo "Available example demos:"
       find demo/src/main/java/org/jline/demo/examples -name "*.java" 2>/dev/null | sed 's/.*\/\([^\/]*\)\.java/  \1/' | sort

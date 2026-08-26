@@ -100,7 +100,7 @@ REM Check if the example class exists
 if not exist demo\src\main\java\org\jline\demo\examples\%example_name%.java (
   echo Demo '%example_name%' not found.
   echo.
-  echo Available built-in demos: gogo, repl, password, consoleui, prompt, curses, graal
+  echo Available built-in demos: gogo, repl, password, console, consoleui, prompt, curses, graal
   echo.
   echo Available example demos:
   for %%f in (demo\src\main\java\org\jline\demo\examples\*.java) do (
@@ -188,7 +188,7 @@ goto end
 REM Console provider demo: use module path so System.console() picks up the JLine provider
 set mp=
 if exist %TARGETDIR%\lib (
-  for %%f in (%TARGETDIR%\lib\*.jar) do (
+  for %%f in (%TARGETDIR%\lib\jline-*.jar) do (
     if "!mp!"=="" (
       set mp=%%f
     ) else (
@@ -197,7 +197,7 @@ if exist %TARGETDIR%\lib (
   )
 )
 echo Using module path for console provider
-set JAVA_CMD=java --module-path "!mp!" --add-modules org.jline.console.provider --add-exports java.base/jdk.internal.io=org.jline.console.provider -Djdk.console=org.jline.console.provider -cp "%TARGETDIR%\classes" -Dgosh.home="demo" -Djava.util.logging.config.file="%logconf%"
+set JAVA_CMD=java --module-path "!mp!" --add-modules org.jline.console.provider,org.jline.reader,org.jline.terminal --add-exports java.base/jdk.internal.io=org.jline.console.provider --enable-native-access=org.jline.terminal.ffm -Djdk.console=org.jline.console.provider -cp "%TARGETDIR%\classes" -Dgosh.home="demo" -Djava.util.logging.config.file="%logconf%"
 if not "!JVM_OPTS!"=="" (
   set JAVA_CMD=!JAVA_CMD! !JVM_OPTS!
 )

@@ -52,9 +52,11 @@ public class JLineConsoleProvider implements JdkConsoleProvider {
      * Creates a new {@link JdkConsole} backed by JLine's terminal and line reader.
      * <p>
      * This signature matches the JDK 25+ {@link JdkConsoleProvider} API.
+     * Note: JLine's terminal uses a single charset for both input and output,
+     * so {@code inCharset} is not used separately.
      *
      * @param isTTY      whether the JVM is attached to a terminal
-     * @param inCharset  the charset for console input
+     * @param inCharset  the charset for console input (not used separately by JLine)
      * @param outCharset the charset for console output
      * @return a JLine-backed console implementation, or {@code null} if not attached to a TTY
      */
