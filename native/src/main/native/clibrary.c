@@ -55,8 +55,8 @@ struct termios *getTermiosFields(JNIEnv *env, jobject lpObject, struct termios *
         jbyteArray lpObject1 = (jbyteArray)(*env)->GetObjectField(env, lpObject, TermiosFc.c_cc);
         (*env)->GetByteArrayRegion(env, lpObject1, 0, sizeof(lpStruct->c_cc), (jbyte *)lpStruct->c_cc);
 	}
-	lpStruct->c_ispeed = (*env)->GetLongField(env, lpObject, TermiosFc.c_ispeed);
-	lpStruct->c_ospeed = (*env)->GetLongField(env, lpObject, TermiosFc.c_ospeed);
+	cfsetispeed(lpStruct, (speed_t)(*env)->GetLongField(env, lpObject, TermiosFc.c_ispeed));
+	cfsetospeed(lpStruct, (speed_t)(*env)->GetLongField(env, lpObject, TermiosFc.c_ospeed));
 	return lpStruct;
 }
 
@@ -71,8 +71,8 @@ void setTermiosFields(JNIEnv *env, jobject lpObject, struct termios *lpStruct)
         jbyteArray lpObject1 = (jbyteArray)(*env)->GetObjectField(env, lpObject, TermiosFc.c_cc);
         (*env)->SetByteArrayRegion(env, lpObject1, 0, sizeof(lpStruct->c_cc), (jbyte *)lpStruct->c_cc);
 	}
-	(*env)->SetLongField(env, lpObject, TermiosFc.c_ispeed, (jlong)lpStruct->c_ispeed);
-	(*env)->SetLongField(env, lpObject, TermiosFc.c_ospeed, (jlong)lpStruct->c_ospeed);
+	(*env)->SetLongField(env, lpObject, TermiosFc.c_ispeed, (jlong)cfgetispeed(lpStruct));
+	(*env)->SetLongField(env, lpObject, TermiosFc.c_ospeed, (jlong)cfgetospeed(lpStruct));
 }
 
 typedef struct WinSize_FID_CACHE {

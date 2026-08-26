@@ -84,6 +84,7 @@ NATIVE_DLL:=$(NATIVE_DIR)/$(LIBNAME)
 # Disabled linux-armv6 build because of this issue; https://github.com/dockcross/dockcross/issues/190
 native-all: \
     linux-x86 linux-x86_64 linux-arm linux-armv6 linux-armv7 linux-arm64 linux-ppc64 \
+    linux-musl-x86_64 linux-musl-arm64 \
     win-x86 win-x86_64 win-arm64 \
     mac-x86 mac-x86_64 mac-arm64 \
     freebsd-x86 freebsd-x86_64
@@ -164,6 +165,14 @@ linux-arm64: download-includes
 linux-ppc64: download-includes
 	docker run -it --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
 		-e CROSS_TRIPLE=powerpc64le-linux-gnu multiarch/crossbuild$(cross-build-digest) make clean-native native OS_NAME=Linux OS_ARCH=ppc64
+
+linux-musl-x86_64: download-includes
+	docker run -it --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
+		alpine:3.20 sh -c 'apk add --no-cache gcc musl-dev linux-headers make > /dev/null 2>&1 && make clean-native native OS_NAME=Linux-musl OS_ARCH=x86_64'
+
+linux-musl-arm64: download-includes
+	docker run -it --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
+		--platform linux/arm64 alpine:3.20 sh -c 'apk add --no-cache gcc musl-dev linux-headers make > /dev/null 2>&1 && make clean-native native OS_NAME=Linux-musl OS_ARCH=arm64'
 
 target/dockcross/dockcross-windows-static-x86: dockcross
 	docker run --rm dockcross/windows-static-x86$(windows-static-x86-digest) > target/dockcross/dockcross-windows-static-x86

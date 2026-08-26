@@ -126,19 +126,27 @@ public class OSInfo {
         return System.getProperty("java.runtime.name", "").toLowerCase().contains("android");
     }
 
-    @SuppressWarnings("unused")
-    public static boolean isAlpine() {
+    /**
+     * Detects whether the current system uses musl libc (e.g. Alpine Linux).
+     * Checks for the musl dynamic linker which is present on all musl-based systems.
+     */
+    public static boolean isMusl() {
         try {
-            Process p = Runtime.getRuntime().exec(new String[] {"cat", "/etc/os-release", "|", "grep", "^ID"});
-            p.waitFor();
-
-            try (InputStream in = p.getInputStream()) {
-                return readFully(in).toLowerCase().contains("alpine");
+            java.io.File lib = new java.io.File("/lib");
+            if (lib.exists() && lib.isDirectory()) {
+                String[] files = lib.list();
+                if (files != null) {
+                    for (String f : files) {
+                        if (f.startsWith("ld-musl-")) {
+                            return true;
+                        }
+                    }
+                }
             }
-
         } catch (Throwable e) {
-            return false;
+            // ignore
         }
+        return false;
     }
 
     static String getHardwareName() {
@@ -215,8 +223,8 @@ public class OSInfo {
             return "Windows";
         } else if (osName.contains("Mac") || osName.contains("Darwin")) {
             return "Mac";
-            //        } else if (isAlpine()) {
-            //            return "Linux-Alpine";
+        } else if (osName.contains("Linux") && isMusl()) {
+            return "Linux-musl";
         } else if (osName.contains("Linux")) {
             return "Linux";
         } else if (osName.contains("AIX")) {
