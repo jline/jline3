@@ -304,6 +304,21 @@ public interface LineReader {
      * they are displayed in a list below the field to be completed
      */
     String MENU_LIST_MAX = "menu-list-max";
+    /**
+     * Controls behavior when completion candidates exceed {@link #LIST_MAX}.
+     * Possible values:
+     * <ul>
+     *   <li>{@code "ask"} (default) — prompt "do you wish to see all N possibilities?"</li>
+     *   <li>{@code "show"} — display all candidates without prompting</li>
+     *   <li>{@code "partial"} — display up to {@link #LIST_MAX} candidates with
+     *       an "... and N more" indicator appended</li>
+     *   <li>{@code "hide"} — silently suppress the candidate list</li>
+     * </ul>
+     *
+     * @see #LIST_MAX
+     * @since 3.30
+     */
+    String TOO_MANY_CANDIDATES = "too-many-candidates";
 
     String DISABLE_HISTORY = "disable-history";
     String DISABLE_COMPLETION = "disable-completion";
