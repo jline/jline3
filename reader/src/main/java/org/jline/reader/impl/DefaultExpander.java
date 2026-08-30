@@ -36,6 +36,14 @@ import org.jline.reader.History.Entry;
 public class DefaultExpander implements Expander {
 
     /**
+     * Upper bound on the length of a history expansion. The {@code !#} event
+     * designator expands to the command line built so far, so each occurrence
+     * doubles the accumulated result; this bounds that growth so a short
+     * crafted line cannot exhaust the heap.
+     */
+    private static final int MAX_EXPANSION_SIZE = 1 << 20;
+
+    /**
      * Creates a new DefaultExpander.
      */
     public DefaultExpander() {
@@ -95,6 +103,11 @@ public class DefaultExpander implements Expander {
                                     rep = history.get(history.index() - 1);
                                     break;
                                 case '#':
+                                    // "!#" doubles the result built so far, so a line that repeats it
+                                    // grows exponentially; reject the expansion before it can exhaust the heap
+                                    if ((long) sb.length() * 2 > MAX_EXPANSION_SIZE) {
+                                        throw new IllegalArgumentException("!#: expansion too large");
+                                    }
                                     sb.append(sb.toString());
                                     break;
                                 case '?':
