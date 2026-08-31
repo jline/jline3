@@ -1064,6 +1064,207 @@ class DisplayTest {
         }
     }
 
+    /**
+     * Issue #2206: On windows-vtp (no eat_newline_glitch), writing the last column
+     * of the last row causes an immediate wrap + scroll, pushing the first line
+     * off-screen.
+     *
+     * <p>This test fills ALL rows with exactly cols-wide content (no trailing
+     * newline). With the fix, the last row is truncated by one column to avoid
+     * the scroll, and every other row is rendered intact.
+     */
+    @Test
+    void fullScreenFirstRowMissingOnWindowsVtp() throws IOException {
+        int cols = 10;
+        int rows = 5;
+        try (VirtualTerminal terminal =
+                new VirtualTerminal("test", "windows-vtp", StandardCharsets.UTF_8, cols, rows)) {
+            terminal.enterRawMode();
+            terminal.puts(enter_ca_mode);
+
+            Display display = new Display(terminal, true);
+            display.clear();
+            display.resize(Size.of(cols, rows));
+
+            // Every line is exactly cols characters wide, no trailing newline.
+            List<AttributedString> newLines = new ArrayList<>();
+            for (int r = 0; r < rows; r++) {
+                StringBuilder sb = new StringBuilder();
+                char ch = (char) ('A' + r);
+                for (int c = 0; c < cols; c++) sb.append(ch);
+                newLines.add(new AttributedString(sb.toString()));
+            }
+
+            display.update(newLines, 0);
+            terminal.flush();
+
+            long[] screen = terminal.dump();
+            String screenStr = dumpScreen(screen, cols, rows);
+
+            // Row 0 must survive — the scroll must not happen
+            assertEquals('A', (char) screen[0], "First row scrolled away.\n" + screenStr);
+            // Rows 1 .. rows-2 must be intact
+            for (int r = 1; r < rows - 1; r++) {
+                char expected = (char) ('A' + r);
+                assertEquals(expected, (char) screen[r * cols], "Row " + r + " wrong.\n" + screenStr);
+            }
+        }
+    }
+
+    /**
+     * Issue #2206 reproduction scenario: 3 content rows + blank padding rows.
+     * After clear_screen, blank rows must not be rewritten because they already
+     * match the cleared screen state.
+     */
+    @Test
+    void fullScreenFirstRowWithBlankPaddingOnWindowsVtp() throws IOException {
+        int cols = 20;
+        int rows = 10;
+        try (VirtualTerminal terminal =
+                new VirtualTerminal("test", "windows-vtp", StandardCharsets.UTF_8, cols, rows)) {
+            terminal.enterRawMode();
+            terminal.puts(enter_ca_mode);
+
+            Display display = new Display(terminal, true);
+            display.clear();
+            display.resize(Size.of(cols, rows));
+
+            // Build lines the same way the reproducer does: first 3 rows have
+            // content, remaining rows are full-width spaces.
+            List<AttributedString> newLines = new ArrayList<>();
+            for (int r = 0; r < rows; r++) {
+                AttributedStringBuilder sb = new AttributedStringBuilder(cols);
+                for (int c = 0; c < cols; c++) {
+                    if (r < 3) {
+                        sb.append((char) ('0' + (c % 10)));
+                    } else {
+                        sb.append(' ');
+                    }
+                }
+                newLines.add(sb.toAttributedString());
+            }
+
+            display.update(newLines, 0);
+            terminal.flush();
+
+            long[] screen = terminal.dump();
+            String screenStr = dumpScreen(screen, cols, rows);
+
+            // All 3 content rows must be visible
+            assertEquals('0', (char) screen[0], "Row 0 missing.\n" + screenStr);
+            assertEquals('0', (char) screen[cols], "Row 1 missing.\n" + screenStr);
+            assertEquals('0', (char) screen[2 * cols], "Row 2 missing.\n" + screenStr);
+            // Row 3 must be blank
+            assertEquals(' ', (char) screen[3 * cols], "Row 3 should be blank.\n" + screenStr);
+
+            // Second update with the same content must not corrupt the screen
+            display.update(newLines, 0);
+            terminal.flush();
+
+            screen = terminal.dump();
+            screenStr = dumpScreen(screen, cols, rows);
+            assertEquals('0', (char) screen[0], "Row 0 missing after second update.\n" + screenStr);
+        }
+    }
+
+    /**
+     * On xterm (am + xenl), the bottom-right corner can be written safely
+     * because the cursor enters delayed-wrap state instead of scrolling.
+     * Verify the last character of the last row is NOT truncated.
+     */
+    @Test
+    void fullScreenLastRowNotTruncatedOnXterm() throws IOException {
+        int cols = 10;
+        int rows = 5;
+        try (VirtualTerminal terminal = new VirtualTerminal("test", "xterm", StandardCharsets.UTF_8, cols, rows)) {
+            terminal.enterRawMode();
+            terminal.puts(enter_ca_mode);
+
+            Display display = new Display(terminal, true);
+            display.clear();
+            display.resize(Size.of(cols, rows));
+
+            List<AttributedString> newLines = new ArrayList<>();
+            for (int r = 0; r < rows; r++) {
+                StringBuilder sb = new StringBuilder();
+                char ch = (char) ('A' + r);
+                for (int c = 0; c < cols; c++) sb.append(ch);
+                newLines.add(new AttributedString(sb.toString()));
+            }
+
+            display.update(newLines, 0);
+            terminal.flush();
+
+            long[] screen = terminal.dump();
+            String screenStr = dumpScreen(screen, cols, rows);
+
+            // Every row must be fully rendered, including the last column
+            for (int r = 0; r < rows; r++) {
+                char expected = (char) ('A' + r);
+                for (int c = 0; c < cols; c++) {
+                    assertEquals(
+                            expected, (char) screen[r * cols + c], "Row " + r + " col " + c + " wrong.\n" + screenStr);
+                }
+            }
+        }
+    }
+
+    /**
+     * Double-width (CJK) characters on the last row of a non-xenl terminal.
+     * Without column-aware truncation, the five double-width chars would
+     * occupy all 10 columns and trigger a bottom-right corner scroll.
+     */
+    @Test
+    void fullScreenDoubleWidthLastRowOnWindowsVtp() throws IOException {
+        int cols = 10;
+        int rows = 3;
+        try (VirtualTerminal terminal =
+                new VirtualTerminal("test", "windows-vtp", StandardCharsets.UTF_8, cols, rows)) {
+            terminal.enterRawMode();
+            terminal.puts(enter_ca_mode);
+
+            Display display = new Display(terminal, true);
+            display.clear();
+            display.resize(Size.of(cols, rows));
+
+            List<AttributedString> newLines = new ArrayList<>();
+            newLines.add(new AttributedString("AAAAAAAAAA")); // 10 chars, 10 cols
+            newLines.add(new AttributedString("BBBBBBBBBB")); // 10 chars, 10 cols
+            // 5 double-width chars = 10 columns, but must be truncated to 9 cols
+            newLines.add(new AttributedString("世世世世世"));
+
+            display.update(newLines, 0);
+            terminal.flush();
+
+            long[] screen = terminal.dump();
+            String screenStr = dumpScreen(screen, cols, rows);
+
+            // Row 0 must survive — no scroll
+            assertEquals('A', (char) screen[0], "Row 0 scrolled away.\n" + screenStr);
+            assertEquals('B', (char) screen[cols], "Row 1 missing.\n" + screenStr);
+            // Last row: first CJK char must be present
+            assertEquals('世', (char) screen[2 * cols], "Row 2 should have CJK content.\n" + screenStr);
+            // The 5th double-width char must NOT be written (would cause scroll)
+            // so columns 8-9 must be blank (space or continuation)
+            char lastCol = (char) screen[2 * cols + cols - 1];
+            assertTrue(
+                    lastCol == ' ' || lastCol == 0,
+                    "Last column should be blank to prevent scroll, was: '" + lastCol + "'\n" + screenStr);
+        }
+    }
+
+    private static String dumpScreen(long[] screen, int cols, int rows) {
+        StringBuilder sb = new StringBuilder("Screen dump:\n");
+        for (int r = 0; r < rows; r++) {
+            sb.append("Row ").append(r).append(": ");
+            for (int c = 0; c < cols; c++) {
+                sb.append((char) screen[r * cols + c]);
+            }
+            sb.append("|\n");
+        }
+        return sb.toString();
+    }
+
     public static void main(String[] args) throws InterruptedException, IOException {
 
         try (Terminal terminal = TerminalBuilder.builder().build()) {
