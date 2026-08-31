@@ -1083,7 +1083,7 @@ class DisplayTest {
             terminal.puts(enter_ca_mode);
 
             Display display = new Display(terminal, true);
-            display.reset();
+            display.clear();
             display.resize(Size.of(cols, rows));
 
             // Every line is exactly cols characters wide, no trailing newline.
@@ -1126,7 +1126,7 @@ class DisplayTest {
             terminal.puts(enter_ca_mode);
 
             Display display = new Display(terminal, true);
-            display.reset();
+            display.clear();
             display.resize(Size.of(cols, rows));
 
             // Build lines the same way the reproducer does: first 3 rows have
@@ -1181,7 +1181,7 @@ class DisplayTest {
             terminal.puts(enter_ca_mode);
 
             Display display = new Display(terminal, true);
-            display.reset();
+            display.clear();
             display.resize(Size.of(cols, rows));
 
             List<AttributedString> newLines = new ArrayList<>();
@@ -1206,6 +1206,50 @@ class DisplayTest {
                             expected, (char) screen[r * cols + c], "Row " + r + " col " + c + " wrong.\n" + screenStr);
                 }
             }
+        }
+    }
+
+    /**
+     * Double-width (CJK) characters on the last row of a non-xenl terminal.
+     * Without column-aware truncation, the five double-width chars would
+     * occupy all 10 columns and trigger a bottom-right corner scroll.
+     */
+    @Test
+    void fullScreenDoubleWidthLastRowOnWindowsVtp() throws IOException {
+        int cols = 10;
+        int rows = 3;
+        try (VirtualTerminal terminal =
+                new VirtualTerminal("test", "windows-vtp", StandardCharsets.UTF_8, cols, rows)) {
+            terminal.enterRawMode();
+            terminal.puts(enter_ca_mode);
+
+            Display display = new Display(terminal, true);
+            display.clear();
+            display.resize(Size.of(cols, rows));
+
+            List<AttributedString> newLines = new ArrayList<>();
+            newLines.add(new AttributedString("AAAAAAAAAA")); // 10 chars, 10 cols
+            newLines.add(new AttributedString("BBBBBBBBBB")); // 10 chars, 10 cols
+            // 5 double-width chars = 10 columns, but must be truncated to 9 cols
+            newLines.add(new AttributedString("世世世世世"));
+
+            display.update(newLines, 0);
+            terminal.flush();
+
+            long[] screen = terminal.dump();
+            String screenStr = dumpScreen(screen, cols, rows);
+
+            // Row 0 must survive — no scroll
+            assertEquals('A', (char) screen[0], "Row 0 scrolled away.\n" + screenStr);
+            assertEquals('B', (char) screen[cols], "Row 1 missing.\n" + screenStr);
+            // Last row: first CJK char must be present
+            assertEquals('世', (char) screen[2 * cols], "Row 2 should have CJK content.\n" + screenStr);
+            // The 5th double-width char must NOT be written (would cause scroll)
+            // so columns 8-9 must be blank (space or continuation)
+            char lastCol = (char) screen[2 * cols + cols - 1];
+            assertTrue(
+                    lastCol == ' ' || lastCol == 0,
+                    "Last column should be blank to prevent scroll, was: '" + lastCol + "'\n" + screenStr);
         }
     }
 

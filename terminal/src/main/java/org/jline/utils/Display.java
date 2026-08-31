@@ -573,13 +573,17 @@ public class Display implements Sized {
                 // Prevent bottom-right-corner scroll on non-xenl terminals (#2206).
                 // On terminals with auto_right_margin but without eat_newline_glitch,
                 // writing the last column of the last row triggers an immediate
-                // wrap + scroll that pushes the first line off-screen.  Truncate
-                // the effective line length by one column for both old and new lines
-                // so the diff never emits output past column (columns - 2).
+                // wrap + scroll that pushes the first line off-screen.  Cap both
+                // old and new line bounds to the character length that fits within
+                // (columns - 1) display columns so the diff never writes into the
+                // bottom-right cell.  columnSubSequence is used instead of raw char
+                // offsets to handle double-width (CJK) characters correctly.
                 if (fullScreen && wrapAtEol && !delayedWrapAtEol && lineIndex == rows - 1) {
-                    int maxN = nStart + columns - 1;
+                    int maxN =
+                            newLine.columnSubSequence(terminal, 0, columns - 1).length();
                     if (nEnd > maxN) nEnd = maxN;
-                    int maxO = oStart + columns - 1;
+                    int maxO =
+                            oldLine.columnSubSequence(terminal, 0, columns - 1).length();
                     if (oEnd > maxO) oEnd = maxO;
                 }
                 if (wrapNeeded && lineIndex == (cursorPos + 1) / columns1 && lineIndex < newLines.size()) {
@@ -1174,7 +1178,7 @@ public class Display implements Sized {
      */
     private static AttributedString blankRow(int width) {
         char[] buf = new char[width];
-        java.util.Arrays.fill(buf, ' ');
+        Arrays.fill(buf, ' ');
         return new AttributedString(new String(buf));
     }
 
