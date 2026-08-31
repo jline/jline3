@@ -147,31 +147,6 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
         return writer;
     }
 
-    /**
-     * PTY terminals cannot respond to escape-sequence probes.
-     *
-     * <p>Probe queries written to the slave side travel through the kernel PTY
-     * to the master side, where they must be consumed by an external process
-     * (a terminal emulator, an SSH client, etc.) that interprets the escape
-     * sequence and writes back a response. When no such process is attached
-     * — for example when the PTY was created by {@code openpty()} with the
-     * external streams connected to {@code InputStream.nullInputStream()} /
-     * {@code OutputStream.nullOutputStream()} — nobody answers, and the
-     * native {@code read()} on the slave fd blocks indefinitely despite
-     * {@code VMIN=0/VTIME=0} attributes being set.</p>
-     *
-     * <p>Even when pump threads are running, the round-trip through the kernel
-     * PTY, the pump, the external I/O, and back is unreliable for probing.
-     * Skipping probes is safe: all modes default to {@code NO_RESPONSE}, so
-     * mode-dependent features simply remain disabled.</p>
-     *
-     * @see <a href="https://github.com/jline/jline3/issues/2209">#2209</a>
-     */
-    @Override
-    protected boolean canProbeTerminalModes() {
-        return false;
-    }
-
     @Override
     protected void doClose() throws IOException {
         // Close the slave output to signal EOF on the master side, which

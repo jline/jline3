@@ -441,24 +441,6 @@ public abstract class AbstractTerminal implements TerminalExt {
 
     // ---- Terminal mode batch probing ----
 
-    /**
-     * Returns whether this terminal can respond to escape-sequence probes.
-     *
-     * <p>Probing sends escape sequences (DECRQM, DA1, DSR/CPR) to the terminal
-     * and reads the response. This only works when the underlying I/O path
-     * connects directly to a terminal emulator that interprets these sequences
-     * and writes back a response on the same fd. Subclasses that route I/O
-     * through a PTY pair or external process should override this method to
-     * return {@code false}, because the native {@code read()} on the PTY slave
-     * fd can block indefinitely when no terminal emulator is attached.</p>
-     *
-     * @return {@code true} if probing is expected to work (default);
-     *         {@code false} to skip all escape-sequence probing
-     */
-    protected boolean canProbeTerminalModes() {
-        return true;
-    }
-
     @Override
     public boolean isModeSupported(Mode mode) {
         ensureModesProbed();
@@ -482,6 +464,13 @@ public abstract class AbstractTerminal implements TerminalExt {
      * {@link ProbeResult#NOT_SUPPORTED} so mode-specific fallbacks (e.g.
      * the cursor position probe for grapheme clusters) can still run.</p>
      *
+     * <p>The probe is executed on a daemon thread with a hard timeout to
+     * prevent indefinite hangs when the native {@code read()} on a PTY fd
+     * blocks despite {@code VMIN=0/VTIME=0} being set (see
+     * <a href="https://github.com/jline/jline3/issues/2209">#2209</a>).
+     * If the probe does not complete within the hard deadline, the daemon
+     * thread is abandoned and all modes default to {@code NO_RESPONSE}.</p>
+     *
      * <p>Thread-safe: the {@code modesProbed} flag is volatile and the
      * map is populated under a lock so concurrent callers never observe
      * a partially filled map.</p>
@@ -499,10 +488,6 @@ public abstract class AbstractTerminal implements TerminalExt {
                     return; // map stays empty → all modes default to NO_RESPONSE
                 }
 
-                if (!canProbeTerminalModes()) {
-                    return; // map stays empty → all modes default to NO_RESPONSE
-                }
-
                 // Terminal.app's CSI parser does not handle intermediate bytes correctly
                 // and leaks the final byte 'p' of the DECRQM sequence as visible text.
                 // Mark all modes NOT_SUPPORTED (not NO_RESPONSE) so fallbacks can run.
@@ -514,18 +499,46 @@ public abstract class AbstractTerminal implements TerminalExt {
                     return;
                 }
 
+                long probeTimeout = getLongProperty(TerminalBuilder.PROP_PROBE_TIMEOUT, 200);
+                long drainTimeout = getLongProperty(TerminalBuilder.PROP_DRAIN_TIMEOUT, 25);
+                // Hard deadline = probe timeout + drain timeout + 500 ms safety margin.
+                // The Java-level timeouts inside readProbeChar/readTerminalResponse should
+                // normally be sufficient, but when the native read() on a PTY fd blocks
+                // despite VMIN=0/VTIME=0 (#2209), the Java timeout is never reached.
+                // The hard deadline breaks out of that state via Thread.join(timeout).
+                long hardDeadline = probeTimeout + drainTimeout + 500;
+
                 Attributes prev = getAttributes();
                 Attributes probeAttrs = new Attributes(prev);
                 probeAttrs.setLocalFlags(EnumSet.of(LocalFlag.ICANON, LocalFlag.ECHO), false);
                 probeAttrs.setControlChar(ControlChar.VMIN, 0);
                 probeAttrs.setControlChar(ControlChar.VTIME, 0);
                 setAttributes(probeAttrs);
+
+                Thread probeThread = new Thread(
+                        () -> {
+                            try {
+                                probeModes();
+                            } finally {
+                                drainInput(reader(), drainTimeout, -1);
+                                setAttributes(prev);
+                            }
+                        },
+                        getName() + " probe");
+                probeThread.setDaemon(true);
+                probeThread.start();
                 try {
-                    probeModes();
-                } finally {
-                    long drainTimeout = getLongProperty(TerminalBuilder.PROP_DRAIN_TIMEOUT, 25);
-                    drainInput(reader(), drainTimeout, -1);
+                    probeThread.join(hardDeadline);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                if (probeThread.isAlive()) {
+                    // Probe thread is stuck in a native read — interrupt (best effort)
+                    // and restore terminal attributes from the calling thread.
+                    probeThread.interrupt();
                     setAttributes(prev);
+                    Log.debug("Terminal probe timed out on " + getName()
+                            + " — native read may be stuck on a PTY fd (#2209)");
                 }
             } finally {
                 modesProbed = true;

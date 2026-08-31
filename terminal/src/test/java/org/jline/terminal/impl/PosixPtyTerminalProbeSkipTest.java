@@ -14,117 +14,127 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.jline.terminal.Terminal;
+import org.jline.utils.NonBlockingReader;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests that {@link PosixPtyTerminal} skips escape-sequence probing to prevent
- * indefinite hangs when no terminal emulator is attached to the PTY.
+ * Tests that the hard-timeout mechanism in {@code ensureModesProbed()} prevents
+ * indefinite hangs when a terminal's reader blocks in native code.
  *
- * <p>When a PTY is created via {@code openpty()} and the external streams are
- * null or connected to nothing, the native {@code read()} on the slave fd can
- * block indefinitely despite {@code VMIN=0/VTIME=0} being set. The fix is to
- * skip probing entirely for PTY terminals, since probe responses depend on an
- * external terminal emulator that may not be present.</p>
+ * <p>When a PTY is created via {@code openpty()} and no terminal emulator is
+ * attached, the native {@code read()} on the slave fd can block indefinitely
+ * despite {@code VMIN=0/VTIME=0} being set. The fix runs the probe on a daemon
+ * thread with a hard deadline; if the thread does not complete in time, it is
+ * abandoned and all modes default to {@code NO_RESPONSE}.</p>
  *
  * @see <a href="https://github.com/jline/jline3/issues/2209">#2209</a>
  */
 class PosixPtyTerminalProbeSkipTest {
 
     /**
-     * Verifies that a terminal with {@code canProbeTerminalModes() == false}
-     * skips probing and returns immediately from {@code isModeSupported()},
-     * without blocking in {@code readProbeChar()}.
-     *
-     * <p>Uses a {@link LineDisciplineTerminal} subclass that overrides
-     * {@code canProbeTerminalModes()} to simulate the behavior of
-     * {@link PosixPtyTerminal}, which cannot respond to probes.</p>
+     * A {@link NonBlockingReader} whose {@code read()} blocks until the thread
+     * is interrupted, simulating a native PTY read that never returns.
+     */
+    private static final class BlockingReader extends NonBlockingReader {
+        @Override
+        protected int read(long timeout, boolean isPeek) {
+            try {
+                // Simulate a native read that blocks indefinitely.
+                // The hard-timeout daemon thread must abandon this.
+                Thread.sleep(Long.MAX_VALUE);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return -1;
+        }
+
+        @Override
+        public int readBuffered(char[] b, int off, int len, long timeout) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void close() {}
+    }
+
+    /**
+     * Verifies that {@code isModeSupported()} returns within a bounded time
+     * even when the terminal's reader blocks indefinitely — the hard-timeout
+     * daemon thread in {@code ensureModesProbed()} breaks the hang.
      */
     @Test
-    void probingSkippedWhenCanProbeReturnsFalse() throws Exception {
+    void probeTimesOutWhenReaderBlocksIndefinitely() throws Exception {
         ByteArrayOutputStream masterOutput = new ByteArrayOutputStream();
-        // A terminal that never responds to reads (simulates stuck PTY).
-        // With probing disabled, isModeSupported() should return immediately.
+        BlockingReader blockingReader = new BlockingReader();
         try (LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("test", "xterm-256color", masterOutput, StandardCharsets.UTF_8) {
                     @Override
-                    protected boolean canProbeTerminalModes() {
-                        return false;
+                    public NonBlockingReader reader() {
+                        return blockingReader;
                     }
                 }) {
-            // This must complete quickly — if probing is NOT skipped, it would
-            // block in readProbeChar() waiting for a response that never comes.
+            // This must complete within a few seconds — without the hard timeout,
+            // the blocking reader would hang ensureModesProbed() indefinitely.
             CompletableFuture<Boolean> result =
                     CompletableFuture.supplyAsync(() -> terminal.isModeSupported(Terminal.Mode.GRAPHEME_CLUSTER));
 
-            // 2 seconds is generous — the call should return in < 10ms.
-            // Without the fix, it would block for the full probe timeout (200ms+)
-            // and potentially hang indefinitely on a real PTY.
-            boolean supported = result.get(2, TimeUnit.SECONDS);
-            assertFalse(supported, "modes should not be supported when probing is skipped");
-
-            // No probe escape sequences should have been written
-            String output = masterOutput.toString(StandardCharsets.UTF_8);
-            assertFalse(output.contains("\033[?2027$p"), "DECRQM probe should not be sent when probing is skipped");
+            // Hard deadline is probe(200) + drain(25) + 500ms margin = ~725ms.
+            // Give 5 seconds for the test to account for slow CI.
+            boolean supported = result.get(5, TimeUnit.SECONDS);
+            assertFalse(supported, "modes should not be supported when reader blocks");
         }
     }
 
     /**
-     * Verifies that a terminal with {@code canProbeTerminalModes() == false}
-     * also skips grapheme cluster probing and returns {@code false} from
-     * {@code supportsGraphemeClusterMode()}.
+     * Verifies that {@code supportsGraphemeClusterMode()} returns {@code false}
+     * within a bounded time when the reader blocks indefinitely.
      */
     @Test
-    void graphemeClusterProbeSkippedWhenCanProbeReturnsFalse() throws Exception {
+    void graphemeClusterProbeTimesOutWhenReaderBlocks() throws Exception {
         ByteArrayOutputStream masterOutput = new ByteArrayOutputStream();
+        BlockingReader blockingReader = new BlockingReader();
         try (LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("test", "xterm-256color", masterOutput, StandardCharsets.UTF_8) {
                     @Override
-                    protected boolean canProbeTerminalModes() {
-                        return false;
+                    public NonBlockingReader reader() {
+                        return blockingReader;
                     }
                 }) {
             CompletableFuture<Boolean> result = CompletableFuture.supplyAsync(terminal::supportsGraphemeClusterMode);
 
-            boolean supported = result.get(2, TimeUnit.SECONDS);
-            assertFalse(supported, "grapheme cluster mode should not be supported when probing is skipped");
+            boolean supported = result.get(5, TimeUnit.SECONDS);
+            assertFalse(supported, "grapheme cluster mode should not be supported when reader blocks");
         }
     }
 
     /**
-     * Verifies that the default {@code canProbeTerminalModes()} returns
-     * {@code true}, preserving normal probe behavior for system terminals.
+     * Verifies that all modes report unsupported when the reader blocks and
+     * the probe times out.
      */
     @Test
-    void defaultCanProbeReturnsTrue() throws Exception {
+    void allModesUnsupportedWhenProbeTimesOut() throws Exception {
         ByteArrayOutputStream masterOutput = new ByteArrayOutputStream();
-        try (LineDisciplineTerminal terminal =
-                new LineDisciplineTerminal("test", "xterm-256color", masterOutput, StandardCharsets.UTF_8)) {
-            assertTrue(terminal.canProbeTerminalModes(), "default canProbeTerminalModes() should return true");
-        }
-    }
-
-    /**
-     * Verifies that when probing is skipped, {@code isModeSupported()} returns
-     * {@code false} for all modes (all default to NO_RESPONSE).
-     */
-    @Test
-    void allModesUnsupportedWhenProbingSkipped() throws Exception {
-        ByteArrayOutputStream masterOutput = new ByteArrayOutputStream();
+        BlockingReader blockingReader = new BlockingReader();
         try (LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("test", "xterm-256color", masterOutput, StandardCharsets.UTF_8) {
                     @Override
-                    protected boolean canProbeTerminalModes() {
-                        return false;
+                    public NonBlockingReader reader() {
+                        return blockingReader;
                     }
                 }) {
-            for (Terminal.Mode mode : Terminal.Mode.values()) {
-                assertFalse(
-                        terminal.isModeSupported(mode),
-                        "mode " + mode + " should not be supported when probing is skipped");
-            }
+            // Run on a separate thread because the first isModeSupported() call
+            // triggers the hard-timeout probe.
+            CompletableFuture<Void> result = CompletableFuture.runAsync(() -> {
+                for (Terminal.Mode mode : Terminal.Mode.values()) {
+                    assertFalse(
+                            terminal.isModeSupported(mode),
+                            "mode " + mode + " should not be supported when probe times out");
+                }
+            });
+
+            result.get(5, TimeUnit.SECONDS);
         }
     }
 }
