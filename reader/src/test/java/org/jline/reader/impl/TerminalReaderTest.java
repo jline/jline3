@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -111,6 +112,29 @@ class TerminalReaderTest extends ReaderTestSupport {
         } catch (IllegalArgumentException e) {
             assertEquals("!-20: event not found", e.getMessage());
         }
+    }
+
+    @Test
+    void testExpansionBombIsRejected() {
+        DefaultHistory history = new DefaultHistory(reader);
+        reader.setVariable(LineReader.HISTORY_SIZE, 3);
+        history.add("mkdir monkey");
+
+        Expander expander = new DefaultExpander();
+
+        // a single "!#" still doubles the line built so far
+        assertEquals("echo echo a", expander.expandHistory(history, "echo !#a"));
+
+        // repeating "!#" doubles the accumulator each time; without a bound this
+        // grows to 2^40 chars from a 81-byte line and exhausts the heap
+        StringBuilder bomb = new StringBuilder("a");
+        for (int i = 0; i < 40; i++) {
+            bomb.append("!#");
+        }
+        String bombLine = bomb.toString();
+        IllegalArgumentException e =
+                assertThrows(IllegalArgumentException.class, () -> expander.expandHistory(history, bombLine));
+        assertEquals("!#: expansion too large", e.getMessage());
     }
 
     @Test
