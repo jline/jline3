@@ -1111,14 +1111,8 @@ public class PosixCommands {
                 if (!lastNl.get()) {
                     lines.incrementAndGet();
                 }
-                context.out()
-                        .printf(
-                                format,
-                                lines.get(),
-                                words.get(),
-                                chars.get(),
-                                bytes.get(),
-                                stripControlChars(source.getName()));
+                String name = stripControlChars(source.getName());
+                context.out().printf(format, lines.get(), words.get(), chars.get(), bytes.get(), name);
                 totalBytes += bytes.get();
                 totalChars += chars.get();
                 totalWords += words.get();
