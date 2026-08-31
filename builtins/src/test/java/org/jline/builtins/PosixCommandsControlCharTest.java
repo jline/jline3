@@ -23,6 +23,8 @@ import org.jline.terminal.impl.DumbTerminal;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -37,7 +39,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>The commands are driven with {@code --color=never} where they support it so
  * that legitimate SGR (which is itself ESC-based) stays out of the output; any
  * ESC/BEL that remains can only have come from an unescaped name.
+ *
+ * <p>Windows NTFS forbids control characters (0x00–0x1F) in file names,
+ * so these tests are skipped on Windows — the attack surface they validate
+ * only exists on Unix-like filesystems.
  */
+@DisabledOnOs(OS.WINDOWS)
 class PosixCommandsControlCharTest {
 
     @TempDir
