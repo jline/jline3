@@ -4970,12 +4970,10 @@ public class LineReaderImpl implements LineReader, Flushable {
                     buf.backspace(line.rawWordLength());
                 }
                 buf.write(line.escape(completion.value(), completion.complete()));
-                if (completion.complete()) {
-                    if (buf.currChar() != ' ') {
-                        buf.write(" ");
-                    } else {
-                        buf.move(1);
-                    }
+                // If the suffix is not already part of the value, append it so that
+                // the suffix-removal backspace (below) does not eat into the value.
+                if (completion.suffix() != null && !completion.value().endsWith(completion.suffix())) {
+                    buf.write(completion.suffix());
                 }
                 if (completion.suffix() != null) {
                     if (autosuggestion == SuggestionType.COMPLETER) {
@@ -4994,7 +4992,17 @@ public class LineReaderImpl implements LineReader, Flushable {
                                 buf.write(' ');
                             }
                         }
-                        pushBackBinding(true);
+                        // Don't replay the typed character when it matches the
+                        // suffix — the suffix is already in the buffer.
+                        if (!(SELF_INSERT.equals(ref) && completion.suffix().startsWith(getLastBinding()))) {
+                            pushBackBinding(true);
+                        }
+                    }
+                } else if (completion.complete()) {
+                    if (buf.currChar() != ' ') {
+                        buf.write(" ");
+                    } else {
+                        buf.move(1);
                     }
                 }
                 return true;
@@ -5410,6 +5418,11 @@ public class LineReaderImpl implements LineReader, Flushable {
         private void update() {
             buf.backspace(word.length());
             word = escaper.apply(completion().value(), true).toString();
+            // Append suffix if not already part of the value
+            Candidate c = completion();
+            if (c.suffix() != null && !c.value().endsWith(c.suffix())) {
+                word = word + c.suffix();
+            }
             buf.write(word);
 
             // Compute displayed prompt
