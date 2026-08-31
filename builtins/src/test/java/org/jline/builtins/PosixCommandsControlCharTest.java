@@ -10,7 +10,6 @@ package org.jline.builtins;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -110,7 +109,7 @@ class PosixCommandsControlCharTest {
         Path link = tempDir.resolve("link");
         try {
             Files.createSymbolicLink(link, target.getFileName());
-        } catch (UnsupportedOperationException | IOException e) {
+        } catch (UnsupportedOperationException e) {
             return; // symlinks unavailable on this platform/filesystem
         }
         PosixCommands.ls(context, new String[] {"ls", "-l", "--color=never", link.toString()});
@@ -125,6 +124,21 @@ class PosixCommandsControlCharTest {
         Files.write(plain, "world\n".getBytes(StandardCharsets.UTF_8));
         // More than one source makes head emit the "==> name <==" headers.
         PosixCommands.head(context, new String[] {"head", evil.toString(), plain.toString()});
+        assertNoControlBytes(output());
+    }
+
+    @Test
+    void lsMultiDirStripsControlCharsInHeader() throws Exception {
+        // When ls lists multiple directories it emits a "dirname:" header for each.
+        // A directory whose name contains control chars must not leak them.
+        String evilDir = "d\u001b]0;pwned\u0007ir";
+        Path dir1 = tempDir.resolve(evilDir);
+        Files.createDirectory(dir1);
+        Files.createFile(dir1.resolve("file.txt"));
+        Path dir2 = tempDir.resolve("safe");
+        Files.createDirectory(dir2);
+        Files.createFile(dir2.resolve("file.txt"));
+        PosixCommands.ls(context, new String[] {"ls", "-1", "--color=never", dir1.toString(), dir2.toString()});
         assertNoControlBytes(output());
     }
 

@@ -1969,7 +1969,7 @@ public class PosixCommands {
             space = true;
             Path path = currentDir.resolve(entry.path);
             if (expanded.size() > 1) {
-                out.println(currentDir.relativize(path).toString() + ":");
+                out.println(stripControlChars(currentDir.relativize(path).toString()) + ":");
             }
             try (Stream<Path> pathStream = Files.list(path)) {
                 display.accept(Stream.concat(Stream.of(".", "..").map(path::resolve), pathStream)
@@ -2191,7 +2191,7 @@ public class PosixCommands {
      * Removes ISO control characters (ESC, BEL, CR, LF, the C1 introducers, ...)
      * from a file name or other filesystem-derived string before it is written to
      * the terminal. The name is chosen by whoever created the file, so without this
-     * an entry such as {@code report]0;pwned.txt} would drive the
+     * an entry such as {@code report<ESC>]0;pwned<BEL>.txt} would drive the
      * terminal (set the window title, write the clipboard via OSC 52, ...) when it
      * is listed. Printable Unicode is kept so ordinary names render unchanged.
      */
