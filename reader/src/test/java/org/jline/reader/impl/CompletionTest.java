@@ -193,6 +193,29 @@ class CompletionTest extends ReaderTestSupport {
     }
 
     @Test
+    void testSuffixNotInValue() {
+        // Suffix NOT included in value (follows the Candidate javadoc literally).
+        // Before the fix, the last character(s) of the value were dropped on Enter.
+        reader.setCompleter((reader, line, candidates) -> {
+            candidates.add(new Candidate(
+                    /* value    = */ "test",
+                    /* displ    = */ "test",
+                    /* group    = */ null,
+                    /* descr    = */ "a test command",
+                    /* suffix   = */ "/",
+                    /* key      = */ "test",
+                    /* complete = */ false));
+        });
+
+        // Tab completes "test/" (suffix appended), Enter removes suffix and adds space
+        assertLine("test ", new TestBuffer("t\t\n"));
+        // ";" is a REMOVE_SUFFIX_CHARS char, removes suffix and adds space, then ";" is inserted
+        assertLine("test ;", new TestBuffer("t\t;\n"));
+        // "x" is NOT a REMOVE_SUFFIX_CHARS char, suffix stays
+        assertLine("test/x", new TestBuffer("t\tx\n"));
+    }
+
+    @Test
     void testMenuOrder() {
         reader.setCompleter(new StringsCompleter(List.of(
                 "ae_helloWorld1", "ad_helloWorld12", "ac_helloWorld1234", "ab_helloWorld123", "aa_helloWorld12345")));

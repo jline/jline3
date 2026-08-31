@@ -4970,6 +4970,11 @@ public class LineReaderImpl implements LineReader, Flushable {
                     buf.backspace(line.rawWordLength());
                 }
                 buf.write(line.escape(completion.value(), completion.complete()));
+                // If the suffix is not already part of the value, append it so that
+                // the suffix-removal backspace (below) does not eat into the value.
+                if (completion.suffix() != null && !completion.value().endsWith(completion.suffix())) {
+                    buf.write(completion.suffix());
+                }
                 if (completion.complete()) {
                     if (buf.currChar() != ' ') {
                         buf.write(" ");
@@ -5410,6 +5415,11 @@ public class LineReaderImpl implements LineReader, Flushable {
         private void update() {
             buf.backspace(word.length());
             word = escaper.apply(completion().value(), true).toString();
+            // Append suffix if not already part of the value
+            Candidate c = completion();
+            if (c.suffix() != null && !c.value().endsWith(c.suffix())) {
+                word = word + c.suffix();
+            }
             buf.write(word);
 
             // Compute displayed prompt
