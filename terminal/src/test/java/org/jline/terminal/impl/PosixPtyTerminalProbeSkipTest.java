@@ -43,15 +43,26 @@ class PosixPtyTerminalProbeSkipTest {
 
         @Override
         protected int read(long timeout, boolean isPeek) {
+            // Simulate a native PTY read that blocks indefinitely and does
+            // NOT respond to Thread.interrupt() — just like a real
+            // FileInputStream.read0() stuck on a PTY slave fd.
+            // Only unblocks when close() releases the latch.
+            boolean interrupted = false;
             try {
-                // Block until interrupted, simulating a native PTY read
-                // that never returns. The hard-timeout daemon thread must
-                // abandon this.
-                latch.await();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+                while (true) {
+                    try {
+                        latch.await();
+                        return -1;
+                    } catch (InterruptedException e) {
+                        // Ignore — native reads are not interruptible.
+                        interrupted = true;
+                    }
+                }
+            } finally {
+                if (interrupted) {
+                    Thread.currentThread().interrupt();
+                }
             }
-            return -1;
         }
 
         @Override
@@ -61,7 +72,8 @@ class PosixPtyTerminalProbeSkipTest {
 
         @Override
         public void close() {
-            // No resources to release — the blocking read is ended by thread interruption.
+            // Release the blocking read so the abandoned probe thread can exit.
+            latch.countDown();
         }
     }
 
@@ -90,6 +102,10 @@ class PosixPtyTerminalProbeSkipTest {
             // Give 5 seconds for the test to account for slow CI.
             boolean supported = result.get(5, TimeUnit.SECONDS);
             assertFalse(supported, "modes should not be supported when reader blocks");
+        } finally {
+            // LineDisciplineTerminal.doClose() does not close the overridden reader.
+            // Release the latch so the abandoned daemon probe thread can exit.
+            blockingReader.close();
         }
     }
 
@@ -112,6 +128,8 @@ class PosixPtyTerminalProbeSkipTest {
 
             boolean supported = result.get(5, TimeUnit.SECONDS);
             assertFalse(supported, "grapheme cluster mode should not be supported when reader blocks");
+        } finally {
+            blockingReader.close();
         }
     }
 
@@ -141,6 +159,8 @@ class PosixPtyTerminalProbeSkipTest {
             });
 
             result.get(5, TimeUnit.SECONDS);
+        } finally {
+            blockingReader.close();
         }
     }
 }
