@@ -4975,13 +4975,6 @@ public class LineReaderImpl implements LineReader, Flushable {
                 if (completion.suffix() != null && !completion.value().endsWith(completion.suffix())) {
                     buf.write(completion.suffix());
                 }
-                if (completion.complete()) {
-                    if (buf.currChar() != ' ') {
-                        buf.write(" ");
-                    } else {
-                        buf.move(1);
-                    }
-                }
                 if (completion.suffix() != null) {
                     if (autosuggestion == SuggestionType.COMPLETER) {
                         listChoices(true);
@@ -4999,7 +4992,17 @@ public class LineReaderImpl implements LineReader, Flushable {
                                 buf.write(' ');
                             }
                         }
-                        pushBackBinding(true);
+                        // Don't replay the typed character when it matches the
+                        // suffix — the suffix is already in the buffer.
+                        if (!(SELF_INSERT.equals(ref) && completion.suffix().startsWith(getLastBinding()))) {
+                            pushBackBinding(true);
+                        }
+                    }
+                } else if (completion.complete()) {
+                    if (buf.currChar() != ' ') {
+                        buf.write(" ");
+                    } else {
+                        buf.move(1);
                     }
                 }
                 return true;

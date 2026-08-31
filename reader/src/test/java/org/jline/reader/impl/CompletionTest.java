@@ -190,6 +190,8 @@ class CompletionTest extends ReaderTestSupport {
         assertLine("range(1", new TestBuffer("r\t1\n"));
         assertLine("strange ", new TestBuffer("s\t\n"));
         assertLine("strangeTests", new TestBuffer("s\ts\n"));
+        // Typing the suffix character should not duplicate it
+        assertLine("range(x", new TestBuffer("r\t(x\n"));
     }
 
     @Test
@@ -212,6 +214,31 @@ class CompletionTest extends ReaderTestSupport {
         // ";" is a REMOVE_SUFFIX_CHARS char, removes suffix and adds space, then ";" is inserted
         assertLine("test ;", new TestBuffer("t\t;\n"));
         // "x" is NOT a REMOVE_SUFFIX_CHARS char, suffix stays
+        assertLine("test/x", new TestBuffer("t\tx\n"));
+        // Typing the suffix char itself should not duplicate it
+        assertLine("test/y", new TestBuffer("t\t/y\n"));
+    }
+
+    @Test
+    void testSuffixWithComplete() {
+        // Suffix with complete=true: the separator space must be added after
+        // suffix removal so the backspace targets the suffix, not the space.
+        reader.setCompleter((reader, line, candidates) -> {
+            candidates.add(new Candidate(
+                    /* value    = */ "test",
+                    /* displ    = */ "test",
+                    /* group    = */ null,
+                    /* descr    = */ null,
+                    /* suffix   = */ "/",
+                    /* key      = */ null,
+                    /* complete = */ true));
+        });
+
+        // Enter removes the suffix; complete=true adds a separator space
+        assertLine("test ", new TestBuffer("t\t\n"));
+        // ";" removes the suffix and adds a space, then ";" is inserted
+        assertLine("test ;", new TestBuffer("t\t;\n"));
+        // "x" keeps the suffix; no separator space because the word is being extended
         assertLine("test/x", new TestBuffer("t\tx\n"));
     }
 
