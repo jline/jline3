@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -130,12 +131,10 @@ class TerminalReaderTest extends ReaderTestSupport {
         for (int i = 0; i < 40; i++) {
             bomb.append("!#");
         }
-        try {
-            expander.expandHistory(history, bomb.toString());
-            fail("expected IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            assertEquals("!#: expansion too large", e.getMessage());
-        }
+        String bombLine = bomb.toString();
+        IllegalArgumentException e =
+                assertThrows(IllegalArgumentException.class, () -> expander.expandHistory(history, bombLine));
+        assertEquals("!#: expansion too large", e.getMessage());
     }
 
     @Test
