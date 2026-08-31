@@ -463,6 +463,19 @@ public class Display implements Sized {
                 puts(Capability.clear_screen);
                 puts(Capability.cursor_address, 0, 0);
                 oldLines.clear();
+                // After clear_screen the terminal shows blank spaces at every position.
+                // Seed oldLines with rows of spaces so the diff engine knows these
+                // positions are already blank.  Without this, every blank row looks
+                // "new" and gets rewritten — including the last row.  On terminals
+                // without eat_newline_glitch (e.g. windows-vtp) writing the last
+                // character of the last row triggers an immediate scroll that pushes
+                // the first line off-screen (see #2206).
+                if (fullScreen && columns > 0 && rows > 0) {
+                    AttributedString blankRow = blankRow(columns);
+                    for (int i = 0; i < rows; i++) {
+                        oldLines.add(blankRow);
+                    }
+                }
                 cursorPos = 0;
                 reset = false;
             }
@@ -556,6 +569,18 @@ public class Display implements Sized {
                 }
                 if (newNL) {
                     nEnd--;
+                }
+                // Prevent bottom-right-corner scroll on non-xenl terminals (#2206).
+                // On terminals with auto_right_margin but without eat_newline_glitch,
+                // writing the last column of the last row triggers an immediate
+                // wrap + scroll that pushes the first line off-screen.  Truncate
+                // the effective line length by one column for both old and new lines
+                // so the diff never emits output past column (columns - 2).
+                if (fullScreen && wrapAtEol && !delayedWrapAtEol && lineIndex == rows - 1) {
+                    int maxN = nStart + columns - 1;
+                    if (nEnd > maxN) nEnd = maxN;
+                    int maxO = oStart + columns - 1;
+                    if (oEnd > maxO) oEnd = maxO;
                 }
                 if (wrapNeeded && lineIndex == (cursorPos + 1) / columns1 && lineIndex < newLines.size()) {
                     // move from right margin to next line's left margin
@@ -1140,6 +1165,17 @@ public class Display implements Sized {
             byteBuilder.csi().appendAscii("0m");
             ansiColorState[0] = 0;
         }
+    }
+
+    /**
+     * Build an {@link AttributedString} of {@code width} plain space characters.
+     * Used to seed {@code oldLines} after a {@code clear_screen} so the diff
+     * engine knows blank rows are already rendered.
+     */
+    private static AttributedString blankRow(int width) {
+        char[] buf = new char[width];
+        java.util.Arrays.fill(buf, ' ');
+        return new AttributedString(new String(buf));
     }
 
     private static final Object[] EMPTY_PARAMS = new Object[0];
