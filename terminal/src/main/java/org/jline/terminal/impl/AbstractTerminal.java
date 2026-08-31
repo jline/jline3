@@ -441,6 +441,24 @@ public abstract class AbstractTerminal implements TerminalExt {
 
     // ---- Terminal mode batch probing ----
 
+    /**
+     * Returns whether this terminal can respond to escape-sequence probes.
+     *
+     * <p>Probing sends escape sequences (DECRQM, DA1, DSR/CPR) to the terminal
+     * and reads the response. This only works when the underlying I/O path
+     * connects directly to a terminal emulator that interprets these sequences
+     * and writes back a response on the same fd. Subclasses that route I/O
+     * through a PTY pair or external process should override this method to
+     * return {@code false}, because the native {@code read()} on the PTY slave
+     * fd can block indefinitely when no terminal emulator is attached.</p>
+     *
+     * @return {@code true} if probing is expected to work (default);
+     *         {@code false} to skip all escape-sequence probing
+     */
+    protected boolean canProbeTerminalModes() {
+        return true;
+    }
+
     @Override
     public boolean isModeSupported(Mode mode) {
         ensureModesProbed();
@@ -478,6 +496,10 @@ public abstract class AbstractTerminal implements TerminalExt {
             }
             try {
                 if (TYPE_DUMB.equals(type) || TYPE_DUMB_COLOR.equals(type)) {
+                    return; // map stays empty → all modes default to NO_RESPONSE
+                }
+
+                if (!canProbeTerminalModes()) {
                     return; // map stays empty → all modes default to NO_RESPONSE
                 }
 
