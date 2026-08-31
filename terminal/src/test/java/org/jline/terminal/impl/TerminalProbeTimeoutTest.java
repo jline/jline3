@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
  *
  * @see <a href="https://github.com/jline/jline3/issues/2209">#2209</a>
  */
-class PosixPtyTerminalProbeSkipTest {
+class TerminalProbeTimeoutTest {
 
     /**
      * A {@link NonBlockingReader} whose {@code read()} blocks until the thread
