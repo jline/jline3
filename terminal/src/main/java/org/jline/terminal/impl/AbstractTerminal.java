@@ -511,10 +511,7 @@ public abstract class AbstractTerminal implements TerminalExt {
                 // despite VMIN=0/VTIME=0 (#2209), the Java timeout is never reached.
                 // The hard deadline breaks out of that state via Thread.join(timeout).
                 // Saturating addition prevents overflow when properties are very large.
-                long hardDeadline = probeTimeout + drainTimeout + 500;
-                if (hardDeadline < 0) {
-                    hardDeadline = Long.MAX_VALUE;
-                }
+                long hardDeadline = saturatingAdd(probeTimeout, drainTimeout, 500);
 
                 Attributes prev = getAttributes();
                 Attributes probeAttrs = new Attributes(prev);
@@ -975,6 +972,15 @@ public abstract class AbstractTerminal implements TerminalExt {
             col = col * 10 + (c - '0');
         }
         return col;
+    }
+
+    /**
+     * Adds three non-negative longs, clamping to {@code Long.MAX_VALUE} on overflow.
+     * All inputs must be {@code >= 0} (guaranteed by {@link #getLongProperty}).
+     */
+    static long saturatingAdd(long a, long b, long c) {
+        long sum = a + b + c;
+        return sum >= 0 ? sum : Long.MAX_VALUE;
     }
 
     static long getLongProperty(String key, long defaultValue) {

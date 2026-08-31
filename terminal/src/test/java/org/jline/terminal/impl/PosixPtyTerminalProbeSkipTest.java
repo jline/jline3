@@ -11,6 +11,7 @@ package org.jline.terminal.impl;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.jline.terminal.Terminal;
@@ -38,12 +39,15 @@ class PosixPtyTerminalProbeSkipTest {
      * is interrupted, simulating a native PTY read that never returns.
      */
     private static final class BlockingReader extends NonBlockingReader {
+        private final CountDownLatch latch = new CountDownLatch(1);
+
         @Override
         protected int read(long timeout, boolean isPeek) {
             try {
-                // Simulate a native read that blocks indefinitely.
-                // The hard-timeout daemon thread must abandon this.
-                Thread.sleep(Long.MAX_VALUE);
+                // Block until interrupted, simulating a native PTY read
+                // that never returns. The hard-timeout daemon thread must
+                // abandon this.
+                latch.await();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
@@ -56,7 +60,9 @@ class PosixPtyTerminalProbeSkipTest {
         }
 
         @Override
-        public void close() {}
+        public void close() {
+            // No resources to release — the blocking read is ended by thread interruption.
+        }
     }
 
     /**
