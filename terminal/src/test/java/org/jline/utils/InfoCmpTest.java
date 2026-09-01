@@ -114,6 +114,22 @@ class InfoCmpTest {
     }
 
     @Test
+    void testWindowsTerminalTypesHaveMouseSupport() {
+        // All Windows terminal types generate X10 mouse events (ESC [ M) via the
+        // Console API, so their caps must declare kmous=\E[M so that
+        // hasMouseSupport() returns true. See https://github.com/jline/jline3/issues/2217
+        for (String type : new String[] {"windows", "windows-256color", "windows-conemu", "windows-vtp"}) {
+            Set<Capability> bools = new HashSet<>();
+            Map<Capability, Integer> ints = new HashMap<>();
+            Map<Capability, String> strings = new HashMap<>();
+            String infocmp = InfoCmp.getDefaultInfoCmp(type);
+            InfoCmp.parseInfoCmp(infocmp, bools, ints, strings);
+            assertNotNull(strings.get(Capability.key_mouse), type + " should declare key_mouse (kmous) capability");
+            assertEquals("\\E[M", strings.get(Capability.key_mouse), type + " kmous value");
+        }
+    }
+
+    @Test
     void testValidTerminalName() {
         for (String name : new String[] {
             "xterm", "xterm-256color", "screen.xterm-256color", "rxvt-unicode-256color", "vt100", "Eterm", "dumb"
