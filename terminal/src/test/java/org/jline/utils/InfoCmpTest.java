@@ -17,6 +17,8 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -119,9 +121,9 @@ class InfoCmpTest {
         // Console API, so their caps must declare kmous=\E[M so that
         // hasMouseSupport() returns true. See https://github.com/jline/jline3/issues/2217
         for (String type : new String[] {"windows", "windows-256color", "windows-conemu", "windows-vtp"}) {
-            Set<Capability> bools = new HashSet<>();
-            Map<Capability, Integer> ints = new HashMap<>();
-            Map<Capability, String> strings = new HashMap<>();
+            Set<Capability> bools = EnumSet.noneOf(Capability.class);
+            Map<Capability, Integer> ints = new EnumMap<>(Capability.class);
+            Map<Capability, String> strings = new EnumMap<>(Capability.class);
             String infocmp = InfoCmp.getDefaultInfoCmp(type);
             InfoCmp.parseInfoCmp(infocmp, bools, ints, strings);
             assertNotNull(strings.get(Capability.key_mouse), type + " should declare key_mouse (kmous) capability");
