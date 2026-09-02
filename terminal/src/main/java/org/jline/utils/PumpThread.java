@@ -78,49 +78,10 @@ final class PumpThread {
     }
 
     void runLoop(IoReader reader, ResultHandler handler, String logName) {
-        Log.debug(logName + " start");
-        boolean needToRead;
-
-        try {
-            while (true) {
-                synchronized (lock) {
-                    needToRead = reading;
-                    try {
-                        if (!needToRead) {
-                            lock.wait(idleTimeout);
-                        }
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        return;
-                    }
-                    needToRead = reading;
-                    if (!needToRead) {
-                        return;
-                    }
-                }
-
-                int value = NonBlockingInputStream.READ_EXPIRED;
-                IOException failure = null;
-                try {
-                    value = reader.read();
-                } catch (IOException e) {
-                    failure = e;
-                }
-
-                synchronized (lock) {
-                    handler.accept(value, failure);
-                    reading = false;
-                    lock.notifyAll();
-                }
-            }
-        } catch (Throwable t) {
-            Log.warn("Error in " + logName + " thread", t);
-        } finally {
-            Log.debug(logName + " shutdown");
-            synchronized (lock) {
-                clearThread();
-            }
-        }
+        // A blocking reader never returns READ_EXPIRED, so the timed
+        // loop behaves identically: the inner poll loop breaks on the
+        // first iteration and the READ_EXPIRED guard is a no-op.
+        runLoop(timeoutMs -> reader.read(), 0, handler, logName);
     }
 
     /**
@@ -140,7 +101,7 @@ final class PumpThread {
      * @param logName        label for debug logging
      */
     void runLoop(TimedIoReader reader, int pollIntervalMs, ResultHandler handler, String logName) {
-        Log.debug(logName + " start (timed)");
+        Log.debug(logName + " start");
         boolean needToRead;
 
         try {
@@ -184,7 +145,7 @@ final class PumpThread {
                 }
 
                 synchronized (lock) {
-                    if (value != NonBlockingInputStream.READ_EXPIRED) {
+                    if (value != NonBlockingInputStream.READ_EXPIRED || failure != null) {
                         handler.accept(value, failure);
                     }
                     reading = false;
