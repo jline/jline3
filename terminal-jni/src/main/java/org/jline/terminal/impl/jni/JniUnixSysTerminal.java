@@ -76,6 +76,13 @@ public class JniUnixSysTerminal extends AbstractUnixSysTerminal {
 
     @Override
     protected IntUnaryOperator createPollFunction() {
+        try {
+            // Verify the native method is available in the loaded library.
+            // Older pre-compiled binaries may not contain pollForInput yet.
+            CLibrary.pollForInput(STDIN_FD, 0);
+        } catch (UnsatisfiedLinkError e) {
+            return null; // fall back to blocking reads
+        }
         return timeoutMs -> CLibrary.pollForInput(STDIN_FD, timeoutMs);
     }
 
