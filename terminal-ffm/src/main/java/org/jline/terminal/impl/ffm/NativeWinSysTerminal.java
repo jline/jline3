@@ -314,8 +314,6 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<MemorySegment>
         }
     }
 
-    private int lastButtonState;
-
     private void processMouseEvent(MOUSE_EVENT_RECORD mouseEvent) throws IOException {
         int dwEventFlags = mouseEvent.eventFlags();
         int dwButtonState = mouseEvent.buttonState();
@@ -353,22 +351,8 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<MemorySegment>
             }
         }
         lastButtonState = dwButtonState;
-        int cx = mouseEvent.mousePosition().x();
-        int cy = mouseEvent.mousePosition().y();
-        // Use SGR format: ESC [ < cb ; cx ; cy M/m
-        // SGR uses decimal coordinates (1-based) separated by semicolons,
-        // avoiding the X10 format's single-char encoding that breaks at column >= 96
-        // when readMouse() misinterprets high char values as UTF-8 lead bytes.
-        // 'M' = press, 'm' = release (SGR explicit release).
-        StringBuilder sb = new StringBuilder(16);
-        sb.append("\033[<");
-        sb.append(cb);
-        sb.append(';');
-        sb.append(cx + 1);
-        sb.append(';');
-        sb.append(cy + 1);
-        sb.append(isRelease ? 'm' : 'M');
-        slaveInputPipe.write(sb.toString());
+        writeMouseEvent(
+                cb, mouseEvent.mousePosition().x(), mouseEvent.mousePosition().y(), isRelease);
     }
 
     @Override

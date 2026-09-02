@@ -131,6 +131,7 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
 
     protected MouseTracking tracking = MouseTracking.Off;
     protected boolean focusTracking = false;
+    protected int lastButtonState;
     private final boolean softwareSignals;
     private volatile boolean closing;
     protected boolean skipNextLf;
@@ -717,6 +718,29 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
         this.tracking = tracking;
         updateConsoleMode();
         return true;
+    }
+
+    /**
+     * Writes a mouse event in SGR format to the slave input pipe.
+     * SGR format uses decimal coordinates separated by semicolons, avoiding the X10 format's
+     * single-char encoding that corrupts events at column &gt;= 96.
+     *
+     * @param cb the button code
+     * @param cx the 0-based column coordinate
+     * @param cy the 0-based row coordinate
+     * @param isRelease true to emit 'm' (release), false to emit 'M' (press)
+     * @throws IOException if the write fails
+     */
+    protected void writeMouseEvent(int cb, int cx, int cy, boolean isRelease) throws IOException {
+        StringBuilder sb = new StringBuilder(16);
+        sb.append("\033[<");
+        sb.append(cb);
+        sb.append(';');
+        sb.append(cx + 1);
+        sb.append(';');
+        sb.append(cy + 1);
+        sb.append(isRelease ? 'm' : 'M');
+        slaveInputPipe.write(sb.toString());
     }
 
     protected abstract int getConsoleMode(Console console);
