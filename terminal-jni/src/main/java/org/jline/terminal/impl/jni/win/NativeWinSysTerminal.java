@@ -309,42 +309,9 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<Long> {
         }
     }
 
-    private char[] mouse = new char[] {'\033', '[', 'M', ' ', ' ', ' '};
-
     private void processMouseEvent(Kernel32.MOUSE_EVENT_RECORD mouseEvent) throws IOException {
-        int dwEventFlags = mouseEvent.eventFlags;
-        int dwButtonState = mouseEvent.buttonState;
-        if (tracking == MouseTracking.Off
-                || tracking == MouseTracking.Normal && dwEventFlags == Kernel32.MOUSE_EVENT_RECORD.MOUSE_MOVED
-                || tracking == MouseTracking.Button
-                        && dwEventFlags == Kernel32.MOUSE_EVENT_RECORD.MOUSE_MOVED
-                        && dwButtonState == 0) {
-            return;
-        }
-        int cb = 0;
-        dwEventFlags &= ~Kernel32.MOUSE_EVENT_RECORD.DOUBLE_CLICK; // Treat double-clicks as normal
-        if (dwEventFlags == Kernel32.MOUSE_EVENT_RECORD.MOUSE_WHEELED) {
-            cb |= 64;
-            if ((dwButtonState >> 16) < 0) {
-                cb |= 1;
-            }
-        } else if (dwEventFlags == Kernel32.MOUSE_EVENT_RECORD.MOUSE_HWHEELED) {
-            return;
-        } else if ((dwButtonState & Kernel32.MOUSE_EVENT_RECORD.FROM_LEFT_1ST_BUTTON_PRESSED) != 0) {
-            // cb is already 0 for left button
-        } else if ((dwButtonState & Kernel32.MOUSE_EVENT_RECORD.RIGHTMOST_BUTTON_PRESSED) != 0) {
-            cb |= 0x01;
-        } else if ((dwButtonState & Kernel32.MOUSE_EVENT_RECORD.FROM_LEFT_2ND_BUTTON_PRESSED) != 0) {
-            cb |= 0x02;
-        } else {
-            cb |= 0x03;
-        }
-        int cx = mouseEvent.mousePosition.x;
-        int cy = mouseEvent.mousePosition.y;
-        mouse[3] = (char) (' ' + cb);
-        mouse[4] = (char) (' ' + cx + 1);
-        mouse[5] = (char) (' ' + cy + 1);
-        slaveInputPipe.write(mouse);
+        processMouseEvent(
+                mouseEvent.eventFlags, mouseEvent.buttonState, mouseEvent.mousePosition.x, mouseEvent.mousePosition.y);
     }
 
     @Override
