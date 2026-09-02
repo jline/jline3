@@ -266,6 +266,36 @@ class MouseSupportTest {
         assertEquals(20, event.getY());
     }
 
+    @Test
+    void testReadMouseSGROverlappingButtonTransitions() {
+        // Regression test for overlapping button transitions:
+        // Left pressed, then right pressed while left held, then left released while right held.
+        // Each event is a separate SGR sequence as processMouseEvent would emit.
+
+        // 1. Left press at (10, 20): ESC [ < 0;11;21 M
+        int[] input1 = {'<', '0', ';', '1', '1', ';', '2', '1', 'M'};
+        MouseEvent last = createDummyEvent();
+        MouseEvent event = MouseSupport.readMouse(createReader(input1), last);
+        assertEquals(MouseEvent.Type.Pressed, event.getType());
+        assertEquals(MouseEvent.Button.Button1, event.getButton());
+
+        // 2. Right press while left held at (10, 20): ESC [ < 1;11;21 M
+        int[] input2 = {'<', '1', ';', '1', '1', ';', '2', '1', 'M'};
+        last = event;
+        event = MouseSupport.readMouse(createReader(input2), last);
+        assertEquals(MouseEvent.Type.Pressed, event.getType());
+        assertEquals(MouseEvent.Button.Button2, event.getButton());
+
+        // 3. Left released while right still held at (10, 20): ESC [ < 0;11;21 m
+        int[] input3 = {'<', '0', ';', '1', '1', ';', '2', '1', 'm'};
+        last = event;
+        event = MouseSupport.readMouse(createReader(input3), last);
+        assertEquals(MouseEvent.Type.Released, event.getType());
+        assertEquals(MouseEvent.Button.Button1, event.getButton());
+        assertEquals(10, event.getX());
+        assertEquals(20, event.getY());
+    }
+
     private IntSupplier createReader(int[] input) {
         return new IntSupplier() {
             private int index = 0;

@@ -315,44 +315,11 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<MemorySegment>
     }
 
     private void processMouseEvent(MOUSE_EVENT_RECORD mouseEvent) throws IOException {
-        int dwEventFlags = mouseEvent.eventFlags();
-        int dwButtonState = mouseEvent.buttonState();
-        if (tracking == MouseTracking.Off
-                || tracking == MouseTracking.Normal && dwEventFlags == MOUSE_MOVED
-                || tracking == MouseTracking.Button && dwEventFlags == MOUSE_MOVED && dwButtonState == 0) {
-            return;
-        }
-        int cb = 0;
-        boolean isRelease = false;
-        dwEventFlags &= ~DOUBLE_CLICK; // Treat double-clicks as normal
-        if (dwEventFlags == MOUSE_WHEELED) {
-            cb |= 64;
-            if ((dwButtonState >> 16) < 0) {
-                cb |= 1;
-            }
-        } else if (dwEventFlags == MOUSE_HWHEELED) {
-            return;
-        } else if ((dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED) != 0) {
-            // cb is already 0 for left button
-        } else if ((dwButtonState & RIGHTMOST_BUTTON_PRESSED) != 0) {
-            cb |= 0x01;
-        } else if ((dwButtonState & FROM_LEFT_2ND_BUTTON_PRESSED) != 0) {
-            cb |= 0x02;
-        } else {
-            // No button is currently pressed — this is a release event.
-            // Determine which button was released from lastButtonState.
-            isRelease = true;
-            if ((lastButtonState & FROM_LEFT_1ST_BUTTON_PRESSED) != 0) {
-                cb = 0;
-            } else if ((lastButtonState & RIGHTMOST_BUTTON_PRESSED) != 0) {
-                cb = 1;
-            } else if ((lastButtonState & FROM_LEFT_2ND_BUTTON_PRESSED) != 0) {
-                cb = 2;
-            }
-        }
-        lastButtonState = dwButtonState;
-        writeMouseEvent(
-                cb, mouseEvent.mousePosition().x(), mouseEvent.mousePosition().y(), isRelease);
+        processMouseEvent(
+                mouseEvent.eventFlags(),
+                mouseEvent.buttonState(),
+                mouseEvent.mousePosition().x(),
+                mouseEvent.mousePosition().y());
     }
 
     @Override
