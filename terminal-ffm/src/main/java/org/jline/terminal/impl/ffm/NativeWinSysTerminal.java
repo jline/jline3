@@ -314,6 +314,8 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<MemorySegment>
         }
     }
 
+    private int lastButtonState;
+
     private void processMouseEvent(MOUSE_EVENT_RECORD mouseEvent) throws IOException {
         int dwEventFlags = mouseEvent.eventFlags();
         int dwButtonState = mouseEvent.buttonState();
@@ -323,6 +325,7 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<MemorySegment>
             return;
         }
         int cb = 0;
+        boolean isRelease = false;
         dwEventFlags &= ~DOUBLE_CLICK; // Treat double-clicks as normal
         if (dwEventFlags == MOUSE_WHEELED) {
             cb |= 64;
@@ -338,14 +341,25 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<MemorySegment>
         } else if ((dwButtonState & FROM_LEFT_2ND_BUTTON_PRESSED) != 0) {
             cb |= 0x02;
         } else {
-            cb |= 0x03;
+            // No button is currently pressed — this is a release event.
+            // Determine which button was released from lastButtonState.
+            isRelease = true;
+            if ((lastButtonState & FROM_LEFT_1ST_BUTTON_PRESSED) != 0) {
+                cb = 0;
+            } else if ((lastButtonState & RIGHTMOST_BUTTON_PRESSED) != 0) {
+                cb = 1;
+            } else if ((lastButtonState & FROM_LEFT_2ND_BUTTON_PRESSED) != 0) {
+                cb = 2;
+            }
         }
+        lastButtonState = dwButtonState;
         int cx = mouseEvent.mousePosition().x();
         int cy = mouseEvent.mousePosition().y();
-        // Use SGR format: ESC [ < cb ; cx ; cy M
+        // Use SGR format: ESC [ < cb ; cx ; cy M/m
         // SGR uses decimal coordinates (1-based) separated by semicolons,
         // avoiding the X10 format's single-char encoding that breaks at column >= 96
         // when readMouse() misinterprets high char values as UTF-8 lead bytes.
+        // 'M' = press, 'm' = release (SGR explicit release).
         StringBuilder sb = new StringBuilder(16);
         sb.append("\033[<");
         sb.append(cb);
@@ -353,7 +367,7 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<MemorySegment>
         sb.append(cx + 1);
         sb.append(';');
         sb.append(cy + 1);
-        sb.append('M');
+        sb.append(isRelease ? 'm' : 'M');
         slaveInputPipe.write(sb.toString());
     }
 

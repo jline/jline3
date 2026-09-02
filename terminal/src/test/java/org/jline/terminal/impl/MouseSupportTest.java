@@ -240,6 +240,32 @@ class MouseSupportTest {
         assertEquals(0, event.getY()); // 0-based: 1 - 1
     }
 
+    @Test
+    void testReadMouseSGRReleaseAtHighColumn() {
+        // SGR release at high column: ESC [ < 0;200;50 m
+        // Lowercase 'm' signals an explicit release event with the released button code.
+        int[] input = {'<', '0', ';', '2', '0', '0', ';', '5', '0', 'm'};
+        MouseEvent event = MouseSupport.readMouse(createReader(input), createDummyEvent());
+
+        assertEquals(MouseEvent.Type.Released, event.getType());
+        assertEquals(MouseEvent.Button.Button1, event.getButton());
+        assertEquals(199, event.getX()); // 0-based: 200 - 1
+        assertEquals(49, event.getY()); // 0-based: 50 - 1
+    }
+
+    @Test
+    void testReadMouseSGRRightButtonRelease() {
+        // SGR right button release: ESC [ < 2;11;21 m
+        // cb=2 maps to Button3 (right button in SGR encoding)
+        int[] input = {'<', '2', ';', '1', '1', ';', '2', '1', 'm'};
+        MouseEvent event = MouseSupport.readMouse(createReader(input), createDummyEvent());
+
+        assertEquals(MouseEvent.Type.Released, event.getType());
+        assertEquals(MouseEvent.Button.Button3, event.getButton());
+        assertEquals(10, event.getX());
+        assertEquals(20, event.getY());
+    }
+
     private IntSupplier createReader(int[] input) {
         return new IntSupplier() {
             private int index = 0;
