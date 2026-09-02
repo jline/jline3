@@ -30,6 +30,7 @@ import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.FastBufferedOutputStream;
 import org.jline.utils.NonBlocking;
 import org.jline.utils.NonBlockingInputStream;
+import org.jline.utils.NonBlockingInputStream.TimedReader;
 import org.jline.utils.NonBlockingReader;
 import org.jline.utils.NonCloseableInputStream;
 import org.jline.utils.NonCloseableOutputStream;
@@ -100,11 +101,9 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
         boolean softwareSignals = Boolean.parseBoolean(System.getProperty(PROP_SOFTWARE_SIGNALS, "true"));
 
         InputStream stdin = new NonCloseableInputStream(new FileInputStream(FileDescriptor.in));
-        this.input = NonBlocking.nonBlocking(
-                getName(),
-                softwareSignals
-                        ? new SignalInterceptingInputStream(stdin, () -> cachedAttributes, this::raise)
-                        : stdin);
+        InputStream wrappedStdin =
+                softwareSignals ? new SignalInterceptingInputStream(stdin, () -> cachedAttributes, this::raise) : stdin;
+        this.input = NonBlocking.nonBlocking(getName(), wrappedStdin, createTimedStdinReader(wrappedStdin));
         cachedAttributes = new Attributes(originalAttributes);
         FileDescriptor outFd;
         if (systemStream == SystemStream.Output) {
@@ -168,6 +167,22 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
     protected abstract Size doGetSize();
 
     protected abstract void doSetSize(Sized size);
+
+    /**
+     * Creates a timed reader that uses {@code poll(2)} on the stdin fd to avoid
+     * parking the pump thread in an indefinite blocking read.
+     *
+     * <p>Subclasses should override this to provide a platform-specific
+     * implementation (FFM or JNI).  The default returns {@code null}, which
+     * falls back to blocking reads and preserves backward compatibility.</p>
+     *
+     * @param stdin the wrapped stdin input stream (may be a
+     *              {@link SignalInterceptingInputStream})
+     * @return a timed reader, or {@code null} if poll-based reads are not available
+     */
+    protected TimedReader createTimedStdinReader(InputStream stdin) {
+        return null;
+    }
 
     @Override
     public Attributes getAttributes() {

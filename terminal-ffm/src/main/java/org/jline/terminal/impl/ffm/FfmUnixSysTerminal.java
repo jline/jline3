@@ -9,6 +9,7 @@
 package org.jline.terminal.impl.ffm;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 
 import org.jline.terminal.Attributes;
@@ -17,6 +18,8 @@ import org.jline.terminal.Sized;
 import org.jline.terminal.impl.AbstractUnixSysTerminal;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
+import org.jline.utils.NonBlockingInputStream;
+import org.jline.utils.NonBlockingInputStream.TimedReader;
 
 /**
  * FFM-based POSIX system terminal that calls {@link CLibrary} directly.
@@ -55,6 +58,20 @@ public class FfmUnixSysTerminal extends AbstractUnixSysTerminal {
                 signalHandler,
                 CLibrary.getAttributes(STDIN_FD));
         this.outputFd = (systemStream == SystemStream.Output) ? STDOUT_FD : STDERR_FD;
+    }
+
+    @Override
+    protected TimedReader createTimedStdinReader(InputStream stdin) {
+        return (timeoutMs) -> {
+            int ret = CLibrary.pollIn(STDIN_FD, timeoutMs);
+            if (ret > 0) {
+                return stdin.read();
+            } else if (ret == 0) {
+                return NonBlockingInputStream.READ_EXPIRED;
+            } else {
+                throw new IOException("poll() failed on stdin");
+            }
+        };
     }
 
     @Override

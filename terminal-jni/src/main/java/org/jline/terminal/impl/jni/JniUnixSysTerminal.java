@@ -9,6 +9,7 @@
 package org.jline.terminal.impl.jni;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 
 import org.jline.nativ.CLibrary;
@@ -19,6 +20,8 @@ import org.jline.terminal.impl.AbstractUnixSysTerminal;
 import org.jline.terminal.impl.TermiosMapping;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
+import org.jline.utils.NonBlockingInputStream;
+import org.jline.utils.NonBlockingInputStream.TimedReader;
 
 import static org.jline.terminal.impl.TermiosData.TCSANOW;
 
@@ -71,6 +74,20 @@ public class JniUnixSysTerminal extends AbstractUnixSysTerminal {
         CLibrary.Termios tios = new CLibrary.Termios();
         CLibrary.tcgetattr(STDIN_FD, tios);
         return mapping.toAttributes(JniNativePty.fromNativeTermios(tios));
+    }
+
+    @Override
+    protected TimedReader createTimedStdinReader(InputStream stdin) {
+        return (timeoutMs) -> {
+            int ret = CLibrary.pollIn(STDIN_FD, timeoutMs);
+            if (ret > 0) {
+                return stdin.read();
+            } else if (ret == 0) {
+                return NonBlockingInputStream.READ_EXPIRED;
+            } else {
+                throw new IOException("poll() failed on stdin");
+            }
+        };
     }
 
     @Override

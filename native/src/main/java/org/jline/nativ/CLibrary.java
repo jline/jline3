@@ -57,6 +57,16 @@ public class CLibrary {
      */
     public static native int isatty(int fd);
 
+    /**
+     * Polls a single file descriptor for input readability using {@code poll(2)}.
+     * Retries automatically on {@code EINTR} (signal interruption).
+     *
+     * @param fd        file descriptor to poll (e.g. {@code 0} for stdin)
+     * @param timeoutMs timeout in milliseconds; 0 = immediate, −1 = infinite
+     * @return positive if data is ready, 0 on timeout, −1 on permanent error
+     */
+    public static native int pollIn(int fd, int timeoutMs);
+
     public static native String ttyname(int filedes);
 
     /**

@@ -238,4 +238,29 @@ JNIEXPORT jstring JNICALL CLibrary_NATIVE(ttyname)
 	return rc;
 }
 
+/**
+ * Polls a single file descriptor for input readability using poll(2).
+ * Retries automatically on EINTR (signal interruption).
+ *
+ * @param fd        file descriptor to poll
+ * @param timeoutMs timeout in milliseconds; 0 = immediate, -1 = infinite
+ * @return positive if data is ready, 0 on timeout, -1 on permanent error
+ */
+JNIEXPORT jint JNICALL CLibrary_NATIVE(pollIn)
+	(JNIEnv *env, jclass that, jint fd, jint timeoutMs)
+{
+	struct pollfd pfd;
+	jint rc;
+
+	pfd.fd = fd;
+	pfd.events = POLLIN;
+	pfd.revents = 0;
+
+	do {
+		rc = (jint)poll(&pfd, 1, timeoutMs);
+	} while (rc < 0 && errno == EINTR);
+
+	return rc;
+}
+
 #endif

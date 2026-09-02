@@ -274,6 +274,34 @@ class CLibrary {
         }
     }
 
+    // ── poll(2) support ──────────────────────────────────────────────────
+
+    /**
+     * {@code struct pollfd} layout (POSIX).
+     * <pre>
+     *   int   fd;       // file descriptor
+     *   short events;   // requested events
+     *   short revents;  // returned events
+     * </pre>
+     */
+    static class pollfd {
+        static final GroupLayout LAYOUT = MemoryLayout.structLayout(
+                ValueLayout.JAVA_INT.withName("fd"),
+                ValueLayout.JAVA_SHORT.withName("events"),
+                ValueLayout.JAVA_SHORT.withName("revents"));
+        private static final VarHandle fd =
+                FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("fd"));
+        private static final VarHandle events =
+                FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("events"));
+        private static final VarHandle revents =
+                FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("revents"));
+    }
+
+    /** POSIX POLLIN constant (0x0001 on all supported platforms). */
+    static final short POLLIN = 0x0001;
+
+    static final MethodHandle pollHandle;
+
     static final MethodHandle ioctl;
     static final MethodHandle isatty;
     static final MethodHandle openptyHandle;
@@ -286,6 +314,12 @@ class CLibrary {
         // methods
         Linker linker = Linker.nativeLinker();
         SymbolLookup lookup = SymbolLookup.loaderLookup().or(linker.defaultLookup());
+        // https://man7.org/linux/man-pages/man2/poll.2.html
+        // nfds_t is unsigned long on Linux/AIX, unsigned int on macOS/FreeBSD
+        ValueLayout nfdsLayout = (OSUtils.IS_LINUX || OSUtils.IS_AIX) ? ValueLayout.JAVA_LONG : ValueLayout.JAVA_INT;
+        pollHandle = linker.downcallHandle(
+                lookup.find("poll").get(),
+                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, nfdsLayout, ValueLayout.JAVA_INT));
         // https://man7.org/linux/man-pages/man2/ioctl.2.html
         ioctl = linker.downcallHandle(
                 lookup.find("ioctl").get(),
@@ -471,6 +505,37 @@ class CLibrary {
             }
         }
         return Optional.empty();
+    }
+
+    /**
+     * Polls a single file descriptor for input readability.
+     *
+     * <p>Retries automatically on transient errors (EINTR) up to a fixed limit.</p>
+     *
+     * @param fd        file descriptor to poll (e.g. {@code STDIN_FILENO})
+     * @param timeoutMs timeout in milliseconds; 0 = immediate, −1 = infinite
+     * @return positive if data is ready, 0 on timeout, −1 on permanent error
+     */
+    static int pollIn(int fd, int timeoutMs) {
+        try (Arena arena = Arena.ofConfined()) {
+            MemorySegment pfd = arena.allocate(pollfd.LAYOUT);
+            pollfd.fd.set(pfd, fd);
+            pollfd.events.set(pfd, POLLIN);
+
+            int rc;
+            int retries = 0;
+            do {
+                pollfd.revents.set(pfd, (short) 0);
+                if (OSUtils.IS_LINUX || OSUtils.IS_AIX) {
+                    rc = (int) pollHandle.invoke(pfd, 1L, timeoutMs);
+                } else {
+                    rc = (int) pollHandle.invoke(pfd, 1, timeoutMs);
+                }
+            } while (rc < 0 && ++retries < 10);
+            return rc;
+        } catch (Throwable e) {
+            throw new RuntimeException("Unable to call poll()", e);
+        }
     }
 
     static Size getTerminalSize(int fd) {

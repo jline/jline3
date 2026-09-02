@@ -118,6 +118,84 @@ final class PumpThread {
         }
     }
 
+    /**
+     * Runs the pump loop using a timed reader that returns periodically,
+     * allowing the loop to check whether the consumer still needs data.
+     *
+     * <p>Unlike the blocking {@link #runLoop(IoReader, ResultHandler, String)}
+     * variant, this loop calls the timed reader with short poll intervals so
+     * that a cancelled read request (consumer set {@code reading = false}) is
+     * detected within one poll period — rather than blocking until a byte
+     * arrives on the underlying stream.  This prevents the pump from stealing
+     * keystrokes from subprocesses that share the same tty fd.</p>
+     *
+     * @param reader         timed reader (e.g. poll-then-read on a tty fd)
+     * @param pollIntervalMs per-iteration poll timeout in milliseconds
+     * @param handler        callback that receives the result
+     * @param logName        label for debug logging
+     */
+    void runLoop(NonBlockingInputStream.TimedReader reader, int pollIntervalMs, ResultHandler handler, String logName) {
+        Log.debug(logName + " start (timed)");
+        boolean needToRead;
+
+        try {
+            while (true) {
+                // ── idle wait ──────────────────────────────────────────
+                synchronized (lock) {
+                    needToRead = reading;
+                    try {
+                        if (!needToRead) {
+                            lock.wait(idleTimeout);
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        return;
+                    }
+                    needToRead = reading;
+                    if (!needToRead) {
+                        return;
+                    }
+                }
+
+                // ── timed read loop ────────────────────────────────────
+                // Poll in short intervals; between polls, check whether
+                // the consumer cancelled this read request.
+                int value = NonBlockingInputStream.READ_EXPIRED;
+                IOException failure = null;
+                try {
+                    while (true) {
+                        value = reader.read(pollIntervalMs);
+                        if (value != NonBlockingInputStream.READ_EXPIRED) {
+                            break; // data, EOF, or error
+                        }
+                        synchronized (lock) {
+                            if (!reading) {
+                                break; // consumer cancelled
+                            }
+                        }
+                    }
+                } catch (IOException e) {
+                    failure = e;
+                }
+
+                synchronized (lock) {
+                    if (value != NonBlockingInputStream.READ_EXPIRED) {
+                        handler.accept(value, failure);
+                    }
+                    reading = false;
+                    lock.notifyAll();
+                }
+            }
+        } catch (Throwable t) {
+            Log.warn("Error in " + logName + " thread", t);
+        } finally {
+            Log.debug(logName + " shutdown");
+            synchronized (lock) {
+                clearThread();
+            }
+        }
+    }
+
     boolean isReading() {
         return reading;
     }
