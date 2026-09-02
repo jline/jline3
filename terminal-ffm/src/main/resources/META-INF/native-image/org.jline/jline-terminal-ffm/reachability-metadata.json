@@ -108,6 +108,13 @@
         "options": {
           "captureCallState": true
         }
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["void*", "long long", "int"],
+        "options": {
+          "captureCallState": true
+        }
       }
     ]
   }
