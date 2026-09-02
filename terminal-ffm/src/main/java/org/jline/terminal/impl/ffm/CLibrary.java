@@ -302,6 +302,13 @@ class CLibrary {
     /** POSIX POLLIN constant (0x0001 on all supported platforms). */
     static final short POLLIN = 0x0001;
 
+    /** POSIX EINTR constant (4 on all supported UNIX platforms). */
+    private static final int EINTR = 4;
+
+    private static final StructLayout CAPTURED_STATE_LAYOUT = Linker.Option.captureStateLayout();
+    private static final VarHandle ERRNO_HANDLE =
+            CAPTURED_STATE_LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("errno"));
+
     static final MethodHandle pollHandle;
 
     static final MethodHandle ioctl;
@@ -321,7 +328,8 @@ class CLibrary {
         ValueLayout nfdsLayout = (OSUtils.IS_LINUX || OSUtils.IS_AIX) ? ValueLayout.JAVA_LONG : ValueLayout.JAVA_INT;
         pollHandle = linker.downcallHandle(
                 lookup.find("poll").get(),
-                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, nfdsLayout, ValueLayout.JAVA_INT));
+                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, nfdsLayout, ValueLayout.JAVA_INT),
+                Linker.Option.captureCallState("errno"));
         // https://man7.org/linux/man-pages/man2/ioctl.2.html
         ioctl = linker.downcallHandle(
                 lookup.find("ioctl").get(),
@@ -512,7 +520,8 @@ class CLibrary {
     /**
      * Polls a single file descriptor for input readability.
      *
-     * <p>Retries automatically on transient errors (EINTR) up to a fixed limit.</p>
+     * <p>Uses {@link Linker.Option#captureCallState(String...)} to read
+     * {@code errno} after each call, retrying only on {@code EINTR}.</p>
      *
      * @param fd        file descriptor to poll (e.g. {@code STDIN_FILENO})
      * @param timeoutMs timeout in milliseconds; 0 = immediate, −1 = infinite
@@ -524,49 +533,59 @@ class CLibrary {
             PollFd.FD.set(pfd, fd);
             PollFd.EVENTS.set(pfd, POLLIN);
 
+            MemorySegment capturedState = arena.allocate(CAPTURED_STATE_LAYOUT);
+
             if (timeoutMs <= 0) {
                 // Immediate (0) or infinite (-1): no deadline to track.
-                // Retry on error up to a limit (cannot check errno via FFM
-                // without captureCallState, so a bounded retry is the safest
-                // fallback for transient EINTR).
                 int rc;
-                int retries = 0;
                 do {
                     PollFd.REVENTS.set(pfd, (short) 0);
-                    rc = platformPoll(pfd, timeoutMs);
-                } while (rc < 0 && ++retries < 10);
+                    rc = platformPoll(capturedState, pfd, timeoutMs);
+                } while (rc < 0 && capturedErrno(capturedState) == EINTR);
                 return rc;
             }
 
             // Finite timeout: preserve deadline across EINTR retries.
-            // Without captureCallState("errno") we cannot distinguish EINTR
-            // from permanent errors, but permanent errors return instantly so
-            // the deadline expires quickly (≤ timeoutMs of wall time).
             long deadlineNanos = System.nanoTime() + timeoutMs * 1_000_000L;
             int remaining = timeoutMs;
             int rc;
             do {
                 PollFd.REVENTS.set(pfd, (short) 0);
-                rc = platformPoll(pfd, remaining);
+                rc = platformPoll(capturedState, pfd, remaining);
                 if (rc >= 0) {
                     return rc;
                 }
+                if (capturedErrno(capturedState) != EINTR) {
+                    return rc; // permanent error
+                }
                 remaining = (int) ((deadlineNanos - System.nanoTime()) / 1_000_000L);
             } while (remaining > 0);
-            return rc; // last error, or 0 is never reached since remaining <= 0
+            return 0; // deadline expired → timeout
         } catch (Throwable e) {
             throw new RuntimeException("Unable to call poll()", e);
         }
     }
 
     /**
-     * Invokes the platform-specific {@code poll()} downcall.
+     * Reads the captured {@code errno} value from the call-state segment.
      */
-    private static int platformPoll(MemorySegment pfd, int timeoutMs) throws Throwable {
+    private static int capturedErrno(MemorySegment capturedState) {
+        return (int) ERRNO_HANDLE.get(capturedState, 0L);
+    }
+
+    /**
+     * Invokes the platform-specific {@code poll()} downcall.
+     *
+     * <p>The leading {@code capturedState} segment is required by the
+     * {@link Linker.Option#captureCallState(String...)} option used when
+     * linking the handle — the JVM writes {@code errno} into it immediately
+     * after the native call returns.</p>
+     */
+    private static int platformPoll(MemorySegment capturedState, MemorySegment pfd, int timeoutMs) throws Throwable {
         if (OSUtils.IS_LINUX || OSUtils.IS_AIX) {
-            return (int) pollHandle.invoke(pfd, 1L, timeoutMs);
+            return (int) pollHandle.invoke(capturedState, pfd, 1L, timeoutMs);
         } else {
-            return (int) pollHandle.invoke(pfd, 1, timeoutMs);
+            return (int) pollHandle.invoke(capturedState, pfd, 1, timeoutMs);
         }
     }
 

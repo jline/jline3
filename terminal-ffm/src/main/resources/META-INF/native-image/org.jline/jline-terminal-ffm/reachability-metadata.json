@@ -104,7 +104,10 @@
       },
       {
         "returnType": "int",
-        "parameterTypes": ["void*", "int", "int"]
+        "parameterTypes": ["void*", "int", "int"],
+        "options": {
+          "captureCallState": ["errno"]
+        }
       }
     ]
   }
