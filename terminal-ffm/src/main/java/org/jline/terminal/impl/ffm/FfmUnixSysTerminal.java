@@ -10,6 +10,7 @@ package org.jline.terminal.impl.ffm;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.function.IntUnaryOperator;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
@@ -55,6 +56,11 @@ public class FfmUnixSysTerminal extends AbstractUnixSysTerminal {
                 signalHandler,
                 CLibrary.getAttributes(STDIN_FD));
         this.outputFd = (systemStream == SystemStream.Output) ? STDOUT_FD : STDERR_FD;
+    }
+
+    @Override
+    protected IntUnaryOperator createPollFunction() {
+        return timeoutMs -> CLibrary.pollForInput(STDIN_FD, timeoutMs);
     }
 
     @Override

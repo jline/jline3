@@ -11,6 +11,7 @@ package org.jline.utils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
+import java.util.function.IntUnaryOperator;
 
 /**
  * This class wraps a regular input stream and allows it to appear as if it
@@ -27,7 +28,12 @@ import java.io.InterruptedIOException;
  * </ul>
  */
 public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
+
+    /** Per-poll timeout used by the timed pump loop (ms). */
+    private static final int POLL_INTERVAL_MS = 100;
+
     private InputStream in; // The actual input stream
+    private IntUnaryOperator pollFn; // Optional poll function (non-null on POSIX sys terminals)
     private int b = READ_EXPIRED; // Recently read byte
 
     private String name;
@@ -35,18 +41,23 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
     private final PumpThread pump;
 
     /**
-     * Creates a <code>NonBlockingReader</code> out of a normal blocking
-     * reader. Note that this call also spawn a separate thread to perform the
+     * Creates a <code>NonBlockingInputStream</code> out of a normal blocking
+     * stream. Note that this call also spawns a separate thread to perform the
      * blocking I/O on behalf of the thread that is using this class. The
      * {@link #shutdown()} method must be called in order to shut this thread down.
      * @param name The stream name
-     * @param in The reader to wrap
+     * @param in The stream to wrap
      */
     @SuppressWarnings("this-escape")
     public NonBlockingInputStreamImpl(String name, InputStream in) {
         this.in = in;
         this.name = name;
         this.pump = new PumpThread(this, 60_000);
+    }
+
+    @Override
+    public void setPollFunction(IntUnaryOperator pollFn) {
+        this.pollFn = pollFn;
     }
 
     public void shutdown() {
@@ -136,6 +147,19 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
         }
 
         /*
+         * If the pump is still reading and we have a timed reader, cancel the
+         * pump's outstanding read so it stops polling the tty fd.  This prevents
+         * the pump from stealing keystrokes from a subprocess that the caller
+         * is about to spawn (see #2219).
+         *
+         * The pump will see reading==false at its next poll timeout (≤100 ms)
+         * and return to the idle wait state without consuming a byte.
+         */
+        if (b == READ_EXPIRED && pump.isReading() && pollFn != null) {
+            pump.setReading(false);
+        }
+
+        /*
          * b is the character that was just read. Either we set it because
          * a local read was performed or the read thread set it (or failed to
          * change it).  We will return it's value, but if this was a peek
@@ -149,12 +173,32 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
     }
 
     private void run() {
-        pump.runLoop(
-                in::read,
-                (value, failure) -> {
-                    exception = failure;
-                    b = value;
-                },
-                "NonBlockingInputStream");
+        PumpThread.ResultHandler handler = (value, failure) -> {
+            exception = failure;
+            b = value;
+        };
+        if (pollFn != null) {
+            pump.runLoop(
+                    timeoutMs -> {
+                        int ret;
+                        try {
+                            ret = pollFn.applyAsInt(timeoutMs);
+                        } catch (RuntimeException e) {
+                            throw new IOException("poll() failed on stdin", e);
+                        }
+                        if (ret > 0) {
+                            return in.read();
+                        } else if (ret == 0) {
+                            return READ_EXPIRED;
+                        } else {
+                            throw new IOException("poll() failed on stdin");
+                        }
+                    },
+                    POLL_INTERVAL_MS,
+                    handler,
+                    "NonBlockingInputStream");
+        } else {
+            pump.runLoop(in::read, handler, "NonBlockingInputStream");
+        }
     }
 }

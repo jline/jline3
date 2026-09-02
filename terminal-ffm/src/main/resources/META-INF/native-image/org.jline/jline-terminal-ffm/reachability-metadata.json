@@ -101,6 +101,20 @@
         "options": {
           "firstVariadicArg": 2
         }
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["void*", "int", "int"],
+        "options": {
+          "captureCallState": true
+        }
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["void*", "long long", "int"],
+        "options": {
+          "captureCallState": true
+        }
       }
     ]
   }

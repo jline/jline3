@@ -16,6 +16,9 @@
     #include <pty.h>
     #include <unistd.h>
     #include <stdlib.h>
+    #include <poll.h>
+    #include <errno.h>
+    #include <time.h>
 
     #include "jni.h"
 #endif
@@ -30,6 +33,9 @@
     #include <libutil.h>
     #include <termios.h>
     #include <sys/ioctl.h>
+    #include <poll.h>
+    #include <errno.h>
+    #include <time.h>
 
     #include "jni.h"
 #endif
@@ -53,6 +59,9 @@
     #include <termios.h>
     #include <sys/ioctl.h>
     #include <unistd.h>
+    #include <poll.h>
+    #include <errno.h>
+    #include <time.h>
 
     #include "jni.h"
 #endif
