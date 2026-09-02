@@ -256,11 +256,32 @@ JNIEXPORT jint JNICALL CLibrary_NATIVE(pollForInput)
 	pfd.events = POLLIN;
 	pfd.revents = 0;
 
-	do {
-		rc = (jint)poll(&pfd, 1, timeoutMs);
-	} while (rc < 0 && errno == EINTR);
+	if (timeoutMs <= 0) {
+		/* Immediate (0) or infinite (-1): no deadline to track */
+		do {
+			rc = (jint)poll(&pfd, 1, timeoutMs);
+		} while (rc < 0 && errno == EINTR);
+		return rc;
+	}
 
-	return rc;
+	/* Finite timeout: preserve deadline across EINTR retries */
+	struct timespec deadline, now;
+	clock_gettime(CLOCK_MONOTONIC, &deadline);
+	deadline.tv_nsec += (long)(timeoutMs % 1000) * 1000000L;
+	deadline.tv_sec  += timeoutMs / 1000 + deadline.tv_nsec / 1000000000L;
+	deadline.tv_nsec %= 1000000000L;
+
+	int remaining = timeoutMs;
+	do {
+		rc = (jint)poll(&pfd, 1, remaining);
+		if (rc >= 0 || errno != EINTR) {
+			return rc;
+		}
+		clock_gettime(CLOCK_MONOTONIC, &now);
+		remaining = (int)((deadline.tv_sec - now.tv_sec) * 1000
+		               + (deadline.tv_nsec - now.tv_nsec) / 1000000);
+	} while (remaining > 0);
+	return 0; /* deadline expired → timeout */
 }
 
 #endif

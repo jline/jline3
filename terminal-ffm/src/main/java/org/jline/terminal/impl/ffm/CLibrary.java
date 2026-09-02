@@ -524,19 +524,49 @@ class CLibrary {
             PollFd.FD.set(pfd, fd);
             PollFd.EVENTS.set(pfd, POLLIN);
 
+            if (timeoutMs <= 0) {
+                // Immediate (0) or infinite (-1): no deadline to track.
+                // Retry on error up to a limit (cannot check errno via FFM
+                // without captureCallState, so a bounded retry is the safest
+                // fallback for transient EINTR).
+                int rc;
+                int retries = 0;
+                do {
+                    PollFd.REVENTS.set(pfd, (short) 0);
+                    rc = platformPoll(pfd, timeoutMs);
+                } while (rc < 0 && ++retries < 10);
+                return rc;
+            }
+
+            // Finite timeout: preserve deadline across EINTR retries.
+            // Without captureCallState("errno") we cannot distinguish EINTR
+            // from permanent errors, but permanent errors return instantly so
+            // the deadline expires quickly (≤ timeoutMs of wall time).
+            long deadlineNanos = System.nanoTime() + timeoutMs * 1_000_000L;
+            int remaining = timeoutMs;
             int rc;
-            int retries = 0;
             do {
                 PollFd.REVENTS.set(pfd, (short) 0);
-                if (OSUtils.IS_LINUX || OSUtils.IS_AIX) {
-                    rc = (int) pollHandle.invoke(pfd, 1L, timeoutMs);
-                } else {
-                    rc = (int) pollHandle.invoke(pfd, 1, timeoutMs);
+                rc = platformPoll(pfd, remaining);
+                if (rc >= 0) {
+                    return rc;
                 }
-            } while (rc < 0 && ++retries < 10);
-            return rc;
+                remaining = (int) ((deadlineNanos - System.nanoTime()) / 1_000_000L);
+            } while (remaining > 0);
+            return rc; // last error, or 0 is never reached since remaining <= 0
         } catch (Throwable e) {
             throw new RuntimeException("Unable to call poll()", e);
+        }
+    }
+
+    /**
+     * Invokes the platform-specific {@code poll()} downcall.
+     */
+    private static int platformPoll(MemorySegment pfd, int timeoutMs) throws Throwable {
+        if (OSUtils.IS_LINUX || OSUtils.IS_AIX) {
+            return (int) pollHandle.invoke(pfd, 1L, timeoutMs);
+        } else {
+            return (int) pollHandle.invoke(pfd, 1, timeoutMs);
         }
     }
 

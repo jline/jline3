@@ -18,6 +18,7 @@
     #include <stdlib.h>
     #include <poll.h>
     #include <errno.h>
+    #include <time.h>
 
     #include "jni.h"
 #endif
@@ -34,6 +35,7 @@
     #include <sys/ioctl.h>
     #include <poll.h>
     #include <errno.h>
+    #include <time.h>
 
     #include "jni.h"
 #endif
@@ -59,6 +61,7 @@
     #include <unistd.h>
     #include <poll.h>
     #include <errno.h>
+    #include <time.h>
 
     #include "jni.h"
 #endif

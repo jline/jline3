@@ -128,15 +128,20 @@ final class PumpThread {
      */
     private boolean awaitReadRequest() {
         synchronized (lock) {
-            if (!reading) {
+            long deadlineNanos = System.nanoTime() + idleTimeout * 1_000_000L;
+            while (!reading) {
+                long remainingMs = (deadlineNanos - System.nanoTime()) / 1_000_000L;
+                if (remainingMs <= 0) {
+                    return false;
+                }
                 try {
-                    lock.wait(idleTimeout);
+                    lock.wait(remainingMs);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     return false;
                 }
             }
-            return reading;
+            return true;
         }
     }
 
