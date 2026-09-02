@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.function.IntUnaryOperator;
 
 import static org.jline.terminal.TerminalBuilder.PROP_CLOSE_MODE;
 
@@ -48,33 +49,32 @@ import static org.jline.terminal.TerminalBuilder.PROP_CLOSE_MODE;
 public abstract class NonBlockingInputStream extends InputStream {
 
     /**
-     * A reader that supports timed reads using an OS-level mechanism such as
-     * {@code poll(2)}.
-     *
-     * <p>Implementations must return within the specified timeout, allowing the
-     * pump thread to be cancelled promptly when a consumer's timed read expires.
-     * This prevents the pump from stealing keystrokes from subprocesses that
-     * share the same tty (see <a href="https://github.com/jline/jline3/issues/2219">#2219</a>).</p>
-     */
-    @FunctionalInterface
-    public interface TimedReader {
-        /**
-         * Reads one byte, blocking for at most {@code timeoutMs} milliseconds.
-         *
-         * @param timeoutMs maximum time to wait; 0 returns immediately, &lt;0 waits forever
-         * @return 0–255 for data, {@link #EOF} (−1) on end-of-stream,
-         *         or {@link #READ_EXPIRED} (−2) if the timeout elapsed with no input
-         * @throws IOException on I/O error
-         */
-        int read(int timeoutMs) throws IOException;
-    }
-
-    /**
      * Default constructor.
      * Initializes close mode based on the current value of the system property.
      */
     public NonBlockingInputStream() {
         this.closeMode = parseCloseMode();
+    }
+
+    /**
+     * Sets a poll function that checks the underlying file descriptor for
+     * input readiness using an OS-level mechanism such as {@code poll(2)}.
+     *
+     * <p>When set, the pump thread uses short-timeout polls instead of an
+     * indefinite blocking read, allowing it to be cancelled promptly when a
+     * consumer's timed read expires.  This prevents the pump from stealing
+     * keystrokes from subprocesses that share the same tty fd
+     * (see <a href="https://github.com/jline/jline3/issues/2219">#2219</a>).</p>
+     *
+     * <p>Must be called before the first read.  The default implementation
+     * is a no-op; subclasses that support poll-based reads should override.</p>
+     *
+     * @param pollFn {@code (timeoutMs) → poll result}: positive if data is
+     *               ready, 0 on timeout, negative on error.  The fd must be
+     *               captured by the caller.  Pass {@code null} to disable.
+     */
+    public void setPollFunction(IntUnaryOperator pollFn) {
+        // Override in subclasses
     }
 
     /**

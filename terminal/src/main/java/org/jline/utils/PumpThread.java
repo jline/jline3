@@ -27,6 +27,11 @@ final class PumpThread {
     }
 
     @FunctionalInterface
+    interface TimedIoReader {
+        int read(int timeoutMs) throws IOException;
+    }
+
+    @FunctionalInterface
     interface ResultHandler {
         void accept(int value, IOException failure);
     }
@@ -134,7 +139,7 @@ final class PumpThread {
      * @param handler        callback that receives the result
      * @param logName        label for debug logging
      */
-    void runLoop(NonBlockingInputStream.TimedReader reader, int pollIntervalMs, ResultHandler handler, String logName) {
+    void runLoop(TimedIoReader reader, int pollIntervalMs, ResultHandler handler, String logName) {
         Log.debug(logName + " start (timed)");
         boolean needToRead;
 

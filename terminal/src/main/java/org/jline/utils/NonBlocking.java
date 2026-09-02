@@ -80,27 +80,6 @@ public class NonBlocking {
         return new NonBlockingInputStreamImpl(name, inputStream);
     }
 
-    /**
-     * Creates a non-blocking input stream backed by an optional timed reader.
-     *
-     * <p>When {@code timedReader} is non-null, the pump thread uses short-timeout
-     * reads (e.g. {@code poll(2)}-based) so that it can be cancelled promptly
-     * when a consumer's timed read expires.  This prevents the pump from stealing
-     * keystrokes from subprocesses that share the same tty fd.</p>
-     *
-     * @param name        stream name (used for the pump thread name)
-     * @param inputStream the underlying blocking input stream
-     * @param timedReader optional timed reader; {@code null} falls back to blocking reads
-     * @return a non-blocking input stream
-     */
-    public static NonBlockingInputStream nonBlocking(
-            String name, InputStream inputStream, NonBlockingInputStream.TimedReader timedReader) {
-        if (inputStream instanceof NonBlockingInputStream) {
-            return (NonBlockingInputStream) inputStream;
-        }
-        return new NonBlockingInputStreamImpl(name, inputStream, timedReader);
-    }
-
     public static NonBlockingReader nonBlocking(String name, Reader reader) {
         if (reader instanceof NonBlockingReader) {
             return (NonBlockingReader) reader;

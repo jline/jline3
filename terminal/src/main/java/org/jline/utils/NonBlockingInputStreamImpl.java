@@ -11,6 +11,7 @@ package org.jline.utils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
+import java.util.function.IntUnaryOperator;
 
 /**
  * This class wraps a regular input stream and allows it to appear as if it
@@ -32,7 +33,7 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
     private static final int POLL_INTERVAL_MS = 100;
 
     private InputStream in; // The actual input stream
-    private TimedReader timedReader; // Optional poll-based reader (non-null on POSIX sys terminals)
+    private IntUnaryOperator pollFn; // Optional poll function (non-null on POSIX sys terminals)
     private int b = READ_EXPIRED; // Recently read byte
 
     private String name;
@@ -49,27 +50,14 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
      */
     @SuppressWarnings("this-escape")
     public NonBlockingInputStreamImpl(String name, InputStream in) {
-        this(name, in, null);
-    }
-
-    /**
-     * Creates a <code>NonBlockingInputStream</code> with an optional timed reader.
-     *
-     * <p>When a {@code timedReader} is provided (typically backed by {@code poll(2)}
-     * on a tty fd), the pump thread uses short-timeout reads and can be cancelled
-     * promptly when the consumer's timed read expires.  This prevents the pump from
-     * stealing keystrokes from subprocesses that share the same tty.</p>
-     *
-     * @param name        stream name
-     * @param in          the stream to wrap
-     * @param timedReader optional timed reader; {@code null} falls back to blocking reads
-     */
-    @SuppressWarnings("this-escape")
-    public NonBlockingInputStreamImpl(String name, InputStream in, TimedReader timedReader) {
         this.in = in;
         this.name = name;
-        this.timedReader = timedReader;
         this.pump = new PumpThread(this, 60_000);
+    }
+
+    @Override
+    public void setPollFunction(IntUnaryOperator pollFn) {
+        this.pollFn = pollFn;
     }
 
     public void shutdown() {
@@ -167,7 +155,7 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
          * The pump will see reading==false at its next poll timeout (≤100 ms)
          * and return to the idle wait state without consuming a byte.
          */
-        if (b == READ_EXPIRED && pump.isReading() && timedReader != null) {
+        if (b == READ_EXPIRED && pump.isReading() && pollFn != null) {
             pump.setReading(false);
         }
 
@@ -189,8 +177,21 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
             exception = failure;
             b = value;
         };
-        if (timedReader != null) {
-            pump.runLoop(timedReader, POLL_INTERVAL_MS, handler, "NonBlockingInputStream");
+        if (pollFn != null) {
+            pump.runLoop(
+                    timeoutMs -> {
+                        int ret = pollFn.applyAsInt(timeoutMs);
+                        if (ret > 0) {
+                            return in.read();
+                        } else if (ret == 0) {
+                            return READ_EXPIRED;
+                        } else {
+                            throw new IOException("poll() failed on stdin");
+                        }
+                    },
+                    POLL_INTERVAL_MS,
+                    handler,
+                    "NonBlockingInputStream");
         } else {
             pump.runLoop(in::read, handler, "NonBlockingInputStream");
         }
