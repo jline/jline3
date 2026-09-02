@@ -180,7 +180,12 @@ public class NonBlockingInputStreamImpl extends NonBlockingInputStream {
         if (pollFn != null) {
             pump.runLoop(
                     timeoutMs -> {
-                        int ret = pollFn.applyAsInt(timeoutMs);
+                        int ret;
+                        try {
+                            ret = pollFn.applyAsInt(timeoutMs);
+                        } catch (RuntimeException e) {
+                            throw new IOException("poll() failed on stdin", e);
+                        }
                         if (ret > 0) {
                             return in.read();
                         } else if (ret == 0) {
