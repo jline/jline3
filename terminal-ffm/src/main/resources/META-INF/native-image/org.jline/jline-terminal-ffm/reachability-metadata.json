@@ -101,6 +101,10 @@
         "options": {
           "firstVariadicArg": 2
         }
+      },
+      {
+        "returnType": "int",
+        "parameterTypes": ["void*", "int", "int"]
       }
     ]
   }
