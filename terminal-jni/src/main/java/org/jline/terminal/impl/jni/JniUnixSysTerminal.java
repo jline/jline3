@@ -76,7 +76,7 @@ public class JniUnixSysTerminal extends AbstractUnixSysTerminal {
 
     @Override
     protected IntUnaryOperator createPollFunction() {
-        return timeoutMs -> CLibrary.pollIn(STDIN_FD, timeoutMs);
+        return timeoutMs -> CLibrary.pollForInput(STDIN_FD, timeoutMs);
     }
 
     @Override

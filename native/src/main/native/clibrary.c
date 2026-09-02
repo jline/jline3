@@ -246,7 +246,7 @@ JNIEXPORT jstring JNICALL CLibrary_NATIVE(ttyname)
  * @param timeoutMs timeout in milliseconds; 0 = immediate, -1 = infinite
  * @return positive if data is ready, 0 on timeout, -1 on permanent error
  */
-JNIEXPORT jint JNICALL CLibrary_NATIVE(pollIn)
+JNIEXPORT jint JNICALL CLibrary_NATIVE(pollForInput)
 	(JNIEnv *env, jclass that, jint fd, jint timeoutMs)
 {
 	struct pollfd pfd;

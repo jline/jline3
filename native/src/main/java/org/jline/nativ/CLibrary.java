@@ -65,7 +65,7 @@ public class CLibrary {
      * @param timeoutMs timeout in milliseconds; 0 = immediate, −1 = infinite
      * @return positive if data is ready, 0 on timeout, −1 on permanent error
      */
-    public static native int pollIn(int fd, int timeoutMs);
+    public static native int pollForInput(int fd, int timeoutMs);
 
     public static native String ttyname(int filedes);
 

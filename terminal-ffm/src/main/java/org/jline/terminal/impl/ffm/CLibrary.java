@@ -284,17 +284,19 @@ class CLibrary {
      *   short revents;  // returned events
      * </pre>
      */
-    static class pollfd {
+    static class PollFd {
         static final GroupLayout LAYOUT = MemoryLayout.structLayout(
                 ValueLayout.JAVA_INT.withName("fd"),
                 ValueLayout.JAVA_SHORT.withName("events"),
                 ValueLayout.JAVA_SHORT.withName("revents"));
-        private static final VarHandle fd =
+        private static final VarHandle FD =
                 FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("fd"));
-        private static final VarHandle events =
+        private static final VarHandle EVENTS =
                 FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("events"));
-        private static final VarHandle revents =
+        private static final VarHandle REVENTS =
                 FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("revents"));
+
+        private PollFd() {}
     }
 
     /** POSIX POLLIN constant (0x0001 on all supported platforms). */
@@ -516,16 +518,16 @@ class CLibrary {
      * @param timeoutMs timeout in milliseconds; 0 = immediate, −1 = infinite
      * @return positive if data is ready, 0 on timeout, −1 on permanent error
      */
-    static int pollIn(int fd, int timeoutMs) {
+    static int pollForInput(int fd, int timeoutMs) {
         try (Arena arena = Arena.ofConfined()) {
-            MemorySegment pfd = arena.allocate(pollfd.LAYOUT);
-            pollfd.fd.set(pfd, fd);
-            pollfd.events.set(pfd, POLLIN);
+            MemorySegment pfd = arena.allocate(PollFd.LAYOUT);
+            PollFd.FD.set(pfd, fd);
+            PollFd.EVENTS.set(pfd, POLLIN);
 
             int rc;
             int retries = 0;
             do {
-                pollfd.revents.set(pfd, (short) 0);
+                PollFd.REVENTS.set(pfd, (short) 0);
                 if (OSUtils.IS_LINUX || OSUtils.IS_AIX) {
                     rc = (int) pollHandle.invoke(pfd, 1L, timeoutMs);
                 } else {

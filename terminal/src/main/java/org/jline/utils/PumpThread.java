@@ -102,55 +102,13 @@ final class PumpThread {
      */
     void runLoop(TimedIoReader reader, int pollIntervalMs, ResultHandler handler, String logName) {
         Log.debug(logName + " start");
-        boolean needToRead;
 
         try {
             while (true) {
-                // ── idle wait ──────────────────────────────────────────
-                synchronized (lock) {
-                    needToRead = reading;
-                    try {
-                        if (!needToRead) {
-                            lock.wait(idleTimeout);
-                        }
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        return;
-                    }
-                    needToRead = reading;
-                    if (!needToRead) {
-                        return;
-                    }
+                if (!awaitReadRequest()) {
+                    return;
                 }
-
-                // ── timed read loop ────────────────────────────────────
-                // Poll in short intervals; between polls, check whether
-                // the consumer cancelled this read request.
-                int value = NonBlockingInputStream.READ_EXPIRED;
-                IOException failure = null;
-                try {
-                    while (true) {
-                        value = reader.read(pollIntervalMs);
-                        if (value != NonBlockingInputStream.READ_EXPIRED) {
-                            break; // data, EOF, or error
-                        }
-                        synchronized (lock) {
-                            if (!reading) {
-                                break; // consumer cancelled
-                            }
-                        }
-                    }
-                } catch (IOException e) {
-                    failure = e;
-                }
-
-                synchronized (lock) {
-                    if (value != NonBlockingInputStream.READ_EXPIRED || failure != null) {
-                        handler.accept(value, failure);
-                    }
-                    reading = false;
-                    lock.notifyAll();
-                }
+                readAndDispatch(reader, pollIntervalMs, handler);
             }
         } catch (Throwable t) {
             Log.warn("Error in " + logName + " thread", t);
@@ -158,6 +116,67 @@ final class PumpThread {
             Log.debug(logName + " shutdown");
             synchronized (lock) {
                 clearThread();
+            }
+        }
+    }
+
+    /**
+     * Blocks until the consumer requests a read, or the idle timeout expires.
+     *
+     * @return {@code true} if a read was requested, {@code false} if the thread
+     *         should exit (idle timeout or interruption)
+     */
+    private boolean awaitReadRequest() {
+        synchronized (lock) {
+            if (!reading) {
+                try {
+                    lock.wait(idleTimeout);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return false;
+                }
+            }
+            return reading;
+        }
+    }
+
+    /**
+     * Performs a single timed read and dispatches the result to the handler.
+     */
+    private void readAndDispatch(TimedIoReader reader, int pollIntervalMs, ResultHandler handler) {
+        int value = NonBlockingInputStream.READ_EXPIRED;
+        IOException failure = null;
+        try {
+            value = timedRead(reader, pollIntervalMs);
+        } catch (IOException e) {
+            failure = e;
+        }
+
+        synchronized (lock) {
+            if (value != NonBlockingInputStream.READ_EXPIRED || failure != null) {
+                handler.accept(value, failure);
+            }
+            reading = false;
+            lock.notifyAll();
+        }
+    }
+
+    /**
+     * Polls in short intervals until data arrives or the consumer cancels.
+     *
+     * @return the byte/char read, {@link NonBlockingInputStream#EOF EOF}, or
+     *         {@link NonBlockingInputStream#READ_EXPIRED READ_EXPIRED} if cancelled
+     */
+    private int timedRead(TimedIoReader reader, int pollIntervalMs) throws IOException {
+        while (true) {
+            int value = reader.read(pollIntervalMs);
+            if (value != NonBlockingInputStream.READ_EXPIRED) {
+                return value;
+            }
+            synchronized (lock) {
+                if (!reading) {
+                    return NonBlockingInputStream.READ_EXPIRED;
+                }
             }
         }
     }
