@@ -20,7 +20,6 @@ import org.jline.terminal.impl.AbstractUnixSysTerminal;
 import org.jline.terminal.impl.TermiosMapping;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
-import org.jline.utils.NonBlockingInputStream;
 import org.jline.utils.NonBlockingInputStream.TimedReader;
 
 import static org.jline.terminal.impl.TermiosData.TCSANOW;
@@ -78,16 +77,7 @@ public class JniUnixSysTerminal extends AbstractUnixSysTerminal {
 
     @Override
     protected TimedReader createTimedStdinReader(InputStream stdin) {
-        return (timeoutMs) -> {
-            int ret = CLibrary.pollIn(STDIN_FD, timeoutMs);
-            if (ret > 0) {
-                return stdin.read();
-            } else if (ret == 0) {
-                return NonBlockingInputStream.READ_EXPIRED;
-            } else {
-                throw new IOException("poll() failed on stdin");
-            }
-        };
+        return newPollTimedReader(stdin, CLibrary::pollIn);
     }
 
     @Override

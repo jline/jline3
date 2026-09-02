@@ -19,6 +19,7 @@ import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.IntBinaryOperator;
 import java.util.function.IntConsumer;
 
 import org.jline.terminal.Attributes;
@@ -176,12 +177,43 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
      * implementation (FFM or JNI).  The default returns {@code null}, which
      * falls back to blocking reads and preserves backward compatibility.</p>
      *
+     * <p>Subclasses that have a {@code poll(2)} binding can delegate to
+     * {@link #newPollTimedReader(InputStream, IntBinaryOperator)} to avoid
+     * duplicating the poll-result → TimedReader conversion logic.</p>
+     *
      * @param stdin the wrapped stdin input stream (may be a
      *              {@link SignalInterceptingInputStream})
      * @return a timed reader, or {@code null} if poll-based reads are not available
      */
     protected TimedReader createTimedStdinReader(InputStream stdin) {
         return null;
+    }
+
+    /**
+     * Builds a {@link TimedReader} from a raw {@code poll(2)} function,
+     * converting poll results into the TimedReader contract.
+     *
+     * <p>This helper eliminates duplication across FFM and JNI subclasses.
+     * Subclasses override {@link #createTimedStdinReader(InputStream)} and
+     * delegate here, passing their platform-specific {@code pollIn} binding
+     * as a method reference (e.g. {@code CLibrary::pollIn}).</p>
+     *
+     * @param stdin  the wrapped stdin stream
+     * @param pollFn {@code (fd, timeoutMs) → poll result}: positive if data is
+     *               ready, 0 on timeout, negative on error
+     * @return a timed reader that polls then reads
+     */
+    protected TimedReader newPollTimedReader(InputStream stdin, IntBinaryOperator pollFn) {
+        return (timeoutMs) -> {
+            int ret = pollFn.applyAsInt(STDIN_FD, timeoutMs);
+            if (ret > 0) {
+                return stdin.read();
+            } else if (ret == 0) {
+                return NonBlockingInputStream.READ_EXPIRED;
+            } else {
+                throw new IOException("poll() failed on stdin");
+            }
+        };
     }
 
     @Override
