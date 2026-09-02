@@ -106,7 +106,7 @@
         "returnType": "int",
         "parameterTypes": ["void*", "int", "int"],
         "options": {
-          "captureCallState": ["errno"]
+          "captureCallState": true
         }
       }
     ]
