@@ -716,6 +716,9 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
     @Override
     public boolean trackMouse(MouseTracking tracking) {
         this.tracking = tracking;
+        if (tracking == MouseTracking.Off) {
+            lastButtonState = 0;
+        }
         updateConsoleMode();
         return true;
     }
@@ -771,8 +774,9 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
             } else if (pressed != 0) {
                 cb = buttonBitToCode(pressed);
             } else {
-                // No transition detected; report current state
-                cb = buttonBitToCode(dwButtonState & BUTTON_MASK);
+                // No supported button transitioned (e.g. 4th/5th button); update state and skip
+                lastButtonState = dwButtonState;
+                return;
             }
         } else {
             // Motion — report currently held button
