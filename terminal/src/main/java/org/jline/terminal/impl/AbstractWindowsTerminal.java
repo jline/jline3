@@ -748,9 +748,7 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
      * @throws IOException if the write fails
      */
     protected void processMouseEvent(int dwEventFlags, int dwButtonState, int cx, int cy) throws IOException {
-        if (tracking == MouseTracking.Off
-                || tracking == MouseTracking.Normal && dwEventFlags == MOUSE_FLAG_MOVED
-                || tracking == MouseTracking.Button && dwEventFlags == MOUSE_FLAG_MOVED && dwButtonState == 0) {
+        if (shouldIgnoreMouseEvent(dwEventFlags, dwButtonState)) {
             return;
         }
         int cb = 0;
@@ -799,6 +797,12 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
         if ((buttonBit & BUTTON_RIGHT) != 0) return 1;
         if ((buttonBit & BUTTON_MIDDLE) != 0) return 2;
         return 0;
+    }
+
+    private boolean shouldIgnoreMouseEvent(int dwEventFlags, int dwButtonState) {
+        return tracking == MouseTracking.Off
+                || tracking == MouseTracking.Normal && dwEventFlags == MOUSE_FLAG_MOVED
+                || tracking == MouseTracking.Button && dwEventFlags == MOUSE_FLAG_MOVED && dwButtonState == 0;
     }
 
     protected abstract int getConsoleMode(Console console);
