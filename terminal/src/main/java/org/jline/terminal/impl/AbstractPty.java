@@ -17,7 +17,7 @@ import java.io.InterruptedIOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.function.IntUnaryOperator;
 
 import org.jline.nativ.JLineLibrary;
 import org.jline.nativ.JLineNativeLoader;
@@ -129,12 +129,35 @@ public abstract class AbstractPty implements Pty {
         return systemStream;
     }
 
+    /**
+     * Creates a poll function for the slave file descriptor.
+     *
+     * <p>When non-null, the returned function checks the slave fd for input
+     * readiness using an OS-level mechanism such as {@code poll(2)}.  This
+     * replaces the fragile VMIN/VTIME timing heuristic in {@link PtyInputStream}
+     * with a kernel-enforced timeout that works reliably on PTY file descriptors.</p>
+     *
+     * <p>Subclasses that have access to the slave fd number should override this
+     * to provide a platform-specific binding (FFM or JNI).  The default returns
+     * {@code null}, which falls back to the VMIN/VTIME heuristic for backward
+     * compatibility.</p>
+     *
+     * @return {@code (timeoutMs) → poll result}: positive if data is ready,
+     *         0 on timeout, negative on error; or {@code null} if poll is
+     *         not available
+     */
+    protected IntUnaryOperator createSlavePollFunction() {
+        return null;
+    }
+
     class PtyInputStream extends NonBlockingInputStream {
         final InputStream in;
+        final IntUnaryOperator pollFn;
         int c = 0;
 
         PtyInputStream(InputStream in) {
             this.in = in;
+            this.pollFn = createSlavePollFunction();
         }
 
         @Override
@@ -147,11 +170,31 @@ public abstract class AbstractPty implements Pty {
                     c = 0;
                 }
                 return r;
+            }
+            if (pollFn != null) {
+                return readWithPoll(timeout, isPeek);
             } else {
-                setNonBlocking();
-                long start = System.nanoTime();
-                while (true) {
-                    long readStart = System.nanoTime();
+                return readWithVtime(timeout, isPeek);
+            }
+        }
+
+        /**
+         * Poll-based read: uses {@code poll(2)} to wait for data readiness,
+         * then reads without risk of blocking. No VMIN/VTIME manipulation
+         * needed — poll provides its own kernel-enforced timeout.
+         */
+        private int readWithPoll(long timeout, boolean isPeek) throws IOException {
+            long deadline = timeout > 0 ? System.currentTimeMillis() + timeout : 0;
+            while (true) {
+                int remaining = timeout > 0 ? (int) Math.max(1, deadline - System.currentTimeMillis()) : 100;
+                int pollResult;
+                try {
+                    pollResult = pollFn.applyAsInt(remaining);
+                } catch (RuntimeException e) {
+                    return -1; // poll error → treat as EOF
+                }
+                if (pollResult > 0) {
+                    // Data ready — read() will not block
                     int r = in.read();
                     if (r >= 0) {
                         if (isPeek) {
@@ -159,18 +202,48 @@ public abstract class AbstractPty implements Pty {
                         }
                         return r;
                     }
-                    // r == -1: could be real EOF or VMIN=0/VTIME=1 timeout on a real PTY.
-                    // With VTIME=1 (100ms), a timeout takes ~100ms to return -1.
-                    // Real EOF (pipe closed, PTY slave closed) returns -1 instantly.
-                    long readElapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - readStart);
-                    if (readElapsed < 50) {
-                        return -1;
+                    return -1; // EOF
+                } else if (pollResult < 0) {
+                    return -1; // poll error → EOF
+                }
+                // pollResult == 0: timeout
+                checkInterrupted();
+                if (timeout > 0 && System.currentTimeMillis() >= deadline) {
+                    return NonBlockingInputStream.READ_EXPIRED;
+                }
+                if (timeout == 0) {
+                    return NonBlockingInputStream.READ_EXPIRED;
+                }
+            }
+        }
+
+        /**
+         * Legacy VMIN/VTIME-based read for terminals without poll(2) support.
+         * Uses a timing heuristic: real EOF returns from {@code read()} in
+         * under 50ms, while a VTIME=1 timeout takes ~100ms.
+         */
+        private int readWithVtime(long timeout, boolean isPeek) throws IOException {
+            setNonBlocking();
+            long startMs = System.currentTimeMillis();
+            while (true) {
+                long readStart = System.nanoTime();
+                int r = in.read();
+                if (r >= 0) {
+                    if (isPeek) {
+                        c = r;
                     }
-                    checkInterrupted();
-                    long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-                    if (timeout > 0 && elapsed > timeout) {
-                        return NonBlockingInputStream.READ_EXPIRED;
-                    }
+                    return r;
+                }
+                // r == -1: could be real EOF or VMIN=0/VTIME=1 timeout on a real PTY.
+                // With VTIME=1 (100ms), a timeout takes ~100ms to return -1.
+                // Real EOF (pipe closed, PTY slave closed) returns -1 instantly.
+                long readElapsedMs = (System.nanoTime() - readStart) / 1_000_000L;
+                if (readElapsedMs < 50) {
+                    return -1;
+                }
+                checkInterrupted();
+                if (timeout > 0 && (System.currentTimeMillis() - startMs) > timeout) {
+                    return NonBlockingInputStream.READ_EXPIRED;
                 }
             }
         }

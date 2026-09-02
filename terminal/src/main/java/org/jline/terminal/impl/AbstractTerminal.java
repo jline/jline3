@@ -442,6 +442,23 @@ public abstract class AbstractTerminal implements TerminalExt {
 
     // ---- Terminal mode batch probing ----
 
+    /**
+     * Returns {@code true} if the terminal's input stream uses {@code poll(2)}
+     * or an equivalent mechanism to enforce read timeouts.
+     *
+     * <p>When poll is available, the probe code can run synchronously on the
+     * calling thread because {@code read(timeout)} will reliably return within
+     * the specified time even on PTY file descriptors. When poll is NOT available,
+     * the probe must use a daemon thread with a hard deadline to break out of
+     * potentially blocking reads (see {@link #ensureModesProbed()}).</p>
+     *
+     * <p>The default returns {@code false}. Subclasses that wire poll into
+     * their input streams should override.</p>
+     */
+    protected boolean hasPollSupport() {
+        return false;
+    }
+
     @Override
     public boolean isModeSupported(Mode mode) {
         ensureModesProbed();
@@ -505,13 +522,6 @@ public abstract class AbstractTerminal implements TerminalExt {
 
                 long probeTimeout = getLongProperty(TerminalBuilder.PROP_PROBE_TIMEOUT, 200);
                 long drainTimeout = getLongProperty(TerminalBuilder.PROP_DRAIN_TIMEOUT, 25);
-                // Hard deadline = probe timeout + drain timeout + 500 ms safety margin.
-                // The Java-level timeouts inside readProbeChar/readTerminalResponse should
-                // normally be sufficient, but when the native read() on a PTY fd blocks
-                // despite VMIN=0/VTIME=0 (#2209), the Java timeout is never reached.
-                // The hard deadline breaks out of that state via Thread.join(timeout).
-                // Saturating addition prevents overflow when properties are very large.
-                long hardDeadline = saturatingAdd(probeTimeout, drainTimeout, 500);
 
                 Attributes prev = getAttributes();
                 Attributes probeAttrs = new Attributes(prev);
@@ -520,50 +530,51 @@ public abstract class AbstractTerminal implements TerminalExt {
                 probeAttrs.setControlChar(ControlChar.VTIME, 0);
                 setAttributes(probeAttrs);
 
-                // Track whether the probe completed before the hard deadline.
-                // The probe thread only publishes results and restores attributes
-                // when it finishes cleanly; a timed-out/interrupted probe leaves
-                // cleanup to the calling thread.
-                AtomicBoolean probeCompleted = new AtomicBoolean(false);
-                Thread probeThread = new Thread(
-                        () -> {
-                            try {
-                                probeModes();
-                                // Only mark completed if the calling thread has not
-                                // interrupted us. The interrupt flag signals that the
-                                // caller timed out and has taken over cleanup.
-                                if (!Thread.currentThread().isInterrupted()) {
-                                    probeCompleted.set(true);
+                if (hasPollSupport()) {
+                    // poll(2) guarantees that read timeouts are enforced even on
+                    // PTY fds, so we can probe synchronously without a daemon thread.
+                    try {
+                        probeModes();
+                    } finally {
+                        drainInput(reader(), drainTimeout, -1);
+                        setAttributes(prev);
+                    }
+                } else {
+                    // Without poll, native read() on a PTY fd may block despite
+                    // VMIN=0/VTIME=0 (#2209).  Use a daemon thread with a hard
+                    // deadline to break out of that state.
+                    long hardDeadline = saturatingAdd(probeTimeout, drainTimeout, 500);
+                    AtomicBoolean probeCompleted = new AtomicBoolean(false);
+                    Thread probeThread = new Thread(
+                            () -> {
+                                try {
+                                    probeModes();
+                                    if (!Thread.currentThread().isInterrupted()) {
+                                        probeCompleted.set(true);
+                                    }
+                                } finally {
+                                    if (probeCompleted.get()) {
+                                        drainInput(reader(), drainTimeout, -1);
+                                        setAttributes(prev);
+                                    }
                                 }
-                            } finally {
-                                // Drain and restore only when the probe completed
-                                // before the caller's hard deadline. A timed-out
-                                // probe must not restore stale attributes that the
-                                // calling thread has already corrected.
-                                if (probeCompleted.get()) {
-                                    drainInput(reader(), drainTimeout, -1);
-                                    setAttributes(prev);
-                                }
-                            }
-                        },
-                        getName() + " probe");
-                probeThread.setDaemon(true);
-                probeThread.start();
-                try {
-                    probeThread.join(hardDeadline);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-                if (!probeCompleted.get()) {
-                    // Probe did not complete in time — interrupt the thread
-                    // (best effort), discard any partial results, and restore
-                    // terminal attributes from the calling thread.
-                    probeThread.interrupt();
-                    modeProbeResults.clear();
-                    setAttributes(prev);
-                    if (probeThread.isAlive()) {
-                        Log.debug("Terminal probe timed out on " + getName()
-                                + " — native read may be stuck on a PTY fd (#2209)");
+                            },
+                            getName() + " probe");
+                    probeThread.setDaemon(true);
+                    probeThread.start();
+                    try {
+                        probeThread.join(hardDeadline);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    if (!probeCompleted.get()) {
+                        probeThread.interrupt();
+                        modeProbeResults.clear();
+                        setAttributes(prev);
+                        if (probeThread.isAlive()) {
+                            Log.debug("Terminal probe timed out on " + getName()
+                                    + " — native read may be stuck on a PTY fd (#2209)");
+                        }
                     }
                 }
             } finally {
