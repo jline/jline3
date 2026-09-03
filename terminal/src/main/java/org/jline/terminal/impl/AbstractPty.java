@@ -192,10 +192,11 @@ public abstract class AbstractPty implements Pty {
                 }
                 return r;
             }
+            long timeoutNanos = timeout > 0 ? timeout * 1_000_000L : 0;
             if (pollFn != null) {
-                return readWithPoll(timeout, isPeek);
+                return readWithPoll(timeoutNanos, isPeek);
             } else {
-                return readWithVtime(timeout, isPeek);
+                return readWithVtime(timeoutNanos, isPeek);
             }
         }
 
@@ -203,15 +204,17 @@ public abstract class AbstractPty implements Pty {
          * Poll-based read: uses {@code poll(2)} to wait for data readiness,
          * then reads without risk of blocking. No VMIN/VTIME manipulation
          * needed — poll provides its own kernel-enforced timeout.
+         *
+         * @param timeoutNanos timeout in nanoseconds; {@code 0} means wait forever
          */
-        private int readWithPoll(long timeout, boolean isPeek) throws IOException {
-            long timeoutNanos = timeout > 0 ? timeout * 1_000_000L : 0;
-            long deadline = timeout > 0 ? System.nanoTime() + timeoutNanos : 0;
+        private int readWithPoll(long timeoutNanos, boolean isPeek) throws IOException {
+            long deadline = timeoutNanos > 0 ? System.nanoTime() + timeoutNanos : 0;
             while (true) {
-                long remainingMs =
-                        timeout > 0 ? Math.max(1, (deadline - System.nanoTime() + 999_999) / 1_000_000) : 100;
-                int remaining = (int) Math.min(remainingMs, Integer.MAX_VALUE);
-                int pollResult = doPoll(remaining);
+                long remainingNanos = timeoutNanos > 0 ? Math.max(1_000_000L, deadline - System.nanoTime()) : 0;
+                int remainingMs = timeoutNanos > 0
+                        ? (int) Math.min((remainingNanos + 999_999) / 1_000_000, Integer.MAX_VALUE)
+                        : 100;
+                int pollResult = doPoll(remainingMs);
                 if (pollResult > 0) {
                     return readAvailable(isPeek);
                 } else if (pollResult < 0) {
@@ -219,10 +222,10 @@ public abstract class AbstractPty implements Pty {
                 }
                 // pollResult == 0: timeout — check if we should keep waiting
                 checkInterrupted();
-                if (timeout > 0 && System.nanoTime() >= deadline) {
+                if (timeoutNanos > 0 && System.nanoTime() >= deadline) {
                     return NonBlockingInputStream.READ_EXPIRED;
                 }
-                // timeout <= 0 means "wait forever" — loop again
+                // timeoutNanos <= 0 means "wait forever" — loop again
             }
         }
 
@@ -248,10 +251,12 @@ public abstract class AbstractPty implements Pty {
          * Legacy VMIN/VTIME-based read for terminals without poll(2) support.
          * Uses a timing heuristic: real EOF returns from {@code read()} in
          * under 50ms, while a VTIME=1 timeout takes ~100ms.
+         *
+         * @param timeoutNanos timeout in nanoseconds; {@code 0} means wait forever
          */
-        private int readWithVtime(long timeout, boolean isPeek) throws IOException {
+        private int readWithVtime(long timeoutNanos, boolean isPeek) throws IOException {
             setNonBlocking();
-            long startNanos = System.nanoTime();
+            long deadline = timeoutNanos > 0 ? System.nanoTime() + timeoutNanos : 0;
             while (true) {
                 long readStart = System.nanoTime();
                 int r = in.read();
@@ -264,12 +269,12 @@ public abstract class AbstractPty implements Pty {
                 // r == -1: could be real EOF or VMIN=0/VTIME=1 timeout on a real PTY.
                 // With VTIME=1 (100ms), a timeout takes ~100ms to return -1.
                 // Real EOF (pipe closed, PTY slave closed) returns -1 instantly.
-                long readElapsedMs = (System.nanoTime() - readStart) / 1_000_000L;
-                if (readElapsedMs < 50) {
+                long readElapsedNanos = System.nanoTime() - readStart;
+                if (readElapsedNanos < 50_000_000L) {
                     return -1;
                 }
                 checkInterrupted();
-                if (timeout > 0 && (System.nanoTime() - startNanos) / 1_000_000L > timeout) {
+                if (timeoutNanos > 0 && System.nanoTime() >= deadline) {
                     return NonBlockingInputStream.READ_EXPIRED;
                 }
             }
