@@ -196,9 +196,11 @@ public abstract class AbstractPty implements Pty {
          * needed — poll provides its own kernel-enforced timeout.
          */
         private int readWithPoll(long timeout, boolean isPeek) throws IOException {
-            long deadline = timeout > 0 ? System.currentTimeMillis() + timeout : 0;
+            long timeoutNanos = timeout > 0 ? timeout * 1_000_000L : 0;
+            long deadline = timeout > 0 ? System.nanoTime() + timeoutNanos : 0;
             while (true) {
-                long remainingMs = timeout > 0 ? Math.max(1, deadline - System.currentTimeMillis()) : 100;
+                long remainingMs =
+                        timeout > 0 ? Math.max(1, (deadline - System.nanoTime() + 999_999) / 1_000_000) : 100;
                 int remaining = (int) Math.min(remainingMs, Integer.MAX_VALUE);
                 int pollResult = doPoll(remaining);
                 if (pollResult > 0) {
@@ -208,7 +210,7 @@ public abstract class AbstractPty implements Pty {
                 }
                 // pollResult == 0: timeout — check if we should keep waiting
                 checkInterrupted();
-                if (timeout > 0 && System.currentTimeMillis() >= deadline) {
+                if (timeout > 0 && System.nanoTime() >= deadline) {
                     return NonBlockingInputStream.READ_EXPIRED;
                 }
                 // timeout <= 0 means "wait forever" — loop again
