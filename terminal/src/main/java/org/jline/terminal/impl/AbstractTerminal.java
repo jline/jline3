@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
@@ -42,6 +43,7 @@ import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.Log;
 import org.jline.utils.NonBlockingReader;
 import org.jline.utils.Status;
+import org.jline.utils.Timeout;
 import org.jline.utils.WCWidth;
 
 /**
@@ -951,23 +953,23 @@ public abstract class AbstractTerminal implements TerminalExt {
      */
     private int readCprColumn(long timeout) throws IOException {
         NonBlockingReader in = reader();
-        // Use a single wall-clock deadline so the spurious EOF a non-blocking
+        // Use a single monotonic deadline so the spurious EOF a non-blocking
         // slave-tty read produces while the CPR reply is in flight does not abort
         // the read early (see readProbeChar).
-        long deadline = System.currentTimeMillis() + timeout;
+        long deadlineNanos = Timeout.saturatingAddNanos(System.nanoTime(), TimeUnit.MILLISECONDS.toNanos(timeout));
         int c;
         // Skip until ESC
-        while ((c = readProbeChar(in, deadline)) != '\033') {
+        while ((c = readProbeChar(in, deadlineNanos)) != '\033') {
             if (c < 0) return -1;
         }
-        if (readProbeChar(in, deadline) != '[') return -1;
+        if (readProbeChar(in, deadlineNanos) != '[') return -1;
         // Skip row digits until ';'
-        while ((c = readProbeChar(in, deadline)) != ';') {
+        while ((c = readProbeChar(in, deadlineNanos)) != ';') {
             if (c < 0 || c == 'R') return -1;
         }
         // Read column digits until 'R'
         int col = 0;
-        while ((c = readProbeChar(in, deadline)) != 'R') {
+        while ((c = readProbeChar(in, deadlineNanos)) != 'R') {
             if (c < '0' || c > '9') return -1;
             col = col * 10 + (c - '0');
         }
@@ -1003,16 +1005,18 @@ public abstract class AbstractTerminal implements TerminalExt {
      *
      * @return a character {@code >= 0}, or {@code -1} once the deadline elapses
      */
-    static int readProbeChar(NonBlockingReader in, long deadline) throws IOException {
-        long remaining;
-        while ((remaining = deadline - System.currentTimeMillis()) > 0) {
-            int c = in.read(remaining);
+    static int readProbeChar(NonBlockingReader in, long deadlineNanos) throws IOException {
+        long remainingNanos;
+        while ((remainingNanos = deadlineNanos - System.nanoTime()) > 0) {
+            long remainingMs = TimeUnit.NANOSECONDS.toMillis(remainingNanos);
+            int c = in.read(Math.max(1, remainingMs));
             if (c >= 0) {
                 return c;
             }
             // EOF (-1) or READ_EXPIRED (-2): no data yet, pace the poll and retry.
             try {
-                Thread.sleep(Math.min(2, remaining));
+                long paceMs = Math.max(1, Math.min(2, remainingMs));
+                Thread.sleep(paceMs);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return -1;
@@ -1024,11 +1028,12 @@ public abstract class AbstractTerminal implements TerminalExt {
     String readTerminalResponse() {
         long initialTimeout = getLongProperty(TerminalBuilder.PROP_PROBE_TIMEOUT, 200);
         NonBlockingReader in = reader();
-        long deadline = System.currentTimeMillis() + initialTimeout;
+        long deadlineNanos =
+                Timeout.saturatingAddNanos(System.nanoTime(), TimeUnit.MILLISECONDS.toNanos(initialTimeout));
         StringBuilder response = new StringBuilder();
         try {
             int c;
-            while ((c = readProbeChar(in, deadline)) >= 0) {
+            while ((c = readProbeChar(in, deadlineNanos)) >= 0) {
                 response.append((char) c);
 
                 // Complete DA1 response: ESC[?...c or ESC[...c
@@ -1047,9 +1052,10 @@ public abstract class AbstractTerminal implements TerminalExt {
 
     static void drainInput(NonBlockingReader reader, long overallTimeoutMs, int stopChar) {
         try {
-            long deadline = System.currentTimeMillis() + overallTimeoutMs;
+            long deadlineNanos =
+                    Timeout.saturatingAddNanos(System.nanoTime(), TimeUnit.MILLISECONDS.toNanos(overallTimeoutMs));
             int c;
-            while ((c = readProbeChar(reader, deadline)) >= 0) {
+            while ((c = readProbeChar(reader, deadlineNanos)) >= 0) {
                 if (c == stopChar) return;
             }
         } catch (IOException ignored) {
