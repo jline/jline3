@@ -242,7 +242,7 @@ public abstract class AbstractPty implements Pty {
          */
         private int readWithVtime(long timeout, boolean isPeek) throws IOException {
             setNonBlocking();
-            long startMs = System.currentTimeMillis();
+            long startNanos = System.nanoTime();
             while (true) {
                 long readStart = System.nanoTime();
                 int r = in.read();
@@ -260,7 +260,7 @@ public abstract class AbstractPty implements Pty {
                     return -1;
                 }
                 checkInterrupted();
-                if (timeout > 0 && (System.currentTimeMillis() - startMs) > timeout) {
+                if (timeout > 0 && (System.nanoTime() - startNanos) / 1_000_000L > timeout) {
                     return NonBlockingInputStream.READ_EXPIRED;
                 }
             }

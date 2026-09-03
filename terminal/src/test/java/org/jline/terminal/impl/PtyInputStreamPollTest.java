@@ -69,14 +69,14 @@ class PtyInputStreamPollTest {
                 // no data, open  → sleep up to timeout, return 0
                 return timeoutMs -> {
                     try {
-                        long deadline = System.currentTimeMillis() + timeoutMs;
+                        long deadlineNanos = System.nanoTime() + timeoutMs * 1_000_000L;
                         do {
                             if (pipedIn.available() > 0 || writerClosed.get()) {
                                 return 1;
                             }
-                            LockSupport.parkNanos(
-                                    Math.min(5, Math.max(1, deadline - System.currentTimeMillis())) * 1_000_000L);
-                        } while (System.currentTimeMillis() < deadline);
+                            long remainNanos = deadlineNanos - System.nanoTime();
+                            LockSupport.parkNanos(Math.min(5_000_000L, Math.max(1_000_000L, remainNanos)));
+                        } while (System.nanoTime() < deadlineNanos);
                         return writerClosed.get() ? 1 : 0;
                     } catch (Exception e) {
                         return 1;
@@ -165,12 +165,12 @@ class PtyInputStreamPollTest {
         NonBlockingInputStream nbis = (NonBlockingInputStream) slaveInput;
 
         // No data written — should timeout and return READ_EXPIRED
-        long start = System.currentTimeMillis();
+        long startNanos = System.nanoTime();
         int result = nbis.read(100);
-        long elapsed = System.currentTimeMillis() - start;
+        long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000L;
 
         assertEquals(NonBlockingInputStream.READ_EXPIRED, result);
-        assertTrue(elapsed >= 50, "Timeout should have waited at least 50ms, was " + elapsed + "ms");
+        assertTrue(elapsedMs >= 50, "Timeout should have waited at least 50ms, was " + elapsedMs + "ms");
     }
 
     @Test
