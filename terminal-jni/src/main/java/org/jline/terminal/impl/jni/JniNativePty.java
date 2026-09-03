@@ -14,6 +14,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.function.IntUnaryOperator;
 
 import org.jline.nativ.CLibrary;
 import org.jline.nativ.Kernel32;
@@ -91,6 +92,18 @@ public abstract class JniNativePty extends AbstractPty implements Pty {
         if (slave > 0) {
             getSlaveInput().close();
         }
+    }
+
+    @Override
+    protected IntUnaryOperator createSlavePollFunction() {
+        try {
+            // Verify the native method is available in the loaded library.
+            // Older pre-compiled binaries may not contain pollForInput yet.
+            CLibrary.pollForInput(slave, 0);
+        } catch (UnsatisfiedLinkError e) {
+            return null; // fall back to VMIN/VTIME heuristic
+        }
+        return timeoutMs -> CLibrary.pollForInput(slave, timeoutMs);
     }
 
     public int getMaster() {
