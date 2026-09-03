@@ -122,7 +122,7 @@ public class PosixPtyTerminal extends AbstractPosixTerminal {
         this.output = pty.getSlaveOutput();
         this.reader = NonBlocking.nonBlocking(name, input, inputEncoding());
         this.writer = new PrintWriter(new OutputStreamWriter(output, outputEncoding()));
-        this.pollAvailable = pty instanceof AbstractPty && ((AbstractPty) pty).createSlavePollFunction() != null;
+        this.pollAvailable = pty instanceof AbstractPty && ((AbstractPty) pty).hasSlavePollSupport();
         parseInfoCmp();
         if (!paused) {
             resume();

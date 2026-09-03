@@ -127,6 +127,13 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
 
         parseInfoCmp();
 
+        registerNativeSignals(signalHandler);
+
+        closer = this::close;
+        ShutdownHooks.add(closer);
+    }
+
+    private void registerNativeSignals(SignalHandler signalHandler) {
         if (nativeSignals) {
             for (Signal signal : Signal.values()) {
                 Object nativeHandler;
@@ -141,9 +148,6 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
                 }
             }
         }
-
-        closer = this::close;
-        ShutdownHooks.add(closer);
     }
 
     @Override

@@ -65,6 +65,7 @@ public abstract class AbstractPty implements Pty {
     protected final SystemStream systemStream;
     private Attributes current;
     private boolean skipNextLf;
+    private Boolean slavePollAvailable;
 
     public AbstractPty(TerminalProvider provider, SystemStream systemStream) {
         this.provider = provider;
@@ -150,6 +151,17 @@ public abstract class AbstractPty implements Pty {
         return null;
     }
 
+    /**
+     * Returns {@code true} if this PTY has {@code poll(2)} support for its
+     * slave file descriptor.  The result is cached after the first call.
+     */
+    boolean hasSlavePollSupport() {
+        if (slavePollAvailable == null) {
+            slavePollAvailable = createSlavePollFunction() != null;
+        }
+        return slavePollAvailable;
+    }
+
     class PtyInputStream extends NonBlockingInputStream {
         final InputStream in;
         final IntUnaryOperator pollFn;
@@ -187,34 +199,37 @@ public abstract class AbstractPty implements Pty {
             long deadline = timeout > 0 ? System.currentTimeMillis() + timeout : 0;
             while (true) {
                 int remaining = timeout > 0 ? (int) Math.max(1, deadline - System.currentTimeMillis()) : 100;
-                int pollResult;
-                try {
-                    pollResult = pollFn.applyAsInt(remaining);
-                } catch (RuntimeException e) {
-                    return -1; // poll error → treat as EOF
-                }
+                int pollResult = doPoll(remaining);
                 if (pollResult > 0) {
-                    // Data ready — read() will not block
-                    int r = in.read();
-                    if (r >= 0) {
-                        if (isPeek) {
-                            c = r;
-                        }
-                        return r;
-                    }
-                    return -1; // EOF
+                    return readAvailable(isPeek);
                 } else if (pollResult < 0) {
                     return -1; // poll error → EOF
                 }
-                // pollResult == 0: timeout
+                // pollResult == 0: timeout — check if we should keep waiting
                 checkInterrupted();
                 if (timeout > 0 && System.currentTimeMillis() >= deadline) {
                     return NonBlockingInputStream.READ_EXPIRED;
                 }
-                if (timeout == 0) {
-                    return NonBlockingInputStream.READ_EXPIRED;
-                }
+                // timeout <= 0 means "wait forever" — loop again
             }
+        }
+
+        /** Calls poll(2) on the slave fd, converting exceptions to EOF (-1). */
+        private int doPoll(int timeoutMs) {
+            try {
+                return pollFn.applyAsInt(timeoutMs);
+            } catch (RuntimeException e) {
+                return -1;
+            }
+        }
+
+        /** Reads one byte from the underlying stream, handling peek. */
+        private int readAvailable(boolean isPeek) throws IOException {
+            int r = in.read();
+            if (r >= 0 && isPeek) {
+                c = r;
+            }
+            return r >= 0 ? r : -1;
         }
 
         /**

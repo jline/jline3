@@ -540,45 +540,51 @@ public abstract class AbstractTerminal implements TerminalExt {
                         setAttributes(prev);
                     }
                 } else {
-                    // Without poll, native read() on a PTY fd may block despite
-                    // VMIN=0/VTIME=0 (#2209).  Use a daemon thread with a hard
-                    // deadline to break out of that state.
-                    long hardDeadline = saturatingAdd(probeTimeout, drainTimeout, 500);
-                    AtomicBoolean probeCompleted = new AtomicBoolean(false);
-                    Thread probeThread = new Thread(
-                            () -> {
-                                try {
-                                    probeModes();
-                                    if (!Thread.currentThread().isInterrupted()) {
-                                        probeCompleted.set(true);
-                                    }
-                                } finally {
-                                    if (probeCompleted.get()) {
-                                        drainInput(reader(), drainTimeout, -1);
-                                        setAttributes(prev);
-                                    }
-                                }
-                            },
-                            getName() + " probe");
-                    probeThread.setDaemon(true);
-                    probeThread.start();
-                    try {
-                        probeThread.join(hardDeadline);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                    if (!probeCompleted.get()) {
-                        probeThread.interrupt();
-                        modeProbeResults.clear();
-                        setAttributes(prev);
-                        if (probeThread.isAlive()) {
-                            Log.debug("Terminal probe timed out on " + getName()
-                                    + " — native read may be stuck on a PTY fd (#2209)");
-                        }
-                    }
+                    probeWithDaemonThread(prev, probeTimeout, drainTimeout);
                 }
             } finally {
                 modesProbed = true;
+            }
+        }
+    }
+
+    /**
+     * Runs the mode probe on a daemon thread with a hard deadline, for terminals
+     * without poll(2) support where native read() may block despite VMIN=0/VTIME=0
+     * (see <a href="https://github.com/jline/jline3/issues/2209">#2209</a>).
+     */
+    private void probeWithDaemonThread(Attributes prev, long probeTimeout, long drainTimeout) {
+        long hardDeadline = saturatingAdd(probeTimeout, drainTimeout, 500);
+        AtomicBoolean probeCompleted = new AtomicBoolean(false);
+        Thread probeThread = new Thread(
+                () -> {
+                    try {
+                        probeModes();
+                        if (!Thread.currentThread().isInterrupted()) {
+                            probeCompleted.set(true);
+                        }
+                    } finally {
+                        if (probeCompleted.get()) {
+                            drainInput(reader(), drainTimeout, -1);
+                            setAttributes(prev);
+                        }
+                    }
+                },
+                getName() + " probe");
+        probeThread.setDaemon(true);
+        probeThread.start();
+        try {
+            probeThread.join(hardDeadline);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        if (!probeCompleted.get()) {
+            probeThread.interrupt();
+            modeProbeResults.clear();
+            setAttributes(prev);
+            if (probeThread.isAlive()) {
+                Log.debug(
+                        "Terminal probe timed out on " + getName() + " — native read may be stuck on a PTY fd (#2209)");
             }
         }
     }

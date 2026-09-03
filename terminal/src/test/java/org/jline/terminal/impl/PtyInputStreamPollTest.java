@@ -12,6 +12,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.IntUnaryOperator;
 
 import org.jline.terminal.Attributes;
@@ -73,7 +74,8 @@ class PtyInputStreamPollTest {
                             if (pipedIn.available() > 0 || writerClosed.get()) {
                                 return 1;
                             }
-                            Thread.sleep(Math.min(5, Math.max(1, deadline - System.currentTimeMillis())));
+                            LockSupport.parkNanos(
+                                    Math.min(5, Math.max(1, deadline - System.currentTimeMillis())) * 1_000_000L);
                         } while (System.currentTimeMillis() < deadline);
                         return writerClosed.get() ? 1 : 0;
                     } catch (Exception e) {
@@ -83,7 +85,9 @@ class PtyInputStreamPollTest {
             }
 
             @Override
-            protected void doSetAttr(Attributes attr) {}
+            protected void doSetAttr(Attributes attr) {
+                // no-op: test PTY does not manage real terminal attributes
+            }
 
             @Override
             protected InputStream doGetSlaveInput() {
@@ -116,10 +120,14 @@ class PtyInputStreamPollTest {
             }
 
             @Override
-            public void setSize(Sized size) {}
+            public void setSize(Sized size) {
+                // no-op: test PTY has a fixed size
+            }
 
             @Override
-            public void close() {}
+            public void close() {
+                // no-op: nothing to release in test
+            }
         };
     }
 
