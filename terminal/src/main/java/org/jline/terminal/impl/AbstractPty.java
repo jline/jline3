@@ -65,7 +65,8 @@ public abstract class AbstractPty implements Pty {
     protected final SystemStream systemStream;
     private Attributes current;
     private boolean skipNextLf;
-    private Boolean slavePollAvailable;
+    private IntUnaryOperator cachedPollFn;
+    private boolean pollFnResolved;
 
     public AbstractPty(TerminalProvider provider, SystemStream systemStream) {
         this.provider = provider;
@@ -152,14 +153,22 @@ public abstract class AbstractPty implements Pty {
     }
 
     /**
+     * Returns the cached poll function, resolving it on first call.
+     */
+    private IntUnaryOperator getSlavePollFunction() {
+        if (!pollFnResolved) {
+            cachedPollFn = createSlavePollFunction();
+            pollFnResolved = true;
+        }
+        return cachedPollFn;
+    }
+
+    /**
      * Returns {@code true} if this PTY has {@code poll(2)} support for its
      * slave file descriptor.  The result is cached after the first call.
      */
     boolean hasSlavePollSupport() {
-        if (slavePollAvailable == null) {
-            slavePollAvailable = createSlavePollFunction() != null;
-        }
-        return slavePollAvailable;
+        return getSlavePollFunction() != null;
     }
 
     class PtyInputStream extends NonBlockingInputStream {
@@ -169,7 +178,7 @@ public abstract class AbstractPty implements Pty {
 
         PtyInputStream(InputStream in) {
             this.in = in;
-            this.pollFn = createSlavePollFunction();
+            this.pollFn = getSlavePollFunction();
         }
 
         @Override
