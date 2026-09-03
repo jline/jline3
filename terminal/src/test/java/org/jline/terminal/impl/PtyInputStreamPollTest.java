@@ -197,4 +197,30 @@ class PtyInputStreamPollTest {
         int eof = nbis.read(1000);
         assertEquals(-1, eof, "Expected EOF (-1) after pipe closed");
     }
+
+    /**
+     * Regression test: a timeout exceeding {@code Integer.MAX_VALUE} must not
+     * overflow into a negative poll interval.  With data already available,
+     * the read must return immediately regardless of the large timeout.
+     */
+    @Test
+    @Timeout(10)
+    void largeTimeoutDoesNotOverflow() throws Exception {
+        PipedInputStream pipedIn = new PipedInputStream();
+        PipedOutputStream pipedOut = new PipedOutputStream(pipedIn);
+        java.util.concurrent.atomic.AtomicBoolean writerClosed = new java.util.concurrent.atomic.AtomicBoolean();
+
+        AbstractPty pty = createPtyWithPoll(pipedIn, writerClosed);
+        pty.setAttr(new Attributes());
+        InputStream slaveInput = pty.getSlaveInput();
+        NonBlockingInputStream nbis = (NonBlockingInputStream) slaveInput;
+
+        // Write data first so poll returns immediately
+        pipedOut.write('Z');
+
+        // Use a timeout larger than Integer.MAX_VALUE — must not overflow
+        long hugeTimeout = 2_147_483_648L; // Integer.MAX_VALUE + 1
+        int ch = nbis.read(hugeTimeout, false);
+        assertEquals('Z', ch, "Large timeout must not cause overflow — data was available");
+    }
 }
