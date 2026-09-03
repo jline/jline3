@@ -123,23 +123,42 @@ jobs:
 
           version="$RELEASE_VERSION"
 
-          # Check if release drafter already created a draft release for this version
-          draft_tag=$(gh api repos/${{ github.repository }}/releases \
-            --jq ".[] | select(.draft == true and .tag_name == \"${version}\") | .tag_name" \
-            2>/dev/null || true)
+          # Find a Release Drafter draft targeting master.  Release Drafter
+          # tags its drafts with the *next minor* version (e.g. 4.5.0) so a
+          # tag-exact match never works for patch releases (e.g. 4.4.2).
+          # Instead, grab the latest draft whose target_commitish is master
+          # regardless of its tag, retag it to the actual release version,
+          # and publish it.
+          # The gh api call must succeed; if it fails (auth error, rate
+          # limit, network issue) the step should abort — not silently
+          # skip the draft and create a duplicate release.
+          draft_id=$(gh api repos/${{ github.repository }}/releases --paginate \
+            --jq "[.[] | select(.draft == true and .target_commitish == \"master\")] | first | .id")
+          echo "Draft lookup result: draft_id=$draft_id"
 
-          existing_release=$(gh api repos/${{ github.repository }}/releases/tags/${version} --jq '.tag_name' 2>/dev/null || true)
+          # Check whether a (non-draft) release already exists for this tag.
+          # gh api prints the full error JSON to stdout on 404, so check the
+          # HTTP status instead of relying on --jq output.
+          http_status=$(gh api repos/${{ github.repository }}/releases/tags/${version} \
+            -i 2>/dev/null | head -1 | awk '{print $2}' || true)
 
-          # All numeric tags (matched by this workflow) are master releases.
-          # Pass --target explicitly so target_commitish is correct for
-          # Release Drafter's filter-by-commitish version resolution.
-          if [ -n "$draft_tag" ]; then
-            echo "Publishing existing draft release for $version"
-            gh release edit "$version" --draft=false --verify-tag --title "JLine $version" --target master
-          elif [ -n "$existing_release" ]; then
+          if [ "$http_status" = "200" ]; then
             echo "Release $version already exists, updating title"
             gh release edit "$version" --title "JLine $version" --target master
-          else
-            echo "No existing release found, creating release for $version"
+          elif [ -n "$draft_id" ] && [ "$draft_id" != "null" ] && [ "$http_status" = "404" ]; then
+            echo "Publishing Release Drafter draft (id=$draft_id) as $version"
+            gh api repos/${{ github.repository }}/releases/$draft_id \
+              -X PATCH \
+              -f tag_name="$version" \
+              -f name="JLine $version" \
+              -f target_commitish=master \
+              -F draft=false \
+              --silent
+            echo "Published: https://github.com/${{ github.repository }}/releases/tag/$version"
+          elif [ "$http_status" = "404" ]; then
+            echo "No draft and no existing release found, creating release for $version"
             gh release create "$version" --verify-tag --generate-notes --title "JLine $version" --target master
+          else
+            echo "::error::Unexpected status $http_status when looking up release $version"
+            exit 1
           fi
