@@ -187,12 +187,15 @@ public class ShellFactoryImpl implements ShellFactory {
                         .streams(in, out)
                         .attributes(attributes)
                         .env(sshEnv::get)
-                        .size(Size.of(Integer.parseInt(sshEnv.get("COLUMNS")), Integer.parseInt(sshEnv.get("LINES"))))
+                        .size(Size.of(
+                                parseTerminalDimension(sshEnv.get("COLUMNS"), 80),
+                                parseTerminalDimension(sshEnv.get("LINES"), 24)))
                         .build();
                 env.addSignalListener(
                         (channel, signals) -> {
                             terminal.setSize(Size.of(
-                                    Integer.parseInt(sshEnv.get("COLUMNS")), Integer.parseInt(sshEnv.get("LINES"))));
+                                    parseTerminalDimension(sshEnv.get("COLUMNS"), 80),
+                                    parseTerminalDimension(sshEnv.get("LINES"), 24)));
                             terminal.raise(Terminal.Signal.WINCH);
                         },
                         Signal.WINCH);
@@ -202,6 +205,7 @@ public class ShellFactoryImpl implements ShellFactory {
                 if (!closed) {
                     LOGGER.error("Error occured while executing shell", t);
                 }
+                destroy(session);
             }
         }
 
@@ -212,6 +216,23 @@ public class ShellFactoryImpl implements ShellFactory {
                 close(in, out, err);
                 callback.onExit(0);
             }
+        }
+    }
+
+    private static final int MAX_TERMINAL_DIMENSION = 1000;
+
+    static int parseTerminalDimension(String value, int defaultVal) {
+        if (value == null) {
+            return defaultVal;
+        }
+        try {
+            int n = Integer.parseInt(value);
+            if (n < 1 || n > MAX_TERMINAL_DIMENSION) {
+                return defaultVal;
+            }
+            return n;
+        } catch (NumberFormatException e) {
+            return defaultVal;
         }
     }
 
