@@ -92,7 +92,7 @@ class SshHostKeyVerificationTest {
                     authenticates(port, knownHosts, "yes\n", stderr),
                     "a host key that differs from the recorded one must be refused");
         }
-        String warning = stderr.toString(StandardCharsets.UTF_8);
+        String warning = stderr.toString(StandardCharsets.UTF_8.name());
         assertTrue(
                 warning.contains("REMOTE HOST IDENTIFICATION HAS CHANGED"),
                 "the user must be warned about the changed key: " + warning);
