@@ -216,6 +216,13 @@ public abstract class ConnectionManager implements Runnable {
                 }
                 // start it
                 con.start();
+            } else {
+                LOG.log(Level.WARNING, "makeConnection():: Maximum number of connections reached.");
+                try {
+                    insock.close();
+                } catch (IOException ex) {
+                    LOG.log(Level.WARNING, "makeConnection():: Failed to close refused connection socket.", ex);
+                }
             }
         } else {
             LOG.info("makeConnection():: Active Filter blocked incoming connection.");
