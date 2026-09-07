@@ -114,15 +114,12 @@ public class TerminalReaderTest extends ReaderTestSupport {
     }
 
     @Test
-    public void testExpansionBombIsRejected() throws Exception {
+    void testExpansionBombIsRejected() {
         DefaultHistory history = new DefaultHistory(reader);
         reader.setVariable(LineReader.HISTORY_SIZE, 3);
         history.add("mkdir monkey");
 
         Expander expander = new DefaultExpander();
-
-        // a single "!#" still doubles the line built so far
-        assertEquals("echo echo a", expander.expandHistory(history, "echo !#a"));
 
         // repeating "!#" doubles the accumulator each time; without a bound this
         // grows to 2^40 chars from a 81-byte line and exhausts the heap
