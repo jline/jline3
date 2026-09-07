@@ -818,6 +818,7 @@ JNIEXPORT void JNICALL INPUT_RECORD_NATIVE(memmove)
 	(JNIEnv *env, jclass that, jobject arg0, jlong arg1, jlong arg2)
 {
 	INPUT_RECORD _arg0, *lparg0=NULL;
+	if ((size_t)arg2 > sizeof(INPUT_RECORD)) return;
 	if (arg0) if ((lparg0 = &_arg0) == NULL) goto fail;
 	memmove((void *)lparg0, (const void *)(intptr_t)arg1, (size_t)arg2);
 fail:

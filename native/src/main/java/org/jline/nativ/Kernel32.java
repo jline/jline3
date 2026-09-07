@@ -433,7 +433,7 @@ public class Kernel32 {
         public MENU_EVENT_RECORD menuEvent = new MENU_EVENT_RECORD();
         public FOCUS_EVENT_RECORD focusEvent = new FOCUS_EVENT_RECORD();
 
-        public static native void memmove(INPUT_RECORD dest, long src, long size);
+        static native void memmove(INPUT_RECORD dest, long src, long size);
     }
 
     /**
