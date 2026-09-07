@@ -74,7 +74,11 @@ class PosixCommandsControlCharTest {
     }
 
     private String output() {
-        return out.toString(StandardCharsets.UTF_8);
+        try {
+            return out.toString(StandardCharsets.UTF_8.name());
+        } catch (java.io.UnsupportedEncodingException e) {
+            throw new AssertionError(e);
+        }
     }
 
     private static void assertNoControlBytes(String s) {
