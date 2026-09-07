@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.util.Collections;
 
 import org.apache.sshd.client.SshClient;
+import org.apache.sshd.client.keyverifier.AcceptAllServerKeyVerifier;
 import org.apache.sshd.client.keyverifier.ServerKeyVerifier;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.server.SshServer;
@@ -109,6 +110,43 @@ class SshHostKeyVerificationTest {
                         client, reader, new PrintStream(new ByteArrayOutputStream()), tempDir.resolve("known_hosts"));
             }
             assertSame(custom, client.getServerKeyVerifier(), "an explicitly configured verifier must be kept");
+        }
+        // AcceptAllServerKeyVerifier.INSTANCE set explicitly after a previous
+        // setupServerKeyVerifier call must also be left in place
+        try (SshClient client = SshClient.setUpDefaultClient()) {
+            try (Terminal terminal = newTerminal("", new ByteArrayOutputStream())) {
+                LineReader reader =
+                        LineReaderBuilder.builder().terminal(terminal).build();
+                PrintStream ps = new PrintStream(new ByteArrayOutputStream());
+                // first call installs the KnownHostsServerKeyVerifier
+                Ssh.setupServerKeyVerifier(client, reader, ps, tempDir.resolve("known_hosts"));
+                assertFalse(
+                        client.getServerKeyVerifier() instanceof AcceptAllServerKeyVerifier,
+                        "first call must install KnownHostsServerKeyVerifier");
+                // caller explicitly reverts to AcceptAll
+                client.setServerKeyVerifier(AcceptAllServerKeyVerifier.INSTANCE);
+                // second call must respect the explicit choice
+                Ssh.setupServerKeyVerifier(client, reader, ps, tempDir.resolve("known_hosts"));
+                assertSame(
+                        AcceptAllServerKeyVerifier.INSTANCE,
+                        client.getServerKeyVerifier(),
+                        "AcceptAllServerKeyVerifier.INSTANCE set after our install must be kept");
+            }
+        }
+    }
+
+    @Test
+    void missingParentDirectoryIsCreatedForKnownHosts() throws Exception {
+        Path knownHosts = tempDir.resolve("missing/.ssh/known_hosts");
+        assertFalse(Files.isDirectory(knownHosts.getParent()), "parent must not exist yet");
+        try (SshServer sshd = newServer(tempDir.resolve("keyMissing.ser"), 0)) {
+            sshd.start();
+            assertTrue(
+                    authenticates(sshd.getPort(), knownHosts, "yes\n", new ByteArrayOutputStream()),
+                    "connection must succeed even when the known_hosts parent is missing");
+            assertTrue(Files.isDirectory(knownHosts.getParent()), "parent directory must have been created");
+            assertTrue(Files.exists(knownHosts), "confirmed key must be recorded");
+            assertTrue(Files.size(knownHosts) > 0, "known-hosts file must not be empty");
         }
     }
 
