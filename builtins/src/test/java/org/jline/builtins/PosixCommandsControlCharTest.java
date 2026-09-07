@@ -132,6 +132,17 @@ class PosixCommandsControlCharTest {
     }
 
     @Test
+    void tailStripsControlCharsInFileHeader() throws Exception {
+        Path evil = tempDir.resolve(EVIL);
+        Files.write(evil, "hello\n".getBytes(StandardCharsets.UTF_8));
+        Path plain = tempDir.resolve("plain.txt");
+        Files.write(plain, "world\n".getBytes(StandardCharsets.UTF_8));
+        // More than one source makes tail emit the "==> name <==" headers.
+        PosixCommands.tail(context, new String[] {"tail", evil.toString(), plain.toString()});
+        assertNoControlBytes(output());
+    }
+
+    @Test
     void lsMultiDirStripsControlCharsInHeader() throws Exception {
         // When ls lists multiple directories it emits a "dirname:" header for each.
         // A directory whose name contains control chars must not leak them.
