@@ -205,16 +205,20 @@ public class ShellFactoryImpl implements ShellFactory {
                 if (!closed) {
                     LOGGER.error("Error occured while executing shell", t);
                 }
-                destroy(session);
+                destroy(1);
             }
         }
 
         public void destroy(ChannelSession session) {
+            destroy(0);
+        }
+
+        private void destroy(int exitCode) {
             if (!closed) {
                 closed = true;
                 flush(out, err);
                 close(in, out, err);
-                callback.onExit(0);
+                callback.onExit(exitCode);
             }
         }
     }
