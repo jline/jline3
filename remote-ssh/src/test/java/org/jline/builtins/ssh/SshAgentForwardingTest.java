@@ -85,7 +85,7 @@ class SshAgentForwardingTest {
                 "agent-forwarding-test", "xterm", new ByteArrayOutputStream(), StandardCharsets.UTF_8);
         try {
             LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
-            Ssh ssh = new Ssh(null, null, null, SshClient::setUpDefaultClient);
+            Ssh ssh = new Ssh(null, null, null, SshAgentForwardingTest::newTrustingClient);
             String target = "localhost:" + sshd.getPort();
             String[] argv = forwardAgent ? new String[] {"ssh", "-A", target} : new String[] {"ssh", target};
             PrintStream out = new PrintStream(new ByteArrayOutputStream());
@@ -109,6 +109,13 @@ class SshAgentForwardingTest {
             terminal.close();
             sshd.stop(true);
         }
+    }
+
+    /** Client that trusts the in-process test server's host key, which is not what this test exercises. */
+    private static SshClient newTrustingClient() {
+        SshClient client = SshClient.setUpDefaultClient();
+        client.setServerKeyVerifier((session, address, key) -> true);
+        return client;
     }
 
     /** Server shell that closes the channel as soon as it starts, so the client's shell loop returns. */
