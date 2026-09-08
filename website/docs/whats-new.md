@@ -140,7 +140,7 @@ Still functional but superseded by the [Prompt Module](./modules/prompt.md), whi
    <dependency>
        <groupId>org.jline</groupId>
        <artifactId>jline</artifactId>
-       <version>4.0.0</version>
+       <version>%%JLINE_VERSION%%</version>
    </dependency>
    ```
    Use `<classifier>jdk11</classifier>` if targeting Java 11-21.

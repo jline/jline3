@@ -35,6 +35,7 @@ const sidebars: SidebarsConfig = {
       label: 'Contributing',
       items: [
         'contributing/code-snippets',
+        'contributing/version-management',
       ],
     },
     {
@@ -57,6 +58,9 @@ const sidebars: SidebarsConfig = {
         'advanced/auto-indentation-pairing',
         'advanced/theme-system',
         'advanced/nano-less-customization',
+        'advanced/grapheme-cluster-mode',
+        'advanced/unicode-support',
+        'advanced/classpath-resources',
         'advanced/web-swing-terminals',
       ],
     },
@@ -66,6 +70,7 @@ const sidebars: SidebarsConfig = {
       items: [
         'shell-getting-started',
         'shell-commands',
+        'shell-features',
         'shell-picocli',
         'shell-migration',
       ],
@@ -80,6 +85,8 @@ const sidebars: SidebarsConfig = {
         'modules/style',
         'modules/terminal-providers',
         'modules/jpms',
+        'modules/prompt',
+        'modules/console-ui',
         'modules/repl-console',
       ],
     },

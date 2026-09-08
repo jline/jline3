@@ -6,7 +6,7 @@ import path from 'path';
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 // JLine version - update this when releasing a new version
-const jlineVersion = '4.0.0';
+const jlineVersion = '4.4.3';
 
 // Allow overriding baseUrl via environment variable for multi-version deployment
 const baseUrl = process.env.BASE_URL || '/';
@@ -103,7 +103,7 @@ const config: Config = {
           label: `v${jlineVersion}`,
           position: 'right',
           items: [
-            {label: '4.0.x (current)', href: 'https://jline.org/'},
+            {label: '4.x (current)', href: 'https://jline.org/'},
             {label: '3.30.x', href: 'https://jline.org/versions/3.x/'},
           ],
         },
