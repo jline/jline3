@@ -1073,7 +1073,7 @@ public class PosixCommands {
             if (showWords) result.append(String.format("%8d", words));
             if (showChars) result.append(String.format("%8d", chars));
             if (showBytes) result.append(String.format("%8d", bytes));
-            result.append(" ").append(source.getName());
+            result.append(" ").append(stripControlChars(source.getName()));
 
             context.out().println(result);
         }
@@ -1129,7 +1129,7 @@ public class PosixCommands {
                 context.out().println();
             }
             if (args.size() > 1) {
-                context.out().println("==> " + arg + " <==");
+                context.out().println("==> " + stripControlChars(arg) + " <==");
             }
 
             InputStream is;
@@ -1190,7 +1190,7 @@ public class PosixCommands {
 
         for (String arg : args) {
             if (args.size() > 1) {
-                context.out().println("==> " + arg + " <==");
+                context.out().println("==> " + stripControlChars(arg) + " <==");
             }
 
             if ("-".equals(arg)) {
@@ -1407,7 +1407,7 @@ public class PosixCommands {
                                     if (colored) {
                                         applyStyle(sbl, colors, "fn");
                                     }
-                                    sbl.append(src.getName());
+                                    sbl.append(stripControlChars(src.getName()));
                                     if (colored) {
                                         applyStyle(sbl, colors, "se");
                                     }
@@ -1449,7 +1449,7 @@ public class PosixCommands {
                                 if (colored) {
                                     applyStyle(sbl, colors, "fn");
                                 }
-                                sbl.append(src.getName());
+                                sbl.append(stripControlChars(src.getName()));
                                 if (colored) {
                                     applyStyle(sbl, colors, "se");
                                 }
@@ -1471,7 +1471,7 @@ public class PosixCommands {
                                 if (colored) {
                                     applyStyle(sbl, colors, "fn");
                                 }
-                                sbl.append(src.getName());
+                                sbl.append(stripControlChars(src.getName()));
                                 if (colored) {
                                     applyStyle(sbl, colors, "se");
                                 }
@@ -1689,7 +1689,7 @@ public class PosixCommands {
                     suffix = "@";
                     try {
                         Path l = Files.readSymbolicLink(abs);
-                        link = " -> " + l.toString();
+                        link = " -> " + stripControlChars(l.toString());
                     } catch (IOException e) {
                         // ignore
                     }
@@ -1707,7 +1707,7 @@ public class PosixCommands {
                     suffix = "";
                 }
                 boolean addSuffix = opt.isSet("F");
-                return applyStyle(path.toString(), colors, type) + (addSuffix ? suffix : "") + link;
+                return applyStyle(stripControlChars(path.toString()), colors, type) + (addSuffix ? suffix : "") + link;
             }
 
             String longDisplay() {
@@ -1882,7 +1882,7 @@ public class PosixCommands {
             space = true;
             Path path = currentDir.resolve(entry.path);
             if (expanded.size() > 1) {
-                out.println(currentDir.relativize(path).toString() + ":");
+                out.println(stripControlChars(currentDir.relativize(path).toString()) + ":");
             }
             try (Stream<Path> pathStream = Files.list(path)) {
                 display.accept(Stream.concat(Stream.of(".", "..").map(path::resolve), pathStream)
@@ -1998,6 +1998,27 @@ public class PosixCommands {
         String sep = str.matches("[a-z]{2}=[0-9]*(;[0-9]+)*(:[a-z]{2}=[0-9]*(;[0-9]+)*)*") ? ":" : " ";
         return Arrays.stream(str.split(sep))
                 .collect(Collectors.toMap(s -> s.substring(0, s.indexOf('=')), s -> s.substring(s.indexOf('=') + 1)));
+    }
+
+    /**
+     * Removes ISO control characters (ESC, BEL, CR, LF, the C1 introducers, ...)
+     * from a file name or other filesystem-derived string before it is written to
+     * the terminal. The name is chosen by whoever created the file, so without this
+     * an entry such as {@code report<ESC>]0;pwned<BEL>.txt} would drive the
+     * terminal (set the window title, write the clipboard via OSC 52, ...) when it
+     * is listed. Printable Unicode is kept so ordinary names render unchanged.
+     */
+    private static String stripControlChars(String s) {
+        if (s == null) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder(s.length());
+        s.codePoints().forEach(cp -> {
+            if (!Character.isISOControl(cp)) {
+                sb.appendCodePoint(cp);
+            }
+        });
+        return sb.toString();
     }
 
     /**
