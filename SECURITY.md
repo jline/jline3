@@ -5,7 +5,7 @@
 | Version | Supported          |
 |---------|--------------------|
 | 4.1.x   | ✅ Yes             |
-| 4.0.x   | ✅ Yes             |
+| 4.0.x   | ❌ No              |
 | 3.x     | ✅ Security fixes  |
 | < 3.0   | ❌ No              |
 
