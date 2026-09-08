@@ -9,6 +9,11 @@
 package org.jline.builtins.ssh;
 
 import java.io.*;
+import java.net.SocketAddress;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.PublicKey;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -19,10 +24,14 @@ import org.apache.sshd.client.channel.ChannelShell;
 import org.apache.sshd.client.channel.ClientChannel;
 import org.apache.sshd.client.channel.ClientChannelEvent;
 import org.apache.sshd.client.future.ConnectFuture;
+import org.apache.sshd.client.keyverifier.AcceptAllServerKeyVerifier;
+import org.apache.sshd.client.keyverifier.KnownHostsServerKeyVerifier;
+import org.apache.sshd.client.keyverifier.ServerKeyVerifier;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.common.NamedResource;
 import org.apache.sshd.common.channel.PtyMode;
 import org.apache.sshd.common.config.keys.FilePasswordProvider;
+import org.apache.sshd.common.config.keys.KeyUtils;
 import org.apache.sshd.common.session.SessionContext;
 import org.apache.sshd.common.util.io.input.NoCloseInputStream;
 import org.apache.sshd.common.util.io.output.NoCloseOutputStream;
@@ -186,6 +195,8 @@ public class Ssh {
             JLineUserInteraction ui = new JLineUserInteraction(terminal, reader, stderr);
             client.setFilePasswordProvider(ui);
             client.setUserInteraction(ui);
+            setupServerKeyVerifier(
+                    client, reader, stderr, Paths.get(System.getProperty("user.home"), ".ssh", "known_hosts"));
             client.start();
 
             try (ClientSession sshSession =
@@ -302,6 +313,67 @@ public class Ssh {
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Property key stored on the client to track that this class installed a
+     * {@link KnownHostsServerKeyVerifier}. Used to detect when a caller explicitly
+     * reconfigures the verifier after our setup (even back to
+     * {@link AcceptAllServerKeyVerifier#INSTANCE}).
+     */
+    static final String VERIFIER_INSTALLED_PROP = "jline.ssh.verifierInstalled";
+
+    /**
+     * Installs an OpenSSH-style host key check when the client is still on the library's
+     * accept-everything default: a key recorded in the known-hosts file is matched, an unknown key
+     * must be confirmed by the user before it is recorded, and a changed key is refused. A verifier
+     * explicitly configured by the caller — including {@link AcceptAllServerKeyVerifier#INSTANCE}
+     * set after a previous {@code setupServerKeyVerifier} call — is left in place.
+     */
+    static void setupServerKeyVerifier(SshClient client, LineReader reader, PrintStream stderr, Path knownHosts) {
+        ServerKeyVerifier current = client.getServerKeyVerifier();
+        if (current != null && current != AcceptAllServerKeyVerifier.INSTANCE) {
+            return;
+        }
+        // AcceptAllServerKeyVerifier.INSTANCE is MINA SSHD's default.  However, if
+        // this method previously installed a KnownHostsServerKeyVerifier and the
+        // caller explicitly reverted to AcceptAll, that is a deliberate choice.
+        if (current == AcceptAllServerKeyVerifier.INSTANCE
+                && Boolean.TRUE.equals(client.getProperties().get(VERIFIER_INSTALLED_PROP))) {
+            return;
+        }
+        Path knownHostsDir = knownHosts.getParent();
+        if (knownHostsDir != null && !Files.isDirectory(knownHostsDir)) {
+            try {
+                Files.createDirectories(knownHostsDir);
+            } catch (IOException e) {
+                // best-effort — KnownHostsServerKeyVerifier will fail later with
+                // a clearer message if the path is truly unusable
+            }
+        }
+        KnownHostsServerKeyVerifier verifier = new KnownHostsServerKeyVerifier(
+                (session, address, key) -> confirmUnknownKey(reader, address, key), knownHosts);
+        verifier.setModifiedServerKeyAcceptor((session, address, entry, expected, actual) -> {
+            stderr.println("WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!");
+            stderr.println("The " + KeyUtils.getKeyType(actual) + " key sent by " + address + " is "
+                    + KeyUtils.getFingerPrint(actual) + ", but " + KeyUtils.getFingerPrint(expected)
+                    + " was expected. Refusing to connect.");
+            stderr.flush();
+            return false;
+        });
+        client.setServerKeyVerifier(verifier);
+        client.getProperties().put(VERIFIER_INSTALLED_PROP, Boolean.TRUE);
+    }
+
+    private static boolean confirmUnknownKey(LineReader reader, SocketAddress address, PublicKey key) {
+        try {
+            String answer = reader.readLine("The authenticity of host '" + address + "' can't be established.\n"
+                    + KeyUtils.getKeyType(key) + " key fingerprint is " + KeyUtils.getFingerPrint(key) + ".\n"
+                    + "Are you sure you want to continue connecting (yes/no)? ");
+            return answer != null && answer.trim().equalsIgnoreCase("yes");
+        } catch (Exception e) {
+            return false;
         }
     }
 

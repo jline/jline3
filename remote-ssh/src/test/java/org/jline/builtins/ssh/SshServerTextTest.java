@@ -73,7 +73,7 @@ class SshServerTextTest {
         Terminal terminal = new LineDisciplineTerminal("banner-test", "xterm", terminalOut, StandardCharsets.UTF_8);
         try {
             LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
-            Ssh ssh = new Ssh(null, null, null, SshClient::setUpDefaultClient);
+            Ssh ssh = new Ssh(null, null, null, SshServerTextTest::newTrustingClient);
             String[] argv = new String[] {"ssh", "localhost:" + sshd.getPort()};
             PrintStream out = new PrintStream(new ByteArrayOutputStream());
 
@@ -97,6 +97,13 @@ class SshServerTextTest {
             terminal.close();
             sshd.stop(true);
         }
+    }
+
+    /** Client that trusts the in-process test server's host key, which is not what this test exercises. */
+    private static SshClient newTrustingClient() {
+        SshClient client = SshClient.setUpDefaultClient();
+        client.setServerKeyVerifier((session, address, key) -> true);
+        return client;
     }
 
     /** Server shell that closes the channel as soon as it starts, so the client's shell loop returns. */
