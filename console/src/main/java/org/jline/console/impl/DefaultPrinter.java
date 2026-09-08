@@ -464,9 +464,21 @@ public class DefaultPrinter extends JlineCommandRegistry implements Printer {
         return out;
     }
 
+    /**
+     * Returns true if {@code value} is enclosed in matching double or single quotes.
+     * This is a simplified check (O(1)) used for value highlighting: it verifies only
+     * that the first and last characters are matching quote chars, without validating
+     * the content (e.g. embedded unescaped quotes are accepted).
+     */
+    private static boolean isQuotedString(String value) {
+        return value.length() >= 2
+                && ((value.charAt(0) == '"' && value.charAt(value.length() - 1) == '"')
+                        || (value.charAt(0) == '\'' && value.charAt(value.length() - 1) == '\''));
+    }
+
     private boolean doValueHighlight(Map<String, Object> options, String value) {
         if (options.containsKey(Printer.VALUE_STYLE_ALL)
-                || value.matches("\"(\\.|[^\"])*\"|'(\\.|[^'])*'")
+                || isQuotedString(value)
                 || (value.startsWith("[") && value.endsWith("]"))
                 || (value.startsWith("(") && value.endsWith(")"))
                 || (value.startsWith("{") && value.endsWith("}"))
