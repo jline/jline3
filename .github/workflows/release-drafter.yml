@@ -40,6 +40,10 @@ jobs:
       - name: Run release drafter for master branch
         if: github.ref == 'refs/heads/master'
         uses: release-drafter/release-drafter@v7.7.0
+        with:
+          # Only consider 4.x releases/tags for version calculation,
+          # ignoring 3.x tags (jline-3.x.y) that would confuse the version resolver
+          filter-by-range: ">=4.0.0"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
