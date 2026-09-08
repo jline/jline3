@@ -1254,7 +1254,7 @@ public interface Terminal extends Closeable, Flushable, Sized {
      *
      * <p>
      * This method is similar to {@link #readMouseEvent()}, but it allows specifying a prefix
-     * that has already been consumed. This is useful when the mouse event prefix (e.g., "\033[<"
+     * that has already been consumed. This is useful when the mouse event prefix (e.g., "\033[&lt;"
      * or "\033[M") has been consumed by the key binding detection, and we need to continue
      * parsing from the current position.
      * </p>
@@ -1606,7 +1606,7 @@ public interface Terminal extends Closeable, Flushable, Sized {
      * </p>
      *
      * <p>
-     * Applications using {@link org.jline.reader.LineReader} do not need to
+     * Applications using {@code org.jline.reader.LineReader} do not need to
      * parse the reports manually — the reader's built-in
      * {@code terminal-resize} widget handles them automatically, updating
      * the terminal size and raising {@link Signal#WINCH}.

@@ -435,6 +435,11 @@
                     <version>3.6.1</version>
                 </plugin>
                 <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>3.6.3</version>
+                </plugin>
+                <plugin>
                     <groupId>org.graalvm.nativeimage</groupId>
                     <artifactId>native-image-maven-plugin</artifactId>
                     <version>${graal.plugin.version}</version>
