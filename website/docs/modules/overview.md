@@ -108,20 +108,20 @@ To use these modules in your Maven project, add the appropriate dependencies:
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline</artifactId>
-    <version>4.0.0</version>
+    <version>%%JLINE_VERSION%%</version>
 </dependency>
 
 <!-- Or individual modules -->
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-builtins</artifactId>
-    <version>4.0.0</version>
+    <version>%%JLINE_VERSION%%</version>
 </dependency>
 
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-style</artifactId>
-    <version>4.0.0</version>
+    <version>%%JLINE_VERSION%%</version>
 </dependency>
 
 <dependency>
@@ -133,13 +133,13 @@ To use these modules in your Maven project, add the appropriate dependencies:
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-console</artifactId>
-    <version>4.0.0</version>
+    <version>%%JLINE_VERSION%%</version>
 </dependency>
 
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline-console-ui</artifactId>
-    <version>4.0.0</version>
+    <version>%%JLINE_VERSION%%</version>
 </dependency>
 ```
 
