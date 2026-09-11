@@ -124,7 +124,7 @@
         <graal.version>25.3.4.1</graal.version>
         <graal.plugin.version>21.2.0</graal.plugin.version>
         <native.plugin.version>1.1.12</native.plugin.version>
-        <palantir.version>2.97.0</palantir.version>
+        <palantir.version>2.98.0</palantir.version>
 
         <surefire.argLine>--add-opens java.base/java.io=org.jline.nativ --add-opens java.base/java.io=org.jline.terminal</surefire.argLine>
     </properties>
