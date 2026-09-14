@@ -117,7 +117,15 @@ public class ColorPalette {
 
     protected void loadPalette(boolean doLoad) throws IOException {
         if (terminal != null) {
-            int[] pal = doLoad ? doLoad(terminal) : null;
+            int[] pal = null;
+            if (doLoad) {
+                try {
+                    pal = doLoad(terminal);
+                } catch (ClosedException e) {
+                    // Terminal input is at EOF; treat as no OSC 4 support
+                    pal = null;
+                }
+            }
             if (pal != null) {
                 this.palette = pal;
                 this.osc4 = true;
@@ -228,6 +236,7 @@ public class ColorPalette {
         NonBlockingReader reader = terminal.reader();
 
         int[] palette = new int[256];
+        int entriesRead = 0;
         for (int i = 0; i < 16; i++) {
             StringBuilder req = new StringBuilder(1024);
             req.append("\033]4");
@@ -306,10 +315,14 @@ public class ColorPalette {
                         / ((1 << (4 * rgb.get(2).length())) - 1.0);
                 palette[idx] = (int) ((Math.round(r * 255) << 16) + (Math.round(g * 255) << 8) + Math.round(b * 255));
                 black &= palette[idx] == 0;
+                entriesRead++;
             }
             if (black) {
                 break;
             }
+        }
+        if (entriesRead == 0) {
+            return null;
         }
         int max = 256;
         while (max > 0 && palette[--max] == 0)
