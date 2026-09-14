@@ -115,6 +115,20 @@ public class ColorPalette {
         return osc4;
     }
 
+    /**
+     * Reload the palette size from the terminal's {@code max_colors} capability.
+     *
+     * <p>Called by {@code AbstractTerminal} after {@code parseInfoCmp()} and
+     * {@code setEnv()} have populated or updated terminal capabilities, so that
+     * the palette is sized correctly even though the terminal object was partially
+     * constructed when the {@code ColorPalette} constructor first ran.</p>
+     *
+     * @throws IOException if an I/O error occurs
+     */
+    public void reloadFromCapabilities() throws IOException {
+        loadPalette(false);
+    }
+
     protected void loadPalette(boolean doLoad) throws IOException {
         if (terminal != null) {
             int[] pal = doLoad ? doLoad(terminal) : null;

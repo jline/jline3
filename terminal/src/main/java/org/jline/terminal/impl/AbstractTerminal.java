@@ -182,6 +182,11 @@ public abstract class AbstractTerminal implements TerminalExt {
     public void setEnv(UnaryOperator<String> env) {
         this.envProvider = Objects.requireNonNull(env);
         detectTrueColorSupport();
+        try {
+            palette.reloadFromCapabilities();
+        } catch (IOException e) {
+            Log.warn("Unable to load palette", e);
+        }
     }
 
     public Status getStatus() {
@@ -353,6 +358,11 @@ public abstract class AbstractTerminal implements TerminalExt {
         }
         InfoCmp.parseInfoCmp(capabilities, bools, ints, strings);
         detectTrueColorSupport();
+        try {
+            palette.reloadFromCapabilities();
+        } catch (IOException e) {
+            Log.warn("Unable to load palette", e);
+        }
     }
 
     /**
