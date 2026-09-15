@@ -125,23 +125,24 @@ class ColorPaletteTest {
     }
 
     /**
-     * When the terminal input stream is at EOF, {@code loadPalette()} must not throw a
+     * When the terminal's reader has been explicitly closed, {@code loadPalette()} must not throw a
      * {@code ClosedException} — it must gracefully fall back to the default palette.
      * <p>
      * Regression test for https://github.com/jline/jline3/issues/2257 (ClosedException case)
      */
     @Test
-    void testLoadPaletteWithEofInputDoesNotThrow() throws IOException {
+    void testLoadPaletteWithClosedReaderDoesNotThrow() throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        // Truly empty stream — reading from it yields EOF immediately
         ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);
 
         Terminal terminal = new TestDumbTerminal("test", "dumb", input, output, StandardCharsets.UTF_8, -1, -1);
+        // Explicitly close the reader so that peek() throws ClosedException
+        terminal.reader().close();
 
         ColorPalette palette = new ColorPalette(terminal);
         // Must not throw ClosedException
-        assertDoesNotThrow(() -> palette.loadPalette(), "loadPalette() must not throw when terminal input is at EOF");
-        assertFalse(palette.isReal(), "isReal() must be false when input is at EOF");
+        assertDoesNotThrow(() -> palette.loadPalette(), "loadPalette() must not throw when the reader is closed");
+        assertFalse(palette.isReal(), "isReal() must be false when the reader is closed");
     }
 
     @Test

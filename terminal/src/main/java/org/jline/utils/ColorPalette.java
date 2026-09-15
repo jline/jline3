@@ -123,7 +123,6 @@ public class ColorPalette {
                     pal = doLoad(terminal);
                 } catch (ClosedException e) {
                     // Terminal input is at EOF; treat as no OSC 4 support
-                    pal = null;
                 }
             }
             if (pal != null) {
