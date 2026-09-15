@@ -710,17 +710,13 @@ class FfmSignalHandler {
     /**
      * Registers the default (SIG_DFL) handler for the specified signal.
      *
-     * <p>If the signal currently has a <em>foreign</em> handler — one that is neither
-     * {@code SIG_DFL}, {@code SIG_IGN}, nor jline's own machine-code stub — this method
-     * returns {@code null} without touching the disposition. The caller
-     * ({@link FfmTerminalProvider#registerDefaultSignal}) will then fall back to
-     * {@code Signals.registerDefault()}, which the JVM refuses for reserved signals such
-     * as {@code SIGQUIT}, leaving any existing handler (e.g. HotSpot's thread-dump handler)
-     * intact.</p>
+     * <p>Installs {@code SIG_DFL} via {@code sigaction(2)}, saving the previous
+     * disposition in the returned {@link Registration} for later restoration by
+     * {@link #unregister}.</p>
      *
      * @param name signal name
      * @return a {@link Registration} token, or {@code null} if the signal is unsupported
-     *         or has a foreign handler that must be preserved
+     *         or FFM signal handling is unavailable on this platform
      */
     static Object registerDefault(String name) {
         if (!AVAILABLE) {
