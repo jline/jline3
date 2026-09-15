@@ -184,16 +184,26 @@ public class FfmTerminalProvider implements TerminalProvider {
     }
 
     /**
-     * Register the default handler for the specified signal, preferring the FFM handler if available.
+     * Register the default handler for the specified signal.
+     *
+     * <p>When FFM signal handling is available, delegates entirely to
+     * {@link FfmSignalHandler#registerDefault}, which may return {@code null} to preserve a
+     * foreign handler (e.g. HotSpot's {@code SIGQUIT} thread-dump handler). In that case this
+     * method also returns {@code null} — it does <em>not</em> fall back to
+     * {@link Signals#registerDefault} because doing so would install {@code SIG_DFL} and
+     * clobber the very handler that the FFM probe chose to preserve.</p>
+     *
+     * <p>Falls back to {@link Signals#registerDefault} only when FFM signal handling is
+     * unavailable on this platform.</p>
      *
      * @param signal the name of the signal (for example, "INT" or "TERM")
-     * @return an object representing the installed registration; the FFM registration if one was created, otherwise the fallback Signals registration
+     * @return an object representing the installed registration, or {@code null} if the signal
+     *         has a foreign handler that must be preserved, or the signal is unsupported
      */
     @Override
     public Object registerDefaultSignal(String signal) {
-        Object reg = FfmSignalHandler.registerDefault(signal);
-        if (reg != null) {
-            return reg;
+        if (FfmSignalHandler.isAvailable()) {
+            return FfmSignalHandler.registerDefault(signal);
         }
         return Signals.registerDefault(signal);
     }
