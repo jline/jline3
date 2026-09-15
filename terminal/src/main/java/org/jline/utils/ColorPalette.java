@@ -125,7 +125,7 @@ public class ColorPalette {
                     // Terminal input is at EOF; treat as no OSC 4 support
                 }
             }
-            if (pal != null) {
+            if (pal != null && pal.length > 0) {
                 this.palette = pal;
                 this.osc4 = true;
             } else {
@@ -321,7 +321,7 @@ public class ColorPalette {
             }
         }
         if (entriesRead == 0) {
-            return null;
+            return new int[0];
         }
         int max = 256;
         while (max > 0 && palette[--max] == 0)
