@@ -126,7 +126,9 @@ public class ColorPalette {
      * @throws IOException if an I/O error occurs
      */
     public void reloadFromCapabilities() throws IOException {
-        loadPalette(false);
+        if (!osc4) {
+            loadPalette(false);
+        }
     }
 
     protected void loadPalette(boolean doLoad) throws IOException {

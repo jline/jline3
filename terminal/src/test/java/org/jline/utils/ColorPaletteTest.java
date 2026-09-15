@@ -17,8 +17,6 @@ import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
@@ -127,14 +125,16 @@ class ColorPaletteTest {
      * constructor (before parseInfoCmp() ran), so it always had 256 entries regardless
      * of the terminal's actual max_colors. The fix reloads the palette at the end of
      * parseInfoCmp() and setEnv() once max_colors is known.
+     *
+     * <p>Only terminal types with built-in JLine capability data are used here
+     * (xterm=8, xterm-256color=256), as types without built-in data fall back to
+     * the "ansi" defaults and produce different max_colors values.
      */
     @ParameterizedTest
     @CsvSource({"xterm, 8", "xterm-256color, 256"})
     void testPaletteSizedFromMaxColors(String termType, int expectedLength) throws IOException {
         // Keep the write end open so the read end never sees EOF (required by TerminalBuilder).
-        List<PipedOutputStream> openWriters = new ArrayList<>();
         PipedOutputStream writer = new PipedOutputStream();
-        openWriters.add(writer);
         try (Terminal t = TerminalBuilder.builder()
                 .system(false)
                 .type(termType)
