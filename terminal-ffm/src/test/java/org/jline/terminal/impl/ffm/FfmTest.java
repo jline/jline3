@@ -39,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class FfmTest {
 
@@ -246,10 +247,7 @@ class FfmTest {
 
         // Capture SigCgt before
         long caughtBefore = readSigCgt();
-        if ((caughtBefore & sigquitBit) == 0) {
-            // HotSpot didn't catch SIGQUIT in this JVM — skip rather than give a false pass
-            return;
-        }
+        assumeTrue((caughtBefore & sigquitBit) != 0, "HotSpot didn't catch SIGQUIT in this JVM — skipping test");
 
         try (Terminal terminal = new FfmTerminalProvider()
                 .newTerminal(
