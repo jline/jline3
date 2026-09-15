@@ -134,9 +134,14 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
     }
 
     private void registerNativeSignals(SignalHandler signalHandler) {
-        if (nativeSignals && signalHandler != SignalHandler.SIG_DFL) {
+        if (nativeSignals) {
             for (Signal signal : Signal.values()) {
-                Object nativeHandler = provider.registerSignal(signal.name(), () -> raise(signal));
+                Object nativeHandler;
+                if (signalHandler == SignalHandler.SIG_DFL) {
+                    nativeHandler = provider.registerDefaultSignal(signal.name());
+                } else {
+                    nativeHandler = provider.registerSignal(signal.name(), () -> raise(signal));
+                }
                 // Registration returns null for platform-unsupported signals; ConcurrentHashMap rejects null values
                 if (nativeHandler != null) {
                     nativeHandlers.put(signal, nativeHandler);
@@ -153,12 +158,15 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
             if (previousNative != null) {
                 provider.unregisterSignal(signal.name(), previousNative);
             }
-            if (handler != SignalHandler.SIG_DFL) {
-                Object nativeHandler = provider.registerSignal(signal.name(), () -> raise(signal));
-                // See constructor — skip null for unsupported signals
-                if (nativeHandler != null) {
-                    nativeHandlers.put(signal, nativeHandler);
-                }
+            Object nativeHandler;
+            if (handler == SignalHandler.SIG_DFL) {
+                nativeHandler = provider.registerDefaultSignal(signal.name());
+            } else {
+                nativeHandler = provider.registerSignal(signal.name(), () -> raise(signal));
+            }
+            // See constructor — skip null for unsupported signals
+            if (nativeHandler != null) {
+                nativeHandlers.put(signal, nativeHandler);
             }
         }
         return prev;
