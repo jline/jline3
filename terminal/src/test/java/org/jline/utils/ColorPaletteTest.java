@@ -13,12 +13,18 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.impl.DumbTerminal;
+import org.jline.utils.InfoCmp.Capability;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -110,5 +116,38 @@ class ColorPaletteTest {
 
         int background = terminal.getDefaultBackgroundColor();
         assertEquals(0x0000FF, background, "Default background color should be blue");
+    }
+
+    /**
+     * Regression test for https://github.com/jline/jline3/issues/2256.
+     *
+     * <p>The palette was sized from an empty capability map during the AbstractTerminal
+     * constructor (before parseInfoCmp() ran), so it always had 256 entries regardless
+     * of the terminal's actual max_colors. The fix reloads the palette at the end of
+     * parseInfoCmp() and setEnv() once max_colors is known.
+     *
+     * <p>Only terminal types with built-in JLine capability data are used here
+     * (xterm=8, xterm-256color=256), as types without built-in data fall back to
+     * the "ansi" defaults and produce different max_colors values.
+     */
+    @ParameterizedTest
+    @CsvSource({"xterm, 8", "xterm-256color, 256"})
+    void testPaletteSizedFromMaxColors(String termType, int expectedLength) throws IOException {
+        // Keep the write end open so the read end never sees EOF (required by TerminalBuilder).
+        PipedOutputStream writer = new PipedOutputStream();
+        try (Terminal t = TerminalBuilder.builder()
+                .system(false)
+                .type(termType)
+                .streams(new PipedInputStream(writer), new ByteArrayOutputStream())
+                .build()) {
+            int maxColors = t.getNumericCapability(Capability.max_colors);
+            int paletteLength = t.getPalette().getLength();
+            assertEquals(expectedLength, maxColors, "max_colors for " + termType + " should be " + expectedLength);
+            assertEquals(
+                    expectedLength,
+                    paletteLength,
+                    "palette length for " + termType
+                            + " should match max_colors; was palette sized before parseInfoCmp()?");
+        }
     }
 }
