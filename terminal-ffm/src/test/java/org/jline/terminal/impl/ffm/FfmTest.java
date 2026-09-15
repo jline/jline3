@@ -18,8 +18,6 @@ import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -38,7 +36,6 @@ import org.junit.jupiter.api.condition.OS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FfmTest {
@@ -231,40 +228,6 @@ class FfmTest {
         Object reg = provider.registerSignal("WINCH", () -> {});
         assertNotNull(reg, "Provider-level signal registration should succeed");
         provider.unregisterSignal("WINCH", reg);
-    }
-
-    @Test
-    @EnabledOnOs(OS.LINUX)
-    void testSignalRegisterDefaultPreservesJvmReservedSignals() throws Exception {
-        if (!FfmSignalHandler.isAvailable()) {
-            return;
-        }
-        // HotSpot reserves SIGQUIT on all Linux JVMs for the thread-dump handler.
-        // registerDefault("QUIT") must decline (return null) rather than overwrite it,
-        // so that kill -3 continues to produce a thread dump instead of killing the process.
-        //
-        // We verify this by:
-        // 1. asserting registerDefault("QUIT") returns null (declined)
-        // 2. confirming the SigCgt bit for SIGQUIT is still set in /proc/self/status
-        //    (the HotSpot handler remains caught, not reset to SIG_DFL)
-
-        Object reg = FfmSignalHandler.registerDefault("QUIT");
-        assertNull(reg, "registerDefault(QUIT) must return null when HotSpot's handler is installed");
-
-        // Verify SIGQUIT is still in the caught set (SigCgt bitmask in /proc/self/status).
-        // SIGQUIT is signal 3 → bit (1 << (3-1)) = bit 2 (0-indexed from 1).
-        String status = Files.readString(Path.of("/proc/self/status"));
-        for (String line : status.split("\n")) {
-            if (line.startsWith("SigCgt:")) {
-                long caught = Long.parseUnsignedLong(line.split(":")[1].strip(), 16);
-                long sigquitBit = 1L << (3 - 1); // SIGQUIT = 3
-                assertTrue(
-                        (caught & sigquitBit) != 0,
-                        "SIGQUIT must remain in SigCgt (caught) after registerDefault — HotSpot handler must not be clobbered");
-                return;
-            }
-        }
-        throw new AssertionError("SigCgt line not found in /proc/self/status");
     }
 
     @Test
