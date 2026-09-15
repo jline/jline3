@@ -101,6 +101,56 @@ class ColorPaletteTest {
         assertEquals(-1, background, "Default background color should be -1 when not available");
     }
 
+    /**
+     * When the terminal never answers OSC 4 (e.g. no tty), {@code loadPalette()} must return
+     * {@code false} and the palette must fall back to the standard 256-colour default — not a
+     * single-entry all-black palette that would map every colour to black.
+     * <p>
+     * Regression test for https://github.com/jline/jline3/issues/2257
+     */
+    @Test
+    void testLoadPaletteWithSilentTerminalFallsBackToDefaultPalette() throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        // Empty input → terminal never answers OSC 4
+        ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);
+
+        Terminal terminal = new TestDumbTerminal("test", "dumb", input, output, StandardCharsets.UTF_8, -1, -1);
+
+        ColorPalette palette = new ColorPalette(terminal);
+        boolean loaded = palette.loadPalette();
+
+        assertFalse(loaded, "loadPalette() must return false when the terminal does not answer OSC 4");
+        assertFalse(palette.isReal(), "isReal() must be false when no OSC 4 response was received");
+        assertTrue(
+                palette.getLength() > 1,
+                "Palette must fall back to the default 256-colour table, not a single black entry; got length="
+                        + palette.getLength());
+        // Sanity-check: orange (255,128,0) should NOT round to colour index 0 (black)
+        int rounded = palette.round(255, 128, 0);
+        assertNotEquals(0, rounded, "Orange must not round to black in the fallback palette");
+    }
+
+    /**
+     * When the terminal's reader has been explicitly closed, {@code loadPalette()} must not throw a
+     * {@code ClosedException} — it must gracefully fall back to the default palette.
+     * <p>
+     * Regression test for https://github.com/jline/jline3/issues/2257 (ClosedException case)
+     */
+    @Test
+    void testLoadPaletteWithClosedReaderDoesNotThrow() throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ByteArrayInputStream input = new ByteArrayInputStream(new byte[0]);
+
+        Terminal terminal = new TestDumbTerminal("test", "dumb", input, output, StandardCharsets.UTF_8, -1, -1);
+        // Explicitly close the reader so that peek() throws ClosedException
+        terminal.reader().close();
+
+        ColorPalette palette = new ColorPalette(terminal);
+        // Must not throw ClosedException
+        assertDoesNotThrow(() -> palette.loadPalette(), "loadPalette() must not throw when the reader is closed");
+        assertFalse(palette.isReal(), "isReal() must be false when the reader is closed");
+    }
+
     @Test
     void testTerminalConvenienceMethods() throws IOException {
         // Create a mock terminal that returns specific default colors
