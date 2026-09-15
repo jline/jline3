@@ -18,6 +18,8 @@ import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -228,6 +230,57 @@ class FfmTest {
         Object reg = provider.registerSignal("WINCH", () -> {});
         assertNotNull(reg, "Provider-level signal registration should succeed");
         provider.unregisterSignal("WINCH", reg);
+    }
+
+    @Test
+    @EnabledOnOs(OS.LINUX)
+    void testSigDflTerminalDoesNotClobberSigquit() throws Exception {
+        // Regression test for https://github.com/jline/jline3/issues/2262.
+        // Opening a terminal with SIG_DFL must not call sigaction(SIGQUIT, SIG_DFL) —
+        // doing so would clobber HotSpot's thread-dump handler and cause kill -3 to
+        // terminate the JVM instead of printing a thread dump.
+        //
+        // We verify by checking /proc/self/status: SIGQUIT (signal 3) must remain in
+        // the SigCgt (caught) bitmask after terminal construction.
+        long sigquitBit = 1L << (3 - 1); // SIGQUIT = 3, bits are 0-indexed from signal 1
+
+        // Capture SigCgt before
+        long caughtBefore = readSigCgt();
+        if ((caughtBefore & sigquitBit) == 0) {
+            // HotSpot didn't catch SIGQUIT in this JVM — skip rather than give a false pass
+            return;
+        }
+
+        try (Terminal terminal = new FfmTerminalProvider()
+                .newTerminal(
+                        "name",
+                        "xterm",
+                        new ByteArrayInputStream(new byte[0]),
+                        new ByteArrayOutputStream(),
+                        Charset.defaultCharset(),
+                        Charset.defaultCharset(),
+                        Charset.defaultCharset(),
+                        Terminal.SignalHandler.SIG_DFL,
+                        false,
+                        null,
+                        null)) {
+            assertNotNull(terminal);
+        }
+
+        long caughtAfter = readSigCgt();
+        assertTrue(
+                (caughtAfter & sigquitBit) != 0,
+                "SIGQUIT must remain in SigCgt after opening a SIG_DFL terminal — "
+                        + "HotSpot's thread-dump handler must not be clobbered");
+    }
+
+    private static long readSigCgt() throws Exception {
+        for (String line : Files.readString(Path.of("/proc/self/status")).split("\n")) {
+            if (line.startsWith("SigCgt:")) {
+                return Long.parseUnsignedLong(line.split(":")[1].strip(), 16);
+            }
+        }
+        throw new AssertionError("SigCgt line not found in /proc/self/status");
     }
 
     @Test

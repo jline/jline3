@@ -715,8 +715,9 @@ class FfmSignalHandler {
      * {@link #unregister}.</p>
      *
      * @param name signal name
-     * @return a {@link Registration} token, or {@code null} if the signal is unsupported
-     *         or FFM signal handling is unavailable on this platform
+     * @return a {@link Registration} token, or {@code null} if the signal is unsupported,
+     *         FFM signal handling is unavailable on this platform, or the underlying
+     *         {@code sigaction(2)} call fails
      */
     static Object registerDefault(String name) {
         if (!AVAILABLE) {
