@@ -1,0 +1,56 @@
+This file contains the GPG public keys used to sign releases of Domtrip.
+
+Releases are signed by the "Maveniverse Release" key. This key is cross-signed
+by the main Guillaume Nodet key (ecdfea3cb4493b94, gnodet@gmail.com /
+gnodet@apache.org), establishing cryptographic attribution to the project
+maintainer.
+
+To verify a release artifact, import this key and check the signature:
+
+  gpg --import KEYS
+  gpg --verify domtrip-<version>.jar.asc domtrip-<version>.jar
+
+Or fetch directly from the keyserver:
+
+  gpg --keyserver keyserver.ubuntu.com --recv-keys A1011D0A89C9E497
+
+-----------------------------------------------------------------------
+
+pub   rsa4096/A1011D0A89C9E497 2026-04-03 [SC] [expires: 2028-04-02]
+      3F068505A1DF611935F03FB1A1011D0A89C9E497
+uid   Maveniverse Release <gnodet@gmail.com>
+sig   ecdfea3cb4493b94 (Guillaume Nodet <gnodet@gmail.com>)
+
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+Comment: Hostname:
+Version: Hockeypuck 2.2
+
+xsFNBGnPqUEBEACtJN2HM+3T4NPyeRTd9FLcJMpSb7mYMoHY00P/+HHJybQfH5ag
+n8ldak3EtMp09vhUii2eiBxirOKEw5JLJQXIhiKkW49foPDT5ENazXW5XvloxdrO
+C/k2+hsBa9Jy4K6r0OpxYcc4Eos61WjZk2zvWy2YsvuD4oYFG7oAHPwNcc9oOMw5
+zefTU1gkhEXndXPvX6LcyWpoJSkkVHQjgR4yIN2mojCT34jTr0mpNQN/tlQa8qDl
+Dv8Knt3Xw4O4ktclhyqzAKUiqcG1vUU7GbRMd7mPH+DP2Moe6US5fHxzTqkMrspC
+EyT5cwNP87WY47EzPXn1pDPpmI1CPsArfIFNDlBlUPjSM10MJli3y+sythGfuCG0
+6duMAgh/3ESbH041DjIHA1SmUfBTdGo1n/vTk2vJsJSipeq2OVWWJ7jWtpyDFOh7
+FLIKRfklmgSbaNswynbmp9VZc8y/WrG78Nrr/Z1ZUyqBa6iKI70Y0OLif/CzXD9J
+HSs9yA8TjoCsHZUpg74P6n8qET36IhjRyFR0bQtoSQhH40WNc/ngNSYMIqoiDbGg
+Suy9qR28VX7xTh7gjU8Czqgqk+MJg6sxlQwB0Y7GEPJF0SFOL5T65AjoTXuW6XwK
+FZ0iZovRchv7wRRzemWI0VSQ7SzG/4Y9SU2q20Ehi0nNIm3LNJ1y3gZrMQARAQAB
+zSZNYXZlbml2ZXJzZSBSZWxlYXNlIDxnbm9kZXRAZ21haWwuY29tPsLBlwQTAQgA
+QRYhBD8GhQWh32EZNfA/saEBHQqJyeSXBQJpz6lBAhsDBQkDwmcABQsJCAcCAiIC
+BhUKCQgLAgQWAgMBAh4HAheAAAoJEKEBHQqJyeSX9TAP/0YzaKTCT+gpqQL8u5W1
+bcFgFumsBCfuS6t9+nVwAmqtCT9zaN57/ZaY3uIepifujnwjDngSAMC0RoN8JLeY
+jblIsbKaMMu8JzUJVLhXcYNCbMdln7qhVVRTelnQ8TCjIgtuma+kv6t8DAMydXBe
+3/4ymSGhUJdb6bnk6qnRtRYVs/vi2V+XrOpFeSa5WCuRPc9gaoBWGFV0D0/y4BGm
+MCT0SjXF55/bo5F+WfuLgNxixxIPF/EGjXFk2hFuEkcCFX6R9qZk4BnHwj6jZElI
+H1ukIf4ZLlQg/rjUh+xV5vxTZCUqchIUj5ZXcZD187cVhQTIo31+78PHa8wPMDdV
+EZkDxuKQdhksbk5qP86lie60dLYeW/iqu0sI1zcaDmjOlbjfOyk2Y5XTBb9GbYEg
+2cafVq2iuek6405nUyq/6YG5fW77wt/yaotecdrV5ycoKWh+E+xjiSbmXrp1BwMQ
+qIQqHJN91lCEuBE207v3Ep1hQGbm2tkMFUPVu+/avge0a061Da8uW9iRp2YQPu1H
+XS94wJpSeDLHYr9tSHZY5WHTuOCO1xUK5ZFqsfKF5+mKMveSDg6L73ejq720zSSb
+KIyq6SkmNJAjk4CTeEnEVDIJTcOdLCDL5oPI/V56YZ8zGoHQRoHgsgyUPNFQ49pS
+w6klZLXDEZqxYLg/sSHpOIIzwl0EEBEKAB0WIQTqI9sTYNkClIHn8u/s3+o8tEk7
+lAUCaqsPAwAKCRDs3+o8tEk7lBbJAKCWqJoF+kWV4T5krJ6yKENNtYBETACgt1uW
+liZvZOTjbOgEO0UJrLitXDY=
+=qYp+
+-----END PGP PUBLIC KEY BLOCK-----
