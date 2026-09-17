@@ -1495,7 +1495,7 @@ public class DefaultPrompter implements Prompter {
             }
 
             display.resize(size);
-            display.update(out, size.cursorPos(Math.min(size.getRows() - 1, firstItemRow + items.size()), 0));
+            display.update(out, size.cursorPos(Math.min(size.getRows() - 1, out.size() - 1), 0));
 
             ListOperation op = bindingReader.readBinding(keyMap);
             switch (op) {
@@ -1845,10 +1845,8 @@ public class DefaultPrompter implements Prompter {
         size = terminal.getSize();
         display.resize(size);
         List<AttributedString> lines = buildListDisplayLines(header, message, items, cursorRow, prompt);
-        // when a footer pane is shown, park the cursor on the last rendered row below the footer
-        int cursorLine = footerAreaHeight > 0
-                ? Math.min(size.getRows() - 1, lines.size() - 1)
-                : Math.min(size.getRows() - 1, firstItemRow + items.size());
+        // park the cursor on the last rendered row: items.size() would count items outside the page
+        int cursorLine = Math.min(size.getRows() - 1, lines.size() - 1);
         display.update(lines, size.cursorPos(cursorLine, 0));
     }
 
@@ -2006,10 +2004,8 @@ public class DefaultPrompter implements Prompter {
         display.resize(size);
         List<AttributedString> lines =
                 buildCheckboxDisplayLines(header, message, items, cursorRow, selectedIds, prompt);
-        // when a footer pane is shown, park the cursor on the last rendered row below the footer
-        int cursorLine = footerAreaHeight > 0
-                ? Math.min(size.getRows() - 1, lines.size() - 1)
-                : Math.min(size.getRows() - 1, firstItemRow + items.size());
+        // park the cursor on the last rendered row: items.size() would count items outside the page
+        int cursorLine = Math.min(size.getRows() - 1, lines.size() - 1);
         display.update(lines, size.cursorPos(cursorLine, 0));
     }
 
@@ -2171,7 +2167,7 @@ public class DefaultPrompter implements Prompter {
     /**
      * Inner class for managing list pagination ranges.
      */
-    private static class ListRange {
+    static class ListRange {
         final int first;
         final int last;
 
@@ -2184,24 +2180,18 @@ public class DefaultPrompter implements Prompter {
     /**
      * Compute the visible range of items based on cursor position, terminal size, and page size.
      */
-    private void computeListRange(int cursorRow, int itemsSize, int pageSize, boolean showPageIndicator) {
+    void computeListRange(int cursorRow, int itemsSize, int pageSize, boolean showPageIndicator) {
         if (range != null && range.first <= cursorRow - firstItemRow && range.last - 1 > cursorRow - firstItemRow) {
             return;
         }
         range = new ListRange(0, itemsSize);
 
         // Determine effective page size.
-        int effectivePageSize;
-        if (footerAreaHeight > 0) {
-            int maxFit = size.getRows() - firstItemRow - footerReservedRows();
-            effectivePageSize = pageSize > 0 ? Math.min(pageSize, maxFit) : maxFit;
-            if (showPageIndicator && effectivePageSize < itemsSize) {
-                effectivePageSize -= 1;
-            }
-        } else if (pageSize > 0) {
-            effectivePageSize = pageSize;
-        } else {
-            effectivePageSize = size.getRows() - firstItemRow;
+        int maxFit = size.getRows() - firstItemRow - footerReservedRows();
+        int effectivePageSize = pageSize > 0 ? Math.min(pageSize, maxFit) : maxFit;
+        if (showPageIndicator && effectivePageSize < itemsSize) {
+            // the indicator sits below the page, so it has to come out of the rows we just claimed
+            effectivePageSize = Math.min(effectivePageSize, maxFit - 1);
         }
         effectivePageSize = Math.max(1, effectivePageSize);
 
@@ -2210,7 +2200,10 @@ public class DefaultPrompter implements Prompter {
             if (itemId < effectivePageSize - 1) {
                 range = new ListRange(0, effectivePageSize);
             } else {
-                range = new ListRange(itemId - effectivePageSize + 2, itemId + 2);
+                // the page keeps one item below the cursor, except on the last one, where sliding
+                // the window past the end would render a page one item short
+                int last = Math.min(itemId + 2, itemsSize);
+                range = new ListRange(Math.max(0, last - effectivePageSize), last);
             }
         }
     }
