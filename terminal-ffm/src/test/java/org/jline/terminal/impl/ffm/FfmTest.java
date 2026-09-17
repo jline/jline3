@@ -37,6 +37,7 @@ import org.junit.jupiter.api.condition.OS;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -257,8 +258,9 @@ class FfmTest {
                 "registerDefault(QUIT) must return null — installing SIG_DFL would clobber HotSpot's thread-dump handler");
 
         long caughtAfter = readSigCgt();
-        assertTrue(
-                (caughtAfter & sigquitBit) != 0,
+        assertNotEquals(
+                0L,
+                caughtAfter & sigquitBit,
                 "SIGQUIT must remain in SigCgt after registerDefault(QUIT) — "
                         + "HotSpot's thread-dump handler must not be clobbered");
     }
