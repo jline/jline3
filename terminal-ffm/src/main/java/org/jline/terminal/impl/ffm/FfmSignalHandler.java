@@ -710,8 +710,21 @@ class FfmSignalHandler {
     /**
      * Registers the default (SIG_DFL) handler for the specified signal.
      *
+     * <p>Installs {@code SIG_DFL} via {@code sigaction(2)}, saving the previous
+     * disposition in the returned {@link Registration} for later restoration by
+     * {@link #unregister}.</p>
+     *
+     * <p>If the signal currently has a <em>foreign</em> handler — one that is neither
+     * {@code SIG_DFL}, {@code SIG_IGN}, nor jline's own machine-code stub — this method
+     * returns {@code null} without touching the disposition. This prevents clobbering
+     * handlers installed by the JVM (e.g. HotSpot's {@code SIGQUIT} thread-dump handler)
+     * or other native libraries.</p>
+     *
      * @param name signal name
-     * @return a {@link Registration} token, or {@code null} if the signal is unsupported
+     * @return a {@link Registration} token, or {@code null} if the signal is unsupported,
+     *         FFM signal handling is unavailable on this platform, the underlying
+     *         {@code sigaction(2)} call fails, or the signal has a foreign handler that
+     *         must be preserved
      */
     static Object registerDefault(String name) {
         if (!AVAILABLE) {
@@ -725,6 +738,15 @@ class FfmSignalHandler {
         Arena arena = Arena.ofAuto();
         try {
             MemorySegment oldAct = arena.allocate(sigactionLayout);
+
+            // Probe the current disposition before installing SIG_DFL.
+            if ((int) sigaction_mh.invoke(signum, MemorySegment.NULL, oldAct) == 0 && isForeignHandler(oldAct)) {
+                // A foreign handler is installed (e.g. HotSpot's SIGQUIT thread-dump handler).
+                // Declining here preserves the existing handler.
+                logger.log(Level.DEBUG, "Declining SIG_DFL for signal {0}: foreign handler installed", name);
+                return null;
+            }
+
             MemorySegment newAct = arena.allocate(sigactionLayout);
             // sa_handler = SIG_DFL (0) — already zero from allocate()
             // sa_flags and sa_mask also zero
@@ -948,6 +970,23 @@ class FfmSignalHandler {
     private static boolean isOurHandler(MemorySegment sigactionStruct) {
         MemorySegment handler = (MemorySegment) sa_handler_vh.get(sigactionStruct);
         return handler.address() == nativeHandlerCode.address();
+    }
+
+    /**
+     * Determines whether the native sigaction struct contains a <em>foreign</em> handler —
+     * one that is neither {@code SIG_DFL} (address 0), {@code SIG_IGN} (address 1), nor
+     * jline's own machine-code stub.
+     *
+     * <p>Used by {@link #registerDefault} to avoid clobbering handlers installed by the JVM
+     * (e.g. HotSpot's {@code SIGQUIT} thread-dump handler) or other native libraries.</p>
+     *
+     * @param sigactionStruct a native {@code struct sigaction} memory segment
+     * @return {@code true} if {@code sa_handler} is a foreign handler that must be preserved
+     */
+    private static boolean isForeignHandler(MemorySegment sigactionStruct) {
+        long addr = ((MemorySegment) sa_handler_vh.get(sigactionStruct)).address();
+        // SIG_DFL = 0, SIG_IGN = 1 — POSIX sentinel values; anything else is a real handler
+        return addr != 0L && addr != 1L && !isOurHandler(sigactionStruct);
     }
 
     /**

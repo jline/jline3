@@ -18,6 +18,8 @@ import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -35,8 +37,11 @@ import org.junit.jupiter.api.condition.OS;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class FfmTest {
 
@@ -228,6 +233,45 @@ class FfmTest {
         Object reg = provider.registerSignal("WINCH", () -> {});
         assertNotNull(reg, "Provider-level signal registration should succeed");
         provider.unregisterSignal("WINCH", reg);
+    }
+
+    @Test
+    @EnabledOnOs(OS.LINUX)
+    void testSigDflTerminalDoesNotClobberSigquit() throws Exception {
+        // Regression test for https://github.com/jline/jline3/issues/2262.
+        // Calling registerDefault("QUIT") must not clobber HotSpot's SIGQUIT handler.
+        //
+        // We verify by checking /proc/self/status: SIGQUIT (signal 3) must remain in
+        // the SigCgt (caught) bitmask after registerDefault("QUIT").
+        assumeTrue(
+                FfmSignalHandler.isAvailable(), "FFM signal handling not available on this platform — skipping test");
+        long sigquitBit = 1L << (3 - 1); // SIGQUIT = 3, bits are 0-indexed from signal 1
+
+        long caughtBefore = readSigCgt();
+        assumeTrue((caughtBefore & sigquitBit) != 0, "HotSpot didn't catch SIGQUIT in this JVM — skipping test");
+
+        // This is the call that AbstractUnixSysTerminal.registerNativeSignals() makes for SIG_DFL.
+        // It must return null (declining to install SIG_DFL) so HotSpot's handler is preserved.
+        Object reg = FfmSignalHandler.registerDefault("QUIT");
+        assertNull(
+                reg,
+                "registerDefault(QUIT) must return null — installing SIG_DFL would clobber HotSpot's thread-dump handler");
+
+        long caughtAfter = readSigCgt();
+        assertNotEquals(
+                0L,
+                caughtAfter & sigquitBit,
+                "SIGQUIT must remain in SigCgt after registerDefault(QUIT) — "
+                        + "HotSpot's thread-dump handler must not be clobbered");
+    }
+
+    private static long readSigCgt() throws Exception {
+        for (String line : Files.readString(Path.of("/proc/self/status")).split("\n")) {
+            if (line.startsWith("SigCgt:")) {
+                return Long.parseUnsignedLong(line.split(":")[1].strip(), 16);
+            }
+        }
+        throw new AssertionError("SigCgt line not found in /proc/self/status");
     }
 
     @Test
