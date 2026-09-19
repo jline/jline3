@@ -23,19 +23,21 @@ class AttributedStringTest {
     @Test
     void codePointMethodsRejectIndicesOutsideSubsequence() {
         AttributedString text = new AttributedString("before-middle-after").subSequence(7, 13);
+        int length = text.length();
 
         assertThrows(IndexOutOfBoundsException.class, () -> text.codePointAt(-1));
-        assertThrows(IndexOutOfBoundsException.class, () -> text.codePointAt(text.length()));
+        assertThrows(IndexOutOfBoundsException.class, () -> text.codePointAt(length));
         assertThrows(IndexOutOfBoundsException.class, () -> text.codePointBefore(0));
-        assertThrows(IndexOutOfBoundsException.class, () -> text.codePointBefore(text.length() + 1));
+        assertThrows(IndexOutOfBoundsException.class, () -> text.codePointBefore(length + 1));
     }
 
     @Test
     void codePointMethodsRejectIndicesOutsideBuilderLength() {
         AttributedStringBuilder text = new AttributedStringBuilder().append("abc");
+        int length = text.length();
 
-        assertThrows(IndexOutOfBoundsException.class, () -> text.codePointAt(text.length()));
-        assertThrows(IndexOutOfBoundsException.class, () -> text.codePointBefore(text.length() + 1));
+        assertThrows(IndexOutOfBoundsException.class, () -> text.codePointAt(length));
+        assertThrows(IndexOutOfBoundsException.class, () -> text.codePointBefore(length + 1));
     }
 
     @Test
