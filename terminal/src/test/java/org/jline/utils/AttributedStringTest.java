@@ -16,8 +16,53 @@ import org.jline.terminal.impl.DumbTerminal;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class AttributedStringTest {
+
+    @Test
+    void codePointMethodsRejectIndicesOutsideSubsequence() {
+        AttributedString text = new AttributedString("before-middle-after").subSequence(7, 13);
+
+        assertThrows(IndexOutOfBoundsException.class, () -> text.codePointAt(-1));
+        assertThrows(IndexOutOfBoundsException.class, () -> text.codePointAt(text.length()));
+        assertThrows(IndexOutOfBoundsException.class, () -> text.codePointBefore(0));
+        assertThrows(IndexOutOfBoundsException.class, () -> text.codePointBefore(text.length() + 1));
+    }
+
+    @Test
+    void codePointMethodsRejectIndicesOutsideBuilderLength() {
+        AttributedStringBuilder text = new AttributedStringBuilder().append("abc");
+
+        assertThrows(IndexOutOfBoundsException.class, () -> text.codePointAt(text.length()));
+        assertThrows(IndexOutOfBoundsException.class, () -> text.codePointBefore(text.length() + 1));
+    }
+
+    @Test
+    void codePointAtRespectsSubsequenceEnd() {
+        AttributedString text = new AttributedString("x\uD834\uDD1Ey");
+        AttributedString prefix = text.subSequence(1, 2);
+
+        assertEquals(prefix.toString().codePointAt(0), prefix.codePointAt(0));
+        assertEquals(text.toString().codePointAt(1), text.codePointAt(1));
+    }
+
+    @Test
+    void codePointBeforeRespectsSubsequenceStart() {
+        AttributedString text = new AttributedString("x\uD834\uDD1Ey");
+        AttributedString suffix = text.subSequence(2, 3);
+
+        assertEquals(suffix.toString().codePointBefore(1), suffix.codePointBefore(1));
+        assertEquals(text.toString().codePointBefore(3), text.codePointBefore(3));
+    }
+
+    @Test
+    void codePointAtRespectsTruncatedBuilderLength() {
+        AttributedStringBuilder text = new AttributedStringBuilder().append("\uD834\uDD1E");
+        text.setLength(1);
+
+        assertEquals(text.toString().codePointAt(0), text.codePointAt(0));
+    }
 
     @Test
     void test() {
