@@ -35,6 +35,10 @@ updates:
     schedule:
       interval: "daily"
     target-branch: "jline-3.x"
+    ignore:
+      # Groovy 5+ requires Java 11+; jline-3.x targets Java 8 — ignore major bumps
+      - dependency-name: "org.apache.groovy:*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
