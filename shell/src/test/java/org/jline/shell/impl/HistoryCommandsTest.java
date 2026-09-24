@@ -113,19 +113,19 @@ class HistoryCommandsTest extends AbstractCommandsTest {
 
     @Test
     void historySearchTimeoutReportsError() throws Exception {
-        // Use a 1 ms regex timeout via the package-private HistoryCommands constructor so this
+        // Use a -1 ms regex timeout via the package-private HistoryCommands constructor so this
         // test is deterministic across JDK versions.  Newer JDKs (25+) optimise away the
         // catastrophic backtracking in patterns like (a+)+b, making a reliance on pathological
         // runtime fragile.
         //
         // SafeRegex.TimeoutCharSequence checks the deadline every CHECK_INTERVAL (1024) charAt
-        // calls: the first check sets the deadline, the second checks it.  A 1 ms timeout means
-        // the deadline is set to "now + 1 ms" at call 1024, so the check at call 2048 always
-        // fires in time.  We use a 3000-char input with /.*/ to guarantee >= 2048 charAt calls,
-        // making the timeout deterministic regardless of JVM speed.
+        // calls: the first check sets the deadline, the second checks it.  A -1 ms timeout means
+        // timeoutNanos = -1_000_000, so at call 1024 the deadline is set to "now - 1ms" (in the
+        // past), and the check at call 2048 unconditionally fires since now > deadline.  We use a
+        // 3000-char input with /.*/ to guarantee >= 2048 charAt calls.
         String input = "a".repeat(3000);
         reader.getHistory().add(input);
-        HistoryCommands timedOut = new HistoryCommands(reader, 1L);
+        HistoryCommands timedOut = new HistoryCommands(reader, -1L);
         Command cmd = timedOut.command("history");
         cmd.execute(session, new String[] {"/.*"});
         String err = errCapture.toString();
