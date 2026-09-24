@@ -44,19 +44,34 @@ public class HistoryCommands extends SimpleCommandGroup {
      * @param reader the line reader
      */
     public HistoryCommands(LineReader reader) {
-        super("history", createCommands(reader));
+        this(reader, 1500L);
     }
 
-    private static List<Command> createCommands(LineReader reader) {
-        return List.of(new HistoryCommand(reader));
+    /**
+     * Creates history commands using the given line reader's history and a custom regex timeout.
+     * Package-private to allow tests to inject a very short timeout so that
+     * {@link RegexTimeoutException} can be exercised reliably without relying on
+     * catastrophic-backtracking behaviour that varies across JDK versions.
+     *
+     * @param reader         the line reader
+     * @param regexTimeoutMs maximum time in milliseconds allowed per regex match
+     */
+    HistoryCommands(LineReader reader, long regexTimeoutMs) {
+        super("history", createCommands(reader, regexTimeoutMs));
+    }
+
+    private static List<Command> createCommands(LineReader reader, long regexTimeoutMs) {
+        return List.of(new HistoryCommand(reader, regexTimeoutMs));
     }
 
     private static class HistoryCommand extends AbstractCommand {
         private final LineReader reader;
+        private final long regexTimeoutMs;
 
-        HistoryCommand(LineReader reader) {
+        HistoryCommand(LineReader reader, long regexTimeoutMs) {
             super("history");
             this.reader = reader;
+            this.regexTimeoutMs = regexTimeoutMs;
         }
 
         @Override
@@ -128,7 +143,7 @@ public class HistoryCommands extends SimpleCommandGroup {
                 String entry = history.get(i);
                 if (filter != null) {
                     try {
-                        if (!SafeRegex.matcher(filter, entry).find()) {
+                        if (!SafeRegex.matcher(filter, entry, regexTimeoutMs).find()) {
                             continue;
                         }
                     } catch (RegexTimeoutException e) {

@@ -113,14 +113,21 @@ class HistoryCommandsTest extends AbstractCommandsTest {
 
     @Test
     void historySearchTimeoutReportsError() throws Exception {
-        // Catastrophic-backtracking pattern: (a+)+b against a string of only 'a'
-        // characters causes exponential backtracking and will exceed SafeRegex's
-        // default timeout, exercising the RegexTimeoutException catch path.
-        String catastrophic = "(a+)+b";
-        String longInput = "a".repeat(2000);
-        reader.getHistory().add(longInput);
-        Command cmd = commands.command("history");
-        cmd.execute(session, new String[] {"/" + catastrophic});
+        // Use a 1 ms regex timeout via the package-private HistoryCommands constructor so this
+        // test is deterministic across JDK versions.  Newer JDKs (25+) optimise away the
+        // catastrophic backtracking in patterns like (a+)+b, making a reliance on pathological
+        // runtime fragile.
+        //
+        // SafeRegex.TimeoutCharSequence checks the deadline every CHECK_INTERVAL (1024) charAt
+        // calls: the first check sets the deadline, the second checks it.  A 1 ms timeout means
+        // the deadline is set to "now + 1 ms" at call 1024, so the check at call 2048 always
+        // fires in time.  We use a 3000-char input with /.*/ to guarantee >= 2048 charAt calls,
+        // making the timeout deterministic regardless of JVM speed.
+        String input = "a".repeat(3000);
+        reader.getHistory().add(input);
+        HistoryCommands timedOut = new HistoryCommands(reader, 1L);
+        Command cmd = timedOut.command("history");
+        cmd.execute(session, new String[] {"/.*"});
         String err = errCapture.toString();
         assertTrue(err.contains("timed out"), "Expected timeout error in stderr, got: " + err);
         assertTrue(outCapture.toString().isEmpty(), "Expected no history output when regex times out");
