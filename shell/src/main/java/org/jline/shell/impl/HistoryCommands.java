@@ -11,6 +11,7 @@ package org.jline.shell.impl;
 import java.io.IOException;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import org.jline.reader.Completer;
 import org.jline.reader.History;
@@ -99,7 +100,13 @@ public class HistoryCommands extends SimpleCommandGroup {
             if (arg.startsWith("/")) {
                 // Regex search — use SafeRegex to guard against ReDoS
                 String patternStr = arg.substring(1);
-                Pattern pattern = Pattern.compile(patternStr, Pattern.CASE_INSENSITIVE);
+                Pattern pattern;
+                try {
+                    pattern = Pattern.compile(patternStr, Pattern.CASE_INSENSITIVE);
+                } catch (PatternSyntaxException e) {
+                    session.err().println("history: invalid regex: " + e.getMessage());
+                    return null;
+                }
                 printHistory(session, history, Integer.MAX_VALUE, pattern);
                 return null;
             }
@@ -121,7 +128,7 @@ public class HistoryCommands extends SimpleCommandGroup {
                 String entry = history.get(i);
                 if (filter != null) {
                     try {
-                        if (!SafeRegex.find(filter, entry)) {
+                        if (!SafeRegex.matcher(filter, entry).find()) {
                             continue;
                         }
                     } catch (RegexTimeoutException e) {
