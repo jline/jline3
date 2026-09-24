@@ -18,6 +18,8 @@ import org.jline.reader.LineReader;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.shell.Command;
 import org.jline.shell.CommandSession;
+import org.jline.utils.RegexTimeoutException;
+import org.jline.utils.SafeRegex;
 
 /**
  * Built-in history command group.
@@ -95,7 +97,7 @@ public class HistoryCommands extends SimpleCommandGroup {
             }
 
             if (arg.startsWith("/")) {
-                // Regex search
+                // Regex search — use SafeRegex to guard against ReDoS
                 String patternStr = arg.substring(1);
                 Pattern pattern = Pattern.compile(patternStr, Pattern.CASE_INSENSITIVE);
                 printHistory(session, history, Integer.MAX_VALUE, pattern);
@@ -117,8 +119,15 @@ public class HistoryCommands extends SimpleCommandGroup {
             int start = Math.max(0, size - limit);
             for (int i = start; i < size; i++) {
                 String entry = history.get(i);
-                if (filter != null && !filter.matcher(entry).find()) {
-                    continue;
+                if (filter != null) {
+                    try {
+                        if (!SafeRegex.find(filter, entry)) {
+                            continue;
+                        }
+                    } catch (RegexTimeoutException e) {
+                        session.err().println("history: regex timed out, pattern may be too complex");
+                        return;
+                    }
                 }
                 session.out().printf("%5d  %s%n", i + 1, entry);
             }
