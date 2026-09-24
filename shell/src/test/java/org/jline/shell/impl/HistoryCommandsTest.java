@@ -122,11 +122,7 @@ class HistoryCommandsTest extends AbstractCommandsTest {
         Command cmd = commands.command("history");
         cmd.execute(session, new String[] {"/" + catastrophic});
         String err = errCapture.toString();
-        assertTrue(
-                err.contains("timed out"),
-                "Expected timeout error in stderr, got: " + err);
-        assertTrue(
-                outCapture.toString().isEmpty(),
-                "Expected no history output when regex times out");
+        assertTrue(err.contains("timed out"), "Expected timeout error in stderr, got: " + err);
+        assertTrue(outCapture.toString().isEmpty(), "Expected no history output when regex times out");
     }
 }
