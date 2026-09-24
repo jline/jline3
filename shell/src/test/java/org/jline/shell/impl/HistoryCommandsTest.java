@@ -101,4 +101,32 @@ class HistoryCommandsTest extends AbstractCommandsTest {
         String err = errCapture.toString();
         assertTrue(err.contains("invalid"));
     }
+
+    @Test
+    void historySearchInvalidRegex() throws Exception {
+        Command cmd = commands.command("history");
+        cmd.execute(session, new String[] {"/[unclosed"});
+        String err = errCapture.toString();
+        assertTrue(err.contains("invalid regex"), "Expected 'invalid regex' in: " + err);
+        assertTrue(outCapture.toString().isEmpty(), "Expected no output on stderr-only path");
+    }
+
+    @Test
+    void historySearchTimeoutReportsError() throws Exception {
+        // Catastrophic-backtracking pattern: (a+)+b against a string of only 'a'
+        // characters causes exponential backtracking and will exceed SafeRegex's
+        // default timeout, exercising the RegexTimeoutException catch path.
+        String catastrophic = "(a+)+b";
+        String longInput = "a".repeat(2000);
+        reader.getHistory().add(longInput);
+        Command cmd = commands.command("history");
+        cmd.execute(session, new String[] {"/" + catastrophic});
+        String err = errCapture.toString();
+        assertTrue(
+                err.contains("timed out"),
+                "Expected timeout error in stderr, got: " + err);
+        assertTrue(
+                outCapture.toString().isEmpty(),
+                "Expected no history output when regex times out");
+    }
 }
