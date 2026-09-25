@@ -216,7 +216,7 @@ class WindowsSoftwareSignalTest {
     }
 
     @Test
-    void testSoftwareSignalsDefaultsToTrue() throws Exception {
+    void testSoftwareSignalsDefaultsToFalse() throws Exception {
         // Clear the property to test the default
         System.clearProperty(PROP_SOFTWARE_SIGNALS);
         try (AbstractWindowsTerminal<?> terminal = createTestTerminal(false)) {
@@ -230,8 +230,12 @@ class WindowsSoftwareSignalTest {
 
             terminal.processInputChar('\3');
 
-            // Default should be true, so signal should be raised
-            assertEquals(Signal.INT, received.get());
+            // Default should be false, so signal should NOT be raised in raw mode
+            assertNull(received.get());
+
+            // But character should still be written to the pipe
+            int ch = terminal.reader().read(100);
+            assertEquals('\3', ch);
         }
     }
 }
