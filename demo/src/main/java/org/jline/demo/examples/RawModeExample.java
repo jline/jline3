@@ -11,12 +11,18 @@ package org.jline.demo.examples;
 import java.io.IOException;
 
 import org.jline.terminal.Attributes;
+import org.jline.terminal.Attributes.ControlChar;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.NonBlockingReader;
 
 /**
  * Example demonstrating raw mode in JLine.
+ *
+ * <p>In raw mode, ISIG is cleared so the kernel no longer translates control
+ * characters into signals.  If your application needs to react to Ctrl+C
+ * (interrupt), read the VINTR byte from the terminal attributes and handle it
+ * in your own input loop as shown below.</p>
  */
 public class RawModeExample {
 
@@ -26,24 +32,35 @@ public class RawModeExample {
             // Save original terminal attributes
             Attributes originalAttributes = terminal.getAttributes();
 
-            // Enter raw mode
-            Attributes rawAttributes = terminal.enterRawMode();
+            // Retrieve the interrupt character (typically 0x03 / Ctrl+C)
+            // *before* entering raw mode, so we can handle it ourselves.
+            int intrChar = originalAttributes.getControlChar(ControlChar.VINTR);
 
-            terminal.writer().println("Terminal is in raw mode. Press keys (q to quit):");
+            // Enter raw mode — ISIG is cleared, so the terminal will no longer
+            // raise signals for control characters; they arrive as raw bytes.
+            terminal.enterRawMode();
+
+            terminal.writer().println("Terminal is in raw mode. Press keys (Ctrl+C or q to quit):");
             terminal.writer().flush();
 
             NonBlockingReader reader = terminal.reader();
 
-            // Read characters until 'q' is pressed
-            while (true) {
+            // Read characters until 'q' or the interrupt character is pressed
+            boolean running = true;
+            while (running) {
                 int c = reader.read(100);
-                if (c != -1) {
+                if (c == -1) {
+                    continue;
+                }
+                if (c == intrChar) {
+                    terminal.writer().println("Interrupt received (Ctrl+C) — exiting.");
+                    terminal.writer().flush();
+                    running = false;
+                } else if (c == 'q' || c == 'Q') {
+                    running = false;
+                } else {
                     terminal.writer().println("Read: " + (char) c + " (ASCII: " + c + ")");
                     terminal.writer().flush();
-
-                    if (c == 'q' || c == 'Q') {
-                        break;
-                    }
                 }
             }
 
