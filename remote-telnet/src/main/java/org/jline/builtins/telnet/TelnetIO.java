@@ -1158,12 +1158,21 @@ public class TelnetIO {
                             return;
                         case NE_VAR_DEFINED:
                             LOG.log(Level.DEBUG, "readNEVariables()::NE_VAR_DEFINED");
-                            if (++varCount > NE_VAR_COUNT_MAX) {
+                            String str = sbuf.toString();
+                            if (++varCount > NE_VAR_COUNT_MAX
+                                    || (TelnetIO.this
+                                                            .connectionData
+                                                            .getEnvironment()
+                                                            .size()
+                                                    >= NE_VAR_COUNT_MAX
+                                            && !TelnetIO.this
+                                                    .connectionData
+                                                    .getEnvironment()
+                                                    .containsKey(str))) {
                                 LOG.log(Level.WARNING, "readNEVariables()::TOO_MANY_VARS (>" + NE_VAR_COUNT_MAX + ")");
                                 skipToSE();
                                 return;
                             }
-                            String str = sbuf.toString();
                             sbuf.delete(0, sbuf.length());
                             switch (readNEVariableValue(sbuf)) {
                                 case NE_IN_ERROR:
