@@ -12,6 +12,7 @@ if "%demo_name%"=="" (
   echo   gogo      - Run the Gogo shell demo
   echo   repl      - Run the REPL demo
   echo   password  - Run the password demo
+  echo   console   - Run the JLine Console Provider demo
   echo   consoleui - Run the ConsoleUI demo ^(deprecated^)
   echo   prompt    - Run the new Prompt API demo
   echo   curses    - Run the Curses TUI demo
@@ -52,6 +53,7 @@ REM Determine if this is a built-in demo or example class based on known demo ty
 if "%demo_name%"=="gogo" goto demo_gogo
 if "%demo_name%"=="repl" goto demo_repl
 if "%demo_name%"=="password" goto demo_password
+if "%demo_name%"=="console" goto demo_console
 if "%demo_name%"=="consoleui" goto demo_consoleui
 if "%demo_name%"=="prompt" goto demo_prompt
 if "%demo_name%"=="curses" goto demo_curses
@@ -68,6 +70,10 @@ goto process_options
 
 :demo_password
 set MAIN_CLASS=org.jline.demo.PasswordMaskingDemo
+goto process_options
+
+:demo_console
+set MAIN_CLASS=org.jline.demo.examples.ConsoleProviderExample
 goto process_options
 
 :demo_consoleui
@@ -94,7 +100,7 @@ REM Check if the example class exists
 if not exist demo\src\main\java\org\jline\demo\examples\%example_name%.java (
   echo Demo '%example_name%' not found.
   echo.
-  echo Available built-in demos: gogo, repl, password, consoleui, prompt, curses, graal
+  echo Available built-in demos: gogo, repl, password, console, consoleui, prompt, curses, graal
   echo.
   echo Available example demos:
   for %%f in (demo\src\main\java\org\jline\demo\examples\*.java) do (
@@ -143,36 +149,76 @@ if "%1"=="ffm" (
   shift
   goto options_loop
 )
-REM Check if argument starts with --mask=
-echo %1| findstr /R "^--mask=" >nul
-if !errorlevel! equ 0 (
-  set APP_ARGS=!APP_ARGS! %1
-  shift
-  goto options_loop
-)
-REM Unknown option, assume it's an application argument
-set APP_ARGS=!APP_ARGS! %1
+REM Remaining arguments (--mask= or any unknown option) go to the application.
+REM Disable delayed expansion while reading %1 so ! characters are preserved,
+REM then re-enable to append to APP_ARGS.  The for /f variable %%a survives
+REM endlocal, carrying the concatenated value back to the outer scope.
+setlocal disabledelayedexpansion
+set "da_arg=%~1"
+setlocal enabledelayedexpansion
+for /f "delims=" %%a in ("!APP_ARGS! "!da_arg!"") do endlocal & endlocal & set "APP_ARGS=%%a"
 shift
 goto options_loop
 
 :run_demo
 echo Running demo: %MAIN_CLASS%
-if not "!JVM_OPTS!"=="" (
-  echo JVM options: !JVM_OPTS!
-)
-if not "!APP_ARGS!"=="" (
-  echo Application arguments: !APP_ARGS!
-)
-REM Build Java command with proper spacing
-if "!JVM_OPTS!"=="" (
-  set JAVA_CMD=java -cp "%cp%" -Dgosh.home="demo" -Djava.util.logging.config.file="%logconf%" %MAIN_CLASS%
+REM Display with delayed expansion disabled to preserve ! in argument values.
+setlocal disabledelayedexpansion
+if defined JVM_OPTS echo JVM options: %JVM_OPTS%
+if defined APP_ARGS echo Application arguments: %APP_ARGS%
+endlocal
+
+if "%demo_name%"=="console" goto run_console_demo
+
+REM Disable delayed expansion so ! and special characters in arguments reach Java literally.
+REM All variables already have their final values, so early expansion (%var%) is safe.
+setlocal disabledelayedexpansion
+if "%JVM_OPTS%"=="" (
+  java -cp "%cp%" -Dgosh.home="demo" -Djava.util.logging.config.file="%logconf%" %MAIN_CLASS% %APP_ARGS%
 ) else (
-  set JAVA_CMD=java -cp "%cp%" !JVM_OPTS! -Dgosh.home="demo" -Djava.util.logging.config.file="%logconf%" %MAIN_CLASS%
+  java -cp "%cp%" %JVM_OPTS% -Dgosh.home="demo" -Djava.util.logging.config.file="%logconf%" %MAIN_CLASS% %APP_ARGS%
 )
-if not "!APP_ARGS!"=="" (
-  set JAVA_CMD=!JAVA_CMD! !APP_ARGS!
+endlocal
+goto end
+
+:run_console_demo
+REM Console provider demo: use module path so System.console() picks up the JLine provider
+set mp=
+if exist %TARGETDIR%\lib (
+  for %%f in (%TARGETDIR%\lib\jline-*.jar) do (
+    if "!mp!"=="" (
+      set mp=%%f
+    ) else (
+      set mp=!mp!;%%f
+    )
+  )
 )
-!JAVA_CMD!
+echo Using module path for console provider
+REM Disable delayed expansion so ! and special characters in arguments reach Java literally.
+setlocal disabledelayedexpansion
+if "%JVM_OPTS%"=="" (
+  java --module-path "%mp%" ^
+    --add-modules org.jline.console.provider,org.jline.reader,org.jline.terminal ^
+    --add-exports java.base/jdk.internal.io=org.jline.console.provider ^
+    --enable-native-access=org.jline.terminal.ffm ^
+    -Djdk.console=org.jline.console.provider ^
+    -cp "%TARGETDIR%\classes" ^
+    -Dgosh.home="demo" ^
+    -Djava.util.logging.config.file="%logconf%" ^
+    %MAIN_CLASS% %APP_ARGS%
+) else (
+  java --module-path "%mp%" ^
+    --add-modules org.jline.console.provider,org.jline.reader,org.jline.terminal ^
+    --add-exports java.base/jdk.internal.io=org.jline.console.provider ^
+    --enable-native-access=org.jline.terminal.ffm ^
+    -Djdk.console=org.jline.console.provider ^
+    -cp "%TARGETDIR%\classes" ^
+    %JVM_OPTS% ^
+    -Dgosh.home="demo" ^
+    -Djava.util.logging.config.file="%logconf%" ^
+    %MAIN_CLASS% %APP_ARGS%
+)
+endlocal
 goto end
 
 :end

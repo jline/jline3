@@ -9,6 +9,7 @@
 package org.jline.terminal.impl;
 
 import java.util.EnumMap;
+import java.util.function.Predicate;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.*;
@@ -18,7 +19,7 @@ import org.jline.terminal.Attributes.*;
  *
  * <p>Each platform subclass provides EnumMap tables that map JLine flag/control-char enums
  * to their native bitmask or c_cc index values. The base class iterates those tables in
- * {@link #toTermios(Attributes)} and {@link #toAttributes(TermiosData)}, so subclasses
+ * {@link #toTermios(Attributes, TermiosData)} and {@link #toAttributes(TermiosData)}, so subclasses
  * are pure data declarations with no conversion logic.</p>
  *
  * @see AixTermiosMapping
@@ -86,35 +87,61 @@ public abstract class TermiosMapping {
     /**
      * Converts JLine {@link Attributes} to native termios data.
      *
+     * <p>Unmapped bits such as baud-rate flags and {@code c_ispeed}/{@code c_ospeed} are zero
+     * in the returned structure. Prefer {@link #toTermios(Attributes, TermiosData)} when applying
+     * attributes onto an existing terminal so those fields are preserved.</p>
+     *
      * @param attr the JLine attributes
      * @return the corresponding native termios data
      */
     public final TermiosData toTermios(Attributes attr) {
+        return toTermios(attr, null);
+    }
+
+    /**
+     * Converts JLine {@link Attributes} onto an existing native termios snapshot.
+     *
+     * <p>Mapped flags and control characters are replaced from {@code attr}. Unmapped bits
+     * (including baud-rate flags such as {@code CBAUD}/{@code CBAUDEX}), input/output speeds,
+     * and unmapped {@code c_cc} entries from {@code existing} are preserved. When
+     * {@code existing} is {@code null}, this is equivalent to {@link #toTermios(Attributes)}.</p>
+     *
+     * @param attr the JLine attributes
+     * @param existing the current native termios data, or {@code null}
+     * @return native termios data with JLine flags applied
+     */
+    public final TermiosData toTermios(Attributes attr, TermiosData existing) {
         TermiosData tio = new TermiosData();
-        for (var e : inputFlagMap.entrySet()) {
-            if (attr.getInputFlag(e.getKey())) {
-                tio.iflag(tio.iflag() | e.getValue());
-            }
+        if (existing != null) {
+            tio.iflag(existing.iflag());
+            tio.oflag(existing.oflag());
+            tio.cflag(existing.cflag());
+            tio.lflag(existing.lflag());
+            tio.ispeed(existing.ispeed());
+            tio.ospeed(existing.ospeed());
+            System.arraycopy(existing.cc(), 0, tio.cc(), 0, tio.cc().length);
         }
-        for (var e : outputFlagMap.entrySet()) {
-            if (attr.getOutputFlag(e.getKey())) {
-                tio.oflag(tio.oflag() | e.getValue());
-            }
-        }
-        for (var e : controlFlagMap.entrySet()) {
-            if (attr.getControlFlag(e.getKey())) {
-                tio.cflag(tio.cflag() | e.getValue());
-            }
-        }
-        for (var e : localFlagMap.entrySet()) {
-            if (attr.getLocalFlag(e.getKey())) {
-                tio.lflag(tio.lflag() | e.getValue());
-            }
-        }
+        tio.iflag(applyMappedFlags(inputFlagMap, attr::getInputFlag, tio.iflag()));
+        tio.oflag(applyMappedFlags(outputFlagMap, attr::getOutputFlag, tio.oflag()));
+        tio.cflag(applyMappedFlags(controlFlagMap, attr::getControlFlag, tio.cflag()));
+        tio.lflag(applyMappedFlags(localFlagMap, attr::getLocalFlag, tio.lflag()));
         for (var e : controlCharMap.entrySet()) {
             tio.cc()[e.getValue()] = (byte) attr.getControlChar(e.getKey());
         }
         return tio;
+    }
+
+    private static <E extends Enum<E>> long applyMappedFlags(
+            EnumMap<E, Long> map, Predicate<E> enabled, long existing) {
+        long mapped = 0;
+        long value = 0;
+        for (var e : map.entrySet()) {
+            mapped |= e.getValue();
+            if (enabled.test(e.getKey())) {
+                value |= e.getValue();
+            }
+        }
+        return (existing & ~mapped) | value;
     }
 
     /**

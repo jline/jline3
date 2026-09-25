@@ -271,6 +271,7 @@ public interface LineReader {
     String MOUSE = "mouse";
     String FOCUS_IN = "terminal-focus-in";
     String FOCUS_OUT = "terminal-focus-out";
+    String TERMINAL_RESIZE = "terminal-resize";
 
     String BEGIN_PASTE = "begin-paste";
 
@@ -303,6 +304,21 @@ public interface LineReader {
      * they are displayed in a list below the field to be completed
      */
     String MENU_LIST_MAX = "menu-list-max";
+    /**
+     * Controls behavior when completion candidates exceed {@link #LIST_MAX}.
+     * Possible values:
+     * <ul>
+     *   <li>{@code "ask"} (default) — prompt "do you wish to see all N possibilities?"</li>
+     *   <li>{@code "show"} — display all candidates without prompting</li>
+     *   <li>{@code "partial"} — display up to {@link #LIST_MAX} candidates with
+     *       an "... and N more" indicator appended</li>
+     *   <li>{@code "hide"} — silently suppress the candidate list</li>
+     * </ul>
+     *
+     * @see #LIST_MAX
+     * @since 3.30
+     */
+    String TOO_MANY_CANDIDATES = "too-many-candidates";
 
     String DISABLE_HISTORY = "disable-history";
     String DISABLE_COMPLETION = "disable-completion";
@@ -507,7 +523,26 @@ public interface LineReader {
         EMPTY_WORD_OPTIONS(true),
 
         /** Disable the undo feature */
-        DISABLE_UNDO;
+        DISABLE_UNDO,
+
+        /**
+         * Enable Kitty Keyboard Protocol support.
+         *
+         * <p>When enabled, JLine will push
+         * {@link org.jline.terminal.Terminal.KittyKeyboardMode#Disambiguate Disambiguate}
+         * mode at the start of {@code readLine()} and pop it on exit. This allows
+         * the terminal to send unambiguous escape sequences for key combinations
+         * that are otherwise indistinguishable (e.g., Shift+Enter vs Enter,
+         * Ctrl+I vs Tab).</p>
+         *
+         * <p>The protocol is only activated if the terminal actually supports it
+         * (detected via a {@code CSI ? u} probe). Terminals that do not support
+         * the protocol are unaffected.</p>
+         *
+         * @see org.jline.terminal.Terminal#hasKittyKeyboardSupport()
+         * @see org.jline.terminal.Terminal#setKittyKeyboardMode(java.util.EnumSet)
+         */
+        KITTY_KEYBOARD;
 
         private final boolean def;
 

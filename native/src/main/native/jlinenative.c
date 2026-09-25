@@ -24,14 +24,17 @@ JNIEXPORT jobject JNICALL JLineLibrary_NATIVE(newFileDescriptor)(JNIEnv *env, jc
     class_fdesc = (*env)->FindClass(env, "java/io/FileDescriptor");
     if (class_fdesc == NULL) return NULL;
 
-    // construct a new FileDescriptor
-    const_fdesc = (*env)->GetMethodID(env, class_fdesc, "<init>", "()V");
-    if (const_fdesc == NULL) return NULL;
-    ret = (*env)->NewObject(env, class_fdesc, const_fdesc);
-
-    // poke the "fd" field with the file descriptor
+    // resolve field and constructor before allocating
     field_fd = (*env)->GetFieldID(env, class_fdesc, "fd", "I");
     if (field_fd == NULL) return NULL;
+    const_fdesc = (*env)->GetMethodID(env, class_fdesc, "<init>", "()V");
+    if (const_fdesc == NULL) return NULL;
+
+    // construct a new FileDescriptor
+    ret = (*env)->NewObject(env, class_fdesc, const_fdesc);
+    if (ret == NULL) return NULL;
+
+    // poke the "fd" field with the file descriptor
     (*env)->SetIntField(env, ret, field_fd, fd);
 
     // and return it
@@ -48,14 +51,17 @@ JNIEXPORT jobject JNICALL JLineLibrary_NATIVE(newRedirectPipe)(JNIEnv *env, jcla
     class_rpi = (*env)->FindClass(env, "java/lang/ProcessBuilder$RedirectPipeImpl");
     if (class_rpi == NULL) return NULL;
 
-    // construct a new RedirectPipeImpl
-    const_rpi = (*env)->GetMethodID(env, class_rpi, "<init>", "()V");
-    if (const_rpi == NULL) return NULL;
-    ret = (*env)->NewObject(env, class_rpi, const_rpi);
-
-    // poke the "fd" field with the file descriptor
+    // resolve field and constructor before allocating
     field_fd = (*env)->GetFieldID(env, class_rpi, "fd", "Ljava/io/FileDescriptor;");
     if (field_fd == NULL) return NULL;
+    const_rpi = (*env)->GetMethodID(env, class_rpi, "<init>", "()V");
+    if (const_rpi == NULL) return NULL;
+
+    // construct a new RedirectPipeImpl
+    ret = (*env)->NewObject(env, class_rpi, const_rpi);
+    if (ret == NULL) return NULL;
+
+    // poke the "fd" field with the file descriptor
     (*env)->SetObjectField(env, ret, field_fd, fd);
 
     // and return it

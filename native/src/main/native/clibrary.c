@@ -55,8 +55,8 @@ struct termios *getTermiosFields(JNIEnv *env, jobject lpObject, struct termios *
         jbyteArray lpObject1 = (jbyteArray)(*env)->GetObjectField(env, lpObject, TermiosFc.c_cc);
         (*env)->GetByteArrayRegion(env, lpObject1, 0, sizeof(lpStruct->c_cc), (jbyte *)lpStruct->c_cc);
 	}
-	lpStruct->c_ispeed = (*env)->GetLongField(env, lpObject, TermiosFc.c_ispeed);
-	lpStruct->c_ospeed = (*env)->GetLongField(env, lpObject, TermiosFc.c_ospeed);
+	cfsetispeed(lpStruct, (speed_t)(*env)->GetLongField(env, lpObject, TermiosFc.c_ispeed));
+	cfsetospeed(lpStruct, (speed_t)(*env)->GetLongField(env, lpObject, TermiosFc.c_ospeed));
 	return lpStruct;
 }
 
@@ -71,8 +71,8 @@ void setTermiosFields(JNIEnv *env, jobject lpObject, struct termios *lpStruct)
         jbyteArray lpObject1 = (jbyteArray)(*env)->GetObjectField(env, lpObject, TermiosFc.c_cc);
         (*env)->SetByteArrayRegion(env, lpObject1, 0, sizeof(lpStruct->c_cc), (jbyte *)lpStruct->c_cc);
 	}
-	(*env)->SetLongField(env, lpObject, TermiosFc.c_ispeed, (jlong)lpStruct->c_ispeed);
-	(*env)->SetLongField(env, lpObject, TermiosFc.c_ospeed, (jlong)lpStruct->c_ospeed);
+	(*env)->SetLongField(env, lpObject, TermiosFc.c_ispeed, (jlong)cfgetispeed(lpStruct));
+	(*env)->SetLongField(env, lpObject, TermiosFc.c_ospeed, (jlong)cfgetospeed(lpStruct));
 }
 
 typedef struct WinSize_FID_CACHE {
@@ -236,6 +236,52 @@ JNIEXPORT jstring JNICALL CLibrary_NATIVE(ttyname)
 	if (!r) rc = (*env)->NewStringUTF(env,s);
 
 	return rc;
+}
+
+/**
+ * Polls a single file descriptor for input readability using poll(2).
+ * Retries automatically on EINTR (signal interruption).
+ *
+ * @param fd        file descriptor to poll
+ * @param timeoutMs timeout in milliseconds; 0 = immediate, -1 = infinite
+ * @return positive if data is ready, 0 on timeout, -1 on permanent error
+ */
+JNIEXPORT jint JNICALL CLibrary_NATIVE(pollForInput)
+	(JNIEnv *env, jclass that, jint fd, jint timeoutMs)
+{
+	struct pollfd pfd;
+	jint rc;
+
+	pfd.fd = fd;
+	pfd.events = POLLIN;
+	pfd.revents = 0;
+
+	if (timeoutMs <= 0) {
+		/* Immediate (0) or infinite (-1): no deadline to track */
+		do {
+			rc = (jint)poll(&pfd, 1, timeoutMs);
+		} while (rc < 0 && errno == EINTR);
+		return rc;
+	}
+
+	/* Finite timeout: preserve deadline across EINTR retries */
+	struct timespec deadline, now;
+	clock_gettime(CLOCK_MONOTONIC, &deadline);
+	deadline.tv_nsec += (long)(timeoutMs % 1000) * 1000000L;
+	deadline.tv_sec  += timeoutMs / 1000 + deadline.tv_nsec / 1000000000L;
+	deadline.tv_nsec %= 1000000000L;
+
+	int remaining = timeoutMs;
+	do {
+		rc = (jint)poll(&pfd, 1, remaining);
+		if (rc >= 0 || errno != EINTR) {
+			return rc;
+		}
+		clock_gettime(CLOCK_MONOTONIC, &now);
+		remaining = (int)((deadline.tv_sec - now.tv_sec) * 1000
+		               + (deadline.tv_nsec - now.tv_nsec) / 1000000);
+	} while (remaining > 0);
+	return 0; /* deadline expired → timeout */
 }
 
 #endif

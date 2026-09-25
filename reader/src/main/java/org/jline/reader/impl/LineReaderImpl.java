@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.jline.keymap.BindingReader;
+import org.jline.keymap.InBandResize;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.Parser.ParseContext;
@@ -40,6 +41,7 @@ import org.jline.terminal.Attributes.ControlChar;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.Terminal.SignalHandler;
 import org.jline.terminal.impl.AbstractWindowsTerminal;
+import org.jline.terminal.impl.KittyKeyboardSupport;
 import org.jline.terminal.impl.MouseSupport;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
@@ -103,9 +105,10 @@ public class LineReaderImpl implements LineReader, Flushable {
     public static final String DEFAULT_BELL_STYLE = "";
     public static final int DEFAULT_LIST_MAX = 100;
     public static final int DEFAULT_MENU_LIST_MAX = Integer.MAX_VALUE;
+    public static final String DEFAULT_TOO_MANY_CANDIDATES = "ask";
     public static final int DEFAULT_ERRORS = 2;
     public static final long DEFAULT_BLINK_MATCHING_PAREN = 500L;
-    public static final long DEFAULT_AMBIGUOUS_BINDING = 1000L;
+    public static final long DEFAULT_AMBIGUOUS_BINDING = 100L;
     public static final String DEFAULT_SECONDARY_PROMPT_PATTERN = "%M> ";
     public static final String DEFAULT_OTHERS_GROUP_NAME = "others";
     public static final String DEFAULT_ORIGINAL_GROUP_NAME = "original";
@@ -133,6 +136,12 @@ public class LineReaderImpl implements LineReader, Flushable {
 
     public static final String FOCUS_IN_SEQ = "\033[I";
     public static final String FOCUS_OUT_SEQ = "\033[O";
+    /**
+     * @deprecated Use {@link InBandResize#RESIZE_SEQ} instead.
+     */
+    @Deprecated
+    public static final String RESIZE_SEQ = InBandResize.RESIZE_SEQ;
+
     public static final int DEFAULT_MAX_REPEAT_COUNT = 9999;
 
     /**
@@ -627,6 +636,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         SignalHandler previousContHandler = null;
         Attributes originalAttributes = null;
         boolean dumb = isTerminalDumb();
+        boolean userInterrupt = false;
         try {
 
             this.maskingCallback = maskingCallback;
@@ -689,6 +699,10 @@ public class LineReaderImpl implements LineReader, Flushable {
                     terminal.puts(Capability.keypad_xmit);
                     if (isSet(Option.AUTO_FRESH_LINE)) callWidget(FRESH_LINE);
                     if (isSet(Option.MOUSE)) terminal.trackMouse(Terminal.MouseTracking.Normal);
+
+                    if (isSet(Option.KITTY_KEYBOARD)) {
+                        terminal.setKittyKeyboardMode(EnumSet.of(Terminal.KittyKeyboardMode.Disambiguate));
+                    }
 
                     if (isSet(Option.BRACKETED_PASTE)) {
                         terminal.writer().write(BRACKETED_PASTE_ON);
@@ -768,6 +782,7 @@ public class LineReaderImpl implements LineReader, Flushable {
                         case EOF:
                             throw new EndOfFileException();
                         case INTERRUPT:
+                            userInterrupt = true;
                             throw new UserInterruptException(buf.toString());
                     }
 
@@ -821,7 +836,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             } finally {
                 lock.unlock();
                 startedReading.set(false);
-                if (interrupted.get()) {
+                if (interrupted.get() && !userInterrupt) {
                     Thread.currentThread().interrupt();
                 }
             }
@@ -2879,6 +2894,7 @@ public class LineReaderImpl implements LineReader, Flushable {
             }
             terminal.puts(Capability.keypad_local);
             terminal.trackMouse(Terminal.MouseTracking.Off);
+            terminal.resetKittyKeyboardMode();
 
             if (isSet(Option.BRACKETED_PASTE) && !isTerminalDumb())
                 terminal.writer().write(BRACKETED_PASTE_OFF);
@@ -4204,6 +4220,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         addBuiltinWidget(widgets, BEGIN_PASTE, this::beginPaste);
         addBuiltinWidget(widgets, FOCUS_IN, this::focusIn);
         addBuiltinWidget(widgets, FOCUS_OUT, this::focusOut);
+        addBuiltinWidget(widgets, TERMINAL_RESIZE, this::terminalResize);
         return widgets;
     }
 
@@ -4492,7 +4509,27 @@ public class LineReaderImpl implements LineReader, Flushable {
                 && buffer.length() < getInt(FEATURES_MAX_BUFFER_SIZE, DEFAULT_FEATURES_MAX_BUFFER_SIZE)) {
             return highlighter.highlight(this, buffer);
         }
-        return new AttributedString(buffer);
+        // Fallback when the highlighter is absent, disabled, or skipped for an oversized
+        // buffer. DefaultHighlighter neutralizes control characters; do the same here so a
+        // large pasted or history-replayed line cannot emit raw escape sequences to the
+        // terminal (bracketed paste is meant to make pasted bytes inert).
+        return escapeControlChars(buffer);
+    }
+
+    private static AttributedString escapeControlChars(String buffer) {
+        AttributedStringBuilder sb = new AttributedStringBuilder(buffer.length());
+        for (int i = 0; i < buffer.length(); ) {
+            int cp = buffer.codePointAt(i);
+            if (cp == '\t' || cp == '\n') {
+                sb.append((char) cp);
+            } else if (cp < 32) {
+                sb.append('^').append((char) (cp + '@'));
+            } else if (WCWidth.wcwidth(cp) >= 0) {
+                sb.appendCodePoint(cp);
+            }
+            i += Character.charCount(cp);
+        }
+        return sb.toAttributedString();
     }
 
     AttributedString expandPromptPattern(String pattern, int padToWidth, String message, int line) {
@@ -4933,12 +4970,10 @@ public class LineReaderImpl implements LineReader, Flushable {
                     buf.backspace(line.rawWordLength());
                 }
                 buf.write(line.escape(completion.value(), completion.complete()));
-                if (completion.complete()) {
-                    if (buf.currChar() != ' ') {
-                        buf.write(" ");
-                    } else {
-                        buf.move(1);
-                    }
+                // If the suffix is not already part of the value, append it so that
+                // the suffix-removal backspace (below) does not eat into the value.
+                if (completion.suffix() != null && !completion.value().endsWith(completion.suffix())) {
+                    buf.write(completion.suffix());
                 }
                 if (completion.suffix() != null) {
                     if (autosuggestion == SuggestionType.COMPLETER) {
@@ -4957,7 +4992,17 @@ public class LineReaderImpl implements LineReader, Flushable {
                                 buf.write(' ');
                             }
                         }
-                        pushBackBinding(true);
+                        // Don't replay the typed character when it matches the
+                        // suffix — the suffix is already in the buffer.
+                        if (!(SELF_INSERT.equals(ref) && completion.suffix().startsWith(getLastBinding()))) {
+                            pushBackBinding(true);
+                        }
+                    }
+                } else if (completion.complete()) {
+                    if (buf.currChar() != ' ') {
+                        buf.write(" ");
+                    } else {
+                        buf.move(1);
                     }
                 }
                 return true;
@@ -5373,6 +5418,11 @@ public class LineReaderImpl implements LineReader, Flushable {
         private void update() {
             buf.backspace(word.length());
             word = escaper.apply(completion().value(), true).toString();
+            // Append suffix if not already part of the value
+            Candidate c = completion();
+            if (c.suffix() != null && !c.value().endsWith(c.suffix())) {
+                word = word + c.suffix();
+            }
             buf.write(word);
 
             // Compute displayed prompt
@@ -5557,19 +5607,66 @@ public class LineReaderImpl implements LineReader, Flushable {
         if (possibleSize == 0 || size.getRows() == 0) {
             return false;
         }
-        if (listMax > 0 && possibleSize >= listMax || lines >= size.getRows() - promptLines) {
-            if (!forSuggestion) {
-                // prompt
-                post = () -> new AttributedString(getAppName() + ": do you wish to see all " + possibleSize
-                        + " possibilities (" + lines + " lines)?");
-                redisplay(true);
-                int c = readCharacter();
-                if (c != 'y' && c != 'Y' && c != '\t') {
-                    post = null;
-                    return false;
-                }
-            } else {
+        if (listMax > 0 && possibleSize > listMax || lines >= size.getRows() - promptLines) {
+            if (forSuggestion) {
                 return false;
+            }
+            String tooMany = getString(TOO_MANY_CANDIDATES, DEFAULT_TOO_MANY_CANDIDATES);
+            int totalLines = lines;
+            switch (tooMany.toLowerCase(Locale.ROOT)) {
+                case "show":
+                    // show all without prompting
+                    break;
+                case "partial": {
+                    // truncate list to listMax candidates and append an indicator
+                    int limit = Math.max(listMax, 1);
+                    if (possibleSize > limit) {
+                        int remaining = possibleSize - limit;
+                        possible.subList(limit, possibleSize).clear();
+                        PostResult partialPost = computePost(possible, null, null, completed);
+                        post = () -> {
+                            AttributedStringBuilder asb = new AttributedStringBuilder();
+                            asb.append(partialPost.post);
+                            asb.style(AttributedStyle.DEFAULT
+                                    .foreground(AttributedStyle.BRIGHT)
+                                    .italic());
+                            asb.append("\n... and " + remaining + " more");
+                            return asb.toAttributedString();
+                        };
+                        if (!runLoop) {
+                            return false;
+                        }
+                        redisplay();
+                        Binding b = doReadBinding(getKeys(), null);
+                        if (b instanceof Reference) {
+                            if ("\t".equals(getLastBinding()) && isSet(Option.AUTO_MENU)) {
+                                // User pressed tab — switch to menu with truncated list
+                                buf.backspace(escaper.apply(completed, false).length());
+                                doMenu(possible, completed, escaper);
+                            } else {
+                                pushBackBinding();
+                            }
+                        }
+                        post = null;
+                        return false;
+                    }
+                    break;
+                }
+                case "hide":
+                    // silently suppress the candidate list
+                    return false;
+                case "ask":
+                default:
+                    // prompt (original behavior)
+                    post = () -> new AttributedString(getAppName() + ": do you wish to see all " + possibleSize
+                            + " possibilities (" + totalLines + " lines)?");
+                    redisplay(true);
+                    int c = readCharacter();
+                    if (c != 'y' && c != 'Y' && c != '\t') {
+                        post = null;
+                        return false;
+                    }
+                    break;
             }
         }
 
@@ -6473,6 +6570,23 @@ public class LineReaderImpl implements LineReader, Flushable {
     }
 
     /**
+     * Handles an in-band window resize report (mode 2048).
+     *
+     * <p>The binding reader has already consumed the {@code CSI 48 ;}
+     * prefix.  This method reads the remaining parameters
+     * ({@code rows ; cols [ ; pixelHeight ; pixelWidth ]}) up to the
+     * final byte {@code t}, updates the terminal size, and raises
+     * {@link Terminal.Signal#WINCH}.</p>
+     *
+     * @return {@code true} always
+     * @see InBandResize#handleResize(BindingReader, Terminal)
+     */
+    public boolean terminalResize() {
+        InBandResize.handleResize(bindingReader, terminal);
+        return true;
+    }
+
+    /**
      * Clean the used display
      * @return <code>true</code>
      */
@@ -6620,6 +6734,17 @@ public class LineReaderImpl implements LineReader, Flushable {
         }
         // By default, link main to emacs unless the temrinal is dumb
         keyMaps.put(MAIN, keyMaps.get(isTerminalDumb() ? DUMB : EMACS));
+
+        // Bind Kitty Keyboard Protocol sequences for all keymaps
+        bindKittyKeys(keyMaps.get(EMACS));
+        bindKittyKeys(keyMaps.get(VIINS));
+        bindKittyKeys(keyMaps.get(VICMD));
+        bindKittyKeys(keyMaps.get(MENU));
+
+        // With kitty flag 1, Escape sends CSI 27u instead of byte 0x1B.
+        // Only bind to VI_CMD_MODE in vi keymaps — in emacs, Escape is a meta prefix.
+        bind(keyMaps.get(VIINS), VI_CMD_MODE, "\033[27u");
+        bind(keyMaps.get(VICMD), VI_CMD_MODE, "\033[27u");
 
         return keyMaps;
     }
@@ -6948,6 +7073,69 @@ public class LineReaderImpl implements LineReader, Flushable {
         bind(map, BEGIN_PASTE, BRACKETED_PASTE_BEGIN);
         bind(map, FOCUS_IN, FOCUS_IN_SEQ);
         bind(map, FOCUS_OUT, FOCUS_OUT_SEQ);
+        bind(map, TERMINAL_RESIZE, RESIZE_SEQ);
+    }
+
+    /**
+     * Registers Kitty Keyboard Protocol escape sequence variants alongside
+     * existing legacy bindings. When a terminal sends kitty-encoded sequences
+     * (e.g., {@code CSI 97;5u} for Ctrl+A instead of byte 0x01), these
+     * bindings ensure the correct widget is still invoked.
+     *
+     * <p>These bindings are registered unconditionally (they don't conflict
+     * with any existing sequences) and are only triggered when the terminal
+     * actually sends kitty-encoded input.</p>
+     *
+     * @param map the keymap to add kitty bindings to
+     */
+    private void bindKittyKeys(KeyMap<Binding> map) {
+        // With kitty flag 1 (disambiguate), Ctrl+letter no longer sends C0
+        // control codes (0x01-0x1A). Instead it sends CSI <unicode>;5u.
+        // Register kitty variants for all Ctrl+letter bindings that exist
+        // in this keymap.
+        for (char c = 'a'; c <= 'z'; c++) {
+            int ctrlCode = c - 'a' + 1; // legacy C0 code: 0x01-0x1A
+            String legacySeq = Character.toString((char) ctrlCode);
+            Object bound = map.getBound(legacySeq);
+            if (bound instanceof Binding) {
+                map.bind((Binding) bound, KittyKeyboardSupport.ctrlKey(c));
+            }
+        }
+
+        // Shift+Enter: CSI 13;2u — commonly requested for multi-line input
+        bind(map, ACCEPT_LINE, "\033[13;2u");
+
+        // Ctrl+Enter: CSI 13;5u
+        bind(map, ACCEPT_LINE, "\033[13;5u");
+
+        // Shift+Tab: CSI 9;2u (kitty equivalent of CSI Z)
+        Object shiftTabBound = map.getBound("\033[Z");
+        if (shiftTabBound instanceof Binding) {
+            map.bind((Binding) shiftTabBound, "\033[9;2u");
+        }
+
+        // Ctrl+Backspace: CSI 127;5u — bind to backward-kill-word
+        bind(map, BACKWARD_KILL_WORD, "\033[127;5u");
+
+        // Alt+letter: with kitty, Alt+x sends CSI <x>;3u instead of ESC x
+        for (char c = 'a'; c <= 'z'; c++) {
+            String legacyAlt = "\033" + c;
+            Object bound = map.getBound(legacyAlt);
+            if (bound instanceof Binding) {
+                map.bind((Binding) bound, KittyKeyboardSupport.altKey(c));
+            }
+        }
+
+        // Ctrl+Alt+letter combinations: CSI <unicode>;7u
+        for (char c = 'a'; c <= 'z'; c++) {
+            // Legacy: ESC followed by Ctrl+letter
+            int ctrlCode = c - 'a' + 1;
+            String legacySeq = "\033" + (char) ctrlCode;
+            Object bound = map.getBound(legacySeq);
+            if (bound instanceof Binding) {
+                map.bind((Binding) bound, KittyKeyboardSupport.ctrlAltKey(c));
+            }
+        }
     }
 
     /**

@@ -61,6 +61,7 @@
         <module>console-ui</module>
         <module>prompt</module>
         <module>console</module>
+        <module>console-provider</module>
         <module>picocli</module>
         <module>groovy</module>
         <module>remote-ssh</module>
@@ -109,21 +110,21 @@
 
         <jansi.version>2.4.3</jansi.version>
         <juniversalchardet.version>1.0.3</juniversalchardet.version>
-        <sshd.version>2.18.0</sshd.version>
+        <sshd.version>2.19.0</sshd.version>
         <awaitility.version>4.3.0</awaitility.version>
-        <easymock.version>5.6.0</easymock.version>
-        <junit.version>6.1.1</junit.version>
+        <easymock.version>5.7.0</easymock.version>
+        <junit.version>6.1.3</junit.version>
         <gogo.runtime.version>1.1.6</gogo.runtime.version>
         <gogo.jline.version>1.1.8</gogo.jline.version>
-        <slf4j.version>2.0.18</slf4j.version>
+        <slf4j.version>2.0.19</slf4j.version>
         <findbugs.version>3.0.2</findbugs.version>
-        <groovy.version>5.0.6</groovy.version>
-        <ivy.version>2.5.3</ivy.version>
+        <groovy.version>6.0.0</groovy.version>
+        <ivy.version>2.6.0</ivy.version>
         <picocli.version>4.7.7</picocli.version>
-        <graal.version>25.0.3</graal.version>
+        <graal.version>25.3.4.1</graal.version>
         <graal.plugin.version>21.2.0</graal.plugin.version>
-        <native.plugin.version>1.1.3</native.plugin.version>
-        <palantir.version>2.94.0</palantir.version>
+        <native.plugin.version>1.1.14</native.plugin.version>
+        <palantir.version>2.98.0</palantir.version>
 
         <surefire.argLine>--add-opens java.base/java.io=org.jline.nativ --add-opens java.base/java.io=org.jline.terminal</surefire.argLine>
     </properties>
@@ -191,6 +192,11 @@
             <dependency>
                 <groupId>org.jline</groupId>
                 <artifactId>jline-console</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-console-provider</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -391,12 +397,12 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-install-plugin</artifactId>
-                    <version>3.1.4</version>
+                    <version>3.2.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
-                    <version>3.5.0</version>
+                    <version>3.5.1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -416,17 +422,22 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>3.5.6</version>
+                    <version>3.6.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.felix</groupId>
                     <artifactId>maven-bundle-plugin</artifactId>
-                    <version>6.0.2</version>
+                    <version>6.2.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>build-helper-maven-plugin</artifactId>
-                    <version>3.6.1</version>
+                    <version>3.6.2</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>3.6.4</version>
                 </plugin>
                 <plugin>
                     <groupId>org.graalvm.nativeimage</groupId>
@@ -446,7 +457,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.15.0</version>
+                    <version>3.16.0</version>
                     <configuration>
                         <showWarnings>true</showWarnings>
                         <release>${java.release.version}</release>
@@ -502,7 +513,7 @@
                 <plugin>
                     <groupId>org.codehaus.gmavenplus</groupId>
                     <artifactId>gmavenplus-plugin</artifactId>
-                    <version>5.0.0</version>
+                    <version>5.1.0</version>
                 </plugin>
 
                 <plugin>
@@ -523,7 +534,7 @@
                 <plugin>
                     <groupId>com.diffplug.spotless</groupId>
                     <artifactId>spotless-maven-plugin</artifactId>
-                    <version>3.7.0</version>
+                    <version>3.10.2</version>
                     <configuration>
                         <java>
                             <toggleOffOn />
@@ -658,7 +669,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-deploy-plugin</artifactId>
-                <version>3.1.4</version>
+                <version>3.2.0</version>
             </plugin>
 
             <plugin>

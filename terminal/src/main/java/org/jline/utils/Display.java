@@ -120,7 +120,8 @@ public class Display implements Sized {
     private final boolean hasCursorAddress;
     private final boolean canSkipIntraLine;
 
-    // Synchronized output (mode 2026) escape sequences.
+    // Synchronized output (mode 2026) escape sequence constants.
+    // Used by the byte-mode path which cannot call Terminal.beginSynchronizedUpdate().
     // BSU tells the terminal to buffer all output until ESU, then render atomically.
     // Terminals that do not support mode 2026 silently ignore these sequences.
     private static final String SYNC_START = "\033[?2026h";
@@ -450,7 +451,11 @@ public class Display implements Sized {
         // This prevents visible intermediate states from scroll optimization
         // (insertLines/deleteLines) that otherwise cause flicker.
         if (fullScreen) {
-            rawEsc(SYNC_START);
+            if (useByteMode) {
+                rawEsc(SYNC_START);
+            } else {
+                terminal.beginSynchronizedUpdate();
+            }
         }
         try {
 
@@ -458,6 +463,19 @@ public class Display implements Sized {
                 puts(Capability.clear_screen);
                 puts(Capability.cursor_address, 0, 0);
                 oldLines.clear();
+                // After clear_screen the terminal shows blank spaces at every position.
+                // Seed oldLines with rows of spaces so the diff engine knows these
+                // positions are already blank.  Without this, every blank row looks
+                // "new" and gets rewritten — including the last row.  On terminals
+                // without eat_newline_glitch (e.g. windows-vtp) writing the last
+                // character of the last row triggers an immediate scroll that pushes
+                // the first line off-screen (see #2206).
+                if (fullScreen && columns > 0 && rows > 0) {
+                    AttributedString blankRow = blankRow(columns);
+                    for (int i = 0; i < rows; i++) {
+                        oldLines.add(blankRow);
+                    }
+                }
                 cursorPos = 0;
                 reset = false;
             }
@@ -551,6 +569,22 @@ public class Display implements Sized {
                 }
                 if (newNL) {
                     nEnd--;
+                }
+                // Prevent bottom-right-corner scroll on non-xenl terminals (#2206).
+                // On terminals with auto_right_margin but without eat_newline_glitch,
+                // writing the last column of the last row triggers an immediate
+                // wrap + scroll that pushes the first line off-screen.  Cap both
+                // old and new line bounds to the character length that fits within
+                // (columns - 1) display columns so the diff never writes into the
+                // bottom-right cell.  columnSubSequence is used instead of raw char
+                // offsets to handle double-width (CJK) characters correctly.
+                if (fullScreen && wrapAtEol && !delayedWrapAtEol && lineIndex == rows - 1) {
+                    int maxN =
+                            newLine.columnSubSequence(terminal, 0, columns - 1).length();
+                    if (nEnd > maxN) nEnd = maxN;
+                    int maxO =
+                            oldLine.columnSubSequence(terminal, 0, columns - 1).length();
+                    if (oEnd > maxO) oEnd = maxO;
                 }
                 if (wrapNeeded && lineIndex == (cursorPos + 1) / columns1 && lineIndex < newLines.size()) {
                     // move from right margin to next line's left margin
@@ -762,7 +796,11 @@ public class Display implements Sized {
             // End synchronized update (mode 2026): the terminal renders all buffered output now.
             // In a finally block so the terminal never stays in synchronized-output mode on error.
             if (fullScreen) {
-                rawEsc(SYNC_END);
+                if (useByteMode) {
+                    rawEsc(SYNC_END);
+                } else {
+                    terminal.endSynchronizedUpdate();
+                }
             }
         }
 
@@ -1131,6 +1169,17 @@ public class Display implements Sized {
             byteBuilder.csi().appendAscii("0m");
             ansiColorState[0] = 0;
         }
+    }
+
+    /**
+     * Build an {@link AttributedString} of {@code width} plain space characters.
+     * Used to seed {@code oldLines} after a {@code clear_screen} so the diff
+     * engine knows blank rows are already rendered.
+     */
+    private static AttributedString blankRow(int width) {
+        char[] buf = new char[width];
+        Arrays.fill(buf, ' ');
+        return new AttributedString(new String(buf));
     }
 
     private static final Object[] EMPTY_PARAMS = new Object[0];

@@ -8,6 +8,8 @@
  */
 package org.jline.utils;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * Helper class for managing timeouts during I/O operations.
  *
@@ -49,8 +51,8 @@ package org.jline.utils;
 public class Timeout {
 
     private final long timeout;
-    private long cur = 0;
-    private long end = Long.MAX_VALUE;
+    private long curNanos = 0;
+    private long endNanos = Long.MAX_VALUE;
 
     public Timeout(long timeout) {
         this.timeout = timeout;
@@ -66,17 +68,38 @@ public class Timeout {
 
     public boolean elapsed() {
         if (timeout > 0) {
-            cur = System.currentTimeMillis();
-            if (end == Long.MAX_VALUE) {
-                end = cur + timeout;
+            curNanos = System.nanoTime();
+            if (endNanos == Long.MAX_VALUE) {
+                long timeoutNanos = TimeUnit.MILLISECONDS.toNanos(timeout);
+                endNanos = saturatingAddNanos(curNanos, timeoutNanos);
             }
-            return cur >= end;
+            // Use sub-millisecond threshold: if less than 1ms remains,
+            // treat as elapsed since the API contract is in milliseconds
+            return (endNanos - curNanos) < 1_000_000L;
         } else {
             return false;
         }
     }
 
     public long timeout() {
-        return timeout > 0 ? Math.max(1, end - cur) : timeout;
+        if (timeout > 0) {
+            long remainingMs = (endNanos - curNanos) / 1_000_000L;
+            return Math.max(1, remainingMs);
+        }
+        return timeout;
+    }
+
+    /**
+     * Adds a nanoTime base and a non-negative duration, clamping to
+     * {@code Long.MAX_VALUE} on overflow.
+     */
+    public static long saturatingAddNanos(long baseNanos, long deltaNanos) {
+        long sum = baseNanos + deltaNanos;
+        // Overflow: both operands positive-ish but sum wrapped negative,
+        // or deltaNanos is Long.MAX_VALUE (saturated by TimeUnit conversion)
+        if (deltaNanos > 0 && sum < baseNanos) {
+            return Long.MAX_VALUE;
+        }
+        return sum;
     }
 }

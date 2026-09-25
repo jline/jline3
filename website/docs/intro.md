@@ -30,7 +30,7 @@ JLine 4.x requires **Java 11 or higher** as the minimum runtime version.
 
 :::note Version Requirements
 - **JLine 3.x**: Supports Java 8+, Maven 3.x+
-- **JLine 4.x**: Requires Java 11+, Maven 4.0+
+- **JLine 4.x**: Requires Java 11+, Maven 3.9+
 :::
 
 ## Installation
@@ -43,7 +43,7 @@ Add JLine to your project using Maven:
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline</artifactId>
-    <version>4.0.0</version>
+    <version>%%JLINE_VERSION%%</version>
 </dependency>
 ```
 
@@ -52,7 +52,7 @@ Add JLine to your project using Maven:
 Or if you're using Gradle:
 
 ```groovy
-implementation 'org.jline:jline:4.0.0'
+implementation 'org.jline:jline:%%JLINE_VERSION%%'
 ```
 
 ### Java 11-21 Compatibility (JDK11 Classifier)
@@ -69,7 +69,7 @@ Note: JLine 4.x requires Java 11+ as the minimum runtime version. For Java 8 sup
 <dependency>
     <groupId>org.jline</groupId>
     <artifactId>jline</artifactId>
-    <version>4.0.0</version>
+    <version>%%JLINE_VERSION%%</version>
     <classifier>jdk11</classifier>
 </dependency>
 ```
@@ -77,7 +77,7 @@ Note: JLine 4.x requires Java 11+ as the minimum runtime version. For Java 8 sup
 **Gradle:**
 
 ```groovy
-implementation 'org.jline:jline:4.0.0:jdk11'
+implementation 'org.jline:jline:%%JLINE_VERSION%%:jdk11'
 ```
 
 The `jdk11` classifier artifact:

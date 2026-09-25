@@ -64,9 +64,6 @@ public class DefaultPrompter implements Prompter {
     private Attributes attributes;
     private List<AttributedString> header = new ArrayList<>();
 
-    // Default timeout for escape sequences
-    public static final long DEFAULT_TIMEOUT_WITH_ESC = 150L;
-
     // Default page size for lists
     private static final int DEFAULT_PAGE_SIZE = 10;
 
@@ -492,7 +489,12 @@ public class DefaultPrompter implements Prompter {
         try {
             // Use LineReader to read the input
             Character mask = prompt.getMask();
-            String buffer = defaultValue != null ? defaultValue : null;
+            if (mask == null && prompt instanceof PasswordPrompt) {
+                // A null mask on a password prompt defaults to '*'; without this,
+                // readLine would echo the password in clear text while typing
+                mask = '*';
+            }
+            String buffer = defaultValue;
 
             String input = reader.readLine(promptString, null, mask, buffer);
 
@@ -501,7 +503,7 @@ public class DefaultPrompter implements Prompter {
                 input = defaultValue;
             }
 
-            return new DefaultInputResult(input, input, prompt);
+            return new DefaultInputResult(input, maskedDisplay(prompt, input), prompt);
         } catch (EndOfFileException e) {
             if (e == ESCAPE_EOF) {
                 // Escape was pressed — go back to previous prompt
@@ -527,6 +529,34 @@ public class DefaultPrompter implements Prompter {
             throws IOException, UserInterruptException {
         // Password prompts are just input prompts with masking
         return executeInputPrompt(header, prompt);
+    }
+
+    /**
+     * Compute the value shown for an input result. When the prompt masks its input (passwords),
+     * the typed text must never be surfaced: the display value is the mask character repeated for
+     * the length of the input, or empty when the prompt hides its input entirely.
+     */
+    private static String maskedDisplay(InputPrompt prompt, String input) {
+        if (input == null) {
+            return null;
+        }
+        Character mask = prompt.getMask();
+        if (prompt instanceof PasswordPrompt) {
+            if (!((PasswordPrompt) prompt).showMask()) {
+                return "";
+            }
+            // PasswordPrompt.getMask() documents null as "use the default mask '*'"
+            mask = mask != null ? mask : '*';
+        }
+        if (mask == null) {
+            return input;
+        }
+        char maskChar = mask;
+        StringBuilder sb = new StringBuilder(input.length());
+        for (int i = 0; i < input.length(); i++) {
+            sb.append(maskChar);
+        }
+        return sb.toString();
     }
 
     private InputResult executeNumberPrompt(List<AttributedString> header, NumberPrompt prompt)
@@ -721,7 +751,6 @@ public class DefaultPrompter implements Prompter {
         keyMap.bind(InputOperation.EXIT, "\r", "\n");
         keyMap.bind(InputOperation.ESCAPE, esc());
         keyMap.bind(InputOperation.CANCEL, ctrl('C'));
-        keyMap.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
 
         InputOperation op = bindingReader.readBinding(keyMap);
         switch (op) {
@@ -1041,7 +1070,6 @@ public class DefaultPrompter implements Prompter {
         keyMap.bind(InputOperation.BEGINNING_OF_LINE, ctrl('A'));
         keyMap.bind(InputOperation.END_OF_LINE, ctrl('E'));
         keyMap.bind(InputOperation.SELECT_CANDIDATE, "\t"); // Tab for completion
-        keyMap.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
     }
 
     /**
@@ -1053,7 +1081,6 @@ public class DefaultPrompter implements Prompter {
         keyMap.bind(ConfirmOperation.EXIT, "\r", "\n");
         keyMap.bind(ConfirmOperation.CANCEL, ctrl('C'));
         keyMap.bind(ConfirmOperation.ESCAPE, esc());
-        keyMap.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
     }
 
     private ListResult executeListPrompt(List<AttributedString> header, ListPrompt prompt)
@@ -1468,7 +1495,7 @@ public class DefaultPrompter implements Prompter {
             }
 
             display.resize(size);
-            display.update(out, size.cursorPos(Math.min(size.getRows() - 1, firstItemRow + items.size()), 0));
+            display.update(out, size.cursorPos(Math.min(size.getRows() - 1, out.size() - 1), 0));
 
             ListOperation op = bindingReader.readBinding(keyMap);
             switch (op) {
@@ -1638,7 +1665,6 @@ public class DefaultPrompter implements Prompter {
         keyMap.bind(ConfirmOperation.EXIT, "\r", "\n");
         keyMap.bind(ConfirmOperation.ESCAPE, esc());
         keyMap.bind(ConfirmOperation.CANCEL, ctrl('C'));
-        keyMap.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
 
         while (true) {
             List<AttributedString> out = new ArrayList<>();
@@ -1720,7 +1746,6 @@ public class DefaultPrompter implements Prompter {
         keyMap.bind("RIGHT", key(terminal, key_right));
         keyMap.bind("CANCEL", ctrl('C'));
         keyMap.bind("ESCAPE", esc());
-        keyMap.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
 
         String result = bindingReader.readBinding(keyMap);
         if ("CANCEL".equals(result)) {
@@ -1799,7 +1824,6 @@ public class DefaultPrompter implements Prompter {
 
         // Set up fallback for unmatched keys (like console-ui behavior)
         map.setNomatch(ListOperation.IGNORE);
-        map.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
     }
 
     /**
@@ -1821,10 +1845,8 @@ public class DefaultPrompter implements Prompter {
         size = terminal.getSize();
         display.resize(size);
         List<AttributedString> lines = buildListDisplayLines(header, message, items, cursorRow, prompt);
-        // when a footer pane is shown, park the cursor on the last rendered row below the footer
-        int cursorLine = footerAreaHeight > 0
-                ? Math.min(size.getRows() - 1, lines.size() - 1)
-                : Math.min(size.getRows() - 1, firstItemRow + items.size());
+        // park the cursor on the last rendered row: items.size() would count items outside the page
+        int cursorLine = Math.min(size.getRows() - 1, lines.size() - 1);
         display.update(lines, size.cursorPos(cursorLine, 0));
     }
 
@@ -1956,7 +1978,6 @@ public class DefaultPrompter implements Prompter {
 
         // Set up fallback for unmatched keys (like console-ui behavior)
         map.setNomatch(CheckboxOperation.IGNORE);
-        map.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
     }
 
     /**
@@ -1983,10 +2004,8 @@ public class DefaultPrompter implements Prompter {
         display.resize(size);
         List<AttributedString> lines =
                 buildCheckboxDisplayLines(header, message, items, cursorRow, selectedIds, prompt);
-        // when a footer pane is shown, park the cursor on the last rendered row below the footer
-        int cursorLine = footerAreaHeight > 0
-                ? Math.min(size.getRows() - 1, lines.size() - 1)
-                : Math.min(size.getRows() - 1, firstItemRow + items.size());
+        // park the cursor on the last rendered row: items.size() would count items outside the page
+        int cursorLine = Math.min(size.getRows() - 1, lines.size() - 1);
         display.update(lines, size.cursorPos(cursorLine, 0));
     }
 
@@ -2112,7 +2131,6 @@ public class DefaultPrompter implements Prompter {
         map.bind(ChoiceOperation.EXIT, "\r", "\n");
         map.bind(ChoiceOperation.ESCAPE, esc());
         map.bind(ChoiceOperation.CANCEL, ctrl('C'));
-        map.setAmbiguousTimeout(DEFAULT_TIMEOUT_WITH_ESC);
     }
 
     /**
@@ -2149,7 +2167,7 @@ public class DefaultPrompter implements Prompter {
     /**
      * Inner class for managing list pagination ranges.
      */
-    private static class ListRange {
+    static class ListRange {
         final int first;
         final int last;
 
@@ -2162,24 +2180,18 @@ public class DefaultPrompter implements Prompter {
     /**
      * Compute the visible range of items based on cursor position, terminal size, and page size.
      */
-    private void computeListRange(int cursorRow, int itemsSize, int pageSize, boolean showPageIndicator) {
+    void computeListRange(int cursorRow, int itemsSize, int pageSize, boolean showPageIndicator) {
         if (range != null && range.first <= cursorRow - firstItemRow && range.last - 1 > cursorRow - firstItemRow) {
             return;
         }
         range = new ListRange(0, itemsSize);
 
         // Determine effective page size.
-        int effectivePageSize;
-        if (footerAreaHeight > 0) {
-            int maxFit = size.getRows() - firstItemRow - footerReservedRows();
-            effectivePageSize = pageSize > 0 ? Math.min(pageSize, maxFit) : maxFit;
-            if (showPageIndicator && effectivePageSize < itemsSize) {
-                effectivePageSize -= 1;
-            }
-        } else if (pageSize > 0) {
-            effectivePageSize = pageSize;
-        } else {
-            effectivePageSize = size.getRows() - firstItemRow;
+        int maxFit = size.getRows() - firstItemRow - footerReservedRows();
+        int effectivePageSize = pageSize > 0 ? Math.min(pageSize, maxFit) : maxFit;
+        if (showPageIndicator && effectivePageSize < itemsSize) {
+            // the indicator sits below the page, so it has to come out of the rows we just claimed
+            effectivePageSize = Math.min(effectivePageSize, maxFit - 1);
         }
         effectivePageSize = Math.max(1, effectivePageSize);
 
@@ -2188,7 +2200,10 @@ public class DefaultPrompter implements Prompter {
             if (itemId < effectivePageSize - 1) {
                 range = new ListRange(0, effectivePageSize);
             } else {
-                range = new ListRange(itemId - effectivePageSize + 2, itemId + 2);
+                // the page keeps one item below the cursor, except on the last one, where sliding
+                // the window past the end would render a page one item short
+                int last = Math.min(itemId + 2, itemsSize);
+                range = new ListRange(Math.max(0, last - effectivePageSize), last);
             }
         }
     }

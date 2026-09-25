@@ -14,6 +14,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
+import java.util.EnumSet;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 
@@ -1253,7 +1254,7 @@ public interface Terminal extends Closeable, Flushable, Sized {
      *
      * <p>
      * This method is similar to {@link #readMouseEvent()}, but it allows specifying a prefix
-     * that has already been consumed. This is useful when the mouse event prefix (e.g., "\033[<"
+     * that has already been consumed. This is useful when the mouse event prefix (e.g., "\033[&lt;"
      * or "\033[M") has been consumed by the key binding detection, and we need to continue
      * parsing from the current position.
      * </p>
@@ -1293,6 +1294,83 @@ public interface Terminal extends Closeable, Flushable, Sized {
      * @since 3.30.0
      */
     MouseEvent readMouseEvent(IntSupplier reader, String prefix);
+
+    //
+    // Terminal mode probing
+    //
+
+    /**
+     * Terminal modes that JLine probes for support.
+     *
+     * <p>Most modes are DEC private modes probed via DECRQM
+     * ({@code CSI ? Pd $ p} / {@code CSI ? Pd ; Ps $ y}).
+     * Non-DEC modes such as the Kitty Keyboard Protocol and Sixel
+     * graphics use their own detection mechanism but are probed in
+     * the same batch and cached identically.</p>
+     *
+     * <p>Support is detected at most once per terminal and the
+     * results are cached for subsequent queries.</p>
+     *
+     * @see #isModeSupported(Mode)
+     */
+    enum Mode {
+        /**
+         * Sixel graphics support.
+         *
+         * <p>Detected from the DA1 (Primary Device Attributes) response
+         * ({@code CSI c} / {@code CSI ? ... c}): attribute code {@code 4}
+         * indicates Sixel support. No extra query is needed — the DA1
+         * response is already read as the batch probe sentinel.</p>
+         */
+        SIXEL(-1),
+        /**
+         * <a href="https://sw.kovidgoyal.net/kitty/keyboard-protocol/">Kitty
+         * Keyboard Protocol</a>.
+         *
+         * <p>Probed via {@code CSI ? u}; not a DEC private mode.</p>
+         */
+        KITTY_KEYBOARD(0),
+        /** Synchronized output (DEC private mode 2026). */
+        SYNCHRONIZED_OUTPUT(2026),
+        /** Grapheme cluster / Unicode Core (DEC private mode 2027). */
+        GRAPHEME_CLUSTER(2027),
+        /** In-band window resize notifications (DEC private mode 2048). */
+        IN_BAND_RESIZE(2048);
+
+        private final int modeId;
+
+        Mode(int modeId) {
+            this.modeId = modeId;
+        }
+
+        /**
+         * Returns the DEC private mode number, {@code 0} for modes that
+         * use a custom query (e.g. {@link #KITTY_KEYBOARD}), or a
+         * negative value for modes detected from the DA1 response
+         * (e.g. {@link #SIXEL}).
+         */
+        public int mode() {
+            return modeId;
+        }
+    }
+
+    /**
+     * Checks whether the terminal supports the given mode.
+     *
+     * <p>The default implementation always returns {@code false}.
+     * Concrete implementations (e.g.
+     * {@link org.jline.terminal.impl.AbstractTerminal}) override this
+     * to trigger a single batch probe on first call: DEC private modes
+     * are queried via DECRQM, the Kitty Keyboard Protocol via
+     * {@code CSI ? u}, and Sixel support is detected from the DA1
+     * response. Results are cached for subsequent calls.</p>
+     *
+     * @param mode the mode to check
+     * @return {@code true} if the terminal supports the mode
+     */
+    default boolean isModeSupported(Mode mode) {
+        return false;
+    }
 
     /**
      * Returns whether the terminal has support for focus tracking.
@@ -1380,6 +1458,172 @@ public interface Terminal extends Closeable, Flushable, Sized {
      */
     boolean trackFocus(boolean tracking);
 
+    //
+    // Synchronized output (mode 2026)
+    //
+
+    /**
+     * Begins a synchronized update (mode 2026).
+     *
+     * <p>
+     * Sends the Begin Synchronized Update (BSU) sequence {@code \e[?2026h} to the terminal,
+     * instructing it to buffer all subsequent output until {@link #endSynchronizedUpdate()} is
+     * called. The terminal then renders the buffered output atomically, preventing visible
+     * intermediate states (flicker) during multi-step screen updates.
+     * </p>
+     *
+     * <p>
+     * Terminals that do not support mode 2026 silently ignore the sequence, so it is always
+     * safe to call this method regardless of terminal capabilities.
+     * </p>
+     *
+     * <p>
+     * <b>Important:</b> Every call to {@code beginSynchronizedUpdate()} must be paired with a
+     * call to {@link #endSynchronizedUpdate()} in a {@code finally} block to ensure the terminal
+     * never remains in synchronized-output mode after an error. Prefer the lambda-based
+     * {@link #synchronizedUpdate(Runnable)} method which handles this automatically.
+     * </p>
+     *
+     * <p>Example usage:</p>
+     * <pre>
+     * terminal.beginSynchronizedUpdate();
+     * try {
+     *     // multiple writes that should appear atomically
+     *     terminal.writer().println("Line 1");
+     *     terminal.writer().println("Line 2");
+     * } finally {
+     *     terminal.endSynchronizedUpdate();
+     * }
+     * </pre>
+     *
+     * @see #endSynchronizedUpdate()
+     * @see #synchronizedUpdate(Runnable)
+     */
+    default void beginSynchronizedUpdate() {
+        String type = getType();
+        if (!TYPE_DUMB.equals(type) && !TYPE_DUMB_COLOR.equals(type)) {
+            writer().write("\033[?2026h");
+        }
+    }
+
+    /**
+     * Ends a synchronized update (mode 2026).
+     *
+     * <p>
+     * Sends the End Synchronized Update (ESU) sequence {@code \e[?2026l} to the terminal,
+     * instructing it to render all output buffered since the last {@link #beginSynchronizedUpdate()}
+     * call. This must always be called in a {@code finally} block to ensure the terminal does
+     * not remain in synchronized-output mode after an error.
+     * </p>
+     *
+     * <p>
+     * Terminals that do not support mode 2026 silently ignore the sequence.
+     * </p>
+     *
+     * @see #beginSynchronizedUpdate()
+     * @see #synchronizedUpdate(Runnable)
+     */
+    default void endSynchronizedUpdate() {
+        String type = getType();
+        if (!TYPE_DUMB.equals(type) && !TYPE_DUMB_COLOR.equals(type)) {
+            writer().write("\033[?2026l");
+        }
+    }
+
+    /**
+     * Executes the given action inside a synchronized update (mode 2026) bracket.
+     *
+     * <p>
+     * This is a convenience method that wraps the action in
+     * {@link #beginSynchronizedUpdate()} / {@link #endSynchronizedUpdate()} with
+     * proper {@code try/finally} handling, ensuring the terminal never remains in
+     * synchronized-output mode after the action completes (normally or exceptionally).
+     * </p>
+     *
+     * <p>
+     * Use this when multiple terminal writes should appear atomically on screen.
+     * Terminals that do not support mode 2026 silently ignore the bracketing
+     * sequences, so it is always safe to call.
+     * </p>
+     *
+     * <p>Example usage:</p>
+     * <pre>
+     * terminal.synchronizedUpdate(() -> {
+     *     terminal.writer().println("Status: OK");
+     *     terminal.puts(Capability.cursor_address, 5, 0);
+     *     terminal.writer().println("Progress: 100%");
+     * });
+     * terminal.flush();
+     * </pre>
+     *
+     * @param action the action to execute inside the synchronized update bracket
+     * @see #beginSynchronizedUpdate()
+     * @see #endSynchronizedUpdate()
+     */
+    default void synchronizedUpdate(Runnable action) {
+        beginSynchronizedUpdate();
+        try {
+            action.run();
+        } finally {
+            endSynchronizedUpdate();
+        }
+    }
+
+    /**
+     * Returns whether the terminal supports in-band window resize notifications
+     * (DEC private mode 2048).
+     *
+     * <p>
+     * Mode 2048 places resize events into the terminal's data stream as
+     * {@code CSI 48 ; rows ; cols ; pixelHeight ; pixelWidth t} reports,
+     * eliminating the race conditions inherent in SIGWINCH-based resize
+     * detection.  It is especially useful over SSH/Telnet transports where
+     * SIGWINCH does not propagate reliably.
+     * </p>
+     *
+     * <p>
+     * Support detection uses the batch DEC mode probe via
+     * {@link #isModeSupported(Mode) isModeSupported(Mode.IN_BAND_RESIZE)}.
+     * The probe is never sent to dumb terminals.
+     * </p>
+     *
+     * @return {@code true} if the terminal supports mode 2048
+     * @see #trackInBandResize(boolean)
+     * @since 3.30.0
+     */
+    default boolean hasInBandResizeSupport() {
+        return isModeSupported(Mode.IN_BAND_RESIZE);
+    }
+
+    /**
+     * Enables or disables in-band window resize notification mode
+     * (DEC private mode 2048).
+     *
+     * <p>
+     * When enabled, the terminal sends {@code CSI 48 ; rows ; cols ; pixelHeight ; pixelWidth t}
+     * reports through the input stream whenever the window size changes.
+     * An initial report is sent immediately when the mode is first enabled.
+     * </p>
+     *
+     * <p>
+     * Applications using {@code org.jline.reader.LineReader} do not need to
+     * parse the reports manually — the reader's built-in
+     * {@code terminal-resize} widget handles them automatically, updating
+     * the terminal size and raising {@link Signal#WINCH}.
+     * </p>
+     *
+     * @param tracking {@code true} to enable in-band resize notifications,
+     *                 {@code false} to disable them
+     * @return when enabling, {@code true} if the terminal supports mode 2048
+     *         and the mode was activated, {@code false} otherwise;
+     *         when disabling, always {@code true} (idempotent)
+     * @see #hasInBandResizeSupport()
+     * @since 3.30.0
+     */
+    default boolean trackInBandResize(boolean tracking) {
+        return false;
+    }
+
     /**
      * Returns whether the terminal supports mode 2027 (grapheme cluster / Unicode Core).
      *
@@ -1438,6 +1682,141 @@ public interface Terminal extends Closeable, Flushable, Sized {
      */
     default boolean setGraphemeClusterMode(boolean enable, boolean force) {
         return false;
+    }
+
+    // ---- Kitty Keyboard Protocol ----
+
+    /**
+     * Enhancement modes for the Kitty Keyboard Protocol.
+     *
+     * <p>
+     * These modes control which keyboard enhancements the terminal should enable.
+     * The protocol uses a flags-based push/pop stack model. Applications push a set
+     * of enhancement modes when entering an interactive mode and pop them when leaving.
+     * </p>
+     *
+     * @see #setKittyKeyboardMode(EnumSet)
+     * @see <a href="https://sw.kovidgoyal.net/kitty/keyboard-protocol/">Kitty Keyboard Protocol</a>
+     */
+    @SuppressWarnings("java:S115") // CamelCase matches JLine enum conventions
+    enum KittyKeyboardMode {
+        /**
+         * Disambiguate escape codes: all keys get unambiguous {@code CSI … u} encoding.
+         * This is the primary mode used by JLine's line reader.
+         */
+        Disambiguate,
+        /**
+         * Report event types: distinguishes key press, repeat, and release events.
+         */
+        ReportEvents,
+        /**
+         * Report alternate keys: includes shifted and base-layout key codes
+         * in addition to the primary key code.
+         */
+        ReportAlternates,
+        /**
+         * Report all keys as escape sequences, including plain text keys
+         * that would normally be sent as literal characters.
+         */
+        ReportAllKeys,
+        /**
+         * Report associated text: includes the generated text as Unicode
+         * codepoints alongside the key event.
+         */
+        ReportText
+    }
+
+    /**
+     * Returns whether the terminal supports the Kitty Keyboard Protocol.
+     *
+     * <p>
+     * Detection is performed by sending a {@code CSI ? u} query followed by a
+     * DA1 sentinel ({@code CSI c}). If the terminal responds with
+     * {@code CSI ? flags u}, it supports the protocol. If only the DA1 response
+     * arrives, the terminal does not support it.
+     * </p>
+     *
+     * <p>
+     * The probe result is cached after the first call. This method is safe to
+     * call on terminals that do not support the protocol — they will simply
+     * respond to the DA1 query while ignoring the flags query.
+     * </p>
+     *
+     * @return {@code true} if the terminal supports the Kitty Keyboard Protocol
+     * @see #setKittyKeyboardMode(EnumSet)
+     * @see #resetKittyKeyboardMode()
+     */
+    default boolean hasKittyKeyboardSupport() {
+        return false;
+    }
+
+    /**
+     * Pushes Kitty Keyboard Protocol enhancement modes onto the terminal's stack.
+     *
+     * <p>
+     * The modes parameter specifies which enhancements to enable. For JLine's line
+     * editing, {@link KittyKeyboardMode#Disambiguate} is sufficient. Higher modes
+     * provide additional information that applications may use directly.
+     * </p>
+     *
+     * <p>
+     * The terminal maintains a stack of mode sets. Each call to this method pushes
+     * a new entry; call {@link #resetKittyKeyboardMode()} to pop.
+     * </p>
+     *
+     * @param modes the enhancement modes to enable
+     * @return {@code true} if the protocol is supported and modes were pushed
+     * @see KittyKeyboardMode
+     * @see #resetKittyKeyboardMode()
+     * @see #hasKittyKeyboardSupport()
+     */
+    default boolean setKittyKeyboardMode(EnumSet<KittyKeyboardMode> modes) {
+        return false;
+    }
+
+    /**
+     * Pops the most recent Kitty Keyboard Protocol enhancement flags from the
+     * terminal's stack, restoring the previous level.
+     *
+     * <p>
+     * This should be called when leaving the interactive mode that required
+     * enhanced keyboard handling (e.g., at the end of a {@code readLine()} call).
+     * Popping an empty stack resets all enhancement flags to zero.
+     * </p>
+     *
+     * @return {@code true} if the protocol is supported and flags were popped
+     * @see #setKittyKeyboardMode(EnumSet)
+     */
+    default boolean resetKittyKeyboardMode() {
+        return false;
+    }
+
+    /**
+     * Returns the value of the specified environment variable from the terminal's
+     * environment.
+     *
+     * <p>
+     * For local terminals this defaults to {@link System#getenv(String)}, which
+     * reads the JVM process's own environment. Remote terminal implementations
+     * (e.g., SSH) should override this method to return the remote client's
+     * environment variables instead, since terminal-related variables like
+     * {@code TERM}, {@code TERM_PROGRAM}, {@code COLORTERM}, etc. originate
+     * from the client side and are not present in the server JVM's environment.
+     * </p>
+     *
+     * <p>
+     * JLine's internal capability detection (true-color support, graphics protocol
+     * support, grapheme cluster mode, etc.) uses this method rather than calling
+     * {@link System#getenv(String)} directly, ensuring correct behavior across
+     * both local and remote terminals.
+     * </p>
+     *
+     * @param name the name of the environment variable
+     * @return the value of the variable, or {@code null} if it is not defined
+     * @see TerminalBuilder#env(java.util.function.UnaryOperator)
+     */
+    default String getenv(String name) {
+        return System.getenv(name);
     }
 
     /**

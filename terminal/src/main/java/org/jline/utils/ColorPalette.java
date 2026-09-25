@@ -115,10 +115,33 @@ public class ColorPalette {
         return osc4;
     }
 
+    /**
+     * Reload the palette size from the terminal's {@code max_colors} capability.
+     *
+     * <p>Called by {@code AbstractTerminal} after {@code parseInfoCmp()} and
+     * {@code setEnv()} have populated or updated terminal capabilities, so that
+     * the palette is sized correctly even though the terminal object was partially
+     * constructed when the {@code ColorPalette} constructor first ran.</p>
+     *
+     * @throws IOException if an I/O error occurs
+     */
+    public void reloadFromCapabilities() throws IOException {
+        if (!osc4) {
+            loadPalette(false);
+        }
+    }
+
     protected void loadPalette(boolean doLoad) throws IOException {
         if (terminal != null) {
-            int[] pal = doLoad ? doLoad(terminal) : null;
-            if (pal != null) {
+            int[] pal = null;
+            if (doLoad) {
+                try {
+                    pal = doLoad(terminal);
+                } catch (ClosedException e) {
+                    // Terminal input is at EOF; treat as no OSC 4 support
+                }
+            }
+            if (pal != null && pal.length > 0) {
                 this.palette = pal;
                 this.osc4 = true;
             } else {
@@ -203,11 +226,32 @@ public class ColorPalette {
         return distance;
     }
 
+    /**
+     * A valid OSC 4 color component is 1 to 4 hex digits ({@code R}, {@code RR}, {@code RRR}
+     * or {@code RRRR}). Rejecting longer or non-hex values keeps {@code Integer.parseInt} within
+     * {@code int} range and keeps {@code 1 << (4 * len)} below 32, so the divisor below cannot
+     * wrap to zero.
+     */
+    private static boolean isValidComponent(String s) {
+        int len = s.length();
+        if (len < 1 || len > 4) {
+            return false;
+        }
+        for (int i = 0; i < len; i++) {
+            char c = s.charAt(i);
+            if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private static int[] doLoad(Terminal terminal) throws IOException {
         PrintWriter writer = terminal.writer();
         NonBlockingReader reader = terminal.reader();
 
         int[] palette = new int[256];
+        int entriesRead = 0;
         for (int i = 0; i < 16; i++) {
             StringBuilder req = new StringBuilder(1024);
             req.append("\033]4");
@@ -272,7 +316,10 @@ public class ColorPalette {
                         sb.setLength(0);
                     }
                 }
-                if (rgb.size() != 3) {
+                if (rgb.size() != 3
+                        || !isValidComponent(rgb.get(0))
+                        || !isValidComponent(rgb.get(1))
+                        || !isValidComponent(rgb.get(2))) {
                     return null;
                 }
                 double r = Integer.parseInt(rgb.get(0), 16)
@@ -283,10 +330,14 @@ public class ColorPalette {
                         / ((1 << (4 * rgb.get(2).length())) - 1.0);
                 palette[idx] = (int) ((Math.round(r * 255) << 16) + (Math.round(g * 255) << 8) + Math.round(b * 255));
                 black &= palette[idx] == 0;
+                entriesRead++;
             }
             if (black) {
                 break;
             }
+        }
+        if (entriesRead == 0) {
+            return new int[0];
         }
         int max = 256;
         while (max > 0 && palette[--max] == 0)

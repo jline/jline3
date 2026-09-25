@@ -251,47 +251,56 @@ public class Status {
         }
 
         int newScrollRegion = display.rows - 1 - lines.size();
-        // Update the scroll region if needed.
-        // Note that settings the scroll region usually moves the cursor, so we need to get ready for that.
-        if (newScrollRegion < scrollRegion) {
-            // We need to scroll up to grow the status bar
-            terminal.puts(Capability.save_cursor);
-            terminal.puts(Capability.cursor_address, scrollRegion, 0);
-            for (int i = newScrollRegion; i < scrollRegion; i++) {
-                terminal.puts(Capability.cursor_down);
-            }
-            terminal.puts(Capability.change_scroll_region, 0, newScrollRegion);
-            terminal.puts(Capability.restore_cursor);
-            for (int i = newScrollRegion; i < scrollRegion; i++) {
-                terminal.puts(Capability.cursor_up);
-            }
-            scrollRegion = newScrollRegion;
-        } else if (newScrollRegion > scrollRegion) {
-            terminal.puts(Capability.save_cursor);
-            terminal.puts(Capability.change_scroll_region, 0, newScrollRegion);
-            terminal.puts(Capability.restore_cursor);
-            scrollRegion = newScrollRegion;
-        }
-
-        // if the display has more lines, we need to add empty ones to make sure they will be erased
-        List<AttributedString> toDraw = new ArrayList<>(lines);
-        int nbToDraw = toDraw.size();
-        int nbOldLines = display.oldLinesSize();
-        if (nbOldLines > nbToDraw) {
-            int excess = nbOldLines - nbToDraw;
-            terminal.puts(Capability.save_cursor);
-            terminal.puts(Capability.cursor_address, display.rows - nbOldLines, 0);
-            for (int i = 0; i < excess; i++) {
-                terminal.puts(Capability.clr_eol);
-                if (i < excess - 1) {
+        // Wrap the entire output cycle in a synchronized update (mode 2026)
+        // so that scroll region changes, cursor movements, line clearing,
+        // and the display update are rendered atomically without flicker.
+        terminal.beginSynchronizedUpdate();
+        try {
+            // Update the scroll region if needed.
+            // Note that settings the scroll region usually moves the cursor, so we need to get ready for
+            // that.
+            if (newScrollRegion < scrollRegion) {
+                // We need to scroll up to grow the status bar
+                terminal.puts(Capability.save_cursor);
+                terminal.puts(Capability.cursor_address, scrollRegion, 0);
+                for (int i = newScrollRegion; i < scrollRegion; i++) {
                     terminal.puts(Capability.cursor_down);
                 }
+                terminal.puts(Capability.change_scroll_region, 0, newScrollRegion);
+                terminal.puts(Capability.restore_cursor);
+                for (int i = newScrollRegion; i < scrollRegion; i++) {
+                    terminal.puts(Capability.cursor_up);
+                }
+                scrollRegion = newScrollRegion;
+            } else if (newScrollRegion > scrollRegion) {
+                terminal.puts(Capability.save_cursor);
+                terminal.puts(Capability.change_scroll_region, 0, newScrollRegion);
+                terminal.puts(Capability.restore_cursor);
+                scrollRegion = newScrollRegion;
             }
-            display.removeFirstOldLines(excess);
-            terminal.puts(Capability.restore_cursor);
+
+            // if the display has more lines, we need to add empty ones to make sure they will be erased
+            List<AttributedString> toDraw = new ArrayList<>(lines);
+            int nbToDraw = toDraw.size();
+            int nbOldLines = display.oldLinesSize();
+            if (nbOldLines > nbToDraw) {
+                int excess = nbOldLines - nbToDraw;
+                terminal.puts(Capability.save_cursor);
+                terminal.puts(Capability.cursor_address, display.rows - nbOldLines, 0);
+                for (int i = 0; i < excess; i++) {
+                    terminal.puts(Capability.clr_eol);
+                    if (i < excess - 1) {
+                        terminal.puts(Capability.cursor_down);
+                    }
+                }
+                display.removeFirstOldLines(excess);
+                terminal.puts(Capability.restore_cursor);
+            }
+            // update display
+            display.update(lines, -1, flush);
+        } finally {
+            terminal.endSynchronizedUpdate();
         }
-        // update display
-        display.update(lines, -1, flush);
     }
 
     private AttributedString getBorderString(int columns) {

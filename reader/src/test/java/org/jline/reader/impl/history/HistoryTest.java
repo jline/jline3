@@ -9,6 +9,7 @@
 package org.jline.reader.impl.history;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,6 +23,7 @@ import org.jline.reader.impl.ReaderTestSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -188,5 +190,125 @@ class HistoryTest extends ReaderTestSupport {
         assertTrue(defaultHistory.matchPatterns("foo*", "foobar"));
         assertTrue(defaultHistory.matchPatterns("foo:bar", "bar"));
         assertFalse(defaultHistory.matchPatterns("foo*", "bar"));
+    }
+
+    /**
+     * Verifies that read(B) after load(A) records only B's entry count
+     * as entriesInFile, not the total in-memory count.
+     *
+     * Before the fix, entriesInFile(B) was set to the total in-memory
+     * item count (A's entries + B's entries), which could cause
+     * premature trimming of file B.
+     */
+    @Test
+    void testReadEntriesInFileCount(@TempDir Path tempDir) throws IOException {
+        Path fileA = tempDir.resolve("historyA");
+        Path fileB = tempDir.resolve("historyB");
+
+        long ts = Instant.now().toEpochMilli();
+
+        // Write 3 entries to file A
+        try (BufferedWriter w = Files.newBufferedWriter(fileA)) {
+            w.write(ts + ":a1\n");
+            w.write((ts + 1) + ":a2\n");
+            w.write((ts + 2) + ":a3\n");
+        }
+
+        // Write 2 entries to file B
+        try (BufferedWriter w = Files.newBufferedWriter(fileB)) {
+            w.write((ts + 3) + ":b1\n");
+            w.write((ts + 4) + ":b2\n");
+        }
+
+        // Configure reader with timestamped history and a file size limit
+        // that would trigger trimming if entriesInFile is inflated.
+        // max + max/4 = 4 + 1 = 5; with the bug, B's entriesInFile would
+        // be 5 (total) + 3 (appended) = 8, triggering trim at > 5.
+        // With the fix, B's entriesInFile is 2 + 3 = 5, no trim.
+        reader.setOpt(LineReader.Option.HISTORY_TIMESTAMPED);
+        reader.unsetOpt(LineReader.Option.HISTORY_INCREMENTAL);
+        reader.setVariable(LineReader.HISTORY_FILE, fileA);
+        reader.setVariable(LineReader.HISTORY_FILE_SIZE, 4);
+
+        DefaultHistory hist = new DefaultHistory(reader);
+        assertEquals(3, hist.size(), "load(A) should yield 3 entries");
+
+        // Read file B (adds 2 more entries in memory)
+        hist.read(fileB, false);
+        assertEquals(5, hist.size(), "After read(B), total in-memory should be 5");
+
+        // Add 3 new entries
+        hist.add(Instant.ofEpochMilli(ts + 5), "c1");
+        hist.add(Instant.ofEpochMilli(ts + 6), "c2");
+        hist.add(Instant.ofEpochMilli(ts + 7), "c3");
+
+        // Append new entries to file B (incremental)
+        hist.append(fileB, true);
+
+        // File B should have 5 lines (2 original + 3 appended).
+        // Before the fix, the inflated entriesInFile count would trigger
+        // premature trimming, reducing the file to 4 lines.
+        List<String> lines = Files.readAllLines(fileB);
+        assertEquals(5, lines.size(), "File B should have 5 entries (2 original + 3 appended), not trimmed");
+    }
+
+    /**
+     * Verifies that read(B) with checkDuplicates=true counts every
+     * successfully parsed line from the file — including lines skipped
+     * as in-memory duplicates — for the entriesInFile bookkeeping.
+     *
+     * An undercount would prevent the trim threshold from triggering
+     * when the file exceeds HISTORY_FILE_SIZE.
+     */
+    @Test
+    void testReadEntriesInFileCountWithDuplicates(@TempDir Path tempDir) throws IOException {
+        Path fileA = tempDir.resolve("historyA");
+        Path fileB = tempDir.resolve("historyB");
+
+        long ts = Instant.now().toEpochMilli();
+
+        // File A: 3 entries [x, y, z]
+        try (BufferedWriter w = Files.newBufferedWriter(fileA)) {
+            w.write(ts + ":x\n");
+            w.write((ts + 1) + ":y\n");
+            w.write((ts + 2) + ":z\n");
+        }
+
+        // File B: 3 entries [y, z, w] — y and z duplicate A's entries
+        try (BufferedWriter w = Files.newBufferedWriter(fileB)) {
+            w.write((ts + 3) + ":y\n");
+            w.write((ts + 4) + ":z\n");
+            w.write((ts + 5) + ":w\n");
+        }
+
+        // HISTORY_FILE_SIZE = 3: trim threshold is 3 + 3/4 = 3.75
+        reader.setOpt(LineReader.Option.HISTORY_TIMESTAMPED);
+        reader.unsetOpt(LineReader.Option.HISTORY_INCREMENTAL);
+        reader.setVariable(LineReader.HISTORY_FILE, fileA);
+        reader.setVariable(LineReader.HISTORY_FILE_SIZE, 3);
+
+        DefaultHistory hist = new DefaultHistory(reader);
+        assertEquals(3, hist.size(), "load(A) should yield 3 entries");
+
+        // Read B with duplicate checking — only w is added to memory,
+        // but all 3 lines in B are valid and count toward entriesInFile.
+        hist.read(fileB, true);
+        assertEquals(4, hist.size(), "After read(B) with dedup, memory has 4 entries");
+
+        // Add 2 new entries
+        hist.add(Instant.ofEpochMilli(ts + 6), "e1");
+        hist.add(Instant.ofEpochMilli(ts + 7), "e2");
+
+        // Append to B — writes e1 and e2
+        hist.append(fileB, true);
+
+        // File B now has 5 on-disk entries (3 original + 2 appended).
+        // entriesInFile(B) should be 3 + 2 = 5, which exceeds the trim
+        // threshold (3 + 3/4 = 3.75), so the file is trimmed to 3.
+        // If entriesInFile only counted the 1 non-duplicate line added
+        // to memory, it would be 1 + 2 = 3, below the threshold, and the
+        // file would not be trimmed (leaving 5 entries in a 3-entry file).
+        List<String> lines = Files.readAllLines(fileB);
+        assertEquals(3, lines.size(), "File B should be trimmed to HISTORY_FILE_SIZE entries");
     }
 }

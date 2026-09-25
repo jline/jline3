@@ -353,6 +353,13 @@ public class TelnetIO {
 
         out.write(b);
 
+        // a data byte 255 (IAC) must be doubled, otherwise the peer reads it as
+        // the start of a telnet command (RFC 854). read() already collapses the
+        // doubled form back to a single 255 on input.
+        if (b == (byte) IAC) {
+            out.write(IAC);
+        }
+
         if (b == 13) {
             crFlag = true;
         } else {
@@ -431,10 +438,11 @@ public class TelnetIO {
     public void closeOutput() {
 
         try {
-            // sends telnetprotocol logout acknowledgement
-            write(IAC);
-            write(DO);
-            write(LOGOUT);
+            // sends telnetprotocol logout acknowledgement; this is a command
+            // sequence and must bypass the IAC-doubling done by write(byte).
+            rawWrite(IAC);
+            rawWrite(DO);
+            rawWrite(LOGOUT);
             // and now close underlying outputstream
 
             out.close();

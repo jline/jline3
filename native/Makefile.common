@@ -17,7 +17,7 @@
 
 # os=Default is meant to be generic unix/linux
 
-known_targets := Linux-x86 Linux-x86_64 Linux-arm Linux-armv6 Linux-armv7 Linux-android-arm Linux-arm64 Linux-ppc64 Linux-riscv64 Mac-x86 Mac-x86_64 Mac-arm64 DragonFly-x86_64 FreeBSD-x86_64 OpenBSD-x86_64 Windows-x86 Windows-x86_64 Windows-arm64 SunOS-sparcv9 HPUX-ia64_32
+known_targets := Linux-x86 Linux-x86_64 Linux-arm Linux-armv6 Linux-armv7 Linux-android-arm Linux-arm64 Linux-ppc64 Linux-riscv64 Linux-musl-x86_64 Linux-musl-arm64 Mac-x86 Mac-x86_64 Mac-arm64 DragonFly-x86_64 FreeBSD-x86_64 OpenBSD-x86_64 Windows-x86 Windows-x86_64 Windows-arm64 SunOS-sparcv9 HPUX-ia64_32
 target := $(OS_NAME)-$(OS_ARCH)
 
 ifeq (,$(findstring $(strip $(target)),$(known_targets)))
@@ -80,6 +80,18 @@ Linux-riscv64_STRIP     := $(CROSS_PREFIX)strip
 Linux-riscv64_CCFLAGS   := -I$(JAVA_HOME)/include -Itarget/inc -Itarget/inc/unix -Os -march=rv64g -fPIC -fvisibility=hidden
 Linux-riscv64_LINKFLAGS := -shared -static-libgcc
 Linux-riscv64_LIBNAME   := libjlinenative.so
+
+Linux-musl-x86_64_CC        := $(CROSS_PREFIX)gcc
+Linux-musl-x86_64_STRIP     := $(CROSS_PREFIX)strip
+Linux-musl-x86_64_CCFLAGS   := -I$(JAVA_HOME)/include -Itarget/inc -Itarget/inc/unix -Os -fPIC -m64 -fvisibility=hidden
+Linux-musl-x86_64_LINKFLAGS := -shared -static-libgcc
+Linux-musl-x86_64_LIBNAME   := libjlinenative.so
+
+Linux-musl-arm64_CC        := $(CROSS_PREFIX)gcc
+Linux-musl-arm64_STRIP     := $(CROSS_PREFIX)strip
+Linux-musl-arm64_CCFLAGS   := -I$(JAVA_HOME)/include -Itarget/inc -Itarget/inc/unix -Os -march=armv8-a -fPIC -fvisibility=hidden
+Linux-musl-arm64_LINKFLAGS := -shared -static-libgcc
+Linux-musl-arm64_LIBNAME   := libjlinenative.so
 
 DragonFly-x86_64_CC        := $(CROSS_PREFIX)cc
 DragonFly-x86_64_STRIP     := $(CROSS_PREFIX)strip

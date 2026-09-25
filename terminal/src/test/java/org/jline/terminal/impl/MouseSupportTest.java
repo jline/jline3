@@ -211,6 +211,91 @@ class MouseSupportTest {
         assertEquals(20, event.getY()); // 0-based, so 21-1
     }
 
+    @Test
+    void testReadMouseSGRHighColumnDoesNotCorrupt() {
+        // Regression test for #2220: X10 format corrupts events at column >= 96
+        // because (32 + 96 + 1) = 129 = 0x81 which readMouse() misinterprets as
+        // a UTF-8 lead byte. SGR format uses decimal coordinates and is immune.
+        // SGR format: ESC [ < 0;200;50 M  (left press at column 200, row 50)
+        int[] input = {'<', '0', ';', '2', '0', '0', ';', '5', '0', 'M'};
+        MouseEvent event = MouseSupport.readMouse(createReader(input), createDummyEvent());
+
+        assertEquals(MouseEvent.Type.Pressed, event.getType());
+        assertEquals(MouseEvent.Button.Button1, event.getButton());
+        assertEquals(199, event.getX()); // 0-based: 200 - 1
+        assertEquals(49, event.getY()); // 0-based: 50 - 1
+    }
+
+    @Test
+    void testReadMouseSGRColumnExactly96() {
+        // The exact boundary where X10 format breaks: column 96
+        // X10 would encode this as (32 + 96 + 1) = 129 = 0x81, a UTF-8 lead byte.
+        // SGR format: ESC [ < 0;97;1 M  (left press at column 96, row 0, both 1-based)
+        int[] input = {'<', '0', ';', '9', '7', ';', '1', 'M'};
+        MouseEvent event = MouseSupport.readMouse(createReader(input), createDummyEvent());
+
+        assertEquals(MouseEvent.Type.Pressed, event.getType());
+        assertEquals(MouseEvent.Button.Button1, event.getButton());
+        assertEquals(96, event.getX()); // 0-based: 97 - 1
+        assertEquals(0, event.getY()); // 0-based: 1 - 1
+    }
+
+    @Test
+    void testReadMouseSGRReleaseAtHighColumn() {
+        // SGR release at high column: ESC [ < 0;200;50 m
+        // Lowercase 'm' signals an explicit release event with the released button code.
+        int[] input = {'<', '0', ';', '2', '0', '0', ';', '5', '0', 'm'};
+        MouseEvent event = MouseSupport.readMouse(createReader(input), createDummyEvent());
+
+        assertEquals(MouseEvent.Type.Released, event.getType());
+        assertEquals(MouseEvent.Button.Button1, event.getButton());
+        assertEquals(199, event.getX()); // 0-based: 200 - 1
+        assertEquals(49, event.getY()); // 0-based: 50 - 1
+    }
+
+    @Test
+    void testReadMouseSGRRightButtonRelease() {
+        // SGR right button release: ESC [ < 2;11;21 m
+        // cb=2 maps to Button3 (right button in SGR encoding)
+        int[] input = {'<', '2', ';', '1', '1', ';', '2', '1', 'm'};
+        MouseEvent event = MouseSupport.readMouse(createReader(input), createDummyEvent());
+
+        assertEquals(MouseEvent.Type.Released, event.getType());
+        assertEquals(MouseEvent.Button.Button3, event.getButton());
+        assertEquals(10, event.getX());
+        assertEquals(20, event.getY());
+    }
+
+    @Test
+    void testReadMouseSGROverlappingButtonTransitions() {
+        // Regression test for overlapping button transitions:
+        // Left pressed, then right pressed while left held, then left released while right held.
+        // Each event is a separate SGR sequence as processMouseEvent would emit.
+
+        // 1. Left press at (10, 20): ESC [ < 0;11;21 M
+        int[] input1 = {'<', '0', ';', '1', '1', ';', '2', '1', 'M'};
+        MouseEvent last = createDummyEvent();
+        MouseEvent event = MouseSupport.readMouse(createReader(input1), last);
+        assertEquals(MouseEvent.Type.Pressed, event.getType());
+        assertEquals(MouseEvent.Button.Button1, event.getButton());
+
+        // 2. Right press while left held at (10, 20): ESC [ < 1;11;21 M
+        int[] input2 = {'<', '1', ';', '1', '1', ';', '2', '1', 'M'};
+        last = event;
+        event = MouseSupport.readMouse(createReader(input2), last);
+        assertEquals(MouseEvent.Type.Pressed, event.getType());
+        assertEquals(MouseEvent.Button.Button2, event.getButton());
+
+        // 3. Left released while right still held at (10, 20): ESC [ < 0;11;21 m
+        int[] input3 = {'<', '0', ';', '1', '1', ';', '2', '1', 'm'};
+        last = event;
+        event = MouseSupport.readMouse(createReader(input3), last);
+        assertEquals(MouseEvent.Type.Released, event.getType());
+        assertEquals(MouseEvent.Button.Button1, event.getButton());
+        assertEquals(10, event.getX());
+        assertEquals(20, event.getY());
+    }
+
     private IntSupplier createReader(int[] input) {
         return new IntSupplier() {
             private int index = 0;

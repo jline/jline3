@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -399,6 +400,8 @@ public final class TerminalBuilder {
     private Terminal.SignalHandler signalHandler = Terminal.SignalHandler.SIG_DFL;
     private boolean paused = false;
     private Boolean graphemeCluster;
+    private UnaryOperator<String> env;
+    private ClassLoader classLoader;
 
     private TerminalBuilder() {}
 
@@ -453,6 +456,41 @@ public final class TerminalBuilder {
      */
     public TerminalBuilder providers(String providers) {
         this.providers = providers;
+        return this;
+    }
+
+    /**
+     * Sets an explicit classloader for terminal provider discovery.
+     *
+     * <p>
+     * When JLine is loaded through a custom classloader (e.g., OSGi containers,
+     * application servers, plugin systems), the default provider discovery may fail
+     * because the thread's context classloader cannot locate the provider resource
+     * files bundled in the JLine JARs. This method allows specifying the classloader
+     * that has access to those JARs.
+     * </p>
+     *
+     * <p>
+     * The specified classloader is tried first during provider discovery, before falling
+     * back to the thread context classloader and JLine's own classloader. See
+     * {@link TerminalProvider#load(String, ClassLoader)} for the full resolution order.
+     * </p>
+     *
+     * <p><b>Example — plugin system where JLine is loaded at runtime:</b></p>
+     * <pre>
+     * Terminal terminal = TerminalBuilder.builder()
+     *     .streams(inputStream, outputStream)
+     *     .classLoader(getClass().getClassLoader())
+     *     .build();
+     * </pre>
+     *
+     * @param classLoader the classloader to use for provider discovery, or {@code null}
+     *                    to use the default resolution strategy
+     * @return this builder
+     * @see TerminalProvider#load(String, ClassLoader)
+     */
+    public TerminalBuilder classLoader(ClassLoader classLoader) {
+        this.classLoader = classLoader;
         return this;
     }
 
@@ -806,6 +844,37 @@ public final class TerminalBuilder {
     }
 
     /**
+     * Sets a custom environment variable provider for the terminal.
+     *
+     * <p>By default, terminals read environment variables from
+     * {@link System#getenv(String)}, which returns the JVM process's own
+     * environment. For remote terminals (e.g., SSH), the client's environment
+     * variables are different from the server JVM's. This method allows
+     * injecting the correct environment so that capability detection
+     * (true-color, graphics protocol, grapheme cluster mode, etc.) uses
+     * the remote client's values.</p>
+     *
+     * <p>Example — SSH server passing the client's environment:</p>
+     * <pre>
+     * Map&lt;String, String&gt; sshEnv = sshSession.getEnvironment();
+     * Terminal terminal = TerminalBuilder.builder()
+     *     .system(false)
+     *     .streams(in, out)
+     *     .env(sshEnv::get)
+     *     .build();
+     * </pre>
+     *
+     * @param env a function that returns the value of an environment variable
+     *            given its name, or {@code null} if not defined
+     * @return this builder
+     * @see Terminal#getenv(String)
+     */
+    public TerminalBuilder env(UnaryOperator<String> env) {
+        this.env = env;
+        return this;
+    }
+
+    /**
      * Create and configure a Terminal instance according to this builder's settings.
      *
      * If a global terminal override has been set, that instance is returned instead of creating a new one.
@@ -826,6 +895,12 @@ public final class TerminalBuilder {
         if (terminal instanceof AbstractPosixTerminal) {
             Log.debug(() -> "Using pty "
                     + ((AbstractPosixTerminal) terminal).getPty().getClass().getSimpleName());
+        }
+        // Set custom environment provider if configured.
+        // This must happen before grapheme cluster probing, which reads
+        // env vars like TERM_PROGRAM to decide whether to send DECRQM.
+        if (this.env != null && terminal instanceof AbstractTerminal) {
+            ((AbstractTerminal) terminal).setEnv(this.env);
         }
         // Enable grapheme cluster mode if supported
         Boolean gc = this.graphemeCluster;
@@ -1069,7 +1144,7 @@ public final class TerminalBuilder {
         if (dumb == null) {
             // detect emacs using the env variable
             if (color == null) {
-                String emacs = System.getenv("INSIDE_EMACS");
+                String emacs = getEnvVar("INSIDE_EMACS");
                 if (emacs != null && emacs.contains("comint")) {
                     color = true;
                 }
@@ -1077,7 +1152,7 @@ public final class TerminalBuilder {
             // detect Intellij Idea
             if (color == null) {
                 // using the env variable on windows
-                String ideHome = System.getenv("IDE_HOME");
+                String ideHome = getEnvVar("IDE_HOME");
                 if (ideHome != null) {
                     color = true;
                 } else {
@@ -1089,7 +1164,7 @@ public final class TerminalBuilder {
                 }
             }
             if (color == null) {
-                color = systemStream != null && System.getenv("TERM") != null;
+                color = systemStream != null && getEnvVar("TERM") != null;
             }
         } else {
             if (color == null) {
@@ -1157,7 +1232,7 @@ public final class TerminalBuilder {
             type = System.getProperty(PROP_TYPE);
         }
         if (type == null) {
-            type = System.getenv("TERM");
+            type = getEnvVar("TERM");
         }
         return type;
     }
@@ -1248,11 +1323,11 @@ public final class TerminalBuilder {
     public List<TerminalProvider> getProviders(String provider, IllegalStateException exception) {
         List<TerminalProvider> providers = new ArrayList<>();
         // Check ffm provider
-        checkProvider(provider, exception, providers, ffm, PROP_FFM, PROP_PROVIDER_FFM);
+        checkProvider(provider, exception, providers, ffm, PROP_FFM, PROP_PROVIDER_FFM, classLoader);
         // Check jni provider
-        checkProvider(provider, exception, providers, jni, PROP_JNI, PROP_PROVIDER_JNI);
+        checkProvider(provider, exception, providers, jni, PROP_JNI, PROP_PROVIDER_JNI, classLoader);
         // Check exec provider
-        checkProvider(provider, exception, providers, exec, PROP_EXEC, PROP_PROVIDER_EXEC);
+        checkProvider(provider, exception, providers, exec, PROP_EXEC, PROP_PROVIDER_EXEC, classLoader);
         // Order providers
         List<String> order = Arrays.asList(
                 (this.providers != null ? this.providers : System.getProperty(PROP_PROVIDERS, PROP_PROVIDERS_DEFAULT))
@@ -1272,14 +1347,15 @@ public final class TerminalBuilder {
             List<TerminalProvider> providers,
             Boolean load,
             String property,
-            String name) {
+            String name,
+            ClassLoader classLoader) {
         Boolean doLoad = provider != null ? (Boolean) name.equals(provider) : load;
         if (doLoad == null) {
             doLoad = getBoolean(property, true);
         }
         if (doLoad) {
             try {
-                TerminalProvider prov = TerminalProvider.load(name);
+                TerminalProvider prov = TerminalProvider.load(name, classLoader);
                 prov.isSystemStream(SystemStream.Output);
                 providers.add(prov);
             } catch (Throwable t) {
@@ -1314,6 +1390,14 @@ public final class TerminalBuilder {
             }
         }
         return null;
+    }
+
+    /**
+     * Reads an environment variable using the configured provider, or
+     * {@link System#getenv(String)} if none was set.
+     */
+    private String getEnvVar(String name) {
+        return env != null ? env.apply(name) : System.getenv(name);
     }
 
     private static String getParentProcessCommand() {

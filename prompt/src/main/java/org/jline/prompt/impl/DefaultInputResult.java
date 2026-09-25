@@ -10,6 +10,7 @@ package org.jline.prompt.impl;
 
 import org.jline.prompt.InputPrompt;
 import org.jline.prompt.InputResult;
+import org.jline.prompt.PasswordPrompt;
 
 /**
  * Implementation of InputResult.
@@ -49,6 +50,9 @@ public class DefaultInputResult extends AbstractPromptResult<InputPrompt> implem
 
     @Override
     public String toString() {
+        if (getPrompt() instanceof PasswordPrompt) {
+            return "InputResult{input='" + displayInput + "'}";
+        }
         return "InputResult{input='" + input + "'}";
     }
 }

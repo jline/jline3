@@ -24,10 +24,15 @@ public interface PasswordPrompt extends InputPrompt {
     Character getMask();
 
     /**
-     * Whether to show the mask character or completely hide input.
-     * If true, shows mask characters. If false, shows nothing.
+     * Whether to show the mask character in the post-input display result.
+     * When {@code true}, the display result shows mask characters for each typed character.
+     * When {@code false}, the display result is empty (no visible feedback after input).
+     * <p>
+     * Note: this controls only the post-input display value returned by
+     * {@link InputResult#getDisplayResult()}, not what is shown during typing.
+     * To suppress all visible feedback while typing, use {@code mask('\0')}.
      *
-     * @return true to show mask characters, false to hide completely
+     * @return true to show mask characters in the result, false to hide completely
      */
     default boolean showMask() {
         return true;

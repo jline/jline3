@@ -46,9 +46,9 @@ public class ColorSupport {
         }
         List<String> rgb = readRgbValues(reader);
         if (rgb.size() != 3
-                || rgb.get(0).isEmpty()
-                || rgb.get(1).isEmpty()
-                || rgb.get(2).isEmpty()) {
+                || !isValidComponent(rgb.get(0))
+                || !isValidComponent(rgb.get(1))
+                || !isValidComponent(rgb.get(2))) {
             return -1;
         }
         return convertRgbToInt(rgb);
@@ -124,6 +124,25 @@ public class ColorSupport {
 
     private static boolean isHexChar(int c) {
         return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
+    }
+
+    /**
+     * A valid OSC color component is 1 to 4 hex digits ({@code R}, {@code RR}, {@code RRR}
+     * or {@code RRRR}). Rejecting longer values keeps {@code Integer.parseInt} within {@code int}
+     * range and keeps {@code 1 << (4 * len)} below 32, so the divisor in {@link #convertRgbToInt}
+     * cannot wrap to zero.
+     */
+    private static boolean isValidComponent(String s) {
+        int len = s.length();
+        if (len < 1 || len > 4) {
+            return false;
+        }
+        for (int i = 0; i < len; i++) {
+            if (!isHexChar(s.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static int convertRgbToInt(List<String> rgb) {

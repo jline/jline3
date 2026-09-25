@@ -411,7 +411,7 @@ public class JLineNativeLoader {
      * The method handles the following cases:
      * <ul>
      *   <li>If the file doesn't exist, it returns false without attempting to load</li>
-     *   <li>If loading fails with an {@link UnsatisfiedLinkError}, it logs the error and returns false</li>
+     *   <li>If loading fails with an {@link UnsatisfiedLinkError}, it logs the error at DEBUG level and returns false</li>
      *   <li>If loading succeeds, it sets the path and returns true</li>
      * </ul>
      *
@@ -428,7 +428,7 @@ public class JLineNativeLoader {
                 return true;
             } catch (UnsatisfiedLinkError e) {
                 log(
-                        Level.WARNING,
+                        Level.DEBUG,
                         "Failed to load native library:" + libPath.getName() + ". osinfo: "
                                 + OSInfo.getNativeLibFolderPathForCurrentOS(),
                         e);

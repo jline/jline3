@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.concurrent.TimeUnit;
 
 import org.jline.utils.NonBlockingReader;
 import org.junit.jupiter.api.Test;
@@ -82,7 +83,7 @@ class TerminalProbeResponseLeakTest {
                 NonBlockingReader.EOF,
                 NonBlockingReader.EOF,
                 'X');
-        long deadline = System.currentTimeMillis() + 1000;
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(1);
         assertEquals('X', AbstractTerminal.readProbeChar(in, deadline));
     }
 
@@ -91,10 +92,10 @@ class TerminalProbeResponseLeakTest {
         // Nothing but spurious EOFs: poll until the deadline, then report -1
         // rather than bailing on the first one.
         ScriptedReader in = new ScriptedReader(NonBlockingReader.EOF);
-        long start = System.currentTimeMillis();
-        assertEquals(-1, AbstractTerminal.readProbeChar(in, start + 50));
+        long start = System.nanoTime();
+        assertEquals(-1, AbstractTerminal.readProbeChar(in, start + TimeUnit.MILLISECONDS.toNanos(50)));
         assertTrue(
-                System.currentTimeMillis() - start >= 40,
+                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start) >= 40,
                 "should have polled until the deadline, not returned on the first EOF");
     }
 

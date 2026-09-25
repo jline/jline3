@@ -15,6 +15,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
@@ -273,7 +275,24 @@ public interface TerminalProvider {
     }
 
     /**
-     * Loads a terminal provider with the specified name.
+     * Loads a terminal provider with the specified name using the default classloader
+     * resolution strategy.
+     *
+     * <p>
+     * This is equivalent to calling {@link #load(String, ClassLoader) load(name, null)}.
+     * </p>
+     *
+     * @param name the name of the provider to load (e.g., "ffm", "jni", "exec", "dumb")
+     * @return the loaded terminal provider
+     * @throws IOException if the provider cannot be loaded or is not found
+     * @see #load(String, ClassLoader)
+     */
+    static TerminalProvider load(String name) throws IOException {
+        return load(name, null);
+    }
+
+    /**
+     * Loads a terminal provider with the specified name, using an optional explicit classloader.
      *
      * <h2>Provider Discovery Mechanism</h2>
      * <p>
@@ -287,6 +306,27 @@ public interface TerminalProvider {
      * because it allows loading a specific provider by name without instantiating all
      * available providers. This is critical for providers that may fail to initialize
      * due to missing native libraries (JNI, FFM) or other platform-specific dependencies.
+     * </p>
+     *
+     * <h2>Classloader Resolution</h2>
+     * <p>
+     * The classloader used for provider discovery is resolved in this order:
+     * </p>
+     * <ol>
+     *   <li>The explicit {@code classLoader} parameter, if non-null</li>
+     *   <li>The thread's {@linkplain Thread#getContextClassLoader() context classloader}</li>
+     *   <li>The classloader that loaded the {@code TerminalProvider} class itself</li>
+     * </ol>
+     * <p>
+     * Each classloader is tried in order until the provider resource file is found. This
+     * fallback chain ensures provider discovery works in environments with non-standard
+     * classloader hierarchies, such as OSGi containers, application servers, and plugin
+     * systems that load JLine through a child classloader that is not the thread's context
+     * classloader.
+     * </p>
+     * <p>
+     * The explicit classloader can be set via
+     * {@link org.jline.terminal.TerminalBuilder#classLoader(ClassLoader)}.
      * </p>
      *
      * <h2>Dual-Purpose Service Files</h2>
@@ -321,50 +361,99 @@ public interface TerminalProvider {
      * </pre>
      *
      * @param name the name of the provider to load (e.g., "ffm", "jni", "exec", "dumb")
+     * @param classLoader an explicit classloader to try first, or {@code null} to use the
+     *                    default resolution strategy (context classloader, then JLine's own classloader)
      * @return the loaded terminal provider
      * @throws IOException if the provider cannot be loaded or is not found
      */
-    static TerminalProvider load(String name) throws IOException {
-        ClassLoader cl = Thread.currentThread().getContextClassLoader();
-        if (cl == null) {
-            cl = TerminalProvider.class.getClassLoader();
+    static TerminalProvider load(String name, ClassLoader classLoader) throws IOException {
+        // Try classloaders in priority order:
+        //   1. Explicit classloader (if provided)
+        //   2. Thread context classloader
+        //   3. The classloader that loaded TerminalProvider itself
+        // This fallback chain handles plugin systems and OSGi containers where
+        // JLine JARs are loaded by a classloader that is not the thread's context classloader.
+        ClassLoader contextCl = Thread.currentThread().getContextClassLoader();
+        ClassLoader jlineCl = TerminalProvider.class.getClassLoader();
+
+        // Deduplicate: in a standard setup the context classloader and JLine's
+        // own classloader are often the same instance — skip redundant lookups.
+        List<ClassLoader> candidates = new ArrayList<>(3);
+        if (classLoader != null) {
+            candidates.add(classLoader);
+        }
+        if (contextCl != null && contextCl != classLoader) {
+            candidates.add(contextCl);
+        }
+        if (jlineCl != null && jlineCl != classLoader && jlineCl != contextCl) {
+            candidates.add(jlineCl);
         }
 
-        // Read the provider-specific resource file to get the class name.
-        // We use META-INF/jline/providers/{name} instead of ServiceLoader to avoid
-        // instantiating all providers when we only need one. This is critical because
-        // some providers (JNI, FFM) may fail to load due to missing native libraries.
         String providerResource = "META-INF/jline/providers/" + name;
-        try (InputStream is = cl.getResourceAsStream(providerResource)) {
-            if (is != null) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    // Remove comments and trim whitespace
-                    int commentIndex = line.indexOf('#');
-                    if (commentIndex >= 0) {
-                        line = line.substring(0, commentIndex);
-                    }
-                    line = line.trim();
+        IOException loadError = null;
 
-                    // Skip empty lines
-                    if (line.isEmpty()) {
-                        continue;
-                    }
+        for (ClassLoader cl : candidates) {
+            try {
+                TerminalProvider result = tryLoadProvider(cl, providerResource, name);
+                if (result != null) {
+                    return result;
+                }
+            } catch (IOException e) {
+                loadError = e;
+            } catch (RuntimeException e) {
+                // Tolerate misbehaving classloaders (e.g., SecurityException from
+                // OSGi/plugin systems) so remaining candidates still get a chance.
+                loadError = new IOException(
+                        "Unable to search classloader " + cl + " for provider " + name + ": " + e.getMessage(), e);
+            }
+        }
 
-                    // Found a provider class name, try to load it
-                    try {
-                        Class<?> providerClass = cl.loadClass(line);
-                        return (TerminalProvider) providerClass.getConstructor().newInstance();
-                    } catch (Exception | LinkageError e) {
-                        throw new IOException("Unable to load terminal provider " + name + ": " + e.getMessage(), e);
-                    }
+        if (loadError != null) {
+            throw loadError;
+        }
+        throw new IOException("Unable to find terminal provider " + name
+                + ". The provider resource file " + providerResource
+                + " was not found by any classloader. If JLine is loaded by a custom classloader"
+                + " (e.g., OSGi, plugin system), configure the builder with"
+                + " TerminalBuilder.builder().classLoader(loader) to specify"
+                + " a classloader that can access the JLine provider JARs.");
+    }
+
+    /**
+     * Attempts to load a provider using a single classloader.
+     *
+     * @return the loaded provider, or {@code null} if the resource was not found by this classloader
+     * @throws IOException if the resource was found but the provider class could not be loaded
+     */
+    private static TerminalProvider tryLoadProvider(ClassLoader cl, String providerResource, String name)
+            throws IOException {
+        InputStream is = cl.getResourceAsStream(providerResource);
+        if (is == null) {
+            return null;
+        }
+        try (is) {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                // Remove comments and trim whitespace
+                int commentIndex = line.indexOf('#');
+                if (commentIndex >= 0) {
+                    line = line.substring(0, commentIndex);
+                }
+                line = line.trim();
+                if (line.isEmpty()) {
+                    continue;
+                }
+
+                // Found a provider class name, try to load it
+                try {
+                    Class<?> providerClass = cl.loadClass(line);
+                    return (TerminalProvider) providerClass.getConstructor().newInstance();
+                } catch (Exception | LinkageError e) {
+                    throw new IOException("Unable to load terminal provider " + name + ": " + e.getMessage(), e);
                 }
             }
-        } catch (IOException e) {
-            throw new IOException("Error reading provider resource file: " + e.getMessage(), e);
         }
-
-        throw new IOException("Unable to find terminal provider " + name);
+        return null;
     }
 }

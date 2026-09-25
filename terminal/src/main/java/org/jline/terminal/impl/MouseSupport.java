@@ -167,7 +167,7 @@ public class MouseSupport {
      * <p>
      * This method is similar to {@link #readMouse(Terminal, MouseEvent)}, but it
      * allows specifying a prefix that has already been consumed. This is useful when
-     * the mouse event prefix (e.g., "\033[<" or "\033[M") has been consumed by
+     * the mouse event prefix (e.g., "\033[&lt;" or "\033[M") has been consumed by
      * the key binding detection, and we need to continue parsing from the current position.
      * </p>
      *
@@ -221,7 +221,7 @@ public class MouseSupport {
      * <p>
      * This method is similar to {@link #readMouse(IntSupplier, MouseEvent)}, but it
      * allows specifying a prefix that has already been consumed. This is useful when
-     * the mouse event prefix (e.g., "\033[<" or "\033[M") has been consumed by
+     * the mouse event prefix (e.g., "\033[&lt;" or "\033[M") has been consumed by
      * the key binding detection, and we need to continue parsing from the current position.
      * </p>
      *

@@ -20,6 +20,7 @@ import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.IntConsumer;
+import java.util.function.IntUnaryOperator;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Cursor;
@@ -78,6 +79,7 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
     final Map<Signal, Object> nativeHandlers = new ConcurrentHashMap<>();
     private volatile Attributes cachedAttributes;
     private final Task closer;
+    private final boolean pollAvailable;
 
     @SuppressWarnings({"this-escape", "squid:S107", "removal"})
     protected AbstractUnixSysTerminal(
@@ -100,11 +102,16 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
         boolean softwareSignals = Boolean.parseBoolean(System.getProperty(PROP_SOFTWARE_SIGNALS, "false"));
 
         InputStream stdin = new NonCloseableInputStream(new FileInputStream(FileDescriptor.in));
-        this.input = NonBlocking.nonBlocking(
-                getName(),
-                softwareSignals
-                        ? new SignalInterceptingInputStream(stdin, () -> cachedAttributes, this::raise)
-                        : stdin);
+        InputStream wrappedStdin =
+                softwareSignals ? new SignalInterceptingInputStream(stdin, () -> cachedAttributes, this::raise) : stdin;
+        this.input = NonBlocking.nonBlocking(getName(), wrappedStdin);
+        IntUnaryOperator pollFn = createPollFunction();
+        if (pollFn != null) {
+            this.input.setPollFunction(pollFn);
+            this.pollAvailable = true;
+        } else {
+            this.pollAvailable = false;
+        }
         cachedAttributes = new Attributes(originalAttributes);
         FileDescriptor outFd;
         if (systemStream == SystemStream.Output) {
@@ -120,6 +127,13 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
 
         parseInfoCmp();
 
+        registerNativeSignals(signalHandler);
+
+        closer = this::close;
+        ShutdownHooks.add(closer);
+    }
+
+    private void registerNativeSignals(SignalHandler signalHandler) {
         if (nativeSignals) {
             for (Signal signal : Signal.values()) {
                 Object nativeHandler;
@@ -134,9 +148,6 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
                 }
             }
         }
-
-        closer = this::close;
-        ShutdownHooks.add(closer);
     }
 
     @Override
@@ -168,6 +179,34 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
     protected abstract Size doGetSize();
 
     protected abstract void doSetSize(Sized size);
+
+    /**
+     * Creates a poll function that checks stdin for input readiness using
+     * {@code poll(2)}.
+     *
+     * <p>When non-null, the returned function is passed to
+     * {@link NonBlockingInputStream#setPollFunction(IntUnaryOperator)} so the
+     * pump thread can use short-timeout polls instead of an indefinite blocking
+     * read.  This prevents the pump from stealing keystrokes from subprocesses
+     * that share the same tty fd
+     * (see <a href="https://github.com/jline/jline3/issues/2219">#2219</a>).</p>
+     *
+     * <p>Subclasses should override to provide a platform-specific binding
+     * (FFM or JNI).  The default returns {@code null}, which falls back to
+     * blocking reads and preserves backward compatibility.</p>
+     *
+     * @return {@code (timeoutMs) → poll result}: positive if data is ready,
+     *         0 on timeout, negative on error; or {@code null} if poll is
+     *         not available
+     */
+    protected IntUnaryOperator createPollFunction() {
+        return null;
+    }
+
+    @Override
+    protected boolean hasPollSupport() {
+        return pollAvailable;
+    }
 
     @Override
     public Attributes getAttributes() {

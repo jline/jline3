@@ -33,6 +33,8 @@ import org.jline.utils.ShutdownHooks;
 import org.jline.utils.Signals;
 import org.jline.utils.WriterOutputStream;
 
+import static org.jline.terminal.TerminalBuilder.PROP_SOFTWARE_SIGNALS;
+
 /**
  * Base implementation for terminals on Windows systems.
  *
@@ -129,6 +131,8 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
 
     protected MouseTracking tracking = MouseTracking.Off;
     protected boolean focusTracking = false;
+    protected int lastButtonState;
+    private final boolean softwareSignals;
     private volatile boolean closing;
     protected boolean skipNextLf;
 
@@ -184,6 +188,7 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
         super(name, type, encoding, inputEncoding, outputEncoding, signalHandler);
         this.provider = provider;
         this.systemStream = systemStream;
+        this.softwareSignals = Boolean.parseBoolean(System.getProperty(PROP_SOFTWARE_SIGNALS, "true"));
         NonBlockingPumpReader reader = NonBlocking.nonBlockingPumpReader();
         this.slaveInputPipe = reader.getWriter();
         this.reader = reader;
@@ -659,6 +664,20 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
             } else if (c == attributes.getControlChar(Attributes.ControlChar.VSTATUS)) {
                 raise(Signal.INFO);
             }
+        } else if (softwareSignals) {
+            // Software signal interception: raise the signal even in raw mode
+            // (ISIG cleared), but pass the character through so the LineReader's
+            // keymap can also handle it (e.g. the INTERRUPT widget).
+            // This mirrors SignalInterceptingInputStream used on POSIX terminals.
+            if (c == attributes.getControlChar(Attributes.ControlChar.VINTR)) {
+                raise(Signal.INT);
+            } else if (c == attributes.getControlChar(Attributes.ControlChar.VQUIT)) {
+                raise(Signal.QUIT);
+            } else if (c == attributes.getControlChar(Attributes.ControlChar.VSUSP)) {
+                raise(Signal.TSTP);
+            } else if (c == attributes.getControlChar(Attributes.ControlChar.VSTATUS)) {
+                raise(Signal.INFO);
+            }
         }
         if (attributes.getInputFlag(Attributes.InputFlag.INORMEOL)) {
             if (c == '\r') {
@@ -697,8 +716,97 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
     @Override
     public boolean trackMouse(MouseTracking tracking) {
         this.tracking = tracking;
+        if (tracking == MouseTracking.Off) {
+            lastButtonState = 0;
+        }
         updateConsoleMode();
         return true;
+    }
+
+    // Windows mouse event flag constants (dwEventFlags)
+    private static final int MOUSE_FLAG_MOVED = 0x0001;
+    private static final int MOUSE_FLAG_DOUBLE_CLICK = 0x0002;
+    private static final int MOUSE_FLAG_WHEELED = 0x0004;
+    private static final int MOUSE_FLAG_HWHEELED = 0x0008;
+
+    // Windows mouse button state constants (dwButtonState)
+    private static final int BUTTON_LEFT = 0x0001; // FROM_LEFT_1ST_BUTTON_PRESSED
+    private static final int BUTTON_RIGHT = 0x0002; // RIGHTMOST_BUTTON_PRESSED
+    private static final int BUTTON_MIDDLE = 0x0004; // FROM_LEFT_2ND_BUTTON_PRESSED
+    private static final int BUTTON_MASK = BUTTON_LEFT | BUTTON_RIGHT | BUTTON_MIDDLE;
+
+    /**
+     * Processes a Windows mouse event and writes the corresponding SGR escape sequence.
+     * SGR format ({@code ESC [ < cb ; cx ; cy M/m}) uses decimal coordinates, avoiding the
+     * X10 format's single-char encoding that corrupts events at column &ge; 96.
+     *
+     * <p>Button transitions are detected by comparing the current button state with
+     * {@link #lastButtonState}, so overlapping button presses and releases (e.g. left
+     * released while right is still held) are reported correctly.</p>
+     *
+     * @param dwEventFlags the Windows mouse event flags
+     * @param dwButtonState the Windows mouse button state
+     * @param cx the 0-based column coordinate
+     * @param cy the 0-based row coordinate
+     * @throws IOException if the write fails
+     */
+    protected void processMouseEvent(int dwEventFlags, int dwButtonState, int cx, int cy) throws IOException {
+        if (shouldIgnoreMouseEvent(dwEventFlags, dwButtonState)) {
+            return;
+        }
+        int cb = 0;
+        boolean isRelease = false;
+        dwEventFlags &= ~MOUSE_FLAG_DOUBLE_CLICK; // Treat double-clicks as normal
+        if (dwEventFlags == MOUSE_FLAG_WHEELED) {
+            cb |= 64;
+            if ((dwButtonState >> 16) < 0) {
+                cb |= 1;
+            }
+        } else if (dwEventFlags == MOUSE_FLAG_HWHEELED) {
+            return;
+        } else if (dwEventFlags == 0) {
+            // Button state change — detect which button transitioned
+            int released = (lastButtonState & ~dwButtonState) & BUTTON_MASK;
+            int pressed = (dwButtonState & ~lastButtonState) & BUTTON_MASK;
+            if (released != 0) {
+                isRelease = true;
+                cb = buttonBitToCode(released);
+            } else if (pressed != 0) {
+                cb = buttonBitToCode(pressed);
+            } else {
+                // No supported button transitioned (e.g. 4th/5th button); update state and skip
+                lastButtonState = dwButtonState;
+                return;
+            }
+        } else {
+            // Motion — report currently held button
+            int buttons = dwButtonState & BUTTON_MASK;
+            cb = buttons != 0 ? buttonBitToCode(buttons) : 3;
+        }
+        lastButtonState = dwButtonState;
+        // Write SGR format: ESC [ < cb ; cx ; cy M/m
+        StringBuilder sb = new StringBuilder(16);
+        sb.append("\033[<");
+        sb.append(cb);
+        sb.append(';');
+        sb.append(cx + 1);
+        sb.append(';');
+        sb.append(cy + 1);
+        sb.append(isRelease ? 'm' : 'M');
+        slaveInputPipe.write(sb.toString());
+    }
+
+    private static int buttonBitToCode(int buttonBit) {
+        if ((buttonBit & BUTTON_LEFT) != 0) return 0;
+        if ((buttonBit & BUTTON_RIGHT) != 0) return 1;
+        if ((buttonBit & BUTTON_MIDDLE) != 0) return 2;
+        return 0;
+    }
+
+    private boolean shouldIgnoreMouseEvent(int dwEventFlags, int dwButtonState) {
+        return tracking == MouseTracking.Off
+                || tracking == MouseTracking.Normal && dwEventFlags == MOUSE_FLAG_MOVED
+                || tracking == MouseTracking.Button && dwEventFlags == MOUSE_FLAG_MOVED && dwButtonState == 0;
     }
 
     protected abstract int getConsoleMode(Console console);

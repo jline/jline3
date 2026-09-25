@@ -10,6 +10,7 @@ package org.jline.terminal.impl.jni;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.function.IntUnaryOperator;
 
 import org.jline.nativ.CLibrary;
 import org.jline.terminal.Attributes;
@@ -74,13 +75,28 @@ public class JniUnixSysTerminal extends AbstractUnixSysTerminal {
     }
 
     @Override
+    protected IntUnaryOperator createPollFunction() {
+        try {
+            // Verify the native method is available in the loaded library.
+            // Older pre-compiled binaries may not contain pollForInput yet.
+            CLibrary.pollForInput(STDIN_FD, 0);
+        } catch (UnsatisfiedLinkError e) {
+            return null; // fall back to blocking reads
+        }
+        return timeoutMs -> CLibrary.pollForInput(STDIN_FD, timeoutMs);
+    }
+
+    @Override
     protected Attributes doGetAttributes() {
         return readAttributes(mapping);
     }
 
     @Override
     protected void doSetAttributes(Attributes attr) {
-        CLibrary.tcsetattr(STDIN_FD, TCSANOW, JniNativePty.toNativeTermiosData(mapping.toTermios(attr)));
+        CLibrary.Termios tios = new CLibrary.Termios();
+        CLibrary.tcgetattr(STDIN_FD, tios);
+        JniNativePty.applyAttributes(tios, attr);
+        CLibrary.tcsetattr(STDIN_FD, TCSANOW, tios);
     }
 
     @Override

@@ -402,6 +402,9 @@ class GraphemeClusterModeTest {
         assertFalse(terminal.supportsGraphemeClusterMode());
         assertFalse(terminal.getGraphemeClusterMode());
         assertFalse(terminal.setGraphemeClusterMode(true, false));
+        assertFalse(terminal.isModeSupported(Terminal.Mode.GRAPHEME_CLUSTER));
+        assertFalse(terminal.isModeSupported(Terminal.Mode.KITTY_KEYBOARD));
+        assertFalse(terminal.isModeSupported(Terminal.Mode.SIXEL));
     }
 
     // --- Force-enable via setGraphemeClusterMode(true, true) ---

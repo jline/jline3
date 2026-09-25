@@ -29,6 +29,7 @@ import org.jline.builtins.Nano.PatternHistory;
 import org.jline.builtins.Source.ResourceSource;
 import org.jline.builtins.Source.URLSource;
 import org.jline.keymap.BindingReader;
+import org.jline.keymap.InBandResize;
 import org.jline.keymap.KeyMap;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
@@ -86,6 +87,8 @@ public class Less {
     public boolean noInit;
     protected List<Integer> tabs = Collections.singletonList(4);
     protected String syntaxName;
+    protected String defaultPrompt;
+    protected Source helpSource;
     private String historyLog = null;
 
     protected final Terminal terminal;
@@ -142,6 +145,7 @@ public class Less {
             "  -I --IGNORE-CASE             Search ignores all case",
             "  -x --tabs=N[,...]            Set tab stops",
             "  -N --LINE-NUMBERS            Display line number for each line",
+            "  -P --prompt=string           Set the default prompt string",
             "  -Y --syntax=name             The name of the syntax highlighting to use.",
             "     --no-init                 Disable terminal initialization",
             "     --no-keypad               Disable keypad handling",
@@ -210,6 +214,9 @@ public class Less {
             }
             if (opts.isSet("tabs")) {
                 doTabs(opts.get("tabs"));
+            }
+            if (opts.isSet("prompt")) {
+                defaultPrompt = opts.get("prompt");
             }
             if (opts.isSet("syntax")) {
                 syntaxName = opts.get("syntax");
@@ -308,6 +315,34 @@ public class Less {
         return this;
     }
 
+    /**
+     * Sets a custom default prompt string displayed at the bottom of the screen
+     * when no message is active. If not set, the default {@code ":"} is shown.
+     * The prompt is rendered with inverse video style.
+     *
+     * @param prompt the prompt string to display
+     * @return this {@code Less} instance for chaining
+     */
+    public Less defaultPrompt(String prompt) {
+        this.defaultPrompt = prompt;
+        return this;
+    }
+
+    /**
+     * Sets a custom help source displayed when the user presses {@code h} or {@code H}.
+     * If not set, the built-in {@code less-help.txt} resource is shown. This is useful
+     * for applications that embed Less and want to provide context-specific help text
+     * instead of the default help, which references command-line options and uses the
+     * term "LESS".
+     *
+     * @param helpSource a {@link Source} providing the custom help content
+     * @return this {@code Less} instance for chaining
+     */
+    public Less helpSource(Source helpSource) {
+        this.helpSource = helpSource;
+        return this;
+    }
+
     public void handle(Signal signal) {
         size = terminal.getSize();
         try {
@@ -326,7 +361,10 @@ public class Less {
         if (sources == null || sources.isEmpty()) {
             throw new IllegalArgumentException("No sources");
         }
-        sources.add(0, new ResourceSource("less-help.txt", "HELP -- Press SPACE for more, or q when done"));
+        Source help = helpSource != null
+                ? helpSource
+                : new ResourceSource("less-help.txt", "HELP -- Press SPACE for more, or q when done");
+        sources.add(0, help);
         this.sources = sources;
 
         sourceIdx = 1;
@@ -467,7 +505,9 @@ public class Less {
                         }
                     }
                     if (op != null) {
-                        message = null;
+                        if (op != Operation.TERMINAL_RESIZE) {
+                            message = null;
+                        }
                         switch (op) {
                             case FORWARD_ONE_LINE:
                                 moveForward(getStrictPositiveNumberInBuffer(1));
@@ -655,8 +695,13 @@ public class Less {
                             case HELP:
                                 help();
                                 break;
+                            case TERMINAL_RESIZE:
+                                InBandResize.handleResize(bindingReader, terminal);
+                                break;
                         }
-                        buffer.setLength(0);
+                        if (op != Operation.TERMINAL_RESIZE) {
+                            buffer.setLength(0);
+                        }
                     }
                     if (quitAtFirstEof && nbEof > 0 || quitAtSecondEof && nbEof > 1) {
                         if (sourceIdx < sources.size() - 1) {
@@ -856,6 +901,7 @@ public class Less {
         fileKeyMap.bind(Operation.DELETE_WORD, alt('X'));
         fileKeyMap.bind(Operation.DELETE_LINE, ctrl('U'));
         fileKeyMap.bind(Operation.ACCEPT, "\r");
+        fileKeyMap.bind(Operation.TERMINAL_RESIZE, InBandResize.RESIZE_SEQ);
 
         SavedSourcePositions ssp = new SavedSourcePositions();
         message = null;
@@ -876,6 +922,10 @@ public class Less {
                     ssp.restore(name);
                 }
                 return;
+            } else if (op == Operation.TERMINAL_RESIZE) {
+                InBandResize.handleResize(bindingReader, terminal);
+                display(false, curPos);
+                continue;
             } else if (op != null) {
                 curPos = lineEditor.editBuffer(op, curPos);
             }
@@ -907,6 +957,7 @@ public class Less {
         searchKeyMap.bind(Operation.UP, key(terminal, Capability.key_up), alt('k'));
         searchKeyMap.bind(Operation.DOWN, key(terminal, Capability.key_down), alt('j'));
         searchKeyMap.bind(Operation.ACCEPT, "\r");
+        searchKeyMap.bind(Operation.TERMINAL_RESIZE, InBandResize.RESIZE_SEQ);
 
         boolean forward = true;
         message = null;
@@ -971,6 +1022,9 @@ public class Less {
                         message = null;
                     }
                     return forward;
+                case TERMINAL_RESIZE:
+                    InBandResize.handleResize(bindingReader, terminal);
+                    break;
                 default:
                     curPos = lineEditor.editBuffer(op, curPos);
                     currentBuffer = buffer.toString();
@@ -1003,6 +1057,9 @@ public class Less {
                             break;
                         case BACKWARD_ONE_WINDOW_OR_LINES:
                             moveBackward(getStrictPositiveNumberInBuffer(window));
+                            break;
+                        case TERMINAL_RESIZE:
+                            InBandResize.handleResize(bindingReader, terminal);
                             break;
                     }
                 }
@@ -1049,7 +1106,7 @@ public class Less {
                 if (displayMessage) {
                     AttributedStringBuilder asb = new AttributedStringBuilder();
                     asb.style(AttributedStyle.INVERSE);
-                    asb.append(source.getName()).append(" (press RETURN)");
+                    asb.append(stripControlChars(source.getName())).append(" (press RETURN)");
                     asb.toAttributedString().println(terminal);
                     terminal.writer().flush();
                     terminal.reader().read();
@@ -1063,7 +1120,7 @@ public class Less {
                     throw exp;
                 } else {
                     AttributedStringBuilder asb = new AttributedStringBuilder();
-                    asb.append(source.getName()).append(" not found!");
+                    asb.append(stripControlChars(source.getName())).append(" not found!");
                     asb.toAttributedString().println(terminal);
                     terminal.writer().flush();
                     open = false;
@@ -1185,6 +1242,19 @@ public class Less {
                 sb.append('\\').append(String.format("%03o", (int) c));
             }
         }
+        return sb.toString();
+    }
+
+    // Drops ESC, BEL, the 8-bit C1 introducers and other ISO control characters while keeping
+    // printable (including non-ASCII) text, so a file name shown on the status line cannot carry
+    // an escape sequence into the terminal.
+    private static String stripControlChars(String s) {
+        StringBuilder sb = new StringBuilder(s.length());
+        s.codePoints().forEach(cp -> {
+            if (!Character.isISOControl(cp)) {
+                sb.appendCodePoint(cp);
+            }
+        });
         return sb.toString();
     }
 
@@ -1346,7 +1416,10 @@ public class Less {
         if (highlight) {
             syntaxHighlighter.reset();
             for (int i = Math.max(0, inputLine - height); i < inputLine; i++) {
-                syntaxHighlighter.highlight(getLine(i));
+                AttributedString prevLine = getLine(i);
+                if (prevLine != null) {
+                    syntaxHighlighter.highlight(prevLine);
+                }
             }
         }
         for (int terminalLine = 0; terminalLine < height - 1; terminalLine++) {
@@ -1418,10 +1491,14 @@ public class Less {
             msg.append(" ").append(printable(bindingReader.getCurrentBuffer()));
         } else if (message != null) {
             msg.style(AttributedStyle.INVERSE);
-            msg.append(message);
+            msg.append(stripControlChars(message));
             msg.style(AttributedStyle.INVERSE.inverseOff());
         } else if (displayPattern != null) {
             msg.append("&");
+        } else if (defaultPrompt != null) {
+            msg.style(AttributedStyle.INVERSE);
+            msg.append(stripControlChars(defaultPrompt));
+            msg.style(AttributedStyle.INVERSE.inverseOff());
         } else {
             msg.append(":");
         }
@@ -1526,6 +1603,9 @@ public class Less {
         map.bind(Operation.DELETE_FILE, ":d");
         map.bind(Operation.BACKSPACE, del());
         "-/0123456789?&".chars().forEach(c -> map.bind(Operation.CHAR, Character.toString((char) c)));
+
+        // Bind in-band resize report (mode 2048) prefix
+        map.bind(Operation.TERMINAL_RESIZE, InBandResize.RESIZE_SEQ);
     }
 
     protected enum Operation {
@@ -1587,6 +1667,9 @@ public class Less {
 
         //
         CHAR,
+
+        // In-band resize
+        TERMINAL_RESIZE,
 
         // Edit pattern
         INSERT,

@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.imageio.ImageIO;
@@ -75,7 +76,7 @@ public class KittyGraphics implements TerminalGraphics {
         }
 
         // Check TERM_PROGRAM environment variable
-        String termProgram = System.getenv("TERM_PROGRAM");
+        String termProgram = terminal.getenv("TERM_PROGRAM");
 
         // Check if this is Ghostty first - skip runtime detection to avoid hanging
         if ("com.mitchellh.ghostty".equals(termProgram) || "ghostty".equals(termProgram)) {
@@ -83,7 +84,7 @@ public class KittyGraphics implements TerminalGraphics {
         }
 
         // Check for Ghostty-specific environment variables
-        if (System.getenv("GHOSTTY_RESOURCES_DIR") != null) {
+        if (terminal.getenv("GHOSTTY_RESOURCES_DIR") != null) {
             return true;
         }
 
@@ -104,7 +105,7 @@ public class KittyGraphics implements TerminalGraphics {
 
         // Check for iTerm2 (supports Kitty graphics protocol since version 3.5.0)
         if ("iTerm.app".equals(termProgram)) {
-            String termProgramVersion = System.getenv("TERM_PROGRAM_VERSION");
+            String termProgramVersion = terminal.getenv("TERM_PROGRAM_VERSION");
             if (termProgramVersion != null) {
                 try {
                     String[] versionParts = termProgramVersion.split("\\.");
@@ -124,14 +125,14 @@ public class KittyGraphics implements TerminalGraphics {
         }
 
         // Check TERM environment variable
-        String term = System.getenv("TERM");
+        String term = terminal.getenv("TERM");
         if (term != null && term.contains("kitty")) {
             return true;
         }
 
         // Check for Kitty-specific capabilities
         // Kitty sets KITTY_WINDOW_ID when running
-        if (System.getenv("KITTY_WINDOW_ID") != null) {
+        if (terminal.getenv("KITTY_WINDOW_ID") != null) {
             return true;
         }
 
@@ -212,7 +213,7 @@ public class KittyGraphics implements TerminalGraphics {
 
         // Add name if specified
         if (options.getName() != null) {
-            controlData.append(",n=").append(options.getName());
+            controlData.append(",n=").append(base64Encode(options.getName()));
         }
 
         // For large images, we might need to chunk the data
@@ -286,7 +287,7 @@ public class KittyGraphics implements TerminalGraphics {
 
                 // Add name if specified
                 if (options.getName() != null) {
-                    controlData.append(",n=").append(options.getName());
+                    controlData.append(",n=").append(base64Encode(options.getName()));
                 }
             } else {
                 // Subsequent chunks: only image ID and more flag
@@ -334,5 +335,19 @@ public class KittyGraphics implements TerminalGraphics {
         String clearSequence = KITTY_GRAPHICS_START + "a=d,q=2" + KITTY_GRAPHICS_END;
         terminal.writer().print(clearSequence);
         terminal.writer().flush();
+    }
+
+    /**
+     * Base64 encodes a string value for use in the control data.
+     *
+     * <p>Control data is a comma separated list of {@code key=value} pairs sitting inside the
+     * {@code <ESC>_G ... <ESC>\} frame, so a value must not carry the separators or the string
+     * terminator.</p>
+     *
+     * @param input the string to encode
+     * @return the base64-encoded string
+     */
+    private String base64Encode(String input) {
+        return Base64.getEncoder().encodeToString(input.getBytes(StandardCharsets.UTF_8));
     }
 }

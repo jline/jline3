@@ -77,23 +77,22 @@ Spotless enforces this header automatically via `spotless:apply`.
 ### Branch Structure
 
 - **`master`** — main development branch for 4.x. All new features and refactoring land here first.
-- **`4.0.x`** — maintenance branch for 4.0.x patch releases. Only bugfixes are cherry-picked here from master.
+- **`4.0.x`** — EOL. No longer maintained.
 - **`jline-3.x`** — maintenance branch for 3.x patch releases. Only bugfixes are backported here.
 
 ### Build Wrappers
 
-- `master` and `4.0.x`: use `./mvx` (Maven 4 with nisse extension for version derivation from git tags)
+- `master`: use `./mvx` (Maven 4 with nisse extension for version derivation from git tags)
 - `jline-3.x`: use `./mvnw` (standard Maven wrapper)
 
 ### Release Process
 
-**4.x releases (master and 4.0.x):**
+**4.x releases (master):**
 1. Create and push a tag matching `[0-9]*.[0-9]*.[0-9]*` on the correct branch
 2. The `Manual Maven Release` workflow triggers on tag push
 3. Version is derived from the tag by the nisse Maven extension
-4. **Important**: tag `4.0.x` patch releases on the `4.0.x` branch, NOT on `master`
-5. Artifacts must be manually published through central.sonatype.com portal after the workflow completes
-6. Create GitHub release notes via `gh release create`
+4. Artifacts must be manually published through central.sonatype.com portal after the workflow completes
+5. Create GitHub release notes via `gh release create`
 
 **3.x releases (jline-3.x):**
 1. Trigger the `Manual Maven Release` workflow via `workflow_dispatch` on branch `jline-3.x`
@@ -102,9 +101,16 @@ Spotless enforces this header automatically via `spotless:apply`.
 4. Artifacts must be manually published through central.sonatype.com portal after the workflow completes
 5. Create GitHub release notes via `gh release create`
 
+### Merging PRs
+
+- **Always squash merge.** The squash commit message must be a single `<type>: <description>` line that summarizes the entire diff (not a list of individual commits).
+- **Label the PR** before merging to categorize it (e.g., `enhancement`, `bug`, `documentation`). Labels drive the release notes.
+- **Set the milestone** on the PR to the target release version before merging.
+- **Assign the PR** to its author (or the contributor who did the work). Do not change existing assignees on linked issues.
+
 ### Backporting Workflow
 
-1. Cherry-pick bugfix commits from `master` to `4.0.x` and/or `jline-3.x`
+1. Cherry-pick bugfix commits from `master` to `jline-3.x`
 2. Create a PR against the target branch for CI validation
 3. Merge, then release from the maintenance branch
 

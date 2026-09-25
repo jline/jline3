@@ -22,6 +22,7 @@ import java.lang.invoke.VarHandle;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -179,11 +180,30 @@ class CLibrary {
 
         termios(Arena arena, Attributes t) {
             this(arena);
-            TermiosData data = TermiosMapping.forCurrentPlatform().toTermios(t);
+            apply(t);
+        }
+
+        TermiosData toTermiosData() {
+            TermiosData data = new TermiosData();
+            data.iflag(c_iflag());
+            data.oflag(c_oflag());
+            data.cflag(c_cflag());
+            data.lflag(c_lflag());
+            data.ispeed(c_ispeed());
+            data.ospeed(c_ospeed());
+            byte[] cc = c_cc().toArray(ValueLayout.JAVA_BYTE);
+            System.arraycopy(cc, 0, data.cc(), 0, cc.length);
+            return data;
+        }
+
+        void apply(Attributes t) {
+            TermiosData data = TermiosMapping.forCurrentPlatform().toTermios(t, toTermiosData());
             c_iflag(data.iflag());
             c_oflag(data.oflag());
             c_cflag(data.cflag());
             c_lflag(data.lflag());
+            c_ispeed(data.ispeed());
+            c_ospeed(data.ospeed());
             c_cc().copyFrom(MemorySegment.ofArray(data.cc()).asSlice(0, c_cc_used));
         }
 
@@ -250,16 +270,46 @@ class CLibrary {
          * @return a new {@link Attributes} instance reflecting the current terminal settings
          */
         public Attributes asAttributes() {
-            TermiosData data = new TermiosData();
-            data.iflag(c_iflag());
-            data.oflag(c_oflag());
-            data.cflag(c_cflag());
-            data.lflag(c_lflag());
-            byte[] cc = c_cc().toArray(ValueLayout.JAVA_BYTE);
-            System.arraycopy(cc, 0, data.cc(), 0, cc.length);
-            return TermiosMapping.forCurrentPlatform().toAttributes(data);
+            return TermiosMapping.forCurrentPlatform().toAttributes(toTermiosData());
         }
     }
+
+    // ── poll(2) support ──────────────────────────────────────────────────
+
+    /**
+     * {@code struct pollfd} layout (POSIX).
+     * <pre>
+     *   int   fd;       // file descriptor
+     *   short events;   // requested events
+     *   short revents;  // returned events
+     * </pre>
+     */
+    static class PollFd {
+        static final GroupLayout LAYOUT = MemoryLayout.structLayout(
+                ValueLayout.JAVA_INT.withName("fd"),
+                ValueLayout.JAVA_SHORT.withName("events"),
+                ValueLayout.JAVA_SHORT.withName("revents"));
+        private static final VarHandle FD =
+                FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("fd"));
+        private static final VarHandle EVENTS =
+                FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("events"));
+        private static final VarHandle REVENTS =
+                FfmTerminalProvider.lookupVarHandle(LAYOUT, MemoryLayout.PathElement.groupElement("revents"));
+
+        private PollFd() {}
+    }
+
+    /** POSIX POLLIN constant (0x0001 on all supported platforms). */
+    static final short POLLIN = 0x0001;
+
+    /** POSIX EINTR constant (4 on all supported UNIX platforms). */
+    private static final int EINTR = 4;
+
+    private static final StructLayout CAPTURED_STATE_LAYOUT = Linker.Option.captureStateLayout();
+    private static final VarHandle ERRNO_HANDLE =
+            CAPTURED_STATE_LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("errno"));
+
+    static final MethodHandle pollHandle;
 
     static final MethodHandle ioctl;
     static final MethodHandle isatty;
@@ -273,6 +323,13 @@ class CLibrary {
         // methods
         Linker linker = Linker.nativeLinker();
         SymbolLookup lookup = SymbolLookup.loaderLookup().or(linker.defaultLookup());
+        // https://man7.org/linux/man-pages/man2/poll.2.html
+        // nfds_t is unsigned long on Linux/AIX, unsigned int on macOS/FreeBSD
+        ValueLayout nfdsLayout = (OSUtils.IS_LINUX || OSUtils.IS_AIX) ? ValueLayout.JAVA_LONG : ValueLayout.JAVA_INT;
+        pollHandle = linker.downcallHandle(
+                lookup.find("poll").get(),
+                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, nfdsLayout, ValueLayout.JAVA_INT),
+                Linker.Option.captureCallState("errno"));
         // https://man7.org/linux/man-pages/man2/ioctl.2.html
         ioctl = linker.downcallHandle(
                 lookup.find("ioctl").get(),
@@ -328,34 +385,20 @@ class CLibrary {
                     suppressed.add(t);
                 }
             }
+            // On glibc 2.34+, openpty was merged from libutil into libc.so.6.
+            // SymbolLookup.libraryLookup searches all exported symbols in the specified
+            // library, unlike defaultLookup() which only exposes C standard symbols.
             if (openPtyAddr.isEmpty() && OSUtils.IS_LINUX) {
-                String hwName;
                 try {
-                    Process p = Runtime.getRuntime().exec(new String[] {"uname", "-m"});
-                    p.waitFor();
-                    try (InputStream in = p.getInputStream()) {
-                        hwName = readFully(in).trim();
-                        Path libDir = Path.of("/usr/lib", hwName + "-linux-gnu");
-                        try (Stream<Path> stream = Files.list(libDir)) {
-                            List<Path> libs = stream.filter(
-                                            l -> l.getFileName().toString().startsWith("libutil.so."))
-                                    .collect(Collectors.toList());
-                            for (Path lib : libs) {
-                                try {
-                                    System.load(lib.toString());
-                                    openPtyAddr = lookup.find("openpty");
-                                    if (openPtyAddr.isPresent()) {
-                                        break;
-                                    }
-                                } catch (Throwable t) {
-                                    suppressed.add(t);
-                                }
-                            }
-                        }
-                    }
+                    SymbolLookup libcLookup = SymbolLookup.libraryLookup("libc.so.6", Arena.global());
+                    openPtyAddr = libcLookup.find("openpty");
                 } catch (Throwable t) {
                     suppressed.add(t);
                 }
+            }
+            // On older glibc (< 2.34), openpty is in a separate libutil.so.
+            if (openPtyAddr.isEmpty() && OSUtils.IS_LINUX) {
+                openPtyAddr = findVersionedLibutil(lookup, suppressed);
             }
             if (openPtyAddr.isEmpty()) {
                 for (Throwable t : suppressed) {
@@ -397,11 +440,165 @@ class CLibrary {
         return b.toString();
     }
 
+    /**
+     * Searches for a versioned {@code libutil.so.*} in standard Linux library directories and
+     * returns the {@code openpty} symbol address if found.
+     *
+     * <p>Multiple directories are searched because the library location varies by distribution
+     * and by whether the system has completed the
+     * <a href="https://wiki.debian.org/UsrMerge">usrmerge</a>:
+     * <ul>
+     *   <li>Debian/Ubuntu multiarch: {@code /usr/lib/<arch>-linux-gnu/} and
+     *       {@code /lib/<arch>-linux-gnu/} (pre-usrmerge systems like Ubuntu 18 use {@code /lib})</li>
+     *   <li>RHEL/Fedora/CentOS 64-bit: {@code /usr/lib64/} and {@code /lib64/}</li>
+     *   <li>Generic fallback: {@code /usr/lib/} and {@code /lib/}</li>
+     * </ul>
+     *
+     * <p>Within each directory, versioned {@code libutil.so.*} files are tried in descending
+     * order (highest version first) so the newest library is preferred.
+     *
+     * @param lookup    the symbol lookup to query after loading the library
+     * @param suppressed list to collect any exceptions encountered during the search
+     * @return the {@code openpty} symbol address, or {@link Optional#empty()} if not found
+     */
+    private static Optional<MemorySegment> findVersionedLibutil(SymbolLookup lookup, List<Throwable> suppressed) {
+        List<Path> searchDirs = new ArrayList<>();
+
+        // Detect architecture for Debian/Ubuntu multiarch paths.
+        // Isolated so that a uname failure doesn't prevent searching the
+        // architecture-independent paths (RHEL/Fedora, generic).
+        try {
+            Process p = new ProcessBuilder("/usr/bin/uname", "-m").start();
+            try (InputStream in = p.getInputStream()) {
+                String hwName = readFully(in).trim();
+                String multiarchDir = hwName + "-linux-gnu";
+                // Debian/Ubuntu multiarch paths
+                searchDirs.add(Path.of("/usr/lib", multiarchDir));
+                searchDirs.add(Path.of("/lib", multiarchDir));
+            }
+            p.waitFor();
+        } catch (InterruptedException t) {
+            Thread.currentThread().interrupt();
+            suppressed.add(t);
+        } catch (Exception t) {
+            suppressed.add(t);
+        }
+
+        // RHEL/Fedora paths
+        searchDirs.add(Path.of("/usr/lib64"));
+        searchDirs.add(Path.of("/lib64"));
+        // Generic fallback
+        searchDirs.add(Path.of("/usr/lib"));
+        searchDirs.add(Path.of("/lib"));
+
+        for (Path libDir : searchDirs) {
+            if (!Files.isDirectory(libDir)) {
+                continue;
+            }
+            try (Stream<Path> stream = Files.list(libDir)) {
+                List<Path> libs = stream.filter(l -> l.getFileName().toString().startsWith("libutil.so."))
+                        .sorted(Comparator.comparing(Path::getFileName).reversed())
+                        .collect(Collectors.toList());
+                for (Path lib : libs) {
+                    try {
+                        System.load(lib.toString());
+                        Optional<MemorySegment> addr = lookup.find("openpty");
+                        if (addr.isPresent()) {
+                            return addr;
+                        }
+                    } catch (Throwable t) {
+                        suppressed.add(t);
+                    }
+                }
+            } catch (Throwable t) {
+                suppressed.add(t);
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Polls a single file descriptor for input readability.
+     *
+     * <p>Uses {@link Linker.Option#captureCallState(String...)} to read
+     * {@code errno} after each call, retrying only on {@code EINTR}.</p>
+     *
+     * @param fd        file descriptor to poll (e.g. {@code STDIN_FILENO})
+     * @param timeoutMs timeout in milliseconds; 0 = immediate, −1 = infinite
+     * @return positive if data is ready, 0 on timeout, −1 on permanent error
+     */
+    static int pollForInput(int fd, int timeoutMs) {
+        try (Arena arena = Arena.ofConfined()) {
+            MemorySegment pfd = arena.allocate(PollFd.LAYOUT);
+            PollFd.FD.set(pfd, fd);
+            PollFd.EVENTS.set(pfd, POLLIN);
+
+            MemorySegment capturedState = arena.allocate(CAPTURED_STATE_LAYOUT);
+
+            if (timeoutMs <= 0) {
+                // Immediate (0) or infinite (-1): no deadline to track.
+                int rc;
+                do {
+                    PollFd.REVENTS.set(pfd, (short) 0);
+                    rc = platformPoll(capturedState, pfd, timeoutMs);
+                } while (rc < 0 && capturedErrno(capturedState) == EINTR);
+                return rc;
+            }
+
+            // Finite timeout: preserve deadline across EINTR retries.
+            long deadlineNanos = System.nanoTime() + timeoutMs * 1_000_000L;
+            int remaining = timeoutMs;
+            int rc;
+            do {
+                PollFd.REVENTS.set(pfd, (short) 0);
+                rc = platformPoll(capturedState, pfd, remaining);
+                if (rc >= 0) {
+                    return rc;
+                }
+                if (capturedErrno(capturedState) != EINTR) {
+                    return rc; // permanent error
+                }
+                remaining = (int) ((deadlineNanos - System.nanoTime()) / 1_000_000L);
+            } while (remaining > 0);
+            return 0; // deadline expired → timeout
+        } catch (Throwable e) {
+            throw new RuntimeException("Unable to call poll()", e);
+        }
+    }
+
+    /**
+     * Reads the captured {@code errno} value from the call-state segment.
+     */
+    private static int capturedErrno(MemorySegment capturedState) {
+        return (int) ERRNO_HANDLE.get(capturedState, 0L);
+    }
+
+    /**
+     * Invokes the platform-specific {@code poll()} downcall.
+     *
+     * <p>The leading {@code capturedState} segment is required by the
+     * {@link Linker.Option#captureCallState(String...)} option used when
+     * linking the handle — the JVM writes {@code errno} into it immediately
+     * after the native call returns.</p>
+     */
+    private static int platformPoll(MemorySegment capturedState, MemorySegment pfd, int timeoutMs) throws Throwable {
+        if (OSUtils.IS_LINUX || OSUtils.IS_AIX) {
+            return (int) pollHandle.invoke(capturedState, pfd, 1L, timeoutMs);
+        } else {
+            return (int) pollHandle.invoke(capturedState, pfd, 1, timeoutMs);
+        }
+    }
+
     static Size getTerminalSize(int fd) {
         try (Arena arena = Arena.ofConfined()) {
             winsize ws = new winsize(arena);
             int res = (int) ioctl.invoke(fd, (long) TIOCGWINSZ, ws.segment());
+            if (res != 0) {
+                throw new UncheckedIOException(new IOException("ioctl(TIOCGWINSZ) failed with return code " + res));
+            }
             return Size.of(ws.ws_col(), ws.ws_row());
+        } catch (UncheckedIOException e) {
+            throw e;
         } catch (Throwable e) {
             throw new RuntimeException("Unable to call ioctl(TIOCGWINSZ)", e);
         }
@@ -413,6 +610,11 @@ class CLibrary {
             ws.ws_row((short) size.getRows());
             ws.ws_col((short) size.getColumns());
             int res = (int) ioctl.invoke(fd, TIOCSWINSZ, ws.segment());
+            if (res != 0) {
+                throw new UncheckedIOException(new IOException("ioctl(TIOCSWINSZ) failed with return code " + res));
+            }
+        } catch (UncheckedIOException e) {
+            throw e;
         } catch (Throwable e) {
             throw new RuntimeException("Unable to call ioctl(TIOCSWINSZ)", e);
         }
@@ -422,7 +624,12 @@ class CLibrary {
         try (Arena arena = Arena.ofConfined()) {
             termios t = new termios(arena);
             int res = (int) tcgetattr.invoke(fd, t.segment());
+            if (res != 0) {
+                throw new UncheckedIOException(new IOException("tcgetattr() failed with return code " + res));
+            }
             return t.asAttributes();
+        } catch (UncheckedIOException e) {
+            throw e;
         } catch (Throwable e) {
             throw new RuntimeException("Unable to call tcgetattr()", e);
         }
@@ -430,8 +637,20 @@ class CLibrary {
 
     static void setAttributes(int fd, Attributes attr) {
         try (Arena arena = Arena.ofConfined()) {
-            termios t = new termios(arena, attr);
-            int res = (int) tcsetattr.invoke(fd, TermiosData.TCSANOW, t.segment());
+            termios t = new termios(arena);
+            int res = (int) tcgetattr.invoke(fd, t.segment());
+            if (res != 0) {
+                // Best-effort: tcgetattr may fail when the fd is no longer a
+                // valid terminal (e.g. during close).  Log and return early
+                // rather than applying attributes onto uninitialised data.
+                logger.log(Level.DEBUG, "tcgetattr() returned " + res + " for fd " + fd);
+                return;
+            }
+            t.apply(attr);
+            res = (int) tcsetattr.invoke(fd, TermiosData.TCSANOW, t.segment());
+            if (res != 0) {
+                logger.log(Level.DEBUG, "tcsetattr() returned " + res + " for fd " + fd);
+            }
         } catch (Throwable e) {
             throw new RuntimeException("Unable to call tcsetattr()", e);
         }
@@ -449,12 +668,17 @@ class CLibrary {
         try (Arena arena = Arena.ofConfined()) {
             MemorySegment buf = arena.allocate(64);
             int res = (int) ttyname_r.invoke(fd, buf, buf.byteSize());
+            if (res != 0) {
+                throw new UncheckedIOException(new IOException("ttyname_r() failed with return code " + res));
+            }
             byte[] data = buf.toArray(ValueLayout.JAVA_BYTE);
             int len = 0;
             while (data[len] != 0) {
                 len++;
             }
             return new String(data, 0, len);
+        } catch (UncheckedIOException e) {
+            throw e;
         } catch (Throwable e) {
             throw new RuntimeException("Unable to call ttyname_r()", e);
         }

@@ -11,7 +11,6 @@ package org.jline.builtins;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -79,15 +78,21 @@ public class SwingTerminal extends LineDisciplineTerminal {
      * @param rows    the number of rows
      * @throws IOException if an I/O error occurs during initialization
      */
-    @SuppressWarnings("this-escape")
     public SwingTerminal(String name, int columns, int rows) throws IOException {
-        super(name, "screen-256color", new ScreenTerminalOutputStream.DelegateOutputStream(), StandardCharsets.UTF_8);
+        this(name, columns, rows, new ScreenTerminalOutputStream.DelegateOutputStream());
+    }
 
-        // Create the terminal component
+    @SuppressWarnings("this-escape")
+    private SwingTerminal(String name, int columns, int rows, ScreenTerminalOutputStream.DelegateOutputStream delegate)
+            throws IOException {
+        super(name, "screen-256color", delegate, StandardCharsets.UTF_8);
+
+        // Create the terminal component and wire the feedback loop
         this.component = new TerminalComponent(columns, rows);
-
-        // Initialize after construction to avoid this-escape warnings
-        initializeTerminal(columns, rows);
+        setSize(Size.of(columns, rows));
+        ScreenTerminal.wireTerminal(
+                component.getScreenTerminal(), this, delegate, () -> SwingUtilities.invokeLater(component::repaint));
+        component.setTerminal(this);
 
         // Start a thread to read from SwingTerminal and process input
         inputThread = new Thread(
@@ -108,33 +113,6 @@ public class SwingTerminal extends LineDisciplineTerminal {
                 "SwingTerminal-Input");
         inputThread.setDaemon(true);
         inputThread.start();
-    }
-
-    /**
-     * Finalizes terminal setup after construction by setting its logical size and wiring
-     * the UI component and output stream to this terminal.
-     *
-     * @param columns the number of columns for the terminal display
-     * @param rows    the number of rows for the terminal display
-     */
-    private void initializeTerminal(int columns, int rows) {
-        setSize(Size.of(columns, rows));
-        OutputStream feedbackOutput = new OutputStream() {
-            @Override
-            public void write(int b) throws IOException {
-                SwingTerminal.this.processInputByte(b);
-            }
-        };
-        OutputStream screenOutput =
-                new ScreenTerminalOutputStream(component.getScreenTerminal(), StandardCharsets.UTF_8, feedbackOutput) {
-                    @Override
-                    public synchronized void flush() throws IOException {
-                        super.flush();
-                        SwingUtilities.invokeLater(component::repaint);
-                    }
-                };
-        ((ScreenTerminalOutputStream.DelegateOutputStream) masterOutput).setDelegate(screenOutput);
-        component.setTerminal(this);
     }
 
     /**

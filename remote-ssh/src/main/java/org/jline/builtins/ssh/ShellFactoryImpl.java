@@ -179,40 +179,64 @@ public class ShellFactoryImpl implements ShellFactory {
                             break;
                     }
                 }
+                Map<String, String> sshEnv = env.getEnv();
                 Terminal terminal = TerminalBuilder.builder()
                         .name("JLine SSH")
-                        .type(env.getEnv().get("TERM"))
+                        .type(sshEnv.get("TERM"))
                         .system(false)
                         .streams(in, out)
                         .attributes(attributes)
+                        .env(sshEnv::get)
                         .size(Size.of(
-                                Integer.parseInt(env.getEnv().get("COLUMNS")),
-                                Integer.parseInt(env.getEnv().get("LINES"))))
+                                parseTerminalDimension(sshEnv.get("COLUMNS"), 80),
+                                parseTerminalDimension(sshEnv.get("LINES"), 24)))
                         .build();
                 env.addSignalListener(
                         (channel, signals) -> {
                             terminal.setSize(Size.of(
-                                    Integer.parseInt(env.getEnv().get("COLUMNS")),
-                                    Integer.parseInt(env.getEnv().get("LINES"))));
+                                    parseTerminalDimension(sshEnv.get("COLUMNS"), 80),
+                                    parseTerminalDimension(sshEnv.get("LINES"), 24)));
                             terminal.raise(Terminal.Signal.WINCH);
                         },
                         Signal.WINCH);
 
-                shell.accept(new Ssh.ShellParams(env.getEnv(), session.getSession(), terminal, () -> destroy(session)));
+                shell.accept(new Ssh.ShellParams(sshEnv, session.getSession(), terminal, () -> destroy(session)));
             } catch (Throwable t) {
                 if (!closed) {
                     LOGGER.error("Error occured while executing shell", t);
                 }
+                destroy(1);
             }
         }
 
         public void destroy(ChannelSession session) {
+            destroy(0);
+        }
+
+        private void destroy(int exitCode) {
             if (!closed) {
                 closed = true;
                 flush(out, err);
                 close(in, out, err);
-                callback.onExit(0);
+                callback.onExit(exitCode);
             }
+        }
+    }
+
+    private static final int MAX_TERMINAL_DIMENSION = 1000;
+
+    static int parseTerminalDimension(String value, int defaultVal) {
+        if (value == null) {
+            return defaultVal;
+        }
+        try {
+            int n = Integer.parseInt(value);
+            if (n < 1 || n > MAX_TERMINAL_DIMENSION) {
+                return defaultVal;
+            }
+            return n;
+        } catch (NumberFormatException e) {
+            return defaultVal;
         }
     }
 

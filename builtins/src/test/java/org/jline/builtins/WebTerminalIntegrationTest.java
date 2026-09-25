@@ -8,11 +8,15 @@
  */
 package org.jline.builtins;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.Socket;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -23,6 +27,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -122,13 +127,7 @@ class WebTerminalIntegrationTest {
         readerThread.start();
 
         assertTrue(readerReady.await(5, TimeUnit.SECONDS), "LineReader should be ready");
-        // Give the reader time to display the prompt
-        Thread.sleep(200);
-
-        // Poll to get the prompt displayed
-        String response = postToTerminal("f=1");
-        assertNotNull(response);
-        assertTrue(response.contains("$"), "Should show the prompt: " + response);
+        awaitPrompt();
 
         // Send "hi" followed by Enter
         postToTerminal("k=" + urlEncode("h"));
@@ -162,7 +161,7 @@ class WebTerminalIntegrationTest {
         readerThread.start();
 
         assertTrue(readerReady.await(5, TimeUnit.SECONDS));
-        Thread.sleep(200);
+        awaitPrompt();
 
         // Type "abc", then backspace to delete 'c', then Enter
         postToTerminal("k=" + urlEncode("a"));
@@ -196,7 +195,7 @@ class WebTerminalIntegrationTest {
         readerThread.start();
 
         assertTrue(readerReady.await(5, TimeUnit.SECONDS));
-        Thread.sleep(200);
+        awaitPrompt();
 
         // Type "hel" then Tab
         postToTerminal("k=" + urlEncode("h"));
@@ -204,17 +203,14 @@ class WebTerminalIntegrationTest {
         postToTerminal("k=" + urlEncode("l"));
         postToTerminal("k=" + urlEncode("\t"));
 
-        // Wait for completion to be processed
-        Thread.sleep(500);
-
-        // Poll to see the completion result
-        String response = postToTerminal("f=1");
-        assertNotNull(response);
         // After "hel" + Tab, the common prefix "hel" should be shown,
         // and completions "hello" and "help" should appear
-        assertTrue(
-                response.contains("hello") || response.contains("help") || response.contains("hel"),
-                "Tab completion should show candidates: " + response);
+        await().atMost(5, TimeUnit.SECONDS).pollInterval(Duration.ofMillis(50)).untilAsserted(() -> {
+            String response = postToTerminal("f=1");
+            assertTrue(
+                    response.contains("hello") || response.contains("help") || response.contains("hel"),
+                    "Tab completion should show candidates: " + response);
+        });
     }
 
     @Test
@@ -239,7 +235,7 @@ class WebTerminalIntegrationTest {
         readerThread.start();
 
         assertTrue(readerReady.await(5, TimeUnit.SECONDS));
-        Thread.sleep(200);
+        awaitPrompt();
 
         // Type "ac", move left, insert "b", then Enter
         // Result should be "abc"
@@ -330,6 +326,77 @@ class WebTerminalIntegrationTest {
         }
     }
 
+    @Test
+    void testCrossOriginPostIsRejected() throws Exception {
+        // A page on another origin can submit a form to /terminal without a preflight,
+        // so the keystrokes would otherwise be typed into the session.
+        CountDownLatch readerReady = new CountDownLatch(1);
+        CountDownLatch lineRead = new CountDownLatch(1);
+        AtomicReference<String> readLine = new AtomicReference<>();
+
+        Thread readerThread = new Thread(() -> {
+            try {
+                LineReader reader =
+                        LineReaderBuilder.builder().terminal(terminal).build();
+                readerReady.countDown();
+                String line = reader.readLine("$ ");
+                readLine.set(line);
+                lineRead.countDown();
+            } catch (Exception e) {
+                // terminal closed
+            }
+        });
+        readerThread.setDaemon(true);
+        readerThread.start();
+
+        assertTrue(readerReady.await(5, TimeUnit.SECONDS));
+        awaitPrompt();
+
+        assertEquals(403, postWithOrigin("k=" + urlEncode("x"), "http://evil.example"));
+        assertEquals(403, postWithOrigin("k=" + urlEncode("\r"), "http://evil.example"));
+        // An opaque origin (sandboxed iframe, data: URL) is not the server either.
+        assertEquals(403, postWithOrigin("k=" + urlEncode("x"), "null"));
+
+        assertFalse(lineRead.await(1, TimeUnit.SECONDS), "Cross-origin keys must not reach the reader");
+
+        // The page served by this terminal still works.
+        assertEquals(200, postWithOrigin("k=" + urlEncode("h"), baseUrl));
+        assertEquals(200, postWithOrigin("k=" + urlEncode("i"), baseUrl));
+        assertEquals(200, postWithOrigin("k=" + urlEncode("\r"), baseUrl));
+
+        assertTrue(lineRead.await(5, TimeUnit.SECONDS), "Same-origin keys should reach the reader");
+        assertEquals("hi", readLine.get());
+    }
+
+    /**
+     * Helper: POST form data to the /terminal endpoint carrying an Origin header, as a browser
+     * does for a cross-site form submission, and return the status code. HttpURLConnection
+     * refuses to set Origin, so the request is written directly on the socket.
+     */
+    private int postWithOrigin(String formData, String origin) throws IOException {
+        URL url = new URL(baseUrl);
+        byte[] body = formData.getBytes(StandardCharsets.UTF_8);
+        String authority = url.getHost() + ":" + url.getPort();
+        String request = "POST /terminal HTTP/1.1\r\n" + "Host: "
+                + authority + "\r\n" + "Origin: "
+                + origin + "\r\n" + "Content-Type: application/x-www-form-urlencoded\r\n" + "Content-Length: "
+                + body.length + "\r\n" + "Connection: close\r\n\r\n";
+
+        try (Socket socket = new Socket(url.getHost(), url.getPort())) {
+            socket.setSoTimeout(5000);
+            OutputStream os = socket.getOutputStream();
+            os.write(request.getBytes(StandardCharsets.US_ASCII));
+            os.write(body);
+            os.flush();
+
+            BufferedReader in =
+                    new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
+            String status = in.readLine();
+            assertNotNull(status, "server closed the connection without a response");
+            return Integer.parseInt(status.split(" ")[1]);
+        }
+    }
+
     /**
      * Helper: POST form data to the /terminal endpoint and return the response body.
      */
@@ -347,6 +414,15 @@ class WebTerminalIntegrationTest {
         String response = new String(conn.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
         conn.disconnect();
         return response;
+    }
+
+    /**
+     * Helper: poll the screen until the reader has entered readLine() and displayed its prompt.
+     */
+    private void awaitPrompt() {
+        await().atMost(5, TimeUnit.SECONDS)
+                .pollInterval(Duration.ofMillis(50))
+                .untilAsserted(() -> assertTrue(postToTerminal("f=1").contains("$"), "Prompt should be visible"));
     }
 
     /**

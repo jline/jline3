@@ -13,6 +13,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
@@ -232,6 +234,97 @@ class ScreenTerminalTest {
         int[] cursor = getCursor(terminal);
         assertEquals(39, cursor[0], "Restored cx should be clamped to new width-1");
         assertEquals(11, cursor[1], "Restored cy should be clamped to new height-1");
+    }
+
+    /**
+     * Out-of-range true-color SGR components must be clamped to 0..255 before
+     * they are packed into the cell attribute word. A component above 255 used
+     * to shift past the 12-bit color field and flip the adjacent style bits
+     * (bold/italic/underline/inverse/conceal/dim and the fg/bg-set flags), and
+     * that corrupted attribute was then applied to every subsequent cell.
+     */
+    @Test
+    void testTrueColorComponentClamped() {
+        ScreenTerminal terminal = new ScreenTerminal(20, 3);
+        // 16777215 (0xFFFFFF) is far outside the 0..255 range of a channel.
+        terminal.write("\033[38;2;16777215;0;0mX");
+
+        long[] screen = new long[20 * 3];
+        terminal.dump(screen, null);
+        long cell = screen[0];
+
+        assertEquals('X', ScreenTerminal.cellCodePoint(cell));
+        assertTrue(ScreenTerminal.cellHasForeground(cell), "foreground should be set");
+        assertFalse(ScreenTerminal.cellHasBackground(cell), "background must stay unset");
+        assertFalse(ScreenTerminal.cellBold(cell), "bold must not be set");
+        assertFalse(ScreenTerminal.cellItalic(cell), "italic must not be set");
+        assertFalse(ScreenTerminal.cellUnderline(cell), "underline must not be set");
+        assertFalse(ScreenTerminal.cellDim(cell), "dim must not be set");
+        assertFalse(ScreenTerminal.cellInverse(cell), "inverse must not be set");
+        assertFalse(ScreenTerminal.cellConceal(cell), "conceal must not be set");
+        // 16777215 clamped to 255 -> 0xF nibble; green/blue 0
+        assertEquals(0xF00, ScreenTerminal.cellForeground(cell));
+    }
+
+    /**
+     * Same as {@link #testTrueColorComponentClamped()} but for the background
+     * path (ESC[48;2;r;g;b m).  An out-of-range component must be clamped to
+     * 255 and the correct background-color bits must be set without corrupting
+     * the foreground-set flag or any style bits.
+     */
+    @Test
+    void testTrueColorComponentClampedBackground() {
+        ScreenTerminal terminal = new ScreenTerminal(20, 3);
+        // 16777215 (0xFFFFFF) is far outside the 0..255 range of a channel.
+        terminal.write("\033[48;2;16777215;0;0mX");
+
+        long[] screen = new long[20 * 3];
+        terminal.dump(screen, null);
+        long cell = screen[0];
+
+        assertEquals('X', ScreenTerminal.cellCodePoint(cell));
+        assertTrue(ScreenTerminal.cellHasBackground(cell), "background should be set");
+        assertFalse(ScreenTerminal.cellHasForeground(cell), "foreground must stay unset");
+        assertFalse(ScreenTerminal.cellBold(cell), "bold must not be set");
+        assertFalse(ScreenTerminal.cellItalic(cell), "italic must not be set");
+        assertFalse(ScreenTerminal.cellUnderline(cell), "underline must not be set");
+        assertFalse(ScreenTerminal.cellDim(cell), "dim must not be set");
+        assertFalse(ScreenTerminal.cellInverse(cell), "inverse must not be set");
+        assertFalse(ScreenTerminal.cellConceal(cell), "conceal must not be set");
+        // 16777215 clamped to 255 -> 0xF nibble; green/blue 0
+        assertEquals(0xF00, ScreenTerminal.cellBackground(cell));
+    }
+
+    /**
+     * The lower-bound counterpart to {@link #testTrueColorComponentClamped()}.
+     * The {@code Math.max(0, ...)} guard clamps negative RGB components to 0.
+     * Although the CSI byte-level parser does not forward negative parameter
+     * values (the {@code -} byte has MSB 0x20 which corrupts the function
+     * code), this test verifies the correct behavior when all channels are at
+     * the minimum (0), ensuring the zero boundary of the clamping range works
+     * and no bits bleed into adjacent attribute fields.
+     */
+    @Test
+    void testTrueColorComponentClampedLowerBound() {
+        ScreenTerminal terminal = new ScreenTerminal(20, 3);
+        // All channels at the minimum valid value (0).
+        terminal.write("\033[38;2;0;0;0mX");
+
+        long[] screen = new long[20 * 3];
+        terminal.dump(screen, null);
+        long cell = screen[0];
+
+        assertEquals('X', ScreenTerminal.cellCodePoint(cell));
+        assertTrue(ScreenTerminal.cellHasForeground(cell), "foreground should be set");
+        assertFalse(ScreenTerminal.cellHasBackground(cell), "background must stay unset");
+        assertFalse(ScreenTerminal.cellBold(cell), "bold must not be set");
+        assertFalse(ScreenTerminal.cellItalic(cell), "italic must not be set");
+        assertFalse(ScreenTerminal.cellUnderline(cell), "underline must not be set");
+        assertFalse(ScreenTerminal.cellDim(cell), "dim must not be set");
+        assertFalse(ScreenTerminal.cellInverse(cell), "inverse must not be set");
+        assertFalse(ScreenTerminal.cellConceal(cell), "conceal must not be set");
+        // All channels 0 >> 4 = 0
+        assertEquals(0x000, ScreenTerminal.cellForeground(cell));
     }
 
     // -----------------------------------------------------------------------
@@ -1021,6 +1114,191 @@ class ScreenTerminalTest {
         screen.dump(dump, null);
         for (int i = 0; i < alt.length(); i++) {
             assertEquals(alt.charAt(i), (char) dump[i]);
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Synchronized output (mode 2026) tests
+    // -----------------------------------------------------------------------
+
+    /**
+     * BSU (\e[?2026h) should activate synchronized output mode.
+     */
+    @Test
+    void testSynchronizedOutputBsuActivatesMode() {
+        ScreenTerminal screen = new ScreenTerminal(80, 24);
+        assertFalse(screen.isSynchronizedOutput(), "Mode 2026 should be off initially");
+
+        screen.write("\033[?2026h");
+        assertTrue(screen.isSynchronizedOutput(), "Mode 2026 should be on after BSU");
+    }
+
+    /**
+     * ESU (\e[?2026l) should deactivate synchronized output mode.
+     */
+    @Test
+    void testSynchronizedOutputEsuDeactivatesMode() {
+        ScreenTerminal screen = new ScreenTerminal(80, 24);
+        screen.write("\033[?2026h");
+        assertTrue(screen.isSynchronizedOutput());
+
+        screen.write("\033[?2026l");
+        assertFalse(screen.isSynchronizedOutput(), "Mode 2026 should be off after ESU");
+    }
+
+    /**
+     * Content written between BSU and ESU should be committed to the screen
+     * buffer, and the mode flag should toggle correctly across the cycle.
+     */
+    @Test
+    void testSynchronizedOutputBuffersContent() throws InterruptedException {
+        ScreenTerminal screen = new ScreenTerminal(80, 24);
+
+        // Consume initial dirty state
+        screen.isDirty();
+
+        // Enter synchronized mode and write content
+        screen.write("\033[?2026h");
+        screen.write("Hello");
+
+        // The content should be in the buffer
+        assertEquals('H', getChar(screen, 0, 0));
+        assertEquals('o', getChar(screen, 0, 4));
+
+        // The mode state is correct and content is buffered
+        assertTrue(screen.isSynchronizedOutput());
+
+        // Exit synchronized mode
+        screen.write("\033[?2026l");
+        assertFalse(screen.isSynchronizedOutput());
+
+        // Content remains on screen after ESU
+        assertEquals('H', getChar(screen, 0, 0));
+    }
+
+    /**
+     * Writes during synchronized output should accumulate in the screen buffer
+     * and be visible after ESU, including cursor movement.
+     */
+    @Test
+    void testSynchronizedOutputAccumulatesChanges() {
+        ScreenTerminal screen = new ScreenTerminal(40, 10);
+
+        screen.write("\033[?2026h");
+        screen.write("Line1");
+        screen.write("\033[2;1H"); // Move to row 2, col 1
+        screen.write("Line2");
+        screen.write("\033[?2026l");
+
+        assertEquals('L', getChar(screen, 0, 0));
+        assertEquals('1', getChar(screen, 0, 4));
+        assertEquals('L', getChar(screen, 1, 0));
+        assertEquals('2', getChar(screen, 1, 4));
+    }
+
+    /**
+     * A waiting thread should be notified when ESU arrives (mode 2026 turned off).
+     * The dirty flag is cleared before the waiter starts so that {@code waitDirty}
+     * truly blocks until ESU triggers {@code setDirty()} with {@code notifyAll()}.
+     */
+    @Test
+    void testSynchronizedOutputNotifiesOnEsu() throws InterruptedException {
+        ScreenTerminal screen = new ScreenTerminal(80, 24);
+        // Consume initial dirty state
+        screen.isDirty();
+
+        // Enter synchronized mode
+        screen.write("\033[?2026h");
+
+        // Write content — dirty flag is set but notification deferred
+        screen.write("test");
+
+        // Clear the dirty flag so waitDirty will truly block until ESU
+        screen.isDirty();
+
+        // Use a latch to detect when the waiter thread receives the dirty notification
+        CountDownLatch notified = new CountDownLatch(1);
+        CountDownLatch waiting = new CountDownLatch(1);
+        Thread waiter = new Thread(() -> {
+            try {
+                waiting.countDown(); // Signal that we're about to wait
+                screen.waitDirty(2000);
+                notified.countDown();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        waiter.start();
+
+        // Wait until the waiter thread is ready
+        assertTrue(waiting.await(1, TimeUnit.SECONDS), "Waiter thread should start promptly");
+
+        // ESU should trigger notification
+        screen.write("\033[?2026l");
+
+        // The waiter should be notified quickly
+        assertTrue(notified.await(2, TimeUnit.SECONDS), "Waiter thread should have been notified by ESU");
+    }
+
+    /**
+     * Multiple BSU/ESU cycles should work correctly.
+     */
+    @Test
+    void testSynchronizedOutputMultipleCycles() {
+        ScreenTerminal screen = new ScreenTerminal(80, 24);
+
+        // First cycle
+        screen.write("\033[?2026h");
+        screen.write("AAA");
+        screen.write("\033[?2026l");
+        assertEquals('A', getChar(screen, 0, 0));
+
+        // Second cycle
+        screen.write("\033[1;1H"); // Reset cursor
+        screen.write("\033[?2026h");
+        screen.write("BBB");
+        screen.write("\033[?2026l");
+        assertEquals('B', getChar(screen, 0, 0));
+
+        assertFalse(screen.isSynchronizedOutput());
+    }
+
+    /**
+     * DSR replies are fed back as terminal input, so every reply must be a
+     * control sequence the application consumes as a report. Requests outside
+     * the ECMA-48 set are left unanswered.
+     */
+    @Test
+    void testDsrDoesNotReplyWithPlainText() {
+        ScreenTerminal screen = new ScreenTerminal(80, 24);
+
+        screen.write("\033[7n");
+        assertEquals("", screen.read(), "DSR 7 must not reply");
+        screen.write("\033[8n");
+        assertEquals("", screen.read(), "DSR 8 must not reply");
+
+        // The standard reports still answer
+        screen.write("\033[5n");
+        assertEquals("\033[0n", screen.read());
+        screen.write("\033[6n");
+        assertEquals("\033[1;1R", screen.read());
+    }
+
+    /**
+     * A wired screen feeds its replies to the terminal input, so output
+     * carrying an unanswered request must not put anything there.
+     */
+    @Test
+    void testDsrReplyIsNotTypedIntoTerminalInput() throws IOException {
+        ScreenTerminal.VirtualTerminal vt = ScreenTerminal.withTerminal("test", "xterm", 80, 24);
+        try (Terminal terminal = vt.terminal()) {
+            terminal.writer().write("\033[7n\033[8n");
+            terminal.writer().flush();
+
+            assertEquals(
+                    NonBlockingReader.READ_EXPIRED,
+                    terminal.reader().read(200L),
+                    "screen reply reached the terminal input");
         }
     }
 }

@@ -296,6 +296,42 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
     }
 
     /**
+     * Appends the specified Unicode code point to this builder.
+     *
+     * <p>
+     * This method appends the specified code point to this builder,
+     * applying the current style. For supplementary code points (above U+FFFF),
+     * the high and low surrogate chars are both appended with the same style.
+     * This avoids the temporary {@code String} and {@code char[]} allocation
+     * that {@code append(new String(Character.toChars(cp)))} would require.
+     * </p>
+     *
+     * @param codePoint the Unicode code point to append
+     * @return this builder
+     * @throws IllegalArgumentException if codePoint is not a valid Unicode code point
+     */
+    public AttributedStringBuilder appendCodePoint(int codePoint) {
+        if (Character.isBmpCodePoint(codePoint)) {
+            return append((char) codePoint);
+        }
+        if (!Character.isValidCodePoint(codePoint)) {
+            throw new IllegalArgumentException("Not a valid Unicode code point: 0x" + Integer.toHexString(codePoint));
+        }
+        // Supplementary code point: append the surrogate pair directly
+        long s = current.getStyle();
+        ensureCapacity(length + 2);
+        buffer[length] = Character.highSurrogate(codePoint);
+        style[length] = s;
+        length++;
+        lastLineLength++;
+        buffer[length] = Character.lowSurrogate(codePoint);
+        style[length] = s;
+        length++;
+        lastLineLength++;
+        return this;
+    }
+
+    /**
      * Appends the specified character to this builder multiple times.
      *
      * <p>
@@ -741,6 +777,23 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                     // This is not a SGR code, so ignore
                     ansiState = 0;
                 }
+            } else if (ansiState == 1 && (c == ']' || c == 'P' || c == 'X' || c == '^' || c == '_')) {
+                // OSC (]), DCS (P), SOS (X), PM (^) or APC (_) introducer. These carry a string
+                // payload terminated by BEL or ST (ESC \) and can drive the terminal itself (set
+                // the window title, write the clipboard via OSC 52, ...). When the text is
+                // untrusted (a file shown in Less, a completion candidate) that payload must not
+                // reach the terminal, so drop the whole sequence instead of emitting it.
+                ansiState = 3;
+            } else if (ansiState == 3) {
+                if (c == 7) {
+                    ansiState = 0; // BEL terminates the string
+                } else if (c == 27) {
+                    ansiState = 4; // possible ST: ESC \
+                }
+            } else if (ansiState == 4) {
+                ansiState = 0; // consume the byte after ESC inside the string sequence
+                // (treats any ESC as ending the sequence, matching xterm;
+                //  strictly only ESC \ is ST per ECMA-48)
             } else {
                 if (ansiState >= 1) {
                     ensureCapacity(length + 1);
@@ -939,11 +992,15 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
      * @return this builder
      */
     public AttributedStringBuilder styleMatches(Pattern pattern, AttributedStyle s) {
-        Matcher matcher = pattern.matcher(this);
-        while (matcher.find()) {
-            for (int i = matcher.start(); i < matcher.end(); i++) {
-                style[i] = (style[i] & ~s.getMask()) | s.getStyle();
+        Matcher matcher = SafeRegex.matcher(pattern, this);
+        try {
+            while (matcher.find()) {
+                for (int i = matcher.start(); i < matcher.end(); i++) {
+                    style[i] = (style[i] & ~s.getMask()) | s.getStyle();
+                }
             }
+        } catch (RegexTimeoutException e) {
+            // Apply whatever matches we found so far
         }
         return this;
     }
@@ -973,14 +1030,18 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
      * @throws IndexOutOfBoundsException if the pattern has fewer capture groups than styles
      */
     public AttributedStringBuilder styleMatches(Pattern pattern, List<AttributedStyle> styles) {
-        Matcher matcher = pattern.matcher(this);
-        while (matcher.find()) {
-            for (int group = 0; group < matcher.groupCount(); group++) {
-                AttributedStyle s = styles.get(group);
-                for (int i = matcher.start(group + 1); i < matcher.end(group + 1); i++) {
-                    style[i] = (style[i] & ~s.getMask()) | s.getStyle();
+        Matcher matcher = SafeRegex.matcher(pattern, this);
+        try {
+            while (matcher.find()) {
+                for (int group = 0; group < matcher.groupCount(); group++) {
+                    AttributedStyle s = styles.get(group);
+                    for (int i = matcher.start(group + 1); i < matcher.end(group + 1); i++) {
+                        style[i] = (style[i] & ~s.getMask()) | s.getStyle();
+                    }
                 }
             }
+        } catch (RegexTimeoutException e) {
+            // Apply whatever matches we found so far
         }
         return this;
     }

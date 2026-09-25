@@ -38,7 +38,7 @@ Terminal terminal = TerminalBuilder.builder()
                     .build();
 ```
 
-The `TerminalBuilder` will figure out the current Operating System and which actual `Terminal` implementation to use. Note that on the Windows platform you need to have either Jansi or JNA library in your classpath.
+The `TerminalBuilder` will figure out the current Operating System and which actual `Terminal` implementation to use. On Windows, JLine uses the JNI or FFM providers for native terminal access (see [Terminal Providers](./modules/terminal-providers.md)).
 
 <CodeSnippet name="TerminalCreationExample" />
 

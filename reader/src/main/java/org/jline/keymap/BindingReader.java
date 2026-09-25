@@ -10,6 +10,7 @@ package org.jline.keymap;
 
 import java.io.IOError;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
@@ -174,8 +175,9 @@ public class BindingReader {
      * </p>
      *
      * @param sequence the terminating sequence to look for
-     * @return the string read up to but not including the terminating sequence,
-     *         or null if the end of the stream is reached before the sequence is found
+     * @return the string read up to but not including the terminating sequence
+     * @throws EndOfFileException if the stream is closed or an I/O error occurs before the sequence is found
+     * @throws IOError if the read is interrupted ({@link InterruptedIOException})
      */
     public String readStringUntil(String sequence) {
         StringBuilder sb = new StringBuilder();
@@ -199,8 +201,10 @@ public class BindingReader {
             }
         } catch (ClosedException e) {
             throw new EndOfFileException(e);
-        } catch (IOException e) {
+        } catch (InterruptedIOException e) {
             throw new IOError(e);
+        } catch (IOException e) {
+            throw new EndOfFileException(e);
         }
     }
 
@@ -212,8 +216,8 @@ public class BindingReader {
      * outside the BMP (Basic Multilingual Plane).
      *
      * @return the character read, or -1 if the end of the stream is reached
-     * @throws EndOfFileException if the stream is closed while reading
-     * @throws IOError if an I/O error occurs
+     * @throws EndOfFileException if the stream is closed or an I/O error occurs while reading
+     * @throws IOError if the read is interrupted ({@link InterruptedIOException})
      */
     public int readCharacter() {
         if (!pushBackChar.isEmpty()) {
@@ -232,8 +236,10 @@ public class BindingReader {
             return s != 0 ? Character.toCodePoint((char) s, (char) c) : c;
         } catch (ClosedException e) {
             throw new EndOfFileException(e);
-        } catch (IOException e) {
+        } catch (InterruptedIOException e) {
             throw new IOError(e);
+        } catch (IOException e) {
+            throw new EndOfFileException(e);
         }
     }
 
@@ -245,8 +251,8 @@ public class BindingReader {
      * Unicode characters outside the BMP (Basic Multilingual Plane).
      *
      * @return the character read, or -1 if the end of the stream is reached
-     * @throws EndOfFileException if the stream is closed while reading
-     * @throws IOError if an I/O error occurs
+     * @throws EndOfFileException if the stream is closed or an I/O error occurs while reading
+     * @throws IOError if the read is interrupted ({@link InterruptedIOException})
      */
     public int readCharacterBuffered() {
         try {
@@ -284,8 +290,10 @@ public class BindingReader {
             return pushBackChar.pop();
         } catch (ClosedException e) {
             throw new EndOfFileException(e);
-        } catch (IOException e) {
+        } catch (InterruptedIOException e) {
             throw new IOError(e);
+        } catch (IOException e) {
+            throw new EndOfFileException(e);
         }
     }
 
@@ -298,7 +306,8 @@ public class BindingReader {
      *
      * @param timeout the maximum time to wait in milliseconds
      * @return the next character, -1 if the end of the stream is reached, or -2 if the timeout expires
-     * @throws IOError if an I/O error occurs
+     * @throws EndOfFileException if the stream is closed or an I/O error occurs while peeking
+     * @throws IOError if the read is interrupted ({@link InterruptedIOException})
      */
     public int peekCharacter(long timeout) {
         if (!pushBackChar.isEmpty()) {
@@ -306,8 +315,12 @@ public class BindingReader {
         }
         try {
             return reader.peek(timeout);
-        } catch (IOException e) {
+        } catch (ClosedException e) {
+            throw new EndOfFileException(e);
+        } catch (InterruptedIOException e) {
             throw new IOError(e);
+        } catch (IOException e) {
+            throw new EndOfFileException(e);
         }
     }
 

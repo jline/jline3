@@ -16,8 +16,55 @@ import org.jline.terminal.impl.DumbTerminal;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class AttributedStringTest {
+
+    @Test
+    void codePointMethodsRejectIndicesOutsideSubsequence() {
+        AttributedString text = new AttributedString("before-middle-after").subSequence(7, 13);
+        int length = text.length();
+
+        assertThrows(IndexOutOfBoundsException.class, () -> text.codePointAt(-1));
+        assertThrows(IndexOutOfBoundsException.class, () -> text.codePointAt(length));
+        assertThrows(IndexOutOfBoundsException.class, () -> text.codePointBefore(0));
+        assertThrows(IndexOutOfBoundsException.class, () -> text.codePointBefore(length + 1));
+    }
+
+    @Test
+    void codePointMethodsRejectIndicesOutsideBuilderLength() {
+        AttributedStringBuilder text = new AttributedStringBuilder().append("abc");
+        int length = text.length();
+
+        assertThrows(IndexOutOfBoundsException.class, () -> text.codePointAt(length));
+        assertThrows(IndexOutOfBoundsException.class, () -> text.codePointBefore(length + 1));
+    }
+
+    @Test
+    void codePointAtRespectsSubsequenceEnd() {
+        AttributedString text = new AttributedString("x\uD834\uDD1Ey");
+        AttributedString prefix = text.subSequence(1, 2);
+
+        assertEquals(prefix.toString().codePointAt(0), prefix.codePointAt(0));
+        assertEquals(text.toString().codePointAt(1), text.codePointAt(1));
+    }
+
+    @Test
+    void codePointBeforeRespectsSubsequenceStart() {
+        AttributedString text = new AttributedString("x\uD834\uDD1Ey");
+        AttributedString suffix = text.subSequence(2, 3);
+
+        assertEquals(suffix.toString().codePointBefore(1), suffix.codePointBefore(1));
+        assertEquals(text.toString().codePointBefore(3), text.codePointBefore(3));
+    }
+
+    @Test
+    void codePointAtRespectsTruncatedBuilderLength() {
+        AttributedStringBuilder text = new AttributedStringBuilder().append("\uD834\uDD1E");
+        text.setLength(1);
+
+        assertEquals(text.toString().codePointAt(0), text.codePointAt(0));
+    }
 
     @Test
     void test() {
@@ -86,6 +133,52 @@ class AttributedStringTest {
         String ansi = "echo \033[1mfoo \033[43mblue\033[0m ";
         AttributedString str = AttributedString.fromAnsi(ansi);
         assertEquals(ansi, str.toAnsi());
+    }
+
+    @Test
+    void fromAnsiDropsOscInjection() {
+        // A window-title OSC (ESC ] 0 ; ... BEL) embedded in otherwise plain text must not
+        // survive into the rendered AttributedString. Otherwise showing an untrusted file or
+        // log in the pager would let it drive the terminal (set the title, write the clipboard
+        // via OSC 52, ...). The raw ESC also used to be counted as a visible column.
+        AttributedString s = AttributedString.fromAnsi("\033]0;pwned\007OK");
+        assertEquals("OK", s.toString());
+        assertEquals("OK", s.toAnsi());
+        assertEquals(2, s.columnLength());
+    }
+
+    @Test
+    void stripAnsiRemovesStringSequences() {
+        // OSC terminated by BEL
+        assertEquals("hello", AttributedString.stripAnsi("\033]0;title\007hello"));
+        // OSC 52 (clipboard) terminated by ST (ESC \)
+        assertEquals("AB", AttributedString.stripAnsi("A\033]52;c;ZXZpbA==\033\\B"));
+        // DCS terminated by ST
+        assertEquals("xy", AttributedString.stripAnsi("x\033P1;2q\033\\y"));
+        // APC terminated by ST
+        assertEquals("z", AttributedString.stripAnsi("\033_payload\033\\z"));
+        // SOS terminated by ST
+        assertEquals("ab", AttributedString.stripAnsi("a\033Xpayload\033\\b"));
+        // PM terminated by ST
+        assertEquals("cd", AttributedString.stripAnsi("c\033^payload\033\\d"));
+    }
+
+    @Test
+    void stripAnsiConsumesUnterminatedStringSequence() {
+        // A string sequence with no BEL or ST terminator is consumed to the end of the
+        // input; the payload must not leak into the visible text.
+        assertEquals("pre", AttributedString.stripAnsi("pre\033]0;payload"));
+        assertEquals("pre", AttributedString.stripAnsi("pre\033Ppayload"));
+        // Trailing ESC inside the string (start of a potential ST) must not leak either
+        assertEquals("pre", AttributedString.stripAnsi("pre\033]0;payload\033"));
+    }
+
+    @Test
+    void fromAnsiKeepsSgrWhileDroppingOsc() {
+        // Dropping the OSC prefix must not disturb the SGR color styling that follows it.
+        AttributedString s = AttributedString.fromAnsi("\033]0;t\007\033[31mred\033[0m");
+        assertEquals("red", s.toString());
+        assertEquals("\033[31mred\033[0m", s.toAnsi());
     }
 
     @Test

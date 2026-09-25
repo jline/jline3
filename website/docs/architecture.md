@@ -40,9 +40,9 @@ JLine is organized into several core components that work together to provide a 
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Higher-Level APIs                        │
 │                                                                 │
-│  ┌─────────────┐  ┌─────────────┐  ┌────────────┐  ┌──────────┐ │
-│  │    Style    │  │   Builtins  │  │  Console   │  │Console UI│ │
-│  └─────────────┘  └─────────────┘  └────────────┘  └──────────┘ │
+│  ┌─────────┐  ┌──────────┐  ┌────────┐  ┌────────┐  ┌────────┐ │
+│  │  Style  │  │ Builtins │  │ Shell  │  │ Prompt │  │Console │ │
+│  └─────────┘  └──────────┘  └────────┘  └────────┘  └────────┘ │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -78,8 +78,9 @@ JLine includes several higher-level modules that provide additional functionalit
 
 - **Style**: Styling API for terminal output
 - **Builtins**: Ready-to-use commands and utilities
-- **Console**: Framework for building interactive console applications
-- **Console UI**: UI components like progress bars, tables, and forms
+- **Shell**: Modern framework for building interactive command-line applications with pipelines, aliases, and job control
+- **Prompt**: Interactive prompt components (lists, checkboxes, choices, inputs, etc.)
+- **Console**: Legacy framework for building interactive console applications; new applications should prefer Shell
 
 ## Data Flow
 
@@ -102,11 +103,15 @@ jline-reader
     ↑
 jline-style
     ↑
+jline-shell
+    ↑
 jline-builtins
     ↑
-jline-console
+jline-console-ui (legacy, prefer jline-prompt)
     ↑
-jline-console-ui
+jline-console (legacy bridge)
+
+jline-prompt (depends on jline-reader + jline-builtins)
 ```
 
 ## Key Interfaces

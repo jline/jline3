@@ -12,6 +12,7 @@ import java.text.BreakIterator;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import org.jline.terminal.Terminal;
 import org.jline.utils.InfoCmp.Capability;
@@ -856,7 +857,8 @@ public abstract class AttributedCharSequence implements CharSequence {
      * @throws IndexOutOfBoundsException if the index is out of range
      */
     public int codePointAt(int index) {
-        return Character.codePointAt(buffer(), index + offset());
+        Objects.checkIndex(index, length());
+        return Character.codePointAt(buffer(), index + offset(), offset() + length());
     }
 
     /**
@@ -894,7 +896,8 @@ public abstract class AttributedCharSequence implements CharSequence {
      * @throws IndexOutOfBoundsException if the index is less than 1 or greater than length()
      */
     public int codePointBefore(int index) {
-        return Character.codePointBefore(buffer(), index + offset());
+        Objects.checkIndex(index - 1, length());
+        return Character.codePointBefore(buffer(), index + offset(), offset());
     }
 
     /**
