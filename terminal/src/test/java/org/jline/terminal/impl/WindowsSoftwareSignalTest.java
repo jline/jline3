@@ -36,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * mirroring the behavior of {@link SignalInterceptingInputStream} on POSIX
  * terminals (fixes #2127).
  */
+@SuppressWarnings("removal")
 class WindowsSoftwareSignalTest {
 
     private String originalSoftwareSignals;
