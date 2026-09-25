@@ -184,7 +184,7 @@ public final class TerminalBuilder {
      * when ISIG is cleared (raw mode). This restores {@code terminal.handle(Signal.INT, ...)}
      * behavior that was lost when {@code enterRawMode()} started clearing ISIG.
      * <p>
-     * Set to {@code false} (the default since 4.4.0) for pure native terminal behavior where
+     * Set to {@code false} (the default since 5.0.0) for pure native terminal behavior where
      * no automatic signal translation occurs — the application must handle raw bytes itself.
      * <p>
      * Applications that relied on {@code terminal.handle(Signal.INT, ...)} in raw mode
@@ -207,7 +207,7 @@ public final class TerminalBuilder {
      *             applications should use the LineReader INTERRUPT widget or handle
      *             raw bytes directly.
      */
-    @Deprecated(since = "4.4.0", forRemoval = true)
+    @Deprecated(since = "5.0.0", forRemoval = true)
     @SuppressWarnings("java:S1133") // Intentional deprecation; removal planned for a future major version
     public static final String PROP_SOFTWARE_SIGNALS = "org.jline.terminal.softwareSignals";
 
