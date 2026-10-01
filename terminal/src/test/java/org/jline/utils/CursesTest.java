@@ -32,4 +32,12 @@ public class CursesTest {
                         "\\E]4;%p1%d;rgb\\:%p2%{255}%*%{1000}%/%2.2X/%p3%{255}%*%{1000}%/%2.2X/%p4%{255}%*%{1000}%/%2.2X\\E\\\\",
                         123, 0xfa, 0x00, 0x89));
     }
+
+    @Test
+    void testControlChars() {
+        // ^H = BS (backspace, 0x08)
+        assertEquals("\u0008", Curses.tputs("^H"));
+        // ^? = DEL (127, 0x7F) — special case; must not produce '\uFFFF'
+        assertEquals("\u007f", Curses.tputs("^?"));
+    }
 }
