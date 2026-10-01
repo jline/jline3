@@ -164,7 +164,8 @@ public final class Curses {
                 case '^':
                     ch = str.charAt(index++);
                     if (exec) {
-                        out.append((char) (ch - '@'));
+                        // In terminfo notation, '^X' means (X & 0x1F), except '^?' which is DEL (127).
+                        out.append(ch == '?' ? (char) 127 : (char) (ch - '@'));
                     }
                     break;
                 case '%':
