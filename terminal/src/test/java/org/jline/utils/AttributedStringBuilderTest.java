@@ -141,6 +141,33 @@ class AttributedStringBuilderTest {
     }
 
     @Test
+    void testTabsAfterReset() {
+        AttributedStringBuilder sb = new AttributedStringBuilder().tabs(4);
+        sb.append("abc");
+        sb.setLength(0);
+        sb.append("\tx");
+        assertEquals("    x", sb.toString());
+    }
+
+    @Test
+    void testTabsAfterTruncatingNewline() {
+        AttributedStringBuilder sb = new AttributedStringBuilder().tabs(4);
+        sb.append("ab\nc");
+        sb.setLength(2);
+        sb.ansiAppend("\tx");
+        assertEquals("ab  x", sb.toString());
+    }
+
+    @Test
+    void testTabsAfterTruncatingWithinLastLine() {
+        AttributedStringBuilder sb = new AttributedStringBuilder().tabs(4);
+        sb.append("abc\ndef");
+        sb.setLength(5);
+        sb.append("\tx");
+        assertEquals("abc\nd   x", sb.toString());
+    }
+
+    @Test
     void testChangingExistingTabSize() {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         sb.append("helloWorld");

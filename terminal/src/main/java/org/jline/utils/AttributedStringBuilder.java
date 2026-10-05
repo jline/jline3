@@ -908,6 +908,12 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
      * @param l the new length
      */
     public void setLength(int l) {
+        if (l < length) {
+            lastLineLength = 0;
+            for (int i = l - 1; i >= 0 && buffer[i] != '\n'; i--) {
+                lastLineLength++;
+            }
+        }
         length = l;
     }
 
