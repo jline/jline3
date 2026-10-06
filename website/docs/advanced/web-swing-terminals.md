@@ -156,33 +156,32 @@ component.setTerminalFont(newFont);
 
 ## Demo Applications
 
-Several demo applications are provided in the `TerminalDemo` class:
+The `demo` module provides a `Launcher` class that runs any JLine demo in a system, web, or Swing terminal.
 
 ### Running the Demos
 
 ```bash
-# Compile the project
-mvn compile
+# Build the project first
+mvn install -DskipTests
 
-# Run web terminal demo only
-mvn exec:java -Dexec.mainClass="org.jline.builtins.TerminalDemo" -Dexec.args="web"
+# Run the Repl demo in a web terminal (browse to http://localhost:8080)
+mvn exec:java -pl demo -Dexec.mainClass="org.jline.demo.Launcher" \
+  -Dexec.args="--terminal=web org.jline.demo.Repl"
 
-# Run Swing terminal demo only
-mvn exec:java -Dexec.mainClass="org.jline.builtins.TerminalDemo" -Dexec.args="swing"
+# Run the Repl demo in a Swing terminal window
+mvn exec:java -pl demo -Dexec.mainClass="org.jline.demo.Launcher" \
+  -Dexec.args="--terminal=swing org.jline.demo.Repl"
 
-# Run advanced Swing terminal with menu
-mvn exec:java -Dexec.mainClass="org.jline.builtins.TerminalDemo" -Dexec.args="advanced"
-
-# Run both demos
-mvn exec:java -Dexec.mainClass="org.jline.builtins.TerminalDemo" -Dexec.args="both"
+# Run the Repl demo in the system terminal (default)
+mvn exec:java -pl demo -Dexec.mainClass="org.jline.demo.Launcher" \
+  -Dexec.args="org.jline.demo.Repl"
 ```
 
-### Demo Features
+### How It Works
 
-1. **Basic Web Demo**: Simple web terminal with echo functionality
-2. **Basic Swing Demo**: Simple Swing terminal window
-3. **Advanced Swing Demo**: Swing terminal with menu bar, font selection, and status bar
-4. **Both Demos**: Runs web and Swing terminals simultaneously
+`Launcher` accepts an optional `--terminal=system|web|swing` flag followed by any demo class name.
+It uses `TerminalBuilder.setTerminalOverride()` so the chosen terminal is transparently injected
+into any demo that calls `TerminalBuilder.build()`, without modifying the demo code itself.
 
 ## Integration with Shell Processes
 
