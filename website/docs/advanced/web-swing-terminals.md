@@ -164,7 +164,7 @@ The `demo` module provides a `Launcher` class that runs any JLine demo in a syst
 # Build the project first
 mvn install -DskipTests
 
-# Run the Repl demo in a web terminal (opens browser on http://localhost:8080)
+# Run the Repl demo in a web terminal (browse to http://localhost:8080)
 mvn exec:java -pl demo -Dexec.mainClass="org.jline.demo.Launcher" \
   -Dexec.args="--terminal=web org.jline.demo.Repl"
 
