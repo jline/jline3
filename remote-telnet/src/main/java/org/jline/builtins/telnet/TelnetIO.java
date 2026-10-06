@@ -1167,7 +1167,12 @@ public class TelnetIO {
                             return;
                         case NE_VAR_DEFINED:
                             LOG.log(Level.FINE, "readNEVariables()::NE_VAR_DEFINED");
-                            if (++varCount > NE_VAR_COUNT_MAX) {
+                            if (++varCount > NE_VAR_COUNT_MAX
+                                    || TelnetIO.this
+                                                    .connectionData
+                                                    .getEnvironment()
+                                                    .size()
+                                            >= NE_VAR_COUNT_MAX) {
                                 LOG.log(Level.WARNING, "readNEVariables()::TOO_MANY_VARS (>" + NE_VAR_COUNT_MAX + ")");
                                 skipToSE();
                                 return;
