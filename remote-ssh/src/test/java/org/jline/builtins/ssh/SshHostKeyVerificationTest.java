@@ -13,14 +13,12 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
 
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.keyverifier.AcceptAllServerKeyVerifier;
 import org.apache.sshd.client.keyverifier.ServerKeyVerifier;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.server.SshServer;
-import org.apache.sshd.server.auth.UserAuthNoneFactory;
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -154,7 +152,8 @@ class SshHostKeyVerificationTest {
         SshServer sshd = SshServer.setUpDefaultServer();
         sshd.setPort(port);
         sshd.setKeyPairProvider(new SimpleGeneratorHostKeyProvider(hostKey));
-        sshd.setUserAuthFactories(Collections.singletonList(UserAuthNoneFactory.INSTANCE));
+        // Accept any password — sshd 2.20.0 no longer allows "none" auth to succeed
+        sshd.setPasswordAuthenticator((username, password, session) -> true);
         return sshd;
     }
 
@@ -172,6 +171,7 @@ class SshHostKeyVerificationTest {
             client.start();
             try (ClientSession session =
                     client.connect("test", "localhost", port).verify(10000).getSession()) {
+                session.addPasswordIdentity("test");
                 session.auth().verify(10000);
                 return session.isAuthenticated();
             } catch (Exception e) {
