@@ -25,7 +25,6 @@ import org.apache.sshd.common.session.Session;
 import org.apache.sshd.server.Environment;
 import org.apache.sshd.server.ExitCallback;
 import org.apache.sshd.server.SshServer;
-import org.apache.sshd.server.auth.UserAuthNoneFactory;
 import org.apache.sshd.server.channel.ChannelSession;
 import org.apache.sshd.server.command.Command;
 import org.apache.sshd.server.forward.StaticDecisionForwardingFilter;
@@ -59,7 +58,9 @@ class SshAgentForwardingTest {
     /**
      * Drives {@link Ssh#ssh} against an in-process server and reports whether the interactive shell
      * channel asked the server for ssh-agent forwarding (the server records the
-     * {@code auth-agent-req@openssh.com} request through its forwarding filter).
+     * {@code auth-agent-req@openssh.com} request through its forwarding filter).<br>
+     * The server accepts any password; the client supplies a dummy password so that authentication
+     * succeeds without user interaction (sshd 2.20.0 no longer allows "none" auth to succeed).
      */
     private boolean opensShellRequestingAgentForwarding(boolean forwardAgent) throws Exception {
         AtomicBoolean agentRequested = new AtomicBoolean(false);
@@ -67,7 +68,8 @@ class SshAgentForwardingTest {
         SshServer sshd = SshServer.setUpDefaultServer();
         sshd.setPort(0);
         sshd.setKeyPairProvider(new SimpleGeneratorHostKeyProvider(Path.of("target/agentfwd-hostkey.ser")));
-        sshd.setUserAuthFactories(Collections.singletonList(UserAuthNoneFactory.INSTANCE));
+        // Accept any password — sshd 2.20.0 no longer allows "none" auth to succeed
+        sshd.setPasswordAuthenticator((username, password, session) -> true);
         // The server only consults the forwarding filter when it also has an agent factory, so
         // install one; the filter rejects, so no agent channel is actually established.
         sshd.setAgentFactory(new ProxyAgentFactory());
@@ -111,10 +113,14 @@ class SshAgentForwardingTest {
         }
     }
 
-    /** Client that trusts the in-process test server's host key, which is not what this test exercises. */
+    /**
+     * Client that trusts the in-process test server's host key and supplies a dummy password so
+     * that authentication succeeds without user interaction.
+     */
     private static SshClient newTrustingClient() {
         SshClient client = SshClient.setUpDefaultClient();
         client.setServerKeyVerifier((session, address, key) -> true);
+        client.setPasswordIdentityProvider(session -> Collections.singletonList("test"));
         return client;
     }
 
