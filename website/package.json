@@ -50,5 +50,8 @@
   },
   "engines": {
     "node": ">=18.0"
+  },
+  "overrides": {
+    "webpackbar": "^6.0.0"
   }
 }
