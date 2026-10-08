@@ -81,7 +81,7 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
     private final Task closer;
     private final boolean pollAvailable;
 
-    @SuppressWarnings({"this-escape", "squid:S107"})
+    @SuppressWarnings({"this-escape", "squid:S107", "removal"})
     protected AbstractUnixSysTerminal(
             TerminalProvider provider,
             SystemStream systemStream,
@@ -99,7 +99,7 @@ public abstract class AbstractUnixSysTerminal extends AbstractTerminal {
         this.systemStream = systemStream;
         this.originalAttributes = originalAttributes;
         this.nativeSignals = nativeSignals;
-        boolean softwareSignals = Boolean.parseBoolean(System.getProperty(PROP_SOFTWARE_SIGNALS, "true"));
+        boolean softwareSignals = Boolean.parseBoolean(System.getProperty(PROP_SOFTWARE_SIGNALS, "false"));
 
         InputStream stdin = new NonCloseableInputStream(new FileInputStream(FileDescriptor.in));
         InputStream wrappedStdin =
