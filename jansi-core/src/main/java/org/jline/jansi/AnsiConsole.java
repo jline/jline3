@@ -13,13 +13,17 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
+import java.util.List;
 
 import org.jline.jansi.io.AnsiOutputStream;
 import org.jline.jansi.io.AnsiProcessor;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.impl.DumbTerminal;
+import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalExt;
+import org.jline.terminal.spi.TerminalProvider;
+import org.jline.utils.Log;
 import org.jline.utils.OSUtils;
 
 /**
@@ -141,6 +145,8 @@ public class AnsiConsole {
     private static PrintStream out;
     private static final PrintStream system_err = System.err;
     private static PrintStream err;
+    private static boolean stdoutIsTty;
+    private static boolean stderrIsTty;
 
     /**
      * Try to find the width of the console for this process.
@@ -192,8 +198,9 @@ public class AnsiConsole {
      */
     static synchronized void doInstall() {
         try {
+            TerminalBuilder builder = null;
             if (terminal == null) {
-                TerminalBuilder builder = TerminalBuilder.builder().system(true).name("jansi");
+                builder = TerminalBuilder.builder().system(true).name("jansi");
                 String providers = System.getProperty(JANSI_PROVIDERS);
                 if (providers != null) {
                     builder.providers(providers);
@@ -205,11 +212,35 @@ public class AnsiConsole {
                 terminal = builder.build();
             }
             if (out == null) {
+                detectTtyStatus(builder);
                 out = ansiStream(true);
                 err = ansiStream(false);
             }
         } catch (IOException e) {
             throw new IOError(e);
+        }
+    }
+
+    private static void detectTtyStatus(TerminalBuilder builder) {
+        if (terminal instanceof DumbTerminal) {
+            return;
+        }
+        try {
+            if (builder == null) {
+                builder = TerminalBuilder.builder();
+                String providers = System.getProperty(JANSI_PROVIDERS);
+                if (providers != null) {
+                    builder.providers(providers);
+                }
+            }
+            List<TerminalProvider> provs = builder.getProviders(null, new IllegalStateException());
+            stdoutIsTty = provs.stream().anyMatch(p -> p.isSystemStream(SystemStream.Output));
+            stderrIsTty = provs.stream().anyMatch(p -> p.isSystemStream(SystemStream.Error));
+        } catch (Exception e) {
+            Log.debug("Failed to detect TTY status via providers, falling back to terminal system stream", e);
+            SystemStream ss = ((TerminalExt) terminal).getSystemStream();
+            stdoutIsTty = ss == SystemStream.Output;
+            stderrIsTty = ss == SystemStream.Error;
         }
     }
 
@@ -224,6 +255,8 @@ public class AnsiConsole {
             terminal = null;
             out = null;
             err = null;
+            stdoutIsTty = false;
+            stderrIsTty = false;
         }
     }
 
@@ -247,11 +280,28 @@ public class AnsiConsole {
         final AnsiOutputStream.IoRunnable installer = null;
         final AnsiOutputStream.IoRunnable uninstaller = null;
 
-        out = terminal.output();
         width = terminal::getColumns;
-        type = terminal instanceof DumbTerminal
-                ? AnsiType.Unsupported
-                : ((TerminalExt) terminal).getSystemStream() != null ? AnsiType.Native : AnsiType.Redirected;
+
+        if (terminal instanceof DumbTerminal) {
+            out = terminal.output();
+            type = AnsiType.Unsupported;
+        } else {
+            SystemStream systemStream = ((TerminalExt) terminal).getSystemStream();
+            if (systemStream == null) {
+                out = terminal.output();
+                type = AnsiType.Redirected;
+            } else {
+                boolean isTerminalBacked =
+                        stdout ? systemStream == SystemStream.Output : systemStream == SystemStream.Error;
+                if (isTerminalBacked) {
+                    out = terminal.output();
+                    type = AnsiType.Native;
+                } else {
+                    out = stdout ? system_out : system_err;
+                    type = (stdout ? stdoutIsTty : stderrIsTty) ? AnsiType.Native : AnsiType.Redirected;
+                }
+            }
+        }
 
         AnsiMode mode;
 
