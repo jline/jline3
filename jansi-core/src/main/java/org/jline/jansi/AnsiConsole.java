@@ -232,8 +232,13 @@ public class AnsiConsole {
                 if (providers != null) {
                     builder.providers(providers);
                 }
+                String graceful = System.getProperty(JANSI_GRACEFUL);
+                if (graceful != null) {
+                    builder.dumb(Boolean.parseBoolean(graceful));
+                }
             }
-            List<TerminalProvider> provs = builder.getProviders(null, new IllegalStateException());
+            IllegalStateException probe = new IllegalStateException();
+            List<TerminalProvider> provs = builder.getProviders(null, probe);
             stdoutIsTty = provs.stream().anyMatch(p -> p.isSystemStream(SystemStream.Output));
             stderrIsTty = provs.stream().anyMatch(p -> p.isSystemStream(SystemStream.Error));
         } catch (Exception e) {
@@ -298,7 +303,13 @@ public class AnsiConsole {
                     type = AnsiType.Native;
                 } else {
                     out = stdout ? system_out : system_err;
-                    type = (stdout ? stdoutIsTty : stderrIsTty) ? AnsiType.Native : AnsiType.Redirected;
+                    boolean isTty = stdout ? stdoutIsTty : stderrIsTty;
+                    // On native Windows, a console handle alone does not imply ANSI
+                    // support: virtual terminal processing is only enabled on the
+                    // terminal-backed handle during terminal creation. Cygwin, MSYS2,
+                    // and ConEmu terminals support ANSI natively.
+                    boolean ansiSupported = isTty && (!IS_WINDOWS || IS_CYGWIN || IS_MSYSTEM || IS_CONEMU);
+                    type = ansiSupported ? AnsiType.Native : AnsiType.Redirected;
                 }
             }
         }
