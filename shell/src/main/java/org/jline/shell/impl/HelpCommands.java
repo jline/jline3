@@ -8,6 +8,7 @@
  */
 package org.jline.shell.impl;
 
+import java.text.MessageFormat;
 import java.util.List;
 
 import org.jline.reader.Candidate;
@@ -15,6 +16,7 @@ import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
 import org.jline.reader.ParsedLine;
 import org.jline.shell.*;
+import org.jline.utils.AttributedString;
 
 /**
  * Built-in help command group.
@@ -94,20 +96,48 @@ public class HelpCommands extends SimpleCommandGroup {
                 // Try to get detailed description
                 CommandDescription desc = cmd.describe(List.of(cmdName));
                 if (desc != null) {
+                    // Print main description if present
+                    List<AttributedString> mainDesc = desc.mainDescription();
+                    if (mainDesc != null && !mainDesc.isEmpty()) {
+                        for (AttributedString as : mainDesc) {
+                            session.out().println(as);
+                        }
+                    }
                     List<ArgumentDescription> argDescs = desc.arguments();
                     if (argDescs != null && !argDescs.isEmpty()) {
                         session.out().println("  Arguments:");
                         for (ArgumentDescription ad : argDescs) {
-                            String argDesc = "";
-                            if (ad.description() != null && !ad.description().isEmpty()) {
-                                argDesc = " - " + ad.description().get(0).toString();
-                            }
-                            session.out().println("    " + ad.name() + argDesc);
+                            printArgumentLines(session, ad);
                         }
                     }
                 }
             }
             return null;
+        }
+
+        private void printArgumentLines(final CommandSession session, final ArgumentDescription argumentDescription) {
+            final List<AttributedString> argumentLines = argumentDescription.description();
+            if ((argumentLines == null) || (argumentLines.isEmpty())) {
+                return;
+            }
+
+            // Print first line
+            final AttributedString firstLine = argumentLines.get(0);
+            final String firstPrintLine =
+                    MessageFormat.format("    {0} - {1}", argumentDescription.name(), firstLine.toString());
+            session.out().println(firstPrintLine);
+
+            // Print following lines, if any
+            for (int idx = 1; idx < argumentLines.size(); idx++) {
+                final int indentation = 4 + argumentDescription.name().length() + 2;
+
+                final AttributedString argumentLine = argumentLines.get(idx);
+                final String padding = " ".repeat(indentation);
+
+                final String argumentPrintLine = MessageFormat.format("{0} {1}", padding, argumentLine);
+
+                session.out().println(argumentPrintLine);
+            }
         }
     }
 
