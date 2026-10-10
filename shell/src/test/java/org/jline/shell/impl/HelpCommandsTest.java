@@ -230,4 +230,39 @@ class HelpCommandsTest extends AbstractCommandsTest {
         String output = outCapture.toString();
         assertEquals(expected, output);
     }
+
+    static class WithDescribeAndArgumentMissingArgumentLines extends AbstractCommand {
+        WithDescribeAndArgumentMissingArgumentLines() {
+            super("c");
+        }
+
+        @Override
+        public String description() {
+            return "Does something incredible";
+        }
+
+        @Override
+        public CommandDescription describe(final List<String> args) {
+            return CommandDescription.builder()
+                    .mainDescription(List.of(new AttributedString("Usage: c <param>")))
+                    .argument(new ArgumentDescription("<param>"))
+                    .build();
+        }
+
+        @Override
+        public Object execute(CommandSession session, String[] args) {
+            return null;
+        }
+    }
+
+    @Test
+    void testCommandWithDescribeAndArgumentMissingArgumentLines() throws Exception {
+        dispatcher.addGroup(new SimpleCommandGroup("with-describe", new WithDescribeAndArgumentMissingArgumentLines()));
+        Command cmd = commands.command("help");
+        cmd.execute(session, new String[] {"c"});
+        String expected =
+                "c\n" + "  Does something incredible\n" + "Usage: c <param>\n" + "  Arguments:\n" + "    <param>\n";
+        String output = outCapture.toString();
+        assertEquals(expected, output);
+    }
 }

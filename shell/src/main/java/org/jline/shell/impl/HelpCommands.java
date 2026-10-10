@@ -8,14 +8,18 @@
  */
 package org.jline.shell.impl;
 
-import java.text.MessageFormat;
 import java.util.List;
 
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
 import org.jline.reader.ParsedLine;
-import org.jline.shell.*;
+import org.jline.shell.ArgumentDescription;
+import org.jline.shell.Command;
+import org.jline.shell.CommandDescription;
+import org.jline.shell.CommandDispatcher;
+import org.jline.shell.CommandGroup;
+import org.jline.shell.CommandSession;
 import org.jline.utils.AttributedString;
 
 /**
@@ -118,24 +122,29 @@ public class HelpCommands extends SimpleCommandGroup {
         private void printArgumentLines(final CommandSession session, final ArgumentDescription argumentDescription) {
             final List<AttributedString> argumentLines = argumentDescription.description();
             if ((argumentLines == null) || (argumentLines.isEmpty())) {
+                // Respect old behavior
+                session.out().println("    " + argumentDescription.name());
                 return;
             }
 
             // Print first line
             final AttributedString firstLine = argumentLines.get(0);
-            final String firstPrintLine =
-                    MessageFormat.format("    {0} - {1}", argumentDescription.name(), firstLine.toString());
+            final String firstPrintLine = "    " + argumentDescription.name() + " - " + firstLine;
             session.out().println(firstPrintLine);
+
+            // Check if any lines follow
+            if (argumentLines.size() == 1) {
+                return;
+            }
+
+            // Calculate padding of argument description lines
+            final int indentation = 4 + argumentDescription.name().length() + 2;
+            final String padding = " ".repeat(indentation);
 
             // Print following lines, if any
             for (int idx = 1; idx < argumentLines.size(); idx++) {
-                final int indentation = 4 + argumentDescription.name().length() + 2;
-
                 final AttributedString argumentLine = argumentLines.get(idx);
-                final String padding = " ".repeat(indentation);
-
-                final String argumentPrintLine = MessageFormat.format("{0} {1}", padding, argumentLine);
-
+                final String argumentPrintLine = padding + " " + argumentLine;
                 session.out().println(argumentPrintLine);
             }
         }
