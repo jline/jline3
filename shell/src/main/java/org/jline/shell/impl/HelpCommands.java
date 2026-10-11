@@ -14,7 +14,13 @@ import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
 import org.jline.reader.ParsedLine;
-import org.jline.shell.*;
+import org.jline.shell.ArgumentDescription;
+import org.jline.shell.Command;
+import org.jline.shell.CommandDescription;
+import org.jline.shell.CommandDispatcher;
+import org.jline.shell.CommandGroup;
+import org.jline.shell.CommandSession;
+import org.jline.utils.AttributedString;
 
 /**
  * Built-in help command group.
@@ -94,20 +100,53 @@ public class HelpCommands extends SimpleCommandGroup {
                 // Try to get detailed description
                 CommandDescription desc = cmd.describe(List.of(cmdName));
                 if (desc != null) {
+                    // Print main description if present
+                    List<AttributedString> mainDesc = desc.mainDescription();
+                    if (mainDesc != null && !mainDesc.isEmpty()) {
+                        for (AttributedString as : mainDesc) {
+                            session.out().println(as);
+                        }
+                    }
                     List<ArgumentDescription> argDescs = desc.arguments();
                     if (argDescs != null && !argDescs.isEmpty()) {
                         session.out().println("  Arguments:");
                         for (ArgumentDescription ad : argDescs) {
-                            String argDesc = "";
-                            if (ad.description() != null && !ad.description().isEmpty()) {
-                                argDesc = " - " + ad.description().get(0).toString();
-                            }
-                            session.out().println("    " + ad.name() + argDesc);
+                            printArgumentLines(session, ad);
                         }
                     }
                 }
             }
             return null;
+        }
+
+        private void printArgumentLines(final CommandSession session, final ArgumentDescription argumentDescription) {
+            final List<AttributedString> argumentLines = argumentDescription.description();
+            if ((argumentLines == null) || (argumentLines.isEmpty())) {
+                // Respect old behavior
+                session.out().println("    " + argumentDescription.name());
+                return;
+            }
+
+            // Print first line
+            final AttributedString firstLine = argumentLines.get(0);
+            final String firstPrintLine = "    " + argumentDescription.name() + " - " + firstLine;
+            session.out().println(firstPrintLine);
+
+            // Check if any lines follow
+            if (argumentLines.size() == 1) {
+                return;
+            }
+
+            // Calculate padding of argument description lines
+            final int indentation = 4 + argumentDescription.name().length() + 2;
+            final String padding = " ".repeat(indentation);
+
+            // Print following lines, if any
+            for (int idx = 1; idx < argumentLines.size(); idx++) {
+                final AttributedString argumentLine = argumentLines.get(idx);
+                final String argumentPrintLine = padding + " " + argumentLine;
+                session.out().println(argumentPrintLine);
+            }
         }
     }
 

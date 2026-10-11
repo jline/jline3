@@ -11,6 +11,7 @@ package org.jline.shell.impl;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -37,6 +38,24 @@ public abstract class AbstractCommandsTest extends AbstractCommandDispatcherTest
         reader = LineReaderBuilder.builder().terminal(terminal).build();
         outCapture = new ByteArrayOutputStream();
         errCapture = new ByteArrayOutputStream();
-        session = new CommandSession(terminal, System.in, new PrintStream(outCapture), new PrintStream(errCapture));
+        session = new CommandSession(
+                terminal,
+                System.in,
+                new PrintStream(outCapture, false, StandardCharsets.UTF_8),
+                new PrintStream(errCapture, false, StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Returns captured stdout as a string, normalizing platform line endings to {@code \n}.
+     */
+    protected String getOutput() {
+        return outCapture.toString(StandardCharsets.UTF_8).replace("\r\n", "\n");
+    }
+
+    /**
+     * Returns captured stderr as a string, normalizing platform line endings to {@code \n}.
+     */
+    protected String getError() {
+        return errCapture.toString(StandardCharsets.UTF_8).replace("\r\n", "\n");
     }
 }
