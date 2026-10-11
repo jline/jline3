@@ -69,7 +69,7 @@ class HelpCommandsTest extends AbstractCommandsTest {
     void helpListAll() throws Exception {
         Command cmd = commands.command("help");
         cmd.execute(session, new String[0]);
-        String output = outCapture.toString();
+        String output = getOutput();
         assertTrue(output.contains("echo"));
         assertTrue(output.contains("upper"));
         assertTrue(output.contains("demo"));
@@ -79,7 +79,7 @@ class HelpCommandsTest extends AbstractCommandsTest {
     void helpSpecificCommand() throws Exception {
         Command cmd = commands.command("help");
         cmd.execute(session, new String[] {"echo"});
-        String output = outCapture.toString();
+        String output = getOutput();
         assertTrue(output.contains("echo"));
         assertTrue(output.contains("Echo arguments"));
     }
@@ -121,7 +121,7 @@ class HelpCommandsTest extends AbstractCommandsTest {
         Command cmd = commands.command("help");
         cmd.execute(session, new String[] {"c"});
         String expected = "c\n" + "  Does something incredible\n" + "Usage: c\n";
-        String output = outCapture.toString();
+        String output = getOutput();
         assertEquals(expected, output);
     }
 
@@ -155,7 +155,7 @@ class HelpCommandsTest extends AbstractCommandsTest {
         Command cmd = commands.command("help");
         cmd.execute(session, new String[] {"c"});
         String expected = "c\n" + "  Does something incredible\n" + "Usage: c\n" + "Want something cool?\n";
-        String output = outCapture.toString();
+        String output = getOutput();
         assertEquals(expected, output);
     }
 
@@ -190,7 +190,7 @@ class HelpCommandsTest extends AbstractCommandsTest {
         cmd.execute(session, new String[] {"c"});
         String expected = "c\n" + "  Does something incredible\n" + "Usage: c <param>\n" + "  Arguments:\n"
                 + "    <param> - Just a param\n";
-        String output = outCapture.toString();
+        String output = getOutput();
         assertEquals(expected, output);
     }
 
@@ -227,7 +227,7 @@ class HelpCommandsTest extends AbstractCommandsTest {
         cmd.execute(session, new String[] {"c"});
         String expected = "c\n" + "  Does something incredible\n" + "Usage: c <param>\n" + "  Arguments:\n"
                 + "    <param> - Just a param\n" + "              That is very cool\n";
-        String output = outCapture.toString();
+        String output = getOutput();
         assertEquals(expected, output);
     }
 
@@ -262,7 +262,7 @@ class HelpCommandsTest extends AbstractCommandsTest {
         cmd.execute(session, new String[] {"c"});
         String expected =
                 "c\n" + "  Does something incredible\n" + "Usage: c <param>\n" + "  Arguments:\n" + "    <param>\n";
-        String output = outCapture.toString();
+        String output = getOutput();
         assertEquals(expected, output);
     }
 }
