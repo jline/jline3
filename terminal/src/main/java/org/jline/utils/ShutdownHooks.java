@@ -17,8 +17,8 @@ import java.util.Objects;
  *
  * <p>
  * The ShutdownHooks class provides a centralized mechanism for registering tasks
- * that should be executed when the JVM shuts down. It manages a single shutdown
- * hook thread that executes all registered tasks in the order of their
+ * that should be executed when the JVM shuts down. By default, it manages a single
+ * shutdown hook thread that executes all registered tasks in the order of their
  * registration.
  * </p>
  *
@@ -121,8 +121,11 @@ public final class ShutdownHooks {
     public static synchronized void runTasks() {
         Log.debug("Running all shutdown-hook tasks");
 
-        // Iterate through copy of tasks list
-        for (Task task : tasks.toArray(new Task[tasks.size()])) {
+        // Take the tasks out before running them, so a task added while they run is kept for the next run
+        final Task[] toRun = tasks.toArray(new Task[tasks.size()]);
+        tasks.clear();
+
+        for (Task task : toRun) {
             Log.debug("Running task: ", task);
             try {
                 task.run();
@@ -130,8 +133,6 @@ public final class ShutdownHooks {
                 Log.warn("Task failed", e);
             }
         }
-
-        tasks.clear();
     }
 
     private static Thread addHook(final Thread thread) {

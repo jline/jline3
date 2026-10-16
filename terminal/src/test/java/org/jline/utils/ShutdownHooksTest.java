@@ -76,6 +76,20 @@ public class ShutdownHooksTest {
         assertNull(hook());
     }
 
+    @Test
+    void taskAddedWhileRunningIsKeptForTheNextRun() throws Exception {
+        System.setProperty(ShutdownHooks.PROP_DISABLE_SHUTDOWN_HOOK, "true");
+        AtomicInteger runs = new AtomicInteger();
+
+        ShutdownHooks.add(() -> ShutdownHooks.add(runs::incrementAndGet));
+
+        ShutdownHooks.runTasks();
+        assertEquals(0, runs.get());
+
+        ShutdownHooks.runTasks();
+        assertEquals(1, runs.get());
+    }
+
     private static Thread hook() throws Exception {
         Field field = ShutdownHooks.class.getDeclaredField("hook");
         field.setAccessible(true);
