@@ -12,6 +12,7 @@ import java.lang.reflect.Field;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -20,9 +21,20 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class ShutdownHooksTest {
 
-    @AfterEach
+    private String originalProperty;
+
+    @BeforeEach
     void clearProperty() {
-        System.clearProperty(ShutdownHooks.PROP_DISABLE_SHUTDOWN_HOOK);
+        originalProperty = System.clearProperty(ShutdownHooks.PROP_DISABLE_SHUTDOWN_HOOK);
+    }
+
+    @AfterEach
+    void restoreProperty() {
+        if (originalProperty == null) {
+            System.clearProperty(ShutdownHooks.PROP_DISABLE_SHUTDOWN_HOOK);
+        } else {
+            System.setProperty(ShutdownHooks.PROP_DISABLE_SHUTDOWN_HOOK, originalProperty);
+        }
     }
 
     @Test

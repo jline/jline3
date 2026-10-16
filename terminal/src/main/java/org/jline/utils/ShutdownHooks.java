@@ -109,7 +109,7 @@ public final class ShutdownHooks {
     }
 
     /**
-     * Runs all registered tasks, most recently added first, then forgets them.
+     * Runs all registered tasks, in the order they were registered, then forgets them.
      *
      * <p>
      * This is what the JLine shutdown hook does. It is meant for applications that set
