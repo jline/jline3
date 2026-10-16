@@ -57,6 +57,13 @@ public final class ShutdownHooks {
         // Utility class
     }
 
+    /**
+     * System property that, when set to {@code true}, prevents JLine from registering its shutdown
+     * hook with the JVM. Tasks are still tracked, and the application is then responsible for calling
+     * {@link #runTasks()} itself, for instance from its own shutdown hook.
+     */
+    public static final String PROP_DISABLE_SHUTDOWN_HOOK = "org.jline.shutdownhook.disable";
+
     private static final List<Task> tasks = new ArrayList<>();
 
     private static Thread hook;
@@ -84,8 +91,8 @@ public final class ShutdownHooks {
     public static synchronized <T extends Task> T add(final T task) {
         Objects.requireNonNull(task);
 
-        // Install the hook thread if needed
-        if (hook == null) {
+        // Install the hook thread if needed, unless the application runs the tasks itself
+        if (hook == null && !Boolean.getBoolean(PROP_DISABLE_SHUTDOWN_HOOK)) {
             hook = addHook(new Thread("JLine Shutdown Hook") {
                 @Override
                 public void run() {
@@ -101,7 +108,17 @@ public final class ShutdownHooks {
         return task;
     }
 
-    private static synchronized void runTasks() {
+    /**
+     * Runs all registered tasks, most recently added first, then forgets them.
+     *
+     * <p>
+     * This is what the JLine shutdown hook does. It is meant for applications that set
+     * {@link #PROP_DISABLE_SHUTDOWN_HOOK} and decide themselves when terminals get closed, for
+     * instance after their logging has been flushed. A task that fails is logged and does not
+     * prevent the other tasks from running.
+     * </p>
+     */
+    public static synchronized void runTasks() {
         Log.debug("Running all shutdown-hook tasks");
 
         // Iterate through copy of tasks list
@@ -126,16 +143,11 @@ public final class ShutdownHooks {
     public static synchronized void remove(final Task task) {
         Objects.requireNonNull(task);
 
-        // ignore if hook never installed
-        if (hook == null) {
-            return;
-        }
-
-        // Drop the task
+        // Drop the task, it is tracked even when the hook is disabled
         tasks.remove(task);
 
         // If there are no more tasks, then remove the hook thread
-        if (tasks.isEmpty()) {
+        if (hook != null && tasks.isEmpty()) {
             removeHook(hook);
             hook = null;
         }
