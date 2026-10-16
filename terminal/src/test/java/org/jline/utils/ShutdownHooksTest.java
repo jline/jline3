@@ -52,7 +52,7 @@ public class ShutdownHooksTest {
         System.setProperty(ShutdownHooks.PROP_DISABLE_SHUTDOWN_HOOK, "true");
         AtomicInteger runs = new AtomicInteger();
 
-        ShutdownHooks.Task task = ShutdownHooks.add(runs::incrementAndGet);
+        ShutdownHooks.add(runs::incrementAndGet);
         assertNull(hook());
 
         ShutdownHooks.runTasks();
@@ -61,7 +61,6 @@ public class ShutdownHooksTest {
         // the tasks are forgotten once they ran
         ShutdownHooks.runTasks();
         assertEquals(1, runs.get());
-        ShutdownHooks.remove(task);
     }
 
     @Test

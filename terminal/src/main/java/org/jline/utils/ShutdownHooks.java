@@ -18,7 +18,7 @@ import java.util.Objects;
  * <p>
  * The ShutdownHooks class provides a centralized mechanism for registering tasks
  * that should be executed when the JVM shuts down. It manages a single shutdown
- * hook thread that executes all registered tasks in the reverse order of their
+ * hook thread that executes all registered tasks in the order of their
  * registration.
  * </p>
  *
@@ -73,8 +73,8 @@ public final class ShutdownHooks {
      *
      * <p>
      * This method registers a task to be executed when the JVM shuts down. Tasks are
-     * executed in the reverse order of their registration, so the most recently added
-     * task will be executed first.
+     * executed in the order of their registration, so the first added task will be
+     * executed first.
      * </p>
      *
      * <p>
