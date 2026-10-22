@@ -1308,6 +1308,8 @@ public class LineReaderImpl implements LineReader, Flushable {
      *
      * <p>Autosuggestions are disabled when any handled signal is received.
      *
+     * @implNote This method acquires the reader's {@code lock} to serialize
+     *           with the input thread. Subclasses that override should do the same.
      * @param signal the received terminal signal (e.g. WINCH or CONT)
      */
     protected void handleSignal(Signal signal) {
