@@ -260,7 +260,6 @@ public class LineDisciplineTerminal extends AbstractTerminal {
             }
         }
         */
-        echoSignal(signal);
         super.raise(signal);
     }
 
@@ -298,14 +297,11 @@ public class LineDisciplineTerminal extends AbstractTerminal {
     protected boolean doProcessInputByte(int c) throws IOException {
         if (attributes.getLocalFlag(LocalFlag.ISIG)) {
             if (c == attributes.getControlChar(ControlChar.VINTR)) {
-                raise(Signal.INT);
-                return false;
+                return processSignal(c, Signal.INT);
             } else if (c == attributes.getControlChar(ControlChar.VQUIT)) {
-                raise(Signal.QUIT);
-                return false;
+                return processSignal(c, Signal.QUIT);
             } else if (c == attributes.getControlChar(ControlChar.VSUSP)) {
-                raise(Signal.TSTP);
-                return false;
+                return processSignal(c, Signal.TSTP);
             } else if (c == attributes.getControlChar(ControlChar.VSTATUS)) {
                 raise(Signal.INFO);
             }
@@ -339,6 +335,20 @@ public class LineDisciplineTerminal extends AbstractTerminal {
         }
         slaveInputPipe.write(c);
         return flushOut;
+    }
+
+    private boolean processSignal(int c, Signal signal) throws IOException {
+        boolean echo = attributes.getLocalFlag(LocalFlag.ECHO);
+        if (echo) {
+            if (attributes.getLocalFlag(LocalFlag.ECHOCTL) && (c < 32 || c == 127)) {
+                processOutputByte('^');
+                processOutputByte(c == 127 ? '?' : c + '@');
+            } else {
+                processOutputByte(c);
+            }
+        }
+        raise(signal);
+        return echo;
     }
 
     /**
