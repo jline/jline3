@@ -77,6 +77,28 @@ class LineDisciplineTerminalTest {
     }
 
     @Test
+    void signalEchoRequestsOutputFlush() throws Exception {
+        FlushTrackingOutputStream output = new FlushTrackingOutputStream();
+        try (LineDisciplineTerminal terminal =
+                new LineDisciplineTerminal("test", "xterm", output, StandardCharsets.UTF_8)) {
+            terminal.handle(Signal.INT, signal -> {});
+
+            terminal.processInputByte(terminal.getAttributes().getControlChar(ControlChar.VINTR));
+
+            assertEquals(1, output.flushCount);
+        }
+    }
+
+    private static final class FlushTrackingOutputStream extends ByteArrayOutputStream {
+        private int flushCount;
+
+        @Override
+        public void flush() {
+            flushCount++;
+        }
+    }
+
+    @Test
     void printableSignalCharacterIsEchoedLiterally() throws Exception {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         try (LineDisciplineTerminal terminal =

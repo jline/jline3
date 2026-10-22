@@ -339,15 +339,18 @@ public class LineDisciplineTerminal extends AbstractTerminal {
 
     private boolean processSignal(int c, Signal signal) throws IOException {
         boolean echo = attributes.getLocalFlag(LocalFlag.ECHO);
-        if (echo) {
-            if (attributes.getLocalFlag(LocalFlag.ECHOCTL) && (c < 32 || c == 127)) {
-                processOutputByte('^');
-                processOutputByte(c == 127 ? '?' : c + '@');
-            } else {
-                processOutputByte(c);
+        try {
+            if (echo) {
+                if (attributes.getLocalFlag(LocalFlag.ECHOCTL) && (c < 32 || c == 127)) {
+                    processOutputByte('^');
+                    processOutputByte(c == 127 ? '?' : c + '@');
+                } else {
+                    processOutputByte(c);
+                }
             }
+        } finally {
+            raise(signal);
         }
-        raise(signal);
         return echo;
     }
 
