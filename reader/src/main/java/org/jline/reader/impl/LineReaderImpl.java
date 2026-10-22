@@ -431,7 +431,7 @@ public class LineReaderImpl implements LineReader, Flushable {
 
     @Override
     public void setTailTip(String tailTip) {
-        this.tailTip = tailTip;
+        this.tailTip = tailTip != null ? tailTip : "";
     }
 
     @Override
