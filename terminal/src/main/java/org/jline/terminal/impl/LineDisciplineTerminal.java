@@ -264,6 +264,44 @@ public class LineDisciplineTerminal extends AbstractTerminal {
         super.raise(signal);
     }
 
+    @Override
+    protected void echoSignal(Signal signal) {
+        // Real TTYs (Linux n_tty, macOS/BSD) only echo the signal character when both
+        // ECHO and ECHOCTL are set. When ECHO is off (e.g. while code runs in a REPL),
+        // no ^C/^Z/^\\ should appear on the output.
+        // Also route through processOutputByte() (the regular echo path) rather than
+        // writer(), so the character is ordered correctly relative to other echoed input.
+        if (!attributes.getLocalFlag(LocalFlag.ECHO) || !attributes.getLocalFlag(LocalFlag.ECHOCTL)) {
+            return;
+        }
+        ControlChar cc = null;
+        switch (signal) {
+            case INT:
+                cc = ControlChar.VINTR;
+                break;
+            case QUIT:
+                cc = ControlChar.VQUIT;
+                break;
+            case TSTP:
+                cc = ControlChar.VSUSP;
+                break;
+        }
+        if (cc != null) {
+            int vcc = attributes.getControlChar(cc);
+            if (vcc > 0 && vcc < 32) {
+                try {
+                    processOutputByte('^');
+                    processOutputByte((char) (vcc + '@'));
+                    if (masterOutput != null) {
+                        masterOutput.flush();
+                    }
+                } catch (IOException e) {
+                    // Ignore
+                }
+            }
+        }
+    }
+
     /**
      * Master input processing.
      * All data coming to the terminal should be provided
