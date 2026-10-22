@@ -1308,42 +1308,50 @@ public class LineReaderImpl implements LineReader, Flushable {
      *
      * <p>Autosuggestions are disabled when any handled signal is received.
      *
+     * @implNote This method acquires the reader's {@code lock} to serialize
+     *           with the input thread. Subclasses that override should do the same.
      * @param signal the received terminal signal (e.g. WINCH or CONT)
      */
-    protected synchronized void handleSignal(Signal signal) {
-        doAutosuggestion = false;
-        if (signal == Signal.WINCH) {
-            // Check if the character grid size actually changed.
-            // Pixel-level resizing can trigger SIGWINCH without changing
-            // the number of rows/columns.
-            Size newSize = terminal.getBufferSize();
-            if (newSize.getRows() != size.getRows() || newSize.getColumns() != size.getColumns()) {
-                Status status = Status.getStatus(terminal, false);
-                if (status == null || status.size() == 0) {
-                    // The terminal has already reflowed the active reader display to
-                    // the new width. When no status rows are active, resize Display's
-                    // existing rendered model without emitting output. Repainting here
-                    // races the terminal emulator's own reflow and can leave duplicate
-                    // prompt fragments or clear unrelated scrollback above the active
-                    // prompt.
-                    size = newSize;
-                    display.resize(size);
-                } else {
-                    // Status bars reserve terminal rows and need explicit resize
-                    // coordination; keep the existing redraw path for that mode.
-                    size = newSize;
-                    doDisplay();
-                    status.resize(size);
-                    redisplay();
+    protected void handleSignal(Signal signal) {
+        lock.lock();
+        try {
+            doAutosuggestion = false;
+            if (signal == Signal.WINCH) {
+                // Check if the character grid size actually changed.
+                // Pixel-level resizing can trigger SIGWINCH without changing
+                // the number of rows/columns.
+                Size newSize = terminal.getBufferSize();
+                if (newSize.getRows() != size.getRows() || newSize.getColumns() != size.getColumns()) {
+                    Status status = Status.getStatus(terminal, false);
+                    if (status == null || status.size() == 0) {
+                        // The terminal has already reflowed the active reader display to
+                        // the new width. When no status rows are active, resize Display's
+                        // existing rendered model without emitting output. Repainting here
+                        // races the terminal emulator's own reflow and can leave duplicate
+                        // prompt fragments or clear unrelated scrollback above the active
+                        // prompt.
+                        size = newSize;
+                        display.resize(size);
+                    } else {
+                        // Preserve the cursor offset while repainting any prompt rows
+                        // that Status.resize may clear when the reserved area moves.
+                        size = newSize;
+                        display.resize(size);
+                        display.reset();
+                        status.resize(size);
+                        redisplay();
+                    }
                 }
+            } else if (signal == Signal.CONT) {
+                terminal.enterRawMode();
+                size = terminal.getBufferSize();
+                display.resize(size);
+                terminal.puts(Capability.keypad_xmit);
+                redrawLine();
+                redisplay();
             }
-        } else if (signal == Signal.CONT) {
-            terminal.enterRawMode();
-            size = terminal.getBufferSize();
-            display.resize(size);
-            terminal.puts(Capability.keypad_xmit);
-            redrawLine();
-            redisplay();
+        } finally {
+            lock.unlock();
         }
     }
 
