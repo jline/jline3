@@ -36,6 +36,31 @@ class HistorySearchTest extends ReaderTestSupport {
     }
 
     @Test
+    void tailTipPreservesIncrementalSearchPrompt() {
+        reader.setAutosuggestion(LineReader.SuggestionType.TAIL_TIP);
+        reader.setTailTip("[argument]");
+        assertLine("faddle", new TestBuffer().ctrl('R').append("f").enter(), false);
+        assertConsoleOutputContains("bck-i-search");
+    }
+
+    @Test
+    void completerPreservesIncrementalSearchPrompt() {
+        reader.setAutosuggestion(LineReader.SuggestionType.COMPLETER);
+        reader.setCompleter(new org.jline.reader.impl.completer.StringsCompleter("first", "second"));
+        reader.setVariable(LineReader.SUGGESTIONS_MIN_BUFFER_SIZE, 1);
+        assertLine("faddle", new TestBuffer().ctrl('R').append("f").enter(), false);
+        assertConsoleOutputContains("bck-i-search");
+    }
+
+    @Test
+    void tailTipPreservesForwardIncrementalSearchPrompt() {
+        reader.setAutosuggestion(LineReader.SuggestionType.TAIL_TIP);
+        reader.setTailTip("[argument]");
+        assertLine("", new TestBuffer().ctrl('S').enter(), false);
+        assertConsoleOutputContains("fwd-i-search");
+    }
+
+    @Test
     void testZshLikeBackspaceNavigation() {
         // Test zsh-like behavior: Ctrl+R, type "f", Ctrl+R to go deeper, then backspace should move back up
         // History: ["foo", "fiddle", "faddle"] - "faddle" is most recent
