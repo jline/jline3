@@ -33,7 +33,7 @@ import org.jline.utils.AttributedStyle;
 import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("removal")
-class Issue1025 {
+class Issue1025Test {
 
     private static void addInHeader(List<AttributedString> header, String text) {
         addInHeader(header, AttributedStyle.DEFAULT, text);
