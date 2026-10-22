@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-class NonBlockingBufferedReaderTest {
+class NonBlockingReaderTest {
 
     @Test
     void readsIntoPartialBuffer() throws Exception {
@@ -36,6 +36,7 @@ class NonBlockingBufferedReaderTest {
         for (boolean encoded : new boolean[] {false, true}) {
             try (NonBlockingReader reader = reader("a", encoded)) {
                 assertEquals(0, reader.readBuffered(new char[3], 1, 0, 0));
+                assertEquals(0, reader.readBuffered(new char[3], 3, 0, 0));
                 assertEquals('a', reader.read());
             }
         }

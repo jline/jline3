@@ -85,6 +85,7 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
             exception = null;
             throw toBeThrown;
         } else if (ch == EOF) {
+            // Preserve the terminal state so repeated buffered reads also return EOF.
             return EOF;
         } else if (ch >= 0) {
             b[off] = (char) ch;
