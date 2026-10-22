@@ -4451,7 +4451,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         AttributedStringBuilder full = new AttributedStringBuilder().tabs(getTabWidth());
         full.append(prompt);
         full.append(tNewBuf);
-        if (doAutosuggestion && !isTerminalDumb()) {
+        if (doAutosuggestion && !isTerminalDumb() && searchTerm == null) {
             String lastBinding = getLastBinding() != null ? getLastBinding() : "";
             if (autosuggestion == SuggestionType.HISTORY) {
                 AttributedStringBuilder sb = new AttributedStringBuilder();
