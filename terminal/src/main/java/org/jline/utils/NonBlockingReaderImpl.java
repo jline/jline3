@@ -198,6 +198,21 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
                 "NonBlockingReader");
     }
 
+    @Override
+    public synchronized int available() {
+        // If we have a buffered character from the pump thread, report 1.
+        // Otherwise, ask the underlying reader (best-effort; may return 0 even
+        // when data arrives momentarily, just like InputStream.available()).
+        if (ch >= 0) {
+            return 1;
+        }
+        try {
+            return in.ready() ? 1 : 0;
+        } catch (IOException e) {
+            return 0;
+        }
+    }
+
     public synchronized void clear() throws IOException {
         while (ready()) {
             read();

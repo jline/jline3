@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.Reader;
+import java.io.StringReader;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -543,6 +544,80 @@ class NonBlockingTest {
         readThread.join(2000);
         assertFalse(readThread.isAlive(), "Read thread should have exited after close");
         assertNull(readError.get(), "Read thread should not have thrown unexpected error");
+    }
+
+    // --- available() tests (issue #2329) ---
+
+    @Test
+    void testNonBlockingReaderImplAvailableInitiallyZero() throws Exception {
+        // A reader backed by a blocking source: available() must return 0
+        // when nothing has been buffered yet.
+        LatchReader blocking = new LatchReader();
+        NonBlockingReaderImpl nbr = new NonBlockingReaderImpl("avail-zero", blocking);
+        try {
+            assertEquals(0, nbr.available());
+        } finally {
+            blocking.release();
+            nbr.close();
+        }
+    }
+
+    @Test
+    void testNonBlockingReaderImplAvailableWithBufferedChar() throws Exception {
+        // Peek so the char lands in ch without consuming it;
+        // available() must then return >= 1.
+        StringReader sr = new StringReader("X");
+        NonBlockingReaderImpl nbr = new NonBlockingReaderImpl("avail-buffered", sr);
+        try {
+            int peeked = nbr.peek(500);
+            assertEquals('X', peeked);
+            assertTrue(nbr.available() > 0, "available() should be > 0 when ch is buffered");
+        } finally {
+            nbr.close();
+        }
+    }
+
+    @Test
+    void testNonBlockingPumpReaderAvailable() throws IOException {
+        NonBlockingPumpReader nbr = NonBlocking.nonBlockingPumpReader();
+        Writer writer = nbr.getWriter();
+        try {
+            assertEquals(0, nbr.available());
+            writer.write("hello");
+            assertEquals(5, nbr.available());
+            nbr.read(100);
+            assertEquals(4, nbr.available());
+        } finally {
+            nbr.close();
+        }
+    }
+
+    @Test
+    void testNonBlockingInputStreamReaderAvailable() throws IOException {
+        // NonBlockingPumpInputStream.available() is reliable — use it as source.
+        NonBlockingPumpInputStream pump = new NonBlockingPumpInputStream();
+        NonBlockingReader reader = NonBlocking.nonBlocking("avail-isr", pump, StandardCharsets.US_ASCII);
+        try {
+            // Nothing written yet.
+            assertEquals(0, reader.available());
+
+            // Write ASCII bytes (1 byte = 1 char for US-ASCII).
+            OutputStream out = pump.getOutputStream();
+            out.write("hello".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+
+            // available() must reflect the bytes in the pump as an estimate.
+            assertTrue(reader.available() > 0, "available() should be > 0 after writing bytes");
+
+            // Consume one char; remainder stays in pump or local buffer.
+            int c = reader.read(500);
+            assertEquals('h', c);
+
+            // 4 bytes still in pump + up to 4 chars in local buffer from decoding.
+            assertTrue(reader.available() > 0, "available() should be > 0 with buffered chars");
+        } finally {
+            reader.close();
+        }
     }
 
     private static Thread findThread(String name) {
