@@ -222,8 +222,8 @@ public class NonBlocking {
         public int readBuffered(char[] b, int off, int len, long timeout) throws IOException {
             if (b == null) {
                 throw new NullPointerException();
-            } else if (off < 0 || len < 0 || off + len < b.length) {
-                throw new IllegalArgumentException();
+            } else if (off < 0 || len < 0 || len > b.length - off) {
+                throw new IndexOutOfBoundsException();
             } else if (len == 0) {
                 return 0;
             } else if (chars.hasRemaining()) {

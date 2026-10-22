@@ -75,8 +75,8 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
     public int readBuffered(char[] b, int off, int len, long timeout) throws IOException {
         if (b == null) {
             throw new NullPointerException();
-        } else if (off < 0 || len < 0 || off + len < b.length) {
-            throw new IllegalArgumentException();
+        } else if (off < 0 || len < 0 || len > b.length - off) {
+            throw new IndexOutOfBoundsException();
         } else if (len == 0) {
             return 0;
         } else if (exception != null) {
@@ -84,8 +84,11 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
             IOException toBeThrown = exception;
             exception = null;
             throw toBeThrown;
-        } else if (ch >= -1) {
-            b[0] = (char) ch;
+        } else if (ch == EOF) {
+            // Preserve the terminal state so repeated buffered reads also return EOF.
+            return EOF;
+        } else if (ch >= 0) {
+            b[off] = (char) ch;
             ch = READ_EXPIRED;
             return 1;
         } else if (!pump.isReading() && timeout <= 0) {
