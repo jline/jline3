@@ -1,5 +1,5 @@
 /*
- * Copyright (c) the original author(s).
+ * Copyright (c) 2026, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -11,6 +11,7 @@ package org.jline.terminal.impl;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.jline.terminal.Attributes;
@@ -46,10 +47,10 @@ class LineDisciplineTerminalTest {
 
                         String expected =
                                 !echo ? "" : "a" + (echoControl ? "^" + (char) (c + '@') : "" + (char) c) + "b";
-                        assertEquals(expected, output.toString(StandardCharsets.UTF_8));
+                        assertEquals(expected, output.toString(StandardCharsets.UTF_8.name()));
                         terminal.flush();
-                        assertEquals(expected, output.toString(StandardCharsets.UTF_8));
-                        assertEquals(List.of(signals[i]), raised);
+                        assertEquals(expected, output.toString(StandardCharsets.UTF_8.name()));
+                        assertEquals(Collections.singletonList(signals[i]), raised);
                         assertEquals('a', terminal.input().read());
                         assertEquals('b', terminal.input().read());
                         assertEquals(
@@ -71,8 +72,8 @@ class LineDisciplineTerminalTest {
             terminal.raise(Signal.INT);
             terminal.flush();
 
-            assertEquals(List.of(Signal.INT), raised);
-            assertEquals("", output.toString(StandardCharsets.UTF_8));
+            assertEquals(Collections.singletonList(Signal.INT), raised);
+            assertEquals("", output.toString(StandardCharsets.UTF_8.name()));
         }
     }
 
@@ -111,8 +112,8 @@ class LineDisciplineTerminalTest {
 
             terminal.processInputByte('x');
 
-            assertEquals(List.of(Signal.INT), raised);
-            assertEquals("x", output.toString(StandardCharsets.UTF_8));
+            assertEquals(Collections.singletonList(Signal.INT), raised);
+            assertEquals("x", output.toString(StandardCharsets.UTF_8.name()));
         }
     }
 }
