@@ -9,6 +9,8 @@
 package org.jline.terminal.impl;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,6 +24,8 @@ import org.jline.utils.NonBlockingInputStream;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class LineDisciplineTerminalTest {
 
@@ -87,6 +91,38 @@ class LineDisciplineTerminalTest {
             terminal.processInputByte(terminal.getAttributes().getControlChar(ControlChar.VINTR));
 
             assertEquals(1, output.flushCount);
+        }
+    }
+
+    @Test
+    void signalIsDeliveredWhenEchoFails() throws Exception {
+        ControlChar[] chars = {ControlChar.VINTR, ControlChar.VQUIT, ControlChar.VSUSP};
+        Signal[] signals = {Signal.INT, Signal.QUIT, Signal.TSTP};
+        for (boolean echoControl : new boolean[] {false, true}) {
+            for (int i = 0; i < chars.length; i++) {
+                IOException failure = new IOException("echo failed");
+                OutputStream output = new OutputStream() {
+                    @Override
+                    public void write(int value) throws IOException {
+                        throw failure;
+                    }
+                };
+                try (LineDisciplineTerminal terminal =
+                        new LineDisciplineTerminal("test", "xterm", output, StandardCharsets.UTF_8)) {
+                    Attributes attributes = terminal.getAttributes();
+                    attributes.setLocalFlag(LocalFlag.ECHO, true);
+                    attributes.setLocalFlag(LocalFlag.ECHOCTL, echoControl);
+                    terminal.setAttributes(attributes);
+                    List<Signal> raised = new ArrayList<>();
+                    terminal.handle(signals[i], raised::add);
+                    int c = attributes.getControlChar(chars[i]);
+
+                    IOException thrown = assertThrows(IOException.class, () -> terminal.processInputByte(c));
+
+                    assertSame(failure, thrown);
+                    assertEquals(Collections.singletonList(signals[i]), raised);
+                }
+            }
         }
     }
 
