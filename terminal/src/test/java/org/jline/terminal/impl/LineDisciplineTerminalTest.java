@@ -46,7 +46,7 @@ class LineDisciplineTerminalTest {
                         terminal.processInputBytes(new byte[] {'a', (byte) c, 'b'});
 
                         String expected =
-                                !echo ? "" : "a" + (echoControl ? "^" + (char) (c + '@') : "" + (char) c) + "b";
+                                echo ? "a" + (echoControl ? "^" + (char) (c + '@') : "" + (char) c) + "b" : "";
                         assertEquals(expected, output.toString(StandardCharsets.UTF_8.name()));
                         terminal.flush();
                         assertEquals(expected, output.toString(StandardCharsets.UTF_8.name()));
