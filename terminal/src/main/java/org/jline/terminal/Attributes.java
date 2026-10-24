@@ -10,6 +10,7 @@ package org.jline.terminal;
 
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.Locale;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -768,11 +769,11 @@ public class Attributes {
         } else {
             value = String.valueOf((char) ch);
         }
-        return c.name().toLowerCase().substring(1) + "=" + value;
+        return c.name().toLowerCase(Locale.ROOT).substring(1) + "=" + value;
     }
 
     private <T extends Enum<T>> String append(EnumSet<T> set) {
-        return append(set, e -> e.name().toLowerCase());
+        return append(set, e -> e.name().toLowerCase(Locale.ROOT));
     }
 
     private <T extends Enum<T>> String append(EnumSet<T> set, Function<T, String> toString) {
