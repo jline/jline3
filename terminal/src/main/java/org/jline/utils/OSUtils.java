@@ -9,6 +9,7 @@
 package org.jline.utils;
 
 import java.io.File;
+import java.util.Locale;
 
 /**
  * Utility class for operating system detection and OS-specific operations.
@@ -53,16 +54,16 @@ public class OSUtils {
     }
 
     public static final boolean IS_LINUX =
-            System.getProperty("os.name").toLowerCase().contains("linux");
+            System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("linux");
 
     public static final boolean IS_WINDOWS =
-            System.getProperty("os.name").toLowerCase().contains("win");
+            System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win");
 
     public static final boolean IS_OSX =
-            System.getProperty("os.name").toLowerCase().contains("mac");
+            System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("mac");
 
     public static final boolean IS_AIX =
-            System.getProperty("os.name").toLowerCase().contains("aix");
+            System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("aix");
 
     public static final boolean IS_CYGWIN =
             IS_WINDOWS && System.getenv("PWD") != null && System.getenv("PWD").startsWith("/");
