@@ -4052,7 +4052,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         boolean out = true;
         File file = null;
         try {
-            file = File.createTempFile("jline-execute-", null);
+            file = Files.createTempFile("jline-execute-", null).toFile();
             try (FileWriter writer = new FileWriter(file)) {
                 writer.write(buf.toString());
             }

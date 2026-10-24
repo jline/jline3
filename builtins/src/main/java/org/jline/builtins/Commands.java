@@ -456,7 +456,7 @@ public class Commands {
                     iter.remove();
                 }
                 if (edit) {
-                    cmdFile = File.createTempFile("jline-history-", null);
+                    cmdFile = Files.createTempFile("jline-history-", null).toFile();
                     cmdWriter = new FileWriter(cmdFile);
                 } else if (!opt.args().isEmpty()) {
                     String[] s = opt.args().get(argId).split("=");

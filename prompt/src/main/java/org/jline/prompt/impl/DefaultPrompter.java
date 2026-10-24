@@ -14,6 +14,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOError;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -778,7 +779,8 @@ public class DefaultPrompter implements Prompter {
 
     private String launchEditor(EditorPrompt prompt) throws IOException {
         // Create temporary file
-        File tempFile = File.createTempFile("jline_editor_", "." + prompt.getFileExtension());
+        File tempFile = Files.createTempFile("jline_editor_", "." + prompt.getFileExtension())
+                .toFile();
         tempFile.deleteOnExit();
 
         // Write initial content if provided
