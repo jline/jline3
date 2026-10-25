@@ -75,6 +75,21 @@ class WCWidthTest {
         assertEquals(2, WCWidth.wcwidth(0x1F1EB)); // regional indicator F
     }
 
+    @Test
+    void wcwidth_ambiguousAndNeutralSymbols() {
+        // East Asian Width A and N symbols are not wide
+        assertEquals(1, WCWidth.wcwidth(0x3248)); // circled number ten on black square
+        assertEquals(1, WCWidth.wcwidth(0x1F100)); // digit zero full stop
+        assertEquals(1, WCWidth.wcwidth(0x1F130)); // squared Latin capital letter A
+        assertEquals(1, WCWidth.wcwidth(0x1F170)); // negative squared Latin capital letter A
+        assertEquals(1, WCWidth.wcwidth(0x1FA00)); // neutral chess king
+        assertEquals(1, WCWidth.wcwidth(0x1FA60)); // xiangqi red general
+        // East Asian Width W symbols in the same blocks stay wide
+        assertEquals(2, WCWidth.wcwidth(0x1F18E)); // negative squared AB
+        assertEquals(2, WCWidth.wcwidth(0x1F191)); // squared CL
+        assertEquals(2, WCWidth.wcwidth(0x3250)); // partnership sign
+    }
+
     // --- isRegionalIndicator ---
 
     @Test
