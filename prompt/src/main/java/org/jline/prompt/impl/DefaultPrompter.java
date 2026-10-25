@@ -779,8 +779,7 @@ public class DefaultPrompter implements Prompter {
 
     private String launchEditor(EditorPrompt prompt) throws IOException {
         // Create temporary file
-        File tempFile = Files.createTempFile("jline_editor_", "." + prompt.getFileExtension())
-                .toFile();
+        File tempFile = createEditorTempFile("jline_editor_", "." + prompt.getFileExtension());
         tempFile.deleteOnExit();
 
         // Write initial content if provided
@@ -817,6 +816,14 @@ public class DefaultPrompter implements Prompter {
         }
 
         return result.toString();
+    }
+
+    /**
+     * Creates the temporary file handed to the editor. The file holds the prompt text,
+     * so it is created with owner-only permissions on POSIX file systems.
+     */
+    protected File createEditorTempFile(String prefix, String suffix) throws IOException {
+        return Files.createTempFile(prefix, suffix).toFile();
     }
 
     /**
