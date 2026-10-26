@@ -62,6 +62,14 @@ class TerminalReaderTest extends ReaderTestSupport {
     }
 
     @Test
+    void testMaskedInputIsNotHistoryExpanded() throws Exception {
+        reader.getHistory().add("export TOKEN=s3cr3t");
+        mask = '*';
+        assertLine("pw!!", new TestBuffer("pw!!\n"), false);
+        assertLine("p\\ss!-1", new TestBuffer("p\\ss!-1\n"), false);
+    }
+
+    @Test
     void testExpansion() {
         DefaultHistory history = new DefaultHistory(reader);
         reader.setVariable(LineReader.HISTORY_SIZE, 3);
