@@ -81,6 +81,23 @@ class WebTerminalIntegrationTest {
         }
     }
 
+    /**
+     * A page on another site must not be able to embed the terminal in a frame: keys typed into
+     * the frame are posted by the terminal page itself, so they would pass the same-origin check.
+     */
+    @Test
+    void testMainPageForbidsFraming() throws IOException {
+        HttpURLConnection conn = (HttpURLConnection) new URL(baseUrl + "/").openConnection();
+        conn.setRequestMethod("GET");
+        try {
+            assertEquals(200, conn.getResponseCode());
+            assertEquals("DENY", conn.getHeaderField("X-Frame-Options"));
+            assertEquals("frame-ancestors 'none'", conn.getHeaderField("Content-Security-Policy"));
+        } finally {
+            conn.disconnect();
+        }
+    }
+
     @Test
     void testPollReturnsScreenContent() throws IOException {
         // Write something to the terminal first

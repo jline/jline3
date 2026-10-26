@@ -270,6 +270,10 @@ public class WebTerminal extends LineDisciplineTerminal {
             byte[] response = html.getBytes(StandardCharsets.UTF_8);
 
             exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
+            // The page turns every keystroke into terminal input from its own origin, so a foreign
+            // site must not be able to embed it in a disguised frame and collect the user's typing.
+            exchange.getResponseHeaders().set("X-Frame-Options", "DENY");
+            exchange.getResponseHeaders().set("Content-Security-Policy", "frame-ancestors 'none'");
             exchange.sendResponseHeaders(200, response.length);
 
             try (OutputStream os = exchange.getResponseBody()) {
