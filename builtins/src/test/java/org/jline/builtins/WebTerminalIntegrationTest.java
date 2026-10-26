@@ -406,6 +406,9 @@ class WebTerminalIntegrationTest {
         String literal = "127.0.0.1:" + port;
         assertEquals(200, sendWithHost("GET", "/", literal, null, ""));
         assertEquals(200, sendWithHost("POST", "/terminal", literal, "http://" + literal, "k=" + urlEncode("h")));
+        String ipv6 = "[::1]:" + port;
+        assertEquals(200, sendWithHost("GET", "/", ipv6, null, ""));
+        assertEquals(200, sendWithHost("POST", "/terminal", ipv6, "http://" + ipv6, "k="));
         assertEquals(200, postWithOrigin("k=" + urlEncode("i"), baseUrl));
         assertEquals(200, postWithOrigin("k=" + urlEncode("\r"), baseUrl));
 
