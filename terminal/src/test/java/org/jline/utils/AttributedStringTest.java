@@ -182,6 +182,43 @@ class AttributedStringTest {
     }
 
     @Test
+    void fromAnsiDropsEightBitControlSequences() {
+        // ECMA-48 defines single-character 8-bit forms of the introducers: CSI is U+009B,
+        // OSC U+009D, DCS U+0090, SOS U+0098, PM U+009E, APC U+009F, and ST is U+009C.
+        // Terminals that parse decoded code points (VTE) execute them exactly like the
+        // ESC-introduced forms, so they must be dropped the same way.
+        AttributedString s = AttributedString.fromAnsi("A\u009d52;c;cHduZWQ=\u009cB");
+        assertEquals("AB", s.toString());
+        assertEquals("AB", s.toAnsi());
+        assertEquals(2, s.columnLength());
+        // 8-bit OSC terminated by BEL
+        assertEquals("xy", AttributedString.stripAnsi("x\u009d0;title\u0007y"));
+        // 8-bit DCS, SOS, PM and APC terminated by 8-bit ST
+        assertEquals("ab", AttributedString.stripAnsi("a\u0090payload\u009cb"));
+        assertEquals("cd", AttributedString.stripAnsi("c\u0098payload\u009cd"));
+        assertEquals("ef", AttributedString.stripAnsi("e\u009epayload\u009cf"));
+        assertEquals("gh", AttributedString.stripAnsi("g\u009fpayload\u009ch"));
+        // 7-bit introducer closed by 8-bit ST, and the reverse
+        assertEquals("ij", AttributedString.stripAnsi("i\033]0;t\u009cj"));
+        assertEquals("kl", AttributedString.stripAnsi("k\u009d0;t\033\\l"));
+        // unterminated 8-bit string sequence is consumed to the end of the input
+        assertEquals("pre", AttributedString.stripAnsi("pre\u009d0;payload"));
+        // 8-bit CSI: non-SGR is dropped, SGR still styles the text
+        assertEquals("pq", AttributedString.stripAnsi("p\u009b2Jq"));
+        AttributedString sgr = AttributedString.fromAnsi("\u009b31mred\u009b0m");
+        assertEquals("red", sgr.toString());
+        assertEquals("\033[31mred\033[0m", sgr.toAnsi());
+        // private-mode CSI (e.g. ESC [ ? 25 l — cursor hide): the '?' parameter byte must not
+        // reset the CSI parser prematurely, causing the remainder to leak into visible text
+        assertEquals("ab", AttributedString.stripAnsi("a\033[?25lb"));
+        assertEquals("cd", AttributedString.stripAnsi("c\033[?1049hd"));
+        // ESC followed by an 8-bit C1 string introducer: both bytes must be consumed together
+        // (the pending ESC is not emitted, and the sequence is dropped normally)
+        assertEquals("mn", AttributedString.stripAnsi("m\033\u009d0;title\007n"));
+        assertEquals("op", AttributedString.stripAnsi("o\033\u009d0;payload\u009cp"));
+    }
+
+    @Test
     void testBoldThenFaint() {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         sb.styled(AttributedStyle::bold, "bold ");

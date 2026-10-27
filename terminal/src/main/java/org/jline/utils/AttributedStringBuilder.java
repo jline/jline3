@@ -638,8 +638,9 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
             char c = ansi.charAt(i);
             if (ansiState == 0 && c == 27) {
                 ansiState++;
-            } else if (ansiState == 1 && c == '[') {
-                ansiState++;
+            } else if ((ansiState == 1 && c == '[') || (ansiState == 0 && c == 0x9b)) {
+                // ESC [ or its single-character 8-bit form CSI (U+009B)
+                ansiState = 2;
                 ansiStart = i + 1;
             } else if (ansiState == 2) {
                 if (c == 'm') {
@@ -774,19 +775,31 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                     }
                     ansiState = 0;
                 } else if (!(c >= '0' && c <= '9' || c == ';')) {
-                    // This is not a SGR code, so ignore
-                    ansiState = 0;
+                    // This is not a SGR code (could be a private-mode or other CSI sequence,
+                    // e.g. ESC [ ? 25 l). Consume through the final byte (0x40–0x7E per ECMA-48)
+                    // rather than resetting immediately; otherwise private-mode parameter bytes
+                    // such as '?' reset the state and the remaining bytes leak into the output.
+                    if (c >= 0x40 && c <= 0x7e) {
+                        ansiState = 0;
+                    }
+                    // else: intermediate or private-parameter byte — stay in state 2
                 }
-            } else if (ansiState == 1 && (c == ']' || c == 'P' || c == 'X' || c == '^' || c == '_')) {
-                // OSC (]), DCS (P), SOS (X), PM (^) or APC (_) introducer. These carry a string
-                // payload terminated by BEL or ST (ESC \) and can drive the terminal itself (set
-                // the window title, write the clipboard via OSC 52, ...). When the text is
-                // untrusted (a file shown in Less, a completion candidate) that payload must not
-                // reach the terminal, so drop the whole sequence instead of emitting it.
+            } else if ((ansiState == 1 && (c == ']' || c == 'P' || c == 'X' || c == '^' || c == '_'))
+                    || ((ansiState == 0 || ansiState == 1)
+                            && (c == 0x9d || c == 0x90 || c == 0x98 || c == 0x9e || c == 0x9f))) {
+                // OSC (]), DCS (P), SOS (X), PM (^) or APC (_) introducer, either as ESC + char or
+                // as the single-character 8-bit C1 form (U+009D, U+0090, U+0098, U+009E, U+009F).
+                // The 8-bit C1 form is also recognised when ansiState == 1 (after ESC): ESC followed
+                // by a C1 string-introducer consumes both bytes instead of emitting the pending ESC.
+                // These carry a string payload terminated by BEL or ST (ESC \\ or U+009C) and can
+                // drive the terminal itself (set the window title, write the clipboard via OSC 52,
+                // ...). When the text is untrusted (a file shown in Less, a completion candidate)
+                // that payload must not reach the terminal, so drop the whole sequence instead of
+                // emitting it.
                 ansiState = 3;
             } else if (ansiState == 3) {
-                if (c == 7) {
-                    ansiState = 0; // BEL terminates the string
+                if (c == 7 || c == 0x9c) {
+                    ansiState = 0; // BEL or 8-bit ST terminates the string
                 } else if (c == 27) {
                     ansiState = 4; // possible ST: ESC \
                 }
