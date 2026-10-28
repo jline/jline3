@@ -600,6 +600,7 @@ public class LineReaderImpl implements LineReader, Flushable {
         // maskingCallback may be null
         // buffer may be null
         if (!commandsBuffer.isEmpty()) {
+            this.maskingCallback = maskingCallback;
             String cmd = commandsBuffer.remove(0);
             boolean done = false;
             do {
