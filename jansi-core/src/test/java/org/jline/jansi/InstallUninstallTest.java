@@ -38,12 +38,21 @@ class InstallUninstallTest {
 
     @Test
     void theTerminalsProviderDecidesWhetherTheOtherStreamIsATty() throws IOException {
+        // A native Windows console gets ANSI only on the stream the terminal writes to.
+        boolean ansiOnOtherTty =
+                !AnsiConsole.IS_WINDOWS || AnsiConsole.IS_CYGWIN || AnsiConsole.IS_MSYSTEM || AnsiConsole.IS_CONEMU;
+        assertEquals(ansiOnOtherTty ? AnsiType.Native : AnsiType.Redirected, stderrTypeWhenProviderSays(true));
+
+        assertEquals(AnsiType.Redirected, stderrTypeWhenProviderSays(false));
+    }
+
+    private static AnsiType stderrTypeWhenProviderSays(boolean isTty) throws IOException {
         Set<SystemStream> asked = EnumSet.noneOf(SystemStream.class);
         TerminalProvider provider = new DumbTerminalProvider() {
             @Override
             public boolean isSystemStream(SystemStream stream) {
                 asked.add(stream);
-                return true;
+                return isTty;
             }
         };
         AnsiConsole.setTerminal(
@@ -61,12 +70,7 @@ class InstallUninstallTest {
         AnsiConsole.systemInstall();
         try {
             assertEquals(EnumSet.of(SystemStream.Error), asked);
-            // A native Windows console gets ANSI only on the stream the terminal writes to.
-            boolean ansiOnOtherTty =
-                    !AnsiConsole.IS_WINDOWS || AnsiConsole.IS_CYGWIN || AnsiConsole.IS_MSYSTEM || AnsiConsole.IS_CONEMU;
-            assertEquals(
-                    ansiOnOtherTty ? AnsiType.Native : AnsiType.Redirected,
-                    AnsiConsole.err().getType());
+            return AnsiConsole.err().getType();
         } finally {
             AnsiConsole.systemUninstall();
         }
