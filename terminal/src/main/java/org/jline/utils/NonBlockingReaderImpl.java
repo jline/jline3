@@ -68,7 +68,7 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
 
     @Override
     public synchronized boolean ready() throws IOException {
-        return ch >= 0 || in.ready();
+        return ch >= 0 || (ch != EOF && in.ready());
     }
 
     @Override
@@ -180,9 +180,12 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
          * a local read was performed or the read thread set it (or failed to
          * change it).  We will return it's value, but if this was a peek
          * operation, then we leave it in place.
+         * Keep EOF sticky: once the stream is exhausted, do not reset ch to
+         * READ_EXPIRED, so that available() continues to return 0 correctly
+         * (StringReader.ready() returns true even after EOF).
          */
         int ret = ch;
-        if (!isPeek) {
+        if (!isPeek && ch != EOF) {
             ch = READ_EXPIRED;
         }
         return ret;
