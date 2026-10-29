@@ -635,6 +635,8 @@ public class LineReaderImpl implements LineReader, Flushable {
         SignalHandler previousWinchHandler = null;
         SignalHandler previousContHandler = null;
         Attributes originalAttributes = null;
+        KillRing savedKillRing = null;
+        String savedYankBuffer = null;
         boolean dumb = isTerminalDumb();
         boolean userInterrupt = false;
         try {
@@ -656,6 +658,16 @@ public class LineReaderImpl implements LineReader, Flushable {
             state = State.NORMAL;
 
             modifiedHistory.clear();
+
+            if (maskingCallback != null) {
+                // Text killed or yanked while reading masked input (a password) must not stay in
+                // the kill ring or vi yank buffer, where a yank at a later prompt would insert it
+                // in clear text. Use a private ring for this read and restore the shared one after.
+                savedKillRing = killRing;
+                savedYankBuffer = yankBuffer;
+                killRing = new KillRing();
+                yankBuffer = "";
+            }
 
             setPrompt(prompt);
             setRightPrompt(rightPrompt);
@@ -814,6 +826,11 @@ public class LineReaderImpl implements LineReader, Flushable {
                 lock.lock();
 
                 this.reading = false;
+
+                if (savedKillRing != null) {
+                    killRing = savedKillRing;
+                    yankBuffer = savedYankBuffer;
+                }
 
                 Terminal.SignalHandler tmpHandler = terminal.handle(Signal.INT, s -> interrupted.set(true));
                 if (previousIntrHandler == null) {
