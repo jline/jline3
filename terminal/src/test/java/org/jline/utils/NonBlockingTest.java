@@ -593,6 +593,53 @@ class NonBlockingTest {
     }
 
     @Test
+    void testNonBlockingReaderImplAvailableAfterEof() throws Exception {
+        // StringReader.ready() returns true even after EOF — verify that
+        // available() and ready() correctly return 0/false once the stream is exhausted.
+        StringReader sr = new StringReader("AB");
+        NonBlockingReaderImpl nbr = new NonBlockingReaderImpl("avail-eof", sr);
+        try {
+            assertEquals('A', nbr.read(500));
+            assertEquals('B', nbr.read(500));
+            assertEquals(-1, nbr.read(500));
+            assertEquals(0, nbr.available(), "available() should be 0 after EOF");
+            assertFalse(nbr.ready(), "ready() should be false after EOF");
+            assertEquals(-1, nbr.read(500), "subsequent read should still return EOF");
+        } finally {
+            nbr.close();
+        }
+    }
+
+    @Test
+    void testNonBlockingReaderImplReadyAfterEof() throws Exception {
+        // StringReader.ready() returns true even after EOF — this was causing clear() to hang.
+        // After EOF, ready() must return false so the drain loop can exit.
+        StringReader sr = new StringReader("x");
+        NonBlockingReaderImpl nbr = new NonBlockingReaderImpl("ready-eof", sr);
+        try {
+            assertEquals('x', nbr.read(500)); // consume the only char
+            assertEquals(NonBlockingReader.EOF, nbr.read(500)); // hit EOF
+            assertFalse(nbr.ready(), "ready() must return false after EOF");
+        } finally {
+            nbr.close();
+        }
+    }
+
+    @Test
+    void testNonBlockingReaderImplStickyEof() throws Exception {
+        // read() after EOF must keep returning EOF (sticky), not READ_EXPIRED.
+        StringReader sr = new StringReader("x");
+        NonBlockingReaderImpl nbr = new NonBlockingReaderImpl("sticky-eof", sr);
+        try {
+            nbr.read(500); // consume 'x'
+            assertEquals(NonBlockingReader.EOF, nbr.read(500)); // first EOF
+            assertEquals(NonBlockingReader.EOF, nbr.read(0)); // must still be EOF, not READ_EXPIRED
+        } finally {
+            nbr.close();
+        }
+    }
+
+    @Test
     void testNonBlockingInputStreamReaderAvailable() throws IOException {
         // NonBlockingPumpInputStream.available() is reliable — use it as source.
         NonBlockingPumpInputStream pump = new NonBlockingPumpInputStream();
