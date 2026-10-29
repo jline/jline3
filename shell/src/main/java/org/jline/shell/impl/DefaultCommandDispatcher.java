@@ -235,6 +235,8 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
             } catch (Exception e) {
                 PrintStream err = new PrintStream(terminal.output());
                 err.println("[" + jobRef.get().id() + "]  Error: " + e.getMessage());
+                // the shell may be blocked reading input, so nothing else would flush it
+                err.flush();
             } finally {
                 DefaultJob job = jobRef.get();
                 if (job != null) {
@@ -252,6 +254,7 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
 
         PrintStream out = new PrintStream(terminal.output());
         out.println("[" + job.id() + "]  " + cmdLine + " &");
+        out.flush();
 
         return null;
     }

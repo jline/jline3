@@ -8,7 +8,11 @@
  */
 package org.jline.shell.impl;
 
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -17,6 +21,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jline.shell.*;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.impl.DumbTerminal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -302,6 +308,21 @@ class DefaultCommandDispatcherTest extends AbstractCommandDispatcherTest {
             bgDispatcher.addGroup(new SimpleCommandGroup("test", new NoopCommand()));
             bgDispatcher.execute("noop &");
             await().atMost(2, TimeUnit.SECONDS).until(() -> !jobManager.jobs().isEmpty());
+        }
+    }
+
+    @Test
+    void backgroundErrorIsFlushed() throws Exception {
+        // system terminals buffer their output, and the shell may be blocked reading input meanwhile
+        ByteArrayOutputStream written = new ByteArrayOutputStream();
+        DefaultJobManager jobManager = new DefaultJobManager();
+        try (Terminal bufferedTerminal =
+                        new DumbTerminal(new ByteArrayInputStream(new byte[0]), new BufferedOutputStream(written));
+                DefaultCommandDispatcher bgDispatcher = new DefaultCommandDispatcher(bufferedTerminal, jobManager)) {
+            bgDispatcher.addGroup(new SimpleCommandGroup("test", new FailCommand()));
+            bgDispatcher.execute("fail &");
+            await().atMost(2, TimeUnit.SECONDS)
+                    .until(() -> written.toString(StandardCharsets.UTF_8).contains("Error: command failed"));
         }
     }
 
