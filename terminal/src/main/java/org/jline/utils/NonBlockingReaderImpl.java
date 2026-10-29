@@ -203,20 +203,28 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
      *
      * <p>Returns {@code 1} if a character has already been buffered by the background pump thread,
      * or if the underlying reader reports {@link java.io.Reader#ready() ready()}. Returns {@code 0}
-     * otherwise. Because {@code Reader.ready()} returns a {@code boolean}, the result is always
-     * either {@code 0} or {@code 1} — callers should not rely on this for a precise character count,
-     * only as a "data may be available" signal consistent with the {@link java.io.InputStream#available()}
-     * contract.
+     * at EOF, when the pump is actively reading (to avoid contention on the underlying reader's
+     * lock), or when the underlying reader is not ready. Because {@code Reader.ready()} returns a
+     * {@code boolean}, the result is always either {@code 0} or {@code 1} — callers should not
+     * rely on this for a precise character count, only as a "data may be available" signal
+     * consistent with the {@link java.io.InputStream#available()} contract.
      *
      * @return {@code 1} if data is likely available, {@code 0} otherwise
      */
     @Override
     public synchronized int available() {
         // If we have a buffered character from the pump thread, report 1.
+        // EOF is sticky — once the stream is exhausted, nothing further is available.
+        // When the pump is actively reading, skip in.ready(): BufferedReader.read() and
+        // ready() share the same lock, so calling ready() while the pump blocks in read()
+        // would deadlock until the read completes.
         // Otherwise, ask the underlying reader (best-effort; may return 0 even
         // when data arrives momentarily, just like InputStream.available()).
         if (ch >= 0) {
             return 1;
+        }
+        if (ch == EOF || pump.isReading()) {
+            return 0;
         }
         try {
             return in.ready() ? 1 : 0;
