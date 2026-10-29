@@ -92,7 +92,13 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
             ch = READ_EXPIRED;
             return 1;
         } else if (!pump.isReading() && timeout <= 0) {
-            return in.read(b, off, len);
+            int r = in.read(b, off, len);
+            if (r == EOF) {
+                // Keep EOF sticky so available() returns 0 on subsequent calls
+                // (e.g. StringReader.ready() returns true even after EOF).
+                ch = EOF;
+            }
+            return r;
         } else {
             // TODO: rework implementation to read as much as possible
             int c = read(timeout, false);

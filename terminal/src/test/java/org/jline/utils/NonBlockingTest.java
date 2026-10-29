@@ -640,6 +640,27 @@ class NonBlockingTest {
     }
 
     @Test
+    void testNonBlockingReaderImplAvailableAfterReadBufferedEof() throws Exception {
+        // readBuffered() direct-read path (timeout=0, pump not reading) must also
+        // keep EOF sticky so available() returns 0 after the last character is consumed.
+        StringReader sr = new StringReader("A");
+        NonBlockingReaderImpl nbr = new NonBlockingReaderImpl("readbuf-eof", sr);
+        try {
+            char[] buf = new char[4];
+            int n = nbr.readBuffered(buf, 0, buf.length, 0);
+            assertEquals(1, n);
+            assertEquals('A', buf[0]);
+            // Now drain to EOF via readBuffered
+            n = nbr.readBuffered(buf, 0, buf.length, 0);
+            assertEquals(NonBlockingReader.EOF, n, "readBuffered() should return EOF");
+            assertEquals(0, nbr.available(), "available() should be 0 after readBuffered EOF");
+            assertFalse(nbr.ready(), "ready() should be false after readBuffered EOF");
+        } finally {
+            nbr.close();
+        }
+    }
+
+    @Test
     void testNonBlockingInputStreamReaderAvailable() throws IOException {
         // NonBlockingPumpInputStream.available() is reliable — use it as source.
         NonBlockingPumpInputStream pump = new NonBlockingPumpInputStream();
