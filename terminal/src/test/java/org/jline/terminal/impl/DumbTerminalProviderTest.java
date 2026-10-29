@@ -12,7 +12,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 import org.junit.jupiter.api.Test;
 
@@ -79,6 +82,49 @@ public class DumbTerminalProviderTest {
 
         assertEquals("pending", fd.bytes.toString("UTF-8"));
         assertFalse(fd.closed, "the system file descriptor must not be closed");
+    }
+
+    @Test
+    public void testConcurrentWritesDoNotLoseBytes() throws Exception {
+        // the stream is shared by everything writing to the system terminal, possibly from several threads
+        RecordingOutputStream fd = new RecordingOutputStream();
+        OutputStream out = DumbTerminalProvider.systemOutput(fd);
+        int threads = 4;
+        int bytesPerThread = 100_000;
+        CountDownLatch start = new CountDownLatch(1);
+        List<Thread> writers = new ArrayList<>();
+        List<Throwable> failures = new ArrayList<>();
+        for (int i = 0; i < threads; i++) {
+            byte b = (byte) ('a' + i);
+            Thread writer = new Thread(() -> {
+                try {
+                    start.await();
+                    for (int j = 0; j < bytesPerThread; j++) {
+                        out.write(b);
+                    }
+                } catch (Throwable t) {
+                    synchronized (failures) {
+                        failures.add(t);
+                    }
+                }
+            });
+            writer.start();
+            writers.add(writer);
+        }
+        start.countDown();
+        for (Thread writer : writers) {
+            writer.join();
+        }
+        out.flush();
+
+        assertTrue(failures.isEmpty(), "writers failed: " + failures);
+        int[] counts = new int[threads];
+        for (byte b : fd.bytes.toByteArray()) {
+            counts[b - 'a']++;
+        }
+        for (int i = 0; i < threads; i++) {
+            assertEquals(bytesPerThread, counts[i], "bytes written by thread " + i);
+        }
     }
 
     private static byte[] data() {

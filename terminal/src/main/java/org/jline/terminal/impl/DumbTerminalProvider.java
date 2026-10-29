@@ -8,6 +8,7 @@
  */
 package org.jline.terminal.impl;
 
+import java.io.BufferedOutputStream;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -24,7 +25,6 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
-import org.jline.utils.FastBufferedOutputStream;
 
 /**
  * Terminal provider implementation for dumb terminals.
@@ -86,16 +86,18 @@ public class DumbTerminalProvider implements TerminalProvider {
     /**
      * Wraps a system output stream for a dumb terminal.
      * <p>
-     * The stream is buffered like the output of {@link PosixSysTerminal}: without a buffer, consumers
-     * that write one byte at a time (such as {@code AnsiOutputStream}) issue one system call per byte
-     * when the output is redirected to a pipe or a file. Closing the returned stream flushes the buffer
-     * but keeps the underlying file descriptor open.
+     * The stream is buffered: without a buffer, consumers that write one byte at a time (such as
+     * {@code AnsiOutputStream}) issue one system call per byte when the output is redirected to a pipe
+     * or a file. The buffer is synchronized because the stream is shared by everything writing to the
+     * system terminal, possibly from several threads, and the unbuffered file descriptor it replaces
+     * never lost bytes under concurrent writes. Closing the returned stream flushes the buffer but keeps
+     * the underlying file descriptor open.
      *
      * @param out the stream writing to the system file descriptor
      * @return the buffered, non-closeable stream
      */
     static OutputStream systemOutput(OutputStream out) {
-        return new NonCloseableOutputStream(new FastBufferedOutputStream(out));
+        return new NonCloseableOutputStream(new BufferedOutputStream(out));
     }
 
     @SuppressWarnings("deprecation")
