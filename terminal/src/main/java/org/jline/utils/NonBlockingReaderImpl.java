@@ -198,6 +198,18 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
                 "NonBlockingReader");
     }
 
+    /**
+     * Returns an estimate of the number of characters available to be read without blocking.
+     *
+     * <p>Returns {@code 1} if a character has already been buffered by the background pump thread,
+     * or if the underlying reader reports {@link java.io.Reader#ready() ready()}. Returns {@code 0}
+     * otherwise. Because {@code Reader.ready()} returns a {@code boolean}, the result is always
+     * either {@code 0} or {@code 1} — callers should not rely on this for a precise character count,
+     * only as a "data may be available" signal consistent with the {@link java.io.InputStream#available()}
+     * contract.
+     *
+     * @return {@code 1} if data is likely available, {@code 0} otherwise
+     */
     @Override
     public synchronized int available() {
         // If we have a buffered character from the pump thread, report 1.

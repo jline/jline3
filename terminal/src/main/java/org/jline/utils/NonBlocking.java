@@ -257,6 +257,9 @@ public class NonBlocking {
         public int available() {
             // Chars already decoded and waiting in the local buffer, plus a
             // best-effort estimate from the underlying byte stream.
+            // Note: input.available() returns 0 for real terminal streams
+            // (NonBlockingInputStreamImpl does not override it), so for live
+            // terminals the estimate reduces to chars.remaining() only.
             try {
                 return chars.remaining() + (int) (input.available() * decoder.averageCharsPerByte());
             } catch (IOException e) {
