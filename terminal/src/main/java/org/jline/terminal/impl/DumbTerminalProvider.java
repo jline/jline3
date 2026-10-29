@@ -22,6 +22,7 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalProvider;
+import org.jline.utils.FastBufferedOutputStream;
 import org.jline.utils.NonCloseableInputStream;
 import org.jline.utils.NonCloseableOutputStream;
 
@@ -83,10 +84,25 @@ public class DumbTerminalProvider implements TerminalProvider {
         // For system terminals, wrap the streams in non-closeable wrappers
         // to prevent closing the underlying FileDescriptors when the terminal is closed
         InputStream in = new NonCloseableInputStream(new FileInputStream(FileDescriptor.in));
-        OutputStream out = new NonCloseableOutputStream(
+        OutputStream out = systemOutput(
                 new FileOutputStream(systemStream == SystemStream.Error ? FileDescriptor.err : FileDescriptor.out));
         return new DumbTerminal(
                 this, systemStream, name, type, in, out, encoding, inputEncoding, outputEncoding, signalHandler);
+    }
+
+    /**
+     * Wraps a system output stream for a dumb terminal.
+     * <p>
+     * The stream is buffered like the output of {@link AbstractUnixSysTerminal}: without a buffer, consumers
+     * that write one byte at a time (such as {@code AnsiOutputStream}) issue one system call per byte
+     * when the output is redirected to a pipe or a file. Closing the returned stream flushes the buffer
+     * but keeps the underlying file descriptor open.
+     *
+     * @param out the stream writing to the system file descriptor
+     * @return the buffered, non-closeable stream
+     */
+    static OutputStream systemOutput(OutputStream out) {
+        return new FastBufferedOutputStream(new NonCloseableOutputStream(out));
     }
 
     @Override
