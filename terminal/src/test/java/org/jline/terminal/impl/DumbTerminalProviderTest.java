@@ -24,12 +24,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Tests the output stream {@link DumbTerminalProvider} uses for system terminals.
  */
-public class DumbTerminalProviderTest {
+class DumbTerminalProviderTest {
 
     private static final int LENGTH = 15 * 1024;
 
     @Test
-    public void testSingleByteWritesAreBuffered() throws IOException {
+    void testSingleByteWritesAreBuffered() throws IOException {
         // AnsiOutputStream writes one byte at a time; this used to be one write(2) per byte
         RecordingOutputStream fd = new RecordingOutputStream();
         OutputStream out = DumbTerminalProvider.systemOutput(fd);
@@ -45,7 +45,7 @@ public class DumbTerminalProviderTest {
     }
 
     @Test
-    public void testBulkWritesAreNotSplitIntoBytes() throws IOException {
+    void testBulkWritesAreNotSplitIntoBytes() throws IOException {
         RecordingOutputStream fd = new RecordingOutputStream();
         OutputStream out = DumbTerminalProvider.systemOutput(fd);
         byte[] data = data();
@@ -58,7 +58,7 @@ public class DumbTerminalProviderTest {
     }
 
     @Test
-    public void testOutputIsHeldUntilFlushed() throws IOException {
+    void testOutputIsHeldUntilFlushed() throws IOException {
         RecordingOutputStream fd = new RecordingOutputStream();
         OutputStream out = DumbTerminalProvider.systemOutput(fd);
 
@@ -70,7 +70,7 @@ public class DumbTerminalProviderTest {
     }
 
     @Test
-    public void testCloseFlushesButKeepsDescriptorOpen() throws IOException {
+    void testCloseFlushesButKeepsDescriptorOpen() throws IOException {
         RecordingOutputStream fd = new RecordingOutputStream();
         OutputStream out = DumbTerminalProvider.systemOutput(fd);
 
