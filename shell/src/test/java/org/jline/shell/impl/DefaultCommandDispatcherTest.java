@@ -327,6 +327,21 @@ class DefaultCommandDispatcherTest extends AbstractCommandDispatcherTest {
     }
 
     @Test
+    void backgroundOutputIsFlushedBeforeJobCompletes() throws Exception {
+        ByteArrayOutputStream written = new ByteArrayOutputStream();
+        DefaultJobManager jobManager = new DefaultJobManager();
+        try (Terminal bufferedTerminal =
+                        new DumbTerminal(new ByteArrayInputStream(new byte[0]), new BufferedOutputStream(written));
+                DefaultCommandDispatcher bgDispatcher = new DefaultCommandDispatcher(bufferedTerminal, jobManager)) {
+            bgDispatcher.addGroup(new SimpleCommandGroup("test", new TestEchoCommand()));
+            bgDispatcher.execute("echo hello &");
+            await().atMost(2, TimeUnit.SECONDS)
+                    .until(() -> jobManager.jobs().get(0).status() == Job.Status.Done);
+            assertTrue(written.toString(StandardCharsets.UTF_8).contains("hello\n"));
+        }
+    }
+
+    @Test
     void emptyInput() throws Exception {
         assertNull(dispatcher.execute(""));
         assertNull(dispatcher.execute("   "));

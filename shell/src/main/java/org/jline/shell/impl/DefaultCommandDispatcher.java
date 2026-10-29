@@ -235,9 +235,13 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
             } catch (Exception e) {
                 PrintStream err = new PrintStream(terminal.output());
                 err.println("[" + jobRef.get().id() + "]  Error: " + e.getMessage());
-                // the shell may be blocked reading input, so nothing else would flush it
-                err.flush();
             } finally {
+                // the shell may be blocked reading input, so nothing else would flush the job's output
+                try {
+                    terminal.output().flush();
+                } catch (IOException e) {
+                    // Best-effort flush; it must not mask the command's own failure
+                }
                 DefaultJob job = jobRef.get();
                 if (job != null) {
                     jobManager.completeJob(job);
