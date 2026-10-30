@@ -203,19 +203,23 @@ class KillRingTest extends ReaderTestSupport {
 
     @Test
     void testMaskedKillIsNotYankedLater() {
+        assertLine("", new TestBuffer("previous").op(KILL_WHOLE_LINE).enter());
         mask = '*';
+        assertLine("", new TestBuffer().op(YANK).enter());
         assertLine("", new TestBuffer("s3cr3t").op(KILL_WHOLE_LINE).enter());
         mask = null;
-        assertLine("", new TestBuffer().op(YANK).enter());
+        assertLine("previous", new TestBuffer().op(YANK).enter());
     }
 
     @Test
     void testMaskedViYankIsNotPutLater() {
         reader.getKeyMaps().put(MAIN, reader.getKeyMaps().get(VIINS));
+        assertLine("previous", new TestBuffer("previous").escape().append("yy").enter());
         mask = '*';
+        assertLine("", new TestBuffer().escape().append("p").enter());
         assertLine("s3cr3t", new TestBuffer("s3cr3t").escape().append("yy").enter());
         mask = null;
-        assertLine("", new TestBuffer().escape().append("p").enter());
+        assertLine("previous", new TestBuffer().escape().append("p").enter());
     }
 
     @Test
