@@ -53,6 +53,7 @@ public class WebTerminal extends LineDisciplineTerminal {
 
     private static final int DEFAULT_PORT = 8080;
     private static final String DEFAULT_HOST = "localhost";
+    private static final String HTTP_SCHEME = "http://";
 
     private final WebTerminalComponent component;
     private HttpServer server;
@@ -122,9 +123,9 @@ public class WebTerminal extends LineDisciplineTerminal {
      */
     public String getUrl() {
         if (server != null) {
-            return "http://" + host + ":" + server.getAddress().getPort();
+            return HTTP_SCHEME + host + ":" + server.getAddress().getPort();
         }
-        return "http://" + host + ":" + port;
+        return HTTP_SCHEME + host + ":" + port;
     }
 
     /**
@@ -266,14 +267,14 @@ public class WebTerminal extends LineDisciplineTerminal {
         }
         String name;
         try {
-            name = URI.create("http://" + header).getHost();
+            name = URI.create(HTTP_SCHEME + header).getHost();
         } catch (IllegalArgumentException e) {
             return false;
         }
         if (name == null) {
             return false;
         }
-        if (name.equalsIgnoreCase(host) || name.equalsIgnoreCase("localhost")) {
+        if (name.equalsIgnoreCase(host) || name.equalsIgnoreCase(DEFAULT_HOST)) {
             return true;
         }
         if (name.startsWith("[") || name.matches("[0-9.]+")) {
