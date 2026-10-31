@@ -198,6 +198,16 @@ class AttributedStringTest {
         assertEquals("cd", AttributedString.stripAnsi("c\u0098payload\u009cd"));
         assertEquals("ef", AttributedString.stripAnsi("e\u009epayload\u009cf"));
         assertEquals("gh", AttributedString.stripAnsi("g\u009fpayload\u009ch"));
+        // BEL must NOT terminate DCS, SOS, PM or APC (only OSC); BEL mid-payload is treated
+        // as payload and the string continues until the actual ST terminator.
+        assertEquals("AB", AttributedString.stripAnsi("A\u0090dcs\u0007payload\u009cB"));
+        assertEquals("AB", AttributedString.stripAnsi("A\u0098sos\u0007payload\u009cB"));
+        assertEquals("AB", AttributedString.stripAnsi("A\u009epm\u0007payload\u009cB"));
+        assertEquals("AB", AttributedString.stripAnsi("A\u009fapc\u0007payload\u009cB"));
+        assertEquals("AB", AttributedString.stripAnsi("A\033Pdcs\007payload\033\\B"));
+        assertEquals("AB", AttributedString.stripAnsi("A\033Xsos\007payload\033\\B"));
+        assertEquals("AB", AttributedString.stripAnsi("A\033^pm\007payload\033\\B"));
+        assertEquals("AB", AttributedString.stripAnsi("A\033_apc\007payload\033\\B"));
         // 7-bit introducer closed by 8-bit ST, and the reverse
         assertEquals("ij", AttributedString.stripAnsi("i\033]0;t\u009cj"));
         assertEquals("kl", AttributedString.stripAnsi("k\u009d0;t\033\\l"));
