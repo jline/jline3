@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
-import java.util.List;
 
 import org.jline.jansi.io.AnsiOutputStream;
 import org.jline.jansi.io.AnsiProcessor;
@@ -145,8 +144,6 @@ public class AnsiConsole {
     private static PrintStream out;
     private static final PrintStream system_err = System.err;
     private static PrintStream err;
-    private static boolean stdoutIsTty;
-    private static boolean stderrIsTty;
 
     /**
      * Try to find the width of the console for this process.
@@ -198,9 +195,8 @@ public class AnsiConsole {
      */
     static synchronized void doInstall() {
         try {
-            TerminalBuilder builder = null;
             if (terminal == null) {
-                builder = TerminalBuilder.builder().system(true).name("jansi");
+                TerminalBuilder builder = TerminalBuilder.builder().system(true).name("jansi");
                 String providers = System.getProperty(JANSI_PROVIDERS);
                 if (providers != null) {
                     builder.providers(providers);
@@ -212,7 +208,6 @@ public class AnsiConsole {
                 terminal = builder.build();
             }
             if (out == null) {
-                detectTtyStatus(builder);
                 out = ansiStream(true);
                 err = ansiStream(false);
             }
@@ -221,31 +216,20 @@ public class AnsiConsole {
         }
     }
 
-    private static void detectTtyStatus(TerminalBuilder builder) {
-        if (terminal instanceof DumbTerminal) {
-            return;
+    /**
+     * Whether {@code stream}, which the terminal does not write to, is a TTY. The provider that
+     * created the terminal answers, as it is the one that recognized the terminal's own stream.
+     */
+    private static boolean isTty(TerminalExt terminalExt, SystemStream stream) {
+        TerminalProvider provider = terminalExt.getProvider();
+        if (provider == null) {
+            return false;
         }
         try {
-            if (builder == null) {
-                builder = TerminalBuilder.builder();
-                String providers = System.getProperty(JANSI_PROVIDERS);
-                if (providers != null) {
-                    builder.providers(providers);
-                }
-                String graceful = System.getProperty(JANSI_GRACEFUL);
-                if (graceful != null) {
-                    builder.dumb(Boolean.parseBoolean(graceful));
-                }
-            }
-            IllegalStateException probe = new IllegalStateException();
-            List<TerminalProvider> provs = builder.getProviders(null, probe);
-            stdoutIsTty = provs.stream().anyMatch(p -> p.isSystemStream(SystemStream.Output));
-            stderrIsTty = provs.stream().anyMatch(p -> p.isSystemStream(SystemStream.Error));
+            return provider.isSystemStream(stream);
         } catch (Exception e) {
-            Log.debug("Failed to detect TTY status via providers, falling back to terminal system stream", e);
-            SystemStream ss = ((TerminalExt) terminal).getSystemStream();
-            stdoutIsTty = ss == SystemStream.Output;
-            stderrIsTty = ss == SystemStream.Error;
+            Log.debug("Failed to detect whether " + stream + " is a TTY, treating it as redirected", e);
+            return false;
         }
     }
 
@@ -260,8 +244,6 @@ public class AnsiConsole {
             terminal = null;
             out = null;
             err = null;
-            stdoutIsTty = false;
-            stderrIsTty = false;
         }
     }
 
@@ -291,7 +273,8 @@ public class AnsiConsole {
             out = terminal.output();
             type = AnsiType.Unsupported;
         } else {
-            SystemStream systemStream = ((TerminalExt) terminal).getSystemStream();
+            TerminalExt terminalExt = (TerminalExt) terminal;
+            SystemStream systemStream = terminalExt.getSystemStream();
             if (systemStream == null) {
                 out = terminal.output();
                 type = AnsiType.Redirected;
@@ -303,7 +286,7 @@ public class AnsiConsole {
                     type = AnsiType.Native;
                 } else {
                     out = stdout ? system_out : system_err;
-                    boolean isTty = stdout ? stdoutIsTty : stderrIsTty;
+                    boolean isTty = isTty(terminalExt, stdout ? SystemStream.Output : SystemStream.Error);
                     // On native Windows, a console handle alone does not imply ANSI
                     // support: virtual terminal processing is only enabled on the
                     // terminal-backed handle during terminal creation. Cygwin, MSYS2,
