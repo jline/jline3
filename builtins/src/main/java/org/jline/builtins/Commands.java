@@ -469,10 +469,13 @@ public class Commands {
                     } catch (UnsupportedOperationException e) {
                         // Non-POSIX file system: restrict permissions explicitly
                         cmdFile = Files.createTempFile("jline-history-", null).toFile();
-                        cmdFile.setReadable(false, false);
-                        cmdFile.setReadable(true, true);
-                        cmdFile.setWritable(false, false);
-                        cmdFile.setWritable(true, true);
+                        if (!cmdFile.setReadable(false, false)
+                                || !cmdFile.setReadable(true, true)
+                                || !cmdFile.setWritable(false, false)
+                                || !cmdFile.setWritable(true, true)) {
+                            Files.deleteIfExists(cmdFile.toPath());
+                            throw new IOException("Cannot restrict permissions on temporary file: " + cmdFile);
+                        }
                     }
                     cmdWriter = new FileWriter(cmdFile);
                 } else if (!opt.args().isEmpty()) {

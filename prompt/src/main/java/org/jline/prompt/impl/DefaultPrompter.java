@@ -840,10 +840,13 @@ public class DefaultPrompter implements Prompter {
         } catch (UnsupportedOperationException e) {
             // Non-POSIX file system: restrict permissions explicitly
             File tmp = Files.createTempFile(prefix, suffix).toFile();
-            tmp.setReadable(false, false);
-            tmp.setReadable(true, true);
-            tmp.setWritable(false, false);
-            tmp.setWritable(true, true);
+            if (!tmp.setReadable(false, false)
+                    || !tmp.setReadable(true, true)
+                    || !tmp.setWritable(false, false)
+                    || !tmp.setWritable(true, true)) {
+                Files.deleteIfExists(tmp.toPath());
+                throw new IOException("Cannot restrict permissions on temporary file: " + tmp);
+            }
             return tmp;
         }
     }

@@ -4061,10 +4061,13 @@ public class LineReaderImpl implements LineReader, Flushable {
             } catch (UnsupportedOperationException e) {
                 // Non-POSIX file system: restrict permissions explicitly
                 file = Files.createTempFile("jline-execute-", null).toFile();
-                file.setReadable(false, false);
-                file.setReadable(true, true);
-                file.setWritable(false, false);
-                file.setWritable(true, true);
+                if (!file.setReadable(false, false)
+                        || !file.setReadable(true, true)
+                        || !file.setWritable(false, false)
+                        || !file.setWritable(true, true)) {
+                    Files.deleteIfExists(file.toPath());
+                    throw new IOException("Cannot restrict permissions on temporary file: " + file);
+                }
             }
             try (FileWriter writer = new FileWriter(file)) {
                 writer.write(buf.toString());
