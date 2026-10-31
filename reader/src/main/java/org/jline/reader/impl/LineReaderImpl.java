@@ -4789,6 +4789,9 @@ public class LineReaderImpl implements LineReader, Flushable {
     }
 
     protected boolean expandHistory() {
+        if (!isEventExpansionEnabled()) {
+            return false;
+        }
         String str = buf.toString();
         String exp = expander.expandHistory(history, str);
         if (!exp.equals(str)) {
