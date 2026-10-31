@@ -783,7 +783,11 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                                                 j = jBefore + 1;
                                             }
                                         } catch (NumberFormatException e2) {
-                                            j = jBefore;
+                                            // Mode byte itself is malformed (e.g. empty string);
+                                            // advance past both the 38/48 trigger and the mode byte
+                                            // so the loop does not retry the same parameter or
+                                            // misparse the empty mode as SGR 0.
+                                            j = jBefore + 1;
                                         }
                                     }
                                 }

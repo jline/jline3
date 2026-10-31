@@ -236,6 +236,11 @@ class AttributedStringTest {
         assertEquals("text", malformedRgb.toString());
         // "1" and "2" must not have applied bold+faint — style must be default
         assertEquals(AttributedStyle.DEFAULT, malformedRgb.styleAt(0));
+        // Malformed extended-color mode byte (empty string between semicolons, e.g. "38;;1m"):
+        // must not cause an infinite loop when the mode byte itself fails parseInt.
+        // The previous j = jBefore reset caused the while loop to retry "38" indefinitely.
+        assertEquals("X", AttributedString.fromAnsi("\033[31m\033[38;;1mX").toString());
+        assertEquals("X", AttributedString.stripAnsi("\033[31m\033[38;;1mX"));
     }
 
     @Test
