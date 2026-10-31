@@ -826,6 +826,7 @@ public class DefaultPrompter implements Prompter {
      * Creates the temporary file handed to the editor. The file holds the prompt text,
      * so it is created with owner-only permissions on POSIX file systems.
      */
+    @SuppressWarnings("java:S5443") // temp file is created with explicit owner-only permissions
     protected File createEditorTempFile(String prefix, String suffix) throws IOException {
         try {
             FileAttribute<?> ownerOnly =

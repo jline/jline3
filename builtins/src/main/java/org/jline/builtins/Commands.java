@@ -439,6 +439,25 @@ public class Commands {
         execute.editCommandsAndClose(reader);
     }
 
+    @SuppressWarnings("java:S5443") // temp file is created with explicit owner-only permissions
+    private static File createSecureTempFile(String prefix, String suffix) throws IOException {
+        try {
+            FileAttribute<?> ownerOnly =
+                    PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"));
+            return Files.createTempFile(prefix, suffix, ownerOnly).toFile();
+        } catch (UnsupportedOperationException e) {
+            File tmp = Files.createTempFile(prefix, suffix).toFile();
+            if (!tmp.setReadable(false, false)
+                    || !tmp.setReadable(true, true)
+                    || !tmp.setWritable(false, false)
+                    || !tmp.setWritable(true, true)) {
+                Files.deleteIfExists(tmp.toPath());
+                throw new IOException("Cannot restrict permissions on temporary file: " + tmp);
+            }
+            return tmp;
+        }
+    }
+
     /**
      * Helper class for re-executing commands from history.
      */
@@ -461,22 +480,7 @@ public class Commands {
                     iter.remove();
                 }
                 if (edit) {
-                    try {
-                        FileAttribute<?> ownerOnly =
-                                PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"));
-                        cmdFile = Files.createTempFile("jline-history-", null, ownerOnly)
-                                .toFile();
-                    } catch (UnsupportedOperationException e) {
-                        // Non-POSIX file system: restrict permissions explicitly
-                        cmdFile = Files.createTempFile("jline-history-", null).toFile();
-                        if (!cmdFile.setReadable(false, false)
-                                || !cmdFile.setReadable(true, true)
-                                || !cmdFile.setWritable(false, false)
-                                || !cmdFile.setWritable(true, true)) {
-                            Files.deleteIfExists(cmdFile.toPath());
-                            throw new IOException("Cannot restrict permissions on temporary file: " + cmdFile);
-                        }
-                    }
+                    cmdFile = createSecureTempFile("jline-history-", null);
                     cmdWriter = new FileWriter(cmdFile);
                 } else if (!opt.args().isEmpty()) {
                     String[] s = opt.args().get(argId).split("=");

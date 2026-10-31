@@ -4050,25 +4050,30 @@ public class LineReaderImpl implements LineReader, Flushable {
         return true;
     }
 
+    @SuppressWarnings("java:S5443") // temp file is created with explicit owner-only permissions
+    private static File createSecureTempFile(String prefix, String suffix) throws IOException {
+        try {
+            FileAttribute<?> ownerOnly =
+                    PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"));
+            return Files.createTempFile(prefix, suffix, ownerOnly).toFile();
+        } catch (UnsupportedOperationException e) {
+            File tmp = Files.createTempFile(prefix, suffix).toFile();
+            if (!tmp.setReadable(false, false)
+                    || !tmp.setReadable(true, true)
+                    || !tmp.setWritable(false, false)
+                    || !tmp.setWritable(true, true)) {
+                Files.deleteIfExists(tmp.toPath());
+                throw new IOException("Cannot restrict permissions on temporary file: " + tmp);
+            }
+            return tmp;
+        }
+    }
+
     protected boolean editAndExecute() {
         boolean out = true;
         File file = null;
         try {
-            try {
-                FileAttribute<?> ownerOnly =
-                        PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"));
-                file = Files.createTempFile("jline-execute-", null, ownerOnly).toFile();
-            } catch (UnsupportedOperationException e) {
-                // Non-POSIX file system: restrict permissions explicitly
-                file = Files.createTempFile("jline-execute-", null).toFile();
-                if (!file.setReadable(false, false)
-                        || !file.setReadable(true, true)
-                        || !file.setWritable(false, false)
-                        || !file.setWritable(true, true)) {
-                    Files.deleteIfExists(file.toPath());
-                    throw new IOException("Cannot restrict permissions on temporary file: " + file);
-                }
-            }
+            file = createSecureTempFile("jline-execute-", null);
             try (FileWriter writer = new FileWriter(file)) {
                 writer.write(buf.toString());
             }
