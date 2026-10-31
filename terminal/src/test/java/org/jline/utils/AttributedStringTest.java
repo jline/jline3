@@ -241,6 +241,11 @@ class AttributedStringTest {
         // The previous j = jBefore reset caused the while loop to retry "38" indefinitely.
         assertEquals("X", AttributedString.fromAnsi("\033[31m\033[38;;1mX").toString());
         assertEquals("X", AttributedString.stripAnsi("\033[31m\033[38;;1mX"));
+        // 8-bit string introducer (e.g. U+009D OSC) arriving while in CSI state (ansiState==2)
+        // must abort the CSI and enter the string-discard state; the full payload through the
+        // terminator must be dropped, and text after the terminator must survive unmodified.
+        assertEquals("ab", AttributedString.stripAnsi("a\033[?\u009d0;title\007b"));
+        assertEquals("ab", AttributedString.stripAnsi("a\033[?\u009d0;payload\u009cb"));
     }
 
     @Test

@@ -649,6 +649,10 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                     // ESC aborts the current CSI and starts a new escape sequence
                     ansiState = 1;
                     nonSgrSeen = false;
+                } else if (c == 0x9d || c == 0x90 || c == 0x98 || c == 0x9e || c == 0x9f) {
+                    // 8-bit C1 string introducer arriving mid-CSI: abort the CSI and enter the
+                    // string-discard state so the full payload is consumed through its terminator.
+                    ansiState = 3;
                 } else if (c == 'm' && !nonSgrSeen) {
                     String[] params = ansi.substring(ansiStart, i).split(";");
                     int j = 0;
