@@ -239,12 +239,13 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
                 // the shell may be blocked reading input, so nothing else would flush the job's output
                 try {
                     terminal.output().flush();
-                } catch (IOException e) {
+                } catch (IOException | IllegalStateException e) {
                     // Best-effort flush; it must not mask the command's own failure
-                }
-                DefaultJob job = jobRef.get();
-                if (job != null) {
-                    jobManager.completeJob(job);
+                } finally {
+                    DefaultJob job = jobRef.get();
+                    if (job != null) {
+                        jobManager.completeJob(job);
+                    }
                 }
             }
         });
