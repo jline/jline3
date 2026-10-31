@@ -634,6 +634,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
         int ansiStart = 0;
         int ansiState = 0;
         boolean nonSgrSeen = false;
+        boolean belTerminatesString = false; // BEL (0x07) only terminates OSC, not DCS/SOS/PM/APC
         ensureCapacity(length + ansi.length());
         for (int i = 0; i < ansi.length(); i++) {
             char c = ansi.charAt(i);
@@ -652,6 +653,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                 } else if (c == 0x9d || c == 0x90 || c == 0x98 || c == 0x9e || c == 0x9f) {
                     // 8-bit C1 string introducer arriving mid-CSI: abort the CSI and enter the
                     // string-discard state so the full payload is consumed through its terminator.
+                    belTerminatesString = c == 0x9d; // BEL only terminates OSC (U+009D)
                     ansiState = 3;
                 } else if (c == 'm' && !nonSgrSeen) {
                     String[] params = ansi.substring(ansiStart, i).split(";");
@@ -756,6 +758,11 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                                                 } else {
                                                     current = current.background(r, g, b);
                                                 }
+                                            } else {
+                                                // Incomplete RGB group: advance past all remaining
+                                                // params so they are not misinterpreted as standalone
+                                                // SGR parameters (e.g. ESC[38;2;1;2m).
+                                                j = params.length - 1;
                                             }
                                         } else if (ansiParam2 == 5) {
                                             // indexed: consume col

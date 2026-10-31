@@ -241,6 +241,12 @@ class AttributedStringTest {
         // The previous j = jBefore reset caused the while loop to retry "38" indefinitely.
         assertEquals("X", AttributedString.fromAnsi("\033[31m\033[38;;1mX").toString());
         assertEquals("X", AttributedString.stripAnsi("\033[31m\033[38;;1mX"));
+        // Incomplete RGB group: fewer than 3 components after "38;2" (e.g. ESC[38;2;1;2m).
+        // The remaining components must be consumed and not misinterpreted as standalone SGR
+        // parameters (SGR 1 = bold, SGR 2 = faint). Style at the character must be DEFAULT.
+        AttributedString incompleteRgb = AttributedString.fromAnsi("\033[38;2;1;2mX");
+        assertEquals("X", incompleteRgb.toString());
+        assertEquals(AttributedStyle.DEFAULT, incompleteRgb.styleAt(0));
         // 8-bit string introducer (e.g. U+009D OSC) arriving while in CSI state (ansiState==2)
         // must abort the CSI and enter the string-discard state; the full payload through the
         // terminator must be dropped, and text after the terminator must survive unmodified.
