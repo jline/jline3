@@ -633,20 +633,38 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
     public AttributedStringBuilder ansiAppend(String ansi) {
         int ansiStart = 0;
         int ansiState = 0;
+        boolean nonSgrSeen = false;
         ensureCapacity(length + ansi.length());
         for (int i = 0; i < ansi.length(); i++) {
             char c = ansi.charAt(i);
             if (ansiState == 0 && c == 27) {
                 ansiState++;
-            } else if (ansiState == 1 && c == '[') {
-                ansiState++;
+            } else if ((ansiState == 1 && c == '[') || ((ansiState == 0 || ansiState == 1) && c == 0x9b)) {
+                // ESC [ or its single-character 8-bit form CSI (U+009B)
+                ansiState = 2;
                 ansiStart = i + 1;
+                nonSgrSeen = false;
             } else if (ansiState == 2) {
-                if (c == 'm') {
+                if (c == 27) {
+                    // ESC aborts the current CSI and starts a new escape sequence
+                    ansiState = 1;
+                    nonSgrSeen = false;
+                } else if (c == 0x9d || c == 0x90 || c == 0x98 || c == 0x9e || c == 0x9f) {
+                    // 8-bit C1 string introducer arriving mid-CSI: abort the CSI and enter the
+                    // string-discard state so the full payload is consumed through its terminator.
+                    // State 5 = OSC (BEL also terminates); state 3 = other string types (ST only).
+                    ansiState = c == 0x9d ? 5 : 3;
+                } else if (c == 'm' && !nonSgrSeen) {
                     String[] params = ansi.substring(ansiStart, i).split(";");
                     int j = 0;
                     while (j < params.length) {
-                        int ansiParam = params[j].isEmpty() ? 0 : Integer.parseInt(params[j]);
+                        int ansiParam;
+                        try {
+                            ansiParam = params[j].isEmpty() ? 0 : Integer.parseInt(params[j]);
+                        } catch (NumberFormatException e) {
+                            j++;
+                            continue;
+                        }
                         switch (ansiParam) {
                             case 0:
                                 current = AttributedStyle.DEFAULT;
@@ -725,26 +743,61 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                             case 38:
                             case 48:
                                 if (j + 1 < params.length) {
-                                    int ansiParam2 = Integer.parseInt(params[++j]);
-                                    if (ansiParam2 == 2) {
-                                        if (j + 3 < params.length) {
-                                            int r = Integer.parseInt(params[++j]);
-                                            int g = Integer.parseInt(params[++j]);
-                                            int b = Integer.parseInt(params[++j]);
-                                            if (ansiParam == 38) {
-                                                current = current.foreground(r, g, b);
+                                    int jBefore = j;
+                                    try {
+                                        int ansiParam2 = Integer.parseInt(params[++j]);
+                                        if (ansiParam2 == 2) {
+                                            // RGB: consume r, g, b
+                                            if (j + 3 < params.length) {
+                                                int r = Integer.parseInt(params[++j]);
+                                                int g = Integer.parseInt(params[++j]);
+                                                int b = Integer.parseInt(params[++j]);
+                                                if (ansiParam == 38) {
+                                                    current = current.foreground(r, g, b);
+                                                } else {
+                                                    current = current.background(r, g, b);
+                                                }
                                             } else {
-                                                current = current.background(r, g, b);
+                                                // Incomplete RGB group: advance past all remaining
+                                                // params so they are not misinterpreted as standalone
+                                                // SGR parameters (e.g. ESC[38;2;1;2m).
+                                                j = params.length - 1;
+                                            }
+                                        } else if (ansiParam2 == 5) {
+                                            // indexed: consume col
+                                            if (j + 1 < params.length) {
+                                                int col = Integer.parseInt(params[++j]);
+                                                if (ansiParam == 38) {
+                                                    current = current.foreground(col);
+                                                } else {
+                                                    current = current.background(col);
+                                                }
                                             }
                                         }
-                                    } else if (ansiParam2 == 5) {
-                                        if (j + 1 < params.length) {
-                                            int col = Integer.parseInt(params[++j]);
-                                            if (ansiParam == 38) {
-                                                current = current.foreground(col);
+                                    } catch (NumberFormatException e) {
+                                        // Malformed extended-color sub-parameters: skip all
+                                        // components that belong to this color group so they
+                                        // are not misinterpreted as standalone SGR parameters.
+                                        // We can determine the expected sub-param count from
+                                        // the mode byte (params[jBefore+1]) if it was parseable.
+                                        // If the mode byte itself failed, fall back to jBefore.
+                                        try {
+                                            int mode = Integer.parseInt(params[jBefore + 1]);
+                                            if (mode == 2) {
+                                                // RGB: up to 3 more after the mode byte
+                                                j = Math.min(jBefore + 4, params.length - 1);
+                                            } else if (mode == 5) {
+                                                // indexed: 1 more after the mode byte
+                                                j = Math.min(jBefore + 2, params.length - 1);
                                             } else {
-                                                current = current.background(col);
+                                                j = jBefore + 1;
                                             }
+                                        } catch (NumberFormatException e2) {
+                                            // Mode byte itself is malformed (e.g. empty string);
+                                            // advance past both the 38/48 trigger and the mode byte
+                                            // so the loop does not retry the same parameter or
+                                            // misparse the empty mode as SGR 0.
+                                            j = jBefore + 1;
                                         }
                                     }
                                 }
@@ -774,26 +827,70 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                     }
                     ansiState = 0;
                 } else if (!(c >= '0' && c <= '9' || c == ';')) {
-                    // This is not a SGR code, so ignore
-                    ansiState = 0;
+                    // This is not a SGR code (could be a private-mode or other CSI sequence,
+                    // e.g. ESC [ ? 25 l). Consume through the final byte (0x40–0x7E per ECMA-48)
+                    // rather than resetting immediately; otherwise private-mode parameter bytes
+                    // such as '?' reset the state and the remaining bytes leak into the output.
+                    if (c >= 0x40 && c <= 0x7e) {
+                        ansiState = 0;
+                        nonSgrSeen = false;
+                    } else {
+                        nonSgrSeen = true;
+                    }
                 }
-            } else if (ansiState == 1 && (c == ']' || c == 'P' || c == 'X' || c == '^' || c == '_')) {
-                // OSC (]), DCS (P), SOS (X), PM (^) or APC (_) introducer. These carry a string
-                // payload terminated by BEL or ST (ESC \) and can drive the terminal itself (set
-                // the window title, write the clipboard via OSC 52, ...). When the text is
-                // untrusted (a file shown in Less, a completion candidate) that payload must not
-                // reach the terminal, so drop the whole sequence instead of emitting it.
-                ansiState = 3;
+            } else if ((ansiState == 1 && (c == ']' || c == 'P' || c == 'X' || c == '^' || c == '_'))
+                    || ((ansiState == 0 || ansiState == 1)
+                            && (c == 0x9d || c == 0x90 || c == 0x98 || c == 0x9e || c == 0x9f))) {
+                // OSC (]), DCS (P), SOS (X), PM (^) or APC (_) introducer, either as ESC + char or
+                // as the single-character 8-bit C1 form (U+009D, U+0090, U+0098, U+009E, U+009F).
+                // The 8-bit C1 form is also recognised when ansiState == 1 (after ESC): ESC followed
+                // by a C1 string-introducer consumes both bytes instead of emitting the pending ESC.
+                // These carry a string payload terminated by ST (ESC \\ or U+009C) and can
+                // drive the terminal itself (set the window title, write the clipboard via OSC 52,
+                // ...). When the text is untrusted (a file shown in Less, a completion candidate)
+                // that payload must not reach the terminal, so drop the whole sequence instead of
+                // emitting it. OSC additionally accepts BEL as a terminator (xterm convention).
+                // State 5 = OSC string (BEL terminates); state 3 = non-OSC string (ST only).
+                ansiState = (c == ']' || c == 0x9d) ? 5 : 3;
             } else if (ansiState == 3) {
-                if (c == 7) {
-                    ansiState = 0; // BEL terminates the string
+                // Non-OSC string payload (DCS, SOS, PM, APC): only ST (8-bit or ESC \\) terminates.
+                if (c == 0x9c) {
+                    ansiState = 0;
                 } else if (c == 27) {
                     ansiState = 4; // possible ST: ESC \
                 }
             } else if (ansiState == 4) {
-                ansiState = 0; // consume the byte after ESC inside the string sequence
-                // (treats any ESC as ending the sequence, matching xterm;
-                //  strictly only ESC \ is ST per ECMA-48)
+                // ESC seen inside a non-OSC string (state 3). Per ECMA-48 §5.6, only ESC \\ (ST)
+                // terminates the string. ESC [ inside an OSC/DCS string is payload data — not a
+                // CSI introducer — so treating it as CSI would leak the payload to the terminal.
+                if (c == '\\' || c == 0x9c) {
+                    ansiState = 0; // ESC \ or 8-bit ST terminates the string sequence
+                } else if (c == ']' || c == 'P' || c == 'X' || c == '^' || c == '_') {
+                    ansiState = c == ']' ? 6 : 4; // nested string: OSC → state 6, others → state 4
+                } else if (c == 27) {
+                    ansiState = 4; // another ESC — remain in ESC-within-string state
+                } else {
+                    ansiState = 3; // any other byte: not an ST, return to non-OSC string-discard
+                }
+            } else if (ansiState == 5) {
+                // OSC string payload: ST (8-bit or ESC \\) or BEL terminates.
+                if (c == 0x9c || c == 7) {
+                    ansiState = 0;
+                } else if (c == 27) {
+                    ansiState = 6; // possible ST: ESC \
+                }
+            } else if (ansiState == 6) {
+                // ESC seen inside an OSC string (state 5). Same rules as state 4, but BEL also
+                // terminates and non-exit transitions return to OSC state (5) not non-OSC state (3).
+                if (c == '\\' || c == 0x9c || c == 7) {
+                    ansiState = 0; // ESC \, 8-bit ST, or BEL terminate the OSC sequence
+                } else if (c == ']' || c == 'P' || c == 'X' || c == '^' || c == '_') {
+                    ansiState = c == ']' ? 6 : 4; // nested string: OSC stays in 6, others go to 4
+                } else if (c == 27) {
+                    ansiState = 6; // another ESC — remain in ESC-within-OSC-string state
+                } else {
+                    ansiState = 5; // any other byte: not an ST, return to OSC string-discard
+                }
             } else {
                 if (ansiState >= 1) {
                     ensureCapacity(length + 1);
@@ -803,6 +900,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                         buffer[length++] = '[';
                     }
                     ansiState = 0;
+                    nonSgrSeen = false;
                 }
                 if (c == '\t' && tabs.defined()) {
                     insertTab(current);
