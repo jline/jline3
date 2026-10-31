@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.Reader;
+import java.io.StringReader;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -543,6 +544,148 @@ class NonBlockingTest {
         readThread.join(2000);
         assertFalse(readThread.isAlive(), "Read thread should have exited after close");
         assertNull(readError.get(), "Read thread should not have thrown unexpected error");
+    }
+
+    // --- available() tests (issue #2329) ---
+
+    @Test
+    void testNonBlockingReaderImplAvailableInitiallyZero() throws Exception {
+        // A reader backed by a blocking source: available() must return 0
+        // when nothing has been buffered yet.
+        LatchReader blocking = new LatchReader();
+        NonBlockingReaderImpl nbr = new NonBlockingReaderImpl("avail-zero", blocking);
+        try {
+            assertEquals(0, nbr.available());
+        } finally {
+            blocking.release();
+            nbr.close();
+        }
+    }
+
+    @Test
+    void testNonBlockingReaderImplAvailableWithBufferedChar() throws Exception {
+        // Peek so the char lands in ch without consuming it;
+        // available() must then return >= 1.
+        StringReader sr = new StringReader("X");
+        NonBlockingReaderImpl nbr = new NonBlockingReaderImpl("avail-buffered", sr);
+        try {
+            int peeked = nbr.peek(500);
+            assertEquals('X', peeked);
+            assertTrue(nbr.available() > 0, "available() should be > 0 when ch is buffered");
+        } finally {
+            nbr.close();
+        }
+    }
+
+    @Test
+    void testNonBlockingPumpReaderAvailable() throws IOException {
+        NonBlockingPumpReader nbr = NonBlocking.nonBlockingPumpReader();
+        Writer writer = nbr.getWriter();
+        try {
+            assertEquals(0, nbr.available());
+            writer.write("hello");
+            assertEquals(5, nbr.available());
+            nbr.read(100);
+            assertEquals(4, nbr.available());
+        } finally {
+            nbr.close();
+        }
+    }
+
+    @Test
+    void testNonBlockingReaderImplAvailableAfterEof() throws Exception {
+        // StringReader.ready() returns true even after EOF — verify that
+        // available() and ready() correctly return 0/false once the stream is exhausted.
+        StringReader sr = new StringReader("AB");
+        NonBlockingReaderImpl nbr = new NonBlockingReaderImpl("avail-eof", sr);
+        try {
+            assertEquals('A', nbr.read(500));
+            assertEquals('B', nbr.read(500));
+            assertEquals(-1, nbr.read(500));
+            assertEquals(0, nbr.available(), "available() should be 0 after EOF");
+            assertFalse(nbr.ready(), "ready() should be false after EOF");
+            assertEquals(-1, nbr.read(500), "subsequent read should still return EOF");
+        } finally {
+            nbr.close();
+        }
+    }
+
+    @Test
+    void testNonBlockingReaderImplReadyAfterEof() throws Exception {
+        // StringReader.ready() returns true even after EOF — this was causing clear() to hang.
+        // After EOF, ready() must return false so the drain loop can exit.
+        StringReader sr = new StringReader("x");
+        NonBlockingReaderImpl nbr = new NonBlockingReaderImpl("ready-eof", sr);
+        try {
+            assertEquals('x', nbr.read(500)); // consume the only char
+            assertEquals(NonBlockingReader.EOF, nbr.read(500)); // hit EOF
+            assertFalse(nbr.ready(), "ready() must return false after EOF");
+        } finally {
+            nbr.close();
+        }
+    }
+
+    @Test
+    void testNonBlockingReaderImplStickyEof() throws Exception {
+        // read() after EOF must keep returning EOF (sticky), not READ_EXPIRED.
+        StringReader sr = new StringReader("x");
+        NonBlockingReaderImpl nbr = new NonBlockingReaderImpl("sticky-eof", sr);
+        try {
+            nbr.read(500); // consume 'x'
+            assertEquals(NonBlockingReader.EOF, nbr.read(500)); // first EOF
+            assertEquals(NonBlockingReader.EOF, nbr.read(0)); // must still be EOF, not READ_EXPIRED
+        } finally {
+            nbr.close();
+        }
+    }
+
+    @Test
+    void testNonBlockingReaderImplAvailableAfterReadBufferedEof() throws Exception {
+        // readBuffered() direct-read path (timeout=0, pump not reading) must also
+        // keep EOF sticky so available() returns 0 after the last character is consumed.
+        StringReader sr = new StringReader("A");
+        NonBlockingReaderImpl nbr = new NonBlockingReaderImpl("readbuf-eof", sr);
+        try {
+            char[] buf = new char[4];
+            int n = nbr.readBuffered(buf, 0, buf.length, 0);
+            assertEquals(1, n);
+            assertEquals('A', buf[0]);
+            // Now drain to EOF via readBuffered
+            n = nbr.readBuffered(buf, 0, buf.length, 0);
+            assertEquals(NonBlockingReader.EOF, n, "readBuffered() should return EOF");
+            assertEquals(0, nbr.available(), "available() should be 0 after readBuffered EOF");
+            assertFalse(nbr.ready(), "ready() should be false after readBuffered EOF");
+        } finally {
+            nbr.close();
+        }
+    }
+
+    @Test
+    void testNonBlockingInputStreamReaderAvailable() throws IOException {
+        // NonBlockingPumpInputStream.available() is reliable — use it as source.
+        NonBlockingPumpInputStream pump = new NonBlockingPumpInputStream();
+        NonBlockingReader reader = NonBlocking.nonBlocking("avail-isr", pump, StandardCharsets.US_ASCII);
+        try {
+            // Nothing written yet.
+            assertEquals(0, reader.available());
+
+            // Write ASCII bytes (1 byte = 1 char for US-ASCII).
+            OutputStream out = pump.getOutputStream();
+            out.write("hello".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+
+            // available() must reflect the bytes in the pump as an estimate.
+            assertTrue(reader.available() > 0, "available() should be > 0 after writing bytes");
+
+            // Consume one char; remainder stays in pump or local buffer.
+            int c = reader.read(500);
+            assertEquals('h', c);
+
+            // 4 bytes still in pump + up to 4 chars in local buffer from decoding.
+            assertTrue(reader.available() > 0, "available() should be > 0 with buffered chars");
+        } finally {
+            reader.close();
+        }
     }
 
     private static Thread findThread(String name) {

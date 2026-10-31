@@ -68,7 +68,7 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
 
     @Override
     public synchronized boolean ready() throws IOException {
-        return ch >= 0 || in.ready();
+        return ch >= 0 || (ch != EOF && in.ready());
     }
 
     @Override
@@ -92,7 +92,13 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
             ch = READ_EXPIRED;
             return 1;
         } else if (!pump.isReading() && timeout <= 0) {
-            return in.read(b, off, len);
+            int r = in.read(b, off, len);
+            if (r == EOF) {
+                // Keep EOF sticky so available() returns 0 on subsequent calls
+                // (e.g. StringReader.ready() returns true even after EOF).
+                ch = EOF;
+            }
+            return r;
         } else {
             // TODO: rework implementation to read as much as possible
             int c = read(timeout, false);
@@ -180,9 +186,12 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
          * a local read was performed or the read thread set it (or failed to
          * change it).  We will return it's value, but if this was a peek
          * operation, then we leave it in place.
+         * Keep EOF sticky: once the stream is exhausted, do not reset ch to
+         * READ_EXPIRED, so that available() continues to return 0 correctly
+         * (StringReader.ready() returns true even after EOF).
          */
         int ret = ch;
-        if (!isPeek) {
+        if (!isPeek && ch != EOF) {
             ch = READ_EXPIRED;
         }
         return ret;
@@ -196,6 +205,41 @@ public class NonBlockingReaderImpl extends NonBlockingReader {
                     ch = value;
                 },
                 "NonBlockingReader");
+    }
+
+    /**
+     * Returns an estimate of the number of characters available to be read without blocking.
+     *
+     * <p>Returns {@code 1} if a character has already been buffered by the background pump thread,
+     * or if the underlying reader reports {@link java.io.Reader#ready() ready()}. Returns {@code 0}
+     * at EOF, when the pump is actively reading (to avoid contention on the underlying reader's
+     * lock), or when the underlying reader is not ready. Because {@code Reader.ready()} returns a
+     * {@code boolean}, the result is always either {@code 0} or {@code 1} — callers should not
+     * rely on this for a precise character count, only as a "data may be available" signal
+     * consistent with the {@link java.io.InputStream#available()} contract.
+     *
+     * @return {@code 1} if data is likely available, {@code 0} otherwise
+     */
+    @Override
+    public synchronized int available() {
+        // If we have a buffered character from the pump thread, report 1.
+        // EOF is sticky — once the stream is exhausted, nothing further is available.
+        // When the pump is actively reading, skip in.ready(): BufferedReader.read() and
+        // ready() share the same lock, so calling ready() while the pump blocks in read()
+        // would deadlock until the read completes.
+        // Otherwise, ask the underlying reader (best-effort; may return 0 even
+        // when data arrives momentarily, just like InputStream.available()).
+        if (ch >= 0) {
+            return 1;
+        }
+        if (ch == EOF || pump.isReading()) {
+            return 0;
+        }
+        try {
+            return in.ready() ? 1 : 0;
+        } catch (IOException e) {
+            return 0;
+        }
     }
 
     public synchronized void clear() throws IOException {
