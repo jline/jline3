@@ -122,6 +122,101 @@ public class AttributedStringTest {
     }
 
     @Test
+    public void fromAnsiDropsEightBitControlSequences() {
+        // ECMA-48 defines single-character 8-bit forms of the introducers: CSI is U+009B,
+        // OSC U+009D, DCS U+0090, SOS U+0098, PM U+009E, APC U+009F, and ST is U+009C.
+        // Terminals that parse decoded code points (VTE) execute them exactly like the
+        // ESC-introduced forms, so they must be dropped the same way.
+        AttributedString s = AttributedString.fromAnsi("A\u009d52;c;cHduZWQ=\u009cB");
+        assertEquals("AB", s.toString());
+        assertEquals("AB", s.toAnsi());
+        assertEquals(2, s.columnLength());
+        // 8-bit OSC terminated by BEL
+        assertEquals("xy", AttributedString.stripAnsi("x\u009d0;title\u0007y"));
+        // 8-bit DCS, SOS, PM and APC terminated by 8-bit ST
+        assertEquals("ab", AttributedString.stripAnsi("a\u0090payload\u009cb"));
+        assertEquals("cd", AttributedString.stripAnsi("c\u0098payload\u009cd"));
+        assertEquals("ef", AttributedString.stripAnsi("e\u009epayload\u009cf"));
+        assertEquals("gh", AttributedString.stripAnsi("g\u009fpayload\u009ch"));
+        // BEL must NOT terminate DCS, SOS, PM or APC (only OSC); BEL mid-payload is treated
+        // as payload and the string continues until the actual ST terminator.
+        assertEquals("AB", AttributedString.stripAnsi("A\u0090dcs\u0007payload\u009cB"));
+        assertEquals("AB", AttributedString.stripAnsi("A\u0098sos\u0007payload\u009cB"));
+        assertEquals("AB", AttributedString.stripAnsi("A\u009epm\u0007payload\u009cB"));
+        assertEquals("AB", AttributedString.stripAnsi("A\u009fapc\u0007payload\u009cB"));
+        assertEquals("AB", AttributedString.stripAnsi("A\033Pdcs\007payload\033\\B"));
+        assertEquals("AB", AttributedString.stripAnsi("A\033Xsos\007payload\033\\B"));
+        assertEquals("AB", AttributedString.stripAnsi("A\033^pm\007payload\033\\B"));
+        assertEquals("AB", AttributedString.stripAnsi("A\033_apc\007payload\033\\B"));
+        // 7-bit introducer closed by 8-bit ST, and the reverse
+        assertEquals("ij", AttributedString.stripAnsi("i\033]0;t\u009cj"));
+        assertEquals("kl", AttributedString.stripAnsi("k\u009d0;t\033\\l"));
+        // unterminated 8-bit string sequence is consumed to the end of the input
+        assertEquals("pre", AttributedString.stripAnsi("pre\u009d0;payload"));
+        // 8-bit CSI: non-SGR is dropped, SGR still styles the text
+        assertEquals("pq", AttributedString.stripAnsi("p\u009b2Jq"));
+        AttributedString sgr = AttributedString.fromAnsi("\u009b31mred\u009b0m");
+        assertEquals("red", sgr.toString());
+        assertEquals("\033[31mred\033[0m", sgr.toAnsi());
+        // private-mode CSI (e.g. ESC [ ? 25 l — cursor hide): the '?' parameter byte must not
+        // reset the CSI parser prematurely, causing the remainder to leak into visible text
+        assertEquals("ab", AttributedString.stripAnsi("a\033[?25lb"));
+        assertEquals("cd", AttributedString.stripAnsi("c\033[?1049hd"));
+        // private-mode CSI with 'm' as the final byte (e.g. ESC [ > 4 m — xterm XTMODKEYS):
+        // must not pass the private-parameter bytes to Integer.parseInt (NumberFormatException)
+        assertEquals("ef", AttributedString.stripAnsi("e\033[>4mf"));
+        assertEquals("gh", AttributedString.stripAnsi("g\033[>4;2mh"));
+        // 8-bit CSI (U+009B) after a pending ESC: both bytes consumed together
+        assertEquals("ij", AttributedString.stripAnsi("i\033\u009b?25lj"));
+        // ESC followed by an 8-bit C1 string introducer: both bytes must be consumed together
+        // (the pending ESC is not emitted, and the sequence is dropped normally)
+        assertEquals("mn", AttributedString.stripAnsi("m\033\u009d0;title\007n"));
+        assertEquals("op", AttributedString.stripAnsi("o\033\u009d0;payload\u009cp"));
+        // ESC interrupting a CSI sequence aborts the CSI and starts a new escape sequence
+        assertEquals("ab", AttributedString.stripAnsi("a\033[?25\033[31mb"));
+        // Out-of-range SGR parameters must not throw NumberFormatException
+        assertEquals("ab", AttributedString.stripAnsi("a\033[2147483648mb"));
+        assertEquals("ab", AttributedString.stripAnsi("a\033[38;2;2147483648;0;0mb"));
+        // Malformed RGB color group: the g and b components (here "1" and "2") must be
+        // consumed as part of the color group, not leaked as standalone SGR parameters.
+        AttributedString malformedRgb = AttributedString.fromAnsi("\033[38;2;2147483648;1;2mtext");
+        assertEquals("text", malformedRgb.toString());
+        // "1" and "2" must not have applied bold+faint — style must be default
+        assertEquals(AttributedStyle.DEFAULT, malformedRgb.styleAt(0));
+        // Malformed extended-color mode byte (empty string between semicolons, e.g. "38;;1m"):
+        // must not cause an infinite loop when the mode byte itself fails parseInt.
+        assertEquals("X", AttributedString.fromAnsi("\033[31m\033[38;;1mX").toString());
+        assertEquals("X", AttributedString.stripAnsi("\033[31m\033[38;;1mX"));
+        // Incomplete RGB group: fewer than 3 components after "38;2" (e.g. ESC[38;2;1;2m).
+        // The remaining components must be consumed and not misinterpreted as standalone SGR
+        // parameters (SGR 1 = bold, SGR 2 = faint). Style at the character must be DEFAULT.
+        AttributedString incompleteRgb = AttributedString.fromAnsi("\033[38;2;1;2mX");
+        assertEquals("X", incompleteRgb.toString());
+        assertEquals(AttributedStyle.DEFAULT, incompleteRgb.styleAt(0));
+        // 8-bit string introducer (e.g. U+009D OSC) arriving while in CSI state (ansiState==2)
+        // must abort the CSI and enter the string-discard state; the full payload through the
+        // terminator must be dropped, and text after the terminator must survive unmodified.
+        assertEquals("ab", AttributedString.stripAnsi("a\033[?\u009d0;title\007b"));
+        assertEquals("ab", AttributedString.stripAnsi("a\033[?\u009d0;payload\u009cb"));
+        // ESC inside a string sequence (state 4): only ESC \ is ST — other introducers must
+        // keep discarding; a non-introducer non-backslash byte returns to string-discard state.
+        // ESC \ terminates: text after ST survives
+        assertEquals("ab", AttributedString.stripAnsi("a\033]0;title\033\\b"));
+        // ESC + string-introducer (e.g. ESC ]) restarts string-discard: payload still dropped
+        assertEquals("b", AttributedString.stripAnsi("\033]outer\033]inner\007b"));
+        // ESC + non-introducer non-backslash: return to string-discard, not terminate
+        assertEquals("b", AttributedString.stripAnsi("\033]title\033xstill-payload\007b"));
+        // ESC before BEL or 8-bit ST (U+009C) inside string sequence: must terminate (state 4 -> 0)
+        assertEquals("ab", AttributedString.stripAnsi("a\033]title\033\007b"));
+        assertEquals("ab", AttributedString.stripAnsi("a\033]title\033\u009cb"));
+        // Security: ESC [ inside an OSC/DCS string payload is payload data per ECMA-48 §5.6,
+        // NOT a CSI introducer. Treating it as CSI would let injected SGR/CSI commands escape
+        // the string boundary and reach the terminal. The full sequence up to BEL must be dropped.
+        assertEquals("end", AttributedString.stripAnsi("\033]title\033[31mred\007end"));
+        assertEquals("end", AttributedString.stripAnsi("\033]title\033\u009b?25lend\007end"));
+    }
+
+    @Test
     public void fromAnsiKeepsSgrWhileDroppingOsc() {
         AttributedString s = AttributedString.fromAnsi("\033]0;t\007\033[31mred\033[0m");
         assertEquals("red", s.toString());
