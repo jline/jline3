@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2025, the original author(s).
+ * Copyright (c) 2026, the original author(s).
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -82,16 +82,18 @@ public class AttributedStringTest {
     }
 
     @Test
-    public void testAnsi() {
+    void testAnsi() {
         String ansi = "echo \033[1mfoo \033[43mblue\033[0m ";
         AttributedString str = AttributedString.fromAnsi(ansi);
         assertEquals(ansi, str.toAnsi());
     }
 
     @Test
-    public void fromAnsiDropsOscInjection() {
+    void fromAnsiDropsOscInjection() {
         // A window-title OSC (ESC ] 0 ; ... BEL) embedded in otherwise plain text must not
-        // survive into the rendered AttributedString.
+        // survive into the rendered AttributedString. Otherwise showing an untrusted file or
+        // log in the pager would let it drive the terminal (set the title, write the clipboard
+        // via OSC 52, ...). The raw ESC also used to be counted as a visible column.
         AttributedString s = AttributedString.fromAnsi("\033]0;pwned\007OK");
         assertEquals("OK", s.toString());
         assertEquals("OK", s.toAnsi());
@@ -99,7 +101,7 @@ public class AttributedStringTest {
     }
 
     @Test
-    public void stripAnsiRemovesStringSequences() {
+    void stripAnsiRemovesStringSequences() {
         // OSC terminated by BEL
         assertEquals("hello", AttributedString.stripAnsi("\033]0;title\007hello"));
         // OSC 52 (clipboard) terminated by ST (ESC \)
@@ -115,21 +117,120 @@ public class AttributedStringTest {
     }
 
     @Test
-    public void stripAnsiConsumesUnterminatedStringSequence() {
+    void stripAnsiConsumesUnterminatedStringSequence() {
+        // A string sequence with no BEL or ST terminator is consumed to the end of the
+        // input; the payload must not leak into the visible text.
         assertEquals("pre", AttributedString.stripAnsi("pre\033]0;payload"));
         assertEquals("pre", AttributedString.stripAnsi("pre\033Ppayload"));
+        // Trailing ESC inside the string (start of a potential ST) must not leak either
         assertEquals("pre", AttributedString.stripAnsi("pre\033]0;payload\033"));
     }
 
     @Test
-    public void fromAnsiKeepsSgrWhileDroppingOsc() {
+    void fromAnsiKeepsSgrWhileDroppingOsc() {
+        // Dropping the OSC prefix must not disturb the SGR color styling that follows it.
         AttributedString s = AttributedString.fromAnsi("\033]0;t\007\033[31mred\033[0m");
         assertEquals("red", s.toString());
         assertEquals("\033[31mred\033[0m", s.toAnsi());
     }
 
     @Test
-    public void testBoldThenFaint() {
+    void fromAnsiDropsEightBitControlSequences() {
+        // ECMA-48 defines single-character 8-bit forms of the introducers: CSI is U+009B,
+        // OSC U+009D, DCS U+0090, SOS U+0098, PM U+009E, APC U+009F, and ST is U+009C.
+        // Terminals that parse decoded code points (VTE) execute them exactly like the
+        // ESC-introduced forms, so they must be dropped the same way.
+        AttributedString s = AttributedString.fromAnsi("A\u009d52;c;cHduZWQ=\u009cB");
+        assertEquals("AB", s.toString());
+        assertEquals("AB", s.toAnsi());
+        assertEquals(2, s.columnLength());
+        // 8-bit OSC terminated by BEL
+        assertEquals("xy", AttributedString.stripAnsi("x\u009d0;title\u0007y"));
+        // 8-bit DCS, SOS, PM and APC terminated by 8-bit ST
+        assertEquals("ab", AttributedString.stripAnsi("a\u0090payload\u009cb"));
+        assertEquals("cd", AttributedString.stripAnsi("c\u0098payload\u009cd"));
+        assertEquals("ef", AttributedString.stripAnsi("e\u009epayload\u009cf"));
+        assertEquals("gh", AttributedString.stripAnsi("g\u009fpayload\u009ch"));
+        // BEL must NOT terminate DCS, SOS, PM or APC (only OSC); BEL mid-payload is treated
+        // as payload and the string continues until the actual ST terminator.
+        assertEquals("AB", AttributedString.stripAnsi("A\u0090dcs\u0007payload\u009cB"));
+        assertEquals("AB", AttributedString.stripAnsi("A\u0098sos\u0007payload\u009cB"));
+        assertEquals("AB", AttributedString.stripAnsi("A\u009epm\u0007payload\u009cB"));
+        assertEquals("AB", AttributedString.stripAnsi("A\u009fapc\u0007payload\u009cB"));
+        assertEquals("AB", AttributedString.stripAnsi("A\033Pdcs\007payload\033\\B"));
+        assertEquals("AB", AttributedString.stripAnsi("A\033Xsos\007payload\033\\B"));
+        assertEquals("AB", AttributedString.stripAnsi("A\033^pm\007payload\033\\B"));
+        assertEquals("AB", AttributedString.stripAnsi("A\033_apc\007payload\033\\B"));
+        // 7-bit introducer closed by 8-bit ST, and the reverse
+        assertEquals("ij", AttributedString.stripAnsi("i\033]0;t\u009cj"));
+        assertEquals("kl", AttributedString.stripAnsi("k\u009d0;t\033\\l"));
+        // unterminated 8-bit string sequence is consumed to the end of the input
+        assertEquals("pre", AttributedString.stripAnsi("pre\u009d0;payload"));
+        // 8-bit CSI: non-SGR is dropped, SGR still styles the text
+        assertEquals("pq", AttributedString.stripAnsi("p\u009b2Jq"));
+        AttributedString sgr = AttributedString.fromAnsi("\u009b31mred\u009b0m");
+        assertEquals("red", sgr.toString());
+        assertEquals("\033[31mred\033[0m", sgr.toAnsi());
+        // private-mode CSI (e.g. ESC [ ? 25 l — cursor hide): the '?' parameter byte must not
+        // reset the CSI parser prematurely, causing the remainder to leak into visible text
+        assertEquals("ab", AttributedString.stripAnsi("a\033[?25lb"));
+        assertEquals("cd", AttributedString.stripAnsi("c\033[?1049hd"));
+        // private-mode CSI with 'm' as the final byte (e.g. ESC [ > 4 m — xterm XTMODKEYS):
+        // must not pass the private-parameter bytes to Integer.parseInt (NumberFormatException)
+        assertEquals("ef", AttributedString.stripAnsi("e\033[>4mf"));
+        assertEquals("gh", AttributedString.stripAnsi("g\033[>4;2mh"));
+        // 8-bit CSI (U+009B) after a pending ESC: both bytes consumed together
+        assertEquals("ij", AttributedString.stripAnsi("i\033\u009b?25lj"));
+        // ESC followed by an 8-bit C1 string introducer: both bytes must be consumed together
+        // (the pending ESC is not emitted, and the sequence is dropped normally)
+        assertEquals("mn", AttributedString.stripAnsi("m\033\u009d0;title\007n"));
+        assertEquals("op", AttributedString.stripAnsi("o\033\u009d0;payload\u009cp"));
+        // ESC interrupting a CSI sequence aborts the CSI and starts a new escape sequence
+        assertEquals("ab", AttributedString.stripAnsi("a\033[?25\033[31mb"));
+        // Out-of-range SGR parameters must not throw NumberFormatException
+        assertEquals("ab", AttributedString.stripAnsi("a\033[2147483648mb"));
+        assertEquals("ab", AttributedString.stripAnsi("a\033[38;2;2147483648;0;0mb"));
+        // Malformed RGB color group: the g and b components (here "1" and "2") must be
+        // consumed as part of the color group, not leaked as standalone SGR parameters.
+        AttributedString malformedRgb = AttributedString.fromAnsi("\033[38;2;2147483648;1;2mtext");
+        assertEquals("text", malformedRgb.toString());
+        // "1" and "2" must not have applied bold+faint — style must be default
+        assertEquals(AttributedStyle.DEFAULT, malformedRgb.styleAt(0));
+        // Malformed extended-color mode byte (empty string between semicolons, e.g. "38;;1m"):
+        // must not cause an infinite loop when the mode byte itself fails parseInt.
+        assertEquals("X", AttributedString.fromAnsi("\033[31m\033[38;;1mX").toString());
+        assertEquals("X", AttributedString.stripAnsi("\033[31m\033[38;;1mX"));
+        // Incomplete RGB group: fewer than 3 components after "38;2" (e.g. ESC[38;2;1;2m).
+        // The remaining components must be consumed and not misinterpreted as standalone SGR
+        // parameters (SGR 1 = bold, SGR 2 = faint). Style at the character must be DEFAULT.
+        AttributedString incompleteRgb = AttributedString.fromAnsi("\033[38;2;1;2mX");
+        assertEquals("X", incompleteRgb.toString());
+        assertEquals(AttributedStyle.DEFAULT, incompleteRgb.styleAt(0));
+        // 8-bit string introducer (e.g. U+009D OSC) arriving while in CSI state (ansiState==2)
+        // must abort the CSI and enter the string-discard state; the full payload through the
+        // terminator must be dropped, and text after the terminator must survive unmodified.
+        assertEquals("ab", AttributedString.stripAnsi("a\033[?\u009d0;title\007b"));
+        assertEquals("ab", AttributedString.stripAnsi("a\033[?\u009d0;payload\u009cb"));
+        // ESC inside a string sequence (state 4): only ESC \ is ST — other introducers must
+        // keep discarding; a non-introducer non-backslash byte returns to string-discard state.
+        // ESC \ terminates: text after ST survives
+        assertEquals("ab", AttributedString.stripAnsi("a\033]0;title\033\\b"));
+        // ESC + string-introducer (e.g. ESC ]) restarts string-discard: payload still dropped
+        assertEquals("b", AttributedString.stripAnsi("\033]outer\033]inner\007b"));
+        // ESC + non-introducer non-backslash: return to string-discard, not terminate
+        assertEquals("b", AttributedString.stripAnsi("\033]title\033xstill-payload\007b"));
+        // ESC before BEL or 8-bit ST (U+009C) inside string sequence: must terminate (state 4 -> 0)
+        assertEquals("ab", AttributedString.stripAnsi("a\033]title\033\007b"));
+        assertEquals("ab", AttributedString.stripAnsi("a\033]title\033\u009cb"));
+        // Security: ESC [ inside an OSC/DCS string payload is payload data per ECMA-48 §5.6,
+        // NOT a CSI introducer. Treating it as CSI would let injected SGR/CSI commands escape
+        // the string boundary and reach the terminal. The full sequence up to BEL must be dropped.
+        assertEquals("end", AttributedString.stripAnsi("\033]title\033[31mred\007end"));
+        assertEquals("end", AttributedString.stripAnsi("\033]title\033\u009b?25lend\007end"));
+    }
+
+    @Test
+    void testBoldThenFaint() {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         sb.styled(AttributedStyle::bold, "bold ");
         sb.styled(AttributedStyle::faint, "faint");
@@ -137,14 +238,14 @@ public class AttributedStringTest {
     }
 
     @Test
-    public void testBoldAndFaint() {
+    void testBoldAndFaint() {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         sb.styled(AttributedStyle::bold, s -> s.append("bold ").styled(AttributedStyle::faint, "faint"));
         assertEquals("\u001b[1mbold \u001b[2mfaint\u001b[0m", sb.toAnsi());
     }
 
     @Test
-    public void test256Colors() throws IOException {
+    void test256Colors() throws IOException {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         sb.style(sb.style().background(254));
         sb.append("Hello");
@@ -159,19 +260,19 @@ public class AttributedStringTest {
     }
 
     @Test
-    public void testCharWidth() {
+    void testCharWidth() {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         sb.append("\u2329\u2329\u2329\u2329"); // 〈〈〈
         assertEquals(4, sb.length());
         assertEquals(8, sb.columnLength());
 
         assertEquals("", sb.columnSubSequence(0, 1).toString());
-        assertEquals(sb.columnSubSequence(1, 3).toString(), "\u2329");
-        assertEquals(sb.columnSubSequence(3, 8).toString(), "\u2329\u2329\u2329");
+        assertEquals("\u2329", sb.columnSubSequence(1, 3).toString());
+        assertEquals("\u2329\u2329\u2329", sb.columnSubSequence(3, 8).toString());
     }
 
     @Test
-    public void testColors() {
+    void testColors() {
         String ansiStr = new AttributedStringBuilder()
                 .append("This i")
                 .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE))
@@ -185,7 +286,7 @@ public class AttributedStringTest {
     }
 
     @Test
-    public void testColumns() {
+    void testColumns() {
         AttributedString message = new AttributedString("👍");
         int messageLength = message.columnLength();
         assertEquals(2, messageLength);
@@ -208,7 +309,7 @@ public class AttributedStringTest {
      * See https://github.com/jline/jline3/issues/1648
      */
     @Test
-    public void testBmpEmojiWidth() {
+    void testBmpEmojiWidth() {
         // SMP emoji (0x1F000+) — already handled
         assertEquals(2, new AttributedString("\uD83D\uDE00").columnLength()); // 😀 U+1F600
         assertEquals(2, new AttributedString("\uD83D\uDD34").columnLength()); // 🔴 U+1F534
@@ -264,7 +365,7 @@ public class AttributedStringTest {
      * The old table (from ~Unicode 5.1) missed many newer combining marks.
      */
     @Test
-    public void testUnicode16Combining() {
+    void testUnicode16Combining() {
         // Vedic Extensions (U+1CD0-1CF9) — added in Unicode 5.2+
         assertEquals(0, WCWidth.wcwidth(0x1CD0)); // VEDIC TONE KARSHANA
         assertEquals(0, WCWidth.wcwidth(0x1CF4)); // VEDIC TONE CANDRA ABOVE
@@ -307,7 +408,7 @@ public class AttributedStringTest {
      * The old code missed Hangul Jamo Extended-A, Tangut, Kana extensions, etc.
      */
     @Test
-    public void testUnicode16EastAsianWidth() {
+    void testUnicode16EastAsianWidth() {
         // Hangul Jamo Extended-A (U+A960-A97C) — was missing
         assertEquals(2, WCWidth.wcwidth(0xA960)); // HANGUL CHOSEONG TIKEUT-MIEUM
         assertEquals(2, WCWidth.wcwidth(0xA97C)); // HANGUL CHOSEONG SSANGYEORINHIEUH
