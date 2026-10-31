@@ -227,6 +227,15 @@ class AttributedStringTest {
         // Out-of-range SGR parameters must not throw NumberFormatException
         assertEquals("ab", AttributedString.stripAnsi("a\033[2147483648mb"));
         assertEquals("ab", AttributedString.stripAnsi("a\033[38;2;2147483648;0;0mb"));
+        // Malformed RGB color group: the g and b components (here "1" and "2") must be
+        // consumed as part of the color group, not leaked as standalone SGR parameters.
+        // A stripAnsi text assertion alone does not verify styling — a style check is required.
+        // With the old "ignore" catch, "1" (bold) and "2" (faint) would leak as standalone
+        // params; the new catch advances j past the full color group, leaving style at DEFAULT.
+        AttributedString malformedRgb = AttributedString.fromAnsi("\033[38;2;2147483648;1;2mtext");
+        assertEquals("text", malformedRgb.toString());
+        // "1" and "2" must not have applied bold+faint — style must be default
+        assertEquals(AttributedStyle.DEFAULT, malformedRgb.styleAt(0));
     }
 
     @Test

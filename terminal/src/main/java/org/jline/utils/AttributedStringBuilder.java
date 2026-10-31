@@ -738,9 +738,11 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                             case 38:
                             case 48:
                                 if (j + 1 < params.length) {
+                                    int jBefore = j;
                                     try {
                                         int ansiParam2 = Integer.parseInt(params[++j]);
                                         if (ansiParam2 == 2) {
+                                            // RGB: consume r, g, b
                                             if (j + 3 < params.length) {
                                                 int r = Integer.parseInt(params[++j]);
                                                 int g = Integer.parseInt(params[++j]);
@@ -752,6 +754,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                                                 }
                                             }
                                         } else if (ansiParam2 == 5) {
+                                            // indexed: consume col
                                             if (j + 1 < params.length) {
                                                 int col = Integer.parseInt(params[++j]);
                                                 if (ansiParam == 38) {
@@ -762,7 +765,26 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                                             }
                                         }
                                     } catch (NumberFormatException e) {
-                                        // ignore malformed extended-color sub-parameters
+                                        // Malformed extended-color sub-parameters: skip all
+                                        // components that belong to this color group so they
+                                        // are not misinterpreted as standalone SGR parameters.
+                                        // We can determine the expected sub-param count from
+                                        // the mode byte (params[jBefore+1]) if it was parseable.
+                                        // If the mode byte itself failed, fall back to jBefore.
+                                        try {
+                                            int mode = Integer.parseInt(params[jBefore + 1]);
+                                            if (mode == 2) {
+                                                // RGB: up to 3 more after the mode byte
+                                                j = Math.min(jBefore + 4, params.length - 1);
+                                            } else if (mode == 5) {
+                                                // indexed: 1 more after the mode byte
+                                                j = Math.min(jBefore + 2, params.length - 1);
+                                            } else {
+                                                j = jBefore + 1;
+                                            }
+                                        } catch (NumberFormatException e2) {
+                                            j = jBefore;
+                                        }
                                     }
                                 }
                                 break;
