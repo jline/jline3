@@ -254,6 +254,9 @@ class AttributedStringTest {
         assertEquals("b", AttributedString.stripAnsi("\033]outer\033]inner\007b"));
         // ESC + non-introducer non-backslash: return to string-discard, not terminate
         assertEquals("b", AttributedString.stripAnsi("\033]title\033xstill-payload\007b"));
+        // ESC before BEL or 8-bit ST (U+009C) inside string sequence: must terminate (state 4 -> 0)
+        assertEquals("ab", AttributedString.stripAnsi("a\033]title\033\007b"));
+        assertEquals("ab", AttributedString.stripAnsi("a\033]title\033\u009cb"));
     }
 
     @Test

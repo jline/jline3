@@ -853,8 +853,8 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                 }
             } else if (ansiState == 4) {
                 // ESC was seen inside a string sequence (state 3); determine what follows:
-                if (c == '\\') {
-                    ansiState = 0; // ESC \ is ST — string sequence terminated
+                if (c == '\\' || c == 7 || c == 0x9c) {
+                    ansiState = 0; // ESC \, BEL, or 8-bit ST terminate the string sequence
                 } else if (c == '[' || c == 0x9b) {
                     ansiState = 2; // ESC [ (or 8-bit CSI) — start a new CSI sequence
                     ansiStart = i + 1;
