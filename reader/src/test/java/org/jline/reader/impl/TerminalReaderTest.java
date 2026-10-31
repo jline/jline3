@@ -10,6 +10,7 @@ package org.jline.reader.impl;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 
 import org.jline.keymap.KeyMap;
 import org.jline.reader.Binding;
@@ -59,6 +60,18 @@ class TerminalReaderTest extends ReaderTestSupport {
         mask = '*';
         assertLine("Sample String", new TestBuffer("Sample String\n"));
         assertTrue(this.out.toString().contains("*************"));
+    }
+
+    @Test
+    void testMaskedInputIsNotHistoryExpanded() throws Exception {
+        reader.getHistory().add("export TOKEN=s3cr3t");
+        mask = '*';
+        assertLine("pw!!", new TestBuffer("pw!!\n"), false);
+        assertLine("p\\ss!-1", new TestBuffer("p\\ss!-1\n"), false);
+
+        // a replayed command after a masked read must use the current call's callback
+        reader.addCommandsInBuffer(Collections.singletonList("echo a\\b"));
+        assertEquals("echo ab", reader.readLine());
     }
 
     @Test
