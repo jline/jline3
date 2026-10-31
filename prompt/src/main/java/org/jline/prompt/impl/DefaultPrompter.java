@@ -837,37 +837,46 @@ public class DefaultPrompter implements Prompter {
             FileAttribute<?> ownerOnly =
                     PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"));
             Path tmp = Files.createTempFile(prefix, suffix, ownerOnly);
-            Set<PosixFilePermission> actual = Files.getPosixFilePermissions(tmp);
-            if (!actual.equals(PosixFilePermissions.fromString("rw-------"))) {
+            try {
+                Set<PosixFilePermission> actual = Files.getPosixFilePermissions(tmp);
+                if (!actual.equals(PosixFilePermissions.fromString("rw-------"))) {
+                    throw new IOException("Temporary file " + tmp + " has unsafe permissions: " + actual);
+                }
+                return tmp.toFile();
+            } catch (IOException ex) {
                 Files.deleteIfExists(tmp);
-                throw new IOException("Temporary file " + tmp + " has unsafe permissions: " + actual);
+                throw ex;
             }
-            return tmp.toFile();
         } catch (UnsupportedOperationException e) {
-            // Non-POSIX file system (e.g. Windows): restrict via ACL at creation time
+            // Non-POSIX file system (e.g. Windows): restrict via AclFileAttributeView
             Path tmp = Files.createTempFile(prefix, suffix);
-            AclFileAttributeView aclView = Files.getFileAttributeView(tmp, AclFileAttributeView.class);
-            if (aclView == null) {
+            try {
+                AclFileAttributeView aclView = Files.getFileAttributeView(tmp, AclFileAttributeView.class);
+                if (aclView == null) {
+                    throw new IOException("Cannot restrict permissions on temporary file: " + tmp);
+                }
+                UserPrincipal owner = aclView.getOwner();
+                AclEntry ownerOnly = AclEntry.newBuilder()
+                        .setType(AclEntryType.ALLOW)
+                        .setPrincipal(owner)
+                        .setPermissions(
+                                AclEntryPermission.READ_DATA,
+                                AclEntryPermission.WRITE_DATA,
+                                AclEntryPermission.APPEND_DATA,
+                                AclEntryPermission.READ_ATTRIBUTES,
+                                AclEntryPermission.WRITE_ATTRIBUTES,
+                                AclEntryPermission.READ_NAMED_ATTRS,
+                                AclEntryPermission.WRITE_NAMED_ATTRS,
+                                AclEntryPermission.READ_ACL,
+                                AclEntryPermission.SYNCHRONIZE,
+                                AclEntryPermission.DELETE)
+                        .build();
+                aclView.setAcl(Collections.singletonList(ownerOnly));
+                return tmp.toFile();
+            } catch (IOException ex) {
                 Files.deleteIfExists(tmp);
-                throw new IOException("Cannot restrict permissions on temporary file: " + tmp);
+                throw ex;
             }
-            UserPrincipal owner = aclView.getOwner();
-            AclEntry ownerOnly = AclEntry.newBuilder()
-                    .setType(AclEntryType.ALLOW)
-                    .setPrincipal(owner)
-                    .setPermissions(
-                            AclEntryPermission.READ_DATA,
-                            AclEntryPermission.WRITE_DATA,
-                            AclEntryPermission.APPEND_DATA,
-                            AclEntryPermission.READ_ATTRIBUTES,
-                            AclEntryPermission.WRITE_ATTRIBUTES,
-                            AclEntryPermission.READ_NAMED_ATTRS,
-                            AclEntryPermission.WRITE_NAMED_ATTRS,
-                            AclEntryPermission.READ_ACL,
-                            AclEntryPermission.SYNCHRONIZE)
-                    .build();
-            aclView.setAcl(Collections.singletonList(ownerOnly));
-            return tmp.toFile();
         }
     }
 

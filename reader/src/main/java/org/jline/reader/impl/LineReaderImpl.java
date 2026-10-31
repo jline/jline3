@@ -19,9 +19,14 @@ import java.io.InterruptedIOException;
 import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.AclEntry;
+import java.nio.file.attribute.AclEntryPermission;
+import java.nio.file.attribute.AclEntryType;
+import java.nio.file.attribute.AclFileAttributeView;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.nio.file.attribute.UserPrincipal;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -4059,22 +4064,46 @@ public class LineReaderImpl implements LineReader, Flushable {
                     PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"));
             tmp = Files.createTempFile(prefix, suffix, ownerOnly);
         } catch (UnsupportedOperationException e) {
-            File fallback = Files.createTempFile(prefix, suffix).toFile();
-            if (!fallback.setReadable(false, false)
-                    || !fallback.setReadable(true, true)
-                    || !fallback.setWritable(false, false)
-                    || !fallback.setWritable(true, true)) {
-                Files.deleteIfExists(fallback.toPath());
-                throw new IOException("Cannot restrict permissions on temporary file: " + fallback);
+            // Non-POSIX file system (e.g. Windows): restrict via AclFileAttributeView
+            Path fallback = Files.createTempFile(prefix, suffix);
+            try {
+                AclFileAttributeView aclView = Files.getFileAttributeView(fallback, AclFileAttributeView.class);
+                if (aclView == null) {
+                    throw new IOException("Cannot restrict permissions on temporary file: " + fallback);
+                }
+                UserPrincipal owner = aclView.getOwner();
+                AclEntry ownerOnly = AclEntry.newBuilder()
+                        .setType(AclEntryType.ALLOW)
+                        .setPrincipal(owner)
+                        .setPermissions(
+                                AclEntryPermission.READ_DATA,
+                                AclEntryPermission.WRITE_DATA,
+                                AclEntryPermission.APPEND_DATA,
+                                AclEntryPermission.READ_ATTRIBUTES,
+                                AclEntryPermission.WRITE_ATTRIBUTES,
+                                AclEntryPermission.READ_NAMED_ATTRS,
+                                AclEntryPermission.WRITE_NAMED_ATTRS,
+                                AclEntryPermission.READ_ACL,
+                                AclEntryPermission.SYNCHRONIZE,
+                                AclEntryPermission.DELETE)
+                        .build();
+                aclView.setAcl(Collections.singletonList(ownerOnly));
+                return fallback.toFile();
+            } catch (IOException ex) {
+                Files.deleteIfExists(fallback);
+                throw ex;
             }
-            return fallback;
         }
-        Set<PosixFilePermission> actual = Files.getPosixFilePermissions(tmp);
-        if (!actual.equals(PosixFilePermissions.fromString("rw-------"))) {
+        try {
+            Set<PosixFilePermission> actual = Files.getPosixFilePermissions(tmp);
+            if (!actual.equals(PosixFilePermissions.fromString("rw-------"))) {
+                throw new IOException("Temporary file " + tmp + " has unsafe permissions: " + actual);
+            }
+            return tmp.toFile();
+        } catch (IOException ex) {
             Files.deleteIfExists(tmp);
-            throw new IOException("Temporary file " + tmp + " has unsafe permissions: " + actual);
+            throw ex;
         }
-        return tmp.toFile();
     }
 
     protected boolean editAndExecute() {
