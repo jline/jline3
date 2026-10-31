@@ -8,6 +8,22 @@
  */
 package org.jline.reader.impl;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.AclEntry;
+import java.nio.file.attribute.AclEntryPermission;
+import java.nio.file.attribute.AclEntryType;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.nio.file.attribute.UserPrincipal;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+
 import org.jline.reader.LineReader;
 import org.jline.utils.Levenshtein;
 
@@ -135,6 +151,79 @@ public class ReaderUtils {
             }
         }
         return nb;
+    }
+
+    /**
+     * Creates a temporary file with owner-only read/write permissions.
+     * <p>
+     * On POSIX file systems the file is created with {@code rw-------} permissions (0600).
+     * The effective permissions are verified after creation; if they do not match, the file
+     * is deleted and an {@link IOException} is thrown.
+     * <p>
+     * On non-POSIX file systems (e.g. Windows NTFS), the file is created with an ACL that
+     * grants read, write, and delete access to the current user only. The ACL is applied
+     * atomically at creation time, eliminating any TOCTOU race between creation and restriction.
+     *
+     * @param prefix the prefix for the temporary file name
+     * @param suffix the suffix for the temporary file name (may be null)
+     * @return the created temporary {@link File}
+     * @throws IOException if the file cannot be created or if the permissions cannot be restricted
+     */
+    @SuppressWarnings("java:S5443") // temp file is created with explicit owner-only permissions
+    public static File createSecureTempFile(String prefix, String suffix) throws IOException {
+        Path tmp;
+        try {
+            FileAttribute<?> ownerOnly =
+                    PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"));
+            tmp = Files.createTempFile(prefix, suffix, ownerOnly);
+        } catch (UnsupportedOperationException e) {
+            // Non-POSIX file system (e.g. Windows): create with owner-only ACL at creation time
+            // to eliminate the TOCTOU race between file creation and permission restriction.
+            UserPrincipal owner = FileSystems.getDefault()
+                    .getUserPrincipalLookupService()
+                    .lookupPrincipalByName(System.getProperty("user.name"));
+            AclEntry ownerOnly = AclEntry.newBuilder()
+                    .setType(AclEntryType.ALLOW)
+                    .setPrincipal(owner)
+                    .setPermissions(
+                            AclEntryPermission.READ_DATA,
+                            AclEntryPermission.WRITE_DATA,
+                            AclEntryPermission.APPEND_DATA,
+                            AclEntryPermission.READ_ATTRIBUTES,
+                            AclEntryPermission.WRITE_ATTRIBUTES,
+                            AclEntryPermission.READ_NAMED_ATTRS,
+                            AclEntryPermission.WRITE_NAMED_ATTRS,
+                            AclEntryPermission.READ_ACL,
+                            AclEntryPermission.SYNCHRONIZE,
+                            AclEntryPermission.DELETE)
+                    .build();
+            FileAttribute<List<AclEntry>> aclAttr = new FileAttribute<>() {
+                @Override
+                public String name() {
+                    return "acl:acl";
+                }
+
+                @Override
+                public List<AclEntry> value() {
+                    return Collections.singletonList(ownerOnly);
+                }
+            };
+            return Files.createTempFile(prefix, suffix, aclAttr).toFile();
+        }
+        return verifyPosixPermissions(tmp);
+    }
+
+    private static File verifyPosixPermissions(Path tmp) throws IOException {
+        try {
+            Set<PosixFilePermission> actual = Files.getPosixFilePermissions(tmp);
+            if (!actual.equals(PosixFilePermissions.fromString("rw-------"))) {
+                throw new IOException("Temporary file " + tmp + " has unsafe permissions: " + actual);
+            }
+            return tmp.toFile();
+        } catch (IOException ex) {
+            Files.deleteIfExists(tmp);
+            throw ex;
+        }
     }
 
     /**

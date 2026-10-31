@@ -14,16 +14,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOError;
 import java.io.IOException;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.AclEntry;
-import java.nio.file.attribute.AclEntryPermission;
-import java.nio.file.attribute.AclEntryType;
-import java.nio.file.attribute.FileAttribute;
-import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
-import java.nio.file.attribute.UserPrincipal;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -49,6 +39,7 @@ import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.Reference;
 import org.jline.reader.UserInterruptException;
 import org.jline.reader.Widget;
+import org.jline.reader.impl.ReaderUtils;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
@@ -831,56 +822,8 @@ public class DefaultPrompter implements Prompter {
      * Creates the temporary file handed to the editor. The file holds the prompt text,
      * so it is created with owner-only permissions on POSIX file systems.
      */
-    @SuppressWarnings("java:S5443") // temp file is created with explicit owner-only permissions
     protected File createEditorTempFile(String prefix, String suffix) throws IOException {
-        try {
-            FileAttribute<?> ownerOnly =
-                    PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"));
-            Path tmp = Files.createTempFile(prefix, suffix, ownerOnly);
-            try {
-                Set<PosixFilePermission> actual = Files.getPosixFilePermissions(tmp);
-                if (!actual.equals(PosixFilePermissions.fromString("rw-------"))) {
-                    throw new IOException("Temporary file " + tmp + " has unsafe permissions: " + actual);
-                }
-                return tmp.toFile();
-            } catch (IOException ex) {
-                Files.deleteIfExists(tmp);
-                throw ex;
-            }
-        } catch (UnsupportedOperationException e) {
-            // Non-POSIX file system (e.g. Windows): create with owner-only ACL at creation time
-            // to eliminate the TOCTOU race between file creation and permission restriction.
-            UserPrincipal owner = FileSystems.getDefault()
-                    .getUserPrincipalLookupService()
-                    .lookupPrincipalByName(System.getProperty("user.name"));
-            AclEntry ownerOnly = AclEntry.newBuilder()
-                    .setType(AclEntryType.ALLOW)
-                    .setPrincipal(owner)
-                    .setPermissions(
-                            AclEntryPermission.READ_DATA,
-                            AclEntryPermission.WRITE_DATA,
-                            AclEntryPermission.APPEND_DATA,
-                            AclEntryPermission.READ_ATTRIBUTES,
-                            AclEntryPermission.WRITE_ATTRIBUTES,
-                            AclEntryPermission.READ_NAMED_ATTRS,
-                            AclEntryPermission.WRITE_NAMED_ATTRS,
-                            AclEntryPermission.READ_ACL,
-                            AclEntryPermission.SYNCHRONIZE,
-                            AclEntryPermission.DELETE)
-                    .build();
-            FileAttribute<List<AclEntry>> aclAttr = new FileAttribute<>() {
-                @Override
-                public String name() {
-                    return "acl:acl";
-                }
-
-                @Override
-                public List<AclEntry> value() {
-                    return Collections.singletonList(ownerOnly);
-                }
-            };
-            return Files.createTempFile(prefix, suffix, aclAttr).toFile();
-        }
+        return ReaderUtils.createSecureTempFile(prefix, suffix);
     }
 
     /**

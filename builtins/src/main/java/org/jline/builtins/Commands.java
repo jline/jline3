@@ -14,13 +14,6 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
-import java.nio.file.attribute.AclEntry;
-import java.nio.file.attribute.AclEntryPermission;
-import java.nio.file.attribute.AclEntryType;
-import java.nio.file.attribute.FileAttribute;
-import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
-import java.nio.file.attribute.UserPrincipal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -48,6 +41,7 @@ import org.jline.reader.LineReader.Option;
 import org.jline.reader.Macro;
 import org.jline.reader.Reference;
 import org.jline.reader.Widget;
+import org.jline.reader.impl.ReaderUtils;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
@@ -444,59 +438,6 @@ public class Commands {
         execute.editCommandsAndClose(reader);
     }
 
-    @SuppressWarnings("java:S5443") // temp file is created with explicit owner-only permissions
-    private static File createSecureTempFile(String prefix, String suffix) throws IOException {
-        Path tmp;
-        try {
-            FileAttribute<?> ownerOnly =
-                    PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"));
-            tmp = Files.createTempFile(prefix, suffix, ownerOnly);
-        } catch (UnsupportedOperationException e) {
-            // Non-POSIX file system (e.g. Windows): create with owner-only ACL at creation time
-            // to eliminate the TOCTOU race between file creation and permission restriction.
-            UserPrincipal owner = FileSystems.getDefault()
-                    .getUserPrincipalLookupService()
-                    .lookupPrincipalByName(System.getProperty("user.name"));
-            AclEntry ownerOnly = AclEntry.newBuilder()
-                    .setType(AclEntryType.ALLOW)
-                    .setPrincipal(owner)
-                    .setPermissions(
-                            AclEntryPermission.READ_DATA,
-                            AclEntryPermission.WRITE_DATA,
-                            AclEntryPermission.APPEND_DATA,
-                            AclEntryPermission.READ_ATTRIBUTES,
-                            AclEntryPermission.WRITE_ATTRIBUTES,
-                            AclEntryPermission.READ_NAMED_ATTRS,
-                            AclEntryPermission.WRITE_NAMED_ATTRS,
-                            AclEntryPermission.READ_ACL,
-                            AclEntryPermission.SYNCHRONIZE,
-                            AclEntryPermission.DELETE)
-                    .build();
-            FileAttribute<List<AclEntry>> aclAttr = new FileAttribute<>() {
-                @Override
-                public String name() {
-                    return "acl:acl";
-                }
-
-                @Override
-                public List<AclEntry> value() {
-                    return Collections.singletonList(ownerOnly);
-                }
-            };
-            return Files.createTempFile(prefix, suffix, aclAttr).toFile();
-        }
-        try {
-            Set<PosixFilePermission> actual = Files.getPosixFilePermissions(tmp);
-            if (!actual.equals(PosixFilePermissions.fromString("rw-------"))) {
-                throw new IOException("Temporary file " + tmp + " has unsafe permissions: " + actual);
-            }
-            return tmp.toFile();
-        } catch (IOException ex) {
-            Files.deleteIfExists(tmp);
-            throw ex;
-        }
-    }
-
     /**
      * Helper class for re-executing commands from history.
      */
@@ -519,7 +460,7 @@ public class Commands {
                     iter.remove();
                 }
                 if (edit) {
-                    cmdFile = createSecureTempFile("jline-history-", null);
+                    cmdFile = ReaderUtils.createSecureTempFile("jline-history-", null);
                     cmdWriter = new FileWriter(cmdFile);
                 } else if (!opt.args().isEmpty()) {
                     String[] s = opt.args().get(argId).split("=");
