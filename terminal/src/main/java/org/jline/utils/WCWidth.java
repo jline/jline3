@@ -302,7 +302,8 @@ public final class WCWidth {
         new Interval(0x2B50, 0x2B50),   /* Star */
         new Interval(0x2B55, 0x2B55),   /* Heavy circle */
         new Interval(0x2E80, 0x303E),   /* CJK Radicals .. CJK Symbols (excl. U+303F) */
-        new Interval(0x3041, 0x33BF),   /* Hiragana .. CJK Compatibility */
+        new Interval(0x3041, 0x3247),   /* Hiragana .. Enclosed CJK Letters and Months */
+        new Interval(0x3250, 0x33BF),   /* Enclosed CJK Letters and Months (cont) .. CJK Compatibility */
         new Interval(0x33C0, 0x33FF),   /* CJK Compatibility (cont) */
         new Interval(0x3400, 0x4DFF),   /* CJK Unified Ideographs Extension A + Yijing Hexagrams */
         new Interval(0x4E00, 0xA4CF),   /* CJK Unified Ideographs .. Yi */
@@ -330,10 +331,8 @@ public final class WCWidth {
         new Interval(0x1D360, 0x1D376), /* Counting Rod Numerals */
         new Interval(0x1F004, 0x1F004), /* Mahjong Red Dragon */
         new Interval(0x1F0CF, 0x1F0CF), /* Playing Card Black Joker */
-        new Interval(0x1F100, 0x1F10A), /* Enclosed Alphanumeric Supplement */
-        new Interval(0x1F110, 0x1F12D), /* Enclosed Alphanumeric Supplement (cont) */
-        new Interval(0x1F130, 0x1F169), /* Enclosed Alphanumeric Supplement (cont) */
-        new Interval(0x1F170, 0x1F1AC), /* Enclosed Alphanumeric Supplement (cont) */
+        new Interval(0x1F18E, 0x1F18E), /* Negative squared AB */
+        new Interval(0x1F191, 0x1F19A), /* Squared CL .. Squared VS */
         new Interval(0x1F1E6, 0x1F202), /* Regional Indicators .. Enclosed Ideographic */
         new Interval(0x1F210, 0x1F23B), /* Enclosed Ideographic Supplement */
         new Interval(0x1F240, 0x1F248), /* Enclosed Ideographic Supplement (cont) */
@@ -369,8 +368,6 @@ public final class WCWidth {
         new Interval(0x1F90C, 0x1F93A), /* Gestures and Activities */
         new Interval(0x1F93C, 0x1F945), /* Sports */
         new Interval(0x1F947, 0x1F9FF), /* Awards, Objects, People */
-        new Interval(0x1FA00, 0x1FA53), /* Chess symbols */
-        new Interval(0x1FA60, 0x1FA6D), /* Xiangqi */
         new Interval(0x1FA70, 0x1FA7C), /* Symbols and Pictographs Extended-A */
         new Interval(0x1FA80, 0x1FA89), /* Symbols and Pictographs Extended-A (cont) */
         new Interval(0x1FA8F, 0x1FAC6), /* Symbols and Pictographs Extended-A (cont) */
