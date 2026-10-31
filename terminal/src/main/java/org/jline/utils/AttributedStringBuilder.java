@@ -853,18 +853,17 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                 }
             } else if (ansiState == 4) {
                 // ESC was seen inside a string sequence (state 3); determine what follows:
+                // Per ECMA-48 §5.6, only ESC \ (ST) terminates the string. ESC [ inside
+                // an OSC/DCS string is payload data — not a CSI introducer — so treating it
+                // as CSI would leak the payload to the terminal.
                 if (c == '\\' || c == 7 || c == 0x9c) {
                     ansiState = 0; // ESC \, BEL, or 8-bit ST terminate the string sequence
-                } else if (c == '[' || c == 0x9b) {
-                    ansiState = 2; // ESC [ (or 8-bit CSI) — start a new CSI sequence
-                    ansiStart = i + 1;
-                    nonSgrSeen = false;
                 } else if (c == ']' || c == 'P' || c == 'X' || c == '^' || c == '_') {
                     ansiState = 3; // ESC + string introducer — nested string, keep discarding
                 } else if (c == 27) {
                     ansiState = 4; // another ESC — remain in ESC-within-string state
                 } else {
-                    ansiState = 3; // any other byte: not an ST, return to string-discard
+                    ansiState = 3; // any other byte (including '[' = CSI): not an ST, return to string-discard
                 }
             } else {
                 if (ansiState >= 1) {

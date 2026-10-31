@@ -257,6 +257,11 @@ class AttributedStringTest {
         // ESC before BEL or 8-bit ST (U+009C) inside string sequence: must terminate (state 4 -> 0)
         assertEquals("ab", AttributedString.stripAnsi("a\033]title\033\007b"));
         assertEquals("ab", AttributedString.stripAnsi("a\033]title\033\u009cb"));
+        // Security: ESC [ inside an OSC/DCS string payload is payload data per ECMA-48 §5.6,
+        // NOT a CSI introducer. Treating it as CSI would let injected SGR/CSI commands escape
+        // the string boundary and reach the terminal. The full sequence up to BEL must be dropped.
+        assertEquals("end", AttributedString.stripAnsi("\033]title\033[31mred\007end"));
+        assertEquals("end", AttributedString.stripAnsi("\033]title\033\u009b?25lend\007end"));
     }
 
     @Test
