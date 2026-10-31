@@ -27,10 +27,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-class LineDisciplineTerminalTest {
+public class LineDisciplineTerminalTest {
 
     @Test
-    void signalCharactersRespectEchoFlagsAndInputOrder() throws Exception {
+    public void signalCharactersRespectEchoFlagsAndInputOrder() throws Exception {
         ControlChar[] chars = {ControlChar.VINTR, ControlChar.VQUIT, ControlChar.VSUSP};
         Signal[] signals = {Signal.INT, Signal.QUIT, Signal.TSTP};
         for (boolean echo : new boolean[] {false, true}) {
@@ -50,7 +50,7 @@ class LineDisciplineTerminalTest {
                         terminal.processInputBytes(new byte[] {'a', (byte) c, 'b'});
 
                         String expected =
-                                echo ? "a" + (echoControl ? "^" + (char) (c + '@') : "" + (char) c) + "b" : "";
+                                !echo ? "" : "a" + (echoControl ? "^" + (char) (c + '@') : "" + (char) c) + "b";
                         assertEquals(expected, output.toString(StandardCharsets.UTF_8.name()));
                         terminal.flush();
                         assertEquals(expected, output.toString(StandardCharsets.UTF_8.name()));
@@ -67,7 +67,7 @@ class LineDisciplineTerminalTest {
     }
 
     @Test
-    void programmaticSignalsDoNotEchoInputCharacters() throws Exception {
+    public void programmaticSignalsDoNotEchoInputCharacters() throws Exception {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         try (LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("test", "xterm", output, StandardCharsets.UTF_8)) {
@@ -82,7 +82,7 @@ class LineDisciplineTerminalTest {
     }
 
     @Test
-    void signalEchoRequestsOutputFlush() throws Exception {
+    public void signalEchoRequestsOutputFlush() throws Exception {
         FlushTrackingOutputStream output = new FlushTrackingOutputStream();
         try (LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("test", "xterm", output, StandardCharsets.UTF_8)) {
@@ -95,7 +95,7 @@ class LineDisciplineTerminalTest {
     }
 
     @Test
-    void signalIsDeliveredWhenEchoFails() throws Exception {
+    public void signalIsDeliveredWhenEchoFails() throws Exception {
         ControlChar[] chars = {ControlChar.VINTR, ControlChar.VQUIT, ControlChar.VSUSP};
         Signal[] signals = {Signal.INT, Signal.QUIT, Signal.TSTP};
         for (boolean echoControl : new boolean[] {false, true}) {
@@ -136,7 +136,7 @@ class LineDisciplineTerminalTest {
     }
 
     @Test
-    void printableSignalCharacterIsEchoedLiterally() throws Exception {
+    public void printableSignalCharacterIsEchoedLiterally() throws Exception {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         try (LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("test", "xterm", output, StandardCharsets.UTF_8)) {

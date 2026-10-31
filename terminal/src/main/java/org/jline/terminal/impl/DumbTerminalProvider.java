@@ -8,6 +8,7 @@
  */
 package org.jline.terminal.impl;
 
+import java.io.BufferedOutputStream;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -76,10 +77,27 @@ public class DumbTerminalProvider implements TerminalProvider {
         // For system terminals, wrap the streams in non-closeable wrappers
         // to prevent closing the underlying FileDescriptors when the terminal is closed
         InputStream in = new NonCloseableInputStream(new FileInputStream(FileDescriptor.in));
-        OutputStream out = new NonCloseableOutputStream(
+        OutputStream out = systemOutput(
                 new FileOutputStream(systemStream == SystemStream.Error ? FileDescriptor.err : FileDescriptor.out));
         return new DumbTerminal(
                 this, systemStream, name, type, in, out, encoding, inputEncoding, outputEncoding, signalHandler);
+    }
+
+    /**
+     * Wraps a system output stream for a dumb terminal.
+     * <p>
+     * The stream is buffered: without a buffer, consumers that write one byte at a time (such as
+     * {@code AnsiOutputStream}) issue one system call per byte when the output is redirected to a pipe
+     * or a file. The buffer is synchronized because the stream is shared by everything writing to the
+     * system terminal, possibly from several threads, and the unbuffered file descriptor it replaces
+     * never lost bytes under concurrent writes. Closing the returned stream flushes the buffer but keeps
+     * the underlying file descriptor open.
+     *
+     * @param out the stream writing to the system file descriptor
+     * @return the buffered, non-closeable stream
+     */
+    static OutputStream systemOutput(OutputStream out) {
+        return new NonCloseableOutputStream(new BufferedOutputStream(out));
     }
 
     @SuppressWarnings("deprecation")
@@ -203,6 +221,12 @@ public class DumbTerminalProvider implements TerminalProvider {
     private static class NonCloseableOutputStream extends FilterOutputStream {
         NonCloseableOutputStream(OutputStream out) {
             super(out);
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            // FilterOutputStream would write byte by byte
+            out.write(b, off, len);
         }
 
         @Override
