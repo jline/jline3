@@ -16,6 +16,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -205,30 +206,30 @@ public class ExecPty extends AbstractPty implements Pty {
         List<String> commands = new ArrayList<>();
         for (InputFlag flag : InputFlag.values()) {
             if (attr.getInputFlag(flag) != current.getInputFlag(flag) && flag != InputFlag.INORMEOL) {
-                commands.add((attr.getInputFlag(flag) ? flag.name() : "-" + flag.name()).toLowerCase());
+                commands.add((attr.getInputFlag(flag) ? flag.name() : "-" + flag.name()).toLowerCase(Locale.ROOT));
             }
         }
         for (OutputFlag flag : OutputFlag.values()) {
             if (attr.getOutputFlag(flag) != current.getOutputFlag(flag)) {
-                commands.add((attr.getOutputFlag(flag) ? flag.name() : "-" + flag.name()).toLowerCase());
+                commands.add((attr.getOutputFlag(flag) ? flag.name() : "-" + flag.name()).toLowerCase(Locale.ROOT));
             }
         }
         for (ControlFlag flag : ControlFlag.values()) {
             if (attr.getControlFlag(flag) != current.getControlFlag(flag)) {
-                commands.add((attr.getControlFlag(flag) ? flag.name() : "-" + flag.name()).toLowerCase());
+                commands.add((attr.getControlFlag(flag) ? flag.name() : "-" + flag.name()).toLowerCase(Locale.ROOT));
             }
         }
         for (LocalFlag flag : LocalFlag.values()) {
             if (attr.getLocalFlag(flag) != current.getLocalFlag(flag)) {
-                commands.add((attr.getLocalFlag(flag) ? flag.name() : "-" + flag.name()).toLowerCase());
+                commands.add((attr.getLocalFlag(flag) ? flag.name() : "-" + flag.name()).toLowerCase(Locale.ROOT));
             }
         }
-        String undef = System.getProperty("os.name").toLowerCase().startsWith("hp") ? "^-" : "undef";
+        String undef = System.getProperty("os.name").toLowerCase(Locale.ROOT).startsWith("hp") ? "^-" : "undef";
         for (ControlChar cchar : ControlChar.values()) {
             int v = attr.getControlChar(cchar);
             if (v >= 0 && v != current.getControlChar(cchar)) {
                 String str = "";
-                commands.add(cchar.name().toLowerCase().substring(1));
+                commands.add(cchar.name().toLowerCase(Locale.ROOT).substring(1));
                 if (cchar == ControlChar.VMIN || cchar == ControlChar.VTIME) {
                     commands.add(Integer.toString(v));
                 } else if (v == 0) {
@@ -289,7 +290,7 @@ public class ExecPty extends AbstractPty implements Pty {
             }
         }
         for (ControlChar cchar : ControlChar.values()) {
-            String name = cchar.name().toLowerCase().substring(1);
+            String name = cchar.name().toLowerCase(Locale.ROOT).substring(1);
             if ("reprint".endsWith(name)) {
                 name = "(?:reprint|rprnt)";
             }
@@ -297,14 +298,14 @@ public class ExecPty extends AbstractPty implements Pty {
                     Pattern.compile("[\\s;]" + name + "\\s*=\\s*(.+?)[\\s;]").matcher(cfg);
             if (matcher.find()) {
                 attributes.setControlChar(
-                        cchar, parseControlChar(matcher.group(1).toUpperCase()));
+                        cchar, parseControlChar(matcher.group(1).toUpperCase(Locale.ROOT)));
             }
         }
         return attributes;
     }
 
     private static Boolean doGetFlag(String cfg, Enum<?> flag) {
-        Matcher matcher = Pattern.compile("(?:^|[\\s;])(\\-?" + flag.name().toLowerCase() + ")(?:[\\s;]|$)")
+        Matcher matcher = Pattern.compile("(?:^|[\\s;])(\\-?" + flag.name().toLowerCase(Locale.ROOT) + ")(?:[\\s;]|$)")
                 .matcher(cfg);
         return matcher.find() ? !matcher.group(1).startsWith("-") : null;
     }
