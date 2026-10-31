@@ -343,13 +343,16 @@ public class Commands {
         } else if (opt.isSet("save")) {
             history.save();
         } else if (opt.isSet("A")) {
-            Path file = !opt.args().isEmpty() ? currentDir.resolve(opt.args().get(0)) : null;
+            Path file =
+                    opt.args().isEmpty() ? null : currentDir.resolve(opt.args().get(0));
             history.append(file, increment);
         } else if (opt.isSet("R")) {
-            Path file = !opt.args().isEmpty() ? currentDir.resolve(opt.args().get(0)) : null;
+            Path file =
+                    opt.args().isEmpty() ? null : currentDir.resolve(opt.args().get(0));
             history.read(file, increment);
         } else if (opt.isSet("W")) {
-            Path file = !opt.args().isEmpty() ? currentDir.resolve(opt.args().get(0)) : null;
+            Path file =
+                    opt.args().isEmpty() ? null : currentDir.resolve(opt.args().get(0));
             history.write(file, increment);
         } else {
             done = false;
@@ -1014,7 +1017,9 @@ public class Commands {
             }
             if (!opt.args().isEmpty() || !opt.isSet("e") && !opt.isSet("v")) {
                 Map<String, Binding> bound = map.getBoundKeys();
-                String seq = !opt.args().isEmpty() ? KeyMap.translate(opt.args().get(0)) : null;
+                String seq = opt.args().isEmpty()
+                        ? null
+                        : KeyMap.translate(opt.args().get(0));
                 Map.Entry<String, Binding> begin = null;
                 String last = null;
                 Iterator<Entry<String, Binding>> iterator = bound.entrySet().iterator();

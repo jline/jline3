@@ -15,6 +15,8 @@ import java.io.FileWriter;
 import java.io.IOError;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -823,7 +825,14 @@ public class DefaultPrompter implements Prompter {
      * so it is created with owner-only permissions on POSIX file systems.
      */
     protected File createEditorTempFile(String prefix, String suffix) throws IOException {
-        return Files.createTempFile(prefix, suffix).toFile();
+        try {
+            FileAttribute<?> ownerOnly =
+                    PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"));
+            return Files.createTempFile(prefix, suffix, ownerOnly).toFile();
+        } catch (UnsupportedOperationException e) {
+            // Non-POSIX file system: fall back to default temp file creation
+            return Files.createTempFile(prefix, suffix).toFile();
+        }
     }
 
     /**
