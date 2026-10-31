@@ -10,6 +10,8 @@ package org.jline.terminal.impl.exec;
 
 import java.io.IOException;
 import java.util.EnumSet;
+import java.util.List;
+import java.util.Locale;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.ControlChar;
@@ -18,9 +20,11 @@ import org.jline.terminal.Attributes.InputFlag;
 import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Attributes.OutputFlag;
 import org.jline.terminal.Size;
+import org.jline.terminal.spi.SystemStream;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ExecPtyTest {
 
@@ -265,5 +269,58 @@ public class ExecPtyTest {
         assertEquals(-1, attributes.getControlChar(ControlChar.VLNEXT));
         assertEquals(4, attributes.getControlChar(ControlChar.VMIN));
         assertEquals(0, attributes.getControlChar(ControlChar.VTIME));
+    }
+
+    @Test
+    void testParseAttributesTurkishLocale() throws IOException {
+        Locale defaultLocale = Locale.getDefault();
+        try {
+            // In the Turkish locale, "I".toLowerCase() is the dotless i (U+0131), so flag names
+            // like "icanon" would no longer match the stty output
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            Attributes attributes = ExecPty.doGetAttr(linuxSttySample);
+            assertEquals(
+                    EnumSet.of(
+                            InputFlag.BRKINT,
+                            InputFlag.ICRNL,
+                            InputFlag.IXON,
+                            InputFlag.IXANY,
+                            InputFlag.IMAXBEL,
+                            InputFlag.IUTF8),
+                    attributes.getInputFlags());
+            assertTrue(attributes
+                    .getLocalFlags()
+                    .containsAll(EnumSet.of(LocalFlag.ISIG, LocalFlag.ICANON, LocalFlag.IEXTEN)));
+            assertEquals(ExecPty.parseControlChar("^C"), attributes.getControlChar(ControlChar.VINTR));
+            assertEquals(1, attributes.getControlChar(ControlChar.VMIN));
+            assertEquals(0, attributes.getControlChar(ControlChar.VTIME));
+        } finally {
+            Locale.setDefault(defaultLocale);
+        }
+    }
+
+    @Test
+    void testFlagsToSetTurkishLocale() {
+        Locale defaultLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            ExecPty pty = new ExecPty(null, SystemStream.Output, "/dev/tty");
+
+            Attributes current = new Attributes();
+            current.setLocalFlag(LocalFlag.ICANON, true);
+            current.setInputFlag(InputFlag.IXON, true);
+            current.setControlChar(ControlChar.VMIN, 0);
+            Attributes attr = new Attributes(current);
+            attr.setLocalFlag(LocalFlag.ICANON, false);
+            attr.setInputFlag(InputFlag.IXON, false);
+            attr.setControlChar(ControlChar.VMIN, 1);
+
+            List<String> commands = pty.getFlagsToSet(attr, current);
+            assertTrue(commands.contains("-ixon"), commands.toString());
+            assertTrue(commands.contains("-icanon"), commands.toString());
+            assertTrue(commands.contains("min"), commands.toString());
+        } finally {
+            Locale.setDefault(defaultLocale);
+        }
     }
 }
