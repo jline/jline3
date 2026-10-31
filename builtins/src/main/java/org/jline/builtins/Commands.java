@@ -17,7 +17,6 @@ import java.nio.file.PathMatcher;
 import java.nio.file.attribute.AclEntry;
 import java.nio.file.attribute.AclEntryPermission;
 import java.nio.file.attribute.AclEntryType;
-import java.nio.file.attribute.AclFileAttributeView;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
@@ -453,35 +452,38 @@ public class Commands {
                     PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"));
             tmp = Files.createTempFile(prefix, suffix, ownerOnly);
         } catch (UnsupportedOperationException e) {
-            // Non-POSIX file system (e.g. Windows): restrict via AclFileAttributeView
-            Path fallback = Files.createTempFile(prefix, suffix);
-            try {
-                AclFileAttributeView aclView = Files.getFileAttributeView(fallback, AclFileAttributeView.class);
-                if (aclView == null) {
-                    throw new IOException("Cannot restrict permissions on temporary file: " + fallback);
+            // Non-POSIX file system (e.g. Windows): create with owner-only ACL at creation time
+            // to eliminate the TOCTOU race between file creation and permission restriction.
+            UserPrincipal owner = FileSystems.getDefault()
+                    .getUserPrincipalLookupService()
+                    .lookupPrincipalByName(System.getProperty("user.name"));
+            AclEntry ownerOnly = AclEntry.newBuilder()
+                    .setType(AclEntryType.ALLOW)
+                    .setPrincipal(owner)
+                    .setPermissions(
+                            AclEntryPermission.READ_DATA,
+                            AclEntryPermission.WRITE_DATA,
+                            AclEntryPermission.APPEND_DATA,
+                            AclEntryPermission.READ_ATTRIBUTES,
+                            AclEntryPermission.WRITE_ATTRIBUTES,
+                            AclEntryPermission.READ_NAMED_ATTRS,
+                            AclEntryPermission.WRITE_NAMED_ATTRS,
+                            AclEntryPermission.READ_ACL,
+                            AclEntryPermission.SYNCHRONIZE,
+                            AclEntryPermission.DELETE)
+                    .build();
+            FileAttribute<List<AclEntry>> aclAttr = new FileAttribute<>() {
+                @Override
+                public String name() {
+                    return "acl:acl";
                 }
-                UserPrincipal owner = aclView.getOwner();
-                AclEntry ownerOnly = AclEntry.newBuilder()
-                        .setType(AclEntryType.ALLOW)
-                        .setPrincipal(owner)
-                        .setPermissions(
-                                AclEntryPermission.READ_DATA,
-                                AclEntryPermission.WRITE_DATA,
-                                AclEntryPermission.APPEND_DATA,
-                                AclEntryPermission.READ_ATTRIBUTES,
-                                AclEntryPermission.WRITE_ATTRIBUTES,
-                                AclEntryPermission.READ_NAMED_ATTRS,
-                                AclEntryPermission.WRITE_NAMED_ATTRS,
-                                AclEntryPermission.READ_ACL,
-                                AclEntryPermission.SYNCHRONIZE,
-                                AclEntryPermission.DELETE)
-                        .build();
-                aclView.setAcl(Collections.singletonList(ownerOnly));
-                return fallback.toFile();
-            } catch (IOException ex) {
-                Files.deleteIfExists(fallback);
-                throw ex;
-            }
+
+                @Override
+                public List<AclEntry> value() {
+                    return Collections.singletonList(ownerOnly);
+                }
+            };
+            return Files.createTempFile(prefix, suffix, aclAttr).toFile();
         }
         try {
             Set<PosixFilePermission> actual = Files.getPosixFilePermissions(tmp);
