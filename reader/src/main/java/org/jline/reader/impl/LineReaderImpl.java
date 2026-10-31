@@ -19,6 +19,8 @@ import java.io.InterruptedIOException;
 import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -4052,7 +4054,13 @@ public class LineReaderImpl implements LineReader, Flushable {
         boolean out = true;
         File file = null;
         try {
-            file = Files.createTempFile("jline-execute-", null).toFile();
+            try {
+                FileAttribute<?> ownerOnly =
+                        PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"));
+                file = Files.createTempFile("jline-execute-", null, ownerOnly).toFile();
+            } catch (UnsupportedOperationException e) {
+                file = Files.createTempFile("jline-execute-", null).toFile();
+            }
             try (FileWriter writer = new FileWriter(file)) {
                 writer.write(buf.toString());
             }

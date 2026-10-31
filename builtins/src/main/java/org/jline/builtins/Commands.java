@@ -14,6 +14,8 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -459,7 +461,14 @@ public class Commands {
                     iter.remove();
                 }
                 if (edit) {
-                    cmdFile = Files.createTempFile("jline-history-", null).toFile();
+                    try {
+                        FileAttribute<?> ownerOnly =
+                                PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"));
+                        cmdFile = Files.createTempFile("jline-history-", null, ownerOnly)
+                                .toFile();
+                    } catch (UnsupportedOperationException e) {
+                        cmdFile = Files.createTempFile("jline-history-", null).toFile();
+                    }
                     cmdWriter = new FileWriter(cmdFile);
                 } else if (!opt.args().isEmpty()) {
                     String[] s = opt.args().get(argId).split("=");

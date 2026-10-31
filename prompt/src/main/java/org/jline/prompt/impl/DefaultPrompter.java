@@ -15,7 +15,9 @@ import java.io.FileWriter;
 import java.io.IOError;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -828,7 +830,13 @@ public class DefaultPrompter implements Prompter {
         try {
             FileAttribute<?> ownerOnly =
                     PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"));
-            return Files.createTempFile(prefix, suffix, ownerOnly).toFile();
+            Path tmp = Files.createTempFile(prefix, suffix, ownerOnly);
+            Set<PosixFilePermission> actual = Files.getPosixFilePermissions(tmp);
+            if (!actual.equals(PosixFilePermissions.fromString("rw-------"))) {
+                Files.deleteIfExists(tmp);
+                throw new IOException("Temporary file " + tmp + " has unsafe permissions: " + actual);
+            }
+            return tmp.toFile();
         } catch (UnsupportedOperationException e) {
             // Non-POSIX file system: fall back to default temp file creation
             return Files.createTempFile(prefix, suffix).toFile();
