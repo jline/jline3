@@ -4053,27 +4053,28 @@ public class LineReaderImpl implements LineReader, Flushable {
 
     @SuppressWarnings("java:S5443") // temp file is created with explicit owner-only permissions
     private static File createSecureTempFile(String prefix, String suffix) throws IOException {
+        Path tmp;
         try {
             FileAttribute<?> ownerOnly =
                     PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"));
-            Path tmp = Files.createTempFile(prefix, suffix, ownerOnly);
-            Set<PosixFilePermission> actual = Files.getPosixFilePermissions(tmp);
-            if (!actual.equals(PosixFilePermissions.fromString("rw-------"))) {
-                Files.deleteIfExists(tmp);
-                throw new IOException("Temporary file " + tmp + " has unsafe permissions: " + actual);
-            }
-            return tmp.toFile();
+            tmp = Files.createTempFile(prefix, suffix, ownerOnly);
         } catch (UnsupportedOperationException e) {
-            File tmp = Files.createTempFile(prefix, suffix).toFile();
-            if (!tmp.setReadable(false, false)
-                    || !tmp.setReadable(true, true)
-                    || !tmp.setWritable(false, false)
-                    || !tmp.setWritable(true, true)) {
-                Files.deleteIfExists(tmp.toPath());
-                throw new IOException("Cannot restrict permissions on temporary file: " + tmp);
+            File fallback = Files.createTempFile(prefix, suffix).toFile();
+            if (!fallback.setReadable(false, false)
+                    || !fallback.setReadable(true, true)
+                    || !fallback.setWritable(false, false)
+                    || !fallback.setWritable(true, true)) {
+                Files.deleteIfExists(fallback.toPath());
+                throw new IOException("Cannot restrict permissions on temporary file: " + fallback);
             }
-            return tmp;
+            return fallback;
         }
+        Set<PosixFilePermission> actual = Files.getPosixFilePermissions(tmp);
+        if (!actual.equals(PosixFilePermissions.fromString("rw-------"))) {
+            Files.deleteIfExists(tmp);
+            throw new IOException("Temporary file " + tmp + " has unsafe permissions: " + actual);
+        }
+        return tmp.toFile();
     }
 
     protected boolean editAndExecute() {
