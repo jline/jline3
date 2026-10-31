@@ -14,8 +14,10 @@ import static org.jline.reader.LineReader.BACKWARD_KILL_WORD;
 import static org.jline.reader.LineReader.BACKWARD_WORD;
 import static org.jline.reader.LineReader.KILL_WHOLE_LINE;
 import static org.jline.reader.LineReader.KILL_WORD;
+import static org.jline.reader.LineReader.MAIN;
 import static org.jline.reader.LineReader.YANK;
 import static org.jline.reader.LineReader.YANK_POP;
+import static org.jline.reader.impl.LineReaderImpl.VIINS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -197,5 +199,33 @@ class KillRingTest extends ReaderTestSupport {
         TestBuffer b = new TestBuffer("b");
         assertBuffer("", b = b.op(KILL_WHOLE_LINE));
         assertBuffer("b", b = b.op(YANK));
+    }
+
+    @Test
+    void testMaskedKillIsNotYankedLater() {
+        assertLine("", new TestBuffer("previous").op(KILL_WHOLE_LINE).enter());
+        mask = '*';
+        assertLine("", new TestBuffer().op(YANK).enter());
+        assertLine("", new TestBuffer("s3cr3t").op(KILL_WHOLE_LINE).enter());
+        mask = null;
+        assertLine("previous", new TestBuffer().op(YANK).enter());
+    }
+
+    @Test
+    void testMaskedViYankIsNotPutLater() {
+        reader.getKeyMaps().put(MAIN, reader.getKeyMaps().get(VIINS));
+        assertLine("previous", new TestBuffer("previous").escape().append("yy").enter());
+        mask = '*';
+        assertLine("", new TestBuffer().escape().append("p").enter());
+        assertLine("s3cr3t", new TestBuffer("s3cr3t").escape().append("yy").enter());
+        mask = null;
+        assertLine("previous", new TestBuffer().escape().append("p").enter());
+    }
+
+    @Test
+    void testKillAndYankWithinMaskedLine() {
+        mask = '*';
+        assertLine(
+                "s3cr3t", new TestBuffer("s3cr3t").op(KILL_WHOLE_LINE).op(YANK).enter());
     }
 }
