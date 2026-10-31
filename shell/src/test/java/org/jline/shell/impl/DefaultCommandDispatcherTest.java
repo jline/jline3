@@ -8,15 +8,22 @@
  */
 package org.jline.shell.impl;
 
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jline.shell.*;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.impl.DumbTerminal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -302,6 +309,63 @@ class DefaultCommandDispatcherTest extends AbstractCommandDispatcherTest {
             bgDispatcher.addGroup(new SimpleCommandGroup("test", new NoopCommand()));
             bgDispatcher.execute("noop &");
             await().atMost(2, TimeUnit.SECONDS).until(() -> !jobManager.jobs().isEmpty());
+        }
+    }
+
+    @Test
+    void backgroundErrorIsFlushed() throws Exception {
+        // system terminals buffer their output, and the shell may be blocked reading input meanwhile
+        ByteArrayOutputStream written = new ByteArrayOutputStream();
+        DefaultJobManager jobManager = new DefaultJobManager();
+        try (Terminal bufferedTerminal =
+                        new DumbTerminal(new ByteArrayInputStream(new byte[0]), new BufferedOutputStream(written));
+                DefaultCommandDispatcher bgDispatcher = new DefaultCommandDispatcher(bufferedTerminal, jobManager)) {
+            bgDispatcher.addGroup(new SimpleCommandGroup("test", new FailCommand()));
+            bgDispatcher.execute("fail &");
+            await().atMost(2, TimeUnit.SECONDS)
+                    .until(() -> written.toString(StandardCharsets.UTF_8).contains("Error: command failed"));
+        }
+    }
+
+    @Test
+    void backgroundOutputIsFlushedBeforeJobCompletes() throws Exception {
+        ByteArrayOutputStream written = new ByteArrayOutputStream();
+        DefaultJobManager jobManager = new DefaultJobManager();
+        CountDownLatch startLatch = new CountDownLatch(1);
+        try (Terminal bufferedTerminal =
+                        new DumbTerminal(new ByteArrayInputStream(new byte[0]), new BufferedOutputStream(written));
+                DefaultCommandDispatcher bgDispatcher = new DefaultCommandDispatcher(bufferedTerminal, jobManager)) {
+            bgDispatcher.addGroup(new SimpleCommandGroup("test", new LatchedEchoCommand(startLatch)));
+            bgDispatcher.execute("echo hello &");
+            // Release the command only after execute() returns, so the announcement flush
+            // cannot carry the command output — the completion flush must do it.
+            startLatch.countDown();
+            await().atMost(2, TimeUnit.SECONDS)
+                    .until(() -> jobManager.jobs().get(0).status() == Job.Status.Done);
+            assertTrue(written.toString(StandardCharsets.UTF_8).contains("hello" + System.lineSeparator()));
+        }
+    }
+
+    /** Echo command that waits for a latch before printing, so the announcement flush cannot carry its output. */
+    static class LatchedEchoCommand extends AbstractCommand {
+        private final CountDownLatch latch;
+
+        LatchedEchoCommand(CountDownLatch latch) {
+            super("echo");
+            this.latch = latch;
+        }
+
+        @Override
+        public String description() {
+            return "Echo arguments to output (latched)";
+        }
+
+        @Override
+        public Object execute(CommandSession session, String[] args) throws Exception {
+            latch.await();
+            String msg = String.join(" ", args);
+            session.out().println(msg);
+            return msg;
         }
     }
 

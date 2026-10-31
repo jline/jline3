@@ -236,9 +236,16 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
                 PrintStream err = new PrintStream(terminal.output());
                 err.println("[" + jobRef.get().id() + "]  Error: " + e.getMessage());
             } finally {
-                DefaultJob job = jobRef.get();
-                if (job != null) {
-                    jobManager.completeJob(job);
+                // the shell may be blocked reading input, so nothing else would flush the job's output
+                try {
+                    terminal.output().flush();
+                } catch (IOException | IllegalStateException e) {
+                    // Best-effort flush; it must not mask the command's own failure
+                } finally {
+                    DefaultJob job = jobRef.get();
+                    if (job != null) {
+                        jobManager.completeJob(job);
+                    }
                 }
             }
         });
@@ -252,6 +259,7 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
 
         PrintStream out = new PrintStream(terminal.output());
         out.println("[" + job.id() + "]  " + cmdLine + " &");
+        out.flush();
 
         return null;
     }
