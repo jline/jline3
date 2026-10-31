@@ -212,6 +212,12 @@ class AttributedStringTest {
         // reset the CSI parser prematurely, causing the remainder to leak into visible text
         assertEquals("ab", AttributedString.stripAnsi("a\033[?25lb"));
         assertEquals("cd", AttributedString.stripAnsi("c\033[?1049hd"));
+        // private-mode CSI with 'm' as the final byte (e.g. ESC [ > 4 m — xterm XTMODKEYS):
+        // must not pass the private-parameter bytes to Integer.parseInt (NumberFormatException)
+        assertEquals("ef", AttributedString.stripAnsi("e\033[>4mf"));
+        assertEquals("gh", AttributedString.stripAnsi("g\033[>4;2mh"));
+        // 8-bit CSI (U+009B) after a pending ESC: both bytes consumed together
+        assertEquals("ij", AttributedString.stripAnsi("i\033\u009b?25lj"));
         // ESC followed by an 8-bit C1 string introducer: both bytes must be consumed together
         // (the pending ESC is not emitted, and the sequence is dropped normally)
         assertEquals("mn", AttributedString.stripAnsi("m\033\u009d0;title\007n"));

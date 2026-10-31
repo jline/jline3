@@ -633,17 +633,19 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
     public AttributedStringBuilder ansiAppend(String ansi) {
         int ansiStart = 0;
         int ansiState = 0;
+        boolean nonSgrSeen = false;
         ensureCapacity(length + ansi.length());
         for (int i = 0; i < ansi.length(); i++) {
             char c = ansi.charAt(i);
             if (ansiState == 0 && c == 27) {
                 ansiState++;
-            } else if ((ansiState == 1 && c == '[') || (ansiState == 0 && c == 0x9b)) {
+            } else if ((ansiState == 1 && c == '[') || ((ansiState == 0 || ansiState == 1) && c == 0x9b)) {
                 // ESC [ or its single-character 8-bit form CSI (U+009B)
                 ansiState = 2;
                 ansiStart = i + 1;
+                nonSgrSeen = false;
             } else if (ansiState == 2) {
-                if (c == 'm') {
+                if (c == 'm' && !nonSgrSeen) {
                     String[] params = ansi.substring(ansiStart, i).split(";");
                     int j = 0;
                     while (j < params.length) {
@@ -781,8 +783,10 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                     // such as '?' reset the state and the remaining bytes leak into the output.
                     if (c >= 0x40 && c <= 0x7e) {
                         ansiState = 0;
+                        nonSgrSeen = false;
+                    } else {
+                        nonSgrSeen = true;
                     }
-                    // else: intermediate or private-parameter byte — stay in state 2
                 }
             } else if ((ansiState == 1 && (c == ']' || c == 'P' || c == 'X' || c == '^' || c == '_'))
                     || ((ansiState == 0 || ansiState == 1)
@@ -816,6 +820,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                         buffer[length++] = '[';
                     }
                     ansiState = 0;
+                    nonSgrSeen = false;
                 }
                 if (c == '\t' && tabs.defined()) {
                     insertTab(current);
