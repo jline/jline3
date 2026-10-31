@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -444,7 +445,13 @@ public class Commands {
         try {
             FileAttribute<?> ownerOnly =
                     PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"));
-            return Files.createTempFile(prefix, suffix, ownerOnly).toFile();
+            Path tmp = Files.createTempFile(prefix, suffix, ownerOnly);
+            Set<PosixFilePermission> actual = Files.getPosixFilePermissions(tmp);
+            if (!actual.equals(PosixFilePermissions.fromString("rw-------"))) {
+                Files.deleteIfExists(tmp);
+                throw new IOException("Temporary file " + tmp + " has unsafe permissions: " + actual);
+            }
+            return tmp.toFile();
         } catch (UnsupportedOperationException e) {
             File tmp = Files.createTempFile(prefix, suffix).toFile();
             if (!tmp.setReadable(false, false)

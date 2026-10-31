@@ -16,9 +16,14 @@ import java.io.IOError;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.AclEntry;
+import java.nio.file.attribute.AclEntryPermission;
+import java.nio.file.attribute.AclEntryType;
+import java.nio.file.attribute.AclFileAttributeView;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.nio.file.attribute.UserPrincipal;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -839,16 +844,30 @@ public class DefaultPrompter implements Prompter {
             }
             return tmp.toFile();
         } catch (UnsupportedOperationException e) {
-            // Non-POSIX file system: restrict permissions explicitly
-            File tmp = Files.createTempFile(prefix, suffix).toFile();
-            if (!tmp.setReadable(false, false)
-                    || !tmp.setReadable(true, true)
-                    || !tmp.setWritable(false, false)
-                    || !tmp.setWritable(true, true)) {
-                Files.deleteIfExists(tmp.toPath());
+            // Non-POSIX file system (e.g. Windows): restrict via ACL at creation time
+            Path tmp = Files.createTempFile(prefix, suffix);
+            AclFileAttributeView aclView = Files.getFileAttributeView(tmp, AclFileAttributeView.class);
+            if (aclView == null) {
+                Files.deleteIfExists(tmp);
                 throw new IOException("Cannot restrict permissions on temporary file: " + tmp);
             }
-            return tmp;
+            UserPrincipal owner = aclView.getOwner();
+            AclEntry ownerOnly = AclEntry.newBuilder()
+                    .setType(AclEntryType.ALLOW)
+                    .setPrincipal(owner)
+                    .setPermissions(
+                            AclEntryPermission.READ_DATA,
+                            AclEntryPermission.WRITE_DATA,
+                            AclEntryPermission.APPEND_DATA,
+                            AclEntryPermission.READ_ATTRIBUTES,
+                            AclEntryPermission.WRITE_ATTRIBUTES,
+                            AclEntryPermission.READ_NAMED_ATTRS,
+                            AclEntryPermission.WRITE_NAMED_ATTRS,
+                            AclEntryPermission.READ_ACL,
+                            AclEntryPermission.SYNCHRONIZE)
+                    .build();
+            aclView.setAcl(Collections.singletonList(ownerOnly));
+            return tmp.toFile();
         }
     }
 
