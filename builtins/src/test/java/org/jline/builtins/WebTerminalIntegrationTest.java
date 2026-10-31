@@ -385,6 +385,54 @@ class WebTerminalIntegrationTest {
         assertEquals("hi", readLine.get());
     }
 
+    @Test
+    void testDnsRebindingHostIsRejected() throws Exception {
+        // A page on attacker.example whose name is re-pointed at 127.0.0.1 reaches the
+        // server with matching Origin and Host headers, so only the Host value gives it away.
+        CountDownLatch readerReady = new CountDownLatch(1);
+        CountDownLatch lineRead = new CountDownLatch(1);
+        AtomicReference<String> readLine = new AtomicReference<>();
+
+        Thread readerThread = new Thread(() -> {
+            try {
+                LineReader reader =
+                        LineReaderBuilder.builder().terminal(terminal).build();
+                readerReady.countDown();
+                String line = reader.readLine("$ ");
+                readLine.set(line);
+                lineRead.countDown();
+            } catch (Exception e) {
+                // terminal closed
+            }
+        });
+        readerThread.setDaemon(true);
+        readerThread.start();
+
+        assertTrue(readerReady.await(5, TimeUnit.SECONDS));
+        awaitPrompt();
+
+        int port = new URL(baseUrl).getPort();
+        String rebound = "attacker.example:" + port;
+        assertEquals(403, sendWithHost("GET", "/", rebound, null, ""));
+        assertEquals(403, sendWithHost("POST", "/terminal", rebound, "http://" + rebound, "k=" + urlEncode("x")));
+        assertEquals(403, sendWithHost("POST", "/terminal", rebound, "http://" + rebound, "k=" + urlEncode("\r")));
+
+        assertFalse(lineRead.await(1, TimeUnit.SECONDS), "Keys sent under a rebound Host must not reach the reader");
+
+        // Loopback literals and the configured host name still work.
+        String literal = "127.0.0.1:" + port;
+        assertEquals(200, sendWithHost("GET", "/", literal, null, ""));
+        assertEquals(200, sendWithHost("POST", "/terminal", literal, "http://" + literal, "k=" + urlEncode("h")));
+        String ipv6 = "[::1]:" + port;
+        assertEquals(200, sendWithHost("GET", "/", ipv6, null, ""));
+        assertEquals(200, sendWithHost("POST", "/terminal", ipv6, "http://" + ipv6, "k="));
+        assertEquals(200, postWithOrigin("k=" + urlEncode("i"), baseUrl));
+        assertEquals(200, postWithOrigin("k=" + urlEncode("\r"), baseUrl));
+
+        assertTrue(lineRead.await(5, TimeUnit.SECONDS), "Loopback keys should reach the reader");
+        assertEquals("hi", readLine.get());
+    }
+
     /**
      * Helper: POST form data to the /terminal endpoint carrying an Origin header, as a browser
      * does for a cross-site form submission, and return the status code. HttpURLConnection
@@ -392,12 +440,21 @@ class WebTerminalIntegrationTest {
      */
     private int postWithOrigin(String formData, String origin) throws IOException {
         URL url = new URL(baseUrl);
+        return sendWithHost("POST", "/terminal", url.getHost() + ":" + url.getPort(), origin, formData);
+    }
+
+    /**
+     * Helper: send a request with the given Host and optional Origin header, as a browser would
+     * after the page's host name has been re-resolved to this server, and return the status code.
+     */
+    private int sendWithHost(String method, String path, String host, String origin, String formData)
+            throws IOException {
+        URL url = new URL(baseUrl);
         byte[] body = formData.getBytes(StandardCharsets.UTF_8);
-        String authority = url.getHost() + ":" + url.getPort();
-        String request = "POST /terminal HTTP/1.1\r\n" + "Host: "
-                + authority + "\r\n" + "Origin: "
-                + origin + "\r\n" + "Content-Type: application/x-www-form-urlencoded\r\n" + "Content-Length: "
-                + body.length + "\r\n" + "Connection: close\r\n\r\n";
+        String request = method + " " + path + " HTTP/1.1\r\n" + "Host: " + host + "\r\n"
+                + (origin != null ? "Origin: " + origin + "\r\n" : "")
+                + "Content-Type: application/x-www-form-urlencoded\r\n" + "Content-Length: " + body.length + "\r\n"
+                + "Connection: close\r\n\r\n";
 
         try (Socket socket = new Socket(url.getHost(), url.getPort())) {
             socket.setSoTimeout(5000);

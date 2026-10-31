@@ -9,6 +9,7 @@
 package org.jline.builtins;
 
 import java.io.*;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URLDecoder;
@@ -52,6 +53,7 @@ public class WebTerminal extends LineDisciplineTerminal {
 
     private static final int DEFAULT_PORT = 8080;
     private static final String DEFAULT_HOST = "localhost";
+    private static final String HTTP_SCHEME = "http://";
 
     private final WebTerminalComponent component;
     private HttpServer server;
@@ -121,9 +123,9 @@ public class WebTerminal extends LineDisciplineTerminal {
      */
     public String getUrl() {
         if (server != null) {
-            return "http://" + host + ":" + server.getAddress().getPort();
+            return HTTP_SCHEME + host + ":" + server.getAddress().getPort();
         }
-        return "http://" + host + ":" + port;
+        return HTTP_SCHEME + host + ":" + port;
     }
 
     /**
@@ -245,12 +247,59 @@ public class WebTerminal extends LineDisciplineTerminal {
     }
 
     /**
+     * Tells whether the {@code Host} header names this server.
+     * <p>
+     * When the server is bound to a loopback address, a page whose host name has been
+     * re-resolved to that address (DNS rebinding) reaches it with its own name in both
+     * {@code Host} and {@code Origin}, so the same-origin check alone lets it through. Only
+     * {@code localhost}, loopback IP literals and the configured bind host are accepted then.
+     * Servers bound to other addresses are reached under names this class cannot know and are
+     * not checked.
+     * </p>
+     */
+    private boolean isAllowedHost(HttpExchange exchange) {
+        if (!server.getAddress().getAddress().isLoopbackAddress()) {
+            return true;
+        }
+        String header = exchange.getRequestHeaders().getFirst("Host");
+        if (header == null) {
+            return true;
+        }
+        String name;
+        try {
+            name = URI.create(HTTP_SCHEME + header).getHost();
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+        if (name == null) {
+            return false;
+        }
+        if (name.equalsIgnoreCase(host) || name.equalsIgnoreCase(DEFAULT_HOST)) {
+            return true;
+        }
+        if (name.startsWith("[") || name.matches("[0-9.]+")) {
+            // An IP literal is parsed without a DNS lookup.
+            try {
+                return InetAddress.getByName(name).isLoopbackAddress();
+            } catch (IOException e) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    /**
      * HTTP handler for serving the main terminal page.
      */
     private class TerminalHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             String method = exchange.getRequestMethod();
+
+            if (!isAllowedHost(exchange)) {
+                exchange.sendResponseHeaders(403, -1);
+                return;
+            }
 
             if ("GET".equals(method)) {
                 String path = exchange.getRequestURI().getPath();
@@ -309,7 +358,7 @@ public class WebTerminal extends LineDisciplineTerminal {
                 return;
             }
 
-            if (!isSameOrigin(exchange)) {
+            if (!isAllowedHost(exchange) || !isSameOrigin(exchange)) {
                 exchange.sendResponseHeaders(403, -1);
                 return;
             }
