@@ -852,9 +852,20 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                     ansiState = 4; // possible ST: ESC \
                 }
             } else if (ansiState == 4) {
-                ansiState = 0; // consume the byte after ESC inside the string sequence
-                // (treats any ESC as ending the sequence, matching xterm;
-                //  strictly only ESC \ is ST per ECMA-48)
+                // ESC was seen inside a string sequence (state 3); determine what follows:
+                if (c == '\\') {
+                    ansiState = 0; // ESC \ is ST — string sequence terminated
+                } else if (c == '[' || c == 0x9b) {
+                    ansiState = 2; // ESC [ (or 8-bit CSI) — start a new CSI sequence
+                    ansiStart = i + 1;
+                    nonSgrSeen = false;
+                } else if (c == ']' || c == 'P' || c == 'X' || c == '^' || c == '_') {
+                    ansiState = 3; // ESC + string introducer — nested string, keep discarding
+                } else if (c == 27) {
+                    ansiState = 4; // another ESC — remain in ESC-within-string state
+                } else {
+                    ansiState = 3; // any other byte: not an ST, return to string-discard
+                }
             } else {
                 if (ansiState >= 1) {
                     ensureCapacity(length + 1);

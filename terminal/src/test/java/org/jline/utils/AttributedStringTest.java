@@ -246,6 +246,14 @@ class AttributedStringTest {
         // terminator must be dropped, and text after the terminator must survive unmodified.
         assertEquals("ab", AttributedString.stripAnsi("a\033[?\u009d0;title\007b"));
         assertEquals("ab", AttributedString.stripAnsi("a\033[?\u009d0;payload\u009cb"));
+        // ESC inside a string sequence (state 4): only ESC \ is ST — other introducers must
+        // keep discarding; a non-introducer non-backslash byte returns to string-discard state.
+        // ESC \ terminates: text after ST survives
+        assertEquals("ab", AttributedString.stripAnsi("a\033]0;title\033\\b"));
+        // ESC + string-introducer (e.g. ESC ]) restarts string-discard: payload still dropped
+        assertEquals("b", AttributedString.stripAnsi("\033]outer\033]inner\007b"));
+        // ESC + non-introducer non-backslash: return to string-discard, not terminate
+        assertEquals("b", AttributedString.stripAnsi("\033]title\033xstill-payload\007b"));
     }
 
     @Test
