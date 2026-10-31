@@ -838,8 +838,13 @@ public class DefaultPrompter implements Prompter {
             }
             return tmp.toFile();
         } catch (UnsupportedOperationException e) {
-            // Non-POSIX file system: fall back to default temp file creation
-            return Files.createTempFile(prefix, suffix).toFile();
+            // Non-POSIX file system: restrict permissions explicitly
+            File tmp = Files.createTempFile(prefix, suffix).toFile();
+            tmp.setReadable(false, false);
+            tmp.setReadable(true, true);
+            tmp.setWritable(false, false);
+            tmp.setWritable(true, true);
+            return tmp;
         }
     }
 

@@ -4059,7 +4059,12 @@ public class LineReaderImpl implements LineReader, Flushable {
                         PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"));
                 file = Files.createTempFile("jline-execute-", null, ownerOnly).toFile();
             } catch (UnsupportedOperationException e) {
+                // Non-POSIX file system: restrict permissions explicitly
                 file = Files.createTempFile("jline-execute-", null).toFile();
+                file.setReadable(false, false);
+                file.setReadable(true, true);
+                file.setWritable(false, false);
+                file.setWritable(true, true);
             }
             try (FileWriter writer = new FileWriter(file)) {
                 writer.write(buf.toString());

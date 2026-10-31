@@ -467,7 +467,12 @@ public class Commands {
                         cmdFile = Files.createTempFile("jline-history-", null, ownerOnly)
                                 .toFile();
                     } catch (UnsupportedOperationException e) {
+                        // Non-POSIX file system: restrict permissions explicitly
                         cmdFile = Files.createTempFile("jline-history-", null).toFile();
+                        cmdFile.setReadable(false, false);
+                        cmdFile.setReadable(true, true);
+                        cmdFile.setWritable(false, false);
+                        cmdFile.setWritable(true, true);
                     }
                     cmdWriter = new FileWriter(cmdFile);
                 } else if (!opt.args().isEmpty()) {
