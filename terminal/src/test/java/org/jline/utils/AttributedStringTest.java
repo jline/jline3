@@ -222,6 +222,11 @@ class AttributedStringTest {
         // (the pending ESC is not emitted, and the sequence is dropped normally)
         assertEquals("mn", AttributedString.stripAnsi("m\033\u009d0;title\007n"));
         assertEquals("op", AttributedString.stripAnsi("o\033\u009d0;payload\u009cp"));
+        // ESC interrupting a CSI sequence aborts the CSI and starts a new escape sequence
+        assertEquals("ab", AttributedString.stripAnsi("a\033[?25\033[31mb"));
+        // Out-of-range SGR parameters must not throw NumberFormatException
+        assertEquals("ab", AttributedString.stripAnsi("a\033[2147483648mb"));
+        assertEquals("ab", AttributedString.stripAnsi("a\033[38;2;2147483648;0;0mb"));
     }
 
     @Test

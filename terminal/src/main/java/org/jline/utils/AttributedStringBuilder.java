@@ -645,11 +645,21 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                 ansiStart = i + 1;
                 nonSgrSeen = false;
             } else if (ansiState == 2) {
-                if (c == 'm' && !nonSgrSeen) {
+                if (c == 27) {
+                    // ESC aborts the current CSI and starts a new escape sequence
+                    ansiState = 1;
+                    nonSgrSeen = false;
+                } else if (c == 'm' && !nonSgrSeen) {
                     String[] params = ansi.substring(ansiStart, i).split(";");
                     int j = 0;
                     while (j < params.length) {
-                        int ansiParam = params[j].isEmpty() ? 0 : Integer.parseInt(params[j]);
+                        int ansiParam;
+                        try {
+                            ansiParam = params[j].isEmpty() ? 0 : Integer.parseInt(params[j]);
+                        } catch (NumberFormatException e) {
+                            j++;
+                            continue;
+                        }
                         switch (ansiParam) {
                             case 0:
                                 current = AttributedStyle.DEFAULT;
@@ -728,27 +738,31 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                             case 38:
                             case 48:
                                 if (j + 1 < params.length) {
-                                    int ansiParam2 = Integer.parseInt(params[++j]);
-                                    if (ansiParam2 == 2) {
-                                        if (j + 3 < params.length) {
-                                            int r = Integer.parseInt(params[++j]);
-                                            int g = Integer.parseInt(params[++j]);
-                                            int b = Integer.parseInt(params[++j]);
-                                            if (ansiParam == 38) {
-                                                current = current.foreground(r, g, b);
-                                            } else {
-                                                current = current.background(r, g, b);
+                                    try {
+                                        int ansiParam2 = Integer.parseInt(params[++j]);
+                                        if (ansiParam2 == 2) {
+                                            if (j + 3 < params.length) {
+                                                int r = Integer.parseInt(params[++j]);
+                                                int g = Integer.parseInt(params[++j]);
+                                                int b = Integer.parseInt(params[++j]);
+                                                if (ansiParam == 38) {
+                                                    current = current.foreground(r, g, b);
+                                                } else {
+                                                    current = current.background(r, g, b);
+                                                }
+                                            }
+                                        } else if (ansiParam2 == 5) {
+                                            if (j + 1 < params.length) {
+                                                int col = Integer.parseInt(params[++j]);
+                                                if (ansiParam == 38) {
+                                                    current = current.foreground(col);
+                                                } else {
+                                                    current = current.background(col);
+                                                }
                                             }
                                         }
-                                    } else if (ansiParam2 == 5) {
-                                        if (j + 1 < params.length) {
-                                            int col = Integer.parseInt(params[++j]);
-                                            if (ansiParam == 38) {
-                                                current = current.foreground(col);
-                                            } else {
-                                                current = current.background(col);
-                                            }
-                                        }
+                                    } catch (NumberFormatException e) {
+                                        // ignore malformed extended-color sub-parameters
                                     }
                                 }
                                 break;
