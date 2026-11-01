@@ -634,6 +634,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
         int ansiStart = 0;
         int ansiState = 0;
         boolean nonSgrSeen = false;
+        boolean belTerminatesString = false; // BEL (0x07) only terminates OSC, not DCS/SOS/PM/APC
         ensureCapacity(length + ansi.length());
         for (int i = 0; i < ansi.length(); i++) {
             char c = ansi.charAt(i);
@@ -652,8 +653,8 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                 } else if (c == 0x9d || c == 0x90 || c == 0x98 || c == 0x9e || c == 0x9f) {
                     // 8-bit C1 string introducer arriving mid-CSI: abort the CSI and enter the
                     // string-discard state so the full payload is consumed through its terminator.
-                    // State 5 = OSC (BEL also terminates); state 3 = other string types (ST only).
-                    ansiState = c == 0x9d ? 5 : 3;
+                    belTerminatesString = c == 0x9d; // BEL only terminates OSC (U+009D)
+                    ansiState = 3;
                 } else if (c == 'm' && !nonSgrSeen) {
                     String[] params = ansi.substring(ansiStart, i).split(";");
                     int j = 0;
@@ -845,51 +846,35 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                 // as the single-character 8-bit C1 form (U+009D, U+0090, U+0098, U+009E, U+009F).
                 // The 8-bit C1 form is also recognised when ansiState == 1 (after ESC): ESC followed
                 // by a C1 string-introducer consumes both bytes instead of emitting the pending ESC.
-                // These carry a string payload terminated by ST (ESC \\ or U+009C) and can
-                // drive the terminal itself (set the window title, write the clipboard via OSC 52,
-                // ...). When the text is untrusted (a file shown in Less, a completion candidate)
-                // that payload must not reach the terminal, so drop the whole sequence instead of
-                // emitting it. OSC additionally accepts BEL as a terminator (xterm convention).
-                // State 5 = OSC string (BEL terminates); state 3 = non-OSC string (ST only).
-                ansiState = (c == ']' || c == 0x9d) ? 5 : 3;
+                // These carry a string payload terminated by ST (ESC \\ or U+009C) — and for OSC
+                // additionally by BEL (xterm convention) — and can drive the
+                // terminal itself (set the window title, write the clipboard via OSC 52, ...). When
+                // the text is untrusted (a file shown in Less, a completion candidate) that payload
+                // must not reach the terminal, so drop the whole sequence instead of emitting it.
+                belTerminatesString = c == ']' || c == 0x9d; // BEL only terminates OSC
+                ansiState = 3;
             } else if (ansiState == 3) {
-                // Non-OSC string payload (DCS, SOS, PM, APC): only ST (8-bit or ESC \\) terminates.
-                if (c == 0x9c) {
-                    ansiState = 0;
+                if (c == 0x9c || (belTerminatesString && c == 7)) {
+                    belTerminatesString = false;
+                    ansiState = 0; // 8-bit ST (U+009C) or BEL (for OSC only) terminates the string
                 } else if (c == 27) {
-                    ansiState = 4; // possible ST: ESC \
+                    ansiState = 4; // possible ST: ESC \\
                 }
             } else if (ansiState == 4) {
-                // ESC seen inside a non-OSC string (state 3). Per ECMA-48 §5.6, only ESC \\ (ST)
-                // terminates the string. ESC [ inside an OSC/DCS string is payload data — not a
-                // CSI introducer — so treating it as CSI would leak the payload to the terminal.
-                if (c == '\\' || c == 0x9c) {
-                    ansiState = 0; // ESC \ or 8-bit ST terminates the string sequence
+                // ESC was seen inside a string sequence (state 3); determine what follows.
+                // Note: ESC [ inside an OSC/DCS string payload is payload data per ECMA-48 §5.6,
+                // not a CSI introducer — treating it as CSI would let injected SGR/CSI commands
+                // escape the string boundary and reach the terminal.
+                if (c == '\\' || c == 0x9c || (belTerminatesString && c == 7)) {
+                    belTerminatesString = false;
+                    ansiState = 0; // ST (ESC \), 8-bit ST, or BEL terminates the string
                 } else if (c == ']' || c == 'P' || c == 'X' || c == '^' || c == '_') {
-                    ansiState = c == ']' ? 6 : 4; // nested string: OSC → state 6, others → state 4
+                    belTerminatesString = c == ']'; // nested string introducer — track OSC type
+                    ansiState = 3; // ESC + string introducer — nested string, keep discarding
                 } else if (c == 27) {
                     ansiState = 4; // another ESC — remain in ESC-within-string state
                 } else {
-                    ansiState = 3; // any other byte: not an ST, return to non-OSC string-discard
-                }
-            } else if (ansiState == 5) {
-                // OSC string payload: ST (8-bit or ESC \\) or BEL terminates.
-                if (c == 0x9c || c == 7) {
-                    ansiState = 0;
-                } else if (c == 27) {
-                    ansiState = 6; // possible ST: ESC \
-                }
-            } else if (ansiState == 6) {
-                // ESC seen inside an OSC string (state 5). Same rules as state 4, but BEL also
-                // terminates and non-exit transitions return to OSC state (5) not non-OSC state (3).
-                if (c == '\\' || c == 0x9c || c == 7) {
-                    ansiState = 0; // ESC \, 8-bit ST, or BEL terminate the OSC sequence
-                } else if (c == ']' || c == 'P' || c == 'X' || c == '^' || c == '_') {
-                    ansiState = c == ']' ? 6 : 4; // nested string: OSC stays in 6, others go to 4
-                } else if (c == 27) {
-                    ansiState = 6; // another ESC — remain in ESC-within-OSC-string state
-                } else {
-                    ansiState = 5; // any other byte: not an ST, return to OSC string-discard
+                    ansiState = 3; // any other byte (including '[' = CSI): not an ST, return to string-discard
                 }
             } else {
                 if (ansiState >= 1) {
