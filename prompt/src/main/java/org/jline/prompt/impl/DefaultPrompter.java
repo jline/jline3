@@ -39,6 +39,7 @@ import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.Reference;
 import org.jline.reader.UserInterruptException;
 import org.jline.reader.Widget;
+import org.jline.reader.impl.ReaderUtils;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
@@ -778,7 +779,7 @@ public class DefaultPrompter implements Prompter {
 
     private String launchEditor(EditorPrompt prompt) throws IOException {
         // Create temporary file
-        File tempFile = File.createTempFile("jline_editor_", "." + prompt.getFileExtension());
+        File tempFile = createEditorTempFile("jline_editor_", "." + prompt.getFileExtension());
         tempFile.deleteOnExit();
 
         // Write initial content if provided
@@ -815,6 +816,14 @@ public class DefaultPrompter implements Prompter {
         }
 
         return result.toString();
+    }
+
+    /**
+     * Creates the temporary file handed to the editor. The file holds the prompt text,
+     * so it is created with owner-only permissions on POSIX file systems.
+     */
+    protected File createEditorTempFile(String prefix, String suffix) throws IOException {
+        return ReaderUtils.createSecureTempFile(prefix, suffix);
     }
 
     /**

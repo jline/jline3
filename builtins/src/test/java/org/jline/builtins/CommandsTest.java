@@ -10,23 +10,31 @@ package org.jline.builtins;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.jline.reader.History;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
+import org.jline.reader.impl.LineReaderImpl;
 import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.impl.DumbTerminal;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class CommandsTest {
     @Test
@@ -133,5 +141,34 @@ class CommandsTest {
         String err = errBytes.toString(StandardCharsets.UTF_8);
         assertFalse(err.contains("Invalid theme name"), "valid theme name must be accepted, err=" + err);
         assertTrue(out.contains("dark.nanorctheme"), "theme path should be printed, out=" + out);
+    }
+
+    @Test
+    void historyEditTempFileIsOwnerOnly() throws Exception {
+        assumeTrue(FileSystems.getDefault().supportedFileAttributeViews().contains("posix"));
+
+        Terminal terminal = new DumbTerminal(
+                "dumb",
+                "dumb",
+                new ByteArrayInputStream(new byte[0]),
+                new ByteArrayOutputStream(),
+                StandardCharsets.UTF_8);
+        AtomicReference<Set<PosixFilePermission>> seen = new AtomicReference<>();
+        AtomicReference<String> content = new AtomicReference<>();
+        LineReaderImpl reader = new LineReaderImpl(terminal) {
+            @Override
+            public void editAndAddInBuffer(Path file) throws Exception {
+                seen.set(Files.getPosixFilePermissions(file));
+                content.set(new String(Files.readAllBytes(file), StandardCharsets.UTF_8));
+            }
+        };
+        reader.getHistory().add("mysql -u root -psecret");
+        reader.getHistory().add("history -e");
+
+        PrintStream out = new PrintStream(new ByteArrayOutputStream(), false);
+        Commands.history(reader, out, out, Path.of(""), new String[] {"-e"});
+
+        assertEquals("mysql -u root -psecret\n", content.get());
+        assertEquals(EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE), seen.get());
     }
 }

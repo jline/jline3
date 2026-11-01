@@ -41,6 +41,7 @@ import org.jline.reader.LineReader.Option;
 import org.jline.reader.Macro;
 import org.jline.reader.Reference;
 import org.jline.reader.Widget;
+import org.jline.reader.impl.ReaderUtils;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
@@ -343,13 +344,16 @@ public class Commands {
         } else if (opt.isSet("save")) {
             history.save();
         } else if (opt.isSet("A")) {
-            Path file = !opt.args().isEmpty() ? currentDir.resolve(opt.args().get(0)) : null;
+            Path file =
+                    opt.args().isEmpty() ? null : currentDir.resolve(opt.args().get(0));
             history.append(file, increment);
         } else if (opt.isSet("R")) {
-            Path file = !opt.args().isEmpty() ? currentDir.resolve(opt.args().get(0)) : null;
+            Path file =
+                    opt.args().isEmpty() ? null : currentDir.resolve(opt.args().get(0));
             history.read(file, increment);
         } else if (opt.isSet("W")) {
-            Path file = !opt.args().isEmpty() ? currentDir.resolve(opt.args().get(0)) : null;
+            Path file =
+                    opt.args().isEmpty() ? null : currentDir.resolve(opt.args().get(0));
             history.write(file, increment);
         } else {
             done = false;
@@ -456,7 +460,7 @@ public class Commands {
                     iter.remove();
                 }
                 if (edit) {
-                    cmdFile = File.createTempFile("jline-history-", null);
+                    cmdFile = ReaderUtils.createSecureTempFile("jline-history-", null);
                     cmdWriter = new FileWriter(cmdFile);
                 } else if (!opt.args().isEmpty()) {
                     String[] s = opt.args().get(argId).split("=");
@@ -1014,7 +1018,9 @@ public class Commands {
             }
             if (!opt.args().isEmpty() || !opt.isSet("e") && !opt.isSet("v")) {
                 Map<String, Binding> bound = map.getBoundKeys();
-                String seq = !opt.args().isEmpty() ? KeyMap.translate(opt.args().get(0)) : null;
+                String seq = opt.args().isEmpty()
+                        ? null
+                        : KeyMap.translate(opt.args().get(0));
                 Map.Entry<String, Binding> begin = null;
                 String last = null;
                 Iterator<Entry<String, Binding>> iterator = bound.entrySet().iterator();
