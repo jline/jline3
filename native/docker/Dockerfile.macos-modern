@@ -98,6 +98,12 @@ RUN set -x \
             wrapper="/usr/${base_triple}/bin/${tool}"; \
             printf '#!/bin/sh\nexec "%s" "$@"\n' "$bin" > "$wrapper"; \
             chmod +x "$wrapper"; \
+            # Also install a no-patch-version alias in /usr/osxcross/bin so that
+            # CROSS_PREFIX=<triple>- works the same way as other cross-toolchains.
+            alias_name="${base_triple}-${tool}"; \
+            [ ! -e "/usr/osxcross/bin/${alias_name}" ] && \
+                printf '#!/bin/sh\nexec "%s" "$@"\n' "$bin" > "/usr/osxcross/bin/${alias_name}" && \
+                chmod +x "/usr/osxcross/bin/${alias_name}" || true; \
         done; \
         ln -sf "${exact_triple}-clang"   "/usr/osxcross/bin/${base_triple}-cc"  2>/dev/null || true; \
         ln -sf "${exact_triple}-clang++" "/usr/osxcross/bin/${base_triple}-c++" 2>/dev/null || true; \
