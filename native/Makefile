@@ -17,16 +17,21 @@
 
 include Makefile.common
 
-.PHONY: all package native native-all deploy crossbuild ducible clean-native
+.PHONY: all package native native-all deploy dockcross ducible clean-native
 
 linux-armv6-digest:=@sha256:a90a7deda7f561932d9ad658f8d661d17eeb44f4e7f7024ac087db1d0b95c6f5
 linux-x86-digest:=@sha256:fbe45fcb0c2ce82f84a998a1d37d67b3906502723ed89f8191c3243d9d835d17
 windows-static-x86-digest:=@sha256:b205eeeafaef4f44482d16254670da815d5679b03cf8e51e4adc3539d1c4a9c0
 windows-static-x64-digest:=@sha256:fce7b66dbe52cdf6389f121aa75746f111301b6b510ae0fbbb764792636f758a
 windows-arm64-digest:=@sha256:5a8e872064c5f600386e4124f9425d3e2ce2e168cadb6626655b2d69ed748849
-cross-build-digest:=@sha256:8dbaa86462270db93ae1b1b319bdd88d89272faf3a68632daf4fa36b414a326e
 freebsd-crossbuild-digest:=@sha256:cda62697a15d8bdc0bc26e780b1771ee78f12c55e7d5813e62c478af5a747c43
-mcandre-snek-digest:=@sha256:e5aaf20daece19796dcd0553feb971143b71cc67d13d79d73649cc689fb87287
+dockcross-linux-x64-digest:=
+dockcross-linux-armv5-digest:=
+dockcross-linux-armv7-digest:=
+dockcross-linux-arm64-digest:=
+dockcross-linux-ppc64le-digest:=
+crossbuild-macos-legacy-digest:=:latest
+crossbuild-macos-modern-digest:=:latest
 
 all: package
 
@@ -47,12 +52,6 @@ download-includes: target
 
 dockcross: target
 	@test -d target/dockcross || mkdir target/dockcross
-
-# This target does not generate the same image digest that the one uploaded
-#crossbuild: target
-#	test -d target/crossbuild || git clone https://github.com/multiarch/crossbuild.git target/crossbuild
-#	git -C target/crossbuild reset --hard d06cdc31fce0c85ad78408b44794366dafd59554
-#	docker build target/crossbuild -t multiarch/crossbuild
 
 ducible: target
 	test -d target/ducible || git clone --branch v1.2.2 https://github.com/jasonwhite/ducible.git target/ducible
@@ -86,9 +85,8 @@ native-all: \
     linux-x86 linux-x86_64 linux-arm linux-armv6 linux-armv7 linux-arm64 linux-ppc64 \
     linux-musl-x86_64 linux-musl-arm64 \
     win-x86 win-x86_64 win-arm64 \
-    mac-x86_64 mac-arm64 \
+    mac-x86 mac-x86_64 mac-arm64 \
     freebsd-x86 freebsd-x86_64
-
 # Sign macOS native libraries with Apple Developer ID.
 # Requires a "Developer ID Application" certificate in the keychain.
 # Usage: make sign APPLE_SIGNING_IDENTITY="Developer ID Application: Guillaume Nodet (CBCRPRKJ9H)"
@@ -97,7 +95,7 @@ NATIVE_MAC_DIR := src/main/resources/org/jline/nativ/Mac
 
 sign:
 	@set -e; \
-	for arch in x86_64 arm64; do \
+	for arch in x86 x86_64 arm64; do \
 		lib="$(NATIVE_MAC_DIR)/$$arch/libjlinenative.jnilib"; \
 		if [ ! -f "$$lib" ]; then \
 			echo "ERROR: $$lib not found"; exit 1; \
@@ -109,7 +107,7 @@ sign:
 
 verify-sign:
 	@set -e; \
-	for arch in x86_64 arm64; do \
+	for arch in x86 x86_64 arm64; do \
 		lib="$(NATIVE_MAC_DIR)/$$arch/libjlinenative.jnilib"; \
 		if [ ! -f "$$lib" ]; then \
 			echo "ERROR: $$lib not found"; exit 1; \
@@ -136,17 +134,18 @@ target/dockcross/dockcross-linux-x86: dockcross
 	chmod +x target/dockcross/dockcross-linux-x86
 linux-x86: download-includes target/dockcross/dockcross-linux-x86
 	target/dockcross/dockcross-linux-x86 --args "--platform linux/amd64" bash -c 'make clean-native native OS_NAME=Linux OS_ARCH=x86'
-#linux-x86: download-includes
-#	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
-#		-e CROSS_TRIPLE=x86-linux-gnu multiarch/crossbuild$(cross-build-digest) make clean-native native OS_NAME=Linux OS_ARCH=x86
 
-linux-x86_64: download-includes
-	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
-		-e CROSS_TRIPLE=x86_64-linux-gnu multiarch/crossbuild$(cross-build-digest) make clean-native native OS_NAME=Linux OS_ARCH=x86_64
+target/dockcross/dockcross-linux-x86_64: dockcross
+	docker run --rm dockcross/linux-x64$(dockcross-linux-x64-digest) > target/dockcross/dockcross-linux-x86_64
+	chmod +x target/dockcross/dockcross-linux-x86_64
+linux-x86_64: download-includes target/dockcross/dockcross-linux-x86_64
+	target/dockcross/dockcross-linux-x86_64 bash -c 'make clean-native native OS_NAME=Linux OS_ARCH=x86_64'
 
-linux-arm: download-includes
-	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
-		-e CROSS_TRIPLE=arm-linux-gnueabi multiarch/crossbuild$(cross-build-digest) make clean-native native OS_NAME=Linux OS_ARCH=arm
+target/dockcross/dockcross-linux-arm: dockcross
+	docker run --rm dockcross/linux-armv5$(dockcross-linux-armv5-digest) > target/dockcross/dockcross-linux-arm
+	chmod +x target/dockcross/dockcross-linux-arm
+linux-arm: download-includes target/dockcross/dockcross-linux-arm
+	target/dockcross/dockcross-linux-arm bash -c 'make clean-native native OS_NAME=Linux OS_ARCH=arm'
 
 target/dockcross/dockcross-linux-armv6: dockcross
 	docker run --rm dockcross/linux-armv6$(linux-armv6-digest) > target/dockcross/dockcross-linux-armv6
@@ -154,17 +153,23 @@ target/dockcross/dockcross-linux-armv6: dockcross
 linux-armv6: download-includes target/dockcross/dockcross-linux-armv6
 	target/dockcross/dockcross-linux-armv6 bash -c 'make clean-native native CROSS_PREFIX=armv6-unknown-linux-gnueabihf- OS_NAME=Linux OS_ARCH=armv6'
 
-linux-armv7: download-includes
-	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
-		-e CROSS_TRIPLE=arm-linux-gnueabihf multiarch/crossbuild$(cross-build-digest) make clean-native native OS_NAME=Linux OS_ARCH=armv7
+target/dockcross/dockcross-linux-armv7: dockcross
+	docker run --rm dockcross/linux-armv7$(dockcross-linux-armv7-digest) > target/dockcross/dockcross-linux-armv7
+	chmod +x target/dockcross/dockcross-linux-armv7
+linux-armv7: download-includes target/dockcross/dockcross-linux-armv7
+	target/dockcross/dockcross-linux-armv7 bash -c 'make clean-native native OS_NAME=Linux OS_ARCH=armv7'
 
-linux-arm64: download-includes
-	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
-		-e CROSS_TRIPLE=aarch64-linux-gnu multiarch/crossbuild$(cross-build-digest) make clean-native native OS_NAME=Linux OS_ARCH=arm64
+target/dockcross/dockcross-linux-arm64: dockcross
+	docker run --rm dockcross/linux-arm64$(dockcross-linux-arm64-digest) > target/dockcross/dockcross-linux-arm64
+	chmod +x target/dockcross/dockcross-linux-arm64
+linux-arm64: download-includes target/dockcross/dockcross-linux-arm64
+	target/dockcross/dockcross-linux-arm64 bash -c 'make clean-native native OS_NAME=Linux OS_ARCH=arm64'
 
-linux-ppc64: download-includes
-	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
-		-e CROSS_TRIPLE=powerpc64le-linux-gnu multiarch/crossbuild$(cross-build-digest) make clean-native native OS_NAME=Linux OS_ARCH=ppc64
+target/dockcross/dockcross-linux-ppc64le: dockcross
+	docker run --rm dockcross/linux-ppc64le$(dockcross-linux-ppc64le-digest) > target/dockcross/dockcross-linux-ppc64le
+	chmod +x target/dockcross/dockcross-linux-ppc64le
+linux-ppc64: download-includes target/dockcross/dockcross-linux-ppc64le
+	target/dockcross/dockcross-linux-ppc64le bash -c 'make clean-native native OS_NAME=Linux OS_ARCH=ppc64'
 
 linux-musl-x86_64: download-includes
 	docker run --rm -v $$PWD:/workdir \
@@ -192,13 +197,23 @@ target/dockcross/dockcross-windows-arm64: dockcross
 win-arm64: download-includes target/dockcross/dockcross-windows-arm64
 	target/dockcross/dockcross-windows-arm64 bash -c 'make clean-native native CROSS_PREFIX=aarch64-w64-mingw32- OS_NAME=Windows OS_ARCH=arm64'
 
+mac-x86: download-includes
+	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
+		-e CROSS_TRIPLE=i386-apple-darwin \
+		ghcr.io/jline/jline3/crossbuild-macos-legacy$(crossbuild-macos-legacy-digest) \
+		make clean-native native CROSS_PREFIX=i386-apple-darwin17- OS_NAME=Mac OS_ARCH=x86
+
 mac-x86_64: download-includes
 	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
-		-e CROSS_TRIPLE=x86_64-apple-darwin multiarch/crossbuild$(cross-build-digest) make clean-native native OS_NAME=Mac OS_ARCH=x86_64
+		-e CROSS_TRIPLE=x86_64-apple-darwin \
+		ghcr.io/jline/jline3/crossbuild-macos-legacy$(crossbuild-macos-legacy-digest) \
+		make clean-native native CROSS_PREFIX=x86_64-apple-darwin17- OS_NAME=Mac OS_ARCH=x86_64
 
 mac-arm64: download-includes
-	docker run --rm -v $$PWD:/src --user $$(id -u):$$(id -g) \
-		-e TARGET=arm64-apple-darwin mcandre/snek$(mcandre-snek-digest) sh -c "make clean-native native CROSS_PREFIX=arm64-apple-darwin20.4- OS_NAME=Mac OS_ARCH=arm64"
+	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
+		-e CROSS_TRIPLE=aarch64-apple-darwin \
+		ghcr.io/jline/jline3/crossbuild-macos-modern$(crossbuild-macos-modern-digest) \
+		make clean-native native CROSS_PREFIX=aarch64-apple-darwin20- OS_NAME=Mac OS_ARCH=arm64
 
 freebsd-x86: download-includes
 	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
