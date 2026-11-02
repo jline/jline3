@@ -194,11 +194,13 @@ win-arm64: download-includes target/dockcross/dockcross-windows-arm64
 
 mac-x86_64: download-includes
 	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
-		-e CROSS_TRIPLE=x86_64-apple-darwin multiarch/crossbuild$(cross-build-digest) make clean-native native OS_NAME=Mac OS_ARCH=x86_64
+		-e CROSS_TRIPLE=x86_64-apple-darwin ghcr.io/jline/jline3/crossbuild-macos-legacy:latest \
+		bash -c 'DARWIN_VER=$$(cat /usr/osxcross/darwin_version) && make clean-native native CROSS_PREFIX=x86_64-apple-darwin$${DARWIN_VER}- OS_NAME=Mac OS_ARCH=x86_64'
 
 mac-arm64: download-includes
-	docker run --rm -v $$PWD:/src --user $$(id -u):$$(id -g) \
-		-e TARGET=arm64-apple-darwin mcandre/snek$(mcandre-snek-digest) sh -c "make clean-native native CROSS_PREFIX=arm64-apple-darwin20.4- OS_NAME=Mac OS_ARCH=arm64"
+	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
+		-e CROSS_TRIPLE=aarch64-apple-darwin ghcr.io/jline/jline3/crossbuild-macos-modern:latest \
+		bash -c 'DARWIN_VER=$$(cat /usr/osxcross/darwin_version) && make clean-native native CROSS_PREFIX=aarch64-apple-darwin$${DARWIN_VER}- OS_NAME=Mac OS_ARCH=arm64'
 
 freebsd-x86: download-includes
 	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
