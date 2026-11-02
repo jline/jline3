@@ -184,20 +184,10 @@ jobs:
         with:
           platforms: arm64
 
-      - name: Rebuild Linux / Windows / FreeBSD native binaries (Docker)
+      - name: Rebuild all native binaries (Docker cross-compilation)
         if: steps.native-changes.outputs.changed != '0'
         working-directory: native
-        run: |
-          make linux-x86_64 linux-arm linux-armv7 linux-arm64 linux-ppc64
-          make linux-x86 linux-armv6
-          make linux-musl-x86_64 linux-musl-arm64
-          make win-x86 win-x86_64 win-arm64
-          make freebsd-x86 freebsd-x86_64
-
-      - name: Rebuild macOS native libraries (Docker cross-compilation)
-        if: steps.native-changes.outputs.changed != '0'
-        working-directory: native
-        run: make mac-x86_64 mac-arm64
+        run: make native-all
 
       - name: Upload built native binaries as artifact
         if: steps.native-changes.outputs.changed != '0'
