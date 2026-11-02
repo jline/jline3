@@ -137,7 +137,7 @@ target/dockcross/dockcross-linux-x86: dockcross
 linux-x86: download-includes target/dockcross/dockcross-linux-x86
 	target/dockcross/dockcross-linux-x86 --args "--platform linux/amd64" bash -c 'make clean-native native OS_NAME=Linux OS_ARCH=x86'
 #linux-x86: download-includes
-#	docker run -it --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
+#	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
 #		-e CROSS_TRIPLE=x86-linux-gnu multiarch/crossbuild$(cross-build-digest) make clean-native native OS_NAME=Linux OS_ARCH=x86
 
 linux-x86_64: download-includes
@@ -168,11 +168,11 @@ linux-ppc64: download-includes
 
 linux-musl-x86_64: download-includes
 	docker run --rm -v $$PWD:/workdir \
-		alpine:3.20 sh -c 'apk add --no-cache gcc musl-dev linux-headers make > /dev/null 2>&1 && make clean-native native OS_NAME=Linux-musl OS_ARCH=x86_64'
+		alpine:3.20 sh -c 'cd /workdir && apk add --no-cache gcc musl-dev linux-headers make > /dev/null 2>&1 && make clean-native native OS_NAME=Linux-musl OS_ARCH=x86_64'
 
 linux-musl-arm64: download-includes
 	docker run --rm -v $$PWD:/workdir \
-		--platform linux/arm64 alpine:3.20 sh -c 'apk add --no-cache gcc musl-dev linux-headers make > /dev/null 2>&1 && make clean-native native OS_NAME=Linux-musl OS_ARCH=arm64'
+		--platform linux/arm64 alpine:3.20 sh -c 'cd /workdir && apk add --no-cache gcc musl-dev linux-headers make > /dev/null 2>&1 && make clean-native native OS_NAME=Linux-musl OS_ARCH=arm64'
 
 target/dockcross/dockcross-windows-static-x86: dockcross
 	docker run --rm dockcross/windows-static-x86$(windows-static-x86-digest) > target/dockcross/dockcross-windows-static-x86
@@ -202,11 +202,11 @@ mac-arm64: download-includes
 
 freebsd-x86: download-includes
 	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
-		empterdose/freebsd-cross-build$(freebsd-crossbuild-digest) sh -c 'make clean-native native CROSS_PREFIX=i386-freebsd9- OS_NAME=FreeBSD OS_ARCH=x86'
+		empterdose/freebsd-cross-build$(freebsd-crossbuild-digest) make clean-native native CROSS_PREFIX=i386-freebsd9- OS_NAME=FreeBSD OS_ARCH=x86
 
 freebsd-x86_64: download-includes
 	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
-		empterdose/freebsd-cross-build$(freebsd-crossbuild-digest) sh -c 'make clean-native native CROSS_PREFIX=x86_64-freebsd9- OS_NAME=FreeBSD OS_ARCH=x86_64'
+		empterdose/freebsd-cross-build$(freebsd-crossbuild-digest) make clean-native native CROSS_PREFIX=x86_64-freebsd9- OS_NAME=FreeBSD OS_ARCH=x86_64
 
 #sparcv9:
 #	$(MAKE) native OS_NAME=SunOS OS_ARCH=sparcv9
