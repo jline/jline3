@@ -5,7 +5,7 @@ ARG osxcross_repo="tpoechtrager/osxcross"
 ARG osxcross_revision="27d21e4977c9751d01199c7a226a6faf494c3dd9"
 ARG darwin_sdk_version="10.13"
 ARG darwin_sdk_sha256="9d3eddc34a510198694f5ec7cfbdebaee4c0c7ba68ad1d957cb566649c9a0f84"
-ARG darwin_osx_version_min="10.6"
+ARG darwin_osx_version_min="10.12"
 ARG darwin_version="17"
 ARG darwin_sdk_url="https://github.com/joseluisq/macosx-sdks/releases/download/${darwin_sdk_version}/MacOSX${darwin_sdk_version}.sdk.tar.xz"
 
@@ -53,7 +53,7 @@ RUN mkdir -p /tmp/osxcross \
  && mkdir -p tarballs \
  && curl -fL -o "tarballs/MacOSX${DARWIN_SDK_VERSION}.sdk.tar.xz" "${DARWIN_SDK_URL}" \
  && echo "${darwin_sdk_sha256}  tarballs/MacOSX${DARWIN_SDK_VERSION}.sdk.tar.xz" | sha256sum --check \
- && UNATTENDED=1 OSX_VERSION_MIN="${DARWIN_OSX_VERSION_MIN}" ENABLE_COMPILER_RT=1 ./build.sh \
+ && UNATTENDED=yes OSX_VERSION_MIN="${DARWIN_OSX_VERSION_MIN}" ENABLE_COMPILER_RT=1 ./build.sh \
  && mv target /usr/osxcross \
  && mv tools /usr/osxcross/ \
  && ln -sf ../tools/osxcross-macports /usr/osxcross/bin/omp \
