@@ -164,7 +164,7 @@ jobs:
         id: changes
         run: |
           BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
-          if [ -z "$BASE" ] || [[ "$BASE" =~ ^0+$ ]]; then
+          if [ -z "$BASE" ] || [[ "$BASE" =~ ^0+$ ]] || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
             BASE=$(git rev-list --max-parents=0 HEAD)
           fi
           CHANGED=$(git diff --name-only "$BASE" HEAD -- native/src/main/native/ native/Makefile native/Makefile.common | wc -l)
