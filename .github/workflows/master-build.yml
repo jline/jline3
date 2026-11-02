@@ -64,8 +64,6 @@ jobs:
         run: |
           set -e
           NATIVE_DIR=native/src/main/resources/org/jline/nativ/Mac
-          # x86 (32-bit) was dropped on macOS 10.15+ and is not re-signed in CI;
-          # only verify x86_64 and arm64 to match the sign loop.
           for arch in x86_64 arm64; do
             LIB="$NATIVE_DIR/$arch/libjlinenative.jnilib"
             if [ ! -f "$LIB" ]; then

@@ -162,9 +162,11 @@ jobs:
             echo "Manual trigger — forcing full rebuild."
           else
             # Use the PR base SHA from the API — exact, no fetch needed,
-            # works for any target branch (master, jline-3.x, etc.)
+            # works for any target branch (master, jline-3.x, etc.).
+            # Guard both against empty base_sha and against an unreachable SHA
+            # (e.g. when the fork hasn't been synced with upstream recently).
             BASE="${{ needs.pr-info.outputs.base_sha }}"
-            if [ -z "$BASE" ]; then
+            if [ -z "$BASE" ] || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
               BASE=$(git rev-list --max-parents=0 HEAD)
             fi
             CHANGED=$(git diff --name-only "$BASE" HEAD -- native/src/main/native/ native/Makefile native/Makefile.common | wc -l)
@@ -233,11 +235,13 @@ jobs:
           GH_PAT: ${{ secrets.GH_PAT }}
           HEAD_REPO: ${{ needs.pr-info.outputs.head_repo }}
           HEAD_REF: ${{ needs.pr-info.outputs.head_ref }}
+          HEAD_SHA: ${{ needs.pr-info.outputs.head_sha }}
         run: |
-          # Fetch the fork's PR branch using the PAT. No fork code is executed.
-          # We only use this for the git history baseline (committing on top of PR tip).
+          # Fetch the fork's PR branch by pinned SHA (not branch name) to avoid a
+          # TOCTOU window where a new push lands between build-native and this job.
+          # No fork code is executed — we only need the git history baseline.
           git -c "url.https://x-access-token:${GH_PAT}@github.com/.insteadOf=https://github.com/" \
-              fetch "https://github.com/${HEAD_REPO}.git" "${HEAD_REF}:refs/remotes/pr/head"
+              fetch "https://github.com/${HEAD_REPO}.git" "+${HEAD_SHA}:refs/remotes/pr/head"
           git checkout -b pr-branch refs/remotes/pr/head
 
       - name: Download built native binaries
