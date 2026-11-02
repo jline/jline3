@@ -82,6 +82,8 @@ jobs:
               core.setOutput('head_ref',              branch);
               core.setOutput('head_repo',             `${context.repo.owner}/${context.repo.repo}`);
               core.setOutput('head_sha',              ref.object.sha);
+              core.setOutput('base_ref',              branch);
+              core.setOutput('base_sha',              '');
               core.setOutput('maintainer_can_modify', 'true');
               return;
             }
@@ -106,6 +108,8 @@ jobs:
             core.setOutput('head_ref',              pr.head.ref);
             core.setOutput('head_repo',             pr.head.repo.full_name);
             core.setOutput('head_sha',              pr.head.sha);
+            core.setOutput('base_ref',              pr.base.ref);
+            core.setOutput('base_sha',              pr.base.sha);
             core.setOutput('maintainer_can_modify', String(pr.maintainer_can_modify));
 
       - name: Checkout branch
@@ -130,9 +134,12 @@ jobs:
             echo "changed=1" >> "$GITHUB_OUTPUT"
             echo "Manual trigger — forcing full rebuild."
           else
-            # Fetch upstream master to compute the correct merge-base
-            git fetch https://github.com/jline/jline3.git master:refs/remotes/upstream/target 2>/dev/null || true
-            BASE=$(git merge-base HEAD refs/remotes/upstream/target 2>/dev/null || git rev-list --max-parents=0 HEAD)
+            # Use the PR base SHA from the API — exact, no fetch needed,
+            # works for any target branch (master, jline-3.x, etc.)
+            BASE="${{ steps.pr-info.outputs.base_sha }}"
+            if [ -z "$BASE" ]; then
+              BASE=$(git rev-list --max-parents=0 HEAD)
+            fi
             CHANGED=$(git diff --name-only "$BASE" HEAD -- native/src/main/native/ | wc -l)
             echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
             if [ "$CHANGED" -eq 0 ]; then
@@ -167,9 +174,13 @@ jobs:
         if: steps.pr-info.outputs.skip != 'true' && steps.native-changes.outputs.changed != '0'
         run: |
           RCODESIGN_VERSION=0.29.0
+          EXPECTED_SHA256="dbe85cedd8ee4217b64e9a0e4c2aef92ab8bcaaa41f20bde99781ff02e600002"
           curl -sSfL \
             "https://github.com/indygreg/apple-platform-rs/releases/download/apple-codesign%2F${RCODESIGN_VERSION}/apple-codesign-${RCODESIGN_VERSION}-x86_64-unknown-linux-musl.tar.gz" \
-            | tar --strip-components=1 -xzf - "./rcodesign"
+            -o /tmp/rcodesign.tar.gz
+          echo "${EXPECTED_SHA256}  /tmp/rcodesign.tar.gz" | sha256sum -c -
+          tar --strip-components=1 -xzf /tmp/rcodesign.tar.gz "./rcodesign"
+          rm /tmp/rcodesign.tar.gz
           chmod +x rcodesign
           ./rcodesign --version
 
