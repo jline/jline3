@@ -41,9 +41,9 @@ download-includes: target
 	@test -d target/inc || mkdir target/inc
 	@test -d target/inc/unix || mkdir target/inc/unix
 	@test -d target/inc/windows || mkdir target/inc/windows
-	test -f target/inc/jni.h || wget -O target/inc/jni.h https://raw.githubusercontent.com/openjdk/jdk/jdk-11%2B28/src/java.base/share/native/include/jni.h
-	test -f target/inc/unix/jni_md.h || wget -O target/inc/unix/jni_md.h https://raw.githubusercontent.com/openjdk/jdk/jdk-11%2B28/src/java.base/unix/native/include/jni_md.h
-	test -f target/inc/windows/jni_md.h || wget -O target/inc/windows/jni_md.h https://raw.githubusercontent.com/openjdk/jdk/jdk-11%2B28/src/java.base/windows/native/include/jni_md.h
+	test -f target/inc/jni.h || curl -sSf -o target/inc/jni.h https://raw.githubusercontent.com/openjdk/jdk/jdk-11%2B28/src/java.base/share/native/include/jni.h
+	test -f target/inc/unix/jni_md.h || curl -sSf -o target/inc/unix/jni_md.h https://raw.githubusercontent.com/openjdk/jdk/jdk-11%2B28/src/java.base/unix/native/include/jni_md.h
+	test -f target/inc/windows/jni_md.h || curl -sSf -o target/inc/windows/jni_md.h https://raw.githubusercontent.com/openjdk/jdk/jdk-11%2B28/src/java.base/windows/native/include/jni_md.h
 
 dockcross: target
 	@test -d target/dockcross || mkdir target/dockcross
@@ -168,11 +168,11 @@ linux-ppc64: download-includes
 
 linux-musl-x86_64: download-includes
 	docker run --rm -v $$PWD:/workdir \
-		alpine:3.20 sh -c 'apk add --no-cache gcc musl-dev linux-headers make > /dev/null 2>&1 && make clean-native native OS_NAME=Linux-musl OS_ARCH=x86_64'
+		alpine:3.20 sh -c 'cd /workdir && apk add --no-cache gcc musl-dev linux-headers make > /dev/null 2>&1 && make clean-native native OS_NAME=Linux-musl OS_ARCH=x86_64'
 
 linux-musl-arm64: download-includes
 	docker run --rm -v $$PWD:/workdir \
-		--platform linux/arm64 alpine:3.20 sh -c 'apk add --no-cache gcc musl-dev linux-headers make > /dev/null 2>&1 && make clean-native native OS_NAME=Linux-musl OS_ARCH=arm64'
+		--platform linux/arm64 alpine:3.20 sh -c 'cd /workdir && apk add --no-cache gcc musl-dev linux-headers make > /dev/null 2>&1 && make clean-native native OS_NAME=Linux-musl OS_ARCH=arm64'
 
 target/dockcross/dockcross-windows-static-x86: dockcross
 	docker run --rm dockcross/windows-static-x86$(windows-static-x86-digest) > target/dockcross/dockcross-windows-static-x86

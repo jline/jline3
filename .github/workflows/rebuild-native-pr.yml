@@ -1,0 +1,265 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+name: Rebuild native binaries for PR
+
+# Triggered after the main CI workflow completes on a pull_request event.
+# Runs with repo secrets (unlike pull_request triggers from forks).
+# Rebuilds ALL native binaries via Docker cross-compilation on ubuntu-latest,
+# signs macOS libraries with rcodesign (no macOS runner required), then
+# commits the updated binaries back to the PR branch (if maintainerCanModify)
+# or fails.
+#
+# Can also be triggered manually via workflow_dispatch with a target branch
+# (e.g. master or jline-3.x) to rebuild and commit binaries directly after
+# merging the CI infrastructure PRs.
+on:
+  workflow_run:
+    workflows: ["build"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to rebuild native binaries on (e.g. master or jline-3.x)'
+        required: true
+        default: 'master'
+
+# One run at a time per PR branch — cancel any in-progress rebuild if a new
+# commit lands before the previous rebuild finishes.
+concurrency:
+  group: rebuild-native-pr-${{ github.event.workflow_run.head_repository.full_name || github.repository }}-${{ github.event.workflow_run.head_branch || inputs.branch }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  rebuild:
+    name: Rebuild and sign all native binaries
+    # For workflow_run: only act on pull_request runs.
+    # Allow both 'success' and 'failure' conclusions — check-native fails when
+    # binaries are stale, which is exactly when this workflow should run.
+    if: |-
+      github.event_name == 'workflow_dispatch' ||
+      ((github.event.workflow_run.conclusion == 'success' ||
+        github.event.workflow_run.conclusion == 'failure') &&
+       github.event.workflow_run.event == 'pull_request')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Resolve target (PR branch or manual branch)
+        id: pr-info
+        uses: actions/github-script@v7
+        with:
+          script: |
+            if (context.eventName === 'workflow_dispatch') {
+              // Manual trigger — commit directly to the target branch
+              const branch = context.payload.inputs.branch;
+              const { data: ref } = await github.rest.git.getRef({
+                owner: context.repo.owner,
+                repo:  context.repo.repo,
+                ref:   `heads/${branch}`,
+              });
+              core.setOutput('skip',                  'false');
+              core.setOutput('pr_number',             '');
+              core.setOutput('head_ref',              branch);
+              core.setOutput('head_repo',             `${context.repo.owner}/${context.repo.repo}`);
+              core.setOutput('head_sha',              ref.object.sha);
+              core.setOutput('maintainer_can_modify', 'true');
+              return;
+            }
+            // workflow_run path — find the associated open PR
+            const headSha  = context.payload.workflow_run.head_sha;
+            const headRepo = context.payload.workflow_run.head_repository.full_name;
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              state: 'open',
+              head:  `${headRepo.split('/')[0]}:${context.payload.workflow_run.head_branch}`,
+              per_page: 5,
+            });
+            const pr = prs.find(p => p.head.sha === headSha);
+            if (!pr) {
+              core.notice('No open PR found for this workflow run — skipping.');
+              core.setOutput('skip', 'true');
+              return;
+            }
+            core.setOutput('skip',                  'false');
+            core.setOutput('pr_number',             String(pr.number));
+            core.setOutput('head_ref',              pr.head.ref);
+            core.setOutput('head_repo',             pr.head.repo.full_name);
+            core.setOutput('head_sha',              pr.head.sha);
+            core.setOutput('maintainer_can_modify', String(pr.maintainer_can_modify));
+
+      - name: Checkout branch
+        if: steps.pr-info.outputs.skip != 'true'
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ steps.pr-info.outputs.head_repo }}
+          # Pin to the exact SHA vetted by CI — prevents TOCTOU where a new
+          # commit lands between CI completion and this job's checkout.
+          ref:        ${{ steps.pr-info.outputs.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          # Required for checkout@v7 in workflow_run context when repository is a fork.
+          allow-unsafe-pr-checkout: true
+
+      - name: Check if native sources changed
+        id: native-changes
+        if: steps.pr-info.outputs.skip != 'true'
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Manual trigger — always rebuild everything
+            echo "changed=1" >> "$GITHUB_OUTPUT"
+            echo "Manual trigger — forcing full rebuild."
+          else
+            # Fetch upstream master to compute the correct merge-base
+            git fetch https://github.com/jline/jline3.git master:refs/remotes/upstream/target 2>/dev/null || true
+            BASE=$(git merge-base HEAD refs/remotes/upstream/target 2>/dev/null || git rev-list --max-parents=0 HEAD)
+            CHANGED=$(git diff --name-only "$BASE" HEAD -- native/src/main/native/ | wc -l)
+            echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
+            if [ "$CHANGED" -eq 0 ]; then
+              echo "No native C/H source changes — skipping rebuild."
+            else
+              echo "Native sources changed ($CHANGED files) — rebuild needed."
+            fi
+          fi
+
+      - name: Set up QEMU (for musl-arm64 cross-compilation)
+        if: steps.pr-info.outputs.skip != 'true' && steps.native-changes.outputs.changed != '0'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Rebuild Linux / Windows / FreeBSD native binaries (Docker)
+        if: steps.pr-info.outputs.skip != 'true' && steps.native-changes.outputs.changed != '0'
+        working-directory: native
+        run: |
+          make linux-x86_64 linux-arm linux-armv7 linux-arm64 linux-ppc64
+          make linux-x86 linux-armv6
+          make linux-musl-x86_64 linux-musl-arm64
+          make win-x86 win-x86_64 win-arm64
+          make freebsd-x86 freebsd-x86_64
+
+      - name: Rebuild macOS native libraries (Docker cross-compilation)
+        if: steps.pr-info.outputs.skip != 'true' && steps.native-changes.outputs.changed != '0'
+        working-directory: native
+        run: make mac-x86_64 mac-arm64
+
+      - name: Install rcodesign
+        if: steps.pr-info.outputs.skip != 'true' && steps.native-changes.outputs.changed != '0'
+        run: |
+          RCODESIGN_VERSION=0.29.0
+          curl -sSfL \
+            "https://github.com/indygreg/apple-platform-rs/releases/download/apple-codesign%2F${RCODESIGN_VERSION}/apple-codesign-${RCODESIGN_VERSION}-x86_64-unknown-linux-musl.tar.gz" \
+            | tar --strip-components=1 -xzf - "./rcodesign"
+          chmod +x rcodesign
+          ./rcodesign --version
+
+      - name: Sign macOS native libraries
+        if: steps.pr-info.outputs.skip != 'true' && steps.native-changes.outputs.changed != '0'
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          set -e
+          CERT_PATH="$RUNNER_TEMP/certificate.p12"
+          echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > "$CERT_PATH"
+          NATIVE_MAC_DIR=native/src/main/resources/org/jline/nativ/Mac
+          for arch in x86_64 arm64; do
+            lib="$NATIVE_MAC_DIR/$arch/libjlinenative.jnilib"
+            if [ ! -f "$lib" ]; then
+              echo "ERROR: $lib not found"; exit 1
+            fi
+            echo "Signing $lib ..."
+            ./rcodesign sign \
+              --p12-file "$CERT_PATH" \
+              --p12-password "$APPLE_CERTIFICATE_PASSWORD" \
+              --code-signature-flags runtime \
+              "$lib"
+            echo "Verifying $lib ..."
+            ./rcodesign verify "$lib"
+            echo "✓ $lib signed and verified"
+          done
+          rm -f "$CERT_PATH"
+
+      - name: Check for binary diffs
+        id: diff
+        if: steps.pr-info.outputs.skip != 'true' && steps.native-changes.outputs.changed != '0'
+        run: |
+          git add native/src/main/resources/org/jline/nativ/
+          if git diff --cached --quiet; then
+            echo "up_to_date=true" >> "$GITHUB_OUTPUT"
+            echo "All native binaries are up to date ✓"
+          else
+            echo "up_to_date=false" >> "$GITHUB_OUTPUT"
+            echo "Binary diffs detected:"
+            git diff --cached --name-only
+          fi
+
+      - name: Commit and push updated binaries
+        if: |-
+          steps.pr-info.outputs.skip != 'true' &&
+          steps.native-changes.outputs.changed != '0' &&
+          steps.diff.outputs.up_to_date == 'false' &&
+          steps.pr-info.outputs.maintainer_can_modify == 'true'
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+          HEAD_REF: ${{ steps.pr-info.outputs.head_ref }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: rebuild and sign native binaries [skip ci]"
+          git -c "url.https://x-access-token:${GH_PAT}@github.com/.insteadOf=https://github.com/" \
+              push origin HEAD:"${HEAD_REF}"
+
+      - name: Comment on PR after commit
+        if: |-
+          steps.pr-info.outputs.skip != 'true' &&
+          steps.native-changes.outputs.changed != '0' &&
+          steps.diff.outputs.up_to_date == 'false' &&
+          steps.pr-info.outputs.maintainer_can_modify == 'true' &&
+          steps.pr-info.outputs.pr_number != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner:        context.repo.owner,
+              repo:         context.repo.repo,
+              issue_number: ${{ steps.pr-info.outputs.pr_number }},
+              body: [
+                '🤖 Native binaries have been rebuilt and signed automatically.',
+                '',
+                'CI was not re-triggered on this commit (`[skip ci]`). Trigger a new CI run manually if needed.',
+              ].join('\n'),
+            });
+
+      - name: Fail — binaries out of date and maintainerCanModify=false
+        if: |-
+          steps.pr-info.outputs.skip != 'true' &&
+          steps.native-changes.outputs.changed != '0' &&
+          steps.diff.outputs.up_to_date == 'false' &&
+          steps.pr-info.outputs.maintainer_can_modify != 'true'
+        run: |
+          echo "::error::Native binaries are out of date and maintainerCanModify=false."
+          echo "::error::Please enable 'Allow edits from maintainers' on this PR, or rebuild and commit the binaries yourself."
+          echo "Changed files:"
+          git diff --cached --name-only
+          exit 1
