@@ -1,4 +1,4 @@
-FROM buildpack-deps:bullseye-curl
+FROM buildpack-deps:bookworm-curl
 
 # Build arguments
 ARG osxcross_repo="tpoechtrager/osxcross"
