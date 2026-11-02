@@ -170,6 +170,14 @@ jobs:
         working-directory: native
         run: make mac-x86_64 mac-arm64
 
+      - name: Remove fork-controlled Makefiles before signing
+        if: steps.pr-info.outputs.skip != 'true' && steps.native-changes.outputs.changed != '0'
+        run: |
+          # All make invocations are complete. Remove the fork's Makefile and
+          # Makefile.common so that no fork-controlled code is present on the
+          # runner when the Apple signing certificate is imported and used.
+          rm -f native/Makefile native/Makefile.common
+
       - name: Install rcodesign
         if: steps.pr-info.outputs.skip != 'true' && steps.native-changes.outputs.changed != '0'
         run: |

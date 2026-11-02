@@ -169,7 +169,7 @@ jobs:
           if [ -z "$BASE" ] || [[ "$BASE" =~ ^0+$ ]]; then
             BASE=$(git rev-list --max-parents=0 HEAD)
           fi
-          CHANGED=$(git diff --name-only "$BASE" HEAD -- native/src/main/native/ | wc -l)
+          CHANGED=$(git diff --name-only "$BASE" HEAD -- native/src/main/native/ native/Makefile native/Makefile.common | wc -l)
           echo "native_changed=$CHANGED" >> "$GITHUB_OUTPUT"
           if [ "$CHANGED" -eq 0 ]; then
             echo "No native C/H source changes — skipping native rebuild check"
