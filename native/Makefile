@@ -89,6 +89,16 @@ native-all: \
     mac-x86_64 mac-arm64 \
     freebsd-x86 freebsd-x86_64
 
+# Same as native-all but without macOS targets (used in CI when macOS images
+# require authenticated registry access — mac targets run in the trusted job).
+native-all-no-mac: \
+    linux-x86 linux-x86_64 linux-arm linux-armv6 linux-armv7 linux-arm64 linux-ppc64 \
+    linux-musl-x86_64 linux-musl-arm64 \
+    win-x86 win-x86_64 win-arm64 \
+    freebsd-x86 freebsd-x86_64
+
+native-mac: mac-x86_64 mac-arm64
+
 # Sign macOS native libraries with Apple Developer ID.
 # Requires a "Developer ID Application" certificate in the keychain.
 # Usage: make sign APPLE_SIGNING_IDENTITY="Developer ID Application: Guillaume Nodet (CBCRPRKJ9H)"

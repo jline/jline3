@@ -188,7 +188,7 @@ jobs:
       - name: Rebuild all native binaries (Docker cross-compilation)
         if: steps.native-changes.outputs.changed != '0'
         working-directory: native
-        run: make native-all
+        run: make native-all-no-mac
 
       - name: Upload built native binaries as artifact
         if: steps.native-changes.outputs.changed != '0'
@@ -240,6 +240,13 @@ jobs:
         with:
           name: native-binaries-${{ github.run_id }}
           path: native/src/main/resources/org/jline/nativ/
+
+      - name: Log in to GHCR (for macOS crossbuild images)
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build macOS native binaries (trusted job — registry access available)
+        working-directory: native
+        run: make native-mac
 
       - name: Install rcodesign
         run: |
