@@ -24,6 +24,12 @@ name: Rebuild native binaries for PR
 # commits the updated binaries back to the PR branch (if maintainerCanModify)
 # or fails.
 #
+# Security model: fork-controlled code (make) runs ONLY in the build-native
+# job which has NO secrets and NO write permissions. Signing secrets and the
+# GH_PAT are exclusively available in the sign-and-push job, which checks out
+# only the base repo (trusted code) and downloads pre-built artifacts from the
+# build-native job via GitHub Actions artifact storage.
+#
 # Can also be triggered manually via workflow_dispatch with a target branch
 # (e.g. master or jline-3.x) to rebuild and commit binaries directly after
 # merging the CI infrastructure PRs.
@@ -48,8 +54,9 @@ permissions:
   contents: read
 
 jobs:
-  rebuild:
-    name: Rebuild and sign all native binaries
+  # ─── Job 1: resolve PR metadata ────────────────────────────────────────────
+  pr-info:
+    name: Resolve PR metadata
     # For workflow_run: only act on pull_request runs.
     # Allow both 'success' and 'failure' conclusions — check-native fails when
     # binaries are stale, which is exactly when this workflow should run.
@@ -60,12 +67,20 @@ jobs:
        github.event.workflow_run.event == 'pull_request')
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
+    outputs:
+      skip:                  ${{ steps.resolve.outputs.skip }}
+      pr_number:             ${{ steps.resolve.outputs.pr_number }}
+      head_ref:              ${{ steps.resolve.outputs.head_ref }}
+      head_repo:             ${{ steps.resolve.outputs.head_repo }}
+      head_sha:              ${{ steps.resolve.outputs.head_sha }}
+      base_ref:              ${{ steps.resolve.outputs.base_ref }}
+      base_sha:              ${{ steps.resolve.outputs.base_sha }}
+      maintainer_can_modify: ${{ steps.resolve.outputs.maintainer_can_modify }}
 
     steps:
       - name: Resolve target (PR branch or manual branch)
-        id: pr-info
+        id: resolve
         uses: actions/github-script@v7
         with:
           script: |
@@ -112,14 +127,27 @@ jobs:
             core.setOutput('base_sha',              pr.base.sha);
             core.setOutput('maintainer_can_modify', String(pr.maintainer_can_modify));
 
-      - name: Checkout branch
-        if: steps.pr-info.outputs.skip != 'true'
+  # ─── Job 2: build native binaries from fork code (NO secrets) ──────────────
+  build-native:
+    name: Build all native binaries (untrusted fork code, no secrets)
+    needs: pr-info
+    if: needs.pr-info.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    # No write permissions — this job runs fork-controlled Makefile targets.
+    # Secrets are intentionally NOT available here.
+    permissions:
+      contents: read
+    outputs:
+      changed: ${{ steps.native-changes.outputs.changed }}
+
+    steps:
+      - name: Checkout fork branch (fork code — no secrets in this job)
         uses: actions/checkout@v7
         with:
-          repository: ${{ steps.pr-info.outputs.head_repo }}
+          repository: ${{ needs.pr-info.outputs.head_repo }}
           # Pin to the exact SHA vetted by CI — prevents TOCTOU where a new
           # commit lands between CI completion and this job's checkout.
-          ref:        ${{ steps.pr-info.outputs.head_sha }}
+          ref:        ${{ needs.pr-info.outputs.head_sha }}
           fetch-depth: 0
           persist-credentials: false
           # Required for checkout@v7 in workflow_run context when repository is a fork.
@@ -127,7 +155,6 @@ jobs:
 
       - name: Check if native sources changed
         id: native-changes
-        if: steps.pr-info.outputs.skip != 'true'
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # Manual trigger — always rebuild everything
@@ -136,11 +163,11 @@ jobs:
           else
             # Use the PR base SHA from the API — exact, no fetch needed,
             # works for any target branch (master, jline-3.x, etc.)
-            BASE="${{ steps.pr-info.outputs.base_sha }}"
+            BASE="${{ needs.pr-info.outputs.base_sha }}"
             if [ -z "$BASE" ]; then
               BASE=$(git rev-list --max-parents=0 HEAD)
             fi
-            CHANGED=$(git diff --name-only "$BASE" HEAD -- native/src/main/native/ | wc -l)
+            CHANGED=$(git diff --name-only "$BASE" HEAD -- native/src/main/native/ native/Makefile native/Makefile.common | wc -l)
             echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
             if [ "$CHANGED" -eq 0 ]; then
               echo "No native C/H source changes — skipping rebuild."
@@ -150,13 +177,13 @@ jobs:
           fi
 
       - name: Set up QEMU (for musl-arm64 cross-compilation)
-        if: steps.pr-info.outputs.skip != 'true' && steps.native-changes.outputs.changed != '0'
+        if: steps.native-changes.outputs.changed != '0'
         uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
 
       - name: Rebuild Linux / Windows / FreeBSD native binaries (Docker)
-        if: steps.pr-info.outputs.skip != 'true' && steps.native-changes.outputs.changed != '0'
+        if: steps.native-changes.outputs.changed != '0'
         working-directory: native
         run: |
           make linux-x86_64 linux-arm linux-armv7 linux-arm64 linux-ppc64
@@ -166,20 +193,60 @@ jobs:
           make freebsd-x86 freebsd-x86_64
 
       - name: Rebuild macOS native libraries (Docker cross-compilation)
-        if: steps.pr-info.outputs.skip != 'true' && steps.native-changes.outputs.changed != '0'
+        if: steps.native-changes.outputs.changed != '0'
         working-directory: native
         run: make mac-x86_64 mac-arm64
 
-      - name: Remove fork-controlled Makefiles before signing
-        if: steps.pr-info.outputs.skip != 'true' && steps.native-changes.outputs.changed != '0'
+      - name: Upload built native binaries as artifact
+        if: steps.native-changes.outputs.changed != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-binaries-${{ github.run_id }}
+          path: native/src/main/resources/org/jline/nativ/
+          retention-days: 1
+          if-no-files-found: error
+
+  # ─── Job 3: sign (Apple cert) and push — ONLY trusted base-repo code ───────
+  sign-and-push:
+    name: Sign macOS binaries and push (trusted job, no fork code)
+    needs: [pr-info, build-native]
+    if: needs.pr-info.outputs.skip != 'true' && needs.build-native.outputs.changed != '0'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      # Check out the BASE repo (jline/jline3) — no fork code runs here.
+      # We fetch the PR head from the fork's repo into a local branch so we
+      # can commit the rebuilt binaries on top of the correct history.
+      - name: Checkout base repository (trusted — no fork code runs here)
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository }}
+          ref:        ${{ needs.pr-info.outputs.base_ref }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Fetch PR head and switch to it
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+          HEAD_REPO: ${{ needs.pr-info.outputs.head_repo }}
+          HEAD_REF: ${{ needs.pr-info.outputs.head_ref }}
         run: |
-          # All make invocations are complete. Remove the fork's Makefile and
-          # Makefile.common so that no fork-controlled code is present on the
-          # runner when the Apple signing certificate is imported and used.
-          rm -f native/Makefile native/Makefile.common
+          # Fetch the fork's PR branch using the PAT. No fork code is executed.
+          # We only use this for the git history baseline (committing on top of PR tip).
+          git -c "url.https://x-access-token:${GH_PAT}@github.com/.insteadOf=https://github.com/" \
+              fetch "https://github.com/${HEAD_REPO}.git" "${HEAD_REF}:refs/remotes/pr/head"
+          git checkout -b pr-branch refs/remotes/pr/head
+
+      - name: Download built native binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: native-binaries-${{ github.run_id }}
+          path: native/src/main/resources/org/jline/nativ/
 
       - name: Install rcodesign
-        if: steps.pr-info.outputs.skip != 'true' && steps.native-changes.outputs.changed != '0'
         run: |
           RCODESIGN_VERSION=0.29.0
           EXPECTED_SHA256="dbe85cedd8ee4217b64e9a0e4c2aef92ab8bcaaa41f20bde99781ff02e600002"
@@ -193,7 +260,6 @@ jobs:
           ./rcodesign --version
 
       - name: Sign macOS native libraries
-        if: steps.pr-info.outputs.skip != 'true' && steps.native-changes.outputs.changed != '0'
         env:
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -221,7 +287,6 @@ jobs:
 
       - name: Check for binary diffs
         id: diff
-        if: steps.pr-info.outputs.skip != 'true' && steps.native-changes.outputs.changed != '0'
         run: |
           git add native/src/main/resources/org/jline/nativ/
           if git diff --cached --quiet; then
@@ -235,34 +300,33 @@ jobs:
 
       - name: Commit and push updated binaries
         if: |-
-          steps.pr-info.outputs.skip != 'true' &&
-          steps.native-changes.outputs.changed != '0' &&
           steps.diff.outputs.up_to_date == 'false' &&
-          steps.pr-info.outputs.maintainer_can_modify == 'true'
+          needs.pr-info.outputs.maintainer_can_modify == 'true'
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
-          HEAD_REF: ${{ steps.pr-info.outputs.head_ref }}
+          HEAD_REF: ${{ needs.pr-info.outputs.head_ref }}
+          HEAD_REPO: ${{ needs.pr-info.outputs.head_repo }}
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git commit -m "chore: rebuild and sign native binaries [skip ci]"
+          # Push to the fork repo (head_repo), not to the base repo (origin).
+          # For same-repo PRs head_repo == base repo; for fork PRs it differs.
           git -c "url.https://x-access-token:${GH_PAT}@github.com/.insteadOf=https://github.com/" \
-              push origin HEAD:"${HEAD_REF}"
+              push "https://github.com/${HEAD_REPO}.git" HEAD:"${HEAD_REF}"
 
       - name: Comment on PR after commit
         if: |-
-          steps.pr-info.outputs.skip != 'true' &&
-          steps.native-changes.outputs.changed != '0' &&
           steps.diff.outputs.up_to_date == 'false' &&
-          steps.pr-info.outputs.maintainer_can_modify == 'true' &&
-          steps.pr-info.outputs.pr_number != ''
+          needs.pr-info.outputs.maintainer_can_modify == 'true' &&
+          needs.pr-info.outputs.pr_number != ''
         uses: actions/github-script@v7
         with:
           script: |
             await github.rest.issues.createComment({
               owner:        context.repo.owner,
               repo:         context.repo.repo,
-              issue_number: ${{ steps.pr-info.outputs.pr_number }},
+              issue_number: ${{ needs.pr-info.outputs.pr_number }},
               body: [
                 '🤖 Native binaries have been rebuilt and signed automatically.',
                 '',
@@ -272,10 +336,8 @@ jobs:
 
       - name: Fail — binaries out of date and maintainerCanModify=false
         if: |-
-          steps.pr-info.outputs.skip != 'true' &&
-          steps.native-changes.outputs.changed != '0' &&
           steps.diff.outputs.up_to_date == 'false' &&
-          steps.pr-info.outputs.maintainer_can_modify != 'true'
+          needs.pr-info.outputs.maintainer_can_modify != 'true'
         run: |
           echo "::error::Native binaries are out of date and maintainerCanModify=false."
           echo "::error::Please enable 'Allow edits from maintainers' on this PR, or rebuild and commit the binaries yourself."
