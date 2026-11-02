@@ -262,7 +262,7 @@ jobs:
           CERT_PATH="$RUNNER_TEMP/certificate.p12"
           echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > "$CERT_PATH"
           NATIVE_MAC_DIR=native/src/main/resources/org/jline/nativ/Mac
-          for arch in x86 x86_64 arm64; do
+          for arch in x86_64 arm64; do
             lib="$NATIVE_MAC_DIR/$arch/libjlinenative.jnilib"
             if [ ! -f "$lib" ]; then
               echo "ERROR: $lib not found"; exit 1

@@ -25,13 +25,13 @@ windows-static-x86-digest:=@sha256:b205eeeafaef4f44482d16254670da815d5679b03cf8e
 windows-static-x64-digest:=@sha256:fce7b66dbe52cdf6389f121aa75746f111301b6b510ae0fbbb764792636f758a
 windows-arm64-digest:=@sha256:5a8e872064c5f600386e4124f9425d3e2ce2e168cadb6626655b2d69ed748849
 freebsd-crossbuild-digest:=@sha256:cda62697a15d8bdc0bc26e780b1771ee78f12c55e7d5813e62c478af5a747c43
-dockcross-linux-x64-digest:=
-dockcross-linux-armv5-digest:=
-dockcross-linux-armv7-digest:=
-dockcross-linux-arm64-digest:=
-dockcross-linux-ppc64le-digest:=
-crossbuild-macos-legacy-digest:=:latest
-crossbuild-macos-modern-digest:=:latest
+dockcross-linux-x64-digest:=@sha256:8fc0d376741638fa8e92e7d49bf113b90c4be69db70c07bdcdfacd9f6844651d
+dockcross-linux-armv5-digest:=@sha256:7f0f95167a2c37584548edd9ec7c32073146e79353c55995fd855341f4cc1d92
+dockcross-linux-armv7-digest:=@sha256:c96ce49153511c4f5031e2f52fa62d2f1e9333fa3b1a109f5470ad3673c2b0fa
+dockcross-linux-arm64-digest:=@sha256:d064339fe814b1c343a3c8ff9be4dc5ebf233c181c89a2ba5d23ba3b85486c68
+dockcross-linux-ppc64le-digest:=@sha256:466b40af0bdd965ae20228e7e067f7321f653a3e0fc4cbfa4f125e7748d67c1c
+crossbuild-macos-legacy-digest:=
+crossbuild-macos-modern-digest:=
 
 all: package
 
@@ -145,7 +145,7 @@ target/dockcross/dockcross-linux-arm: dockcross
 	docker run --rm dockcross/linux-armv5$(dockcross-linux-armv5-digest) > target/dockcross/dockcross-linux-arm
 	chmod +x target/dockcross/dockcross-linux-arm
 linux-arm: download-includes target/dockcross/dockcross-linux-arm
-	target/dockcross/dockcross-linux-arm bash -c 'make clean-native native OS_NAME=Linux OS_ARCH=arm'
+	target/dockcross/dockcross-linux-arm bash -c 'make clean-native native CC="$$CC" OS_NAME=Linux OS_ARCH=arm'
 
 target/dockcross/dockcross-linux-armv6: dockcross
 	docker run --rm dockcross/linux-armv6$(linux-armv6-digest) > target/dockcross/dockcross-linux-armv6
@@ -157,19 +157,19 @@ target/dockcross/dockcross-linux-armv7: dockcross
 	docker run --rm dockcross/linux-armv7$(dockcross-linux-armv7-digest) > target/dockcross/dockcross-linux-armv7
 	chmod +x target/dockcross/dockcross-linux-armv7
 linux-armv7: download-includes target/dockcross/dockcross-linux-armv7
-	target/dockcross/dockcross-linux-armv7 bash -c 'make clean-native native OS_NAME=Linux OS_ARCH=armv7'
+	target/dockcross/dockcross-linux-armv7 bash -c 'make clean-native native CC="$$CC" OS_NAME=Linux OS_ARCH=armv7'
 
 target/dockcross/dockcross-linux-arm64: dockcross
 	docker run --rm dockcross/linux-arm64$(dockcross-linux-arm64-digest) > target/dockcross/dockcross-linux-arm64
 	chmod +x target/dockcross/dockcross-linux-arm64
 linux-arm64: download-includes target/dockcross/dockcross-linux-arm64
-	target/dockcross/dockcross-linux-arm64 bash -c 'make clean-native native OS_NAME=Linux OS_ARCH=arm64'
+	target/dockcross/dockcross-linux-arm64 bash -c 'make clean-native native CC="$$CC" OS_NAME=Linux OS_ARCH=arm64'
 
 target/dockcross/dockcross-linux-ppc64le: dockcross
 	docker run --rm dockcross/linux-ppc64le$(dockcross-linux-ppc64le-digest) > target/dockcross/dockcross-linux-ppc64le
 	chmod +x target/dockcross/dockcross-linux-ppc64le
 linux-ppc64: download-includes target/dockcross/dockcross-linux-ppc64le
-	target/dockcross/dockcross-linux-ppc64le bash -c 'make clean-native native OS_NAME=Linux OS_ARCH=ppc64'
+	target/dockcross/dockcross-linux-ppc64le bash -c 'make clean-native native CC="$$CC" OS_NAME=Linux OS_ARCH=ppc64'
 
 linux-musl-x86_64: download-includes
 	docker run --rm -v $$PWD:/workdir \

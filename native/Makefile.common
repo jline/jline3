@@ -131,13 +131,13 @@ SHPUX-ia64_32_LIBNAME	:= libjlinenative.so
 
 Mac-x86_CC        := $(CROSS_PREFIX)clang
 Mac-x86_STRIP     := $(CROSS_PREFIX)strip -x
-Mac-x86_CCFLAGS   := -I/usr/osxcross/SDK/MacOSX10.13.sdk/System/Library/Frameworks/JavaVM.framework/Headers -Itarget/inc -Itarget/inc/unix -Os -fPIC -m32 -mmacosx-version-min=10.6 -fvisibility=hidden
+Mac-x86_CCFLAGS   := -I/usr/osxcross/SDK/MacOSX10.13.sdk/System/Library/Frameworks/JavaVM.framework/Headers -Itarget/inc -Itarget/inc/unix -Os -fPIC -m32 -mmacosx-version-min=10.12 -fvisibility=hidden
 Mac-x86_LINKFLAGS := -dynamiclib
 Mac-x86_LIBNAME   := libjlinenative.jnilib
 
 Mac-x86_64_CC        := $(CROSS_PREFIX)clang
 Mac-x86_64_STRIP     := $(CROSS_PREFIX)strip -x
-Mac-x86_64_CCFLAGS   := -I/usr/osxcross/SDK/MacOSX10.13.sdk/System/Library/Frameworks/JavaVM.framework/Headers -Itarget/inc -Itarget/inc/unix -Os -fPIC -mmacosx-version-min=10.6 -fvisibility=hidden
+Mac-x86_64_CCFLAGS   := -I/usr/osxcross/SDK/MacOSX10.13.sdk/System/Library/Frameworks/JavaVM.framework/Headers -Itarget/inc -Itarget/inc/unix -Os -fPIC -mmacosx-version-min=10.12 -fvisibility=hidden
 Mac-x86_64_LINKFLAGS := -dynamiclib
 Mac-x86_64_LIBNAME   := libjlinenative.jnilib
 
