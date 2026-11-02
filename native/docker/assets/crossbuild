@@ -1,0 +1,59 @@
+#!/bin/bash
+set -e
+
+# Get Darwin version if not set
+if [ -z "${DARWIN_VERSION}" ]; then
+    if [ -f /usr/osxcross/darwin_version ]; then
+        DARWIN_VERSION=$(cat /usr/osxcross/darwin_version)
+    else
+        DARWIN_VERSION=17
+    fi
+fi
+
+echo "------------------------------------------------------------------------"
+echo "CROSS_TRIPLE: ${CROSS_TRIPLE}"
+echo "DARWIN_VERSION: ${DARWIN_VERSION}"
+
+DARWIN_MAJOR=$(echo "${DARWIN_VERSION}" | cut -d. -f1)
+
+case "${CROSS_TRIPLE}" in
+    x86_64-apple-darwin*|osx|osx64|darwin|darwin64)
+        if [[ ! "${CROSS_TRIPLE}" =~ x86_64-apple-darwin[0-9]+ ]] || \
+           [[ "${CROSS_TRIPLE}" != "x86_64-apple-darwin${DARWIN_VERSION}" ]]; then
+            CROSS_TRIPLE="x86_64-apple-darwin${DARWIN_VERSION}"
+        fi ;;
+    i386-apple-darwin*|osx32|darwin32)
+        if [ "${DARWIN_MAJOR}" -ge 19 ]; then
+            echo "i386-apple-darwin not supported — i386 was dropped in Darwin 19+"
+            exit 1
+        fi
+        if [[ ! "${CROSS_TRIPLE}" =~ i386-apple-darwin[0-9]+ ]] || \
+           [[ "${CROSS_TRIPLE}" != "i386-apple-darwin${DARWIN_VERSION}" ]]; then
+            CROSS_TRIPLE="i386-apple-darwin${DARWIN_VERSION}"
+        fi ;;
+    aarch64-apple-darwin*|arm64-apple-darwin*|osx-arm64|darwin-arm64)
+        if [[ ! "${CROSS_TRIPLE}" =~ (aarch64|arm64)-apple-darwin[0-9]+ ]] || \
+           [[ ! "${CROSS_TRIPLE}" =~ (aarch64|arm64)-apple-darwin${DARWIN_VERSION} ]]; then
+            CROSS_TRIPLE="aarch64-apple-darwin${DARWIN_VERSION}"
+        fi ;;
+    *-apple-darwin*)
+        if [[ ! "${CROSS_TRIPLE}" =~ -apple-darwin${DARWIN_VERSION} ]]; then
+            PREFIX=$(echo "${CROSS_TRIPLE}" | sed -E 's/(.+)-apple-darwin.*/\1/')
+            CROSS_TRIPLE="${PREFIX}-apple-darwin${DARWIN_VERSION}"
+        fi ;;
+    *)
+        echo "Warning: ${CROSS_TRIPLE} not recognized" ;;
+esac
+
+echo "Final CROSS_TRIPLE: ${CROSS_TRIPLE}"
+
+if [ -n "${CROSS_TRIPLE}" ]; then
+    export PATH="/usr/${CROSS_TRIPLE}/bin:/usr/osxcross/bin:${PATH}"
+fi
+
+if [ $# -eq 0 ]; then
+    echo "${CROSS_TRIPLE}"
+    exit 0
+fi
+
+exec "$@"
