@@ -22,7 +22,7 @@ include Makefile.common
 linux-armv6-digest:=@sha256:a90a7deda7f561932d9ad658f8d661d17eeb44f4e7f7024ac087db1d0b95c6f5
 linux-x86-digest:=@sha256:fbe45fcb0c2ce82f84a998a1d37d67b3906502723ed89f8191c3243d9d835d17
 windows-static-x86-digest:=@sha256:b205eeeafaef4f44482d16254670da815d5679b03cf8e51e4adc3539d1c4a9c0
-windows-static-x64-digest:=@sha256:f159861bc80b29e5dafb223477167bec53ecec6cdacb051d31e90c5823542100
+windows-static-x64-digest:=@sha256:fce7b66dbe52cdf6389f121aa75746f111301b6b510ae0fbbb764792636f758a
 windows-arm64-digest:=@sha256:5a8e872064c5f600386e4124f9425d3e2ce2e168cadb6626655b2d69ed748849
 cross-build-digest:=@sha256:8dbaa86462270db93ae1b1b319bdd88d89272faf3a68632daf4fa36b414a326e
 freebsd-crossbuild-digest:=@sha256:cda62697a15d8bdc0bc26e780b1771ee78f12c55e7d5813e62c478af5a747c43
@@ -41,9 +41,9 @@ download-includes: target
 	@test -d target/inc || mkdir target/inc
 	@test -d target/inc/unix || mkdir target/inc/unix
 	@test -d target/inc/windows || mkdir target/inc/windows
-	test -f target/inc/jni.h || wget -O target/inc/jni.h https://raw.githubusercontent.com/openjdk/jdk/jdk-11%2B28/src/java.base/share/native/include/jni.h
-	test -f target/inc/unix/jni_md.h || wget -O target/inc/unix/jni_md.h https://raw.githubusercontent.com/openjdk/jdk/jdk-11%2B28/src/java.base/unix/native/include/jni_md.h
-	test -f target/inc/windows/jni_md.h || wget -O target/inc/windows/jni_md.h https://raw.githubusercontent.com/openjdk/jdk/jdk-11%2B28/src/java.base/windows/native/include/jni_md.h
+	test -f target/inc/jni.h || curl -sSf -o target/inc/jni.h https://raw.githubusercontent.com/openjdk/jdk/jdk-11%2B28/src/java.base/share/native/include/jni.h
+	test -f target/inc/unix/jni_md.h || curl -sSf -o target/inc/unix/jni_md.h https://raw.githubusercontent.com/openjdk/jdk/jdk-11%2B28/src/java.base/unix/native/include/jni_md.h
+	test -f target/inc/windows/jni_md.h || curl -sSf -o target/inc/windows/jni_md.h https://raw.githubusercontent.com/openjdk/jdk/jdk-11%2B28/src/java.base/windows/native/include/jni_md.h
 
 dockcross: target
 	@test -d target/dockcross || mkdir target/dockcross
@@ -168,11 +168,11 @@ linux-ppc64: download-includes
 
 linux-musl-x86_64: download-includes
 	docker run --rm -v $$PWD:/workdir \
-		alpine:3.20 sh -c 'apk add --no-cache gcc musl-dev linux-headers make > /dev/null 2>&1 && make clean-native native OS_NAME=Linux-musl OS_ARCH=x86_64'
+		alpine:3.20 sh -c 'cd /workdir && apk add --no-cache gcc musl-dev linux-headers make > /dev/null 2>&1 && make clean-native native OS_NAME=Linux-musl OS_ARCH=x86_64'
 
 linux-musl-arm64: download-includes
 	docker run --rm -v $$PWD:/workdir \
-		--platform linux/arm64 alpine:3.20 sh -c 'apk add --no-cache gcc musl-dev linux-headers make > /dev/null 2>&1 && make clean-native native OS_NAME=Linux-musl OS_ARCH=arm64'
+		--platform linux/arm64 alpine:3.20 sh -c 'cd /workdir && apk add --no-cache gcc musl-dev linux-headers make > /dev/null 2>&1 && make clean-native native OS_NAME=Linux-musl OS_ARCH=arm64'
 
 target/dockcross/dockcross-windows-static-x86: dockcross
 	docker run --rm dockcross/windows-static-x86$(windows-static-x86-digest) > target/dockcross/dockcross-windows-static-x86
