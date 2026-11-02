@@ -2,8 +2,9 @@ FROM buildpack-deps:bullseye-curl
 
 # Build arguments
 ARG osxcross_repo="tpoechtrager/osxcross"
-ARG osxcross_revision="master"
+ARG osxcross_revision="27d21e4977c9751d01199c7a226a6faf494c3dd9"
 ARG darwin_sdk_version="10.13"
+ARG darwin_sdk_sha256="9d3eddc34a510198694f5ec7cfbdebaee4c0c7ba68ad1d957cb566649c9a0f84"
 ARG darwin_osx_version_min="10.6"
 ARG darwin_version="17"
 ARG darwin_sdk_url="https://github.com/joseluisq/macosx-sdks/releases/download/${darwin_sdk_version}/MacOSX${darwin_sdk_version}.sdk.tar.xz"
@@ -51,7 +52,8 @@ RUN mkdir -p /tmp/osxcross \
  && rm -f osxcross.tar.gz \
  && mkdir -p tarballs \
  && curl -fL -o "tarballs/MacOSX${DARWIN_SDK_VERSION}.sdk.tar.xz" "${DARWIN_SDK_URL}" \
- && UNATTENDED=yes OSX_VERSION_MIN="${DARWIN_OSX_VERSION_MIN}" ENABLE_COMPILER_RT=1 ./build.sh \
+ && echo "${darwin_sdk_sha256}  tarballs/MacOSX${DARWIN_SDK_VERSION}.sdk.tar.xz" | sha256sum --check \
+ && UNATTENDED=1 OSX_VERSION_MIN="${DARWIN_OSX_VERSION_MIN}" ENABLE_COMPILER_RT=1 ./build.sh \
  && mv target /usr/osxcross \
  && mv tools /usr/osxcross/ \
  && ln -sf ../tools/osxcross-macports /usr/osxcross/bin/omp \
@@ -81,18 +83,24 @@ RUN set -x \
 ENV DARWIN_TRIPLES="x86_64-apple-darwin${DARWIN_VERSION},i386-apple-darwin${DARWIN_VERSION}" \
     CROSS_TRIPLE="x86_64-apple-darwin${DARWIN_VERSION}"
 
-# Set up PATH wrappers for both triples
+# Install forwarding scripts for each triple+tool combination.
+# Scripts invoke the prefixed osxcross tool by its full name, which preserves
+# the invocation-name-based target detection that the osxcross wrapper relies on.
+# Both C and C++ drivers are provided so that C++ builds find the correct target compiler.
 RUN set -x \
  && EXACT_DARWIN_VER=$(cat /usr/osxcross/darwin_version) \
  && for triple_base in x86_64 i386; do \
         base_triple="${triple_base}-apple-darwin${DARWIN_VERSION}"; \
+        exact_triple="${triple_base}-apple-darwin${EXACT_DARWIN_VER}"; \
         mkdir -p "/usr/${base_triple}/bin"; \
-        for bin in $(find /usr/osxcross/bin -name "${triple_base}-apple-darwin*-*" ! -name "*++*"); do \
-            bin_suffix=$(echo "$bin" | sed -E "s/.*${triple_base}-apple-darwin[0-9\.]+-//"); \
-            ln -sf "$bin" "/usr/${base_triple}/bin/${bin_suffix}"; \
+        for bin in $(find /usr/osxcross/bin -name "${triple_base}-apple-darwin*"); do \
+            tool=$(basename "$bin" | sed "s/${exact_triple}-//"); \
+            wrapper="/usr/${base_triple}/bin/${tool}"; \
+            printf '#!/bin/sh\nexec "%s" "$@"\n' "$bin" > "$wrapper"; \
+            chmod +x "$wrapper"; \
         done; \
-        [ -f "/usr/${base_triple}/bin/clang" ] && ln -sf clang "/usr/${base_triple}/bin/cc" || true; \
-        [ -f "/usr/${base_triple}/bin/gcc" ] && ln -sf gcc "/usr/${base_triple}/bin/cc" || true; \
+        ln -sf "${exact_triple}-clang"   "/usr/osxcross/bin/${base_triple}-cc"  2>/dev/null || true; \
+        ln -sf "${exact_triple}-clang++" "/usr/osxcross/bin/${base_triple}-c++" 2>/dev/null || true; \
     done
 
 COPY ./assets/crossbuild /usr/bin/crossbuild

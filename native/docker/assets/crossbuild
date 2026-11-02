@@ -18,32 +18,38 @@ DARWIN_MAJOR=$(echo "${DARWIN_VERSION}" | cut -d. -f1)
 
 case "${CROSS_TRIPLE}" in
     x86_64-apple-darwin*|osx|osx64|darwin|darwin64)
-        if [[ ! "${CROSS_TRIPLE}" =~ x86_64-apple-darwin[0-9]+ ]] || \
-           [[ "${CROSS_TRIPLE}" != "x86_64-apple-darwin${DARWIN_VERSION}" ]]; then
-            CROSS_TRIPLE="x86_64-apple-darwin${DARWIN_VERSION}"
-        fi ;;
+        CROSS_TRIPLE="x86_64-apple-darwin${DARWIN_VERSION}" ;;
     i386-apple-darwin*|osx32|darwin32)
         if [ "${DARWIN_MAJOR}" -ge 19 ]; then
-            echo "i386-apple-darwin not supported — i386 was dropped in Darwin 19+"
+            echo "Error: i386 is not supported by this image (requires Darwin < 19, got ${DARWIN_VERSION})" >&2
             exit 1
         fi
-        if [[ ! "${CROSS_TRIPLE}" =~ i386-apple-darwin[0-9]+ ]] || \
-           [[ "${CROSS_TRIPLE}" != "i386-apple-darwin${DARWIN_VERSION}" ]]; then
-            CROSS_TRIPLE="i386-apple-darwin${DARWIN_VERSION}"
-        fi ;;
+        CROSS_TRIPLE="i386-apple-darwin${DARWIN_VERSION}" ;;
     aarch64-apple-darwin*|arm64-apple-darwin*|osx-arm64|darwin-arm64)
-        if [[ ! "${CROSS_TRIPLE}" =~ (aarch64|arm64)-apple-darwin[0-9]+ ]] || \
-           [[ ! "${CROSS_TRIPLE}" =~ (aarch64|arm64)-apple-darwin${DARWIN_VERSION} ]]; then
-            CROSS_TRIPLE="aarch64-apple-darwin${DARWIN_VERSION}"
-        fi ;;
+        CROSS_TRIPLE="aarch64-apple-darwin${DARWIN_VERSION}" ;;
     *-apple-darwin*)
-        if [[ ! "${CROSS_TRIPLE}" =~ -apple-darwin${DARWIN_VERSION} ]]; then
-            PREFIX=$(echo "${CROSS_TRIPLE}" | sed -E 's/(.+)-apple-darwin.*/\1/')
-            CROSS_TRIPLE="${PREFIX}-apple-darwin${DARWIN_VERSION}"
-        fi ;;
+        PREFIX=$(echo "${CROSS_TRIPLE}" | sed -E 's/(.+)-apple-darwin.*/\1/')
+        CROSS_TRIPLE="${PREFIX}-apple-darwin${DARWIN_VERSION}" ;;
     *)
-        echo "Warning: ${CROSS_TRIPLE} not recognized" ;;
+        echo "Error: ${CROSS_TRIPLE} is not a recognized target for this image" >&2
+        echo "Supported triples: ${DARWIN_TRIPLES}" >&2
+        exit 1 ;;
 esac
+
+# Validate the resolved triple against the triples this image supports
+SUPPORTED=0
+IFS=',' read -ra SUPPORTED_TRIPLES <<< "${DARWIN_TRIPLES}"
+for t in "${SUPPORTED_TRIPLES[@]}"; do
+    if [ "${CROSS_TRIPLE}" = "${t}" ]; then
+        SUPPORTED=1
+        break
+    fi
+done
+if [ "${SUPPORTED}" -eq 0 ]; then
+    echo "Error: ${CROSS_TRIPLE} is not supported by this image" >&2
+    echo "Supported triples: ${DARWIN_TRIPLES}" >&2
+    exit 1
+fi
 
 echo "Final CROSS_TRIPLE: ${CROSS_TRIPLE}"
 
