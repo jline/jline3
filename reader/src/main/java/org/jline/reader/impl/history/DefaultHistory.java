@@ -676,7 +676,8 @@ public class DefaultHistory implements History {
         if (patterns == null || patterns.isEmpty()) {
             return false;
         }
-        // HISTORY_IGNORE uses a glob-like syntax where '*' matches any string,
+        // HISTORY_IGNORE uses a glob-like syntax where '*' matches any string
+        // (line breaks included, a history entry can span several lines),
         // ':' separates alternatives, and '\' escapes the next character.
         // All other characters must match literally — regex metacharacters
         // are quoted to prevent ReDoS via catastrophic backtracking.
@@ -694,7 +695,7 @@ public class DefaultHistory implements History {
                 sb.append(Pattern.quote(String.valueOf(ch)));
             }
         }
-        return SafeRegex.matches(Pattern.compile(sb.toString()), line);
+        return SafeRegex.matches(Pattern.compile(sb.toString(), Pattern.DOTALL), line);
     }
 
     /**
