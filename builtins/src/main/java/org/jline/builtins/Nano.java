@@ -22,6 +22,7 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.StandardCopyOption;
@@ -2345,6 +2346,7 @@ public class Nano implements Editor {
                         this.shortcuts = standardShortcuts();
                         return true;
                     }
+                    this.shortcuts = standardShortcuts();
                     return false;
                 case HELP:
                     help("nano-write-help.txt");
@@ -2398,12 +2400,12 @@ public class Nano implements Editor {
         Path newPath = root.resolve(name);
         boolean isSame =
                 orgPath != null && Files.exists(orgPath) && Files.exists(newPath) && Files.isSameFile(orgPath, newPath);
-        if (!isSame && Files.exists(Path.of(name)) && writeMode == WriteMode.WRITE) {
+        if (!isSame && Files.exists(newPath, LinkOption.NOFOLLOW_LINKS) && writeMode == WriteMode.WRITE) {
             Operation op = getYNC("File exists, OVERWRITE ? ");
             if (op != Operation.YES) {
                 return false;
             }
-        } else if (!Files.exists(newPath)) {
+        } else if (!Files.exists(newPath, LinkOption.NOFOLLOW_LINKS)) {
             Files.createFile(newPath);
         }
         Path t = Files.createTempFile("jline-", ".temp");
