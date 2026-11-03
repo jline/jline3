@@ -110,8 +110,13 @@ jobs:
               per_page: 100,
             });
             const checkNative = jobs.jobs.find(j => j.name === 'Check native binaries are up-to-date');
-            if (!checkNative || checkNative.conclusion !== 'failure') {
-              core.notice('check-native did not fail — native binaries are up to date, skipping rebuild.');
+            if (!checkNative) {
+              core.warning('Job "Check native binaries are up-to-date" not found in triggering run — was it renamed? Skipping rebuild.');
+              core.setOutput('skip', 'true');
+              return;
+            }
+            if (checkNative.conclusion !== 'failure') {
+              core.notice('check-native passed — native binaries are up to date, skipping rebuild.');
               core.setOutput('skip', 'true');
               return;
             }
