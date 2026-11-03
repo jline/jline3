@@ -172,9 +172,10 @@ jobs:
             # works for any target branch (master, jline-3.x, etc.).
             # Guard both against empty base_sha and against an unreachable SHA
             # (e.g. when the fork hasn't been synced with upstream recently).
+            set -o pipefail
             BASE="${{ needs.pr-info.outputs.base_sha }}"
             if [ -z "$BASE" ] || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
-              BASE=$(git rev-list --max-parents=0 HEAD)
+              BASE=$(git rev-list --max-parents=0 HEAD | head -1)
             fi
             CHANGED=$(git diff --name-only "$BASE" HEAD -- native/src/main/native/ native/Makefile native/Makefile.common | wc -l)
             echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
@@ -253,6 +254,13 @@ jobs:
       - name: Build macOS native binaries (trusted job — registry access available)
         working-directory: native
         run: make native-mac
+
+      - name: Generate checksums of unsigned macOS binaries
+        run: |
+          cd native/src/main/resources/org/jline/nativ/Mac
+          sha256sum arm64/libjlinenative.jnilib x86_64/libjlinenative.jnilib > checksums.sha256
+          echo "Unsigned macOS checksums:"
+          cat checksums.sha256
 
       - name: Install rcodesign
         run: |

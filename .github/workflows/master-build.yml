@@ -163,9 +163,10 @@ jobs:
       - name: Check if native sources changed
         id: changes
         run: |
+          set -o pipefail
           BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
           if [ -z "$BASE" ] || [[ "$BASE" =~ ^0+$ ]] || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
-            BASE=$(git rev-list --max-parents=0 HEAD)
+            BASE=$(git rev-list --max-parents=0 HEAD | head -1)
           fi
           CHANGED=$(git diff --name-only "$BASE" HEAD -- native/src/main/native/ native/Makefile native/Makefile.common | wc -l)
           echo "native_changed=$CHANGED" >> "$GITHUB_OUTPUT"
@@ -208,5 +209,27 @@ jobs:
             exit 1
           fi
           echo "All non-macOS native binaries are up to date ✓"
+
+      - name: Log in to GHCR (for macOS crossbuild images)
+        if: steps.changes.outputs.native_changed != '0'
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Rebuild macOS native binaries (unsigned)
+        if: steps.changes.outputs.native_changed != '0'
+        working-directory: native
+        run: make native-mac
+
+      - name: Verify macOS native checksums
+        if: steps.changes.outputs.native_changed != '0'
+        run: |
+          CHECKSUM_FILE=native/src/main/resources/org/jline/nativ/Mac/checksums.sha256
+          if [ ! -f "$CHECKSUM_FILE" ]; then
+            echo "::warning::No checksums.sha256 found — macOS binary verification skipped"
+            echo "macOS binaries compiled successfully ✓ (compile-only check)"
+          else
+            cd native/src/main/resources/org/jline/nativ/Mac
+            sha256sum -c checksums.sha256
+            echo "All macOS native binary checksums match ✓"
+          fi
 
 
