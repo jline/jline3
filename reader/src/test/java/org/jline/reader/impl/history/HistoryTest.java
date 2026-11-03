@@ -192,6 +192,28 @@ class HistoryTest extends ReaderTestSupport {
         assertFalse(defaultHistory.matchPatterns("foo*", "bar"));
     }
 
+    @Test
+    void testMatchPatternsAcrossLines() {
+        DefaultHistory defaultHistory = new DefaultHistory();
+        assertTrue(defaultHistory.matchPatterns("*secret*", "login \\\n--token=secret"));
+        assertTrue(defaultHistory.matchPatterns("*secret*", "login\r\n--token=secret\nexit"));
+        assertFalse(defaultHistory.matchPatterns("*secret*", "login \\\n--verbose"));
+    }
+
+    @Test
+    void testHistoryIgnoreMultiLineEntry(@TempDir Path tempDir) throws IOException {
+        Path histFile = tempDir.resolve("history");
+        reader.setVariable(LineReader.HISTORY_FILE, histFile);
+        reader.setVariable(LineReader.HISTORY_IGNORE, "*secret*");
+
+        history.add("login \\\n--token=secret");
+        history.add("ls");
+        history.save();
+
+        assertHistoryContains(0, "ls");
+        assertFalse(Files.readString(histFile).contains("secret"));
+    }
+
     /**
      * Verifies that read(B) after load(A) records only B's entry count
      * as entriesInFile, not the total in-memory count.
