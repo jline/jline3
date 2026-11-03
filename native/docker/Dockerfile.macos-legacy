@@ -81,26 +81,29 @@ ENV DARWIN_TRIPLES="x86_64-apple-darwin${DARWIN_VERSION},i386-apple-darwin${DARW
     CROSS_TRIPLE="x86_64-apple-darwin${DARWIN_VERSION}"
 
 # Install forwarding scripts for each triple+tool combination.
-# Scripts invoke the prefixed osxcross tool by its full name, which preserves
-# the invocation-name-based target detection that the osxcross wrapper relies on.
-# Both C and C++ drivers are provided so that C++ builds find the correct target compiler.
+# osxcross wrapper binaries use argv[0] to detect the target triple, so scripts
+# must invoke the real binary (resolved via readlink) with exec -a <alias> so
+# that argv[0] carries the correct triple-prefixed name.
 RUN set -x \
  && EXACT_DARWIN_VER=$(cat /usr/osxcross/darwin_version) \
  && for triple_base in x86_64 i386; do \
         base_triple="${triple_base}-apple-darwin${DARWIN_VERSION}"; \
         exact_triple="${triple_base}-apple-darwin${EXACT_DARWIN_VER}"; \
         mkdir -p "/usr/${base_triple}/bin"; \
-        for bin in $(find /usr/osxcross/bin -name "${triple_base}-apple-darwin*"); do \
+        for bin in $(find /usr/osxcross/bin -name "${exact_triple}-*" ! -type l); do \
             tool=$(basename "$bin" | sed "s/${exact_triple}-//"); \
-            wrapper="/usr/${base_triple}/bin/${tool}"; \
-            printf '#!/bin/sh\nexec "%s" "$@"\n' "$bin" > "$wrapper"; \
-            chmod +x "$wrapper"; \
-            # Also install a no-patch-version alias in /usr/osxcross/bin so that
-            # CROSS_PREFIX=<triple>- works the same way as other cross-toolchains.
+            real_bin=$(readlink -f "$bin"); \
             alias_name="${base_triple}-${tool}"; \
-            [ ! -e "/usr/osxcross/bin/${alias_name}" ] && \
-                printf '#!/bin/sh\nexec "%s" "$@"\n' "$bin" > "/usr/osxcross/bin/${alias_name}" && \
-                chmod +x "/usr/osxcross/bin/${alias_name}" || true; \
+            exact_alias_name="${exact_triple}-${tool}"; \
+            wrapper="/usr/${base_triple}/bin/${tool}"; \
+            printf '#!/bin/sh\nexec -a "%s" "%s" "$@"\n' "$exact_alias_name" "$real_bin" > "$wrapper"; \
+            chmod +x "$wrapper"; \
+            # Install a no-patch-version alias in /usr/osxcross/bin so that
+            # CROSS_PREFIX=<triple>- works (e.g. x86_64-apple-darwin17-clang).
+            if [ ! -e "/usr/osxcross/bin/${alias_name}" ]; then \
+                printf '#!/bin/sh\nexec -a "%s" "%s" "$@"\n' "$exact_alias_name" "$real_bin" > "/usr/osxcross/bin/${alias_name}"; \
+                chmod +x "/usr/osxcross/bin/${alias_name}"; \
+            fi; \
         done; \
         ln -sf "${exact_triple}-clang"   "/usr/osxcross/bin/${base_triple}-cc"  2>/dev/null || true; \
         ln -sf "${exact_triple}-clang++" "/usr/osxcross/bin/${base_triple}-c++" 2>/dev/null || true; \
