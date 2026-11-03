@@ -17,18 +17,18 @@
 
 name: Rebuild native binaries for PR
 
-# Triggered after the main CI workflow completes on a pull_request event.
-# Runs with repo secrets (unlike pull_request triggers from forks).
-# Rebuilds ALL native binaries via Docker cross-compilation on ubuntu-latest,
-# signs macOS libraries with rcodesign (no macOS runner required), then
-# commits the updated binaries back to the PR branch (if maintainerCanModify)
-# or fails.
+# Triggered after the main CI workflow completes on a pull_request event,
+# but only when the check-native job failed (stale binaries detected).
+# Rebuilds ALL native binaries (including macOS) via Docker cross-compilation
+# on ubuntu-latest, signs macOS libraries with rcodesign (no macOS runner
+# required), then commits the updated binaries back to the PR branch
+# (if maintainerCanModify) or fails.
 #
-# Security model: fork-controlled code (make) runs ONLY in the build-native
-# job which has NO secrets and NO write permissions. Signing secrets and the
-# GH_PAT are exclusively available in the sign-and-push job, which checks out
-# only the base repo (trusted code) and downloads pre-built artifacts from the
-# build-native job via GitHub Actions artifact storage.
+# Security model: ALL fork-controlled code (make targets) runs in the
+# build-native job which has NO secrets and NO write permissions. The
+# sign-and-push job checks out only the base repo (trusted code), downloads
+# pre-built artifacts, signs macOS binaries, and commits. No fork-controlled
+# code is executed while secrets are available.
 #
 # Can also be triggered manually via workflow_dispatch with a target branch
 # (e.g. master or jline-3.x) to rebuild and commit binaries directly after
@@ -180,7 +180,7 @@ jobs:
 
       - name: Rebuild all native binaries (Docker cross-compilation)
         working-directory: native
-        run: make native-all-no-mac
+        run: make native-all
 
       - name: Upload built native binaries as artifact
         uses: actions/upload-artifact@v7
@@ -231,13 +231,6 @@ jobs:
         with:
           name: native-binaries-${{ github.run_id }}
           path: native/src/main/resources/org/jline/nativ/
-
-      - name: Log in to GHCR (for macOS crossbuild images)
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Build macOS native binaries (trusted job — registry access available)
-        working-directory: native
-        run: make native-mac
 
       - name: Generate checksums of unsigned macOS binaries
         run: |
