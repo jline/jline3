@@ -64,7 +64,7 @@ jobs:
         run: |
           set -e
           NATIVE_DIR=native/src/main/resources/org/jline/nativ/Mac
-          for arch in x86_64 arm64; do
+          for arch in x86 x86_64 arm64; do
             LIB="$NATIVE_DIR/$arch/libjlinenative.jnilib"
             if [ ! -f "$LIB" ]; then
               echo "::error::$LIB not found"
