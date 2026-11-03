@@ -175,7 +175,7 @@ jobs:
 
       - name: Set up QEMU (for musl-arm64)
         if: steps.changes.outputs.native_changed != '0'
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
 
