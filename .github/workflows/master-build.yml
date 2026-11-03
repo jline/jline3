@@ -227,7 +227,7 @@ jobs:
             echo "::warning::No checksums.sha256 found — macOS binary verification skipped"
             echo "macOS binaries compiled successfully ✓ (compile-only check)"
           else
-            cd native/src/main/resources/org/jline/nativ/Mac
+            cd native/src/main/resources/org/jline/nativ/Mac || exit 1
             sha256sum -c checksums.sha256
             echo "All macOS native binary checksums match ✓"
           fi
