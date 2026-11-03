@@ -16,6 +16,27 @@
 #include "jlinenative.h"
 #include <errno.h>
 #include <stdlib.h>
+#include <time.h>
+#ifdef __APPLE__
+#  include <mach/mach_time.h>
+/* clock_gettime(CLOCK_MONOTONIC) is available since macOS 10.12, but the
+ * crossbuild deployment target goes as low as 10.6 and older SDKs may not
+ * expose it. Emulate with mach_absolute_time() + mach_timebase_info()
+ * (both available since macOS 10.2, truly monotonic) when CLOCK_MONOTONIC
+ * is not defined by the SDK. */
+#  ifndef CLOCK_MONOTONIC
+#    define CLOCK_MONOTONIC 0
+static inline int clock_gettime(int clk_id, struct timespec *ts) {
+    (void)clk_id;
+    static mach_timebase_info_data_t tb;
+    if (tb.denom == 0) mach_timebase_info(&tb);
+    uint64_t ns = mach_absolute_time() * tb.numer / tb.denom;
+    ts->tv_sec  = (time_t)(ns / 1000000000ULL);
+    ts->tv_nsec = (long)(ns % 1000000000ULL);
+    return 0;
+}
+#  endif /* !CLOCK_MONOTONIC */
+#endif /* __APPLE__ */
 
 #if !defined(_WIN32) && !defined(_WIN64)
 
