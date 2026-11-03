@@ -119,14 +119,20 @@ jobs:
               core.setOutput('skip', 'true');
               return;
             }
+            // Fetch the individual PR to get maintainer_can_modify (the list endpoint returns null).
+            const { data: prFull } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              pull_number: pr.number,
+            });
             core.setOutput('skip',                  'false');
-            core.setOutput('pr_number',             String(pr.number));
-            core.setOutput('head_ref',              pr.head.ref);
-            core.setOutput('head_repo',             pr.head.repo.full_name);
-            core.setOutput('head_sha',              pr.head.sha);
-            core.setOutput('base_ref',              pr.base.ref);
-            core.setOutput('base_sha',              pr.base.sha);
-            core.setOutput('maintainer_can_modify', String(pr.maintainer_can_modify));
+            core.setOutput('pr_number',             String(prFull.number));
+            core.setOutput('head_ref',              prFull.head.ref);
+            core.setOutput('head_repo',             prFull.head.repo.full_name);
+            core.setOutput('head_sha',              prFull.head.sha);
+            core.setOutput('base_ref',              prFull.base.ref);
+            core.setOutput('base_sha',              prFull.base.sha);
+            core.setOutput('maintainer_can_modify', String(prFull.maintainer_can_modify));
 
   # ─── Job 2: build native binaries from fork code (NO secrets) ──────────────
   build-native:
