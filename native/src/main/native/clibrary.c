@@ -30,7 +30,7 @@ static inline int clock_gettime(int clk_id, struct timespec *ts) {
     (void)clk_id;
     static mach_timebase_info_data_t tb;
     if (tb.denom == 0) mach_timebase_info(&tb);
-    uint64_t ns = mach_absolute_time() * tb.numer / tb.denom;
+    uint64_t ns = (uint64_t)((__uint128_t)mach_absolute_time() * tb.numer / tb.denom);
     ts->tv_sec  = (time_t)(ns / 1000000000ULL);
     ts->tv_nsec = (long)(ns % 1000000000ULL);
     return 0;
