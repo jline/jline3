@@ -64,12 +64,13 @@ jobs:
         run: |
           set -e
           NATIVE_DIR=native/src/main/resources/org/jline/nativ/Mac
-          for arch in x86 x86_64 arm64; do
-            LIB="$NATIVE_DIR/$arch/libjlinenative.jnilib"
+          COUNT=0
+          for LIB in "$NATIVE_DIR"/*/libjlinenative.jnilib; do
             if [ ! -f "$LIB" ]; then
-              echo "::error::$LIB not found"
+              echo "::error::No macOS native libraries found in $NATIVE_DIR"
               exit 1
             fi
+            COUNT=$((COUNT + 1))
             echo "Checking $LIB ..."
             codesign --verify --strict --verbose "$LIB" 2>&1
             INFO=$(codesign --display --verbose=4 "$LIB" 2>&1)
@@ -80,7 +81,7 @@ jobs:
             fi
             echo "✓ $LIB is signed with Developer ID"
           done
-          echo "All macOS native libraries are signed ✓"
+          echo "All $COUNT macOS native libraries are signed ✓"
 
       - name: Build with maven
         run: ./mvx mvn --no-transfer-progress verify
