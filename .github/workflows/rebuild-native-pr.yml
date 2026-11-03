@@ -242,7 +242,7 @@ jobs:
           git checkout -b pr-branch refs/remotes/pr/head
 
       - name: Download built native binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: native-binaries-${{ github.run_id }}
           path: native/src/main/resources/org/jline/nativ/
