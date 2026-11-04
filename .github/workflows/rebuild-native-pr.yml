@@ -261,11 +261,12 @@ jobs:
           CERT_PATH="$RUNNER_TEMP/certificate.p12"
           echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > "$CERT_PATH"
           NATIVE_MAC_DIR=native/src/main/resources/org/jline/nativ/Mac
-          for arch in x86_64 arm64; do
-            lib="$NATIVE_MAC_DIR/$arch/libjlinenative.jnilib"
+          COUNT=0
+          for lib in "$NATIVE_MAC_DIR"/*/libjlinenative.jnilib; do
             if [ ! -f "$lib" ]; then
-              echo "ERROR: $lib not found"; exit 1
+              echo "ERROR: no macOS native libraries found in $NATIVE_MAC_DIR"; exit 1
             fi
+            COUNT=$((COUNT + 1))
             echo "Signing $lib ..."
             ./rcodesign sign \
               --p12-file "$CERT_PATH" \
@@ -276,6 +277,7 @@ jobs:
             ./rcodesign verify "$lib"
             echo "✓ $lib signed and verified"
           done
+          echo "All $COUNT macOS native libraries signed ✓"
           rm -f "$CERT_PATH"
 
       - name: Check for binary diffs
