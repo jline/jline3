@@ -194,10 +194,11 @@ certificate installed in your Keychain:
 ```sh
 cd native
 make native-all    # cross-compile all platforms via Docker
+(cd src/main/resources/org/jline/nativ/Mac && sha256sum */libjlinenative.jnilib > checksums.sha256)
 make sign          # sign macOS binaries (requires Mac + certificate)
 make verify-sign   # verify signatures
 cd ..
-git add native/src/main/resources/org/jline/nativ/Mac/
+git add native/src/main/resources/org/jline/nativ/
 git commit -m "chore: rebuild and sign native libraries"
 ```
 

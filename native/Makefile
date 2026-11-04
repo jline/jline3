@@ -17,7 +17,7 @@
 
 include Makefile.common
 
-.PHONY: all package native native-all deploy crossbuild ducible clean-native
+.PHONY: all package native native-all native-mac deploy crossbuild ducible clean-native
 
 linux-armv6-digest:=@sha256:a90a7deda7f561932d9ad658f8d661d17eeb44f4e7f7024ac087db1d0b95c6f5
 linux-x86-digest:=@sha256:fbe45fcb0c2ce82f84a998a1d37d67b3906502723ed89f8191c3243d9d835d17
@@ -87,14 +87,6 @@ native-all: \
     linux-musl-x86_64 linux-musl-arm64 \
     win-x86 win-x86_64 win-arm64 \
     mac-x86 mac-x86_64 mac-arm64 \
-    freebsd-x86 freebsd-x86_64
-
-# Same as native-all but without macOS targets (used in CI when macOS images
-# require authenticated registry access — mac targets run in the trusted job).
-native-all-no-mac: \
-    linux-x86 linux-x86_64 linux-arm linux-armv6 linux-armv7 linux-arm64 linux-ppc64 \
-    linux-musl-x86_64 linux-musl-arm64 \
-    win-x86 win-x86_64 win-arm64 \
     freebsd-x86 freebsd-x86_64
 
 native-mac: mac-x86 mac-x86_64 mac-arm64

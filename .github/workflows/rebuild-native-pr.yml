@@ -145,7 +145,8 @@ jobs:
             core.setOutput('head_ref',              prFull.head.ref);
             core.setOutput('head_repo',             prFull.head.repo.full_name);
             core.setOutput('head_sha',              prFull.head.sha);
-            core.setOutput('maintainer_can_modify', String(prFull.maintainer_can_modify));
+            const sameRepo = prFull.head.repo.full_name === prFull.base.repo.full_name;
+            core.setOutput('maintainer_can_modify', String(sameRepo || prFull.maintainer_can_modify));
 
   # ─── Job 2: build native binaries from fork code (NO secrets) ──────────────
   build-native:
@@ -198,6 +199,7 @@ jobs:
     needs: [pr-info, build-native]
     if: needs.pr-info.outputs.skip != 'true'
     runs-on: ubuntu-latest
+    environment: native-signing
     permissions:
       contents: write
       pull-requests: write
