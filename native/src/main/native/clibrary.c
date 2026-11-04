@@ -24,7 +24,7 @@
 #    ifndef CLOCK_MONOTONIC
 #      define CLOCK_MONOTONIC 0
 #    endif
-static inline int clock_gettime(int clk_id, struct timespec *ts) {
+static inline int jline_clock_gettime(int clk_id, struct timespec *ts) {
     (void)clk_id;
     mach_timebase_info_data_t tb;
     mach_timebase_info(&tb);
@@ -35,6 +35,7 @@ static inline int clock_gettime(int clk_id, struct timespec *ts) {
     ts->tv_nsec = (long)(ns % 1000000000ULL);
     return 0;
 }
+#    define clock_gettime jline_clock_gettime
 #  endif /* deployment target < 10.12 */
 #endif /* __APPLE__ */
 
