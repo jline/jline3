@@ -21,8 +21,10 @@ import org.jline.terminal.impl.LineDisciplineTerminal;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class NanoTest {
 
@@ -85,6 +87,53 @@ class NanoTest {
                     "restricted mode must not read files outside the specified one");
         } finally {
             Files.deleteIfExists(secret);
+            Files.deleteIfExists(root);
+        }
+    }
+
+    @Test
+    @Timeout(10)
+    void writeOutAsksBeforeOverwritingExistingFileUnderRoot() throws Exception {
+        Path root = Files.createTempDirectory("nano-overwrite-root");
+        // Exists under the editor root only, not in the JVM working directory
+        String name = "nano-overwrite-target-7f3a.txt";
+        Path target = root.resolve(name);
+        Files.write(target, "original".getBytes(StandardCharsets.UTF_8));
+        try {
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            try (LineDisciplineTerminal terminal =
+                    new LineDisciplineTerminal("nano", "xterm", output, StandardCharsets.UTF_8)) {
+                terminal.setSize(Size.of(80, 25));
+                Attributes attrs = terminal.getAttributes();
+                attrs.setInputFlag(InputFlag.ICRNL, false);
+                terminal.setAttributes(attrs);
+                // Type new text, ^O (Write Out), the existing name, accept
+                for (byte b : "replacement".getBytes(StandardCharsets.UTF_8)) {
+                    terminal.processInputByte(b);
+                }
+                terminal.processInputByte(KeyMap.ctrl('O').getBytes()[0]);
+                for (byte b : name.getBytes(StandardCharsets.UTF_8)) {
+                    terminal.processInputByte(b);
+                }
+                terminal.processInputByte('\r');
+                // Decline the overwrite prompt, then quit discarding the buffer
+                terminal.processInputByte('n');
+                terminal.processInputByte(KeyMap.ctrl('X').getBytes()[0]);
+                terminal.processInputByte('n');
+                String[] argv = {"--ignorercfiles"};
+                Nano nano =
+                        new Nano(terminal, root, Options.compile(Nano.usage()).parse(argv));
+                nano.run();
+            }
+            assertEquals(
+                    "original",
+                    new String(Files.readAllBytes(target), StandardCharsets.UTF_8),
+                    "declining the overwrite prompt must leave the file untouched");
+            assertTrue(
+                    output.toString(StandardCharsets.UTF_8).contains("OVERWRITE"),
+                    "write out to an existing file under the root must ask before overwriting");
+        } finally {
+            Files.deleteIfExists(target);
             Files.deleteIfExists(root);
         }
     }
