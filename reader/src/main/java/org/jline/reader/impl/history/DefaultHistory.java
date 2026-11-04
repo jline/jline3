@@ -555,18 +555,13 @@ public class DefaultHistory implements History {
     }
 
     static List<Entry> doTrimHistory(List<Entry> allItems, int max) {
-        int idx = 0;
-        while (idx < allItems.size()) {
-            int ridx = allItems.size() - idx - 1;
-            String line = allItems.get(ridx).line().trim();
-            ListIterator<Entry> iterator = allItems.listIterator(ridx);
-            while (iterator.hasPrevious()) {
-                String l = iterator.previous().line();
-                if (line.equals(l.trim())) {
-                    iterator.remove();
-                }
+        // keep only the last occurrence of each line, in a single backwards pass
+        Set<String> seen = new HashSet<>();
+        ListIterator<Entry> iterator = allItems.listIterator(allItems.size());
+        while (iterator.hasPrevious()) {
+            if (!seen.add(iterator.previous().line().trim())) {
+                iterator.remove();
             }
-            idx++;
         }
         while (allItems.size() > max) {
             allItems.remove(0);
