@@ -1,0 +1,118 @@
+FROM buildpack-deps:bookworm-curl
+
+# Build arguments
+ARG osxcross_repo="tpoechtrager/osxcross"
+ARG osxcross_revision="27d21e4977c9751d01199c7a226a6faf494c3dd9"
+ARG osxcross_sha256="c94952432565db84f1b3a9e4ba3d44344b1464fcbeb8c7580ab9db1e7c22834a"
+ARG darwin_sdk_version="10.13"
+ARG darwin_sdk_sha256="9d3eddc34a510198694f5ec7cfbdebaee4c0c7ba68ad1d957cb566649c9a0f84"
+ARG darwin_osx_version_min="10.12"
+ARG darwin_version="17"
+ARG darwin_sdk_url="https://github.com/joseluisq/macosx-sdks/releases/download/${darwin_sdk_version}/MacOSX${darwin_sdk_version}.sdk.tar.xz"
+
+# ENV available in docker image
+ENV OSXCROSS_REPO="${osxcross_repo}"                   \
+    OSXCROSS_REVISION="${osxcross_revision}"           \
+    DARWIN_SDK_VERSION="${darwin_sdk_version}"         \
+    DARWIN_VERSION="${darwin_version}"                 \
+    DARWIN_OSX_VERSION_MIN="${darwin_osx_version_min}" \
+    DARWIN_SDK_URL="${darwin_sdk_url}"
+
+# Install build dependencies (macOS cross-compile only — no Linux/Windows toolchains)
+RUN set -x \
+ && apt-get update \
+ && apt-get install -y -q \
+        autoconf \
+        automake \
+        autotools-dev \
+        bc \
+        binutils-multiarch \
+        build-essential \
+        clang \
+        cmake \
+        curl \
+        git-core \
+        libtool \
+        llvm \
+        lzma-dev \
+        libssl-dev \
+        libxml2-dev \
+        make \
+        openssl \
+        patch \
+        xz-utils \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
+
+# Build osxcross with SDK 10.13 (supports i386 and x86_64)
+RUN mkdir -p /tmp/osxcross \
+ && cd /tmp/osxcross \
+ && curl -sLo osxcross.tar.gz "https://codeload.github.com/${OSXCROSS_REPO}/tar.gz/${OSXCROSS_REVISION}" \
+ && echo "${osxcross_sha256}  osxcross.tar.gz" | sha256sum -c - \
+ && tar --strip=1 -xzf osxcross.tar.gz \
+ && rm -f osxcross.tar.gz \
+ && mkdir -p tarballs \
+ && curl -fL -o "tarballs/MacOSX${DARWIN_SDK_VERSION}.sdk.tar.xz" "${DARWIN_SDK_URL}" \
+ && echo "${darwin_sdk_sha256}  tarballs/MacOSX${DARWIN_SDK_VERSION}.sdk.tar.xz" | sha256sum --check \
+ && UNATTENDED=1 BUILD_FLAVOR=stable OSX_VERSION_MIN="${DARWIN_OSX_VERSION_MIN}" ENABLE_COMPILER_RT=1 ./build.sh \
+ && mv target /usr/osxcross \
+ && mv tools /usr/osxcross/ \
+ && ln -sf ../tools/osxcross-macports /usr/osxcross/bin/omp \
+ && ln -sf ../tools/osxcross-macports /usr/osxcross/bin/osxcross-macports \
+ && ln -sf ../tools/osxcross-macports /usr/osxcross/bin/osxcross-mp \
+ && if [ -f /usr/osxcross/bin/osxcross-cmake ]; then \
+        sed -i -e "s%exec cmake%exec /usr/bin/cmake%" /usr/osxcross/bin/osxcross-cmake; \
+    fi \
+ && rm -rf /tmp/osxcross \
+ && rm -rf "/usr/osxcross/SDK/MacOSX${DARWIN_SDK_VERSION}.sdk/usr/share/man"
+
+ENV LD_LIBRARY_PATH=/usr/osxcross/lib
+
+# Extract actual Darwin version from the ld linker (always present with stable flavor)
+RUN set -x \
+ && LD_BIN=$(find /usr/osxcross/bin -name "x86_64-apple-darwin*-ld" | head -1) \
+ && [ -n "$LD_BIN" ] || { echo "ERROR: no x86_64 macOS ld linker found in /usr/osxcross/bin"; ls /usr/osxcross/bin/; exit 1; } \
+ && EXACT_DARWIN_VER=$(echo "$LD_BIN" | sed -E 's/.*darwin([0-9\.]+).*/\1/') \
+ && echo "$EXACT_DARWIN_VER" > /usr/osxcross/darwin_version \
+ && echo "Darwin version: $EXACT_DARWIN_VER" \
+ && echo "osxcross ld: $LD_BIN"
+
+# CROSS_TRIPLE defaults — supports i386 and x86_64 on darwin17 (SDK 10.13)
+ENV DARWIN_TRIPLES="x86_64-apple-darwin${DARWIN_VERSION},i386-apple-darwin${DARWIN_VERSION}" \
+    CROSS_TRIPLE="x86_64-apple-darwin${DARWIN_VERSION}"
+
+# Install forwarding scripts for each triple+tool combination.
+# osxcross wrapper binaries use argv[0] to detect the target triple, so scripts
+# must invoke the real binary (resolved via readlink) with exec -a <alias> so
+# that argv[0] carries the correct triple-prefixed name.
+RUN set -x \
+ && EXACT_DARWIN_VER=$(cat /usr/osxcross/darwin_version) \
+ && for triple_base in x86_64 i386; do \
+        base_triple="${triple_base}-apple-darwin${DARWIN_VERSION}"; \
+        exact_triple="${triple_base}-apple-darwin${EXACT_DARWIN_VER}"; \
+        mkdir -p "/usr/${base_triple}/bin"; \
+        for bin in $(find /usr/osxcross/bin -name "${exact_triple}-*" ! -type l); do \
+            tool=$(basename "$bin" | sed "s/${exact_triple}-//"); \
+            real_bin=$(readlink -f "$bin"); \
+            alias_name="${base_triple}-${tool}"; \
+            exact_alias_name="${exact_triple}-${tool}"; \
+            wrapper="/usr/${base_triple}/bin/${tool}"; \
+            printf '#!/bin/sh\nexec -a "%s" "%s" "$@"\n' "$exact_alias_name" "$real_bin" > "$wrapper"; \
+            chmod +x "$wrapper"; \
+            # Install a no-patch-version alias in /usr/osxcross/bin so that
+            # CROSS_PREFIX=<triple>- works (e.g. x86_64-apple-darwin17-clang).
+            if [ ! -e "/usr/osxcross/bin/${alias_name}" ]; then \
+                printf '#!/bin/sh\nexec -a "%s" "%s" "$@"\n' "$exact_alias_name" "$real_bin" > "/usr/osxcross/bin/${alias_name}"; \
+                chmod +x "/usr/osxcross/bin/${alias_name}"; \
+            fi; \
+        done; \
+        ln -sf "${exact_triple}-clang"   "/usr/osxcross/bin/${base_triple}-cc"  2>/dev/null || true; \
+        ln -sf "${exact_triple}-clang++" "/usr/osxcross/bin/${base_triple}-c++" 2>/dev/null || true; \
+    done
+
+COPY ./assets/crossbuild /usr/bin/crossbuild
+RUN chmod +x /usr/bin/crossbuild
+
+ENTRYPOINT ["/usr/bin/crossbuild"]
+CMD ["/bin/bash"]
+WORKDIR /workdir

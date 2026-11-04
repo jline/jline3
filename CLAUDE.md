@@ -114,6 +114,42 @@ Spotless enforces this header automatically via `spotless:apply`.
 2. Create a PR against the target branch for CI validation
 3. Merge, then release from the maintenance branch
 
+## Native Binaries
+
+JLine ships pre-built native `.so`/`.dll`/`.jnilib` binaries committed to the
+repository under `native/src/main/resources/org/jline/nativ/`. They are built
+via Docker cross-compilation and must be rebuilt whenever C sources under
+`native/src/main/native/` change.
+
+### CI automation
+
+**You do not need to rebuild native binaries manually when working on a PR.**
+The `rebuild-native-pr` GitHub Actions workflow triggers automatically after CI
+completes on any PR. It:
+
+1. Detects whether `native/src/main/native/` C sources changed vs merge-base — skips if not
+2. Cross-compiles all platforms via Docker on `ubuntu-latest`: Linux (x86, x86_64, arm, armv6, armv7, arm64, ppc64), Linux-musl (x86_64, arm64), Windows (x86, x86_64, arm64), FreeBSD (x86, x86_64), macOS (x86, x86_64, arm64)
+3. Signs macOS `.jnilib` files with `rcodesign` using the Apple Developer certificate in repository secrets — **no macOS runner needed**
+4. Commits and pushes back to the PR branch if anything changed (requires `maintainerCanModify=true`)
+
+The `check-native` job in the main build CI fails on stale Linux/Windows/FreeBSD
+binaries; macOS is handled exclusively by `rebuild-native-pr`.
+
+### Local rebuild (if needed)
+
+```sh
+cd native
+make native-all    # cross-compiles all platforms via Docker
+(cd src/main/resources/org/jline/nativ/Mac && shasum -a 256 */libjlinenative.jnilib > checksums.sha256)
+make sign          # sign macOS binaries (requires Mac + Apple Developer cert)
+cd ..
+git add native/src/main/resources/org/jline/nativ/
+git commit -m "chore: rebuild native libraries"
+```
+
+Docker is required for all cross-compilation targets. macOS runners are **not**
+used in CI — `rcodesign` handles signing on Linux.
+
 ## Website / Documentation
 
 ```bash

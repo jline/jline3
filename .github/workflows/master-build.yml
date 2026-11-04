@@ -59,19 +59,18 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-mvx-tools-
 
-
-
       - name: Verify macOS native signatures
         if: matrix.os == 'macos-latest'
         run: |
           set -e
           NATIVE_DIR=native/src/main/resources/org/jline/nativ/Mac
-          for arch in x86 x86_64 arm64; do
-            LIB="$NATIVE_DIR/$arch/libjlinenative.jnilib"
+          COUNT=0
+          for LIB in "$NATIVE_DIR"/*/libjlinenative.jnilib; do
             if [ ! -f "$LIB" ]; then
-              echo "::error::$LIB not found"
+              echo "::error::No macOS native libraries found in $NATIVE_DIR"
               exit 1
             fi
+            COUNT=$((COUNT + 1))
             echo "Checking $LIB ..."
             codesign --verify --strict --verbose "$LIB" 2>&1
             INFO=$(codesign --display --verbose=4 "$LIB" 2>&1)
@@ -82,7 +81,7 @@ jobs:
             fi
             echo "✓ $LIB is signed with Developer ID"
           done
-          echo "All macOS native libraries are signed ✓"
+          echo "All $COUNT macOS native libraries are signed ✓"
 
       - name: Build with maven
         run: ./mvx mvn --no-transfer-progress verify
@@ -152,3 +151,86 @@ jobs:
           MVX_PARALLEL_DOWNLOADS: 1
           MVX_DOWNLOAD_TIMEOUT: 300
           MVX_HTTP_TIMEOUT: 300
+
+  check-native:
+    name: Check native binaries are up-to-date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Check if native sources changed
+        id: changes
+        run: |
+          set -o pipefail
+          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [ -z "$BASE" ] || [[ "$BASE" =~ ^0+$ ]] || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
+            BASE=$(git rev-list --max-parents=0 HEAD | head -1)
+          fi
+          CHANGED=$(git diff --name-only "$BASE" HEAD -- native/src/main/native/ native/Makefile native/Makefile.common | wc -l)
+          echo "native_changed=$CHANGED" >> "$GITHUB_OUTPUT"
+          if [ "$CHANGED" -eq 0 ]; then
+            echo "No native C/H source changes — skipping native rebuild check"
+          fi
+
+      - name: Set up QEMU (for musl-arm64)
+        if: steps.changes.outputs.native_changed != '0'
+        uses: docker/setup-qemu-action@v4
+        with:
+          platforms: arm64
+
+      - name: Rebuild all non-macOS native binaries
+        if: steps.changes.outputs.native_changed != '0'
+        working-directory: native
+        run: |
+          make linux-x86_64 linux-arm linux-armv7 linux-arm64 linux-ppc64
+          make linux-x86 linux-armv6
+          make linux-musl-x86_64 linux-musl-arm64
+          make win-x86 win-x86_64 win-arm64
+          make freebsd-x86 freebsd-x86_64
+
+      - name: Check no binary diffs (excluding macOS)
+        if: steps.changes.outputs.native_changed != '0'
+        run: |
+          {
+            git diff --name-only native/src/main/resources/ | grep -v '/Mac/'
+            git ls-files --others --exclude-standard native/src/main/resources/ | grep -v '/Mac/'
+          } > /tmp/changed-binaries.txt || true
+          if [ -s /tmp/changed-binaries.txt ]; then
+            if [ "${{ github.event_name }}" = "pull_request" ] && \
+               [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
+              echo "::error::Native binaries are out of date. The rebuild-native-pr workflow will push updated binaries automatically if maintainerCanModify=true."
+            else
+              echo "::error::Native binaries are out of date. Run 'make' in the native/ directory and commit the updated binaries."
+            fi
+            cat /tmp/changed-binaries.txt
+            git diff --stat native/src/main/resources/ | grep -v '/Mac/'
+            exit 1
+          fi
+          echo "All non-macOS native binaries are up to date ✓"
+
+      - name: Log in to GHCR (for macOS crossbuild images)
+        if: steps.changes.outputs.native_changed != '0'
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Rebuild macOS native binaries (unsigned)
+        if: steps.changes.outputs.native_changed != '0'
+        working-directory: native
+        run: make native-mac
+
+      - name: Verify macOS native checksums
+        if: steps.changes.outputs.native_changed != '0'
+        run: |
+          CHECKSUM_FILE=native/src/main/resources/org/jline/nativ/Mac/checksums.sha256
+          if [ ! -f "$CHECKSUM_FILE" ]; then
+            echo "::warning::No checksums.sha256 found — macOS binary verification skipped"
+            echo "macOS binaries compiled successfully ✓ (compile-only check)"
+          else
+            cd native/src/main/resources/org/jline/nativ/Mac || exit 1
+            sha256sum -c checksums.sha256
+            echo "All macOS native binary checksums match ✓"
+          fi
+
+
