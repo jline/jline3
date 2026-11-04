@@ -158,11 +158,6 @@ jobs:
     # Secrets are intentionally NOT available here.
     permissions:
       contents: read
-    # Prevent cache poisoning: this job runs untrusted fork code in a
-    # workflow_run context which has cache write access to the default branch.
-    env:
-      ACTIONS_CACHE_URL: ''
-      ACTIONS_RUNTIME_TOKEN: ''
 
     steps:
       - name: Checkout fork branch (fork code — no secrets in this job)
@@ -183,6 +178,11 @@ jobs:
 
       - name: Rebuild all native binaries (Docker cross-compilation)
         working-directory: native
+        # Prevent cache poisoning: clear cache/runtime vars so untrusted
+        # fork code cannot write to the default branch's cache scope.
+        env:
+          ACTIONS_CACHE_URL: ''
+          ACTIONS_RUNTIME_TOKEN: ''
         run: make native-all
 
       - name: Upload built native binaries as artifact
