@@ -11,6 +11,7 @@ package org.jline.jansi;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.concurrent.FutureTask;
 
 import org.jline.jansi.Ansi.Color;
 import org.junit.jupiter.api.Disabled;
@@ -30,18 +31,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class AnsiTest {
     @Test
-    void testSetEnabled() throws InterruptedException {
-        Thread t;
-
+    void testSetEnabled() throws Exception {
         Ansi.setEnabled(false);
-        t = new Thread(() -> assertFalse(Ansi.isEnabled()));
-        t.start();
-        t.join();
+        assertFalse(isEnabledInNewThread());
 
         Ansi.setEnabled(true);
-        t = new Thread(() -> assertTrue(Ansi.isEnabled()));
-        t.start();
-        t.join();
+        assertTrue(isEnabledInNewThread());
+    }
+
+    private static boolean isEnabledInNewThread() throws Exception {
+        FutureTask<Boolean> isEnabled = new FutureTask<>(Ansi::isEnabled);
+        new Thread(isEnabled).start();
+        return isEnabled.get();
     }
 
     @Test
