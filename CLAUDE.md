@@ -140,7 +140,7 @@ binaries; macOS is handled exclusively by `rebuild-native-pr`.
 ```sh
 cd native
 make native-all    # cross-compiles all platforms via Docker
-(cd src/main/resources/org/jline/nativ/Mac && sha256sum */libjlinenative.jnilib > checksums.sha256)
+(cd src/main/resources/org/jline/nativ/Mac && shasum -a 256 */libjlinenative.jnilib > checksums.sha256)
 make sign          # sign macOS binaries (requires Mac + Apple Developer cert)
 cd ..
 git add native/src/main/resources/org/jline/nativ/
