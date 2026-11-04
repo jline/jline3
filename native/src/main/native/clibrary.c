@@ -182,14 +182,14 @@ JNIEXPORT jint JNICALL CLibrary_NATIVE(ioctl__IJ_3I)
 		if (size < IOCTL_ARG_SIZE(arg1)) size = IOCTL_ARG_SIZE(arg1);
 		if (size < IOCTL_MIN_BUFFER_SIZE) size = IOCTL_MIN_BUFFER_SIZE;
 		if ((lparg2 = (jint *)calloc(1, size)) == NULL) {
-			errno = ENOMEM;
+			(*env)->ThrowNew(env, (*env)->FindClass(env, "java/lang/OutOfMemoryError"), "calloc failed in ioctl");
 			return -1;
 		}
 		(*env)->GetIntArrayRegion(env, arg2, 0, len, lparg2);
 	}
 	rc = (jint)ioctl(arg0, arg1, lparg2);
 	if (arg2) {
-		(*env)->SetIntArrayRegion(env, arg2, 0, len, lparg2);
+		if (rc >= 0) (*env)->SetIntArrayRegion(env, arg2, 0, len, lparg2);
 		free(lparg2);
 	}
 
