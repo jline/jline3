@@ -75,7 +75,6 @@ jobs:
       head_ref:              ${{ steps.resolve.outputs.head_ref }}
       head_repo:             ${{ steps.resolve.outputs.head_repo }}
       head_sha:              ${{ steps.resolve.outputs.head_sha }}
-      base_ref:              ${{ steps.resolve.outputs.base_ref }}
       maintainer_can_modify: ${{ steps.resolve.outputs.maintainer_can_modify }}
 
     steps:
@@ -97,7 +96,6 @@ jobs:
               core.setOutput('head_ref',              branch);
               core.setOutput('head_repo',             `${context.repo.owner}/${context.repo.repo}`);
               core.setOutput('head_sha',              ref.object.sha);
-              core.setOutput('base_ref',              branch);
               core.setOutput('maintainer_can_modify', 'true');
               return;
             }
@@ -147,7 +145,6 @@ jobs:
             core.setOutput('head_ref',              prFull.head.ref);
             core.setOutput('head_repo',             prFull.head.repo.full_name);
             core.setOutput('head_sha',              prFull.head.sha);
-            core.setOutput('base_ref',              prFull.base.ref);
             core.setOutput('maintainer_can_modify', String(prFull.maintainer_can_modify));
 
   # ─── Job 2: build native binaries from fork code (NO secrets) ──────────────
@@ -160,6 +157,11 @@ jobs:
     # Secrets are intentionally NOT available here.
     permissions:
       contents: read
+    # Prevent cache poisoning: this job runs untrusted fork code in a
+    # workflow_run context which has cache write access to the default branch.
+    env:
+      ACTIONS_CACHE_URL: ''
+      ACTIONS_RUNTIME_TOKEN: ''
 
     steps:
       - name: Checkout fork branch (fork code — no secrets in this job)
@@ -201,14 +203,14 @@ jobs:
       pull-requests: write
 
     steps:
-      # Check out the BASE repo (jline/jline3) — no fork code runs here.
-      # We fetch the PR head from the fork's repo into a local branch so we
-      # can commit the rebuilt binaries on top of the correct history.
+      # Check out the BASE repo (jline/jline3) at the default branch —
+      # no fork code runs here. We use the default branch (not PR-derived
+      # base_ref) to avoid CodeQL privileged-checkout warnings.  With
+      # fetch-depth: 0 we get all history, so any PR target branch works.
       - name: Checkout base repository (trusted — no fork code runs here)
         uses: actions/checkout@v7
         with:
           repository: ${{ github.repository }}
-          ref:        ${{ needs.pr-info.outputs.base_ref }}
           fetch-depth: 0
           persist-credentials: false
 
