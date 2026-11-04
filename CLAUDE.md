@@ -128,7 +128,7 @@ The `rebuild-native-pr` GitHub Actions workflow triggers automatically after CI
 completes on any PR. It:
 
 1. Detects whether `native/src/main/native/` C sources changed vs merge-base — skips if not
-2. Cross-compiles all platforms via Docker on `ubuntu-latest`: Linux (x86, x86_64, arm, armv6, armv7, arm64, ppc64), Linux-musl (x86_64, arm64), Windows (x86, x86_64, arm64), FreeBSD (x86, x86_64), macOS (x86_64, arm64)
+2. Cross-compiles all platforms via Docker on `ubuntu-latest`: Linux (x86, x86_64, arm, armv6, armv7, arm64, ppc64), Linux-musl (x86_64, arm64), Windows (x86, x86_64, arm64), FreeBSD (x86, x86_64), macOS (x86, x86_64, arm64)
 3. Signs macOS `.jnilib` files with `rcodesign` using the Apple Developer certificate in repository secrets — **no macOS runner needed**
 4. Commits and pushes back to the PR branch if anything changed (requires `maintainerCanModify=true`)
 

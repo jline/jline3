@@ -183,7 +183,7 @@ applications to pass [notarization](https://developer.apple.com/documentation/se
 
 **CI handles signing automatically.** The `rebuild-native-pr` workflow runs on
 every PR that modifies C sources. It cross-compiles all platforms (including
-macOS x86_64 and arm64 via Docker) on `ubuntu-latest`, then signs the macOS
+macOS x86, x86_64, and arm64 via Docker) on `ubuntu-latest`, then signs the macOS
 `.jnilib` files using [`rcodesign`](https://github.com/indygreg/apple-platform-rs)
 with the Apple Developer certificate stored in repository secrets. No macOS
 runner is required.
