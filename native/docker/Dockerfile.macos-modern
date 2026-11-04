@@ -3,6 +3,7 @@ FROM buildpack-deps:bookworm-curl
 # Build arguments
 ARG osxcross_repo="tpoechtrager/osxcross"
 ARG osxcross_revision="27d21e4977c9751d01199c7a226a6faf494c3dd9"
+ARG osxcross_sha256="c94952432565db84f1b3a9e4ba3d44344b1464fcbeb8c7580ab9db1e7c22834a"
 ARG darwin_sdk_version="11.3"
 ARG darwin_sdk_sha256="9adc1373d3879e1973d28ad9f17c9051b02931674a3ec2a2498128989ece2cb1"
 ARG darwin_osx_version_min="11.0"
@@ -48,6 +49,7 @@ RUN set -x \
 RUN mkdir -p /tmp/osxcross \
  && cd /tmp/osxcross \
  && curl -sLo osxcross.tar.gz "https://codeload.github.com/${OSXCROSS_REPO}/tar.gz/${OSXCROSS_REVISION}" \
+ && echo "${osxcross_sha256}  osxcross.tar.gz" | sha256sum -c - \
  && tar --strip=1 -xzf osxcross.tar.gz \
  && rm -f osxcross.tar.gz \
  && mkdir -p tarballs \
