@@ -17,18 +17,18 @@
 
 name: Rebuild native binaries for PR
 
-# Triggered after the main CI workflow completes on a pull_request event.
-# Runs with repo secrets (unlike pull_request triggers from forks).
-# Rebuilds ALL native binaries via Docker cross-compilation on ubuntu-latest,
-# signs macOS libraries with rcodesign (no macOS runner required), then
-# commits the updated binaries back to the PR branch (if maintainerCanModify)
-# or fails.
+# Triggered after the main CI workflow completes on a pull_request event,
+# but only when the check-native job failed (stale binaries detected).
+# Rebuilds ALL native binaries (including macOS) via Docker cross-compilation
+# on ubuntu-latest, signs macOS libraries with rcodesign (no macOS runner
+# required), then commits the updated binaries back to the PR branch
+# (if maintainerCanModify) or fails.
 #
-# Security model: fork-controlled code (make) runs ONLY in the build-native
-# job which has NO secrets and NO write permissions. Signing secrets and the
-# GH_PAT are exclusively available in the sign-and-push job, which checks out
-# only the base repo (trusted code) and downloads pre-built artifacts from the
-# build-native job via GitHub Actions artifact storage.
+# Security model: ALL fork-controlled code (make targets) runs in the
+# build-native job which has NO secrets and NO write permissions. The
+# sign-and-push job checks out only the base repo (trusted code), downloads
+# pre-built artifacts, signs macOS binaries, and commits. No fork-controlled
+# code is executed while secrets are available.
 #
 # Can also be triggered manually via workflow_dispatch with a target branch
 # (e.g. master or jline-3.x) to rebuild and commit binaries directly after
@@ -76,7 +76,6 @@ jobs:
       head_repo:             ${{ steps.resolve.outputs.head_repo }}
       head_sha:              ${{ steps.resolve.outputs.head_sha }}
       base_ref:              ${{ steps.resolve.outputs.base_ref }}
-      base_sha:              ${{ steps.resolve.outputs.base_sha }}
       maintainer_can_modify: ${{ steps.resolve.outputs.maintainer_can_modify }}
 
     steps:
@@ -99,11 +98,29 @@ jobs:
               core.setOutput('head_repo',             `${context.repo.owner}/${context.repo.repo}`);
               core.setOutput('head_sha',              ref.object.sha);
               core.setOutput('base_ref',              branch);
-              core.setOutput('base_sha',              '');
               core.setOutput('maintainer_can_modify', 'true');
               return;
             }
-            // workflow_run path — find the associated open PR
+            // workflow_run path — check if check-native failed (stale binaries)
+            const runId = context.payload.workflow_run.id;
+            const { data: jobs } = await github.rest.actions.listJobsForWorkflowRun({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              run_id: runId,
+              per_page: 100,
+            });
+            const checkNative = jobs.jobs.find(j => j.name === 'Check native binaries are up-to-date');
+            if (!checkNative) {
+              core.warning('Job "Check native binaries are up-to-date" not found in triggering run — was it renamed? Skipping rebuild.');
+              core.setOutput('skip', 'true');
+              return;
+            }
+            if (checkNative.conclusion !== 'failure') {
+              core.notice('check-native passed — native binaries are up to date, skipping rebuild.');
+              core.setOutput('skip', 'true');
+              return;
+            }
+            // Find the associated open PR
             const headSha  = context.payload.workflow_run.head_sha;
             const headRepo = context.payload.workflow_run.head_repository.full_name;
             const { data: prs } = await github.rest.pulls.list({
@@ -131,7 +148,6 @@ jobs:
             core.setOutput('head_repo',             prFull.head.repo.full_name);
             core.setOutput('head_sha',              prFull.head.sha);
             core.setOutput('base_ref',              prFull.base.ref);
-            core.setOutput('base_sha',              prFull.base.sha);
             core.setOutput('maintainer_can_modify', String(prFull.maintainer_can_modify));
 
   # ─── Job 2: build native binaries from fork code (NO secrets) ──────────────
@@ -144,8 +160,6 @@ jobs:
     # Secrets are intentionally NOT available here.
     permissions:
       contents: read
-    outputs:
-      changed: ${{ steps.native-changes.outputs.changed }}
 
     steps:
       - name: Checkout fork branch (fork code — no secrets in this job)
@@ -155,49 +169,20 @@ jobs:
           # Pin to the exact SHA vetted by CI — prevents TOCTOU where a new
           # commit lands between CI completion and this job's checkout.
           ref:        ${{ needs.pr-info.outputs.head_sha }}
-          fetch-depth: 0
           persist-credentials: false
           # Required for checkout@v7 in workflow_run context when repository is a fork.
           allow-unsafe-pr-checkout: true
 
-      - name: Check if native sources changed
-        id: native-changes
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # Manual trigger — always rebuild everything
-            echo "changed=1" >> "$GITHUB_OUTPUT"
-            echo "Manual trigger — forcing full rebuild."
-          else
-            # Use the PR base SHA from the API — exact, no fetch needed,
-            # works for any target branch (master, jline-3.x, etc.).
-            # Guard both against empty base_sha and against an unreachable SHA
-            # (e.g. when the fork hasn't been synced with upstream recently).
-            BASE="${{ needs.pr-info.outputs.base_sha }}"
-            if [ -z "$BASE" ] || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
-              BASE=$(git rev-list --max-parents=0 HEAD)
-            fi
-            CHANGED=$(git diff --name-only "$BASE" HEAD -- native/src/main/native/ native/Makefile native/Makefile.common | wc -l)
-            echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
-            if [ "$CHANGED" -eq 0 ]; then
-              echo "No native C/H source changes — skipping rebuild."
-            else
-              echo "Native sources changed ($CHANGED files) — rebuild needed."
-            fi
-          fi
-
       - name: Set up QEMU (for musl-arm64 cross-compilation)
-        if: steps.native-changes.outputs.changed != '0'
         uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
 
       - name: Rebuild all native binaries (Docker cross-compilation)
-        if: steps.native-changes.outputs.changed != '0'
         working-directory: native
-        run: make native-all-no-mac
+        run: make native-all
 
       - name: Upload built native binaries as artifact
-        if: steps.native-changes.outputs.changed != '0'
         uses: actions/upload-artifact@v7
         with:
           name: native-binaries-${{ github.run_id }}
@@ -209,7 +194,7 @@ jobs:
   sign-and-push:
     name: Sign macOS binaries and push (trusted job, no fork code)
     needs: [pr-info, build-native]
-    if: needs.pr-info.outputs.skip != 'true' && needs.build-native.outputs.changed != '0'
+    if: needs.pr-info.outputs.skip != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -247,12 +232,12 @@ jobs:
           name: native-binaries-${{ github.run_id }}
           path: native/src/main/resources/org/jline/nativ/
 
-      - name: Log in to GHCR (for macOS crossbuild images)
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Build macOS native binaries (trusted job — registry access available)
-        working-directory: native
-        run: make native-mac
+      - name: Generate checksums of unsigned macOS binaries
+        run: |
+          cd native/src/main/resources/org/jline/nativ/Mac || exit 1
+          sha256sum */libjlinenative.jnilib > checksums.sha256
+          echo "Unsigned macOS checksums:"
+          cat checksums.sha256
 
       - name: Install rcodesign
         run: |
