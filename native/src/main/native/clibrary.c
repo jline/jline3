@@ -19,18 +19,23 @@
 #include <time.h>
 #ifdef __APPLE__
 #  include <mach/mach_time.h>
-#  ifndef CLOCK_MONOTONIC
-#    define CLOCK_MONOTONIC 0
+#  include <AvailabilityMacros.h>
+#  if !defined(MAC_OS_X_VERSION_10_12) || MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_12
+#    ifndef CLOCK_MONOTONIC
+#      define CLOCK_MONOTONIC 0
+#    endif
 static inline int clock_gettime(int clk_id, struct timespec *ts) {
     (void)clk_id;
-    static mach_timebase_info_data_t tb;
-    if (tb.denom == 0) mach_timebase_info(&tb);
-    uint64_t ns = (uint64_t)((__uint128_t)mach_absolute_time() * tb.numer / tb.denom);
+    mach_timebase_info_data_t tb;
+    mach_timebase_info(&tb);
+    uint64_t abs_time = mach_absolute_time();
+    uint64_t ns = (abs_time / tb.denom) * tb.numer
+                + (abs_time % tb.denom) * tb.numer / tb.denom;
     ts->tv_sec  = (time_t)(ns / 1000000000ULL);
     ts->tv_nsec = (long)(ns % 1000000000ULL);
     return 0;
 }
-#  endif /* !CLOCK_MONOTONIC */
+#  endif /* deployment target < 10.12 */
 #endif /* __APPLE__ */
 
 #if !defined(_WIN32) && !defined(_WIN64)
