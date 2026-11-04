@@ -27,6 +27,8 @@ windows-arm64-digest:=@sha256:5a8e872064c5f600386e4124f9425d3e2ce2e168cadb662665
 cross-build-digest:=@sha256:8dbaa86462270db93ae1b1b319bdd88d89272faf3a68632daf4fa36b414a326e
 freebsd-crossbuild-digest:=@sha256:cda62697a15d8bdc0bc26e780b1771ee78f12c55e7d5813e62c478af5a747c43
 mcandre-snek-digest:=@sha256:e5aaf20daece19796dcd0553feb971143b71cc67d13d79d73649cc689fb87287
+macos-legacy-digest:=@sha256:ac221794af4ea58f6026bb358ef124622c34be6c9e1f30baa76fa5fa824689c5
+macos-modern-digest:=@sha256:73fe38a47ea37e1474ffc3c8f57b2422cdc0486af76aea28b76d2be2349e64f3
 
 all: package
 
@@ -196,17 +198,17 @@ win-arm64: download-includes target/dockcross/dockcross-windows-arm64
 
 mac-x86: download-includes
 	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
-		-e CROSS_TRIPLE=i386-apple-darwin ghcr.io/jline/jline3/crossbuild-macos-legacy:latest \
+		-e CROSS_TRIPLE=i386-apple-darwin ghcr.io/jline/jline3/crossbuild-macos-legacy$(macos-legacy-digest) \
 		bash -c 'DARWIN_VER=$$(cat /usr/osxcross/darwin_version) && make clean-native native CROSS_PREFIX=i386-apple-darwin$${DARWIN_VER}- OS_NAME=Mac OS_ARCH=x86'
 
 mac-x86_64: download-includes
 	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
-		-e CROSS_TRIPLE=x86_64-apple-darwin ghcr.io/jline/jline3/crossbuild-macos-legacy:latest \
+		-e CROSS_TRIPLE=x86_64-apple-darwin ghcr.io/jline/jline3/crossbuild-macos-legacy$(macos-legacy-digest) \
 		bash -c 'DARWIN_VER=$$(cat /usr/osxcross/darwin_version) && make clean-native native CROSS_PREFIX=x86_64-apple-darwin$${DARWIN_VER}- OS_NAME=Mac OS_ARCH=x86_64'
 
 mac-arm64: download-includes
 	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
-		-e CROSS_TRIPLE=aarch64-apple-darwin ghcr.io/jline/jline3/crossbuild-macos-modern:latest \
+		-e CROSS_TRIPLE=aarch64-apple-darwin ghcr.io/jline/jline3/crossbuild-macos-modern$(macos-modern-digest) \
 		bash -c 'DARWIN_VER=$$(cat /usr/osxcross/darwin_version) && make clean-native native CROSS_PREFIX=aarch64-apple-darwin$${DARWIN_VER}- OS_NAME=Mac OS_ARCH=arm64'
 
 freebsd-x86: download-includes
