@@ -22,7 +22,7 @@ include Makefile.common
 linux-armv6-digest:=@sha256:a90a7deda7f561932d9ad658f8d661d17eeb44f4e7f7024ac087db1d0b95c6f5
 linux-x86-digest:=@sha256:fbe45fcb0c2ce82f84a998a1d37d67b3906502723ed89f8191c3243d9d835d17
 windows-static-x86-digest:=@sha256:b205eeeafaef4f44482d16254670da815d5679b03cf8e51e4adc3539d1c4a9c0
-windows-static-x64-digest:=@sha256:f159861bc80b29e5dafb223477167bec53ecec6cdacb051d31e90c5823542100
+windows-static-x64-digest:=@sha256:fce7b66dbe52cdf6389f121aa75746f111301b6b510ae0fbbb764792636f758a
 windows-arm64-digest:=@sha256:5a8e872064c5f600386e4124f9425d3e2ce2e168cadb6626655b2d69ed748849
 cross-build-digest:=@sha256:8dbaa86462270db93ae1b1b319bdd88d89272faf3a68632daf4fa36b414a326e
 freebsd-crossbuild-digest:=@sha256:cda62697a15d8bdc0bc26e780b1771ee78f12c55e7d5813e62c478af5a747c43
@@ -41,9 +41,9 @@ download-includes: target
 	@test -d target/inc || mkdir target/inc
 	@test -d target/inc/unix || mkdir target/inc/unix
 	@test -d target/inc/windows || mkdir target/inc/windows
-	test -f target/inc/jni.h || wget -O target/inc/jni.h https://raw.githubusercontent.com/openjdk/jdk/jdk-11%2B28/src/java.base/share/native/include/jni.h
-	test -f target/inc/unix/jni_md.h || wget -O target/inc/unix/jni_md.h https://raw.githubusercontent.com/openjdk/jdk/jdk-11%2B28/src/java.base/unix/native/include/jni_md.h
-	test -f target/inc/windows/jni_md.h || wget -O target/inc/windows/jni_md.h https://raw.githubusercontent.com/openjdk/jdk/jdk-11%2B28/src/java.base/windows/native/include/jni_md.h
+	test -f target/inc/jni.h || curl -sSf -o target/inc/jni.h https://raw.githubusercontent.com/openjdk/jdk/jdk-11%2B28/src/java.base/share/native/include/jni.h
+	test -f target/inc/unix/jni_md.h || curl -sSf -o target/inc/unix/jni_md.h https://raw.githubusercontent.com/openjdk/jdk/jdk-11%2B28/src/java.base/unix/native/include/jni_md.h
+	test -f target/inc/windows/jni_md.h || curl -sSf -o target/inc/windows/jni_md.h https://raw.githubusercontent.com/openjdk/jdk/jdk-11%2B28/src/java.base/windows/native/include/jni_md.h
 
 dockcross: target
 	@test -d target/dockcross || mkdir target/dockcross
@@ -88,6 +88,16 @@ native-all: \
     win-x86 win-x86_64 win-arm64 \
     mac-x86 mac-x86_64 mac-arm64 \
     freebsd-x86 freebsd-x86_64
+
+# Same as native-all but without macOS targets (used in CI when macOS images
+# require authenticated registry access — mac targets run in the trusted job).
+native-all-no-mac: \
+    linux-x86 linux-x86_64 linux-arm linux-armv6 linux-armv7 linux-arm64 linux-ppc64 \
+    linux-musl-x86_64 linux-musl-arm64 \
+    win-x86 win-x86_64 win-arm64 \
+    freebsd-x86 freebsd-x86_64
+
+native-mac: mac-x86 mac-x86_64 mac-arm64
 
 # Sign macOS native libraries with Apple Developer ID.
 # Requires a "Developer ID Application" certificate in the keychain.
@@ -137,15 +147,15 @@ target/dockcross/dockcross-linux-x86: dockcross
 linux-x86: download-includes target/dockcross/dockcross-linux-x86
 	target/dockcross/dockcross-linux-x86 --args "--platform linux/amd64" bash -c 'make clean-native native OS_NAME=Linux OS_ARCH=x86'
 #linux-x86: download-includes
-#	docker run -it --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
+#	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
 #		-e CROSS_TRIPLE=x86-linux-gnu multiarch/crossbuild$(cross-build-digest) make clean-native native OS_NAME=Linux OS_ARCH=x86
 
 linux-x86_64: download-includes
-	docker run -it --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
+	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
 		-e CROSS_TRIPLE=x86_64-linux-gnu multiarch/crossbuild$(cross-build-digest) make clean-native native OS_NAME=Linux OS_ARCH=x86_64
 
 linux-arm: download-includes
-	docker run -it --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
+	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
 		-e CROSS_TRIPLE=arm-linux-gnueabi multiarch/crossbuild$(cross-build-digest) make clean-native native OS_NAME=Linux OS_ARCH=arm
 
 target/dockcross/dockcross-linux-armv6: dockcross
@@ -155,24 +165,24 @@ linux-armv6: download-includes target/dockcross/dockcross-linux-armv6
 	target/dockcross/dockcross-linux-armv6 bash -c 'make clean-native native CROSS_PREFIX=armv6-unknown-linux-gnueabihf- OS_NAME=Linux OS_ARCH=armv6'
 
 linux-armv7: download-includes
-	docker run -it --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
+	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
 		-e CROSS_TRIPLE=arm-linux-gnueabihf multiarch/crossbuild$(cross-build-digest) make clean-native native OS_NAME=Linux OS_ARCH=armv7
 
 linux-arm64: download-includes
-	docker run -it --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
+	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
 		-e CROSS_TRIPLE=aarch64-linux-gnu multiarch/crossbuild$(cross-build-digest) make clean-native native OS_NAME=Linux OS_ARCH=arm64
 
 linux-ppc64: download-includes
-	docker run -it --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
+	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
 		-e CROSS_TRIPLE=powerpc64le-linux-gnu multiarch/crossbuild$(cross-build-digest) make clean-native native OS_NAME=Linux OS_ARCH=ppc64
 
 linux-musl-x86_64: download-includes
-	docker run -it --rm -v $$PWD:/workdir \
-		alpine:3.20 sh -c 'apk add --no-cache gcc musl-dev linux-headers make > /dev/null 2>&1 && make clean-native native OS_NAME=Linux-musl OS_ARCH=x86_64'
+	docker run --rm -v $$PWD:/workdir \
+		alpine:3.20 sh -c 'cd /workdir && apk add --no-cache gcc musl-dev linux-headers make > /dev/null 2>&1 && make clean-native native OS_NAME=Linux-musl OS_ARCH=x86_64'
 
 linux-musl-arm64: download-includes
-	docker run -it --rm -v $$PWD:/workdir \
-		--platform linux/arm64 alpine:3.20 sh -c 'apk add --no-cache gcc musl-dev linux-headers make > /dev/null 2>&1 && make clean-native native OS_NAME=Linux-musl OS_ARCH=arm64'
+	docker run --rm -v $$PWD:/workdir \
+		--platform linux/arm64 alpine:3.20 sh -c 'cd /workdir && apk add --no-cache gcc musl-dev linux-headers make > /dev/null 2>&1 && make clean-native native OS_NAME=Linux-musl OS_ARCH=arm64'
 
 target/dockcross/dockcross-windows-static-x86: dockcross
 	docker run --rm dockcross/windows-static-x86$(windows-static-x86-digest) > target/dockcross/dockcross-windows-static-x86
@@ -193,23 +203,26 @@ win-arm64: download-includes target/dockcross/dockcross-windows-arm64
 	target/dockcross/dockcross-windows-arm64 bash -c 'make clean-native native CROSS_PREFIX=aarch64-w64-mingw32- OS_NAME=Windows OS_ARCH=arm64'
 
 mac-x86: download-includes
-	docker run -it --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
-		-e CROSS_TRIPLE=i386-apple-darwin multiarch/crossbuild$(cross-build-digest) make clean-native native OS_NAME=Mac OS_ARCH=x86
+	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
+		-e CROSS_TRIPLE=i386-apple-darwin ghcr.io/jline/jline3/crossbuild-macos-legacy:latest \
+		bash -c 'DARWIN_VER=$$(cat /usr/osxcross/darwin_version) && make clean-native native CROSS_PREFIX=i386-apple-darwin$${DARWIN_VER}- OS_NAME=Mac OS_ARCH=x86'
 
 mac-x86_64: download-includes
-	docker run -it --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
-		-e CROSS_TRIPLE=x86_64-apple-darwin multiarch/crossbuild$(cross-build-digest) make clean-native native OS_NAME=Mac OS_ARCH=x86_64
+	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
+		-e CROSS_TRIPLE=x86_64-apple-darwin ghcr.io/jline/jline3/crossbuild-macos-legacy:latest \
+		bash -c 'DARWIN_VER=$$(cat /usr/osxcross/darwin_version) && make clean-native native CROSS_PREFIX=x86_64-apple-darwin$${DARWIN_VER}- OS_NAME=Mac OS_ARCH=x86_64'
 
 mac-arm64: download-includes
-	docker run -it --rm -v $$PWD:/src --user $$(id -u):$$(id -g) \
-		-e TARGET=arm64-apple-darwin mcandre/snek$(mcandre-snek-digest) sh -c "make clean-native native CROSS_PREFIX=arm64-apple-darwin20.4- OS_NAME=Mac OS_ARCH=arm64"
+	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
+		-e CROSS_TRIPLE=aarch64-apple-darwin ghcr.io/jline/jline3/crossbuild-macos-modern:latest \
+		bash -c 'DARWIN_VER=$$(cat /usr/osxcross/darwin_version) && make clean-native native CROSS_PREFIX=aarch64-apple-darwin$${DARWIN_VER}- OS_NAME=Mac OS_ARCH=arm64'
 
 freebsd-x86: download-includes
-	docker run -it --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
+	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
 		empterdose/freebsd-cross-build$(freebsd-crossbuild-digest) make clean-native native CROSS_PREFIX=i386-freebsd9- OS_NAME=FreeBSD OS_ARCH=x86
 
 freebsd-x86_64: download-includes
-	docker run -it --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
+	docker run --rm -v $$PWD:/workdir --user $$(id -u):$$(id -g) \
 		empterdose/freebsd-cross-build$(freebsd-crossbuild-digest) make clean-native native CROSS_PREFIX=x86_64-freebsd9- OS_NAME=FreeBSD OS_ARCH=x86_64
 
 #sparcv9:

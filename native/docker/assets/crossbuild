@@ -1,0 +1,65 @@
+#!/bin/bash
+set -e
+
+# Get Darwin version if not set
+if [ -z "${DARWIN_VERSION}" ]; then
+    if [ -f /usr/osxcross/darwin_version ]; then
+        DARWIN_VERSION=$(cat /usr/osxcross/darwin_version)
+    else
+        DARWIN_VERSION=17
+    fi
+fi
+
+echo "------------------------------------------------------------------------"
+echo "CROSS_TRIPLE: ${CROSS_TRIPLE}"
+echo "DARWIN_VERSION: ${DARWIN_VERSION}"
+
+DARWIN_MAJOR=$(echo "${DARWIN_VERSION}" | cut -d. -f1)
+
+case "${CROSS_TRIPLE}" in
+    x86_64-apple-darwin*|osx|osx64|darwin|darwin64)
+        CROSS_TRIPLE="x86_64-apple-darwin${DARWIN_VERSION}" ;;
+    i386-apple-darwin*|osx32|darwin32)
+        if [ "${DARWIN_MAJOR}" -ge 19 ]; then
+            echo "Error: i386 is not supported by this image (requires Darwin < 19, got ${DARWIN_VERSION})" >&2
+            exit 1
+        fi
+        CROSS_TRIPLE="i386-apple-darwin${DARWIN_VERSION}" ;;
+    aarch64-apple-darwin*|arm64-apple-darwin*|osx-arm64|darwin-arm64)
+        CROSS_TRIPLE="aarch64-apple-darwin${DARWIN_VERSION}" ;;
+    *-apple-darwin*)
+        PREFIX=$(echo "${CROSS_TRIPLE}" | sed -E 's/(.+)-apple-darwin.*/\1/')
+        CROSS_TRIPLE="${PREFIX}-apple-darwin${DARWIN_VERSION}" ;;
+    *)
+        echo "Error: ${CROSS_TRIPLE} is not a recognized target for this image" >&2
+        echo "Supported triples: ${DARWIN_TRIPLES}" >&2
+        exit 1 ;;
+esac
+
+# Validate the resolved triple against the triples this image supports
+SUPPORTED=0
+IFS=',' read -ra SUPPORTED_TRIPLES <<< "${DARWIN_TRIPLES}"
+for t in "${SUPPORTED_TRIPLES[@]}"; do
+    if [ "${CROSS_TRIPLE}" = "${t}" ]; then
+        SUPPORTED=1
+        break
+    fi
+done
+if [ "${SUPPORTED}" -eq 0 ]; then
+    echo "Error: ${CROSS_TRIPLE} is not supported by this image" >&2
+    echo "Supported triples: ${DARWIN_TRIPLES}" >&2
+    exit 1
+fi
+
+echo "Final CROSS_TRIPLE: ${CROSS_TRIPLE}"
+
+if [ -n "${CROSS_TRIPLE}" ]; then
+    export PATH="/usr/${CROSS_TRIPLE}/bin:/usr/osxcross/bin:${PATH}"
+fi
+
+if [ $# -eq 0 ]; then
+    echo "${CROSS_TRIPLE}"
+    exit 0
+fi
+
+exec "$@"

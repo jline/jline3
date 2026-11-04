@@ -180,60 +180,21 @@ This requires Docker for cross-compilation.
 
 macOS requires native libraries to be signed with an Apple Developer ID for
 applications to pass [notarization](https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution).
-The CI build verifies that the macOS `.jnilib` binaries are properly signed on
-every push and pull request.
 
-**Prerequisites:**
+**CI handles signing automatically.** The `rebuild-native-pr` workflow runs on
+every PR that modifies C sources. It cross-compiles all platforms (including
+macOS x86_64 and arm64 via Docker) on `ubuntu-latest`, then signs the macOS
+`.jnilib` files using [`rcodesign`](https://github.com/indygreg/apple-platform-rs)
+with the Apple Developer certificate stored in repository secrets. No macOS
+runner is required.
 
-* An [Apple Developer Program](https://developer.apple.com/programs/) membership ($99/year)
-* A "Developer ID Application" certificate installed in your Keychain
-
-**Setting up the certificate (one-time):**
-
-1. Enroll in the Apple Developer Program at https://developer.apple.com/programs/
-2. Create a "Developer ID Application" certificate (choose **G2 Sub-CA**) via
-   Xcode → Settings → Accounts → Manage Certificates, or through the
-   [Apple Developer portal](https://developer.apple.com/account/resources/certificates/list)
-3. Verify the certificate is installed:
-
-```sh
-security find-identity -v -p codesigning
-# Should show: "Developer ID Application: Your Name (TEAMID)"
-```
-
-**Signing the binaries:**
-
-After rebuilding native libraries with `make native-all`, sign them on your Mac:
+**Local signing** is still possible if you have a Mac with the Developer ID
+certificate installed in your Keychain:
 
 ```sh
 cd native
-make sign
-```
-
-This signs all three macOS architectures (x86, x86\_64, arm64) with the
-Developer ID certificate. The signing identity defaults to the one configured
-in the Makefile and can be overridden:
-
-```sh
-make sign APPLE_SIGNING_IDENTITY="Developer ID Application: Your Name (TEAMID)"
-```
-
-**Verifying signatures:**
-
-```sh
-cd native
-make verify-sign
-```
-
-This checks that each binary has a valid signature from a Developer ID
-Application certificate (not ad-hoc or other certificate types).
-
-**Workflow:**
-
-```sh
-cd native
-make native-all    # cross-compile all platforms
-make sign          # sign macOS binaries
+make native-all    # cross-compile all platforms via Docker
+make sign          # sign macOS binaries (requires Mac + certificate)
 make verify-sign   # verify signatures
 cd ..
 git add native/src/main/resources/org/jline/nativ/Mac/
