@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
+import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
@@ -286,5 +287,29 @@ class FfmTest {
             assertNotNull(new Kernel32.INPUT_RECORD(arena));
             assertNotNull(new Kernel32.SMALL_RECT(arena));
         }
+    }
+
+    @Test
+    @EnabledOnOs(OS.WINDOWS)
+    void errorMessageLongerThanEightyCharacters() {
+        // ERROR_OPERATION_ABORTED: 93 characters in the en-US message table
+        int errorCode = 995;
+        int capacity = 1024;
+        String expected;
+        try (Arena arena = Arena.ofConfined()) {
+            MemorySegment buffer = arena.allocate(ValueLayout.JAVA_CHAR, capacity);
+            int length = Kernel32.FormatMessageW(
+                    Kernel32.FORMAT_MESSAGE_FROM_SYSTEM,
+                    MemorySegment.NULL,
+                    errorCode,
+                    0,
+                    buffer,
+                    capacity,
+                    MemorySegment.NULL);
+            expected = new String(buffer.asSlice(0, length * 2L).toArray(ValueLayout.JAVA_CHAR)).trim();
+            // only meaningful when the message overran the old 160-byte buffer and fits in 160 WCHARs
+            assumeTrue(expected.length() > 80 && length < 160);
+        }
+        assertEquals(expected, Kernel32.getErrorMessage(errorCode));
     }
 }

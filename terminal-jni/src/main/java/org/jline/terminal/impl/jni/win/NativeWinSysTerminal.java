@@ -337,7 +337,8 @@ public class NativeWinSysTerminal extends AbstractWindowsTerminal<Long> {
 
     static String getErrorMessage(int errorCode) {
         int bufferSize = 160;
-        byte[] data = new byte[bufferSize];
+        // nSize is a count of WCHARs, so the byte buffer needs two bytes per character
+        byte[] data = new byte[bufferSize * 2];
         FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, 0, errorCode, 0, data, bufferSize, null);
         return new String(data, StandardCharsets.UTF_16LE).trim();
     }
