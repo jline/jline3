@@ -550,7 +550,8 @@ public class Kernel32 {
                     : ReadConsoleInputW(handle, inputRecordPtr, count, length);
             if (res == 0) {
                 int bufferSize = 160;
-                byte[] data = new byte[bufferSize];
+                // nSize is a count of WCHARs, so the byte buffer needs two bytes per character
+                byte[] data = new byte[bufferSize * 2];
                 FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, 0, GetLastError(), 0, data, bufferSize, null);
                 String lastErrorMessage = new String(data, StandardCharsets.UTF_16LE).trim();
                 throw new IOException("ReadConsoleInputW failed: " + lastErrorMessage);
@@ -601,7 +602,8 @@ public class Kernel32 {
 
     public static String getLastErrorMessage() {
         int bufferSize = 160;
-        byte[] data = new byte[bufferSize];
+        // nSize is a count of WCHARs, so the byte buffer needs two bytes per character
+        byte[] data = new byte[bufferSize * 2];
         FormatMessageW(Kernel32.FORMAT_MESSAGE_FROM_SYSTEM, 0, GetLastError(), 0, data, bufferSize, null);
         return new String(data, StandardCharsets.UTF_16LE).trim();
     }
