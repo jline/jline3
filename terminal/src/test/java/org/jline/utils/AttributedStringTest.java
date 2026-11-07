@@ -148,6 +148,32 @@ class AttributedStringTest {
     }
 
     @Test
+    void fromAnsiDropsLoneEscBeforeControlCharacter() {
+        // A terminal stays in the escape sequence across a second ESC, a C0 control (other than
+        // CAN/SUB) or DEL, so ESC ESC ] ..., ESC BEL ] ... and ESC DEL ] ... still reach it as OSC.
+        // Passing the first ESC through raw would bypass the string-sequence stripping above.
+        AttributedString s = AttributedString.fromAnsi("A\033\033]52;c;cHduZWQ=\007B");
+        assertEquals("AB", s.toString());
+        assertEquals("AB", s.toAnsi());
+        assertEquals("AB", AttributedString.stripAnsi("A\033\033]0;pwned\007B"));
+        assertEquals("AB", AttributedString.stripAnsi("A\033\033Pq\033\\B"));
+        assertEquals("AB", AttributedString.stripAnsi("A\033\033[2JB"));
+        assertEquals(
+                "\033[31mred\033[0m",
+                AttributedString.fromAnsi("\033\033[31mred\033[0m").toAnsi());
+        // The ESC is dropped; what follows the control character is plain text
+        assertEquals(
+                "A\007]0;pwned\007B",
+                AttributedString.fromAnsi("A\033\007]0;pwned\007B").toAnsi());
+        assertEquals(
+                "A\r]0;pwned\007B",
+                AttributedString.fromAnsi("A\033\r]0;pwned\007B").toAnsi());
+        assertEquals(
+                "A\u007f]0;pwned\007B",
+                AttributedString.fromAnsi("A\033\u007f]0;pwned\007B").toAnsi());
+    }
+
+    @Test
     void stripAnsiRemovesStringSequences() {
         // OSC terminated by BEL
         assertEquals("hello", AttributedString.stripAnsi("\033]0;title\007hello"));
