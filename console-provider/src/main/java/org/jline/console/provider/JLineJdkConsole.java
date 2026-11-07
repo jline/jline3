@@ -257,7 +257,7 @@ class JLineJdkConsole implements JdkConsole {
         if (args == null || args.length == 0) {
             return format;
         }
-        return String.format(format, args);
+        return escapePromptPattern(String.format(format, args));
     }
 
     private static String formatPrompt(Locale locale, String format, Object... args) {
@@ -267,6 +267,15 @@ class JLineJdkConsole implements JdkConsole {
         if (args == null || args.length == 0) {
             return format;
         }
-        return String.format(locale, format, args);
+        return escapePromptPattern(String.format(locale, format, args));
+    }
+
+    /**
+     * Escapes {@code %} in an already formatted prompt. {@link LineReader#readLine(String)}
+     * expands its prompt as a pattern ({@code %N}, {@code %P}, {@code %{...%}}), so without this
+     * the formatted arguments would be interpreted a second time instead of shown as text.
+     */
+    private static String escapePromptPattern(String prompt) {
+        return prompt.replace("%", "%%");
     }
 }

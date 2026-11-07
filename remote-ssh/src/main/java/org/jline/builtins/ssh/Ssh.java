@@ -586,7 +586,8 @@ public class Ssh {
         }
 
         private String readLine(String prompt, boolean echo) {
-            return reader.readLine(prompt + " ", echo ? null : '\0');
+            // The prompt is literal text; escape '%' so LineReader does not expand it as a prompt pattern.
+            return reader.readLine(String.valueOf(prompt).replace("%", "%%") + " ", echo ? null : '\0');
         }
     }
 }

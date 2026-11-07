@@ -13,6 +13,7 @@ import java.io.PrintWriter;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
+import java.util.function.Consumer;
 
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -103,5 +104,34 @@ class JLineJdkConsoleTest {
         PrintWriter w1 = console.writer();
         PrintWriter w2 = console.writer();
         assertSame(w1, w2, "writer() should return the same instance on repeated calls");
+    }
+
+    @Test
+    void formattedPromptArgumentsAreShownLiterally() throws Exception {
+        // %{...%} is LineReader's raw-output escape: it must not let an argument
+        // put an OSC sequence on the terminal that fromAnsi would otherwise strip
+        String shown = promptOutput(c -> c.readLine("Open %s? ", "report%{\u001b]0;pwned\u0007%}.txt"));
+        assertFalse(shown.contains("\u001b]0;pwned"), "argument must not emit a raw OSC sequence: " + shown);
+        assertTrue(shown.contains("Open report%{%}.txt? "), shown);
+
+        shown = promptOutput(c -> c.readLine(Locale.ROOT, "Rate %s? ", "100%"));
+        assertTrue(shown.contains("Rate 100%? "), shown);
+
+        shown = promptOutput(c -> c.readPassword("Password for %s: ", "user%N%5P."));
+        assertTrue(shown.contains("Password for user%N%5P.: "), shown);
+
+        shown = promptOutput(c -> c.readPassword(Locale.ROOT, "%d%% of %s: ", 50, "disk"));
+        assertTrue(shown.contains("50% of disk: "), shown);
+    }
+
+    private static String promptOutput(Consumer<JLineJdkConsole> read) throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (LineDisciplineTerminal terminal =
+                new LineDisciplineTerminal("test", "xterm", out, StandardCharsets.UTF_8)) {
+            LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
+            terminal.processInputBytes("ok\n".getBytes(StandardCharsets.UTF_8));
+            read.accept(new JLineJdkConsole(StandardCharsets.UTF_8, terminal, reader));
+        }
+        return out.toString(StandardCharsets.UTF_8);
     }
 }
