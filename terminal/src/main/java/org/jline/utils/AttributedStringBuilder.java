@@ -638,8 +638,10 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
         ensureCapacity(length + ansi.length());
         for (int i = 0; i < ansi.length(); i++) {
             char c = ansi.charAt(i);
-            if (ansiState == 0 && c == 27) {
-                ansiState++;
+            if ((ansiState == 0 || ansiState == 1) && c == 27) {
+                // A second ESC restarts the escape sequence, as it does on a terminal. Flushing the
+                // first one would leave ESC ESC ] ... in the output, which is still read as OSC.
+                ansiState = 1;
             } else if ((ansiState == 1 && c == '[') || ((ansiState == 0 || ansiState == 1) && c == 0x9b)) {
                 // ESC [ or its single-character 8-bit form CSI (U+009B)
                 ansiState = 2;
@@ -878,11 +880,16 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                 }
             } else {
                 if (ansiState >= 1) {
-                    ensureCapacity(length + 1);
-                    buffer[length++] = 27;
-                    if (ansiState >= 2) {
+                    // A terminal executes a C0 control (and ignores DEL) without leaving the escape
+                    // sequence, so a lone ESC kept in front of one still turns a following ] [ P ...
+                    // into OSC, CSI, DCS: only keep the ESC when a printable character follows it.
+                    if (c >= ' ' && c != 0x7f) {
                         ensureCapacity(length + 1);
-                        buffer[length++] = '[';
+                        buffer[length++] = 27;
+                        if (ansiState >= 2) {
+                            ensureCapacity(length + 1);
+                            buffer[length++] = '[';
+                        }
                     }
                     ansiState = 0;
                     nonSgrSeen = false;
