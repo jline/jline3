@@ -311,7 +311,8 @@ final class Kernel32 {
     public static String getErrorMessage(int errorCode) {
         int bufferSize = 160;
         try (Arena arena = Arena.ofConfined()) {
-            MemorySegment data = arena.allocate(bufferSize);
+            // nSize is a count of WCHARs, not bytes
+            MemorySegment data = arena.allocate(ValueLayout.JAVA_CHAR, bufferSize);
             FormatMessageW(
                     FORMAT_MESSAGE_FROM_SYSTEM, MemorySegment.NULL, errorCode, 0, data, bufferSize, MemorySegment.NULL);
             return new String(data.toArray(ValueLayout.JAVA_BYTE), StandardCharsets.UTF_16LE).trim();
