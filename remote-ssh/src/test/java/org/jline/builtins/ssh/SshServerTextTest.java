@@ -17,6 +17,8 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.List;
+import java.util.function.Consumer;
 
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.core.CoreModuleProperties;
@@ -24,13 +26,16 @@ import org.apache.sshd.server.Environment;
 import org.apache.sshd.server.ExitCallback;
 import org.apache.sshd.server.SshServer;
 import org.apache.sshd.server.auth.UserAuthNoneFactory;
+import org.apache.sshd.server.auth.keyboard.InteractiveChallenge;
+import org.apache.sshd.server.auth.keyboard.KeyboardInteractiveAuthenticator;
+import org.apache.sshd.server.auth.keyboard.UserAuthKeyboardInteractiveFactory;
 import org.apache.sshd.server.channel.ChannelSession;
 import org.apache.sshd.server.command.Command;
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
+import org.apache.sshd.server.session.ServerSession;
 import org.apache.sshd.server.shell.ShellFactory;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
-import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.LineDisciplineTerminal;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -56,21 +61,48 @@ class SshServerTextTest {
         assertFalse(out.contains("\007"), "banner must not put a BEL on the terminal: " + out);
     }
 
+    @Test
+    void keyboardInteractivePromptIsShownLiterally() throws Exception {
+        // LineReader expands %N, %P and %{...%} in prompts; a server prompt is plain text
+        String prompt = "Code for user%N%5P. (100%):";
+        String out = runAgainst(
+                sshd -> {
+                    sshd.setUserAuthFactories(Collections.singletonList(UserAuthKeyboardInteractiveFactory.INSTANCE));
+                    sshd.setKeyboardInteractiveAuthenticator(askOnce(prompt));
+                },
+                "123456\n");
+        assertTrue(out.contains(prompt + " "), "server prompt must be shown as sent: " + out);
+    }
+
     /**
      * Drives {@link Ssh#ssh} against an in-process server that sends {@code banner} as its
      * pre-authentication welcome banner, and returns what the client wrote to its terminal.
      */
     private String runWithBanner(String banner) throws Exception {
+        return runAgainst(
+                sshd -> {
+                    sshd.setUserAuthFactories(Collections.singletonList(UserAuthNoneFactory.INSTANCE));
+                    CoreModuleProperties.WELCOME_BANNER.set(sshd, banner);
+                },
+                "");
+    }
+
+    /**
+     * Drives {@link Ssh#ssh} against an in-process server prepared by {@code setup}, with {@code typed}
+     * already queued as terminal input, and returns what the client wrote to its terminal.
+     */
+    private String runAgainst(Consumer<SshServer> setup, String typed) throws Exception {
         SshServer sshd = SshServer.setUpDefaultServer();
         sshd.setPort(0);
         sshd.setKeyPairProvider(new SimpleGeneratorHostKeyProvider(tempDir.resolve("banner-hostkey.ser")));
-        sshd.setUserAuthFactories(Collections.singletonList(UserAuthNoneFactory.INSTANCE));
-        CoreModuleProperties.WELCOME_BANNER.set(sshd, banner);
+        setup.accept(sshd);
         sshd.setShellFactory(new ImmediateExitShellFactory());
         sshd.start();
 
         ByteArrayOutputStream terminalOut = new ByteArrayOutputStream();
-        Terminal terminal = new LineDisciplineTerminal("banner-test", "xterm", terminalOut, StandardCharsets.UTF_8);
+        LineDisciplineTerminal terminal =
+                new LineDisciplineTerminal("banner-test", "xterm", terminalOut, StandardCharsets.UTF_8);
+        terminal.processInputBytes(typed.getBytes(StandardCharsets.UTF_8));
         try {
             LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
             Ssh ssh = new Ssh(null, null, null, SshServerTextTest::newTrustingClient);
@@ -97,6 +129,24 @@ class SshServerTextTest {
             terminal.close();
             sshd.stop(true);
         }
+    }
+
+    /** Keyboard-interactive authenticator that asks a single question and accepts any answer. */
+    private static KeyboardInteractiveAuthenticator askOnce(String prompt) {
+        return new KeyboardInteractiveAuthenticator() {
+            @Override
+            public InteractiveChallenge generateChallenge(
+                    ServerSession session, String username, String lang, String subMethods) {
+                InteractiveChallenge challenge = new InteractiveChallenge();
+                challenge.addPrompt(prompt, true);
+                return challenge;
+            }
+
+            @Override
+            public boolean authenticate(ServerSession session, String username, List<String> responses) {
+                return true;
+            }
+        };
     }
 
     /** Client that trusts the in-process test server's host key, which is not what this test exercises. */
