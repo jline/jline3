@@ -305,128 +305,155 @@ class CLibrary {
     /** POSIX EINTR constant (4 on all supported UNIX platforms). */
     private static final int EINTR = 4;
 
-    private static final StructLayout CAPTURED_STATE_LAYOUT = Linker.Option.captureStateLayout();
-    private static final VarHandle ERRNO_HANDLE =
-            CAPTURED_STATE_LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("errno"));
+    /**
+     * Lazy holder for the {@code isatty()} downcall handle.
+     *
+     * <p>This is the <em>only</em> native function needed to implement {@link #isTty(int)}, which
+     * is called early during provider detection (before any terminal is opened). Keeping it in a
+     * separate holder class ensures that the expensive initialisation of {@link Handles} — which
+     * creates six additional downcall handles, three struct VarHandle groups, and resolves the
+     * {@code openpty} symbol — is deferred until a real terminal is actually opened.</p>
+     */
+    private static final class IsattyHolder {
+        static final MethodHandle isatty;
 
-    static final MethodHandle pollHandle;
+        static {
+            Linker linker = Linker.nativeLinker();
+            SymbolLookup lookup = SymbolLookup.loaderLookup().or(linker.defaultLookup());
+            // https://www.man7.org/linux/man-pages/man3/isatty.3.html
+            isatty = linker.downcallHandle(
+                    lookup.find("isatty").get(), FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT));
+        }
+    }
 
-    static final MethodHandle ioctl;
-    static final MethodHandle isatty;
-    static final MethodHandle openptyHandle;
-    static final MethodHandle tcsetattr;
-    static final MethodHandle tcgetattr;
-    static final MethodHandle ttyname_r;
-    static LinkageError openptyError;
+    /**
+     * Lazy holder for all remaining native handles: {@code poll}, {@code ioctl},
+     * {@code tcsetattr}, {@code tcgetattr}, {@code ttyname_r}, and {@code openpty}.
+     *
+     * <p>These are only needed once a real PTY is opened or attributes/size are read, so their
+     * initialisation (six downcall handles + {@code openpty} symbol resolution, which may involve
+     * loading {@code libutil}) is deferred until first use.</p>
+     */
+    private static final class Handles {
+        static final StructLayout CAPTURED_STATE_LAYOUT = Linker.Option.captureStateLayout();
+        static final VarHandle ERRNO_HANDLE =
+                CAPTURED_STATE_LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("errno"));
 
-    static {
-        // methods
-        Linker linker = Linker.nativeLinker();
-        SymbolLookup lookup = SymbolLookup.loaderLookup().or(linker.defaultLookup());
-        // https://man7.org/linux/man-pages/man2/poll.2.html
-        // nfds_t is unsigned long on Linux/AIX, unsigned int on macOS/FreeBSD
-        ValueLayout nfdsLayout = (OSUtils.IS_LINUX || OSUtils.IS_AIX) ? ValueLayout.JAVA_LONG : ValueLayout.JAVA_INT;
-        pollHandle = linker.downcallHandle(
-                lookup.find("poll").get(),
-                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, nfdsLayout, ValueLayout.JAVA_INT),
-                Linker.Option.captureCallState("errno"));
-        // https://man7.org/linux/man-pages/man2/ioctl.2.html
-        ioctl = linker.downcallHandle(
-                lookup.find("ioctl").get(),
-                FunctionDescriptor.of(
-                        ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.JAVA_LONG, ValueLayout.ADDRESS),
-                Linker.Option.firstVariadicArg(2));
-        // https://www.man7.org/linux/man-pages/man3/isatty.3.html
-        isatty = linker.downcallHandle(
-                lookup.find("isatty").get(), FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT));
-        // https://man7.org/linux/man-pages/man3/tcsetattr.3p.html
-        tcsetattr = linker.downcallHandle(
-                lookup.find("tcsetattr").get(),
-                FunctionDescriptor.of(
-                        ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
-        // https://man7.org/linux/man-pages/man3/tcgetattr.3p.html
-        tcgetattr = linker.downcallHandle(
-                lookup.find("tcgetattr").get(),
-                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
-        // https://man7.org/linux/man-pages/man3/ttyname.3.html
-        ttyname_r = linker.downcallHandle(
-                lookup.find("ttyname_r").get(),
-                FunctionDescriptor.of(
-                        ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.JAVA_LONG));
-        // https://man7.org/linux/man-pages/man3/openpty.3.html
-        LinkageError error = null;
-        Optional<MemorySegment> openPtyAddr = lookup.find("openpty");
-        if (openPtyAddr.isEmpty()) {
-            StringBuilder sb = new StringBuilder();
-            sb.append("Unable to find openpty native method in static libraries and unable to load the util library.");
-            List<Throwable> suppressed = new ArrayList<>();
-            try {
-                System.loadLibrary("util");
-                openPtyAddr = lookup.find("openpty");
-            } catch (Throwable t) {
-                suppressed.add(t);
-            }
+        static final MethodHandle pollHandle;
+        static final MethodHandle ioctl;
+        static final MethodHandle tcsetattr;
+        static final MethodHandle tcgetattr;
+        static final MethodHandle ttyname_r;
+        static final MethodHandle openptyHandle;
+        static final LinkageError openptyError;
+
+        static {
+            Linker linker = Linker.nativeLinker();
+            SymbolLookup lookup = SymbolLookup.loaderLookup().or(linker.defaultLookup());
+            // https://man7.org/linux/man-pages/man2/poll.2.html
+            // nfds_t is unsigned long on Linux/AIX, unsigned int on macOS/FreeBSD
+            ValueLayout nfdsLayout =
+                    (OSUtils.IS_LINUX || OSUtils.IS_AIX) ? ValueLayout.JAVA_LONG : ValueLayout.JAVA_INT;
+            pollHandle = linker.downcallHandle(
+                    lookup.find("poll").get(),
+                    FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, nfdsLayout, ValueLayout.JAVA_INT),
+                    Linker.Option.captureCallState("errno"));
+            // https://man7.org/linux/man-pages/man2/ioctl.2.html
+            ioctl = linker.downcallHandle(
+                    lookup.find("ioctl").get(),
+                    FunctionDescriptor.of(
+                            ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.JAVA_LONG, ValueLayout.ADDRESS),
+                    Linker.Option.firstVariadicArg(2));
+            // https://man7.org/linux/man-pages/man3/tcsetattr.3p.html
+            tcsetattr = linker.downcallHandle(
+                    lookup.find("tcsetattr").get(),
+                    FunctionDescriptor.of(
+                            ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+            // https://man7.org/linux/man-pages/man3/tcgetattr.3p.html
+            tcgetattr = linker.downcallHandle(
+                    lookup.find("tcgetattr").get(),
+                    FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+            // https://man7.org/linux/man-pages/man3/ttyname.3.html
+            ttyname_r = linker.downcallHandle(
+                    lookup.find("ttyname_r").get(),
+                    FunctionDescriptor.of(
+                            ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.JAVA_LONG));
+            // https://man7.org/linux/man-pages/man3/openpty.3.html
+            LinkageError error = null;
+            Optional<MemorySegment> openPtyAddr = lookup.find("openpty");
             if (openPtyAddr.isEmpty()) {
-                String libUtilPath = System.getProperty("org.jline.ffm.libutil");
-                if (libUtilPath != null && !libUtilPath.isEmpty()) {
+                StringBuilder sb = new StringBuilder();
+                sb.append(
+                        "Unable to find openpty native method in static libraries and unable to load the util library.");
+                List<Throwable> suppressed = new ArrayList<>();
+                try {
+                    System.loadLibrary("util");
+                    openPtyAddr = lookup.find("openpty");
+                } catch (Throwable t) {
+                    suppressed.add(t);
+                }
+                if (openPtyAddr.isEmpty()) {
+                    String libUtilPath = System.getProperty("org.jline.ffm.libutil");
+                    if (libUtilPath != null && !libUtilPath.isEmpty()) {
+                        try {
+                            System.load(libUtilPath);
+                            openPtyAddr = lookup.find("openpty");
+                        } catch (Throwable t) {
+                            suppressed.add(t);
+                        }
+                    }
+                }
+                if (openPtyAddr.isEmpty() && OSUtils.IS_AIX) {
                     try {
-                        System.load(libUtilPath);
+                        System.loadLibrary("bsd");
                         openPtyAddr = lookup.find("openpty");
                     } catch (Throwable t) {
                         suppressed.add(t);
                     }
                 }
-            }
-            if (openPtyAddr.isEmpty() && OSUtils.IS_AIX) {
-                try {
-                    System.loadLibrary("bsd");
-                    openPtyAddr = lookup.find("openpty");
-                } catch (Throwable t) {
-                    suppressed.add(t);
+                // On glibc 2.34+, openpty was merged from libutil into libc.so.6.
+                // SymbolLookup.libraryLookup searches all exported symbols in the specified
+                // library, unlike defaultLookup() which only exposes C standard symbols.
+                if (openPtyAddr.isEmpty() && OSUtils.IS_LINUX) {
+                    try {
+                        SymbolLookup libcLookup = SymbolLookup.libraryLookup("libc.so.6", Arena.global());
+                        openPtyAddr = libcLookup.find("openpty");
+                    } catch (Throwable t) {
+                        suppressed.add(t);
+                    }
+                }
+                // On older glibc (< 2.34), openpty is in a separate libutil.so.
+                if (openPtyAddr.isEmpty() && OSUtils.IS_LINUX) {
+                    openPtyAddr = findVersionedLibutil(lookup, suppressed);
+                }
+                if (openPtyAddr.isEmpty()) {
+                    for (Throwable t : suppressed) {
+                        sb.append("\n\t- ").append(t.toString());
+                    }
+                    error = new LinkageError(sb.toString());
+                    suppressed.forEach(error::addSuppressed);
+                    if (logger.isLoggable(Level.DEBUG)) {
+                        logger.log(Level.WARNING, error.getMessage(), error);
+                    } else {
+                        logger.log(Level.WARNING, error.getMessage());
+                    }
                 }
             }
-            // On glibc 2.34+, openpty was merged from libutil into libc.so.6.
-            // SymbolLookup.libraryLookup searches all exported symbols in the specified
-            // library, unlike defaultLookup() which only exposes C standard symbols.
-            if (openPtyAddr.isEmpty() && OSUtils.IS_LINUX) {
-                try {
-                    SymbolLookup libcLookup = SymbolLookup.libraryLookup("libc.so.6", Arena.global());
-                    openPtyAddr = libcLookup.find("openpty");
-                } catch (Throwable t) {
-                    suppressed.add(t);
-                }
+            if (openPtyAddr.isPresent()) {
+                openptyHandle = linker.downcallHandle(
+                        openPtyAddr.get(),
+                        FunctionDescriptor.of(
+                                ValueLayout.JAVA_INT,
+                                ValueLayout.ADDRESS,
+                                ValueLayout.ADDRESS,
+                                ValueLayout.ADDRESS,
+                                ValueLayout.ADDRESS,
+                                ValueLayout.ADDRESS));
+                openptyError = null;
+            } else {
+                openptyHandle = null;
+                openptyError = error;
             }
-            // On older glibc (< 2.34), openpty is in a separate libutil.so.
-            if (openPtyAddr.isEmpty() && OSUtils.IS_LINUX) {
-                openPtyAddr = findVersionedLibutil(lookup, suppressed);
-            }
-            if (openPtyAddr.isEmpty()) {
-                for (Throwable t : suppressed) {
-                    sb.append("\n\t- ").append(t.toString());
-                }
-                error = new LinkageError(sb.toString());
-                suppressed.forEach(error::addSuppressed);
-                if (logger.isLoggable(Level.DEBUG)) {
-                    logger.log(Level.WARNING, error.getMessage(), error);
-                } else {
-                    logger.log(Level.WARNING, error.getMessage());
-                }
-            }
-        }
-        if (openPtyAddr.isPresent()) {
-            openptyHandle = linker.downcallHandle(
-                    openPtyAddr.get(),
-                    FunctionDescriptor.of(
-                            ValueLayout.JAVA_INT,
-                            ValueLayout.ADDRESS,
-                            ValueLayout.ADDRESS,
-                            ValueLayout.ADDRESS,
-                            ValueLayout.ADDRESS,
-                            ValueLayout.ADDRESS));
-            openptyError = null;
-        } else {
-            openptyHandle = null;
-            openptyError = error;
         }
     }
 
@@ -533,7 +560,7 @@ class CLibrary {
             PollFd.FD.set(pfd, fd);
             PollFd.EVENTS.set(pfd, POLLIN);
 
-            MemorySegment capturedState = arena.allocate(CAPTURED_STATE_LAYOUT);
+            MemorySegment capturedState = arena.allocate(Handles.CAPTURED_STATE_LAYOUT);
 
             if (timeoutMs <= 0) {
                 // Immediate (0) or infinite (-1): no deadline to track.
@@ -570,7 +597,7 @@ class CLibrary {
      * Reads the captured {@code errno} value from the call-state segment.
      */
     private static int capturedErrno(MemorySegment capturedState) {
-        return (int) ERRNO_HANDLE.get(capturedState, 0L);
+        return (int) Handles.ERRNO_HANDLE.get(capturedState, 0L);
     }
 
     /**
@@ -583,16 +610,16 @@ class CLibrary {
      */
     private static int platformPoll(MemorySegment capturedState, MemorySegment pfd, int timeoutMs) throws Throwable {
         if (OSUtils.IS_LINUX || OSUtils.IS_AIX) {
-            return (int) pollHandle.invoke(capturedState, pfd, 1L, timeoutMs);
+            return (int) Handles.pollHandle.invoke(capturedState, pfd, 1L, timeoutMs);
         } else {
-            return (int) pollHandle.invoke(capturedState, pfd, 1, timeoutMs);
+            return (int) Handles.pollHandle.invoke(capturedState, pfd, 1, timeoutMs);
         }
     }
 
     static Size getTerminalSize(int fd) {
         try (Arena arena = Arena.ofConfined()) {
             winsize ws = new winsize(arena);
-            int res = (int) ioctl.invoke(fd, (long) TIOCGWINSZ, ws.segment());
+            int res = (int) Handles.ioctl.invoke(fd, (long) TIOCGWINSZ, ws.segment());
             if (res != 0) {
                 throw new UncheckedIOException(new IOException("ioctl(TIOCGWINSZ) failed with return code " + res));
             }
@@ -609,7 +636,7 @@ class CLibrary {
             winsize ws = new winsize(arena);
             ws.ws_row((short) size.getRows());
             ws.ws_col((short) size.getColumns());
-            int res = (int) ioctl.invoke(fd, TIOCSWINSZ, ws.segment());
+            int res = (int) Handles.ioctl.invoke(fd, TIOCSWINSZ, ws.segment());
             if (res != 0) {
                 throw new UncheckedIOException(new IOException("ioctl(TIOCSWINSZ) failed with return code " + res));
             }
@@ -623,7 +650,7 @@ class CLibrary {
     static Attributes getAttributes(int fd) {
         try (Arena arena = Arena.ofConfined()) {
             termios t = new termios(arena);
-            int res = (int) tcgetattr.invoke(fd, t.segment());
+            int res = (int) Handles.tcgetattr.invoke(fd, t.segment());
             if (res != 0) {
                 throw new UncheckedIOException(new IOException("tcgetattr() failed with return code " + res));
             }
@@ -638,7 +665,7 @@ class CLibrary {
     static void setAttributes(int fd, Attributes attr) {
         try (Arena arena = Arena.ofConfined()) {
             termios t = new termios(arena);
-            int res = (int) tcgetattr.invoke(fd, t.segment());
+            int res = (int) Handles.tcgetattr.invoke(fd, t.segment());
             if (res != 0) {
                 // Best-effort: tcgetattr may fail when the fd is no longer a
                 // valid terminal (e.g. during close).  Log and return early
@@ -647,7 +674,7 @@ class CLibrary {
                 return;
             }
             t.apply(attr);
-            res = (int) tcsetattr.invoke(fd, TermiosData.TCSANOW, t.segment());
+            res = (int) Handles.tcsetattr.invoke(fd, TermiosData.TCSANOW, t.segment());
             if (res != 0) {
                 logger.log(Level.DEBUG, "tcsetattr() returned " + res + " for fd " + fd);
             }
@@ -658,7 +685,7 @@ class CLibrary {
 
     static boolean isTty(int fd) {
         try {
-            return (int) isatty.invoke(fd) == 1;
+            return (int) IsattyHolder.isatty.invoke(fd) == 1;
         } catch (Throwable e) {
             throw new RuntimeException("Unable to call isatty()", e);
         }
@@ -667,7 +694,7 @@ class CLibrary {
     static String ttyName(int fd) {
         try (Arena arena = Arena.ofConfined()) {
             MemorySegment buf = arena.allocate(64);
-            int res = (int) ttyname_r.invoke(fd, buf, buf.byteSize());
+            int res = (int) Handles.ttyname_r.invoke(fd, buf, buf.byteSize());
             if (res != 0) {
                 throw new UncheckedIOException(new IOException("ttyname_r() failed with return code " + res));
             }
@@ -685,14 +712,14 @@ class CLibrary {
     }
 
     static Pty openpty(TerminalProvider provider, Attributes attr, Size size) {
-        if (openptyError != null) {
-            throw openptyError;
+        if (Handles.openptyError != null) {
+            throw Handles.openptyError;
         }
         try (Arena arena = Arena.ofConfined()) {
             MemorySegment buf = arena.allocate(64);
             MemorySegment master = arena.allocate(ValueLayout.JAVA_INT);
             MemorySegment slave = arena.allocate(ValueLayout.JAVA_INT);
-            int res = (int) openptyHandle.invoke(
+            int res = (int) Handles.openptyHandle.invoke(
                     master,
                     slave,
                     buf,
