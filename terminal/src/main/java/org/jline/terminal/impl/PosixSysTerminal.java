@@ -136,7 +136,7 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
      *                        default native handlers will be registered
      * @throws IOException if the PTY streams or terminal I/O cannot be initialized
      */
-    @SuppressWarnings({"this-escape", "squid:S107"})
+    @SuppressWarnings({"this-escape", "squid:S107", "removal"})
     public PosixSysTerminal(
             TerminalProvider provider,
             String name,
@@ -152,7 +152,7 @@ public class PosixSysTerminal extends AbstractPosixTerminal {
         this.provider = provider;
         this.nativeSignals = nativeSignals;
         this.cachedAttributes = new Attributes(this.originalAttributes);
-        boolean softwareSignals = Boolean.parseBoolean(System.getProperty(PROP_SOFTWARE_SIGNALS, "true"));
+        boolean softwareSignals = Boolean.parseBoolean(System.getProperty(PROP_SOFTWARE_SIGNALS, "false"));
         InputStream slaveInput = pty.getSlaveInput();
         this.input = NonBlocking.nonBlocking(
                 getName(),
