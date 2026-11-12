@@ -91,6 +91,15 @@ public abstract class AbstractTerminal implements TerminalExt {
     protected final Map<Capability, String> strings = new HashMap<>();
     protected final ColorPalette palette;
     protected UnaryOperator<String> envProvider = System::getenv;
+    /**
+     * The {@code max_colors} value as parsed from terminfo, before any
+     * environment-driven upgrade (e.g. {@code COLORTERM=truecolor}).
+     * {@code null} when the terminal type has no {@code max_colors} entry.
+     * Saved by {@link #parseInfoCmp()} and used by {@link #setEnv} to restore
+     * the original value before re-running environment detection.
+     */
+    private Integer termInfoMaxColors;
+
     protected Status status;
     protected Runnable onClose;
     protected MouseTracking currentMouseTracking = MouseTracking.Off;
@@ -181,6 +190,18 @@ public abstract class AbstractTerminal implements TerminalExt {
      */
     public void setEnv(UnaryOperator<String> env) {
         this.envProvider = Objects.requireNonNull(env);
+        // Restore only the environment-driven max_colors override, leaving all
+        // other capability modifications (e.g. NativeWinSysTerminal.disableScrolling())
+        // intact. termInfoMaxColors holds the value as parsed from terminfo, before
+        // the previous environment detection ran. Restoring it and then re-running
+        // detectTrueColorSupport() with the new provider gives the correct result
+        // regardless of whether the new env enables or removes truecolor, and also
+        // handles terminals (like dumb) that have no max_colors in their terminfo.
+        if (termInfoMaxColors != null) {
+            ints.put(Capability.max_colors, termInfoMaxColors);
+        } else {
+            ints.remove(Capability.max_colors);
+        }
         detectTrueColorSupport();
         try {
             palette.reloadFromCapabilities();
@@ -357,6 +378,9 @@ public abstract class AbstractTerminal implements TerminalExt {
             capabilities = InfoCmp.getDefaultInfoCmp("ansi");
         }
         InfoCmp.parseInfoCmp(capabilities, bools, ints, strings);
+        // Save the raw terminfo color count before environment detection can
+        // upgrade it (e.g. COLORTERM=truecolor → max_colors=16777216).
+        termInfoMaxColors = ints.get(Capability.max_colors);
         detectTrueColorSupport();
         try {
             palette.reloadFromCapabilities();
