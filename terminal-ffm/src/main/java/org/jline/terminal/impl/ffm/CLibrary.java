@@ -327,14 +327,16 @@ class CLibrary {
     }
 
     /**
-     * Lazy holder for all remaining native handles: {@code poll}, {@code ioctl},
-     * {@code tcsetattr}, {@code tcgetattr}, {@code ttyname_r}, and {@code openpty}.
+     * Lazy holder for the native handles needed by system-terminal operations:
+     * {@code poll}, {@code ioctl}, {@code tcsetattr}, {@code tcgetattr}, and {@code ttyname_r}.
      *
-     * <p>These are only needed once a real PTY is opened or attributes/size are read, so their
-     * initialisation (six downcall handles + {@code openpty} symbol resolution, which may involve
-     * loading {@code libutil}) is deferred until first use.</p>
+     * <p>Separated from {@link PtyHandles} so that {@code sysTerminal()} callers never pay the
+     * cost of {@code openpty} symbol resolution (which may involve loading {@code libutil} or
+     * spawning {@code uname -m} on older glibc systems).</p>
      */
-    private static final class Handles {
+    private static final class SysHandles {
+        private SysHandles() {}
+
         static final StructLayout CAPTURED_STATE_LAYOUT = Linker.Option.captureStateLayout();
         static final VarHandle ERRNO_HANDLE =
                 CAPTURED_STATE_LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("errno"));
@@ -344,8 +346,6 @@ class CLibrary {
         static final MethodHandle tcsetattr;
         static final MethodHandle tcgetattr;
         static final MethodHandle ttyname_r;
-        static final MethodHandle openptyHandle;
-        static final LinkageError openptyError;
 
         static {
             Linker linker = Linker.nativeLinker();
@@ -378,6 +378,26 @@ class CLibrary {
                     lookup.find("ttyname_r").get(),
                     FunctionDescriptor.of(
                             ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.JAVA_LONG));
+        }
+    }
+
+    /**
+     * Lazy holder for the {@code openpty} native handle.
+     *
+     * <p>Only needed by {@link #openpty(TerminalProvider, Attributes, Size)} (the PTY path).
+     * {@code sysTerminal()} never touches this class, so its potentially expensive initialisation
+     * — loading {@code libutil}, probing {@code libc.so.6}, or spawning {@code uname -m} on
+     * older glibc — is deferred until a PTY is actually opened.</p>
+     */
+    private static final class PtyHandles {
+        private PtyHandles() {}
+
+        static final MethodHandle openptyHandle;
+        static final LinkageError openptyError;
+
+        static {
+            Linker linker = Linker.nativeLinker();
+            SymbolLookup lookup = SymbolLookup.loaderLookup().or(linker.defaultLookup());
             // https://man7.org/linux/man-pages/man3/openpty.3.html
             LinkageError error = null;
             Optional<MemorySegment> openPtyAddr = lookup.find("openpty");
@@ -560,7 +580,7 @@ class CLibrary {
             PollFd.FD.set(pfd, fd);
             PollFd.EVENTS.set(pfd, POLLIN);
 
-            MemorySegment capturedState = arena.allocate(Handles.CAPTURED_STATE_LAYOUT);
+            MemorySegment capturedState = arena.allocate(SysHandles.CAPTURED_STATE_LAYOUT);
 
             if (timeoutMs <= 0) {
                 // Immediate (0) or infinite (-1): no deadline to track.
@@ -597,7 +617,7 @@ class CLibrary {
      * Reads the captured {@code errno} value from the call-state segment.
      */
     private static int capturedErrno(MemorySegment capturedState) {
-        return (int) Handles.ERRNO_HANDLE.get(capturedState, 0L);
+        return (int) SysHandles.ERRNO_HANDLE.get(capturedState, 0L);
     }
 
     /**
@@ -610,16 +630,16 @@ class CLibrary {
      */
     private static int platformPoll(MemorySegment capturedState, MemorySegment pfd, int timeoutMs) throws Throwable {
         if (OSUtils.IS_LINUX || OSUtils.IS_AIX) {
-            return (int) Handles.pollHandle.invoke(capturedState, pfd, 1L, timeoutMs);
+            return (int) SysHandles.pollHandle.invoke(capturedState, pfd, 1L, timeoutMs);
         } else {
-            return (int) Handles.pollHandle.invoke(capturedState, pfd, 1, timeoutMs);
+            return (int) SysHandles.pollHandle.invoke(capturedState, pfd, 1, timeoutMs);
         }
     }
 
     static Size getTerminalSize(int fd) {
         try (Arena arena = Arena.ofConfined()) {
             winsize ws = new winsize(arena);
-            int res = (int) Handles.ioctl.invoke(fd, (long) TIOCGWINSZ, ws.segment());
+            int res = (int) SysHandles.ioctl.invoke(fd, (long) TIOCGWINSZ, ws.segment());
             if (res != 0) {
                 throw new UncheckedIOException(new IOException("ioctl(TIOCGWINSZ) failed with return code " + res));
             }
@@ -636,7 +656,7 @@ class CLibrary {
             winsize ws = new winsize(arena);
             ws.ws_row((short) size.getRows());
             ws.ws_col((short) size.getColumns());
-            int res = (int) Handles.ioctl.invoke(fd, TIOCSWINSZ, ws.segment());
+            int res = (int) SysHandles.ioctl.invoke(fd, TIOCSWINSZ, ws.segment());
             if (res != 0) {
                 throw new UncheckedIOException(new IOException("ioctl(TIOCSWINSZ) failed with return code " + res));
             }
@@ -650,7 +670,7 @@ class CLibrary {
     static Attributes getAttributes(int fd) {
         try (Arena arena = Arena.ofConfined()) {
             termios t = new termios(arena);
-            int res = (int) Handles.tcgetattr.invoke(fd, t.segment());
+            int res = (int) SysHandles.tcgetattr.invoke(fd, t.segment());
             if (res != 0) {
                 throw new UncheckedIOException(new IOException("tcgetattr() failed with return code " + res));
             }
@@ -665,7 +685,7 @@ class CLibrary {
     static void setAttributes(int fd, Attributes attr) {
         try (Arena arena = Arena.ofConfined()) {
             termios t = new termios(arena);
-            int res = (int) Handles.tcgetattr.invoke(fd, t.segment());
+            int res = (int) SysHandles.tcgetattr.invoke(fd, t.segment());
             if (res != 0) {
                 // Best-effort: tcgetattr may fail when the fd is no longer a
                 // valid terminal (e.g. during close).  Log and return early
@@ -674,7 +694,7 @@ class CLibrary {
                 return;
             }
             t.apply(attr);
-            res = (int) Handles.tcsetattr.invoke(fd, TermiosData.TCSANOW, t.segment());
+            res = (int) SysHandles.tcsetattr.invoke(fd, TermiosData.TCSANOW, t.segment());
             if (res != 0) {
                 logger.log(Level.DEBUG, "tcsetattr() returned " + res + " for fd " + fd);
             }
@@ -694,7 +714,7 @@ class CLibrary {
     static String ttyName(int fd) {
         try (Arena arena = Arena.ofConfined()) {
             MemorySegment buf = arena.allocate(64);
-            int res = (int) Handles.ttyname_r.invoke(fd, buf, buf.byteSize());
+            int res = (int) SysHandles.ttyname_r.invoke(fd, buf, buf.byteSize());
             if (res != 0) {
                 throw new UncheckedIOException(new IOException("ttyname_r() failed with return code " + res));
             }
@@ -712,14 +732,14 @@ class CLibrary {
     }
 
     static Pty openpty(TerminalProvider provider, Attributes attr, Size size) {
-        if (Handles.openptyError != null) {
-            throw Handles.openptyError;
+        if (PtyHandles.openptyError != null) {
+            throw PtyHandles.openptyError;
         }
         try (Arena arena = Arena.ofConfined()) {
             MemorySegment buf = arena.allocate(64);
             MemorySegment master = arena.allocate(ValueLayout.JAVA_INT);
             MemorySegment slave = arena.allocate(ValueLayout.JAVA_INT);
-            int res = (int) Handles.openptyHandle.invoke(
+            int res = (int) PtyHandles.openptyHandle.invoke(
                     master,
                     slave,
                     buf,
