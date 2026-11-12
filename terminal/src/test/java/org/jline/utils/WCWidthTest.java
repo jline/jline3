@@ -335,6 +335,40 @@ class WCWidthTest {
         assertEquals(2, WCWidth.wcwidthForGraphemeCluster(text, 1));
     }
 
+    @Test
+    void wcwidthForGraphemeCluster_halfwidthKatakanaVoicedMarks() {
+        assumeTrue(WCWidth.HAS_JDK_GRAPHEME_SUPPORT, "Requires JDK 21+ grapheme support");
+        // U+FF9E (voiced) and U+FF9F (semi-voiced) are halfwidth Lm characters that JDK's
+        // BreakIterator groups with the preceding halfwidth katakana base into one grapheme
+        // cluster. Each mark is visually a distinct halfwidth glyph (width 1), so the cluster
+        // width must be base_width + 1 per mark.
+        //
+        // ﾊﾟ = U+FF8A (HA, halfwidth, width 1) + U+FF9F (semi-voiced, Lm, width 1) → width 2
+        String haPa = "\uFF8A\uFF9F";
+        assertEquals(2, WCWidth.wcwidthForGraphemeCluster(haPa, 0));
+        //
+        // ｸﾞ = U+FF78 (KU, halfwidth, width 1) + U+FF9E (voiced, Lm, width 1) → width 2
+        String kuVoiced = "\uFF78\uFF9E";
+        assertEquals(2, WCWidth.wcwidthForGraphemeCluster(kuVoiced, 0));
+    }
+
+    @Test
+    void wcwidthForDisplay_halfwidthKatakanaVoicedMarks_totalWidth() {
+        // ﾊﾟｸﾞ — 4 halfwidth chars grouped as 2 grapheme clusters by JDK BreakIterator.
+        // Each cluster has display width 2, so the total string width is 4.
+        // This is the exact example from GitHub issue #2416.
+        assumeTrue(WCWidth.HAS_JDK_GRAPHEME_SUPPORT, "Requires JDK 21+ grapheme support");
+        String text = "\uFF8A\uFF9F\uFF78\uFF9E"; // ﾊﾟｸﾞ
+        int totalWidth = 0;
+        int i = 0;
+        while (i < text.length()) {
+            int charCount = WCWidth.charCountForGraphemeCluster(text, i);
+            totalWidth += WCWidth.wcwidthForGraphemeCluster(text, i, charCount);
+            i += charCount;
+        }
+        assertEquals(4, totalWidth, "Total display width of ﾊﾟｸﾞ should be 4");
+    }
+
     // --- charCountForDisplay ---
 
     @Test
