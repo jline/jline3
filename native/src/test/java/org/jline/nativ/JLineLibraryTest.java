@@ -11,6 +11,7 @@ package org.jline.nativ;
 import java.io.FileDescriptor;
 import java.lang.reflect.Field;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -23,6 +24,11 @@ class JLineLibraryTest {
      */
     JLineLibraryTest() {
         // Default constructor
+    }
+
+    @BeforeAll
+    static void loadNative() {
+        JLineNativeLoader.initialize();
     }
 
     @Test
