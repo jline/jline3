@@ -189,6 +189,9 @@ class ColorPaletteTest {
                 .system(false)
                 .type(termType)
                 .streams(new PipedInputStream(writer), new ByteArrayOutputStream())
+                // Isolate from the developer's environment: COLORTERM=truecolor (or similar)
+                // would otherwise override max_colors to 16777216 regardless of the terminal type.
+                .env(name -> null)
                 .build()) {
             int maxColors = t.getNumericCapability(Capability.max_colors);
             int paletteLength = t.getPalette().getLength();

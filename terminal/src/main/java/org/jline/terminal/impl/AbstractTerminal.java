@@ -181,12 +181,13 @@ public abstract class AbstractTerminal implements TerminalExt {
      */
     public void setEnv(UnaryOperator<String> env) {
         this.envProvider = Objects.requireNonNull(env);
-        detectTrueColorSupport();
-        try {
-            palette.reloadFromCapabilities();
-        } catch (IOException e) {
-            Log.warn("Unable to load palette", e);
-        }
+        // Re-parse capabilities from scratch so that environment-driven overrides
+        // (e.g. COLORTERM=truecolor bumping max_colors to true-color) are
+        // re-evaluated with the new provider. A plain detectTrueColorSupport()
+        // call would not reset max_colors that was already set to TRUE_COLORS by
+        // the previous env, because the method short-circuits when it sees a
+        // value >= 0x7FFF.
+        parseInfoCmp();
     }
 
     public Status getStatus() {
