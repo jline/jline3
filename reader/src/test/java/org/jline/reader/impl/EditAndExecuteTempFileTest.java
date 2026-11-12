@@ -24,6 +24,7 @@ import org.jline.terminal.impl.DumbTerminal;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -58,5 +59,31 @@ class EditAndExecuteTempFileTest {
         assertTrue(reader.editAndExecute());
         assertEquals("mysql -u root -psecret", content.get());
         assertEquals(EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE), seen.get());
+        // Successful edit must set state to IGNORE so readLine exits
+        assertEquals(LineReaderImpl.State.IGNORE, reader.state);
+    }
+
+    @Test
+    void commandPreservedOnTempFileFailure() throws Exception {
+        Terminal terminal = new DumbTerminal(
+                "dumb",
+                "dumb",
+                new ByteArrayInputStream(new byte[0]),
+                new ByteArrayOutputStream(),
+                StandardCharsets.UTF_8);
+        LineReaderImpl reader = new LineReaderImpl(terminal) {
+            @Override
+            public void editAndAddInBuffer(Path file) throws Exception {
+                throw new RuntimeException("simulated secure temp-file failure");
+            }
+        };
+        reader.getBuffer().write("ls -la /tmp");
+        reader.state = LineReaderImpl.State.NORMAL;
+
+        assertFalse(reader.editAndExecute());
+        // Buffer must be untouched so the user can keep editing
+        assertEquals("ls -la /tmp", reader.getBuffer().toString());
+        // State must stay NORMAL — readLine should not exit
+        assertEquals(LineReaderImpl.State.NORMAL, reader.state);
     }
 }
