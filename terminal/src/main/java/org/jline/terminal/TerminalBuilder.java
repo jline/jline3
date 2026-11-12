@@ -17,7 +17,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -30,6 +29,7 @@ import java.util.stream.Stream;
 
 import org.jline.terminal.impl.AbstractPosixTerminal;
 import org.jline.terminal.impl.AbstractTerminal;
+import org.jline.terminal.impl.DeferredTerminal;
 import org.jline.terminal.impl.DumbTerminal;
 import org.jline.terminal.impl.DumbTerminalProvider;
 import org.jline.terminal.spi.SystemStream;
@@ -283,6 +283,8 @@ public final class TerminalBuilder {
         ForcedSysOut,
         ForcedSysErr
     }
+
+    // terminal creation methods
 
     /**
      * Returns the default system terminal with automatic configuration.
@@ -905,6 +907,71 @@ public final class TerminalBuilder {
         return terminal;
     }
 
+    /**
+     * Asynchronous variant of {@link #build()} that returns a {@link DeferredTerminal} immediately.
+     *
+     * <p>The real terminal is constructed on a daemon thread. The returned proxy provides
+     * optimistic defaults for most methods so callers can produce output without blocking:</p>
+     * <ul>
+     *   <li>{@link Terminal#writer()} — returns a buffering writer; output is replayed through the
+     *       real terminal's writer once construction completes (no messages are lost)</li>
+     *   <li>{@link Terminal#getType()} — returns the {@code TERM} env var; {@code "dumb"} when
+     *       {@code NO_COLOR} is set or {@code TERM=dumb}; on Windows, checks {@code WT_SESSION},
+     *       {@code ConEmuANSI}, {@code ANSICON}, {@code TERM_PROGRAM} for ANSI support;
+     *       {@code "ansi"} on non-Windows when {@code TERM} is unset</li>
+     *   <li>{@link Terminal#getSize()}, {@link Terminal#getColumns()}, {@link Terminal#getRows()} —
+     *       return values from the {@code COLUMNS}/{@code LINES} environment variables, defaulting
+     *       to 120×40</li>
+     *   <li>{@link Terminal#getNumericCapability} for {@code max_colors} — detected from
+     *       {@code COLORTERM} (truecolor/24bit → 16M) and {@code TERM} (*-256color → 256),
+     *       defaulting to 256</li>
+     *   <li>{@link Terminal#getPalette()} — returns a default palette (no terminal query)</li>
+     *   <li>Other capabilities — return {@code false}/{@code null} (no terminfo lookup)</li>
+     * </ul>
+     *
+     * <p>These are <em>heuristic defaults</em>, not the result of real terminal detection.
+     * They work well for typical output rendering (colored log messages, version display) but
+     * may not match the actual terminal's capabilities. Methods that require the real terminal
+     * (input, signal handling, raw mode, cursor position queries) block until construction
+     * completes.</p>
+     *
+     * <p>If the process exits before the terminal is ready, {@link Terminal#close()} drains
+     * buffered output to {@code System.out}.</p>
+     *
+     * @return a terminal proxy that completes in the background
+     * @since 4.7.0
+     */
+    public Terminal buildDeferred() {
+        if (in != null || out != null) {
+            throw new IllegalStateException("buildDeferred() is only supported for system terminals. "
+                    + "Use build() for terminals with custom streams.");
+        }
+        DeferredTerminal deferred = new DeferredTerminal();
+        Thread t = new Thread(
+                () -> {
+                    try {
+                        Terminal built = build();
+                        if (!deferred.complete(built)) {
+                            closeQuietly(built);
+                        }
+                    } catch (Exception e) {
+                        deferred.completeExceptionally(e);
+                    }
+                },
+                "jline-terminal-build");
+        t.setDaemon(true);
+        t.start();
+        return deferred;
+    }
+
+    private static void closeQuietly(Terminal terminal) {
+        try {
+            terminal.close();
+        } catch (IOException ignored) {
+            // best-effort cleanup when close() raced with cancel()
+        }
+    }
+
     private Terminal doBuild() throws IOException {
         String name = this.name;
         if (name == null) {
@@ -925,7 +992,7 @@ public final class TerminalBuilder {
             dumb = getBoolean(PROP_DUMB, null);
         }
         IllegalStateException exception = new IllegalStateException("Unable to create a terminal");
-        List<TerminalProvider> providers = getProviders(provider, exception);
+        List<TerminalProvider> providers = getProviders(provider, exception, false);
 
         // Query providers for console codepage (Windows auto-detection)
         int consoleCodepage = -1;
@@ -941,6 +1008,8 @@ public final class TerminalBuilder {
         Charset stdoutEncoding = computeStdoutEncoding();
         Charset stderrEncoding = computeStderrEncoding();
         Terminal terminal = null;
+        SystemStream systemStream = null;
+        boolean ansiPassThrough = false;
         if ((system != null && system) || (system == null && in == null && out == null)) {
             if (system != null
                     && ((in != null && !in.equals(System.in))
@@ -954,13 +1023,13 @@ public final class TerminalBuilder {
             Map<SystemStream, Boolean> system = Stream.of(SystemStream.values())
                     .collect(Collectors.toMap(
                             stream -> stream, stream -> providers.stream().anyMatch(p -> p.isSystemStream(stream))));
-            SystemStream systemStream = select(system, systemOutput);
+            systemStream = select(system, systemOutput);
 
             if (!forceDumb && system.get(SystemStream.Input) && systemStream != null) {
                 if (attributes != null || size != null) {
                     Log.warn("Attributes and size fields are ignored when creating a system terminal");
                 }
-                boolean ansiPassThrough = OSUtils.IS_CONEMU;
+                ansiPassThrough = OSUtils.IS_CONEMU;
                 // Cygwin defaults to XTERM, but actually supports 256 colors,
                 // so if the value comes from the environment, change it to xterm-256color
                 if ((OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM)
@@ -1107,6 +1176,48 @@ public final class TerminalBuilder {
                         Log.debug("Error creating " + prov.name() + " based terminal: ", t.getMessage(), t);
                         exception.addSuppressed(t);
                     }
+                }
+            }
+        }
+        if (terminal == null) {
+            // If the short-circuited provider list failed, reload all providers and retry
+            // with the ones not yet tried.
+            List<TerminalProvider> allProviders = getProviders(provider, exception, true);
+            for (TerminalProvider prov : allProviders) {
+                if (providers.contains(prov) || terminal != null) {
+                    continue;
+                }
+                try {
+                    if (in != null || out != null) {
+                        terminal = prov.newTerminal(
+                                name,
+                                type,
+                                in,
+                                out,
+                                encoding,
+                                stdinEncoding,
+                                stdoutEncoding,
+                                signalHandler,
+                                paused,
+                                attributes,
+                                size);
+                    } else if (systemStream != null) {
+                        Charset outputEncoding = systemStream == SystemStream.Error ? stderrEncoding : stdoutEncoding;
+                        terminal = prov.sysTerminal(
+                                name,
+                                type,
+                                ansiPassThrough,
+                                encoding,
+                                stdinEncoding,
+                                outputEncoding,
+                                nativeSignals,
+                                signalHandler,
+                                paused,
+                                systemStream);
+                    }
+                } catch (Throwable t) {
+                    Log.debug("Error creating " + prov.name() + " based terminal: ", t.getMessage(), t);
+                    exception.addSuppressed(t);
                 }
             }
         }
@@ -1296,31 +1407,48 @@ public final class TerminalBuilder {
     }
 
     /**
-     * Get the list of available terminal providers.
-     * This list is sorted according to the {@link #PROP_PROVIDERS} system property.
+     * Get the available terminal providers.
+     *
+     * <p>Providers are tried in the order specified by the {@link #PROP_PROVIDERS} system property.
+     * When {@code all} is {@code false}, only the first provider that loads successfully is returned
+     * (short-circuit), avoiding the cost of loading later providers (e.g. JNI native lib extraction).
+     * When {@code all} is {@code true}, all available providers are loaded for fallback.</p>
+     *
      * @param provider if not {@code null}, only this provider will be checked
      * @param exception if a provider throws an exception, it will be added to this exception as a suppressed exception
-     * @return a list of terminal providers
+     * @param all if {@code true}, load all providers; if {@code false}, stop after the first success
+     * @return the list of available terminal providers in preference order
      */
-    public List<TerminalProvider> getProviders(String provider, IllegalStateException exception) {
+    public List<TerminalProvider> getProviders(String provider, IllegalStateException exception, boolean all) {
         List<TerminalProvider> providers = new ArrayList<>();
-        // Check ffm provider
-        checkProvider(provider, exception, providers, ffm, PROP_FFM, PROP_PROVIDER_FFM, classLoader);
-        // Check jni provider
-        checkProvider(provider, exception, providers, jni, PROP_JNI, PROP_PROVIDER_JNI, classLoader);
-        // Check exec provider
-        checkProvider(provider, exception, providers, exec, PROP_EXEC, PROP_PROVIDER_EXEC, classLoader);
-        // Order providers
         List<String> order = Arrays.asList(
                 (this.providers != null ? this.providers : System.getProperty(PROP_PROVIDERS, PROP_PROVIDERS_DEFAULT))
                         .split(","));
-        providers.sort(Comparator.comparing(l -> {
-            int idx = order.indexOf(l.name());
-            return idx >= 0 ? idx : Integer.MAX_VALUE;
-        }));
+        for (String providerName : order) {
+            providerName = providerName.trim();
+            if (providerName.equals(PROP_PROVIDER_FFM)) {
+                checkProvider(provider, exception, providers, ffm, PROP_FFM, PROP_PROVIDER_FFM, classLoader);
+            } else if (providerName.equals(PROP_PROVIDER_JNI)) {
+                checkProvider(provider, exception, providers, jni, PROP_JNI, PROP_PROVIDER_JNI, classLoader);
+            } else if (providerName.equals(PROP_PROVIDER_EXEC)) {
+                checkProvider(provider, exception, providers, exec, PROP_EXEC, PROP_PROVIDER_EXEC, classLoader);
+            }
+            if (!all && !providers.isEmpty()) {
+                break;
+            }
+        }
         String names = providers.stream().map(TerminalProvider::name).collect(Collectors.joining(", "));
         Log.debug("Available providers: " + names);
         return providers;
+    }
+
+    /**
+     * Get the available terminal providers, short-circuiting after the first success.
+     *
+     * @see #getProviders(String, IllegalStateException, boolean)
+     */
+    public List<TerminalProvider> getProviders(String provider, IllegalStateException exception) {
+        return getProviders(provider, exception, false);
     }
 
     private void checkProvider(
