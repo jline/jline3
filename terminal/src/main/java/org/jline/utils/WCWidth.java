@@ -645,7 +645,7 @@ public final class WCWidth {
         int cp = Character.codePointAt(cs, index);
         int w = wcwidth(cp);
 
-        // Scan the cluster for variation selectors
+        // Scan the cluster for variation selectors and halfwidth voiced sound marks
         int end = index + clusterCharCount;
         int pos = index + Character.charCount(cp);
         while (pos < end) {
@@ -654,6 +654,13 @@ public final class WCWidth {
                 return 2; // VS16 — emoji presentation (width 2)
             } else if (ncp == 0xFE0E) {
                 return 1; // VS15 — text presentation (width 1)
+            } else if (ncp == 0xFF9E || ncp == 0xFF9F) {
+                // Halfwidth katakana voiced (U+FF9E) and semi-voiced (U+FF9F) sound marks are
+                // grapheme extenders whose general category is Lm (Letter Modifier), not Mn/Me/Cf.
+                // They are not in the combining table so wcwidth() returns 1 for each.
+                // When JDK BreakIterator groups them into a cluster with the preceding halfwidth
+                // katakana base character, we must add their individual display width to the total.
+                w += 1;
             }
             pos += Character.charCount(ncp);
         }
