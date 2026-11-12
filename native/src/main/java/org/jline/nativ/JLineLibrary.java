@@ -14,8 +14,8 @@ import java.io.FileDescriptor;
  * Native interface for JLine's low-level system operations.
  * <p>
  * This class provides access to native methods that are implemented in the JLine native library.
- * It automatically initializes the native library using {@link JLineNativeLoader#initialize()}
- * when the class is loaded.
+ * Before calling any method in this class, the native library must be loaded by calling
+ * {@link JLineNativeLoader#initialize()}.
  * <p>
  * The native methods in this class provide functionality that is not available through standard
  * Java APIs, such as creating file descriptors and process redirects directly from file descriptors.
@@ -37,10 +37,6 @@ public class JLineLibrary {
      */
     private JLineLibrary() {
         // Utility class
-    }
-
-    static {
-        JLineNativeLoader.initialize();
     }
 
     public static native FileDescriptor newFileDescriptor(int fd);
