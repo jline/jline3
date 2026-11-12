@@ -1243,19 +1243,26 @@ public class LineReaderImpl implements LineReader, Flushable {
 
     @Override
     public void editAndAddInBuffer(Path file) throws Exception {
-        if (isSet(Option.BRACKETED_PASTE)) {
+        boolean bracketedPaste = isSet(Option.BRACKETED_PASTE);
+        if (bracketedPaste) {
             terminal.writer().write(BRACKETED_PASTE_OFF);
         }
-        Constructor<?> ctor = Class.forName("org.jline.builtins.Nano").getConstructor(Terminal.class, Path.class);
-        Editor editor = (Editor) ctor.newInstance(terminal, file.getParent());
-        editor.setRestricted(true);
-        editor.open(Collections.singletonList(file.getFileName().toString()));
-        editor.run();
-        try (BufferedReader br = Files.newBufferedReader(file)) {
-            String line;
-            commandsBuffer.clear();
-            while ((line = br.readLine()) != null) {
-                commandsBuffer.add(line);
+        try {
+            Constructor<?> ctor = Class.forName("org.jline.builtins.Nano").getConstructor(Terminal.class, Path.class);
+            Editor editor = (Editor) ctor.newInstance(terminal, file.getParent());
+            editor.setRestricted(true);
+            editor.open(Collections.singletonList(file.getFileName().toString()));
+            editor.run();
+            try (BufferedReader br = Files.newBufferedReader(file)) {
+                String line;
+                commandsBuffer.clear();
+                while ((line = br.readLine()) != null) {
+                    commandsBuffer.add(line);
+                }
+            }
+        } finally {
+            if (bracketedPaste) {
+                terminal.writer().write(BRACKETED_PASTE_ON);
             }
         }
     }
@@ -4084,7 +4091,6 @@ public class LineReaderImpl implements LineReader, Flushable {
     }
 
     protected boolean editAndExecute() {
-        boolean out = true;
         File file = null;
         try {
             file = ReaderUtils.createSecureTempFile("jline-execute-", null);
@@ -4092,16 +4098,16 @@ public class LineReaderImpl implements LineReader, Flushable {
                 writer.write(buf.toString());
             }
             editAndAddInBuffer(file);
+            state = State.IGNORE;
+            return true;
         } catch (Exception e) {
             e.printStackTrace(terminal.writer());
-            out = false;
+            return false;
         } finally {
-            state = State.IGNORE;
             if (file != null && file.exists()) {
                 file.delete();
             }
         }
-        return out;
     }
 
     @SuppressWarnings("java:S1845") // widget method intentionally matches its constant name
