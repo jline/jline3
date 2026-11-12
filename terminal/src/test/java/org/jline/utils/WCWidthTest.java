@@ -341,6 +341,9 @@ class WCWidthTest {
         // BreakIterator groups with the preceding halfwidth katakana base into one grapheme
         // cluster. Each mark is visually a distinct halfwidth glyph (width 1), so the cluster
         // width must be base_width + 1 per mark.
+        // BreakIterator-based grouping requires JDK 21+; on older JDKs the legacy path treats
+        // each code point separately and this test is not applicable.
+        assumeTrue(WCWidth.HAS_JDK_GRAPHEME_SUPPORT, "Requires JDK 21+ grapheme support");
         //
         // ﾊﾟ = U+FF8A (HA, halfwidth, width 1) + U+FF9F (semi-voiced, Lm, width 1) → width 2
         String haPa = "\uFF8A\uFF9F";

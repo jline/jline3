@@ -618,7 +618,10 @@ public final class WCWidth {
      * VS16 ({@code U+FE0F}) upgrades the cluster to emoji presentation (width 2),
      * while VS15 ({@code U+FE0E}) downgrades it to text presentation (width 1).
      * When neither is present, the width of the base code point (via
-     * {@link #wcwidth(int)}) is used.</p>
+     * {@link #wcwidth(int)}) is used, with one addition: halfwidth katakana voiced
+     * ({@code U+FF9E}) and semi-voiced ({@code U+FF9F}) sound marks each contribute
+     * 1 column to the cluster total, since they are grapheme extenders whose general
+     * category is Lm (not Mn/Me/Cf) and are therefore not in the combining table.</p>
      *
      * @param cs    the character sequence
      * @param index the starting char index
