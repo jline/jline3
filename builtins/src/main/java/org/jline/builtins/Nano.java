@@ -876,7 +876,7 @@ public class Nano implements Editor {
                 middle = "New Buffer";
             } else {
                 int max = mend - mstart;
-                String src = file;
+                String src = replaceControlChars(file);
                 if ("File: ".length() + src.length() > max) {
                     int lastSep = src.lastIndexOf('/');
                     if (lastSep > 0) {
@@ -937,13 +937,11 @@ public class Nano implements Editor {
         }
 
         void highlightDisplayedLine(int curLine, int curOffset, int nextOffset, AttributedStringBuilder line) {
+            String text = replaceControlChars(getLine(curLine));
             AttributedString disp = highlight
                     ? syntaxHighlighter.highlight(
-                            new AttributedStringBuilder().tabs(tabs).append(getLine(curLine)))
-                    : new AttributedStringBuilder()
-                            .tabs(tabs)
-                            .append(getLine(curLine))
-                            .toAttributedString();
+                            new AttributedStringBuilder().tabs(tabs).append(text))
+                    : new AttributedStringBuilder().tabs(tabs).append(text).toAttributedString();
             int[] hls = highlightStart();
             int[] hle = highlightEnd();
             if (hls[0] == -1 || hle[0] == -1) {
@@ -1034,7 +1032,7 @@ public class Nano implements Editor {
                     if (!wrapping) {
                         AttributedString disp = new AttributedStringBuilder()
                                 .tabs(tabs)
-                                .append(getLine(curLine))
+                                .append(replaceControlChars(getLine(curLine)))
                                 .toAttributedString();
                         if (this.line == curLine) {
                             int cutCount = 1;
@@ -3250,6 +3248,36 @@ public class Nano implements Editor {
         }
     }
 
+    /**
+     * Replace each control character with a single visible column so that file
+     * content cannot emit escape sequences to the terminal, while keeping the
+     * one-column-per-char layout the cursor and wrapping code relies on.
+     */
+    private static String replaceControlChars(String text) {
+        StringBuilder sb = null;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            char r;
+            if (c < 0x20 && c != '\t') {
+                r = (char) (0x2400 + c); // Unicode Control Pictures, e.g. U+241B for ESC
+            } else if (c == 0x7f) {
+                r = '\u2421';
+            } else if (c >= 0x80 && c < 0xa0) {
+                r = '\ufffd';
+            } else {
+                if (sb != null) {
+                    sb.append(c);
+                }
+                continue;
+            }
+            if (sb == null) {
+                sb = new StringBuilder(text.length()).append(text, 0, i);
+            }
+            sb.append(r);
+        }
+        return sb != null ? sb.toString() : text;
+    }
+
     void setMessage(String message) {
         this.message = message;
         this.nbBindings = quickBlank ? 2 : 25;
@@ -3781,7 +3809,7 @@ public class Nano implements Editor {
             footer.add(sb.toAttributedString());
         } else if (message != null || constantCursor) {
             int rwidth = size.getColumns();
-            String text = "[ " + (message == null ? computeCurPos() : message) + " ]";
+            String text = "[ " + (message == null ? computeCurPos() : replaceControlChars(message)) + " ]";
             int len = text.length();
             AttributedStringBuilder sb = new AttributedStringBuilder();
             for (int i = 0; i < (rwidth - len) / 2; i++) {

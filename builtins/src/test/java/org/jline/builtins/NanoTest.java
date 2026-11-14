@@ -137,4 +137,73 @@ class NanoTest {
             Files.deleteIfExists(root);
         }
     }
+
+    @Test
+    @Timeout(10)
+    void controlCharactersInFileAreNotSentToTerminal() throws Exception {
+        Path root = Files.createTempDirectory("nano-control-chars");
+        String name = "evil\u001b]2;name\u0007.txt";
+        Path file = root.resolve(name);
+        Files.write(file, "a\u001b]0;pwned\u0007b\u001b[3Jc\u009b2Jd\u007fe\n".getBytes(StandardCharsets.UTF_8));
+        try {
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            try (LineDisciplineTerminal terminal =
+                    new LineDisciplineTerminal("nano", "xterm", output, StandardCharsets.UTF_8)) {
+                terminal.setSize(Size.of(80, 25));
+                terminal.processInputByte(KeyMap.ctrl('X').getBytes()[0]);
+                String[] argv = {"--ignorercfiles"};
+                Nano nano =
+                        new Nano(terminal, root, Options.compile(Nano.usage()).parse(argv));
+                nano.open(name);
+                nano.run();
+            }
+            String out = output.toString(StandardCharsets.UTF_8);
+            assertFalse(out.contains("\u001b]"), "file content or name must not emit an OSC sequence");
+            assertFalse(out.contains("\u0007"), "file content or name must not emit BEL");
+            assertFalse(out.contains("\u001b[3J"), "file content must not emit a CSI sequence");
+            assertFalse(out.contains("\u009b"), "file content must not emit an 8-bit CSI");
+            assertTrue(
+                    out.contains("a\u241b]0;pwned\u2407b\u241b[3Jc\ufffd2Jd\u2421e"),
+                    "control characters must be shown as visible placeholders");
+            assertTrue(out.contains("evil\u241b]2;name\u2407.txt"), "file name must be shown with placeholders");
+        } finally {
+            Files.deleteIfExists(file);
+            Files.deleteIfExists(root);
+        }
+    }
+
+    @Test
+    @Timeout(10)
+    void controlCharactersInStatusMessageAreNotSentToTerminal() throws Exception {
+        Path root = Files.createTempDirectory("nano-control-chars-msg");
+        String name = "evil\u001b]2;name\u0007.txt";
+        Path first = Files.write(root.resolve("first.txt"), "x\n".getBytes(StandardCharsets.UTF_8));
+        Path file = Files.write(root.resolve(name), "y\n".getBytes(StandardCharsets.UTF_8));
+        try {
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            try (LineDisciplineTerminal terminal =
+                    new LineDisciplineTerminal("nano", "xterm", output, StandardCharsets.UTF_8)) {
+                terminal.setSize(Size.of(80, 25));
+                // M-. (next buffer) shows "Switched to File: <name>" in the status line
+                terminal.processInputByte(27);
+                terminal.processInputByte('.');
+                terminal.processInputByte(KeyMap.ctrl('X').getBytes()[0]);
+                terminal.processInputByte(KeyMap.ctrl('X').getBytes()[0]);
+                String[] argv = {"--ignorercfiles"};
+                Nano nano =
+                        new Nano(terminal, root, Options.compile(Nano.usage()).parse(argv));
+                nano.open("first.txt", name);
+                nano.run();
+            }
+            String out = output.toString(StandardCharsets.UTF_8);
+            assertFalse(out.contains("\u001b]"), "status message must not emit an OSC sequence");
+            assertTrue(
+                    out.contains("[ Switched to File: evil\u241b]2;name\u2407.txt ]"),
+                    "status message must be shown with placeholders");
+        } finally {
+            Files.deleteIfExists(file);
+            Files.deleteIfExists(first);
+            Files.deleteIfExists(root);
+        }
+    }
 }
