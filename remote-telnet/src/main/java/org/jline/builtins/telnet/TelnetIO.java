@@ -309,6 +309,7 @@ public class TelnetIO {
     private InetAddress localAddress; // address of the host the telnetd is running on
     private boolean noIac = false; // describes if IAC was found and if its just processed
     private boolean initializing;
+    private boolean negotiated; // the peer has sent at least one telnet command
     private boolean crFlag;
     /**
      * Creates a TelnetIO object for the given connection.<br>
@@ -474,6 +475,7 @@ public class TelnetIO {
              */
             c = rawread();
             if (c != 255) {
+                negotiated = true;
                 iacHandler.handleC(c);
                 c = rawread();
             } else {
@@ -546,9 +548,10 @@ public class TelnetIO {
     /**
      * Method that initializes the telnet communication layer.
      */
-    private void initTelnetCommunication() {
+    private void initTelnetCommunication() throws IOException {
 
         initializing = true;
+        boolean dataBeforeNegotiation = false;
         try {
             // start out, some clients just wait
             if (connectionData.isLineMode()) {
@@ -561,6 +564,8 @@ public class TelnetIO {
             // open for a defined timeout so we read incoming negotiation
             connectionData.getSocket().setSoTimeout(1000);
             read();
+            // read() only returns once a data byte arrived within the window
+            dataBeforeNegotiation = !negotiated;
 
         } catch (Exception e) {
             // handle properly
@@ -574,6 +579,12 @@ public class TelnetIO {
             }
         }
         initializing = false;
+        // A telnet client answers the option requests above before it sends data. A peer that
+        // sends data without negotiating speaks another protocol, e.g. a browser that a web page
+        // made POST to this port: the shell would read the request headers and body as commands.
+        if (dataBeforeNegotiation) {
+            throw new IOException("Peer sent data before telnet option negotiation, closing connection");
+        }
     } // initTelnetCommunication
 
     /**
