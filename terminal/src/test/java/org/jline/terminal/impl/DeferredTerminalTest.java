@@ -17,7 +17,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStyle;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.parallel.Resources;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -78,6 +85,112 @@ class DeferredTerminalTest {
         deferred.complete(real);
         assertEquals(real.getType(), deferred.getType());
         deferred.close();
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void completedTerminalOverridesPendingColorPreference(boolean color) throws Exception {
+        DeferredTerminal deferred = new DeferredTerminal(color);
+        AttributedString text = new AttributedString("hello", AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+        try {
+            assertEquals(color ? "\u001b[31mhello\u001b[0m" : "hello", text.toAnsi(deferred));
+            Terminal real = new DumbTerminal(
+                    "test",
+                    color ? Terminal.TYPE_DUMB : Terminal.TYPE_DUMB_COLOR,
+                    new ByteArrayInputStream(new byte[0]),
+                    new ByteArrayOutputStream(),
+                    null);
+            deferred.complete(real);
+            assertEquals(color ? "hello" : "\u001b[31mhello\u001b[0m", text.toAnsi(deferred));
+        } finally {
+            deferred.close();
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void builderColorPreferenceAppliesBeforeAndAfterCompletion(boolean color) throws Exception {
+        assertBuilderColorPreference(color, color);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    @ResourceLock(Resources.SYSTEM_PROPERTIES)
+    void builderColorPreferenceOverridesSystemProperty(boolean color) throws Exception {
+        String previous = System.getProperty(TerminalBuilder.PROP_DUMB_COLOR);
+        try {
+            System.setProperty(TerminalBuilder.PROP_DUMB_COLOR, Boolean.toString(!color));
+            assertBuilderColorPreference(color, color);
+        } finally {
+            restoreColorProperty(previous);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    @ResourceLock(Resources.SYSTEM_PROPERTIES)
+    void builderUsesSystemPropertyColorPreference(boolean color) throws Exception {
+        String previous = System.getProperty(TerminalBuilder.PROP_DUMB_COLOR);
+        try {
+            System.setProperty(TerminalBuilder.PROP_DUMB_COLOR, Boolean.toString(color));
+            assertBuilderColorPreference(null, color);
+        } finally {
+            restoreColorProperty(previous);
+        }
+    }
+
+    private void restoreColorProperty(String previous) {
+        if (previous == null) {
+            System.clearProperty(TerminalBuilder.PROP_DUMB_COLOR);
+        } else {
+            System.setProperty(TerminalBuilder.PROP_DUMB_COLOR, previous);
+        }
+    }
+
+    private void assertBuilderColorPreference(Boolean color, boolean expectedColor) throws Exception {
+        CountDownLatch building = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        TerminalBuilder builder = TerminalBuilder.builder()
+                .dumb(true)
+                .ffm(false)
+                .jni(false)
+                .exec(false)
+                .graphemeCluster(false)
+                .env(name -> {
+                    if ("TERM".equals(name)) {
+                        building.countDown();
+                        try {
+                            if (!release.await(5, TimeUnit.SECONDS)) {
+                                throw new IllegalStateException("Terminal construction was not released");
+                            }
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            throw new IllegalStateException(e);
+                        }
+                        return "dumb";
+                    }
+                    return null;
+                });
+        if (color != null) {
+            builder.color(color);
+        }
+        DeferredTerminal deferred = (DeferredTerminal) builder.buildDeferred();
+        CompletableFuture<Terminal> completed = new CompletableFuture<>();
+        deferred.onComplete(completed::complete);
+        AttributedString text = new AttributedString("hello", AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+        String expected = expectedColor ? "\u001b[31mhello\u001b[0m" : "hello";
+        try {
+            assertTrue(building.await(5, TimeUnit.SECONDS));
+            assertFalse(deferred.isReady());
+            assertEquals(expected, text.toAnsi(deferred));
+            release.countDown();
+            Terminal terminal = completed.get(5, TimeUnit.SECONDS);
+            assertEquals(expected, text.toAnsi(terminal));
+            assertEquals(expected, text.toAnsi(deferred));
+        } finally {
+            release.countDown();
+            deferred.close();
+        }
     }
 
     @Test
