@@ -475,7 +475,7 @@ public class TelnetIO {
              */
             c = rawread();
             if (c != 255) {
-                negotiated = true;
+                negotiated = true; // peer sent a telnet command byte after IAC → confirmed telnet
                 iacHandler.handleC(c);
                 c = rawread();
             } else {
