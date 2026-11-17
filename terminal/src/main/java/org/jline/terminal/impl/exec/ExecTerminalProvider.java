@@ -487,6 +487,9 @@ public class ExecTerminalProvider implements TerminalProvider {
     }
 
     public boolean isPosixSystemStream(SystemStream stream) {
+        if (OSUtils.TEST_COMMAND == null) {
+            return false;
+        }
         try {
             ProcessBuilder pb = new ProcessBuilder(OSUtils.TEST_COMMAND, "-t", Integer.toString(stream.ordinal()));
 
@@ -539,6 +542,9 @@ public class ExecTerminalProvider implements TerminalProvider {
      */
     @Override
     public String systemStreamName(SystemStream stream) {
+        if (OSUtils.TTY_COMMAND == null) {
+            return null;
+        }
         try {
             ProcessBuilder pb = new ProcessBuilder(OSUtils.TTY_COMMAND);
 

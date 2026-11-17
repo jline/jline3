@@ -78,6 +78,7 @@ public class OSUtils {
 
     public static final boolean IS_CONEMU = IS_WINDOWS && System.getenv("ConEmuPID") != null;
 
+    // On Windows, these are null when the command is not found on PATH (see findCommand).
     public static String TTY_COMMAND;
     public static String STTY_COMMAND;
     public static String STTY_F_OPTION;
@@ -88,53 +89,34 @@ public class OSUtils {
         return f.canExecute() && !f.isDirectory();
     }
 
-    static {
-        boolean cygwinOrMsys = OSUtils.IS_CYGWIN || OSUtils.IS_MSYSTEM;
-        String suffix = cygwinOrMsys ? ".exe" : "";
-        String tty = null;
-        String stty = null;
-        String sttyfopt = null;
-        String infocmp = null;
-        String test = null;
-        String path = System.getenv("PATH");
+    /**
+     * Looks {@code name} up in the directories of {@code path}.
+     * <p>
+     * On Windows the {@code .exe} file is searched for and the result is {@code null} when it is
+     * not on the path: a bare name would be resolved by {@code CreateProcess}, which looks in the
+     * current directory before {@code PATH}, so a {@code tty.exe} or {@code infocmp.exe} dropped
+     * in the working directory would be run. Elsewhere the bare name is returned, which the JDK
+     * resolves through {@code PATH} only.
+     */
+    static String findCommand(String name, String path, boolean windows) {
+        String file = windows ? name + ".exe" : name;
         if (path != null) {
-            String[] paths = path.split(File.pathSeparator);
-            for (String p : paths) {
-                File ttyFile = new File(p, "tty" + suffix);
-                if (tty == null && isExecutable(ttyFile)) {
-                    tty = ttyFile.getAbsolutePath();
-                }
-                File sttyFile = new File(p, "stty" + suffix);
-                if (stty == null && isExecutable(sttyFile)) {
-                    stty = sttyFile.getAbsolutePath();
-                }
-                File infocmpFile = new File(p, "infocmp" + suffix);
-                if (infocmp == null && isExecutable(infocmpFile)) {
-                    infocmp = infocmpFile.getAbsolutePath();
-                }
-                File testFile = new File(p, "test" + suffix);
-                if (test == null && isExecutable(testFile)) {
-                    test = testFile.getAbsolutePath();
+            for (String p : path.split(File.pathSeparator)) {
+                File f = new File(p, file);
+                if (isExecutable(f)) {
+                    return f.getAbsolutePath();
                 }
             }
         }
-        if (tty == null) {
-            tty = "tty" + suffix;
-        }
-        if (stty == null) {
-            stty = "stty" + suffix;
-        }
-        if (infocmp == null) {
-            infocmp = "infocmp" + suffix;
-        }
-        if (test == null) {
-            test = "test" + suffix;
-        }
-        sttyfopt = IS_OSX ? "-f" : "-F";
-        TTY_COMMAND = tty;
-        STTY_COMMAND = stty;
-        STTY_F_OPTION = sttyfopt;
-        INFOCMP_COMMAND = infocmp;
-        TEST_COMMAND = test;
+        return windows ? null : name;
+    }
+
+    static {
+        String path = System.getenv("PATH");
+        TTY_COMMAND = findCommand("tty", path, IS_WINDOWS);
+        STTY_COMMAND = findCommand("stty", path, IS_WINDOWS);
+        STTY_F_OPTION = IS_OSX ? "-f" : "-F";
+        INFOCMP_COMMAND = findCommand("infocmp", path, IS_WINDOWS);
+        TEST_COMMAND = findCommand("test", path, IS_WINDOWS);
     }
 }
