@@ -10,16 +10,21 @@ package org.jline.builtins;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 import org.jline.keymap.KeyMap;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Attributes.InputFlag;
+import org.jline.terminal.Attributes.LocalFlag;
 import org.jline.terminal.Size;
 import org.jline.terminal.impl.LineDisciplineTerminal;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+
+import com.google.common.jimfs.Configuration;
+import com.google.common.jimfs.Jimfs;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -138,26 +143,18 @@ class NanoTest {
         }
     }
 
+    // Unix-style Jimfs so file names may carry ESC/BEL on every OS (Windows rejects them)
+    private static final String EVIL_NAME = "evil\u001b]2;name\u0007.txt";
+
     @Test
     @Timeout(10)
     void controlCharactersInFileAreNotSentToTerminal() throws Exception {
-        Path root = Files.createTempDirectory("nano-control-chars");
-        String name = "evil\u001b]2;name\u0007.txt";
-        Path file = root.resolve(name);
-        Files.write(file, "a\u001b]0;pwned\u0007b\u001b[3Jc\u009b2Jd\u007fe\n".getBytes(StandardCharsets.UTF_8));
-        try {
-            ByteArrayOutputStream output = new ByteArrayOutputStream();
-            try (LineDisciplineTerminal terminal =
-                    new LineDisciplineTerminal("nano", "xterm", output, StandardCharsets.UTF_8)) {
-                terminal.setSize(Size.of(80, 25));
-                terminal.processInputByte(KeyMap.ctrl('X').getBytes()[0]);
-                String[] argv = {"--ignorercfiles"};
-                Nano nano =
-                        new Nano(terminal, root, Options.compile(Nano.usage()).parse(argv));
-                nano.open(name);
-                nano.run();
-            }
-            String out = output.toString(StandardCharsets.UTF_8);
+        try (FileSystem fs = Jimfs.newFileSystem(Configuration.unix())) {
+            Path root = Files.createDirectories(fs.getPath("/work"));
+            Files.write(
+                    root.resolve(EVIL_NAME),
+                    "a\u001b]0;pwned\u0007b\u001b[3Jc\u009b2Jd\u007fe\n".getBytes(StandardCharsets.UTF_8));
+            String out = runNano(root, KeyMap.ctrl('X'), EVIL_NAME);
             assertFalse(out.contains("\u001b]"), "file content or name must not emit an OSC sequence");
             assertFalse(out.contains("\u0007"), "file content or name must not emit BEL");
             assertFalse(out.contains("\u001b[3J"), "file content must not emit a CSI sequence");
@@ -166,44 +163,74 @@ class NanoTest {
                     out.contains("a\u241b]0;pwned\u2407b\u241b[3Jc\ufffd2Jd\u2421e"),
                     "control characters must be shown as visible placeholders");
             assertTrue(out.contains("evil\u241b]2;name\u2407.txt"), "file name must be shown with placeholders");
-        } finally {
-            Files.deleteIfExists(file);
-            Files.deleteIfExists(root);
         }
     }
 
     @Test
     @Timeout(10)
     void controlCharactersInStatusMessageAreNotSentToTerminal() throws Exception {
-        Path root = Files.createTempDirectory("nano-control-chars-msg");
-        String name = "evil\u001b]2;name\u0007.txt";
-        Path first = Files.write(root.resolve("first.txt"), "x\n".getBytes(StandardCharsets.UTF_8));
-        Path file = Files.write(root.resolve(name), "y\n".getBytes(StandardCharsets.UTF_8));
-        try {
-            ByteArrayOutputStream output = new ByteArrayOutputStream();
-            try (LineDisciplineTerminal terminal =
-                    new LineDisciplineTerminal("nano", "xterm", output, StandardCharsets.UTF_8)) {
-                terminal.setSize(Size.of(80, 25));
-                // M-. (next buffer) shows "Switched to File: <name>" in the status line
-                terminal.processInputByte(27);
-                terminal.processInputByte('.');
-                terminal.processInputByte(KeyMap.ctrl('X').getBytes()[0]);
-                terminal.processInputByte(KeyMap.ctrl('X').getBytes()[0]);
-                String[] argv = {"--ignorercfiles"};
-                Nano nano =
-                        new Nano(terminal, root, Options.compile(Nano.usage()).parse(argv));
-                nano.open("first.txt", name);
-                nano.run();
-            }
-            String out = output.toString(StandardCharsets.UTF_8);
+        try (FileSystem fs = Jimfs.newFileSystem(Configuration.unix())) {
+            Path root = Files.createDirectories(fs.getPath("/work"));
+            Files.write(root.resolve("first.txt"), "x\n".getBytes(StandardCharsets.UTF_8));
+            Files.write(root.resolve(EVIL_NAME), "y\n".getBytes(StandardCharsets.UTF_8));
+            // M-. (next buffer) shows "Switched to File: <name>" in the status line
+            String out = runNano(root, KeyMap.alt('.') + KeyMap.ctrl('X') + KeyMap.ctrl('X'), "first.txt", EVIL_NAME);
             assertFalse(out.contains("\u001b]"), "status message must not emit an OSC sequence");
             assertTrue(
                     out.contains("[ Switched to File: evil\u241b]2;name\u2407.txt ]"),
                     "status message must be shown with placeholders");
-        } finally {
-            Files.deleteIfExists(file);
-            Files.deleteIfExists(first);
-            Files.deleteIfExists(root);
         }
+    }
+
+    @Test
+    @Timeout(10)
+    void controlCharactersInWriteOutPromptAreNotSentToTerminal() throws Exception {
+        try (FileSystem fs = Jimfs.newFileSystem(Configuration.unix())) {
+            Path root = Files.createDirectories(fs.getPath("/work"));
+            Files.write(root.resolve(EVIL_NAME), "y\n".getBytes(StandardCharsets.UTF_8));
+            // ^O pre-fills the write-out prompt with the file name, ^C cancels it, ^X quits
+            String out = runNano(root, KeyMap.ctrl('O') + KeyMap.ctrl('C') + KeyMap.ctrl('X'), EVIL_NAME);
+            assertFalse(out.contains("\u001b]"), "write-out prompt must not emit an OSC sequence");
+            assertFalse(out.contains("\u0007"), "write-out prompt must not emit BEL");
+            assertTrue(
+                    out.contains("File Name to Write: evil\u241b]2;name\u2407.txt"),
+                    "write-out prompt must show the file name with placeholders");
+        }
+    }
+
+    @Test
+    @Timeout(10)
+    void endOfLineCountsControlCharacterPlaceholders() throws Exception {
+        try (FileSystem fs = Jimfs.newFileSystem(Configuration.unix())) {
+            Path root = Files.createDirectories(fs.getPath("/work"));
+            Path file = Files.write(root.resolve("nul.txt"), "a\u0000b\n".getBytes(StandardCharsets.UTF_8));
+            // ^E (end of line), type X, ^O + Enter to save under the same name, ^X quits
+            runNano(root, KeyMap.ctrl('E') + "X" + KeyMap.ctrl('O') + "\r" + KeyMap.ctrl('X'), "nul.txt");
+            assertEquals(
+                    "a\u0000bX\n",
+                    new String(Files.readAllBytes(file), StandardCharsets.UTF_8),
+                    "end of line must land after the last character of a line holding a control character");
+        }
+    }
+
+    private static String runNano(Path root, String input, String... files) throws Exception {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (LineDisciplineTerminal terminal =
+                new LineDisciplineTerminal("nano", "xterm", output, StandardCharsets.UTF_8)) {
+            terminal.setSize(Size.of(80, 25));
+            // Input is queued before run(), so apply the raw-mode flags Nano would set: keep CR and ^C as keys
+            Attributes attrs = terminal.getAttributes();
+            attrs.setInputFlag(InputFlag.ICRNL, false);
+            attrs.setLocalFlag(LocalFlag.ISIG, false);
+            terminal.setAttributes(attrs);
+            for (byte b : input.getBytes(StandardCharsets.UTF_8)) {
+                terminal.processInputByte(b);
+            }
+            String[] argv = {"--ignorercfiles"};
+            Nano nano = new Nano(terminal, root, Options.compile(Nano.usage()).parse(argv));
+            nano.open(files);
+            nano.run();
+        }
+        return output.toString(StandardCharsets.UTF_8);
     }
 }

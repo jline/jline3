@@ -1013,7 +1013,7 @@ public class Nano implements Editor {
             if (highlight) {
                 syntaxHighlighter.reset();
                 for (int i = Math.max(0, curLine - nbLines); i < curLine; i++) {
-                    syntaxHighlighter.highlight(getLine(i));
+                    syntaxHighlighter.highlight(replaceControlChars(getLine(i)));
                 }
             }
             for (int terminalLine = 0; terminalLine < nbLines; terminalLine++) {
@@ -1439,7 +1439,10 @@ public class Nano implements Editor {
         }
 
         private int length(String line) {
-            return new AttributedStringBuilder().tabs(tabs).append(line).columnLength(terminal);
+            return new AttributedStringBuilder()
+                    .tabs(tabs)
+                    .append(replaceControlChars(line))
+                    .columnLength(terminal);
         }
 
         void copy() {
@@ -3801,7 +3804,7 @@ public class Nano implements Editor {
             AttributedStringBuilder sb = new AttributedStringBuilder();
             sb.style(AttributedStyle.INVERSE);
             sb.append(editMessage);
-            sb.append(editBuffer);
+            sb.append(replaceControlChars(editBuffer.toString()));
             for (int i = editMessage.length() + editBuffer.length(); i < size.getColumns(); i++) {
                 sb.append(' ');
             }
