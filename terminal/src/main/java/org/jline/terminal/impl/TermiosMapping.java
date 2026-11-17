@@ -166,6 +166,10 @@ public abstract class TermiosMapping {
                 throw new UnsupportedOperationException("Unable to determine OS: os.name system property is null");
             }
             if (osName.startsWith("Linux")) {
+                String arch = System.getProperty("os.arch", "");
+                if (arch.startsWith("ppc")) {
+                    return LinuxTermiosMapping.POWERPC;
+                }
                 return LinuxTermiosMapping.INSTANCE;
             } else if (osName.startsWith("Mac") || osName.startsWith("Darwin")) {
                 return OsXTermiosMapping.INSTANCE;

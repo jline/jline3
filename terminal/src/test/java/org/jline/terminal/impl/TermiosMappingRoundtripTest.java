@@ -24,6 +24,11 @@ class TermiosMappingRoundtripTest {
     }
 
     @Test
+    void testLinuxPowerPcRoundtrip() {
+        verifyRoundtrip("LinuxPowerPc", LinuxTermiosMapping.POWERPC);
+    }
+
+    @Test
     void testOsXRoundtrip() {
         verifyRoundtrip("OsX", OsXTermiosMapping.INSTANCE);
     }
@@ -41,6 +46,11 @@ class TermiosMappingRoundtripTest {
     @Test
     void testLinuxPreservesBaudWhenApplyingAttributes() {
         verifyPreservesUnmappedBaudAndSpeed("Linux", LinuxTermiosMapping.INSTANCE, 0x000DL);
+    }
+
+    @Test
+    void testLinuxPowerPcPreservesBaudWhenApplyingAttributes() {
+        verifyPreservesUnmappedBaudAndSpeed("LinuxPowerPc", LinuxTermiosMapping.POWERPC, 0x000DL);
     }
 
     @Test
