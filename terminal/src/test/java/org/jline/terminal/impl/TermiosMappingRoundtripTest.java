@@ -25,7 +25,7 @@ class TermiosMappingRoundtripTest {
 
     @Test
     void testLinuxPowerPcRoundtrip() {
-        verifyRoundtrip("LinuxPowerPc", LinuxPowerPcTermiosMapping.INSTANCE);
+        verifyRoundtrip("LinuxPowerPc", LinuxTermiosMapping.POWERPC);
     }
 
     @Test
@@ -50,7 +50,7 @@ class TermiosMappingRoundtripTest {
 
     @Test
     void testLinuxPowerPcPreservesBaudWhenApplyingAttributes() {
-        verifyPreservesUnmappedBaudAndSpeed("LinuxPowerPc", LinuxPowerPcTermiosMapping.INSTANCE, 0x000DL);
+        verifyPreservesUnmappedBaudAndSpeed("LinuxPowerPc", LinuxTermiosMapping.POWERPC, 0x000DL);
     }
 
     @Test

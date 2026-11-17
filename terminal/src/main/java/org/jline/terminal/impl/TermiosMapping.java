@@ -168,7 +168,7 @@ public abstract class TermiosMapping {
             if (osName.startsWith("Linux")) {
                 String arch = System.getProperty("os.arch", "");
                 if (arch.startsWith("ppc")) {
-                    return LinuxPowerPcTermiosMapping.INSTANCE;
+                    return LinuxTermiosMapping.POWERPC;
                 }
                 return LinuxTermiosMapping.INSTANCE;
             } else if (osName.startsWith("Mac") || osName.startsWith("Darwin")) {
