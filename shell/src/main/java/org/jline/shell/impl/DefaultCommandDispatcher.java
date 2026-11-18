@@ -193,14 +193,12 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
             expanded = aliasManager.expand(line);
         }
 
-        // Expand variables after alias expansion
-        if (lineExpander != null) {
-            expanded = lineExpander.expand(expanded, session);
-        }
-
         // Handle bare variable assignment: NAME=VALUE
         String assignTrimmed = expanded.trim();
         if (isVariableAssignment(assignTrimmed)) {
+            if (lineExpander != null) {
+                assignTrimmed = lineExpander.expand(assignTrimmed, session).trim();
+            }
             int eq = assignTrimmed.indexOf('=');
             String name = assignTrimmed.substring(0, eq);
             String value = assignTrimmed.substring(eq + 1);
@@ -218,12 +216,47 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
             return executeBackground(cmdLine);
         }
 
-        Pipeline pipeline = pipelineParser.parse(expanded);
+        Pipeline pipeline = parsePipeline(expanded);
         return executePipeline(pipeline, expanded.trim());
     }
 
+    /**
+     * Splits the line into stages, then expands variables inside each stage.
+     * <p>
+     * Expanding first would let a value such as {@code "x; cmd"} or {@code "x > file"}
+     * add commands or redirections once the expanded line is parsed. Operators are
+     * therefore only recognized in the text that was typed, and a value can only
+     * contribute words to the stage it appears in.
+     */
+    private Pipeline parsePipeline(String line) {
+        Pipeline pipeline = pipelineParser.parse(line);
+        if (lineExpander == null) {
+            return pipeline;
+        }
+        List<Pipeline.Stage> stages = new ArrayList<>();
+        for (Pipeline.Stage stage : pipeline.stages()) {
+            stages.add(new DefaultPipeline.DefaultStage(
+                    lineExpander.expand(stage.commandLine(), session),
+                    stage.operator(),
+                    expandPath(stage.redirectTarget()),
+                    stage.isAppend(),
+                    expandPath(stage.inputSource())));
+        }
+        return new DefaultPipeline(Collections.unmodifiableList(stages), pipeline.source(), pipeline.isBackground());
+    }
+
+    private Path expandPath(Path path) {
+        if (path == null) {
+            return null;
+        }
+        // Path.toString() uses '\' on Windows, which the expander reads as an escape
+        // and which hides a leading "~/"; both separators name the same path there.
+        String text = path.toString().replace(File.separatorChar, '/');
+        return Path.of(lineExpander.expand(text, session));
+    }
+
     private Object executeBackground(String cmdLine) {
-        Pipeline pipeline = pipelineParser.parse(cmdLine);
+        Pipeline pipeline = parsePipeline(cmdLine);
 
         // Extract command name for thread naming
         String cmdName = cmdLine.split("\\s+", 2)[0];

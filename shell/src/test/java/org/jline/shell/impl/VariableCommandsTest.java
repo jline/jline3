@@ -9,10 +9,14 @@
 package org.jline.shell.impl;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jline.shell.CommandSession;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -21,6 +25,11 @@ import static org.junit.jupiter.api.Assertions.*;
  * {@link DefaultCommandDispatcher}.
  */
 class VariableCommandsTest extends AbstractCommandsTest {
+
+    private final AtomicBoolean marked = new AtomicBoolean();
+
+    @TempDir
+    Path tempDir;
 
     @Override
     @BeforeEach
@@ -34,6 +43,13 @@ class VariableCommandsTest extends AbstractCommandsTest {
                 String msg = String.join(" ", args);
                 session.out().println(msg);
                 return msg;
+            }
+        }));
+        dispatcher.addGroup(new SimpleCommandGroup("marker", new AbstractCommand("mark") {
+            @Override
+            public Object execute(CommandSession session, String[] args) {
+                marked.set(true);
+                return null;
             }
         }));
     }
@@ -101,5 +117,41 @@ class VariableCommandsTest extends AbstractCommandsTest {
         dispatcher.execute("unset NAME");
         Object result = dispatcher.execute("echo ${NAME:-default}");
         assertEquals("default", result);
+    }
+
+    @Test
+    void expandedValueDoesNotStartAnotherCommand() throws Exception {
+        dispatcher.session().put("MSG", "hello; mark");
+        Object result = dispatcher.execute("echo $MSG");
+        assertFalse(marked.get(), "operator inside a variable value must not run a second command");
+        assertEquals("hello; mark", result);
+    }
+
+    @Test
+    void expandedValueDoesNotAddRedirection() throws Exception {
+        Path target = tempDir.resolve("out.txt");
+        dispatcher.session().put("MSG", "hello > " + target);
+        dispatcher.execute("echo $MSG");
+        assertFalse(Files.exists(target), "operator inside a variable value must not redirect output");
+    }
+
+    @Test
+    void redirectTargetFromVariable() throws Exception {
+        Path target = tempDir.resolve("target.txt");
+        dispatcher.session().put("OUT", target.toString());
+        dispatcher.execute("echo hello > $OUT");
+        assertEquals("hello", Files.readString(target).trim());
+    }
+
+    @Test
+    void redirectTargetWithTilde() throws Exception {
+        String home = System.getProperty("user.home");
+        System.setProperty("user.home", tempDir.toString());
+        try {
+            dispatcher.execute("echo hello > ~/tilde.txt");
+        } finally {
+            System.setProperty("user.home", home);
+        }
+        assertEquals("hello", Files.readString(tempDir.resolve("tilde.txt")).trim());
     }
 }
