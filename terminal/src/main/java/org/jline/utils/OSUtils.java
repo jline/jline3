@@ -78,11 +78,27 @@ public class OSUtils {
 
     public static final boolean IS_CONEMU = IS_WINDOWS && System.getenv("ConEmuPID") != null;
 
-    // On Windows, these are null when the command is not found on PATH (see findCommand).
+    /**
+     * Path of the {@code tty} command. On Windows this is {@code null} when {@code tty.exe} is not
+     * found on {@code PATH} (see {@link #findCommand}); callers must check before running it.
+     */
     public static String TTY_COMMAND;
+    /**
+     * Path of the {@code stty} command. On Windows this is {@code null} when {@code stty.exe} is not
+     * found on {@code PATH} (see {@link #findCommand}); callers must check before running it.
+     */
     public static String STTY_COMMAND;
+
     public static String STTY_F_OPTION;
+    /**
+     * Path of the {@code infocmp} command. On Windows this is {@code null} when {@code infocmp.exe}
+     * is not found on {@code PATH} (see {@link #findCommand}); callers must check before running it.
+     */
     public static String INFOCMP_COMMAND;
+    /**
+     * Path of the {@code test} command. On Windows this is {@code null} when {@code test.exe} is not
+     * found on {@code PATH} (see {@link #findCommand}); callers must check before running it.
+     */
     public static String TEST_COMMAND;
 
     private static boolean isExecutable(File f) {
