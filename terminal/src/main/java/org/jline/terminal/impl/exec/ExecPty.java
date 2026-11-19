@@ -88,7 +88,7 @@ public class ExecPty extends AbstractPty implements Pty {
      */
     public static Pty current(TerminalProvider provider, SystemStream systemStream) throws IOException {
         try {
-            String result = exec(true, OSUtils.TTY_COMMAND);
+            String result = exec(true, command(OSUtils.TTY_COMMAND, "tty"));
             if (systemStream != SystemStream.Output && systemStream != SystemStream.Error) {
                 throw new IllegalArgumentException("systemStream should be Output or Error: " + systemStream);
             }
@@ -181,7 +181,7 @@ public class ExecPty extends AbstractPty implements Pty {
     protected void doSetAttr(Attributes attr) throws IOException {
         List<String> commands = getFlagsToSet(attr, getAttr());
         if (!commands.isEmpty()) {
-            commands.add(0, OSUtils.STTY_COMMAND);
+            commands.add(0, command(OSUtils.STTY_COMMAND, "stty"));
             if (systemStream == null) {
                 commands.add(1, OSUtils.STTY_F_OPTION);
                 commands.add(2, getName());
@@ -259,8 +259,8 @@ public class ExecPty extends AbstractPty implements Pty {
 
     protected String doGetConfig() throws IOException {
         return systemStream != null
-                ? exec(true, OSUtils.STTY_COMMAND, "-a")
-                : exec(false, OSUtils.STTY_COMMAND, OSUtils.STTY_F_OPTION, getName(), "-a");
+                ? exec(true, command(OSUtils.STTY_COMMAND, "stty"), "-a")
+                : exec(false, command(OSUtils.STTY_COMMAND, "stty"), OSUtils.STTY_F_OPTION, getName(), "-a");
     }
 
     public static Attributes doGetAttr(String cfg) throws IOException {
@@ -371,7 +371,7 @@ public class ExecPty extends AbstractPty implements Pty {
         if (systemStream != null) {
             exec(
                     true,
-                    OSUtils.STTY_COMMAND,
+                    command(OSUtils.STTY_COMMAND, "stty"),
                     "columns",
                     Integer.toString(size.getColumns()),
                     "rows",
@@ -379,7 +379,7 @@ public class ExecPty extends AbstractPty implements Pty {
         } else {
             exec(
                     false,
-                    OSUtils.STTY_COMMAND,
+                    command(OSUtils.STTY_COMMAND, "stty"),
                     OSUtils.STTY_F_OPTION,
                     getName(),
                     "columns",
@@ -387,6 +387,19 @@ public class ExecPty extends AbstractPty implements Pty {
                     "rows",
                     Integer.toString(size.getRows()));
         }
+    }
+
+    /**
+     * Returns {@code cmd}, or throws an {@link IOException} when it is {@code null}, i.e. when
+     * {@link OSUtils} could not find the command on {@code PATH} (Windows). This keeps the failure
+     * on the {@code IOException} path instead of a {@code NullPointerException} from
+     * {@link ProcessBuilder}.
+     */
+    static String command(String cmd, String name) throws IOException {
+        if (cmd == null) {
+            throw new IOException("Command '" + name + "' not found on PATH");
+        }
+        return cmd;
     }
 
     @Override
