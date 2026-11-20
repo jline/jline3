@@ -140,7 +140,39 @@ public class SystemHighlighter extends DefaultHighlighter {
 
     @Override
     public AttributedString highlight(LineReader reader, String buffer) {
-        return doDefaultHighlight(reader) ? super.highlight(reader, buffer) : systemHighlight(reader, buffer);
+        return doDefaultHighlight(reader)
+                ? super.highlight(reader, buffer)
+                : escapeControlChars(systemHighlight(reader, buffer));
+    }
+
+    /**
+     * Shows control characters the way {@link DefaultHighlighter} does. The buffer can hold text
+     * that was never typed (a completed file name, a bracketed paste, a recalled history entry), so
+     * C0 controls other than TAB and LF are rendered in inverse caret notation and DEL/C1 are
+     * dropped instead of reaching the terminal as part of an escape sequence. Styles are kept.
+     */
+    private static AttributedString escapeControlChars(AttributedString str) {
+        AttributedStringBuilder sb = null;
+        int start = 0;
+        for (int i = 0; i < str.length(); i++) {
+            char c = str.charAt(i);
+            boolean control = c < 32 ? c != '\t' && c != '\n' : c >= 0x7f && c < 0xa0;
+            if (control) {
+                if (sb == null) {
+                    sb = new AttributedStringBuilder(str.length() + 8);
+                }
+                sb.append(str, start, i);
+                if (c < 32) {
+                    sb.append("^" + (char) (c + '@'), str.styleAt(i).inverseNeg());
+                }
+                start = i + 1;
+            }
+        }
+        if (sb == null) {
+            return str;
+        }
+        sb.append(str, start, str.length());
+        return sb.toAttributedString();
     }
 
     public void addFileHighlight(String... commands) {
