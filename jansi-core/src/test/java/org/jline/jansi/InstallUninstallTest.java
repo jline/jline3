@@ -8,12 +8,15 @@
  */
 package org.jline.jansi;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 import java.util.Set;
 
+import org.jline.terminal.impl.DeferredTerminal;
+import org.jline.terminal.impl.DumbTerminal;
 import org.jline.terminal.impl.DumbTerminalProvider;
 import org.jline.terminal.impl.LineDisciplineTerminal;
 import org.jline.terminal.spi.SystemStream;
@@ -24,6 +27,27 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class InstallUninstallTest {
+
+    @Test
+    void installsWithADeferredTerminal() throws Exception {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        DeferredTerminal terminal = new DeferredTerminal();
+        terminal.complete(new DumbTerminal(new ByteArrayInputStream(new byte[0]), output));
+        AnsiConsole.setTerminal(terminal);
+        try {
+            AnsiConsole.systemInstall();
+            AnsiConsole.out().print("deferred output");
+            AnsiConsole.out().flush();
+        } finally {
+            if (AnsiConsole.isInstalled()) {
+                AnsiConsole.systemUninstall();
+            } else {
+                AnsiConsole.setTerminal(null);
+                terminal.close();
+            }
+        }
+        assertEquals("deferred output", output.toString(StandardCharsets.UTF_8));
+    }
 
     @Test
     void testInstallUninstall() {
