@@ -11,17 +11,28 @@ package org.jline.terminal.impl;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.easymock.EasyMock;
 import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.spi.SystemStream;
+import org.jline.terminal.spi.TerminalExt;
+import org.jline.terminal.spi.TerminalProvider;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -29,6 +40,125 @@ class DeferredTerminalTest {
 
     private Terminal createDumbTerminal() throws IOException {
         return new DumbTerminal(new ByteArrayInputStream(new byte[0]), new ByteArrayOutputStream());
+    }
+
+    @Test
+    void synchronousTerminalIsReadyAndDescribesItsType() throws Exception {
+        try (Terminal terminal = createDumbTerminal()) {
+            assertTrue(terminal.isReady());
+            assertTrue(terminal.describe().contains("DumbTerminal"));
+            assertTrue(terminal.describe().contains("type=dumb"));
+        }
+    }
+
+    @Test
+    void readinessIsAvailableThroughTerminalInterface() throws Exception {
+        DeferredTerminal deferred = new DeferredTerminal();
+        Terminal terminal = deferred;
+        assertFalse(terminal.isReady());
+        deferred.complete(createDumbTerminal());
+        assertTrue(terminal.isReady());
+        terminal.close();
+    }
+
+    @Test
+    void descriptionAndMetadataDelegateToRealTerminal() throws Exception {
+        TerminalProvider provider = new DumbTerminalProvider();
+        Terminal real = new DumbTerminal(
+                provider,
+                SystemStream.Output,
+                "real",
+                "xterm",
+                new ByteArrayInputStream(new byte[0]),
+                new ByteArrayOutputStream(),
+                StandardCharsets.UTF_8,
+                Terminal.SignalHandler.SIG_DFL);
+        try (DeferredTerminal deferred = new DeferredTerminal()) {
+            deferred.complete(real);
+            Terminal terminal = deferred;
+            assertEquals(real.describe(), terminal.describe());
+            assertTrue(terminal.describe().contains("provider=dumb"));
+            assertSame(provider, ((TerminalExt) terminal).getProvider());
+            assertEquals(SystemStream.Output, ((TerminalExt) terminal).getSystemStream());
+        }
+    }
+
+    @Test
+    void terminalWithoutExtendedMetadataIsSupported() throws Exception {
+        Terminal real = EasyMock.createNiceMock(Terminal.class);
+        EasyMock.expect(real.writer())
+                .andReturn(new PrintWriter(new ByteArrayOutputStream()))
+                .anyTimes();
+        EasyMock.expect(real.describe()).andReturn("custom terminal");
+        EasyMock.replay(real);
+        try (DeferredTerminal deferred = new DeferredTerminal()) {
+            deferred.complete(real);
+            assertNull(deferred.getProvider());
+            assertNull(deferred.getSystemStream());
+            assertEquals("custom terminal", deferred.describe());
+        }
+        EasyMock.verify(real);
+    }
+
+    @Test
+    void descriptionWaitsForTheRealTerminal() throws Exception {
+        try (DeferredTerminal deferred = new DeferredTerminal()) {
+            CountDownLatch started = new CountDownLatch(1);
+            CompletableFuture<String> description = CompletableFuture.supplyAsync(() -> {
+                started.countDown();
+                return deferred.describe();
+            });
+            assertTrue(started.await(5, TimeUnit.SECONDS));
+            assertFalse(description.isDone());
+            Terminal real = createDumbTerminal();
+            deferred.complete(real);
+            assertEquals(real.describe(), description.get(5, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
+    void descriptionPropagatesFailedAndCancelledBuilds() throws Exception {
+        try (DeferredTerminal deferred = new DeferredTerminal()) {
+            IOException failure = new IOException("build failed");
+            deferred.completeExceptionally(failure);
+            assertFalse(((Terminal) deferred).isReady());
+            assertSame(
+                    failure,
+                    assertThrows(UncheckedIOException.class, deferred::describe).getCause());
+        }
+        DeferredTerminal cancelled = new DeferredTerminal();
+        cancelled.close();
+        assertFalse(((Terminal) cancelled).isReady());
+        assertThrows(IllegalStateException.class, cancelled::describe);
+    }
+
+    @Test
+    void builderRegistersCallbackBeforeStartingConstruction() throws Exception {
+        CompletableFuture<Terminal> completed = new CompletableFuture<>();
+        AtomicInteger calls = new AtomicInteger();
+        try (Terminal terminal = TerminalBuilder.builder()
+                .provider("dumb")
+                .graphemeCluster(false)
+                .buildDeferred(real -> {
+                    calls.incrementAndGet();
+                    completed.complete(real);
+                })) {
+            Terminal real = completed.get(5, TimeUnit.SECONDS);
+            assertTrue(terminal.isReady());
+            assertEquals(real.describe(), terminal.describe());
+            assertEquals(1, calls.get());
+        }
+    }
+
+    @Test
+    void callbackOverloadRejectsCustomStreams() {
+        AtomicInteger calls = new AtomicInteger();
+        assertThrows(
+                IllegalStateException.class,
+                () -> TerminalBuilder.builder()
+                        .streams(new ByteArrayInputStream(new byte[0]), new ByteArrayOutputStream())
+                        .buildDeferred(real -> calls.incrementAndGet()));
+        assertEquals(0, calls.get());
     }
 
     @Test
