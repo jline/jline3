@@ -251,6 +251,7 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
         }
         // Path.toString() uses '\' on Windows, which the expander reads as an escape
         // and which hides a leading "~/"; both separators name the same path there.
+        // Path.of() re-normalizes the result back to the platform separator.
         String text = path.toString().replace(File.separatorChar, '/');
         return Path.of(lineExpander.expand(text, session));
     }

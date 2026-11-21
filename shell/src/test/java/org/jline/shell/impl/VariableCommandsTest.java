@@ -45,6 +45,7 @@ class VariableCommandsTest extends AbstractCommandsTest {
                 return msg;
             }
         }));
+        dispatcher.addGroup(new SimpleCommandGroup("io", new IORedirectionTest.CatCommand()));
         dispatcher.addGroup(new SimpleCommandGroup("marker", new AbstractCommand("mark") {
             @Override
             public Object execute(CommandSession session, String[] args) {
@@ -153,5 +154,14 @@ class VariableCommandsTest extends AbstractCommandsTest {
             System.setProperty("user.home", home);
         }
         assertEquals("hello", Files.readString(tempDir.resolve("tilde.txt")).trim());
+    }
+
+    @Test
+    void inputSourceFromVariable() throws Exception {
+        Path source = tempDir.resolve("in.txt");
+        Files.writeString(source, "from file\n");
+        dispatcher.session().put("IN", source.toString());
+        Object result = dispatcher.execute("cat < $IN");
+        assertEquals("from file", result);
     }
 }
