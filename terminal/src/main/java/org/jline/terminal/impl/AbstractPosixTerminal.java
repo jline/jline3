@@ -149,6 +149,11 @@ public abstract class AbstractPosixTerminal extends AbstractTerminal {
     }
 
     @Override
+    public String describe() {
+        return super.describe() + ", pty=" + pty;
+    }
+
+    @Override
     public String toString() {
         return getKind() + "[" + "name='"
                 + name + '\'' + ", pty='"
