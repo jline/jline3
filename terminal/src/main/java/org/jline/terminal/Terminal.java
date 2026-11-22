@@ -123,9 +123,9 @@ public interface Terminal extends Closeable, Flushable, Sized {
     /**
      * Returns a human-readable description of this terminal for diagnostics.
      * Implementations may include provider and PTY details. The format is not intended for parsing.
-     * A deferred terminal waits for initialization before returning its underlying terminal's description.
      *
      * @return a description of this terminal
+     * @since 4.8.0
      */
     default String describe() {
         return getClass().getSimpleName() + ", type=" + getType();
@@ -136,6 +136,7 @@ public interface Terminal extends Closeable, Flushable, Sized {
      * This returns {@code true} for terminals that are constructed synchronously.
      *
      * @return {@code true} if this terminal is ready for use
+     * @since 4.8.0
      */
     default boolean isReady() {
         return true;
