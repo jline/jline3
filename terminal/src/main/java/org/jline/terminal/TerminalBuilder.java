@@ -953,6 +953,9 @@ public final class TerminalBuilder {
      * complete. It runs on the build thread and may run before this method returns. It is not called
      * if construction fails or the returned terminal is closed before construction completes.</p>
      *
+     * <p>If the callback throws, the build thread's uncaught exception handler receives the exception.
+     * The completed terminal remains ready for use.</p>
+     *
      * @param onComplete the callback, or {@code null} if none is required
      * @return a terminal proxy that completes in the background
      * @see #buildDeferred()
@@ -968,13 +971,15 @@ public final class TerminalBuilder {
         }
         Thread t = new Thread(
                 () -> {
+                    Terminal built;
                     try {
-                        Terminal built = build();
-                        if (!deferred.complete(built)) {
-                            closeQuietly(built);
-                        }
+                        built = build();
                     } catch (Exception e) {
                         deferred.completeExceptionally(e);
+                        return;
+                    }
+                    if (!deferred.complete(built)) {
+                        closeQuietly(built);
                     }
                 },
                 "jline-terminal-build");
