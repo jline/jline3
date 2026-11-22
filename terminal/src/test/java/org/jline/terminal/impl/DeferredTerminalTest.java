@@ -11,6 +11,7 @@ package org.jline.terminal.impl;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -28,6 +29,7 @@ import org.jline.terminal.spi.TerminalExt;
 import org.jline.terminal.spi.TerminalProvider;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -147,6 +149,56 @@ class DeferredTerminalTest {
             assertTrue(terminal.isReady());
             assertEquals(real.describe(), terminal.describe());
             assertEquals(1, calls.get());
+        }
+    }
+
+    @Test
+    void callbackFailureKeepsTheCompletedTerminalWriter() throws Exception {
+        RuntimeException failure = new IllegalArgumentException("callback failed");
+        CompletableFuture<Thread> callbackThread = new CompletableFuture<>();
+        AtomicReference<Terminal> completed = new AtomicReference<>();
+        AtomicReference<Throwable> uncaught = new AtomicReference<>();
+        CountDownLatch releaseCallback = new CountDownLatch(1);
+        ByteArrayOutputStream fallbackOutput = new ByteArrayOutputStream();
+        PrintStream originalOut = System.out;
+
+        try (PrintStream capturedOut = new PrintStream(fallbackOutput)) {
+            System.setOut(capturedOut);
+            try (Terminal terminal = TerminalBuilder.builder()
+                    .provider("dumb")
+                    .graphemeCluster(false)
+                    .buildDeferred(real -> {
+                        Thread thread = Thread.currentThread();
+                        thread.setUncaughtExceptionHandler((ignored, thrown) -> uncaught.set(thrown));
+                        completed.set(real);
+                        callbackThread.complete(thread);
+                        try {
+                            if (!releaseCallback.await(5, TimeUnit.SECONDS)) {
+                                throw new IllegalStateException("callback was not released");
+                            }
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                        throw failure;
+                    })) {
+                terminal.writer().print("early output");
+                terminal.writer().flush();
+                Thread thread = callbackThread.get(5, TimeUnit.SECONDS);
+                releaseCallback.countDown();
+                thread.join(5000);
+                assertFalse(thread.isAlive());
+
+                terminal.writer().print("later output");
+                terminal.writer().flush();
+                assertAll(
+                        () -> assertSame(failure, uncaught.get()),
+                        () -> assertEquals("", fallbackOutput.toString()),
+                        () -> assertTrue(terminal.isReady()),
+                        () -> assertSame(completed.get(), ((DeferredTerminal) terminal).getTerminal()));
+            }
+        } finally {
+            releaseCallback.countDown();
+            System.setOut(originalOut);
         }
     }
 
