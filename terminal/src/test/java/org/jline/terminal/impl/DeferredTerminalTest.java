@@ -203,6 +203,27 @@ class DeferredTerminalTest {
     }
 
     @Test
+    void callbackFailurePreservesBufferedAndSubsequentOutput() throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        RuntimeException failure = new IllegalArgumentException("callback failed");
+        try (DeferredTerminal deferred = new DeferredTerminal()) {
+            deferred.writer().print("early output");
+            deferred.writer().flush();
+            deferred.onComplete(real -> {
+                throw failure;
+            });
+
+            Terminal real = new DumbTerminal(new ByteArrayInputStream(new byte[0]), out);
+            assertSame(failure, assertThrows(IllegalArgumentException.class, () -> deferred.complete(real)));
+
+            deferred.writer().print("later output");
+            deferred.writer().flush();
+            assertEquals("early outputlater output", out.toString(StandardCharsets.UTF_8));
+            assertTrue(deferred.isReady());
+        }
+    }
+
+    @Test
     void callbackOverloadRejectsCustomStreams() {
         AtomicInteger calls = new AtomicInteger();
         assertThrows(
