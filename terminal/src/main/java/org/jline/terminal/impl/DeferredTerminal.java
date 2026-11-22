@@ -356,6 +356,11 @@ public class DeferredTerminal implements TerminalExt {
 
     // -- Blocking methods: require the real terminal --
 
+    /**
+     * Waits for initialization, then returns the underlying terminal's description.
+     *
+     * @return a description of the underlying terminal
+     */
     @Override
     public String describe() {
         return terminal().describe();
