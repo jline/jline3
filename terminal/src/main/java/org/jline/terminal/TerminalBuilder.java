@@ -959,7 +959,7 @@ public final class TerminalBuilder {
      * @param onComplete the callback, or {@code null} if none is required
      * @return a terminal proxy that completes in the background
      * @see #buildDeferred()
-     * @since 4.8.0
+     * @since 4.7.1
      */
     public Terminal buildDeferred(Consumer<Terminal> onComplete) {
         if (in != null || out != null) {

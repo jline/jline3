@@ -125,7 +125,7 @@ public interface Terminal extends Closeable, Flushable, Sized {
      * Implementations may include provider and PTY details. The format is not intended for parsing.
      *
      * @return a description of this terminal
-     * @since 4.8.0
+     * @since 4.7.1
      */
     default String describe() {
         return getClass().getSimpleName() + ", type=" + getType();
@@ -136,7 +136,7 @@ public interface Terminal extends Closeable, Flushable, Sized {
      * This returns {@code true} for terminals that are constructed synchronously.
      *
      * @return {@code true} if this terminal is ready for use
-     * @since 4.8.0
+     * @since 4.7.1
      */
     default boolean isReady() {
         return true;
