@@ -19,13 +19,16 @@ import org.jline.reader.Candidate;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.impl.DefaultParser;
+import org.jline.reader.impl.LineReaderImpl;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
+import org.jline.utils.AttributedString;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -84,5 +87,22 @@ class SystemHighlighterTest {
         String output = out.toString(StandardCharsets.UTF_8);
         assertFalse(output.contains(OSC_TITLE), "raw OSC 0 reached the terminal");
         assertTrue(output.contains("^["), "ESC should be shown in caret notation");
+    }
+
+    @Test
+    void controlCharactersShownAsCaretNotation() throws IOException {
+        // Outside readLine() the region state is still null, which would send highlight() down the
+        // DefaultHighlighter branch; report NONE so the systemHighlight branch is exercised directly.
+        LineReader reader = new LineReaderImpl(terminal) {
+            @Override
+            public RegionType getRegionActive() {
+                return RegionType.NONE;
+            }
+        };
+        SystemHighlighter highlighter = new SystemHighlighter(null, null, null);
+
+        AttributedString result = highlighter.highlight(reader, "cat 'report" + OSC_TITLE + ".txt' x\u009b2J");
+
+        assertEquals("cat 'report^[]0;pwned^G.txt' x2J", result.toString());
     }
 }
