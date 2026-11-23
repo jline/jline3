@@ -157,30 +157,29 @@ public abstract class TermiosMapping {
         return PlatformMappingHolder.INSTANCE;
     }
 
-    private static class PlatformMappingHolder {
-        static final TermiosMapping INSTANCE = detectPlatform();
-
-        private static TermiosMapping detectPlatform() {
-            String osName = System.getProperty("os.name");
-            if (osName == null) {
-                throw new UnsupportedOperationException("Unable to determine OS: os.name system property is null");
-            }
-            if (osName.startsWith("Linux")) {
-                String arch = System.getProperty("os.arch", "");
-                if (arch.startsWith("ppc")) {
-                    return LinuxTermiosMapping.POWERPC;
-                }
-                return LinuxTermiosMapping.INSTANCE;
-            } else if (osName.startsWith("Mac") || osName.startsWith("Darwin")) {
-                return OsXTermiosMapping.INSTANCE;
-            } else if (osName.startsWith("Solaris") || osName.startsWith("SunOS")) {
-                return SolarisTermiosMapping.INSTANCE;
-            } else if (osName.startsWith("FreeBSD")) {
-                return FreeBsdTermiosMapping.INSTANCE;
-            } else if (osName.contains("AIX")) {
-                return AixTermiosMapping.INSTANCE;
-            }
-            throw new UnsupportedOperationException("Unsupported OS: " + osName);
+    static TermiosMapping detectPlatform(String osName, String arch) {
+        if (osName == null) {
+            throw new UnsupportedOperationException("Unable to determine OS: os.name system property is null");
         }
+        if (osName.startsWith("Linux")) {
+            if (arch.startsWith("ppc")) {
+                return LinuxTermiosMapping.POWERPC;
+            }
+            return LinuxTermiosMapping.INSTANCE;
+        } else if (osName.startsWith("Mac") || osName.startsWith("Darwin")) {
+            return OsXTermiosMapping.INSTANCE;
+        } else if (osName.startsWith("Solaris") || osName.startsWith("SunOS")) {
+            return SolarisTermiosMapping.INSTANCE;
+        } else if (osName.startsWith("FreeBSD")) {
+            return FreeBsdTermiosMapping.INSTANCE;
+        } else if (osName.contains("AIX")) {
+            return AixTermiosMapping.INSTANCE;
+        }
+        throw new UnsupportedOperationException("Unsupported OS: " + osName);
+    }
+
+    private static class PlatformMappingHolder {
+        static final TermiosMapping INSTANCE =
+                detectPlatform(System.getProperty("os.name"), System.getProperty("os.arch", ""));
     }
 }

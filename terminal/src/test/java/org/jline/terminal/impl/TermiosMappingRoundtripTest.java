@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TermiosMappingRoundtripTest {
@@ -43,6 +44,15 @@ class TermiosMappingRoundtripTest {
         TermiosData tio2 = LinuxTermiosMapping.POWERPC.toTermios(ccAttr);
         assertEquals(42, tio2.cc()[5], "VMIN must map to cc[5] on PowerPC");
         assertEquals(99, tio2.cc()[7], "VTIME must map to cc[7] on PowerPC");
+    }
+
+    @Test
+    void testDetectPlatformLinuxPowerPc() {
+        assertSame(LinuxTermiosMapping.POWERPC, TermiosMapping.detectPlatform("Linux", "ppc64le"));
+        assertSame(LinuxTermiosMapping.POWERPC, TermiosMapping.detectPlatform("Linux", "ppc64"));
+        assertSame(LinuxTermiosMapping.INSTANCE, TermiosMapping.detectPlatform("Linux", "amd64"));
+        assertSame(LinuxTermiosMapping.INSTANCE, TermiosMapping.detectPlatform("Linux", "aarch64"));
+        assertSame(OsXTermiosMapping.INSTANCE, TermiosMapping.detectPlatform("Mac OS X", "aarch64"));
     }
 
     @Test
