@@ -117,7 +117,7 @@ public class DeferredTerminal implements Terminal {
             true);
 
     public DeferredTerminal() {
-        // public constructor for use by TerminalBuilder.buildDeferred()
+        // convenience overload — equivalent to new DeferredTerminal(null)
         this(null);
     }
 
@@ -221,7 +221,7 @@ public class DeferredTerminal implements Terminal {
         if (isReady()) {
             return terminal().getType();
         }
-        if (Boolean.FALSE.equals(colorHint) || System.getenv("NO_COLOR") != null) {
+        if (Boolean.FALSE.equals(colorHint) || (colorHint == null && System.getenv("NO_COLOR") != null)) {
             return TYPE_DUMB;
         }
         String term = System.getenv("TERM");
