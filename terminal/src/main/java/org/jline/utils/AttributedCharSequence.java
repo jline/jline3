@@ -151,8 +151,9 @@ public abstract class AttributedCharSequence implements CharSequence {
      * </p>
      *
      * <p>
-     * If the terminal is a dumb terminal (Terminal.TYPE_DUMB), this method
-     * returns the plain text without any escape sequences.
+     * If the terminal is a dumb terminal ({@link Terminal#TYPE_DUMB}), this method
+     * returns the plain text without any escape sequences. A dumb terminal with color
+     * support reports {@link Terminal#TYPE_DUMB_COLOR} and receives ANSI codes normally.
      * </p>
      *
      * @param terminal the terminal to generate ANSI sequences for, or null to use default capabilities

@@ -72,6 +72,11 @@ public class DeferredTerminal implements Terminal {
     private final AtomicReference<Consumer<Terminal>> onComplete = new AtomicReference<>();
     private final AtomicBoolean closed = new AtomicBoolean();
 
+    // Builder-supplied color hint: true = caller explicitly enabled color, false = explicitly
+    // disabled, null = unknown (use env heuristics only). Used by getType() before the real
+    // terminal is ready so that color(true) on the builder is honoured immediately.
+    private final Boolean colorHint;
+
     // A single writer returned by writer() for the entire lifetime.
     // Before the terminal is ready, writes accumulate in a buffer.
     // On complete(), the buffer is replayed through the real terminal's writer,
@@ -113,6 +118,12 @@ public class DeferredTerminal implements Terminal {
 
     public DeferredTerminal() {
         // public constructor for use by TerminalBuilder.buildDeferred()
+        this(null);
+    }
+
+    public DeferredTerminal(Boolean colorHint) {
+        // public constructor for use by TerminalBuilder.buildDeferred()
+        this.colorHint = colorHint;
     }
 
     /**
@@ -210,12 +221,13 @@ public class DeferredTerminal implements Terminal {
         if (isReady()) {
             return terminal().getType();
         }
-        if (System.getenv("NO_COLOR") != null) {
+        if (Boolean.FALSE.equals(colorHint) || System.getenv("NO_COLOR") != null) {
             return TYPE_DUMB;
         }
         String term = System.getenv("TERM");
         if ("dumb".equals(term)) {
-            return TYPE_DUMB;
+            // color hint overrides TERM=dumb when color was explicitly requested
+            return Boolean.TRUE.equals(colorHint) ? TYPE_DUMB_COLOR : TYPE_DUMB;
         }
         if (term != null && !term.isEmpty()) {
             return term;
@@ -227,7 +239,8 @@ public class DeferredTerminal implements Terminal {
                     || "vscode".equals(System.getenv("TERM_PROGRAM"))) {
                 return "ansi";
             }
-            return TYPE_DUMB;
+            // color hint overrides the default dumb-on-windows when color was explicitly requested
+            return Boolean.TRUE.equals(colorHint) ? TYPE_DUMB_COLOR : TYPE_DUMB;
         }
         return "ansi";
     }

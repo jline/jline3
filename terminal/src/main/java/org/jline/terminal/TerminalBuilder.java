@@ -946,7 +946,7 @@ public final class TerminalBuilder {
             throw new IllegalStateException("buildDeferred() is only supported for system terminals. "
                     + "Use build() for terminals with custom streams.");
         }
-        DeferredTerminal deferred = new DeferredTerminal();
+        DeferredTerminal deferred = new DeferredTerminal(this.color);
         Thread t = new Thread(
                 () -> {
                     try {

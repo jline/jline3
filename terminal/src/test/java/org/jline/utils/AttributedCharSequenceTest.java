@@ -15,11 +15,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.jline.terminal.Terminal;
+import org.jline.terminal.impl.DeferredTerminal;
+import org.jline.terminal.impl.DumbTerminal;
 import org.jline.terminal.impl.ExternalTerminal;
 import org.jline.terminal.impl.GraphemeClusterTestTerminal;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class AttributedCharSequenceTest {
@@ -375,5 +378,63 @@ class AttributedCharSequenceTest {
         for (int i = 0; i < a.size(); i++) {
             assertEquals(a.get(i).toString(), b.get(i).toString());
         }
+    }
+
+    /**
+     * Regression test for https://github.com/jline/jline3/issues/2440.
+     *
+     * <p>When {@code color(true)} is set on the builder, {@code DeferredTerminal.getType()}
+     * must return {@code TYPE_DUMB_COLOR} (not {@code TYPE_DUMB}) even before the background
+     * build thread completes, so that {@code toAnsi(terminal)} emits ANSI codes immediately.</p>
+     */
+    @Test
+    void testToAnsiDumbTerminalRespectsColorHint() throws IOException {
+        AttributedStringBuilder asb = new AttributedStringBuilder();
+        asb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.RED));
+        asb.append("hello");
+        asb.style(AttributedStyle.DEFAULT);
+        AttributedString as = asb.toAttributedString();
+
+        // Plain dumb terminal (TYPE_DUMB) — ANSI must be stripped
+        try (DumbTerminal plain = new DumbTerminal(
+                "test",
+                Terminal.TYPE_DUMB,
+                new ByteArrayInputStream(new byte[0]),
+                new ByteArrayOutputStream(),
+                StandardCharsets.UTF_8)) {
+            assertEquals("hello", as.toAnsi(plain), "plain dumb terminal must strip ANSI codes");
+        }
+
+        // Dumb-color terminal (TYPE_DUMB_COLOR) — ANSI must be emitted
+        try (DumbTerminal color = new DumbTerminal(
+                "test",
+                Terminal.TYPE_DUMB_COLOR,
+                new ByteArrayInputStream(new byte[0]),
+                new ByteArrayOutputStream(),
+                StandardCharsets.UTF_8)) {
+            assertEquals("\u001b[31mhello\u001b[0m", as.toAnsi(color), "dumb-color terminal must emit ANSI codes");
+        }
+
+        // DeferredTerminal with colorHint=true, future not yet resolved.
+        // The colorHint overrides TYPE_DUMB in environments that would otherwise
+        // return a non-color type (TERM=dumb, Windows without ANSI indicators, etc.).
+        // In all cases, toAnsi() must emit ANSI codes.
+        DeferredTerminal deferred = new DeferredTerminal(true);
+        String deferredType = deferred.getType();
+        // Must not be plain TYPE_DUMB — either TYPE_DUMB_COLOR (Windows/TERM=dumb + hint)
+        // or some other color-capable type (ansi, xterm, etc.)
+        assertNotEquals(
+                Terminal.TYPE_DUMB,
+                deferredType,
+                "DeferredTerminal with colorHint=true must never report TYPE_DUMB before ready");
+        assertEquals(
+                "\u001b[31mhello\u001b[0m",
+                as.toAnsi(deferred),
+                "DeferredTerminal with colorHint=true must emit ANSI codes before ready");
+
+        // DeferredTerminal with colorHint=null (no hint) — falls back to env heuristics,
+        // which return "ansi" on non-Windows when TERM is unset; ANSI codes are emitted.
+        // (We can only assert the type is not TYPE_DUMB when TERM is unset and not on Windows;
+        // the important invariant is that colorHint=true always overrides to TYPE_DUMB_COLOR.)
     }
 }
