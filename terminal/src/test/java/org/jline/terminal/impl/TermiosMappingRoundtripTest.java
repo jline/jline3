@@ -29,6 +29,23 @@ class TermiosMappingRoundtripTest {
     }
 
     @Test
+    void testLinuxPowerPcAbiValues() {
+        // ICANON must encode as 0x100 on PowerPC (not the generic 0x002)
+        Attributes attr = new Attributes();
+        attr.setLocalFlag(LocalFlag.ICANON, true);
+        TermiosData tio = LinuxTermiosMapping.POWERPC.toTermios(attr);
+        assertEquals(0x100L, tio.lflag(), "ICANON must be 0x100 on PowerPC");
+
+        // VMIN -> cc[5], VTIME -> cc[7] (PowerPC ABI; generic Linux has VMIN=6, VTIME=5)
+        Attributes ccAttr = new Attributes();
+        ccAttr.setControlChar(ControlChar.VMIN, 42);
+        ccAttr.setControlChar(ControlChar.VTIME, 99);
+        TermiosData tio2 = LinuxTermiosMapping.POWERPC.toTermios(ccAttr);
+        assertEquals(42, tio2.cc()[5], "VMIN must map to cc[5] on PowerPC");
+        assertEquals(99, tio2.cc()[7], "VTIME must map to cc[7] on PowerPC");
+    }
+
+    @Test
     void testOsXRoundtrip() {
         verifyRoundtrip("OsX", OsXTermiosMapping.INSTANCE);
     }
