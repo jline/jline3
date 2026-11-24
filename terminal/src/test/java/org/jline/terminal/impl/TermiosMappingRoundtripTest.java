@@ -50,6 +50,7 @@ class TermiosMappingRoundtripTest {
     void testDetectPlatformLinuxPowerPc() {
         assertSame(LinuxTermiosMapping.POWERPC, TermiosMapping.detectPlatform("Linux", "ppc64le"));
         assertSame(LinuxTermiosMapping.POWERPC, TermiosMapping.detectPlatform("Linux", "ppc64"));
+        assertSame(LinuxTermiosMapping.POWERPC, TermiosMapping.detectPlatform("Linux", "ppc"));
         assertSame(LinuxTermiosMapping.INSTANCE, TermiosMapping.detectPlatform("Linux", "amd64"));
         assertSame(LinuxTermiosMapping.INSTANCE, TermiosMapping.detectPlatform("Linux", "aarch64"));
         assertSame(OsXTermiosMapping.INSTANCE, TermiosMapping.detectPlatform("Mac OS X", "aarch64"));
