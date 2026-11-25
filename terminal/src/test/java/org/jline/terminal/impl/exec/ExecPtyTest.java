@@ -24,6 +24,7 @@ import org.jline.terminal.spi.SystemStream;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ExecPtyTest {
@@ -322,5 +323,14 @@ class ExecPtyTest {
         } finally {
             Locale.setDefault(defaultLocale);
         }
+    }
+
+    @Test
+    void testMissingCommandIsIOException() throws IOException {
+        // OSUtils leaves TTY_COMMAND / STTY_COMMAND null on Windows when they are not on PATH;
+        // that must surface as an IOException, not a NullPointerException from ProcessBuilder.
+        IOException e = assertThrows(IOException.class, () -> ExecPty.command(null, "stty"));
+        assertTrue(e.getMessage().contains("stty"));
+        assertEquals("/usr/bin/stty", ExecPty.command("/usr/bin/stty", "stty"));
     }
 }
