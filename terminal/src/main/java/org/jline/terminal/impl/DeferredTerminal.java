@@ -223,8 +223,11 @@ public class DeferredTerminal implements Terminal {
         if (isReady()) {
             return terminal().getType();
         }
-        if (color != null) {
-            return color ? TYPE_DUMB_COLOR : TYPE_DUMB;
+        if (Boolean.TRUE.equals(color)) {
+            return TYPE_DUMB_COLOR;
+        }
+        if (Boolean.FALSE.equals(color)) {
+            return TYPE_DUMB;
         }
         if (System.getenv("NO_COLOR") != null) {
             return TYPE_DUMB;
