@@ -19,7 +19,7 @@ import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-public class OSUtilsTest {
+class OSUtilsTest {
 
     @TempDir
     Path dir;

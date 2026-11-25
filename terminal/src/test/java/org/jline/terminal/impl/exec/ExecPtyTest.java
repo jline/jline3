@@ -326,7 +326,7 @@ class ExecPtyTest {
     }
 
     @Test
-    public void testMissingCommandIsIOException() throws IOException {
+    void testMissingCommandIsIOException() throws IOException {
         // OSUtils leaves TTY_COMMAND / STTY_COMMAND null on Windows when they are not on PATH;
         // that must surface as an IOException, not a NullPointerException from ProcessBuilder.
         IOException e = assertThrows(IOException.class, () -> ExecPty.command(null, "stty"));
