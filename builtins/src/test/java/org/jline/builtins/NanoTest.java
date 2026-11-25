@@ -200,6 +200,24 @@ class NanoTest {
 
     @Test
     @Timeout(10)
+    void controlCharactersInSearchPromptAreNotSentToTerminal() throws Exception {
+        try (FileSystem fs = Jimfs.newFileSystem(Configuration.unix())) {
+            Path root = Files.createDirectories(fs.getPath("/work"));
+            Files.write(root.resolve("plain.txt"), "y\n".getBytes(StandardCharsets.UTF_8));
+            // ^W, type an 8-bit CSI term, Enter accepts it, ^W reopens the prompt with "[<term>]", ^C, ^X
+            String out = runNano(
+                    root,
+                    KeyMap.ctrl('W') + "\u009b2J" + "\r" + KeyMap.ctrl('W') + KeyMap.ctrl('C') + KeyMap.ctrl('X'),
+                    "plain.txt");
+            assertFalse(out.contains("\u009b"), "search prompt must not emit an 8-bit CSI");
+            assertTrue(
+                    out.contains("Search [\ufffd2J]:"),
+                    "the accepted search term must be shown with placeholders when the prompt reopens");
+        }
+    }
+
+    @Test
+    @Timeout(10)
     void endOfLineCountsControlCharacterPlaceholders() throws Exception {
         try (FileSystem fs = Jimfs.newFileSystem(Configuration.unix())) {
             Path root = Files.createDirectories(fs.getPath("/work"));
@@ -218,10 +236,12 @@ class NanoTest {
         try (LineDisciplineTerminal terminal =
                 new LineDisciplineTerminal("nano", "xterm", output, StandardCharsets.UTF_8)) {
             terminal.setSize(Size.of(80, 25));
-            // Input is queued before run(), so apply the raw-mode flags Nano would set: keep CR and ^C as keys
+            // Input is queued before run(), so apply the raw-mode flags Nano would set: keep CR and ^C as
+            // keys and do not echo the queued keystrokes, so the output holds only what Nano wrote
             Attributes attrs = terminal.getAttributes();
             attrs.setInputFlag(InputFlag.ICRNL, false);
             attrs.setLocalFlag(LocalFlag.ISIG, false);
+            attrs.setLocalFlag(LocalFlag.ECHO, false);
             terminal.setAttributes(attrs);
             for (byte b : input.getBytes(StandardCharsets.UTF_8)) {
                 terminal.processInputByte(b);

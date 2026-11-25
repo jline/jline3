@@ -3803,7 +3803,7 @@ public class Nano implements Editor {
         if (editMessage != null) {
             AttributedStringBuilder sb = new AttributedStringBuilder();
             sb.style(AttributedStyle.INVERSE);
-            sb.append(editMessage);
+            sb.append(replaceControlChars(editMessage));
             sb.append(replaceControlChars(editBuffer.toString()));
             for (int i = editMessage.length() + editBuffer.length(); i < size.getColumns(); i++) {
                 sb.append(' ');
