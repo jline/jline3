@@ -328,7 +328,8 @@ class FfmTest {
             assumeTrue(length > 0, "no console attached");
             String original = new String(buffer.asSlice(0, length * 2L).toArray(ValueLayout.JAVA_CHAR));
             try {
-                // odd byte length in UTF-8, so a one-byte terminator does not end a WCHAR string
+                // any title was mojibake; "jline" (5 UTF-8 bytes, odd) also caused an over-read,
+                // since a one-byte terminator does not end a WCHAR string
                 String title = "jline";
                 assertNotEquals(0, WindowsAnsiWriter.setConsoleTitle(title));
                 length = (int) getConsoleTitleW.invokeExact(buffer, capacity);
