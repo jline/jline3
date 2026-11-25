@@ -918,7 +918,9 @@ public final class TerminalBuilder {
      *   <li>{@link Terminal#getType()} — returns the {@code TERM} env var; {@code "dumb"} when
      *       {@code NO_COLOR} is set or {@code TERM=dumb}; on Windows, checks {@code WT_SESSION},
      *       {@code ConEmuANSI}, {@code ANSICON}, {@code TERM_PROGRAM} for ANSI support;
-     *       {@code "ansi"} on non-Windows when {@code TERM} is unset</li>
+     *       {@code "ansi"} on non-Windows when {@code TERM} is unset. An explicit
+     *       {@link #color(boolean)} setting (or {@link #PROP_DUMB_COLOR}) overrides these
+     *       heuristics until construction completes.</li>
      *   <li>{@link Terminal#getSize()}, {@link Terminal#getColumns()}, {@link Terminal#getRows()} —
      *       return values from the {@code COLUMNS}/{@code LINES} environment variables, defaulting
      *       to 120×40</li>
@@ -946,7 +948,7 @@ public final class TerminalBuilder {
             throw new IllegalStateException("buildDeferred() is only supported for system terminals. "
                     + "Use build() for terminals with custom streams.");
         }
-        DeferredTerminal deferred = new DeferredTerminal();
+        DeferredTerminal deferred = new DeferredTerminal(color != null ? color : getBoolean(PROP_DUMB_COLOR, null));
         Thread t = new Thread(
                 () -> {
                     try {

@@ -48,7 +48,8 @@ import org.jline.utils.OSUtils;
  *   <li>{@link #getType()} — {@code TERM} env var; {@code "dumb"} when {@code NO_COLOR} is set
  *       or {@code TERM=dumb}; on Windows without {@code TERM}, checks {@code WT_SESSION},
  *       {@code ConEmuANSI=ON}, {@code ANSICON}, {@code TERM_PROGRAM=vscode} for ANSI support;
- *       {@code "ansi"} on non-Windows when {@code TERM} is unset</li>
+ *       {@code "ansi"} on non-Windows when {@code TERM} is unset. An explicit color
+ *       preference overrides these heuristics until construction completes.</li>
  *   <li>{@link #getSize()}/{@link #getColumns()}/{@link #getRows()} — {@code COLUMNS}/{@code LINES}
  *       env vars, defaulting to 120×40</li>
  *   <li>{@link #getNumericCapability} for {@code max_colors} — detected from {@code COLORTERM}
@@ -71,6 +72,7 @@ public class DeferredTerminal implements Terminal {
     private final CompletableFuture<Terminal> future = new CompletableFuture<>();
     private final AtomicReference<Consumer<Terminal>> onComplete = new AtomicReference<>();
     private final AtomicBoolean closed = new AtomicBoolean();
+    private final Boolean color;
 
     // A single writer returned by writer() for the entire lifetime.
     // Before the terminal is ready, writes accumulate in a buffer.
@@ -112,7 +114,18 @@ public class DeferredTerminal implements Terminal {
             true);
 
     public DeferredTerminal() {
-        // public constructor for use by TerminalBuilder.buildDeferred()
+        this(null);
+    }
+
+    /**
+     * Creates a proxy with an explicit color preference while construction is pending.
+     * Once construction completes, the real terminal determines its capabilities.
+     *
+     * @param color {@code true} to enable ANSI output, {@code false} to disable it,
+     *              or {@code null} to infer support from the environment
+     */
+    public DeferredTerminal(Boolean color) {
+        this.color = color;
     }
 
     /**
@@ -209,6 +222,12 @@ public class DeferredTerminal implements Terminal {
     public String getType() {
         if (isReady()) {
             return terminal().getType();
+        }
+        if (Boolean.TRUE.equals(color)) {
+            return TYPE_DUMB_COLOR;
+        }
+        if (Boolean.FALSE.equals(color)) {
+            return TYPE_DUMB;
         }
         if (System.getenv("NO_COLOR") != null) {
             return TYPE_DUMB;
