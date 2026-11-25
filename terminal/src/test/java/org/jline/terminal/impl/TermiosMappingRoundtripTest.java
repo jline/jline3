@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TermiosMappingRoundtripTest {
@@ -21,6 +22,38 @@ class TermiosMappingRoundtripTest {
     @Test
     void testLinuxRoundtrip() {
         verifyRoundtrip("Linux", LinuxTermiosMapping.INSTANCE);
+    }
+
+    @Test
+    void testLinuxPowerPcRoundtrip() {
+        verifyRoundtrip("LinuxPowerPc", LinuxTermiosMapping.POWERPC);
+    }
+
+    @Test
+    void testLinuxPowerPcAbiValues() {
+        // ICANON must encode as 0x100 on PowerPC (not the generic 0x002)
+        Attributes attr = new Attributes();
+        attr.setLocalFlag(LocalFlag.ICANON, true);
+        TermiosData tio = LinuxTermiosMapping.POWERPC.toTermios(attr);
+        assertEquals(0x100L, tio.lflag(), "ICANON must be 0x100 on PowerPC");
+
+        // VMIN -> cc[5], VTIME -> cc[7] (PowerPC ABI; generic Linux has VMIN=6, VTIME=5)
+        Attributes ccAttr = new Attributes();
+        ccAttr.setControlChar(ControlChar.VMIN, 42);
+        ccAttr.setControlChar(ControlChar.VTIME, 99);
+        TermiosData tio2 = LinuxTermiosMapping.POWERPC.toTermios(ccAttr);
+        assertEquals(42, tio2.cc()[5], "VMIN must map to cc[5] on PowerPC");
+        assertEquals(99, tio2.cc()[7], "VTIME must map to cc[7] on PowerPC");
+    }
+
+    @Test
+    void testDetectPlatformLinuxPowerPc() {
+        assertSame(LinuxTermiosMapping.POWERPC, TermiosMapping.detectPlatform("Linux", "ppc64le"));
+        assertSame(LinuxTermiosMapping.POWERPC, TermiosMapping.detectPlatform("Linux", "ppc64"));
+        assertSame(LinuxTermiosMapping.POWERPC, TermiosMapping.detectPlatform("Linux", "ppc"));
+        assertSame(LinuxTermiosMapping.INSTANCE, TermiosMapping.detectPlatform("Linux", "amd64"));
+        assertSame(LinuxTermiosMapping.INSTANCE, TermiosMapping.detectPlatform("Linux", "aarch64"));
+        assertSame(OsXTermiosMapping.INSTANCE, TermiosMapping.detectPlatform("Mac OS X", "aarch64"));
     }
 
     @Test
@@ -41,6 +74,11 @@ class TermiosMappingRoundtripTest {
     @Test
     void testLinuxPreservesBaudWhenApplyingAttributes() {
         verifyPreservesUnmappedBaudAndSpeed("Linux", LinuxTermiosMapping.INSTANCE, 0x000DL);
+    }
+
+    @Test
+    void testLinuxPowerPcPreservesBaudWhenApplyingAttributes() {
+        verifyPreservesUnmappedBaudAndSpeed("LinuxPowerPc", LinuxTermiosMapping.POWERPC, 0x000DL);
     }
 
     @Test
