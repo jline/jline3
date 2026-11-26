@@ -18,6 +18,7 @@ import org.jline.jansi.io.AnsiOutputStream;
 import org.jline.jansi.io.AnsiProcessor;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.impl.DeferredTerminal;
 import org.jline.terminal.impl.DumbTerminal;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalExt;
@@ -269,7 +270,11 @@ public class AnsiConsole {
 
         width = terminal::getColumns;
 
-        if (terminal instanceof DumbTerminal) {
+        Terminal effectiveTerminal = terminal;
+        while (effectiveTerminal instanceof DeferredTerminal) {
+            effectiveTerminal = ((DeferredTerminal) effectiveTerminal).getTerminal();
+        }
+        if (effectiveTerminal instanceof DumbTerminal) {
             out = terminal.output();
             type = AnsiType.Unsupported;
         } else {

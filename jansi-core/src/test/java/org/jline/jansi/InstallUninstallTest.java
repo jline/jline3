@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 import java.util.Set;
 
+import org.jline.terminal.Terminal.SignalHandler;
 import org.jline.terminal.impl.DeferredTerminal;
 import org.jline.terminal.impl.DumbTerminal;
 import org.jline.terminal.impl.DumbTerminalProvider;
@@ -29,14 +30,23 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 class InstallUninstallTest {
 
     @Test
-    void installsWithADeferredTerminal() throws Exception {
+    void stripsAnsiFromADeferredDumbTerminal() throws Exception {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         DeferredTerminal terminal = new DeferredTerminal();
-        terminal.complete(new DumbTerminal(new ByteArrayInputStream(new byte[0]), output));
+        terminal.complete(new DumbTerminal(
+                new DumbTerminalProvider(),
+                SystemStream.Output,
+                "test",
+                "dumb",
+                new ByteArrayInputStream(new byte[0]),
+                output,
+                StandardCharsets.UTF_8,
+                SignalHandler.SIG_DFL));
         AnsiConsole.setTerminal(terminal);
         try {
             AnsiConsole.systemInstall();
-            AnsiConsole.out().print("deferred output");
+            assertEquals(AnsiType.Unsupported, AnsiConsole.out().getType());
+            AnsiConsole.out().print("\033[31mdeferred output\033[0m");
             AnsiConsole.out().flush();
         } finally {
             if (AnsiConsole.isInstalled()) {
