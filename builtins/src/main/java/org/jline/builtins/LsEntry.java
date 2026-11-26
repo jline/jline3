@@ -10,6 +10,7 @@ package org.jline.builtins;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.nio.file.attribute.PosixFilePermission;
@@ -19,11 +20,15 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+
+import org.jline.utils.OSUtils;
 
 /**
  * A file or directory listed by the {@code ls} command, together with its attributes and the
@@ -32,6 +37,12 @@ import java.util.concurrent.TimeUnit;
  * @see PosixCommands#ls(PosixCommands.Context, String[])
  */
 final class LsEntry implements Comparable<LsEntry> {
+    private static final String[] SIZE_UNITS = {"B", "K", "M", "G", "T", "P"};
+    private static final long SIZE_THRESHOLD = 1000L;
+    private static final LinkOption[] EMPTY_LINK_OPTIONS = new LinkOption[0];
+    private static final LinkOption[] NO_FOLLOW_OPTIONS = new LinkOption[] {LinkOption.NOFOLLOW_LINKS};
+    private static final List<String> WINDOWS_EXECUTABLE_EXTENSIONS = List.of(".bat", ".exe", ".cmd");
+
     final Path abs;
     final Path path;
     final Map<String, Object> attributes;
@@ -161,18 +172,18 @@ final class LsEntry implements Comparable<LsEntry> {
         }
         if (opt.isSet("h")) {
             long bytes = length.longValue();
-            if (bytes < PosixCommands.SIZE_THRESHOLD) {
+            if (bytes < SIZE_THRESHOLD) {
                 return bytes + "B";
             }
             double size = bytes;
             int unitIndex = 0;
-            while (size >= PosixCommands.SIZE_THRESHOLD
-                    && unitIndex < PosixCommands.SIZE_UNITS.length - 1) {
+            while (size >= SIZE_THRESHOLD
+                    && unitIndex < SIZE_UNITS.length - 1) {
                 size /= 1024;
                 unitIndex++;
             }
-            String format = (size < 10 && bytes > PosixCommands.SIZE_THRESHOLD) ? "%.1f" : "%.0f";
-            return String.format(format, size) + PosixCommands.SIZE_UNITS[unitIndex];
+            String format = (size < 10 && bytes > SIZE_THRESHOLD) ? "%.1f" : "%.0f";
+            return String.format(format, size) + SIZE_UNITS[unitIndex];
         } else {
             return length.toString();
         }
@@ -195,14 +206,57 @@ final class LsEntry implements Comparable<LsEntry> {
         for (String view : path.getFileSystem().supportedFileAttributeViews()) {
             try {
                 Map<String, Object> viewAttributes =
-                        Files.readAttributes(path, view + ":*", PosixCommands.getLinkOptions(opt.isSet("L")));
+                        Files.readAttributes(path, view + ":*", getLinkOptions(opt.isSet("L")));
                 viewAttributes.forEach(attrs::putIfAbsent);
             } catch (IOException e) {
                 // Ignore
             }
         }
         attrs.computeIfAbsent("isExecutable", s -> Files.isExecutable(path));
-        attrs.computeIfAbsent("permissions", s -> PosixCommands.getPermissionsFromFile(path));
+        attrs.computeIfAbsent("permissions", s -> getPermissionsFromFile(path));
         return attrs;
+    }
+
+    /**
+     * Get link options based on whether to follow links.
+     */
+    private static LinkOption[] getLinkOptions(boolean followLinks) {
+        if (followLinks) {
+            return EMPTY_LINK_OPTIONS;
+        } else { // return a clone that modifications to the array will not affect others
+            return NO_FOLLOW_OPTIONS.clone();
+        }
+    }
+
+    /**
+     * Check if a file name is a Windows executable.
+     */
+    private static boolean isWindowsExecutable(String fileName) {
+        if ((fileName == null) || (fileName.length() <= 0)) {
+            return false;
+        }
+        for (String suffix : WINDOWS_EXECUTABLE_EXTENSIONS) {
+            if (fileName.endsWith(suffix)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Get POSIX file permissions from a file, with Windows executable handling.
+     */
+    private static Set<PosixFilePermission> getPermissionsFromFile(Path f) {
+        Set<PosixFilePermission> perms = new HashSet<>();
+        try {
+            perms = Files.getPosixFilePermissions(f);
+        } catch (IOException | UnsupportedOperationException ignore) {
+        }
+        if (OSUtils.IS_WINDOWS && isWindowsExecutable(f.getFileName().toString())) {
+            perms.add(PosixFilePermission.OWNER_EXECUTE);
+            perms.add(PosixFilePermission.GROUP_EXECUTE);
+            perms.add(PosixFilePermission.OTHERS_EXECUTE);
+        }
+        return perms;
     }
 }

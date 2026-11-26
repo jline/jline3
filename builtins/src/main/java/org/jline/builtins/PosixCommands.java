@@ -42,7 +42,6 @@ import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.InfoCmp.Capability;
-import org.jline.utils.OSUtils;
 import org.jline.utils.RegexTimeoutException;
 import org.jline.utils.SafeRegex;
 import org.jline.utils.StyleResolver;
@@ -1968,12 +1967,7 @@ public class PosixCommands {
     private static final int DEFAULT_BUFFER_SIZE = 8192;
     private static final int DEFAULT_HEAD_LINES = 10;
     private static final int DEFAULT_TAIL_LINES = 10;
-    static final String[] SIZE_UNITS = {"B", "K", "M", "G", "T", "P"};
-    static final long SIZE_THRESHOLD = 1000L;
 
-    private static final LinkOption[] EMPTY_LINK_OPTIONS = new LinkOption[0];
-    private static final LinkOption[] NO_FOLLOW_OPTIONS = new LinkOption[] {LinkOption.NOFOLLOW_LINKS};
-    private static final List<String> WINDOWS_EXECUTABLE_EXTENSIONS = List.of(".bat", ".exe", ".cmd");
 
     private static final Pattern COLOR_FORMAT_PATTERN =
             Pattern.compile("[a-z]{2}=[0-9]*(;[0-9]+)*(:[a-z]{2}=[0-9]*(;[0-9]+)*)*");
@@ -2064,49 +2058,6 @@ public class PosixCommands {
             }
         }
         sb.style(new StyleResolver(colors::get).resolve("." + t));
-    }
-
-    /**
-     * Get link options based on whether to follow links.
-     */
-    static LinkOption[] getLinkOptions(boolean followLinks) {
-        if (followLinks) {
-            return EMPTY_LINK_OPTIONS;
-        } else { // return a clone that modifications to the array will not affect others
-            return NO_FOLLOW_OPTIONS.clone();
-        }
-    }
-
-    /**
-     * Check if a file name is a Windows executable.
-     */
-    private static boolean isWindowsExecutable(String fileName) {
-        if ((fileName == null) || (fileName.length() <= 0)) {
-            return false;
-        }
-        for (String suffix : WINDOWS_EXECUTABLE_EXTENSIONS) {
-            if (fileName.endsWith(suffix)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Get POSIX file permissions from a file, with Windows executable handling.
-     */
-    static Set<PosixFilePermission> getPermissionsFromFile(Path f) {
-        Set<PosixFilePermission> perms = new HashSet<>();
-        try {
-            perms = Files.getPosixFilePermissions(f);
-        } catch (IOException | UnsupportedOperationException ignore) {
-        }
-        if (OSUtils.IS_WINDOWS && isWindowsExecutable(f.getFileName().toString())) {
-            perms.add(PosixFilePermission.OWNER_EXECUTE);
-            perms.add(PosixFilePermission.GROUP_EXECUTE);
-            perms.add(PosixFilePermission.OTHERS_EXECUTE);
-        }
-        return perms;
     }
 
     /**
