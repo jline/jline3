@@ -91,6 +91,6 @@ class CommandHighlighterTest extends AbstractCommandDispatcherTest {
         // a pasted or completed argument carrying OSC 0 (set window title) and an 8-bit CSI
         AttributedString result = highlighter.highlight(null, "echo 'notes\u001b]0;pwned\u0007' x\u009b2J");
         assertEquals("echo 'notes^[]0;pwned^G' x2J", result.toString());
-        assertTrue(result.styleAt(0).getStyle() != 0, "command styling should be kept");
+        assertNotEquals(0, result.styleAt(0).getStyle(), "command styling should be kept");
     }
 }
