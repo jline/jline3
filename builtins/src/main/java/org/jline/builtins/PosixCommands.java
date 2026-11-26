@@ -1874,11 +1874,7 @@ public class PosixCommands {
             opt.args().stream().flatMap(s -> maybeExpandGlob(context, s)).forEach(expanded::add);
         }
         boolean listAll = opt.isSet("a");
-        Predicate<Path> filter = p -> listAll
-                || p.getFileName() == null // root
-                || p.getFileName().toString().equals(".")
-                || p.getFileName().toString().equals("..")
-                || !p.getFileName().toString().startsWith(".");
+        Predicate<Path> filter = p -> listAll || !isHiddenFile(p);
         List<PathEntry> all = expanded.stream()
                 .filter(filter)
                 .map(p -> new PathEntry(p, currentDir))
@@ -1967,6 +1963,20 @@ public class PosixCommands {
             default:
                 throw new IllegalArgumentException("invalid argument '" + when + "' for '--color'");
         }
+    }
+
+    /**
+     * Whether {@code ls} hides the given path unless {@code -a} is set: its name starts with a dot,
+     * except for the file system root and the {@code .} and {@code ..} entries, which are always listed.
+     */
+    private static boolean isHiddenFile(Path path) {
+        Path fileName = path.getFileName();
+        if (fileName == null) { // file system root
+            return false;
+        }
+        String name = fileName.toString();
+        boolean isDotEntry = name.equals(".") || name.equals("..");
+        return !isDotEntry && name.startsWith(".");
     }
 
     private static List<Source> getSources(Context context, List<String> args) {
