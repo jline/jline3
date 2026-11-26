@@ -1838,14 +1838,10 @@ public class PosixCommands {
                     return "------------";
                 }
                 ZonedDateTime dt = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault());
-                // Less than six months
-                if (System.currentTimeMillis() - millis < 183L * 24L * 60L * 60L * 1000L) {
-                    return DateTimeFormatter.ofPattern("MMM ppd HH:mm").format(dt);
-                }
-                // Older than six months
-                else {
-                    return DateTimeFormatter.ofPattern("MMM ppd  yyyy").format(dt);
-                }
+                long sixMonthsInMillis = TimeUnit.DAYS.toMillis(183);
+                boolean modifiedWithinSixMonths = System.currentTimeMillis() - millis < sixMonthsInMillis;
+                String pattern = modifiedWithinSixMonths ? "MMM ppd HH:mm" : "MMM ppd  yyyy";
+                return DateTimeFormatter.ofPattern(pattern).format(dt);
             }
 
             protected Map<String, Object> readAttributes(Path path) {
