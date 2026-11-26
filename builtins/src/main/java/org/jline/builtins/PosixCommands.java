@@ -1730,18 +1730,23 @@ public class PosixCommands {
                     return -1;
                 }
                 if (opt.isSet("S")) {
-                    long s0 = attributes.get("size") != null ? ((Number) attributes.get("size")).longValue() : 0L;
-                    long s1 = o.attributes.get("size") != null ? ((Number) o.attributes.get("size")).longValue() : 0L;
-                    return s0 > s1 ? -1 : s0 < s1 ? 1 : path.toString().compareTo(o.path.toString());
+                    long size = attributes.get("size") != null ? ((Number) attributes.get("size")).longValue() : 0L;
+                    long otherSize =
+                            o.attributes.get("size") != null ? ((Number) o.attributes.get("size")).longValue() : 0L;
+                    return size > otherSize
+                            ? -1
+                            : size < otherSize ? 1 : path.toString().compareTo(o.path.toString());
                 }
                 if (opt.isSet("t")) {
-                    long t0 = attributes.get("lastModifiedTime") != null
+                    long modified = attributes.get("lastModifiedTime") != null
                             ? ((FileTime) attributes.get("lastModifiedTime")).toMillis()
                             : 0L;
-                    long t1 = o.attributes.get("lastModifiedTime") != null
+                    long otherModified = o.attributes.get("lastModifiedTime") != null
                             ? ((FileTime) o.attributes.get("lastModifiedTime")).toMillis()
                             : 0L;
-                    return t0 > t1 ? -1 : t0 < t1 ? 1 : path.toString().compareTo(o.path.toString());
+                    return modified > otherModified
+                            ? -1
+                            : modified < otherModified ? 1 : path.toString().compareTo(o.path.toString());
                 }
                 return path.toString().compareTo(o.path.toString());
             }
@@ -1767,8 +1772,8 @@ public class PosixCommands {
                     type = "sl";
                     suffix = "@";
                     try {
-                        Path l = Files.readSymbolicLink(abs);
-                        link = " -> " + stripControlChars(l.toString());
+                        Path linkTarget = Files.readSymbolicLink(abs);
+                        link = " -> " + stripControlChars(linkTarget.toString());
                     } catch (IOException e) {
                         // ignore
                     }
@@ -1848,9 +1853,9 @@ public class PosixCommands {
                 Map<String, Object> attrs = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
                 for (String view : path.getFileSystem().supportedFileAttributeViews()) {
                     try {
-                        Map<String, Object> ta =
+                        Map<String, Object> viewAttributes =
                                 Files.readAttributes(path, view + ":*", getLinkOptions(opt.isSet("L")));
-                        ta.forEach(attrs::putIfAbsent);
+                        viewAttributes.forEach(attrs::putIfAbsent);
                     } catch (IOException e) {
                         // Ignore
                     }
