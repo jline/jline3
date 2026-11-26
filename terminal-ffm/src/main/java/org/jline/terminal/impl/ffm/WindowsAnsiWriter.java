@@ -13,6 +13,7 @@ import java.io.Writer;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.nio.charset.StandardCharsets;
 
 import org.jline.utils.AnsiWriter;
 import org.jline.utils.Colors;
@@ -402,9 +403,14 @@ class WindowsAnsiWriter extends AnsiWriter {
 
     @Override
     protected void processChangeWindowTitle(String title) {
+        setConsoleTitle(title);
+    }
+
+    static int setConsoleTitle(String title) {
         try (Arena session = Arena.ofConfined()) {
-            MemorySegment str = session.allocateFrom(title);
-            SetConsoleTitleW(str);
+            // SetConsoleTitleW takes a UTF-16 string terminated by a two-byte NUL
+            MemorySegment str = session.allocateFrom(title, StandardCharsets.UTF_16LE);
+            return SetConsoleTitleW(str);
         }
     }
 }
