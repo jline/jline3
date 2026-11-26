@@ -270,17 +270,24 @@ public class AnsiConsole {
 
         width = terminal::getColumns;
 
-        Terminal effectiveTerminal = terminal;
-        while (effectiveTerminal instanceof DeferredTerminal && ((DeferredTerminal) effectiveTerminal).isReady()) {
-            effectiveTerminal = ((DeferredTerminal) effectiveTerminal).getTerminal();
-        }
-        if (effectiveTerminal instanceof DumbTerminal) {
+        if (terminal instanceof DumbTerminal) {
             out = terminal.output();
             type = AnsiType.Unsupported;
         } else {
             TerminalExt terminalExt = (TerminalExt) terminal;
+            // getSystemStream() blocks until a DeferredTerminal is ready, ensuring the
+            // effective-terminal resolution below is race-free (no isReady() pre-check needed).
             SystemStream systemStream = terminalExt.getSystemStream();
-            if (systemStream == null) {
+            // Unwrap a DeferredTerminal after the blocking call so that a dumb delegate is
+            // correctly classified as Unsupported regardless of when completion occurred.
+            Terminal effectiveTerminal = terminal;
+            while (effectiveTerminal instanceof DeferredTerminal) {
+                effectiveTerminal = ((DeferredTerminal) effectiveTerminal).getTerminal();
+            }
+            if (effectiveTerminal instanceof DumbTerminal) {
+                out = terminal.output();
+                type = AnsiType.Unsupported;
+            } else if (systemStream == null) {
                 out = terminal.output();
                 type = AnsiType.Redirected;
             } else {
