@@ -12,15 +12,9 @@ import java.io.*;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.nio.file.*;
-import java.nio.file.attribute.FileTime;
 import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
@@ -1702,170 +1696,6 @@ public class PosixCommands {
         Map<String, String> colors =
                 colored ? (colorMap != null ? colorMap : getLsColorMap(DEFAULT_LS_COLORS)) : Collections.emptyMap();
 
-        class PathEntry implements Comparable<PathEntry> {
-            final Path abs;
-            final Path path;
-            final Map<String, Object> attributes;
-
-            public PathEntry(Path abs, Path root) {
-                this.abs = abs;
-                try {
-                    this.path = Files.isSameFile(abs, root)
-                            ? Path.of(".")
-                            : abs.startsWith(root) ? root.relativize(abs) : abs;
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-                this.attributes = readAttributes(abs);
-            }
-
-            @Override
-            public int compareTo(PathEntry o) {
-                int c = doCompare(o);
-                return opt.isSet("r") ? -c : c;
-            }
-
-            private int doCompare(PathEntry o) {
-                if (opt.isSet("f")) {
-                    return -1;
-                }
-                if (opt.isSet("S")) {
-                    long size = attributes.get("size") != null ? ((Number) attributes.get("size")).longValue() : 0L;
-                    long otherSize =
-                            o.attributes.get("size") != null ? ((Number) o.attributes.get("size")).longValue() : 0L;
-                    return size > otherSize
-                            ? -1
-                            : size < otherSize ? 1 : path.toString().compareTo(o.path.toString());
-                }
-                if (opt.isSet("t")) {
-                    long modified = attributes.get("lastModifiedTime") != null
-                            ? ((FileTime) attributes.get("lastModifiedTime")).toMillis()
-                            : 0L;
-                    long otherModified = o.attributes.get("lastModifiedTime") != null
-                            ? ((FileTime) o.attributes.get("lastModifiedTime")).toMillis()
-                            : 0L;
-                    return modified > otherModified
-                            ? -1
-                            : modified < otherModified ? 1 : path.toString().compareTo(o.path.toString());
-                }
-                return path.toString().compareTo(o.path.toString());
-            }
-
-            boolean isNotDirectory() {
-                return is("isRegularFile") || is("isSymbolicLink") || is("isOther");
-            }
-
-            boolean isDirectory() {
-                return is("isDirectory");
-            }
-
-            private boolean is(String attr) {
-                Object d = attributes.get(attr);
-                return d instanceof Boolean && (Boolean) d;
-            }
-
-            String display() {
-                String type;
-                String suffix;
-                String link = "";
-                if (is("isSymbolicLink")) {
-                    type = "sl";
-                    suffix = "@";
-                    try {
-                        Path linkTarget = Files.readSymbolicLink(abs);
-                        link = " -> " + stripControlChars(linkTarget.toString());
-                    } catch (IOException e) {
-                        // ignore
-                    }
-                } else if (is("isDirectory")) {
-                    type = "dr";
-                    suffix = "/";
-                } else if (is("isExecutable")) {
-                    type = "ex";
-                    suffix = "*";
-                } else if (is("isOther")) {
-                    type = "ot";
-                    suffix = "";
-                } else {
-                    type = "";
-                    suffix = "";
-                }
-                boolean addSuffix = opt.isSet("F");
-                return applyStyle(stripControlChars(path.toString()), colors, type) + (addSuffix ? suffix : "") + link;
-            }
-
-            String longDisplay() {
-                String username = Objects.toString(attributes.get("owner"), "owner");
-                String group = Objects.toString(attributes.get("group"), "group");
-                String size = formatSize();
-
-                @SuppressWarnings("unchecked")
-                Set<PosixFilePermission> perms = (Set<PosixFilePermission>) attributes.get("permissions");
-                String permissions = PosixFilePermissions.toString(
-                        perms != null ? perms : EnumSet.noneOf(PosixFilePermission.class));
-
-                String fileType = is("isDirectory") ? "d" : (is("isSymbolicLink") ? "l" : (is("isOther") ? "o" : "-"));
-                String linkCount = Objects.toString(attributes.get("nlink"), "1");
-                String modTime = toString((FileTime) attributes.get("lastModifiedTime"));
-                String fileName = display();
-
-                return String.format(
-                        "%s%s %3s %-8.8s %-8.8s %8s %s %s",
-                        fileType, permissions, linkCount, username, group, size, modTime, fileName);
-            }
-
-            private String formatSize() {
-                Number length = (Number) attributes.get("size");
-                if (length == null) {
-                    length = 0L;
-                }
-                if (opt.isSet("h")) {
-                    long bytes = length.longValue();
-                    if (bytes < SIZE_THRESHOLD) {
-                        return bytes + "B";
-                    }
-                    double size = bytes;
-                    int unitIndex = 0;
-                    while (size >= SIZE_THRESHOLD && unitIndex < SIZE_UNITS.length - 1) {
-                        size /= 1024;
-                        unitIndex++;
-                    }
-                    String format = (size < 10 && bytes > SIZE_THRESHOLD) ? "%.1f" : "%.0f";
-                    return String.format(format, size) + SIZE_UNITS[unitIndex];
-                } else {
-                    return length.toString();
-                }
-            }
-
-            protected String toString(FileTime time) {
-                long millis = (time != null) ? time.toMillis() : -1L;
-                if (millis < 0L) {
-                    return "------------";
-                }
-                ZonedDateTime dt = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault());
-                long sixMonthsInMillis = TimeUnit.DAYS.toMillis(183);
-                boolean modifiedWithinSixMonths = System.currentTimeMillis() - millis < sixMonthsInMillis;
-                String pattern = modifiedWithinSixMonths ? "MMM ppd HH:mm" : "MMM ppd  yyyy";
-                return DateTimeFormatter.ofPattern(pattern).format(dt);
-            }
-
-            protected Map<String, Object> readAttributes(Path path) {
-                Map<String, Object> attrs = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-                for (String view : path.getFileSystem().supportedFileAttributeViews()) {
-                    try {
-                        Map<String, Object> viewAttributes =
-                                Files.readAttributes(path, view + ":*", getLinkOptions(opt.isSet("L")));
-                        viewAttributes.forEach(attrs::putIfAbsent);
-                    } catch (IOException e) {
-                        // Ignore
-                    }
-                }
-                attrs.computeIfAbsent("isExecutable", s -> Files.isExecutable(path));
-                attrs.computeIfAbsent("permissions", s -> getPermissionsFromFile(path));
-                return attrs;
-            }
-        }
-
         Path currentDir = context.currentDir();
         // Listing
         List<Path> expanded = new ArrayList<>();
@@ -1876,15 +1706,15 @@ public class PosixCommands {
         }
         boolean listAll = opt.isSet("a");
         Predicate<Path> filter = p -> listAll || !isHiddenFile(p);
-        List<PathEntry> all = expanded.stream()
+        List<LsEntry> all = expanded.stream()
                 .filter(filter)
-                .map(p -> new PathEntry(p, currentDir))
+                .map(p -> new LsEntry(p, currentDir, opt, colors))
                 .sorted()
                 .collect(Collectors.toList());
         // Print files first
-        List<PathEntry> files = all.stream().filter(PathEntry::isNotDirectory).collect(Collectors.toList());
+        List<LsEntry> files = all.stream().filter(LsEntry::isNotDirectory).collect(Collectors.toList());
         PrintStream out = context.out();
-        Consumer<Stream<PathEntry>> display = s -> {
+        Consumer<Stream<LsEntry>> display = s -> {
             boolean optLine = opt.isSet("1");
             boolean optComma = opt.isSet("m");
             boolean optLong = opt.isSet("l");
@@ -1898,19 +1728,19 @@ public class PosixCommands {
             }
             // One entry per line
             if (optLine) {
-                s.map(PathEntry::display).forEach(out::println);
+                s.map(LsEntry::display).forEach(out::println);
             }
             // Comma separated list
             else if (optComma) {
-                out.println(s.map(PathEntry::display).collect(Collectors.joining(", ")));
+                out.println(s.map(LsEntry::display).collect(Collectors.joining(", ")));
             }
             // Long listing
             else if (optLong) {
-                s.map(PathEntry::longDisplay).forEach(out::println);
+                s.map(LsEntry::longDisplay).forEach(out::println);
             }
             // Column listing
             else {
-                toColumn(context, out, s.map(PathEntry::display), opt.isSet("x"));
+                toColumn(context, out, s.map(LsEntry::display), opt.isSet("x"));
             }
         };
         boolean space = false;
@@ -1919,9 +1749,9 @@ public class PosixCommands {
             space = true;
         }
         // Print directories
-        List<PathEntry> directories =
-                all.stream().filter(PathEntry::isDirectory).collect(Collectors.toList());
-        for (PathEntry entry : directories) {
+        List<LsEntry> directories =
+                all.stream().filter(LsEntry::isDirectory).collect(Collectors.toList());
+        for (LsEntry entry : directories) {
             if (space) {
                 out.println();
             }
@@ -1933,7 +1763,7 @@ public class PosixCommands {
             try (Stream<Path> pathStream = Files.list(path)) {
                 display.accept(Stream.concat(Stream.of(".", "..").map(path::resolve), pathStream)
                         .filter(filter)
-                        .map(p -> new PathEntry(p, path))
+                        .map(p -> new LsEntry(p, path, opt, colors))
                         .sorted());
             }
         }
@@ -2138,8 +1968,8 @@ public class PosixCommands {
     private static final int DEFAULT_BUFFER_SIZE = 8192;
     private static final int DEFAULT_HEAD_LINES = 10;
     private static final int DEFAULT_TAIL_LINES = 10;
-    private static final String[] SIZE_UNITS = {"B", "K", "M", "G", "T", "P"};
-    private static final long SIZE_THRESHOLD = 1000L;
+    static final String[] SIZE_UNITS = {"B", "K", "M", "G", "T", "P"};
+    static final long SIZE_THRESHOLD = 1000L;
 
     private static final LinkOption[] EMPTY_LINK_OPTIONS = new LinkOption[0];
     private static final LinkOption[] NO_FOLLOW_OPTIONS = new LinkOption[] {LinkOption.NOFOLLOW_LINKS};
@@ -2195,7 +2025,7 @@ public class PosixCommands {
      * terminal (set the window title, write the clipboard via OSC 52, ...) when it
      * is listed. Printable Unicode is kept so ordinary names render unchanged.
      */
-    private static String stripControlChars(String s) {
+    static String stripControlChars(String s) {
         if (s == null) {
             return null;
         }
@@ -2239,7 +2069,7 @@ public class PosixCommands {
     /**
      * Get link options based on whether to follow links.
      */
-    private static LinkOption[] getLinkOptions(boolean followLinks) {
+    static LinkOption[] getLinkOptions(boolean followLinks) {
         if (followLinks) {
             return EMPTY_LINK_OPTIONS;
         } else { // return a clone that modifications to the array will not affect others
@@ -2265,7 +2095,7 @@ public class PosixCommands {
     /**
      * Get POSIX file permissions from a file, with Windows executable handling.
      */
-    private static Set<PosixFilePermission> getPermissionsFromFile(Path f) {
+    static Set<PosixFilePermission> getPermissionsFromFile(Path f) {
         Set<PosixFilePermission> perms = new HashSet<>();
         try {
             perms = Files.getPosixFilePermissions(f);
