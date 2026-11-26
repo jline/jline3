@@ -312,4 +312,31 @@ class FfmTest {
         }
         assertEquals(expected, Kernel32.getErrorMessage(errorCode));
     }
+
+    @Test
+    @EnabledOnOs(OS.WINDOWS)
+    void consoleTitleIsPassedAsUtf16() throws Throwable {
+        Linker linker = Linker.nativeLinker();
+        SymbolLookup kernel32 = SymbolLookup.libraryLookup("kernel32", Arena.global());
+        MethodHandle getConsoleTitleW = linker.downcallHandle(
+                kernel32.find("GetConsoleTitleW").orElseThrow(),
+                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
+        int capacity = 1024;
+        try (Arena arena = Arena.ofConfined()) {
+            MemorySegment buffer = arena.allocate(ValueLayout.JAVA_CHAR, capacity);
+            int length = (int) getConsoleTitleW.invokeExact(buffer, capacity);
+            assumeTrue(length > 0, "no console attached");
+            String original = new String(buffer.asSlice(0, length * 2L).toArray(ValueLayout.JAVA_CHAR));
+            try {
+                // any title was mojibake; "jline" (5 UTF-8 bytes, odd) also caused an over-read,
+                // since a one-byte terminator does not end a WCHAR string
+                String title = "jline";
+                assertNotEquals(0, WindowsAnsiWriter.setConsoleTitle(title));
+                length = (int) getConsoleTitleW.invokeExact(buffer, capacity);
+                assertEquals(title, new String(buffer.asSlice(0, length * 2L).toArray(ValueLayout.JAVA_CHAR)));
+            } finally {
+                WindowsAnsiWriter.setConsoleTitle(original);
+            }
+        }
+    }
 }

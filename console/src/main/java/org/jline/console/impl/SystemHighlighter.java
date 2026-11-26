@@ -140,7 +140,9 @@ public class SystemHighlighter extends DefaultHighlighter {
 
     @Override
     public AttributedString highlight(LineReader reader, String buffer) {
-        return doDefaultHighlight(reader) ? super.highlight(reader, buffer) : systemHighlight(reader, buffer);
+        return doDefaultHighlight(reader)
+                ? super.highlight(reader, buffer)
+                : escapeControlChars(systemHighlight(reader, buffer));
     }
 
     public void addFileHighlight(String... commands) {

@@ -9,11 +9,13 @@
 package org.jline.shell;
 
 /**
- * Expands variables and other expressions in a command line before parsing.
+ * Expands variables and other expressions in a command line.
  * <p>
- * A {@code LineExpander} operates on the full command line string (not per-word
+ * A {@code LineExpander} operates on a command line string (not per-word
  * like {@link org.jline.reader.Expander}). It is called after alias expansion
- * and before pipeline parsing.
+ * and after pipeline parsing, once for the command line of each pipeline stage
+ * and once for each redirection target, so that an expanded value cannot
+ * introduce pipeline operators or redirections.
  * <p>
  * The exact expansion syntax is controlled by the implementation. Users can
  * provide their own {@code LineExpander} to support custom variable syntax,

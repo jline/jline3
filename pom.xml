@@ -123,7 +123,7 @@
         <picocli.version>4.7.7</picocli.version>
         <graal.version>25.5.5.0.3</graal.version>
         <graal.plugin.version>21.2.0</graal.plugin.version>
-        <native.plugin.version>1.1.18</native.plugin.version>
+        <native.plugin.version>1.1.19</native.plugin.version>
         <palantir.version>2.103.0</palantir.version>
 
         <surefire.argLine>--add-opens java.base/java.io=org.jline.nativ --add-opens java.base/java.io=org.jline.terminal</surefire.argLine>
@@ -432,12 +432,12 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>build-helper-maven-plugin</artifactId>
-                    <version>3.7.0</version>
+                    <version>3.8.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>
-                    <version>3.6.4</version>
+                    <version>3.7.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.graalvm.nativeimage</groupId>
@@ -534,7 +534,7 @@
                 <plugin>
                     <groupId>com.diffplug.spotless</groupId>
                     <artifactId>spotless-maven-plugin</artifactId>
-                    <version>3.11.0</version>
+                    <version>3.12.0</version>
                     <configuration>
                         <java>
                             <toggleOffOn />

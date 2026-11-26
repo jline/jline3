@@ -608,7 +608,8 @@ public final class InfoCmp {
         // argument, so a value like "-1" or "-A/some/dir" is taken as an option (CWE-88). Only run
         // infocmp for names within the terminfo alias character set; the pure map lookups above and
         // below are unaffected.
-        if (caps == null && isValidTerminalName(terminal)) {
+        boolean runInfocmp = OSUtils.INFOCMP_COMMAND != null && isValidTerminalName(terminal);
+        if (caps == null && runInfocmp) {
             try {
                 Process p = new ProcessBuilder(OSUtils.INFOCMP_COMMAND, "-x", terminal).start();
                 caps = ExecHelper.waitAndCapture(p);
@@ -621,7 +622,7 @@ public final class InfoCmp {
                 error.addSuppressed(e);
             }
         }
-        if (caps == null && isValidTerminalName(terminal)) {
+        if (caps == null && runInfocmp) {
             try {
                 Process p = new ProcessBuilder(OSUtils.INFOCMP_COMMAND, terminal).start();
                 caps = ExecHelper.waitAndCapture(p);

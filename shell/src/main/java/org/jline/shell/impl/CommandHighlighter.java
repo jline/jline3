@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 
 import org.jline.reader.Highlighter;
 import org.jline.reader.LineReader;
+import org.jline.reader.impl.DefaultHighlighter;
 import org.jline.shell.CommandDispatcher;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
@@ -79,7 +80,7 @@ public class CommandHighlighter implements Highlighter {
         AttributedStringBuilder sb = new AttributedStringBuilder();
         // Split the buffer by pipeline operators and highlight each segment
         highlightBuffer(sb, buffer);
-        return sb.toAttributedString();
+        return DefaultHighlighter.escapeControlChars(sb.toAttributedString());
     }
 
     private void highlightBuffer(AttributedStringBuilder sb, String buffer) {
