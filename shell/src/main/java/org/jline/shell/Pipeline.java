@@ -109,6 +109,22 @@ public interface Pipeline {
         Operator operator();
 
         /**
+         * Returns the raw redirect target string, if this stage has a REDIRECT or APPEND operator.
+         * <p>
+         * Unlike {@link #redirectTarget()}, this method returns the token exactly as it was
+         * parsed, before any {@code Path.of()} conversion. This is safe to call even when the
+         * token contains characters that would be invalid in a platform path (e.g. {@code :}
+         * inside a shell default-expression like {@code ${VAR:-default.txt}} on Windows).
+         *
+         * @return the raw redirect target string, or null
+         * @since 4.0
+         */
+        default String redirectTargetString() {
+            Path p = redirectTarget();
+            return p != null ? p.toString() : null;
+        }
+
+        /**
          * Returns the redirect target path, if this stage has a REDIRECT or APPEND operator.
          *
          * @return the redirect path, or null
@@ -121,6 +137,21 @@ public interface Pipeline {
          * @return true if append
          */
         boolean isAppend();
+
+        /**
+         * Returns the raw input source string, if this stage has an INPUT_REDIRECT operator.
+         * <p>
+         * Unlike {@link #inputSource()}, this method returns the token exactly as it was parsed,
+         * before any {@code Path.of()} conversion. This is safe to call even when the token
+         * contains characters that would be invalid in a platform path.
+         *
+         * @return the raw input source string, or null
+         * @since 4.0
+         */
+        default String inputSourceString() {
+            Path p = inputSource();
+            return p != null ? p.toString() : null;
+        }
 
         /**
          * Returns the input source path, if this stage has an INPUT_REDIRECT operator.

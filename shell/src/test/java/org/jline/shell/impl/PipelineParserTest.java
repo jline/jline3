@@ -86,6 +86,32 @@ class PipelineParserTest {
     }
 
     @Test
+    void parseRedirectWithColonInTarget() {
+        // Regression: ${VAR:-default.txt} contains ':' which is invalid in a Windows path.
+        // PipelineParser must NOT call Path.of() on the raw token during parse; it must
+        // keep the raw string so that variable expansion can run first.
+        Pipeline pipeline = parser.parse("echo hello > ${OUT:-fallback.txt}");
+        assertEquals(1, pipeline.stages().size());
+        Pipeline.Stage stage = pipeline.stages().get(0);
+        assertEquals("echo hello", stage.commandLine());
+        assertEquals(Operator.REDIRECT, stage.operator());
+        // Raw string is preserved as-is, colon and all
+        assertEquals("${OUT:-fallback.txt}", stage.redirectTargetString());
+        assertFalse(stage.isAppend());
+    }
+
+    @Test
+    void parseInputRedirectWithColonInTarget() {
+        // Same regression for input redirect.
+        Pipeline pipeline = parser.parse("cat < ${IN:-default.txt}");
+        assertEquals(1, pipeline.stages().size());
+        Pipeline.Stage stage = pipeline.stages().get(0);
+        assertEquals("cat", stage.commandLine());
+        // Input redirect is stored on its own stage with no operator
+        assertEquals("${IN:-default.txt}", stage.inputSourceString());
+    }
+
+    @Test
     void parseRedirect() {
         Pipeline pipeline = parser.parse("ls > output.txt");
         assertEquals(1, pipeline.stages().size());

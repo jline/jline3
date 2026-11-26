@@ -8,7 +8,6 @@
  */
 package org.jline.shell.impl;
 
-import java.nio.file.Path;
 import java.util.*;
 
 import org.jline.shell.Pipeline;
@@ -135,21 +134,24 @@ public class PipelineParser {
                         || op == Operator.APPEND
                         || op == Operator.STDERR_REDIRECT
                         || op == Operator.COMBINED_REDIRECT) {
-                    // Next token should be the file path
-                    Path target = null;
+                    // Keep the redirect target as a raw string to avoid Path.of() on
+                    // unexpanded tokens (e.g. ${VAR:-default.txt} contains ':' which
+                    // is invalid in a Windows path). Path.of() is applied after expansion.
+                    String target = null;
                     if (i + 1 < tokens.size()) {
                         i++;
-                        target = Path.of(tokens.get(i).value.trim());
+                        target = tokens.get(i).value.trim();
                     }
-                    stages.add(new DefaultPipeline.DefaultStage(cmd, op, target, op == Operator.APPEND));
+                    stages.add(
+                            DefaultPipeline.DefaultStage.fromRawStrings(cmd, op, target, op == Operator.APPEND, null));
                 } else if (op == Operator.INPUT_REDIRECT) {
-                    // Next token should be the input file path
-                    Path inputFile = null;
+                    // Same deferral for input redirect targets.
+                    String inputFile = null;
                     if (i + 1 < tokens.size()) {
                         i++;
-                        inputFile = Path.of(tokens.get(i).value.trim());
+                        inputFile = tokens.get(i).value.trim();
                     }
-                    stages.add(new DefaultPipeline.DefaultStage(cmd, null, null, false, inputFile));
+                    stages.add(DefaultPipeline.DefaultStage.fromRawStrings(cmd, null, null, false, inputFile));
                 } else if (op == Operator.HEREDOC) {
                     // Next token should be the delimiter; for now treat similarly to input redirect
                     if (i + 1 < tokens.size()) {
