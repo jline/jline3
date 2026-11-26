@@ -161,20 +161,21 @@ class VariableCommandsTest extends AbstractCommandsTest {
         // Regression for issue #2461: ${VAR:-default.txt} contains ':' which is invalid
         // in a Windows path. PipelineParser must keep the raw string until after expansion,
         // otherwise Path.of("${OUT:-fallback.txt}") throws InvalidPathException on Windows.
+        // UNSET_OUT is not in the session, so the default "fallback.txt" is used.
         Path target = tempDir.resolve("fallback.txt");
-        // OUT is unset, so the default "fallback.txt" should be used after expansion
         dispatcher.session().put("TMPDIR", tempDir.toString());
-        dispatcher.execute("echo hello > ${TMPDIR}/" + target.getFileName());
+        dispatcher.execute("echo hello > ${TMPDIR}/${UNSET_OUT:-fallback.txt}");
         assertEquals("hello", Files.readString(target).trim());
     }
 
     @Test
     void inputSourceWithDefaultExpression() throws Exception {
         // Regression for issue #2461: same as above but for input redirect.
+        // UNSET_IN is not in the session, so the default "in.txt" is used.
         Path source = tempDir.resolve("in.txt");
         Files.writeString(source, "from file\n");
         dispatcher.session().put("TMPDIR", tempDir.toString());
-        Object result = dispatcher.execute("cat < ${TMPDIR}/" + source.getFileName());
+        Object result = dispatcher.execute("cat < ${TMPDIR}/${UNSET_IN:-in.txt}");
         assertEquals("from file", result);
     }
 

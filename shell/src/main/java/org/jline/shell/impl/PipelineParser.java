@@ -142,7 +142,8 @@ public class PipelineParser {
                         i++;
                         target = tokens.get(i).value.trim();
                     }
-                    stages.add(new DefaultPipeline.DefaultStage(cmd, op, target, op == Operator.APPEND, null));
+                    stages.add(
+                            DefaultPipeline.DefaultStage.fromRawStrings(cmd, op, target, op == Operator.APPEND, null));
                 } else if (op == Operator.INPUT_REDIRECT) {
                     // Same deferral for input redirect targets.
                     String inputFile = null;
@@ -150,7 +151,7 @@ public class PipelineParser {
                         i++;
                         inputFile = tokens.get(i).value.trim();
                     }
-                    stages.add(new DefaultPipeline.DefaultStage(cmd, null, null, false, inputFile));
+                    stages.add(DefaultPipeline.DefaultStage.fromRawStrings(cmd, null, null, false, inputFile));
                 } else if (op == Operator.HEREDOC) {
                     // Next token should be the delimiter; for now treat similarly to input redirect
                     if (i + 1 < tokens.size()) {
