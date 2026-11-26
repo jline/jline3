@@ -1446,26 +1446,7 @@ public class PosixCommands {
         boolean invert = opt.isSet("invert-match");
         boolean lineNumber = opt.isSet("line-number");
         String color = opt.isSet("color") ? opt.get("color") : "auto";
-        boolean colored;
-        switch (color) {
-            case "always":
-            case "yes":
-            case "force":
-                colored = true;
-                break;
-            case "never":
-            case "no":
-            case "none":
-                colored = false;
-                break;
-            case "auto":
-            case "tty":
-            case "if-tty":
-                colored = context.isTty();
-                break;
-            default:
-                throw new IllegalArgumentException("invalid argument '" + color + "' for '--color'");
-        }
+        boolean colored = isColorEnabled(context, color);
         Map<String, String> colors =
                 colored ? (colorMap != null ? colorMap : getColorMap(DEFAULT_GREP_COLORS)) : Collections.emptyMap();
 
@@ -1717,26 +1698,7 @@ public class PosixCommands {
         Map<String, String> colorMap = getLsColorMap(context);
 
         String color = opt.isSet("color") ? opt.get("color") : "auto";
-        boolean colored;
-        switch (color) {
-            case "always":
-            case "yes":
-            case "force":
-                colored = true;
-                break;
-            case "never":
-            case "no":
-            case "none":
-                colored = false;
-                break;
-            case "auto":
-            case "tty":
-            case "if-tty":
-                colored = context.isTty();
-                break;
-            default:
-                throw new IllegalArgumentException("invalid argument '" + color + "' for '--color'");
-        }
+        boolean colored = isColorEnabled(context, color);
         Map<String, String> colors =
                 colored ? (colorMap != null ? colorMap : getLsColorMap(DEFAULT_LS_COLORS)) : Collections.emptyMap();
 
@@ -1977,6 +1939,33 @@ public class PosixCommands {
                         .map(p -> new PathEntry(p, path))
                         .sorted());
             }
+        }
+    }
+
+    /**
+     * Resolve the value of a {@code --color=WHEN} option, as accepted by {@code ls} and {@code grep}.
+     *
+     * @param context the command context, used to detect whether output goes to a terminal
+     * @param when one of {@code always/yes/force}, {@code never/no/none} or {@code auto/tty/if-tty}
+     * @return {@code true} if the output should be colorized
+     * @throws IllegalArgumentException if {@code when} is not a recognized value
+     */
+    private static boolean isColorEnabled(Context context, String when) {
+        switch (when) {
+            case "always":
+            case "yes":
+            case "force":
+                return true;
+            case "never":
+            case "no":
+            case "none":
+                return false;
+            case "auto":
+            case "tty":
+            case "if-tty":
+                return context.isTty();
+            default:
+                throw new IllegalArgumentException("invalid argument '" + when + "' for '--color'");
         }
     }
 
