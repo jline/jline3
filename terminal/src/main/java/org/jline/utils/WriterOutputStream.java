@@ -47,6 +47,9 @@ import java.nio.charset.CodingErrorAction;
  * redirect an {@link OutputStream} to a {@link Writer} for compatibility
  * purposes. It is much more efficient to write to the {@link Writer}
  * directly.</p>
+ *
+ * <p>This class is thread-safe; concurrent calls to {@code write}, {@code flush},
+ * and {@code close} are synchronized.</p>
  */
 public class WriterOutputStream extends OutputStream {
 
@@ -69,17 +72,17 @@ public class WriterOutputStream extends OutputStream {
     }
 
     @Override
-    public void write(int b) throws IOException {
+    public synchronized void write(int b) throws IOException {
         write(new byte[] {(byte) b}, 0, 1);
     }
 
     @Override
-    public void write(byte[] b) throws IOException {
+    public synchronized void write(byte[] b) throws IOException {
         write(b, 0, b.length);
     }
 
     @Override
-    public void write(byte[] b, int off, int len) throws IOException {
+    public synchronized void write(byte[] b, int off, int len) throws IOException {
         while (len > 0) {
             final int c = Math.min(len, decoderIn.remaining());
             decoderIn.put(b, off, c);
@@ -91,13 +94,13 @@ public class WriterOutputStream extends OutputStream {
     }
 
     @Override
-    public void flush() throws IOException {
+    public synchronized void flush() throws IOException {
         flushOutput();
         out.flush();
     }
 
     @Override
-    public void close() throws IOException {
+    public synchronized void close() throws IOException {
         processInput(true);
         flush();
         out.close();
