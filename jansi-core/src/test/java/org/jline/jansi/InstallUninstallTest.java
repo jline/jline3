@@ -8,12 +8,17 @@
  */
 package org.jline.jansi;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 
+import org.jline.terminal.Terminal.SignalHandler;
+import org.jline.terminal.impl.DeferredTerminal;
+import org.jline.terminal.impl.DumbTerminal;
 import org.jline.terminal.impl.DumbTerminalProvider;
 import org.jline.terminal.impl.LineDisciplineTerminal;
 import org.jline.terminal.spi.SystemStream;
@@ -24,6 +29,81 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class InstallUninstallTest {
+
+    @Test
+    void stripsAnsiFromDeferredDumbTerminalCompletedDuringInstall() throws Exception {
+        // Simulate the race: the DeferredTerminal is NOT ready when isReady() would be checked,
+        // but completes synchronously inside getSystemStream() (which calls future.join()).
+        // The fix moves the effective-terminal resolution to after getSystemStream() returns,
+        // so the classification is always consistent regardless of when completion occurs.
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        DumbTerminal dumb = new DumbTerminal(
+                new DumbTerminalProvider(),
+                SystemStream.Output,
+                "test",
+                "dumb",
+                new ByteArrayInputStream(new byte[0]),
+                output,
+                StandardCharsets.UTF_8,
+                SignalHandler.SIG_DFL);
+        CountDownLatch latch = new CountDownLatch(1);
+        DeferredTerminal terminal = new DeferredTerminal() {
+            @Override
+            public SystemStream getSystemStream() {
+                // Mimic completion arriving just as getSystemStream() is entered —
+                // exactly the race window the fix closes.
+                complete(dumb);
+                latch.countDown();
+                return super.getSystemStream();
+            }
+        };
+        AnsiConsole.setTerminal(terminal);
+        try {
+            AnsiConsole.systemInstall();
+            latch.await();
+            assertEquals(AnsiType.Unsupported, AnsiConsole.out().getType());
+            AnsiConsole.out().print("\033[31mdeferred race output\033[0m");
+            AnsiConsole.out().flush();
+        } finally {
+            if (AnsiConsole.isInstalled()) {
+                AnsiConsole.systemUninstall();
+            } else {
+                AnsiConsole.setTerminal(null);
+                terminal.close();
+            }
+        }
+        assertEquals("deferred race output", output.toString(StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void stripsAnsiFromADeferredDumbTerminal() throws Exception {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        DeferredTerminal terminal = new DeferredTerminal();
+        terminal.complete(new DumbTerminal(
+                new DumbTerminalProvider(),
+                SystemStream.Output,
+                "test",
+                "dumb",
+                new ByteArrayInputStream(new byte[0]),
+                output,
+                StandardCharsets.UTF_8,
+                SignalHandler.SIG_DFL));
+        AnsiConsole.setTerminal(terminal);
+        try {
+            AnsiConsole.systemInstall();
+            assertEquals(AnsiType.Unsupported, AnsiConsole.out().getType());
+            AnsiConsole.out().print("\033[31mdeferred output\033[0m");
+            AnsiConsole.out().flush();
+        } finally {
+            if (AnsiConsole.isInstalled()) {
+                AnsiConsole.systemUninstall();
+            } else {
+                AnsiConsole.setTerminal(null);
+                terminal.close();
+            }
+        }
+        assertEquals("deferred output", output.toString(StandardCharsets.UTF_8));
+    }
 
     @Test
     void testInstallUninstall() {

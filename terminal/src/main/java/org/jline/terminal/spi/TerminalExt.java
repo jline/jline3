@@ -38,6 +38,12 @@ import org.jline.terminal.Terminal;
  */
 public interface TerminalExt extends Terminal {
 
+    @Override
+    default String describe() {
+        TerminalProvider provider = getProvider();
+        return Terminal.super.describe() + (provider != null ? ", provider=" + provider.name() : "");
+    }
+
     /**
      * Returns the terminal provider that created this terminal.
      *

@@ -31,6 +31,27 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PosixSysTerminalTest {
 
     @Test
+    void descriptionIncludesTheProviderAndPty() throws Exception {
+        Pty pty = EasyMock.createNiceMock(Pty.class);
+        EasyMock.expect(pty.getAttr()).andReturn(new Attributes()).anyTimes();
+        EasyMock.expect(pty.getSlaveInput())
+                .andReturn(new ByteArrayInputStream(new byte[0]))
+                .anyTimes();
+        EasyMock.expect(pty.getSlaveOutput())
+                .andReturn(new ByteArrayOutputStream())
+                .anyTimes();
+        EasyMock.expect(pty.getProvider()).andReturn(new DumbTerminalProvider()).anyTimes();
+        EasyMock.replay(pty);
+        try (PosixSysTerminal terminal =
+                new PosixSysTerminal("name", "xterm", pty, null, false, SignalHandler.SIG_DFL)) {
+            String description = terminal.describe();
+            assertTrue(description.contains("type=xterm"));
+            assertTrue(description.contains("provider=dumb"));
+            assertTrue(description.contains("pty=" + pty));
+        }
+    }
+
+    @Test
     void testNativeSignalsDefault() throws Exception {
         Pty pty = EasyMock.createNiceMock(Pty.class);
         EasyMock.expect(pty.getAttr()).andReturn(new Attributes()).anyTimes();

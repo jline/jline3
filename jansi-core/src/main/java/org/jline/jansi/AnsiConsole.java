@@ -18,6 +18,7 @@ import org.jline.jansi.io.AnsiOutputStream;
 import org.jline.jansi.io.AnsiProcessor;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.impl.DeferredTerminal;
 import org.jline.terminal.impl.DumbTerminal;
 import org.jline.terminal.spi.SystemStream;
 import org.jline.terminal.spi.TerminalExt;
@@ -274,8 +275,19 @@ public class AnsiConsole {
             type = AnsiType.Unsupported;
         } else {
             TerminalExt terminalExt = (TerminalExt) terminal;
+            // getSystemStream() blocks until a DeferredTerminal is ready, ensuring the
+            // effective-terminal resolution below is race-free (no isReady() pre-check needed).
             SystemStream systemStream = terminalExt.getSystemStream();
-            if (systemStream == null) {
+            // Unwrap a DeferredTerminal after the blocking call so that a dumb delegate is
+            // correctly classified as Unsupported regardless of when completion occurred.
+            Terminal effectiveTerminal = terminal;
+            while (effectiveTerminal instanceof DeferredTerminal) {
+                effectiveTerminal = ((DeferredTerminal) effectiveTerminal).getTerminal();
+            }
+            if (effectiveTerminal instanceof DumbTerminal) {
+                out = terminal.output();
+                type = AnsiType.Unsupported;
+            } else if (systemStream == null) {
                 out = terminal.output();
                 type = AnsiType.Redirected;
             } else {

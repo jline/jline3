@@ -32,6 +32,9 @@ import org.jline.terminal.MouseEvent;
 import org.jline.terminal.Size;
 import org.jline.terminal.Sized;
 import org.jline.terminal.Terminal;
+import org.jline.terminal.spi.SystemStream;
+import org.jline.terminal.spi.TerminalExt;
+import org.jline.terminal.spi.TerminalProvider;
 import org.jline.utils.AttributedCharSequence;
 import org.jline.utils.ColorPalette;
 import org.jline.utils.InfoCmp.Capability;
@@ -67,7 +70,7 @@ import org.jline.utils.OSUtils;
  *
  * <p>Obtain via {@link org.jline.terminal.TerminalBuilder#buildDeferred()}.</p>
  */
-public class DeferredTerminal implements Terminal {
+public class DeferredTerminal implements TerminalExt {
 
     private final CompletableFuture<Terminal> future = new CompletableFuture<>();
     private final AtomicReference<Consumer<Terminal>> onComplete = new AtomicReference<>();
@@ -190,6 +193,7 @@ public class DeferredTerminal implements Terminal {
         return terminal();
     }
 
+    @Override
     public boolean isReady() {
         return future.isDone() && !future.isCancelled() && !future.isCompletedExceptionally();
     }
@@ -370,6 +374,28 @@ public class DeferredTerminal implements Terminal {
     }
 
     // -- Blocking methods: require the real terminal --
+
+    /**
+     * Waits for initialization, then returns the underlying terminal's description.
+     *
+     * @return a description of the underlying terminal
+     */
+    @Override
+    public String describe() {
+        return terminal().describe();
+    }
+
+    @Override
+    public TerminalProvider getProvider() {
+        Terminal terminal = terminal();
+        return terminal instanceof TerminalExt ? ((TerminalExt) terminal).getProvider() : null;
+    }
+
+    @Override
+    public SystemStream getSystemStream() {
+        Terminal terminal = terminal();
+        return terminal instanceof TerminalExt ? ((TerminalExt) terminal).getSystemStream() : null;
+    }
 
     @Override
     public SignalHandler handle(Signal signal, SignalHandler handler) {

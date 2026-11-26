@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -944,20 +945,44 @@ public final class TerminalBuilder {
      * @since 4.7.0
      */
     public Terminal buildDeferred() {
+        return buildDeferred(null);
+    }
+
+    /**
+     * Builds a terminal asynchronously and registers a callback before construction starts.
+     *
+     * <p>The callback receives the underlying terminal once construction and buffered output replay
+     * complete. It runs on the build thread and may run before this method returns. It is not called
+     * if construction fails or the returned terminal is closed before construction completes.</p>
+     *
+     * <p>If the callback throws, the build thread's uncaught exception handler receives the exception.
+     * The completed terminal remains ready for use.</p>
+     *
+     * @param onComplete the callback, or {@code null} if none is required
+     * @return a terminal proxy that completes in the background
+     * @see #buildDeferred()
+     * @since 4.7.1
+     */
+    public Terminal buildDeferred(Consumer<Terminal> onComplete) {
         if (in != null || out != null) {
             throw new IllegalStateException("buildDeferred() is only supported for system terminals. "
                     + "Use build() for terminals with custom streams.");
         }
         DeferredTerminal deferred = new DeferredTerminal(color != null ? color : getBoolean(PROP_DUMB_COLOR, null));
+        if (onComplete != null) {
+            deferred.onComplete(onComplete);
+        }
         Thread t = new Thread(
                 () -> {
+                    Terminal built;
                     try {
-                        Terminal built = build();
-                        if (!deferred.complete(built)) {
-                            closeQuietly(built);
-                        }
+                        built = build();
                     } catch (Exception e) {
                         deferred.completeExceptionally(e);
+                        return;
+                    }
+                    if (!deferred.complete(built)) {
+                        closeQuietly(built);
                     }
                 },
                 "jline-terminal-build");
