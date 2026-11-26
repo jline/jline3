@@ -700,7 +700,9 @@ JNIEXPORT jint JNICALL Kernel32_NATIVE(SetConsoleTitle)
 	const jchar *lparg0= NULL;
 	jint rc = 0;
 	if (arg0) if ((lparg0 = (*env)->GetStringChars(env, arg0, NULL)) == NULL) goto fail;
-	rc = (jint)SetConsoleTitle(lparg0);
+	/* GetStringChars returns UTF-16 code units; call SetConsoleTitleW explicitly
+	 * so the wide variant is used regardless of whether UNICODE is defined. */
+	rc = (jint)SetConsoleTitleW((LPCWSTR)lparg0);
 fail:
 	if (arg0 && lparg0) (*env)->ReleaseStringChars(env, arg0, lparg0);
 	return rc;
