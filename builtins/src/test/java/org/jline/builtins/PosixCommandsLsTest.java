@@ -88,6 +88,30 @@ class PosixCommandsLsTest {
     }
 
     @Test
+    void formatFlagPrecedence() throws Exception {
+        write("a.txt", 1);
+        write("b.txt", 1);
+        // -m wins over -l and -C
+        PosixCommands.ls(context, new String[] {"ls", "--color=never", "-C", "-l", "-m", "a.txt", "b.txt"});
+        assertEquals("a.txt, b.txt\n", output());
+        // -1 wins over everything else
+        out.reset();
+        PosixCommands.ls(context, new String[] {"ls", "--color=never", "-m", "-1", "a.txt", "b.txt"});
+        assertEquals("a.txt\nb.txt\n", output());
+    }
+
+    @Test
+    void defaultsToOneEntryPerLineWhenNotATerminal() throws Exception {
+        write("a.txt", 1);
+        write("b.txt", 1);
+        PrintStream err = new PrintStream(new ByteArrayOutputStream());
+        PosixCommands.Context notATty =
+                new PosixCommands.Context(System.in, new PrintStream(out), err, tempDir, null, n -> null);
+        PosixCommands.ls(notATty, new String[] {"ls", "a.txt", "b.txt"});
+        assertEquals("a.txt\nb.txt\n", output());
+    }
+
+    @Test
     void hiddenFilesAreOnlyListedWithAllFlag() throws Exception {
         write(".hidden", 1);
         write("visible", 1);

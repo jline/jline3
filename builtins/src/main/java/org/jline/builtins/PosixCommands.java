@@ -1713,35 +1713,9 @@ public class PosixCommands {
         // Print files first
         List<LsEntry> files = all.stream().filter(LsEntry::isNotDirectory).collect(Collectors.toList());
         PrintStream out = context.out();
-        Consumer<Stream<LsEntry>> display = s -> {
-            boolean optLine = opt.isSet("1");
-            boolean optComma = opt.isSet("m");
-            boolean optLong = opt.isSet("l");
-            boolean optCol = opt.isSet("C");
-            if (!optLine && !optComma && !optLong && !optCol) {
-                if (context.isTty()) {
-                    optCol = true;
-                } else {
-                    optLine = true;
-                }
-            }
-            // One entry per line
-            if (optLine) {
-                s.map(LsEntry::display).forEach(out::println);
-            }
-            // Comma separated list
-            else if (optComma) {
-                out.println(s.map(LsEntry::display).collect(Collectors.joining(", ")));
-            }
-            // Long listing
-            else if (optLong) {
-                s.map(LsEntry::longDisplay).forEach(out::println);
-            }
-            // Column listing
-            else {
-                toColumn(context, out, s.map(LsEntry::display), opt.isSet("x"));
-            }
-        };
+        LsFormat format = LsFormat.select(opt, context.isTty());
+        boolean horizontal = opt.isSet("x");
+        Consumer<Stream<LsEntry>> display = entries -> format.print(context, out, entries, horizontal);
         boolean space = false;
         if (!files.isEmpty()) {
             display.accept(files.stream());
@@ -1792,6 +1766,63 @@ public class PosixCommands {
                 return context.isTty();
             default:
                 throw new IllegalArgumentException("invalid argument '" + when + "' for '--color'");
+        }
+    }
+
+    /**
+     * The output layouts of {@code ls}. Each layout knows how to print a stream of entries.
+     */
+    private enum LsFormat {
+        /** {@code -1}: one entry per line. */
+        ONE_PER_LINE {
+            @Override
+            void print(Context context, PrintStream out, Stream<LsEntry> entries, boolean horizontal) {
+                entries.map(LsEntry::display).forEach(out::println);
+            }
+        },
+        /** {@code -m}: a single comma separated line. */
+        COMMA_SEPARATED {
+            @Override
+            void print(Context context, PrintStream out, Stream<LsEntry> entries, boolean horizontal) {
+                out.println(entries.map(LsEntry::display).collect(Collectors.joining(", ")));
+            }
+        },
+        /** {@code -l}: long listing with permissions, owner, size and date. */
+        LONG {
+            @Override
+            void print(Context context, PrintStream out, Stream<LsEntry> entries, boolean horizontal) {
+                entries.map(LsEntry::longDisplay).forEach(out::println);
+            }
+        },
+        /** {@code -C}: entries arranged in columns, row by row when {@code -x} is set. */
+        COLUMNS {
+            @Override
+            void print(Context context, PrintStream out, Stream<LsEntry> entries, boolean horizontal) {
+                toColumn(context, out, entries.map(LsEntry::display), horizontal);
+            }
+        };
+
+        abstract void print(Context context, PrintStream out, Stream<LsEntry> entries, boolean horizontal);
+
+        /**
+         * Select the layout requested by the options, in order of precedence {@code -1}, {@code -m},
+         * {@code -l}, {@code -C}. Without any of them, output to a terminal uses columns and other output
+         * uses one entry per line.
+         */
+        static LsFormat select(Options opt, boolean tty) {
+            if (opt.isSet("1")) {
+                return ONE_PER_LINE;
+            }
+            if (opt.isSet("m")) {
+                return COMMA_SEPARATED;
+            }
+            if (opt.isSet("l")) {
+                return LONG;
+            }
+            if (opt.isSet("C")) {
+                return COLUMNS;
+            }
+            return tty ? COLUMNS : ONE_PER_LINE;
         }
     }
 
