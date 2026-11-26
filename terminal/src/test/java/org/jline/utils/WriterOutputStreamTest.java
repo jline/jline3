@@ -81,9 +81,7 @@ class WriterOutputStreamTest {
         wos.flush();
 
         String result = sw.toString();
-        assertFalse(result.contains("\uFFFD"), "Output should not contain replacement characters");
-        assertEquals(threads * iterations * line.length(), result.length());
-        assertEquals(threads * iterations, result.lines().count());
+        assertEquals(line.repeat(threads * iterations), result);
     }
 
     @Test
