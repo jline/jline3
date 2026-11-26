@@ -63,13 +63,20 @@ public class DefaultPipeline implements Pipeline {
 
     /**
      * Default implementation of {@link Stage}.
+     * <p>
+     * Redirect targets and input sources are stored as raw strings to avoid calling
+     * {@code Path.of()} on unexpanded tokens that may contain shell syntax characters
+     * (such as {@code :} in {@code ${VAR:-default.txt}}) that are invalid in platform
+     * paths on Windows. {@code Path} objects are derived on demand via the
+     * {@link #redirectTarget()} and {@link #inputSource()} getters, which must only be
+     * called after variable expansion has been applied to the raw strings.
      */
     public static class DefaultStage implements Stage {
         private final String commandLine;
         private final Operator operator;
-        private final Path redirectTarget;
+        private final String redirectTargetString;
         private final boolean append;
-        private final Path inputSource;
+        private final String inputSourceString;
 
         /**
          * Creates a new stage.
@@ -80,7 +87,7 @@ public class DefaultPipeline implements Pipeline {
          * @param append whether to append (for APPEND operator)
          */
         public DefaultStage(String commandLine, Operator operator, Path redirectTarget, boolean append) {
-            this(commandLine, operator, redirectTarget, append, null);
+            this(commandLine, operator, redirectTarget, append, (Path) null);
         }
 
         /**
@@ -96,9 +103,35 @@ public class DefaultPipeline implements Pipeline {
                 String commandLine, Operator operator, Path redirectTarget, boolean append, Path inputSource) {
             this.commandLine = commandLine;
             this.operator = operator;
-            this.redirectTarget = redirectTarget;
+            this.redirectTargetString = redirectTarget != null ? redirectTarget.toString() : null;
             this.append = append;
-            this.inputSource = inputSource;
+            this.inputSourceString = inputSource != null ? inputSource.toString() : null;
+        }
+
+        /**
+         * Creates a new stage with raw string redirect target and input source.
+         * <p>
+         * Use this constructor when the target strings have not yet been through variable
+         * expansion and may contain shell syntax that is invalid as a platform path
+         * (e.g. {@code ${VAR:-fallback.txt}} on Windows).
+         *
+         * @param commandLine the command line for this stage
+         * @param operator the operator following this stage (null for last stage)
+         * @param redirectTargetString the raw redirect target string, or null
+         * @param append whether to append (for APPEND operator)
+         * @param inputSourceString the raw input source string, or null
+         */
+        public DefaultStage(
+                String commandLine,
+                Operator operator,
+                String redirectTargetString,
+                boolean append,
+                String inputSourceString) {
+            this.commandLine = commandLine;
+            this.operator = operator;
+            this.redirectTargetString = redirectTargetString;
+            this.append = append;
+            this.inputSourceString = inputSourceString;
         }
 
         @Override
@@ -112,8 +145,13 @@ public class DefaultPipeline implements Pipeline {
         }
 
         @Override
+        public String redirectTargetString() {
+            return redirectTargetString;
+        }
+
+        @Override
         public Path redirectTarget() {
-            return redirectTarget;
+            return redirectTargetString != null ? Path.of(redirectTargetString) : null;
         }
 
         @Override
@@ -122,8 +160,13 @@ public class DefaultPipeline implements Pipeline {
         }
 
         @Override
+        public String inputSourceString() {
+            return inputSourceString;
+        }
+
+        @Override
         public Path inputSource() {
-            return inputSource;
+            return inputSourceString != null ? Path.of(inputSourceString) : null;
         }
 
         @Override
@@ -131,8 +174,8 @@ public class DefaultPipeline implements Pipeline {
             StringBuilder sb = new StringBuilder(commandLine);
             if (operator != null) {
                 sb.append(" ").append(operator.symbol());
-                if (redirectTarget != null) {
-                    sb.append(" ").append(redirectTarget);
+                if (redirectTargetString != null) {
+                    sb.append(" ").append(redirectTargetString);
                 }
             }
             return sb.toString();

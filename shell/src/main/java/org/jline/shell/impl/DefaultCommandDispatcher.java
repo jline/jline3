@@ -238,21 +238,23 @@ public class DefaultCommandDispatcher implements CommandDispatcher {
             stages.add(new DefaultPipeline.DefaultStage(
                     lineExpander.expand(stage.commandLine(), session),
                     stage.operator(),
-                    expandPath(stage.redirectTarget()),
+                    expandPath(stage.redirectTargetString()),
                     stage.isAppend(),
-                    expandPath(stage.inputSource())));
+                    expandPath(stage.inputSourceString())));
         }
         return new DefaultPipeline(Collections.unmodifiableList(stages), pipeline.source(), pipeline.isBackground());
     }
 
-    private Path expandPath(Path path) {
-        if (path == null) {
+    private Path expandPath(String raw) {
+        if (raw == null) {
             return null;
         }
-        // Path.toString() uses '\' on Windows, which the expander reads as an escape
-        // and which hides a leading "~/"; both separators name the same path there.
-        // Path.of() re-normalizes the result back to the platform separator.
-        String text = path.toString().replace(File.separatorChar, '/');
+        // Expand shell variables in the raw redirect-target string before converting to a
+        // Path. Working with the raw string (rather than Path.toString()) avoids the
+        // Windows path separator ('\\') being misread by the expander as an escape character
+        // and hiding a leading "~/". Both separators name the same file on Windows, so
+        // normalising to '/' here is safe.
+        String text = raw.replace(File.separatorChar, '/');
         return Path.of(lineExpander.expand(text, session));
     }
 
