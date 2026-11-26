@@ -347,7 +347,8 @@ public class ShellBuilder {
     /**
      * Sets the line expander for variable expansion.
      * <p>
-     * The line expander is called after alias expansion and before pipeline parsing.
+     * The line expander is called after alias expansion and pipeline parsing, on each
+     * stage's command line and redirection targets.
      *
      * @param lineExpander the line expander
      * @return this builder

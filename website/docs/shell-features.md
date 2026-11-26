@@ -240,7 +240,7 @@ cmd &> all.txt             # capture both stdout and stderr
 
 ## Variable Expansion
 
-The `LineExpander` interface provides pluggable variable expansion that runs after alias expansion and before pipeline parsing.
+The `LineExpander` interface provides pluggable variable expansion that runs after alias expansion and pipeline parsing. It is applied to each stage's command line and to redirection targets, so operators such as `;`, `|` or `>` inside a variable value are passed as text and do not start a new command or redirection.
 
 ### Setting Up
 
