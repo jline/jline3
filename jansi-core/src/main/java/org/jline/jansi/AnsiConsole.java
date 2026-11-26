@@ -271,7 +271,7 @@ public class AnsiConsole {
         width = terminal::getColumns;
 
         Terminal effectiveTerminal = terminal;
-        while (effectiveTerminal instanceof DeferredTerminal) {
+        while (effectiveTerminal instanceof DeferredTerminal && ((DeferredTerminal) effectiveTerminal).isReady()) {
             effectiveTerminal = ((DeferredTerminal) effectiveTerminal).getTerminal();
         }
         if (effectiveTerminal instanceof DumbTerminal) {
