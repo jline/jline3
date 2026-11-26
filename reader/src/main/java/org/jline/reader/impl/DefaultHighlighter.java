@@ -153,5 +153,43 @@ public class DefaultHighlighter implements Highlighter {
         return sb.toAttributedString();
     }
 
+    /**
+     * Renders control characters in an already highlighted string the way {@link #highlight} does
+     * for a plain buffer: C0 controls other than TAB and LF are shown in inverse caret notation and
+     * DEL and C1 controls are dropped, so they never reach the terminal as part of an escape sequence.
+     * Styles of the surrounding text are kept. The input is returned as is when it holds no control
+     * characters.
+     * <p>
+     * Highlighters that build their result from raw slices of the buffer should pass it through this
+     * method, since the buffer can hold text that was never typed (a completed file name, a bracketed
+     * paste, a recalled history entry).
+     *
+     * @param str the highlighted string
+     * @return the string with control characters escaped
+     */
+    public static AttributedString escapeControlChars(AttributedString str) {
+        AttributedStringBuilder sb = null;
+        int start = 0;
+        for (int i = 0; i < str.length(); i++) {
+            char c = str.charAt(i);
+            boolean control = c < 32 ? c != '\t' && c != '\n' : c >= 0x7f && c < 0xa0;
+            if (control) {
+                if (sb == null) {
+                    sb = new AttributedStringBuilder(str.length() + 8);
+                }
+                sb.append(str, start, i);
+                if (c < 32) {
+                    sb.append("^" + (char) (c + '@'), str.styleAt(i).inverseNeg());
+                }
+                start = i + 1;
+            }
+        }
+        if (sb == null) {
+            return str;
+        }
+        sb.append(str, start, str.length());
+        return sb.toAttributedString();
+    }
+
     protected void commandStyle(LineReader reader, AttributedStringBuilder sb, boolean enable) {}
 }
