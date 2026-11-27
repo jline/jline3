@@ -184,12 +184,12 @@ class PosixCommandsLsTest {
     void humanReadableSizesIgnoreTheDefaultLocale() throws Exception {
         Assumptions.assumeTrue(isPosix(), "POSIX file attributes not supported on this platform");
         write("kilo", 2048);
-        Locale previous = Locale.getDefault();
+        Locale previous = Locale.getDefault(Locale.Category.FORMAT);
         try {
-            Locale.setDefault(Locale.GERMANY); // uses ',' as the decimal separator
+            Locale.setDefault(Locale.Category.FORMAT, Locale.GERMANY); // uses ',' as the decimal separator
             PosixCommands.ls(context, new String[] {"ls", "--color=never", "-l", "-h", "kilo"});
         } finally {
-            Locale.setDefault(previous);
+            Locale.setDefault(Locale.Category.FORMAT, previous);
         }
         String line = output().split("\n")[0];
         assertTrue(line.contains(" 2.0K "), line);
