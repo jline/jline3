@@ -168,7 +168,7 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
                 outConsoleMode);
     }
 
-    @SuppressWarnings("this-escape")
+    @SuppressWarnings({"this-escape", "removal"})
     public AbstractWindowsTerminal(
             TerminalProvider provider,
             SystemStream systemStream,
@@ -188,7 +188,7 @@ public abstract class AbstractWindowsTerminal<Console> extends AbstractTerminal 
         super(name, type, encoding, inputEncoding, outputEncoding, signalHandler);
         this.provider = provider;
         this.systemStream = systemStream;
-        this.softwareSignals = Boolean.parseBoolean(System.getProperty(PROP_SOFTWARE_SIGNALS, "true"));
+        this.softwareSignals = Boolean.parseBoolean(System.getProperty(PROP_SOFTWARE_SIGNALS, "false"));
         NonBlockingPumpReader reader = NonBlocking.nonBlockingPumpReader();
         this.slaveInputPipe = reader.getWriter();
         this.reader = reader;
