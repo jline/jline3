@@ -160,9 +160,12 @@ class PosixCommandsLsTest {
         write("plain", 1);
 
         PosixCommands.ls(context, new String[] {"ls", "--color=never", "-1", "-F"});
+
         List<String> lines = Arrays.asList(output().split("\n"));
         assertTrue(lines.contains("dir/"), lines.toString());
-        assertTrue(lines.contains("plain"), lines.toString());
+
+        String plain = Files.isExecutable(tempDir.resolve("plain")) ? "plain*" : "plain";
+        assertTrue(lines.contains(plain), lines.toString());
     }
 
     @Test
