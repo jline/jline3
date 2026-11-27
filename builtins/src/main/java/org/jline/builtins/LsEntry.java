@@ -60,9 +60,7 @@ final class LsEntry implements Comparable<LsEntry> {
         this.opt = opt;
         this.colors = colors;
         try {
-            this.path = Files.isSameFile(abs, root)
-                    ? Path.of(".")
-                    : abs.startsWith(root) ? root.relativize(abs) : abs;
+            this.path = Files.isSameFile(abs, root) ? Path.of(".") : abs.startsWith(root) ? root.relativize(abs) : abs;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -81,8 +79,7 @@ final class LsEntry implements Comparable<LsEntry> {
         }
         if (opt.isSet("S")) {
             long size = attributes.get("size") != null ? ((Number) attributes.get("size")).longValue() : 0L;
-            long otherSize =
-                    o.attributes.get("size") != null ? ((Number) o.attributes.get("size")).longValue() : 0L;
+            long otherSize = o.attributes.get("size") != null ? ((Number) o.attributes.get("size")).longValue() : 0L;
             return size > otherSize
                     ? -1
                     : size < otherSize ? 1 : path.toString().compareTo(o.path.toString());
@@ -152,8 +149,8 @@ final class LsEntry implements Comparable<LsEntry> {
 
         @SuppressWarnings("unchecked")
         Set<PosixFilePermission> perms = (Set<PosixFilePermission>) attributes.get("permissions");
-        String permissions = PosixFilePermissions.toString(
-                perms != null ? perms : EnumSet.noneOf(PosixFilePermission.class));
+        String permissions =
+                PosixFilePermissions.toString(perms != null ? perms : EnumSet.noneOf(PosixFilePermission.class));
 
         String fileType = is("isDirectory") ? "d" : (is("isSymbolicLink") ? "l" : (is("isOther") ? "o" : "-"));
         String linkCount = Objects.toString(attributes.get("nlink"), "1");
@@ -177,8 +174,7 @@ final class LsEntry implements Comparable<LsEntry> {
             }
             double size = bytes;
             int unitIndex = 0;
-            while (size >= SIZE_THRESHOLD
-                    && unitIndex < SIZE_UNITS.length - 1) {
+            while (size >= SIZE_THRESHOLD && unitIndex < SIZE_UNITS.length - 1) {
                 size /= 1024;
                 unitIndex++;
             }

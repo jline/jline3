@@ -12,7 +12,6 @@ import java.io.*;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.nio.file.*;
-import java.nio.file.attribute.PosixFilePermission;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -1722,8 +1721,7 @@ public class PosixCommands {
             space = true;
         }
         // Print directories
-        List<LsEntry> directories =
-                all.stream().filter(LsEntry::isDirectory).collect(Collectors.toList());
+        List<LsEntry> directories = all.stream().filter(LsEntry::isDirectory).collect(Collectors.toList());
         for (LsEntry entry : directories) {
             if (space) {
                 out.println();
@@ -1998,7 +1996,6 @@ public class PosixCommands {
     private static final int DEFAULT_BUFFER_SIZE = 8192;
     private static final int DEFAULT_HEAD_LINES = 10;
     private static final int DEFAULT_TAIL_LINES = 10;
-
 
     private static final Pattern COLOR_FORMAT_PATTERN =
             Pattern.compile("[a-z]{2}=[0-9]*(;[0-9]+)*(:[a-z]{2}=[0-9]*(;[0-9]+)*)*");
