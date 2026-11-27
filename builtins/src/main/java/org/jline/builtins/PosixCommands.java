@@ -12,15 +12,8 @@ import java.io.*;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.nio.file.*;
-import java.nio.file.attribute.FileTime;
-import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
@@ -48,7 +41,6 @@ import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.InfoCmp.Capability;
-import org.jline.utils.OSUtils;
 import org.jline.utils.RegexTimeoutException;
 import org.jline.utils.SafeRegex;
 import org.jline.utils.StyleResolver;
@@ -1446,26 +1438,7 @@ public class PosixCommands {
         boolean invert = opt.isSet("invert-match");
         boolean lineNumber = opt.isSet("line-number");
         String color = opt.isSet("color") ? opt.get("color") : "auto";
-        boolean colored;
-        switch (color) {
-            case "always":
-            case "yes":
-            case "force":
-                colored = true;
-                break;
-            case "never":
-            case "no":
-            case "none":
-                colored = false;
-                break;
-            case "auto":
-            case "tty":
-            case "if-tty":
-                colored = context.isTty();
-                break;
-            default:
-                throw new IllegalArgumentException("invalid argument '" + color + "' for '--color'");
-        }
+        boolean colored = isColorEnabled(context, color);
         Map<String, String> colors =
                 colored ? (colorMap != null ? colorMap : getColorMap(DEFAULT_GREP_COLORS)) : Collections.emptyMap();
 
@@ -1717,191 +1690,9 @@ public class PosixCommands {
         Map<String, String> colorMap = getLsColorMap(context);
 
         String color = opt.isSet("color") ? opt.get("color") : "auto";
-        boolean colored;
-        switch (color) {
-            case "always":
-            case "yes":
-            case "force":
-                colored = true;
-                break;
-            case "never":
-            case "no":
-            case "none":
-                colored = false;
-                break;
-            case "auto":
-            case "tty":
-            case "if-tty":
-                colored = context.isTty();
-                break;
-            default:
-                throw new IllegalArgumentException("invalid argument '" + color + "' for '--color'");
-        }
+        boolean colored = isColorEnabled(context, color);
         Map<String, String> colors =
                 colored ? (colorMap != null ? colorMap : getLsColorMap(DEFAULT_LS_COLORS)) : Collections.emptyMap();
-
-        class PathEntry implements Comparable<PathEntry> {
-            final Path abs;
-            final Path path;
-            final Map<String, Object> attributes;
-
-            public PathEntry(Path abs, Path root) {
-                this.abs = abs;
-                try {
-                    this.path = Files.isSameFile(abs, root)
-                            ? Path.of(".")
-                            : abs.startsWith(root) ? root.relativize(abs) : abs;
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-                this.attributes = readAttributes(abs);
-            }
-
-            @Override
-            public int compareTo(PathEntry o) {
-                int c = doCompare(o);
-                return opt.isSet("r") ? -c : c;
-            }
-
-            private int doCompare(PathEntry o) {
-                if (opt.isSet("f")) {
-                    return -1;
-                }
-                if (opt.isSet("S")) {
-                    long s0 = attributes.get("size") != null ? ((Number) attributes.get("size")).longValue() : 0L;
-                    long s1 = o.attributes.get("size") != null ? ((Number) o.attributes.get("size")).longValue() : 0L;
-                    return s0 > s1 ? -1 : s0 < s1 ? 1 : path.toString().compareTo(o.path.toString());
-                }
-                if (opt.isSet("t")) {
-                    long t0 = attributes.get("lastModifiedTime") != null
-                            ? ((FileTime) attributes.get("lastModifiedTime")).toMillis()
-                            : 0L;
-                    long t1 = o.attributes.get("lastModifiedTime") != null
-                            ? ((FileTime) o.attributes.get("lastModifiedTime")).toMillis()
-                            : 0L;
-                    return t0 > t1 ? -1 : t0 < t1 ? 1 : path.toString().compareTo(o.path.toString());
-                }
-                return path.toString().compareTo(o.path.toString());
-            }
-
-            boolean isNotDirectory() {
-                return is("isRegularFile") || is("isSymbolicLink") || is("isOther");
-            }
-
-            boolean isDirectory() {
-                return is("isDirectory");
-            }
-
-            private boolean is(String attr) {
-                Object d = attributes.get(attr);
-                return d instanceof Boolean && (Boolean) d;
-            }
-
-            String display() {
-                String type;
-                String suffix;
-                String link = "";
-                if (is("isSymbolicLink")) {
-                    type = "sl";
-                    suffix = "@";
-                    try {
-                        Path l = Files.readSymbolicLink(abs);
-                        link = " -> " + stripControlChars(l.toString());
-                    } catch (IOException e) {
-                        // ignore
-                    }
-                } else if (is("isDirectory")) {
-                    type = "dr";
-                    suffix = "/";
-                } else if (is("isExecutable")) {
-                    type = "ex";
-                    suffix = "*";
-                } else if (is("isOther")) {
-                    type = "ot";
-                    suffix = "";
-                } else {
-                    type = "";
-                    suffix = "";
-                }
-                boolean addSuffix = opt.isSet("F");
-                return applyStyle(stripControlChars(path.toString()), colors, type) + (addSuffix ? suffix : "") + link;
-            }
-
-            String longDisplay() {
-                String username = Objects.toString(attributes.get("owner"), "owner");
-                String group = Objects.toString(attributes.get("group"), "group");
-                String size = formatSize();
-
-                @SuppressWarnings("unchecked")
-                Set<PosixFilePermission> perms = (Set<PosixFilePermission>) attributes.get("permissions");
-                String permissions = PosixFilePermissions.toString(
-                        perms != null ? perms : EnumSet.noneOf(PosixFilePermission.class));
-
-                String fileType = is("isDirectory") ? "d" : (is("isSymbolicLink") ? "l" : (is("isOther") ? "o" : "-"));
-                String linkCount = Objects.toString(attributes.get("nlink"), "1");
-                String modTime = toString((FileTime) attributes.get("lastModifiedTime"));
-                String fileName = display();
-
-                return String.format(
-                        "%s%s %3s %-8.8s %-8.8s %8s %s %s",
-                        fileType, permissions, linkCount, username, group, size, modTime, fileName);
-            }
-
-            private String formatSize() {
-                Number length = (Number) attributes.get("size");
-                if (length == null) {
-                    length = 0L;
-                }
-                if (opt.isSet("h")) {
-                    long bytes = length.longValue();
-                    if (bytes < SIZE_THRESHOLD) {
-                        return bytes + "B";
-                    }
-                    double size = bytes;
-                    int unitIndex = 0;
-                    while (size >= SIZE_THRESHOLD && unitIndex < SIZE_UNITS.length - 1) {
-                        size /= 1024;
-                        unitIndex++;
-                    }
-                    String format = (size < 10 && bytes > SIZE_THRESHOLD) ? "%.1f" : "%.0f";
-                    return String.format(format, size) + SIZE_UNITS[unitIndex];
-                } else {
-                    return length.toString();
-                }
-            }
-
-            protected String toString(FileTime time) {
-                long millis = (time != null) ? time.toMillis() : -1L;
-                if (millis < 0L) {
-                    return "------------";
-                }
-                ZonedDateTime dt = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault());
-                // Less than six months
-                if (System.currentTimeMillis() - millis < 183L * 24L * 60L * 60L * 1000L) {
-                    return DateTimeFormatter.ofPattern("MMM ppd HH:mm").format(dt);
-                }
-                // Older than six months
-                else {
-                    return DateTimeFormatter.ofPattern("MMM ppd  yyyy").format(dt);
-                }
-            }
-
-            protected Map<String, Object> readAttributes(Path path) {
-                Map<String, Object> attrs = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-                for (String view : path.getFileSystem().supportedFileAttributeViews()) {
-                    try {
-                        Map<String, Object> ta =
-                                Files.readAttributes(path, view + ":*", getLinkOptions(opt.isSet("L")));
-                        ta.forEach(attrs::putIfAbsent);
-                    } catch (IOException e) {
-                        // Ignore
-                    }
-                }
-                attrs.computeIfAbsent("isExecutable", s -> Files.isExecutable(path));
-                attrs.computeIfAbsent("permissions", s -> getPermissionsFromFile(path));
-                return attrs;
-            }
-        }
 
         Path currentDir = context.currentDir();
         // Listing
@@ -1912,57 +1703,26 @@ public class PosixCommands {
             opt.args().stream().flatMap(s -> maybeExpandGlob(context, s)).forEach(expanded::add);
         }
         boolean listAll = opt.isSet("a");
-        Predicate<Path> filter = p -> listAll
-                || p.getFileName() == null // root
-                || p.getFileName().toString().equals(".")
-                || p.getFileName().toString().equals("..")
-                || !p.getFileName().toString().startsWith(".");
-        List<PathEntry> all = expanded.stream()
+        Predicate<Path> filter = p -> listAll || !isHiddenFile(p);
+        List<LsEntry> all = expanded.stream()
                 .filter(filter)
-                .map(p -> new PathEntry(p, currentDir))
+                .map(p -> new LsEntry(p, currentDir, opt, colors))
                 .sorted()
                 .collect(Collectors.toList());
         // Print files first
-        List<PathEntry> files = all.stream().filter(PathEntry::isNotDirectory).collect(Collectors.toList());
+        List<LsEntry> files = all.stream().filter(LsEntry::isNotDirectory).collect(Collectors.toList());
         PrintStream out = context.out();
-        Consumer<Stream<PathEntry>> display = s -> {
-            boolean optLine = opt.isSet("1");
-            boolean optComma = opt.isSet("m");
-            boolean optLong = opt.isSet("l");
-            boolean optCol = opt.isSet("C");
-            if (!optLine && !optComma && !optLong && !optCol) {
-                if (context.isTty()) {
-                    optCol = true;
-                } else {
-                    optLine = true;
-                }
-            }
-            // One entry per line
-            if (optLine) {
-                s.map(PathEntry::display).forEach(out::println);
-            }
-            // Comma separated list
-            else if (optComma) {
-                out.println(s.map(PathEntry::display).collect(Collectors.joining(", ")));
-            }
-            // Long listing
-            else if (optLong) {
-                s.map(PathEntry::longDisplay).forEach(out::println);
-            }
-            // Column listing
-            else {
-                toColumn(context, out, s.map(PathEntry::display), opt.isSet("x"));
-            }
-        };
+        LsFormat format = LsFormat.select(opt, context.isTty());
+        boolean horizontal = opt.isSet("x");
+        Consumer<Stream<LsEntry>> display = entries -> format.print(context, out, entries, horizontal);
         boolean space = false;
         if (!files.isEmpty()) {
             display.accept(files.stream());
             space = true;
         }
         // Print directories
-        List<PathEntry> directories =
-                all.stream().filter(PathEntry::isDirectory).collect(Collectors.toList());
-        for (PathEntry entry : directories) {
+        List<LsEntry> directories = all.stream().filter(LsEntry::isDirectory).collect(Collectors.toList());
+        for (LsEntry entry : directories) {
             if (space) {
                 out.println();
             }
@@ -1974,10 +1734,108 @@ public class PosixCommands {
             try (Stream<Path> pathStream = Files.list(path)) {
                 display.accept(Stream.concat(Stream.of(".", "..").map(path::resolve), pathStream)
                         .filter(filter)
-                        .map(p -> new PathEntry(p, path))
+                        .map(p -> new LsEntry(p, path, opt, colors))
                         .sorted());
             }
         }
+    }
+
+    /**
+     * Resolve the value of a {@code --color=WHEN} option, as accepted by {@code ls} and {@code grep}.
+     *
+     * @param context the command context, used to detect whether output goes to a terminal
+     * @param when one of {@code always/yes/force}, {@code never/no/none} or {@code auto/tty/if-tty}
+     * @return {@code true} if the output should be colorized
+     * @throws IllegalArgumentException if {@code when} is not a recognized value
+     */
+    private static boolean isColorEnabled(Context context, String when) {
+        switch (when) {
+            case "always":
+            case "yes":
+            case "force":
+                return true;
+            case "never":
+            case "no":
+            case "none":
+                return false;
+            case "auto":
+            case "tty":
+            case "if-tty":
+                return context.isTty();
+            default:
+                throw new IllegalArgumentException("invalid argument '" + when + "' for '--color'");
+        }
+    }
+
+    /**
+     * The output layouts of {@code ls}. Each layout knows how to print a stream of entries.
+     */
+    private enum LsFormat {
+        /** {@code -1}: one entry per line. */
+        ONE_PER_LINE {
+            @Override
+            void print(Context context, PrintStream out, Stream<LsEntry> entries, boolean horizontal) {
+                entries.map(LsEntry::display).forEach(out::println);
+            }
+        },
+        /** {@code -m}: a single comma separated line. */
+        COMMA_SEPARATED {
+            @Override
+            void print(Context context, PrintStream out, Stream<LsEntry> entries, boolean horizontal) {
+                out.println(entries.map(LsEntry::display).collect(Collectors.joining(", ")));
+            }
+        },
+        /** {@code -l}: long listing with permissions, owner, size and date. */
+        LONG {
+            @Override
+            void print(Context context, PrintStream out, Stream<LsEntry> entries, boolean horizontal) {
+                entries.map(LsEntry::longDisplay).forEach(out::println);
+            }
+        },
+        /** {@code -C}: entries arranged in columns, row by row when {@code -x} is set. */
+        COLUMNS {
+            @Override
+            void print(Context context, PrintStream out, Stream<LsEntry> entries, boolean horizontal) {
+                toColumn(context, out, entries.map(LsEntry::display), horizontal);
+            }
+        };
+
+        abstract void print(Context context, PrintStream out, Stream<LsEntry> entries, boolean horizontal);
+
+        /**
+         * Select the layout requested by the options, in order of precedence {@code -1}, {@code -m},
+         * {@code -l}, {@code -C}. Without any of them, output to a terminal uses columns and other output
+         * uses one entry per line.
+         */
+        static LsFormat select(Options opt, boolean tty) {
+            if (opt.isSet("1")) {
+                return ONE_PER_LINE;
+            }
+            if (opt.isSet("m")) {
+                return COMMA_SEPARATED;
+            }
+            if (opt.isSet("l")) {
+                return LONG;
+            }
+            if (opt.isSet("C")) {
+                return COLUMNS;
+            }
+            return tty ? COLUMNS : ONE_PER_LINE;
+        }
+    }
+
+    /**
+     * Whether {@code ls} hides the given path unless {@code -a} is set: its name starts with a dot,
+     * except for the file system root and the {@code .} and {@code ..} entries, which are always listed.
+     */
+    private static boolean isHiddenFile(Path path) {
+        Path fileName = path.getFileName();
+        if (fileName == null) { // file system root
+            return false;
+        }
+        String name = fileName.toString();
+        boolean isDotEntry = name.equals(".") || name.equals("..");
+        return !isDotEntry && name.startsWith(".");
     }
 
     private static List<Source> getSources(Context context, List<String> args) {
@@ -2138,12 +1996,6 @@ public class PosixCommands {
     private static final int DEFAULT_BUFFER_SIZE = 8192;
     private static final int DEFAULT_HEAD_LINES = 10;
     private static final int DEFAULT_TAIL_LINES = 10;
-    private static final String[] SIZE_UNITS = {"B", "K", "M", "G", "T", "P"};
-    private static final long SIZE_THRESHOLD = 1000L;
-
-    private static final LinkOption[] EMPTY_LINK_OPTIONS = new LinkOption[0];
-    private static final LinkOption[] NO_FOLLOW_OPTIONS = new LinkOption[] {LinkOption.NOFOLLOW_LINKS};
-    private static final List<String> WINDOWS_EXECUTABLE_EXTENSIONS = List.of(".bat", ".exe", ".cmd");
 
     private static final Pattern COLOR_FORMAT_PATTERN =
             Pattern.compile("[a-z]{2}=[0-9]*(;[0-9]+)*(:[a-z]{2}=[0-9]*(;[0-9]+)*)*");
@@ -2195,7 +2047,7 @@ public class PosixCommands {
      * terminal (set the window title, write the clipboard via OSC 52, ...) when it
      * is listed. Printable Unicode is kept so ordinary names render unchanged.
      */
-    private static String stripControlChars(String s) {
+    static String stripControlChars(String s) {
         if (s == null) {
             return null;
         }
@@ -2234,49 +2086,6 @@ public class PosixCommands {
             }
         }
         sb.style(new StyleResolver(colors::get).resolve("." + t));
-    }
-
-    /**
-     * Get link options based on whether to follow links.
-     */
-    private static LinkOption[] getLinkOptions(boolean followLinks) {
-        if (followLinks) {
-            return EMPTY_LINK_OPTIONS;
-        } else { // return a clone that modifications to the array will not affect others
-            return NO_FOLLOW_OPTIONS.clone();
-        }
-    }
-
-    /**
-     * Check if a file name is a Windows executable.
-     */
-    private static boolean isWindowsExecutable(String fileName) {
-        if ((fileName == null) || (fileName.length() <= 0)) {
-            return false;
-        }
-        for (String suffix : WINDOWS_EXECUTABLE_EXTENSIONS) {
-            if (fileName.endsWith(suffix)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Get POSIX file permissions from a file, with Windows executable handling.
-     */
-    private static Set<PosixFilePermission> getPermissionsFromFile(Path f) {
-        Set<PosixFilePermission> perms = new HashSet<>();
-        try {
-            perms = Files.getPosixFilePermissions(f);
-        } catch (IOException | UnsupportedOperationException ignore) {
-        }
-        if (OSUtils.IS_WINDOWS && isWindowsExecutable(f.getFileName().toString())) {
-            perms.add(PosixFilePermission.OWNER_EXECUTE);
-            perms.add(PosixFilePermission.GROUP_EXECUTE);
-            perms.add(PosixFilePermission.OTHERS_EXECUTE);
-        }
-        return perms;
     }
 
     /**
