@@ -176,10 +176,23 @@ class PosixCommandsLsTest {
 
         PosixCommands.ls(context, new String[] {"ls", "--color=never", "-l", "-h", "tiny", "kilo"});
         String[] lines = output().split("\n");
-        // formatSize() formats with the default locale, so 2.0K is "2,0K" under e.g. a German locale
-        String twoKilobytes = String.format("%.1f", 2.0) + "K";
-        assertTrue(lines[0].contains(" " + twoKilobytes + " ") && lines[0].endsWith(" kilo"), lines[0]);
+        assertTrue(lines[0].contains(" 2.0K ") && lines[0].endsWith(" kilo"), lines[0]);
         assertTrue(lines[1].contains(" 500B ") && lines[1].endsWith(" tiny"), lines[1]);
+    }
+
+    @Test
+    void humanReadableSizesIgnoreTheDefaultLocale() throws Exception {
+        Assumptions.assumeTrue(isPosix(), "POSIX file attributes not supported on this platform");
+        write("kilo", 2048);
+        Locale previous = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.GERMANY); // uses ',' as the decimal separator
+            PosixCommands.ls(context, new String[] {"ls", "--color=never", "-l", "-h", "kilo"});
+        } finally {
+            Locale.setDefault(previous);
+        }
+        String line = output().split("\n")[0];
+        assertTrue(line.contains(" 2.0K "), line);
     }
 
     @Test

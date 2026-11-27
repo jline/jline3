@@ -22,6 +22,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -179,7 +180,7 @@ final class LsEntry implements Comparable<LsEntry> {
                 unitIndex++;
             }
             String format = (size < 10 && bytes > SIZE_THRESHOLD) ? "%.1f" : "%.0f";
-            return String.format(format, size) + SIZE_UNITS[unitIndex];
+            return String.format(Locale.ROOT, format, size) + SIZE_UNITS[unitIndex];
         } else {
             return length.toString();
         }
