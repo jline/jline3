@@ -176,8 +176,10 @@ class PosixCommandsLsTest {
 
         PosixCommands.ls(context, new String[] {"ls", "--color=never", "-l", "-h", "tiny", "kilo"});
         String[] lines = output().split("\n");
-        assertTrue(lines[0].matches(".*\\s2\\.0K\\s.*kilo$"), lines[0]);
-        assertTrue(lines[1].matches(".*\\s500B\\s.*tiny$"), lines[1]);
+        // formatSize() formats with the default locale, so 2.0K is "2,0K" under e.g. a German locale
+        String twoKilobytes = String.format("%.1f", 2.0) + "K";
+        assertTrue(lines[0].contains(" " + twoKilobytes + " ") && lines[0].endsWith(" kilo"), lines[0]);
+        assertTrue(lines[1].contains(" 500B ") && lines[1].endsWith(" tiny"), lines[1]);
     }
 
     @Test
